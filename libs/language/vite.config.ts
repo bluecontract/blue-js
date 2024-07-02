@@ -59,5 +59,6 @@ export default defineConfig({
       reportsDirectory: '../../coverage/libs/language',
       provider: 'v8',
     },
+    setupFiles: ['./vitest-setup.ts'],
   },
 });
