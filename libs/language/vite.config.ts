@@ -4,6 +4,9 @@ import dts from 'vite-plugin-dts';
 import * as path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 
+// @ts-expect-error - This is a valid import.
+import packageJson from './package.json';
+
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/language',
@@ -41,7 +44,10 @@ export default defineConfig({
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: [],
+      external: (id) => {
+        const dependencies = packageJson.dependencies;
+        return !!dependencies[id];
+      },
     },
   },
 
