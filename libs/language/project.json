@@ -35,7 +35,7 @@
         "commands": ["yalc push"]
       }
     },
-    "watch-yalc-push": {
+    "yalc-push-watch": {
       "executor": "nx:run-commands",
       "options": {
         "commands": ["nx watch --projects=language -- nx yalc-push language"]
