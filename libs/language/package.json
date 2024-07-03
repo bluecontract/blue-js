@@ -1,5 +1,5 @@
 {
-  "name": "@blue/language-ts",
+  "name": "@blue-company/language",
   "version": "0.1.0",
   "dependencies": {},
   "main": "./index.js",

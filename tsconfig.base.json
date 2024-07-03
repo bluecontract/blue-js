@@ -15,7 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@blue/language-ts": ["libs/language/src/index.ts"]
+      "@blue-company/language": ["libs/language/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

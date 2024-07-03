@@ -28,7 +28,7 @@ blue-js/
 
 Currently, the following libraries are available in this monorepo:
 
-1. **@blue/language-ts**: ....
+1. **@blue-company/language**: ....
 
 For detailed information on each library, please refer to their respective README files located in the libs/ directory.
 
