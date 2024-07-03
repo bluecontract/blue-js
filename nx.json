@@ -16,6 +16,9 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "yalc-push": {
+      "dependsOn": ["build"]
     }
   },
   "release": {

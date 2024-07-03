@@ -27,6 +27,19 @@
       "options": {
         "packageRoot": "dist/{projectRoot}"
       }
+    },
+    "yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "dist/{projectRoot}",
+        "commands": ["yalc push"]
+      }
+    },
+    "watch-yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["nx watch --projects=language -- nx yalc-push language"]
+      }
     }
   }
 }
