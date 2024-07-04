@@ -1,9 +1,6 @@
 import { resolveBlueObjectItems } from '../resolveBlueObjectItems';
-import {
-  BlueObject,
-  BlueObjectWithId,
-  isBlueObjectResolved,
-} from '../../../schema';
+import { BlueObject, BlueObjectWithId } from '../../../schema';
+import { isBlueObjectResolved } from '../isBlueObjectResolved';
 
 describe('resolveBlueObjectItems - simple', () => {
   // Mock data

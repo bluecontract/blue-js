@@ -1,7 +1,6 @@
 import { SetRequired } from 'type-fest';
 import { BlueObject, BlueObjectWithId, blueObjectSchema } from './blueObject';
 import { isNonNullable } from '../utils/typeGuards';
-import { omit } from 'radash';
 
 export const isBlueObject = (value: unknown): value is BlueObject => {
   const blueObjectParseResult = blueObjectSchema.safeParse(value);
@@ -38,10 +37,4 @@ export const hasBlueObjectValueDefined = (
   value?: BlueObject
 ): value is SetRequired<BlueObject, 'value'> => {
   return isNonNullable(value) && 'value' in value && isNonNullable(value.value);
-};
-
-export const isBlueObjectResolved = (value?: BlueObject): boolean => {
-  return (
-    isNonNullable(value) && Object.keys(omit(value, ['blueId'])).length > 0
-  );
 };

@@ -1,11 +1,7 @@
 import { map } from 'radash';
-import {
-  BlueId,
-  BlueObject,
-  BlueObjectWithId,
-  isBlueObjectResolved,
-} from '../../schema';
+import { BlueId, BlueObject, BlueObjectWithId } from '../../schema';
 import { enrichWithBlueId } from './enrichWithBlueId';
+import { isBlueObjectResolved } from './isBlueObjectResolved';
 
 export type ResolveBlueObjectItemsOptions = {
   items: BlueObject[];

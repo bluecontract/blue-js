@@ -6,6 +6,9 @@ import {
   hasBlueObjectValueDefined,
 } from '../../schema';
 
+/**
+ * Get the type name of a BlueObject based on its type, value, or items.
+ */
 export const getBlueObjectTypeName = (blueObject: BlueObject) => {
   if (hasBlueObjectTypeDefined(blueObject)) {
     return blueObject.type.name ?? null;

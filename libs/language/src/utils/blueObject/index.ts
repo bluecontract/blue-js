@@ -1,5 +1,6 @@
 export { getBlueObjectProperties } from './getBlueObjectProperties';
 export { getBlueObjectTypeName } from './getBlueObjectTypeName';
+export * from './isBlueObjectResolved';
 export {
   normalizeToBlueObject,
   normalizeToBlueObjectJson,
