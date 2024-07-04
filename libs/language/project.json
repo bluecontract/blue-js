@@ -40,6 +40,12 @@
       "options": {
         "commands": ["nx watch --projects=language -- nx yalc-push language"]
       }
+    },
+    "tsc": {
+      "executor": "@webpro/nx-tsc:tsc",
+      "options": {
+        "tsConfig": ["tsconfig.lib.json", "tsconfig.spec.json"]
+      }
     }
   }
 }
