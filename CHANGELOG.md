@@ -1,3 +1,18 @@
+## 0.2.0 (2024-07-04)
+
+
+### 🚀 Features
+
+- add yalc configuration ([3238af5](https://github.com/bluecontract/blue-js/commit/3238af5))
+
+### 🩹 Fixes
+
+- Add publish package step and fix dependency issue ([e494b0a](https://github.com/bluecontract/blue-js/commit/e494b0a))
+
+### ❤️  Thank You
+
+- Mateusz Jonak
+
 ## 0.1.0 (2024-07-02)
 
 

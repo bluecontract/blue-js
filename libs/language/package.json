@@ -1,6 +1,6 @@
 {
   "name": "@blue-company/language",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "dependencies": {
     "zod": "3.23.8",
     "js-yaml": "4.1.0",
@@ -8,5 +8,13 @@
   },
   "main": "./index.js",
   "module": "./index.mjs",
-  "typings": "./index.d.ts"
+  "typings": "./index.d.ts",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  }
 }
