@@ -1,6 +1,6 @@
 {
   "name": "@blue-company/language",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "dependencies": {
     "zod": "3.23.8",
     "js-yaml": "4.1.0",

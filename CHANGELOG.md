@@ -1,3 +1,14 @@
+## 0.2.1 (2024-07-04)
+
+
+### 🩹 Fixes
+
+- documentation ([549d966](https://github.com/bluecontract/blue-js/commit/549d966))
+
+### ❤️  Thank You
+
+- Mateusz Jonak
+
 ## 0.2.0 (2024-07-04)
 
 
