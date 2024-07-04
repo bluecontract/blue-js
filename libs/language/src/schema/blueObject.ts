@@ -64,5 +64,7 @@ const _blueObjectSchema: z.ZodType<
 export const blueObjectSchema = _blueObjectSchema as z.ZodObject<
   BlueObjectShape,
   BaseBlueObjectUnknownKeys,
-  BaseBlueObjectCatchAll
+  BaseBlueObjectCatchAll,
+  BlueObject,
+  BlueObjectInput
 >;
