@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // @ts-expect-error - This is a valid import.
 import packageJson from './package.json';
@@ -16,6 +17,22 @@ export default defineConfig({
     dts({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
+    }),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'README.md',
+          dest: '.',
+        },
+        {
+          src: 'LICENSE.md',
+          dest: '.',
+        },
+        {
+          src: 'CONTRIBUTING.md',
+          dest: '.',
+        },
+      ],
     }),
   ],
 
