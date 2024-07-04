@@ -1,3 +1,14 @@
+## 0.3.1 (2024-07-04)
+
+
+### 🩹 Fixes
+
+- yamlBlueParse types ([7107baf](https://github.com/bluecontract/blue-js/commit/7107baf))
+
+### ❤️  Thank You
+
+- Mateusz Jonak
+
 ## 0.3.0 (2024-07-04)
 
 
