@@ -1,5 +1,5 @@
 import Big from 'big.js';
-import { JsonBluePrimitive } from '../../types';
+import { JsonPrimitive } from '../../schema';
 
 export class BlueNode {
   static INTEGER: BlueNode = new BlueNode('Integer');
@@ -7,7 +7,7 @@ export class BlueNode {
   private name?: string;
   private description?: string;
   private type?: BlueNode;
-  private value?: Exclude<JsonBluePrimitive, number> | Big;
+  private value?: Exclude<JsonPrimitive, number> | Big;
   private items?: BlueNode[];
   private properties?: Record<string, BlueNode>;
   private ref?: string;
@@ -61,7 +61,7 @@ export class BlueNode {
     return this.value;
   }
 
-  setValue(value: JsonBluePrimitive | Big): BlueNode {
+  setValue(value: JsonPrimitive | Big): BlueNode {
     if (typeof value === 'number') {
       this.value = new Big(value.toString());
     } else {

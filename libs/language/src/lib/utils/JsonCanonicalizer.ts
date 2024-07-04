@@ -1,9 +1,9 @@
 import {
   isBigNumber,
-  isJsonBluePrimitive,
+  isJsonPrimitive,
   isReadonlyArray,
 } from '../../utils/typeGuards';
-import { JsonBlueValue, JsonBluePrimitive } from '../../types';
+import { JsonBlueValue, JsonPrimitive } from '../../schema';
 import { Big } from 'big.js';
 
 export class JsonCanonicalizer {
@@ -14,7 +14,7 @@ export class JsonCanonicalizer {
   }
 
   private static serialize(object: JsonBlueValue, buffer: string[]): void {
-    if (isJsonBluePrimitive(object) || isBigNumber(object)) {
+    if (isJsonPrimitive(object) || isBigNumber(object)) {
       buffer.push(JsonCanonicalizer.stringify(object));
     } else if (Array.isArray(object) || isReadonlyArray(object)) {
       buffer.push('[');
@@ -36,7 +36,7 @@ export class JsonCanonicalizer {
     }
   }
 
-  private static stringify(value: JsonBluePrimitive | Big): string {
+  private static stringify(value: JsonPrimitive | Big): string {
     if (typeof value === 'string') {
       return `"${JsonCanonicalizer.escape(value)}"`;
     } else {

@@ -1,6 +1,6 @@
 import { BlueNode } from './Node';
 import { BlueId } from '../utils/BlueId';
-import { JsonBlueValue } from '../../types';
+import { JsonBlueValue } from '../../schema';
 import {
   OBJECT_BLUE_ID,
   OBJECT_DESCRIPTION,
@@ -10,7 +10,7 @@ import {
   OBJECT_TYPE,
   OBJECT_VALUE,
 } from '../utils/Properties';
-import { isBigNumber, isJsonBluePrimitive } from '../../utils/typeGuards';
+import { isBigNumber, isJsonPrimitive } from '../../utils/typeGuards';
 
 export class NodeDeserializer {
   static deserialize(json: JsonBlueValue): BlueNode {
@@ -20,7 +20,7 @@ export class NodeDeserializer {
   private static handleNode(node: JsonBlueValue): BlueNode {
     if (typeof node === 'string' && BlueId.isPotentialBlueId(node)) {
       return new BlueNode().setBlueId(node);
-    } else if (isJsonBluePrimitive(node) || isBigNumber(node)) {
+    } else if (isJsonPrimitive(node) || isBigNumber(node)) {
       return new BlueNode().setValue(node);
     } else if (Array.isArray(node)) {
       return NodeDeserializer.handleArray(node);
@@ -46,7 +46,7 @@ export class NodeDeserializer {
             obj.setType(NodeDeserializer.handleType(value));
             break;
           case OBJECT_VALUE:
-            if (!isJsonBluePrimitive(value) && !isBigNumber(value)) {
+            if (!isJsonPrimitive(value) && !isBigNumber(value)) {
               throw new Error(
                 `The ${OBJECT_VALUE} field must be a primitive or instance of Big class.`
               );

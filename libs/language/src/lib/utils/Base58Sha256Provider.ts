@@ -1,6 +1,6 @@
 import { JsonCanonicalizer } from './JsonCanonicalizer';
 import { Base58 } from './Base58';
-import { JsonBlueValue } from '../../types';
+import { JsonBlueValue } from '../../schema';
 import { Sha256 } from '@aws-crypto/sha256-universal';
 
 export class Base58Sha256Provider {

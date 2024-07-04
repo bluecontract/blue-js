@@ -1,4 +1,4 @@
-import { JsonBlueValue } from '../../../types';
+import { JsonBlueValue } from '../../../schema';
 import { JsonCanonicalizer } from '../JsonCanonicalizer';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
 

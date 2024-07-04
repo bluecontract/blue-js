@@ -1,6 +1,6 @@
 import { isArray } from 'radash';
 import { NodeDeserializer, BlueIdCalculator } from '../../lib';
-import { JsonBlueValue } from '../../types';
+import { JsonBlueValue } from '../../schema';
 
 export const calculateBlueIdForJsonValue = async (value: JsonBlueValue) => {
   if (isArray(value)) {

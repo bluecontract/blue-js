@@ -1,4 +1,4 @@
-import { JsonBlueValue } from '../../types';
+import { JsonBlueValue } from '../../schema';
 
 export const traverseAndFind = (
   obj: JsonBlueValue,

@@ -1,7 +1,7 @@
 import { NodeDeserializer } from '../NodeDeserializer';
 import Big from 'big.js';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
-import { JsonBlueValue } from '../../../types';
+import { JsonBlueValue } from '../../../schema';
 
 describe('NodeDeserializer', () => {
   it('testBasics', () => {

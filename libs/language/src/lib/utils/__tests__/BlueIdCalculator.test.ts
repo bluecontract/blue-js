@@ -1,6 +1,6 @@
 import { BlueNode } from '../../model/Node';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
-import { JsonBlueValue } from '../../../types';
+import { JsonBlueValue } from '../../../schema';
 import { BlueId } from '../BlueId';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 import { yamlBlueParse } from '../../../utils/yamlBlue';

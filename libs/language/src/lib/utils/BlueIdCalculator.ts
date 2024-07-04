@@ -10,10 +10,10 @@ import {
 } from './Properties';
 import {
   isBigNumber,
-  isJsonBluePrimitive,
+  isJsonPrimitive,
   isReadonlyArray,
 } from '../../utils/typeGuards';
-import { JsonBlueArray, JsonBlueObject, JsonBlueValue } from '../../types';
+import { JsonBlueArray, JsonBlueObject, JsonBlueValue } from '../../schema';
 
 type HashProvider = { apply: (object: JsonBlueValue) => Promise<string> };
 
@@ -41,7 +41,7 @@ export class BlueIdCalculator {
   }
 
   public async calculate(object: JsonBlueValue) {
-    if (isJsonBluePrimitive(object) || isBigNumber(object)) {
+    if (isJsonPrimitive(object) || isBigNumber(object)) {
       return this.hashProvider.apply(
         object === null ? 'null' : object.toString()
       );

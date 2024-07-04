@@ -1,5 +1,5 @@
 import { NodeDeserializer, NodeToObject } from '../../lib';
-import { JsonBlueValue } from '../../types';
+import { JsonBlueValue } from '../../schema';
 
 export const normalizeToBlueObjectJson = (json: JsonBlueValue) => {
   const node = NodeDeserializer.deserialize(json ?? {});
