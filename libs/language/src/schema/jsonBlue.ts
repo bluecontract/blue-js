@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Big } from 'big.js';
+import { default as Big } from 'big.js';
 import { JsonPrimitive, jsonPrimitiveSchema } from './json';
 
 export type JsonBlueObject = { [Key in string]: JsonBlueValue } & {
