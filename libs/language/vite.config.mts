@@ -25,13 +25,9 @@ export default defineConfig({
           dest: '.',
         },
         {
-          src: 'LICENSE.md',
+          src: 'LICENSE',
           dest: '.',
-        },
-        {
-          src: 'CONTRIBUTING.md',
-          dest: '.',
-        },
+        }
       ],
     }),
   ],
