@@ -130,7 +130,7 @@ For more detailed information, refer to the [Blue Language documentation](https:
 
 ## Contributing
 
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) to learn about how you can contribute.
+We welcome contributions! Please read our [Contributing Guide](https://github.com/bluecontract/blue-js/blob/main/CONTRIBUTING.md) to learn about how you can contribute.
 
 ## License
 

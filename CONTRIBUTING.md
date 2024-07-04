@@ -1,6 +1,6 @@
-# Contributing to @blue-company/language
+# Contributing to Blue JS
 
-We are excited that you are interested in contributing to @blue-company/language! Your contributions are highly valued and will help improve the project for everyone.
+We deeply appreciate your interest in contributing to our repository! Your contributions are highly valued and will help improve the project for everyone.
 
 ## How to Contribute
 
@@ -13,11 +13,11 @@ If you find a bug or have a feature request, please create an issue on our [GitH
 1. Fork the repository by clicking the "Fork" button on the top right of the repository page.
 2. Clone your forked repository to your local machine:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/blue-language.git
+   git clone https://github.com/YOUR-USERNAME/blue-js.git
    ```
 3. Navigate to the project directory:
    ```bash
-   cd blue-language
+   cd blue-js
    ```
 
 ### Setting Up Your Development Environment
@@ -77,6 +77,6 @@ npx nx run-many -t lint
 
 ## License
 
-By contributing to @blue-company/language, you agree that your contributions will be licensed under the MIT License.
+By contributing to Blue JS, you agree that your contributions will be licensed under the MIT License.
 
 Thank you for contributing!

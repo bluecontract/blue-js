@@ -7,7 +7,6 @@ This repository contains all the public packages that make up the Blue project.
 
 - [Directory Structure](#directory-structure)
 - [Available Libraries](#available-libraries)
-- [Adding New Libraries](#adding-new-libraries)
 - [Building and Testing](#building-and-testing)
 - [Contributing](#contributing)
 - [License](#license)
@@ -28,13 +27,9 @@ blue-js/
 
 Currently, the following libraries are available in this monorepo:
 
-1. **@blue-company/language**: ....
+1. **@blue-company/language** : This library, located in `libs/language`, provides tools for working with the Blue language, a YAML-based language with inheritance support. It includes services for calculating unique identifiers, schemas for validating Blue objects, various utility functions, and helpers for parsing and normalizing JSON and YAML data.
 
 For detailed information on each library, please refer to their respective README files located in the libs/ directory.
-
-## Adding New Libraries
-
-To add a new library to the monorepo, use the following NX commands:
 
 ## Building and Testing
 
