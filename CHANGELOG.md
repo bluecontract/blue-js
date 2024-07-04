@@ -1,3 +1,15 @@
+## 0.2.2 (2024-07-04)
+
+
+### 🩹 Fixes
+
+- vite config for license file ([5df73bf](https://github.com/bluecontract/blue-js/commit/5df73bf))
+- add missing @types dependencies for typescript support ([c429743](https://github.com/bluecontract/blue-js/commit/c429743))
+
+### ❤️  Thank You
+
+- Mateusz Jonak
+
 ## 0.2.1 (2024-07-04)
 
 
