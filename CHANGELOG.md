@@ -1,3 +1,14 @@
+## 0.3.0 (2024-07-04)
+
+
+### 🚀 Features
+
+- create jsonSchema and jsonBlueSchema + refactor ([451acfa](https://github.com/bluecontract/blue-js/commit/451acfa))
+
+### ❤️  Thank You
+
+- Mateusz Jonak
+
 ## 0.2.2 (2024-07-04)
 
 
