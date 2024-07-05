@@ -1,7 +1,11 @@
 import { z } from 'zod';
-import { JsonPrimitive, JsonArray, JsonObject, JsonValue } from 'type-fest';
-
-export { type JsonPrimitive, type JsonValue, type JsonObject, type JsonArray };
+import { type JsonArray, type JsonObject, type JsonValue } from 'type-fest';
+export {
+  type JsonPrimitive,
+  type JsonArray,
+  type JsonObject,
+  type JsonValue,
+} from 'type-fest';
 
 const jsonPrimitives = [z.string(), z.number(), z.boolean(), z.null()] as const;
 
