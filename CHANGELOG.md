@@ -1,3 +1,12 @@
+## 0.3.2 (2024-07-05)
+
+
+### 🩹 Fixes
+
+- type of blueObject + description for yamlBlueParse ([ad5bed1](https://github.com/bluecontract/blue-js/commit/ad5bed1))
+- lint cmd ([0b0bc90](https://github.com/bluecontract/blue-js/commit/0b0bc90))
+- dependencies versions and eslint config ([2a8aa1a](https://github.com/bluecontract/blue-js/commit/2a8aa1a))
+
 ## 0.3.1 (2024-07-04)
 
 ### 🩹 Fixes
