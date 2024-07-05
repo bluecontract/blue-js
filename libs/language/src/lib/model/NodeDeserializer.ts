@@ -10,19 +10,27 @@ import {
   OBJECT_TYPE,
   OBJECT_VALUE,
 } from '../utils/Properties';
-import { isBigNumber, isJsonPrimitive } from '../../utils/typeGuards';
+import {
+  isBigNumber,
+  isJsonPrimitive,
+  isReadonlyArray,
+} from '../../utils/typeGuards';
 
 export class NodeDeserializer {
-  static deserialize(json: JsonBlueValue): BlueNode {
+  static deserialize(json: JsonBlueValue) {
     return NodeDeserializer.handleNode(json);
   }
 
   private static handleNode(node: JsonBlueValue): BlueNode {
-    if (typeof node === 'string' && BlueId.isPotentialBlueId(node)) {
+    if (node === undefined) {
+      throw new Error(
+        `This is not a valid JSON-like value. Found 'undefined' as a value.`
+      );
+    } else if (typeof node === 'string' && BlueId.isPotentialBlueId(node)) {
       return new BlueNode().setBlueId(node);
     } else if (isJsonPrimitive(node) || isBigNumber(node)) {
       return new BlueNode().setValue(node);
-    } else if (Array.isArray(node)) {
+    } else if (Array.isArray(node) || isReadonlyArray(node)) {
       return NodeDeserializer.handleArray(node);
     } else {
       const obj = new BlueNode();
@@ -81,7 +89,7 @@ export class NodeDeserializer {
     }
   }
 
-  private static handleType(value: JsonBlueValue): BlueNode {
+  private static handleType(value: JsonBlueValue) {
     if (typeof value === 'string') {
       return BlueId.isPotentialBlueId(value)
         ? new BlueNode().setBlueId(value)
@@ -91,7 +99,7 @@ export class NodeDeserializer {
     }
   }
 
-  private static handleArray(value: JsonBlueValue): BlueNode {
+  private static handleArray(value: JsonBlueValue) {
     if (typeof value === 'string' && BlueId.isPotentialBlueId(value)) {
       const singleItemList = [new BlueNode().setBlueId(value)];
       return new BlueNode().setItems(singleItemList);

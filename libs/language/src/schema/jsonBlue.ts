@@ -2,9 +2,7 @@ import { z } from 'zod';
 import { default as Big } from 'big.js';
 import { JsonPrimitive, jsonPrimitiveSchema } from './json';
 
-export type JsonBlueObject = { [Key in string]: JsonBlueValue } & {
-  [Key in string]?: JsonBlueValue | undefined;
-};
+export type JsonBlueObject = { [Key in string]: JsonBlueValue };
 
 export type JsonBlueArray = JsonBlueValue[] | readonly JsonBlueValue[];
 
@@ -15,10 +13,7 @@ export type JsonBlueValue =
   | Big;
 
 const jsonBlueObjectSchema: z.ZodType<JsonBlueObject> = z.lazy(() =>
-  z.intersection(
-    z.record(jsonBlueValueSchema),
-    z.record(jsonBlueValueSchema).optional()
-  )
+  z.record(jsonBlueValueSchema)
 );
 
 const jsonBlueArraySchema: z.ZodType<JsonBlueArray> = z.lazy(() =>

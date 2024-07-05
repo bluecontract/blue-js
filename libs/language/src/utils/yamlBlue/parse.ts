@@ -5,7 +5,8 @@ import { JsonBlueValue, jsonBlueValueSchema } from '../../schema';
 /**
  * Parses string as single YAML document.
  * Returns either a json blue object, a string, a number, a boolean, null or undefined if the YAML document is empty.
- * Throws YAMLException on error, typically due to bad syntax.
+ * @throws YAMLException - typically due to bad syntax of yaml
+ * @throws Error - if the parsed yaml is not a valid json like object
  */
 export const yamlBlueParse = (value: string): JsonBlueValue | undefined => {
   const loadedYaml = yaml.load(value, { schema: YAML_BLUE_SCHEMA });
