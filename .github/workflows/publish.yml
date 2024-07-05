@@ -29,6 +29,10 @@ jobs:
         run: npm install
         shell: bash
 
+      - name: Lint
+        run: npx nx run-many -t lint
+        shell: bash
+
       - name: Build
         run: npx nx run-many -t build
         shell: bash
