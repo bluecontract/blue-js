@@ -1,6 +1,6 @@
 {
   "name": "@blue-company/language",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "dependencies": {
     "@aws-crypto/sha256-universal": "5.1.0",
     "@types/big.js": "6.2.2",

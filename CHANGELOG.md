@@ -1,3 +1,10 @@
+## 0.3.3 (2024-07-05)
+
+
+### 🩹 Fixes
+
+- blueId for wrong json like objects and unify exported utilities ([a260906](https://github.com/bluecontract/blue-js/commit/a260906))
+
 ## 0.3.2 (2024-07-05)
 
 
