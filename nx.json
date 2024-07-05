@@ -25,6 +25,13 @@
     "version": {
       "conventionalCommits": true,
       "preVersionCommand": "npx nx run-many -t build"
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "renderOptions": {
+          "authors": false
+        }
+      }
     }
   },
   "plugins": [
