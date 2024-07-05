@@ -1,16 +1,21 @@
 import { NodeDeserializer, NodeToObject } from '../../lib';
-import { JsonBlueValue } from '../../schema';
+import { blueObjectSchema, JsonBlueValue } from '../../schema';
 
-export const normalizeToBlueObjectJson = (json: JsonBlueValue) => {
-  const node = NodeDeserializer.deserialize(json ?? {});
-  const blueObject = NodeToObject.get(node);
-
-  return blueObject;
-};
-
+/**
+ * Normalize JSON-like value to BlueObject
+ *
+ * @param json - JSON-like value
+ * @returns blue object
+ * @throws {Error} When failed to transform JSON-like value to BlueObject
+ */
 export const normalizeToBlueObject = (json: JsonBlueValue) => {
-  const node = NodeDeserializer.deserialize(json ?? {});
-  const blueObject = NodeToObject.getStandard(node);
-
-  return blueObject;
+  try {
+    const node = NodeDeserializer.deserialize(json);
+    const jsonBlueObject = NodeToObject.get(node);
+    return blueObjectSchema.parse(jsonBlueObject);
+  } catch (error) {
+    throw new Error(
+      `Failed transforming JSON-like value to BlueObject: ${error}`
+    );
+  }
 };

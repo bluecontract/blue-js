@@ -36,8 +36,8 @@ Here are the key features and services provided by the @blue-company/language li
 
 ### Functions
 
-- **calculateBlueIdForJsonValue**
-  - Calculates blueId for a given JSON value.
+- **calculateBlueId**
+  - Calculates blueId for a given JSON like value.
 - **getBlueObjectProperties**
   - Returns properties of a BlueObject that are not specific to this object.
 - **getBlueObjectTypeName**
@@ -64,8 +64,6 @@ Here are the key features and services provided by the @blue-company/language li
 
 - **normalizeToBlueObject**
   - Normalizes a given JSON value to a BlueObject.
-- **normalizeToBlueObjectJson**
-  - Normalizes a given JSON value to a BlueObject JSON.
 
 ### Helpers
 

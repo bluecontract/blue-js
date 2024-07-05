@@ -1,1 +1,1 @@
-export * from './calculateBlueIdForJsonValue';
+export * from './calculateBlueId';

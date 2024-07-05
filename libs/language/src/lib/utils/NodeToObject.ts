@@ -10,7 +10,6 @@ import {
   OBJECT_VALUE,
 } from './Properties';
 import { isBigNumber } from '../../utils/typeGuards';
-import { blueObjectSchema } from '../../schema';
 
 export type Strategy = 'standard' | 'domainMapping';
 
@@ -82,14 +81,5 @@ export class NodeToObject {
       return value.toNumber();
     }
     return value;
-  }
-
-  static getDomainMapping(node: BlueNode) {
-    return this.get(node, 'domainMapping');
-  }
-
-  static getStandard(node: BlueNode) {
-    const blueObject = this.get(node, 'standard');
-    return blueObjectSchema.parse(blueObject);
   }
 }
