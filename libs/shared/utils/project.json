@@ -1,0 +1,25 @@
+{
+  "name": "utils",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/utils/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/shared/utils",
+        "main": "libs/shared/utils/src/index.ts",
+        "tsConfig": "libs/shared/utils/tsconfig.lib.json",
+        "assets": []
+      }
+    },
+    "tsc": {
+      "executor": "@webpro/nx-tsc:tsc",
+      "options": {
+        "tsConfig": ["tsconfig.lib.json", "tsconfig.spec.json"]
+      }
+    }
+  }
+}
