@@ -2,6 +2,7 @@ import {
   BlueObject,
   BlueObjectWithId,
   hasBlueObjectBlueIdDefined,
+  jsonBlueValueSchema,
 } from '../../schema';
 import { calculateBlueId } from '../blueId';
 
@@ -10,10 +11,15 @@ export const enrichWithBlueId = async (object: BlueObject) => {
     return object;
   }
 
-  const blueId = await calculateBlueId(object);
+  try {
+    const jsonBlueValue = jsonBlueValueSchema.parse(object);
+    const blueId = await calculateBlueId(jsonBlueValue);
 
-  return {
-    ...object,
-    blueId,
-  } satisfies BlueObjectWithId;
+    return {
+      ...object,
+      blueId,
+    } satisfies BlueObjectWithId;
+  } catch (error) {
+    throw new Error(`Failed enriching object with Blue ID: ${error}`);
+  }
 };

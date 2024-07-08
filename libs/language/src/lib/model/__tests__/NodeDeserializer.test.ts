@@ -137,4 +137,12 @@ describe('NodeDeserializer', () => {
 
     expect(node.getItems()).toHaveLength(2);
   });
+
+  it('testEmpty', () => {
+    const doc = '';
+    const map1 = yamlBlueParse(doc) as JsonBlueValue;
+    expect(() => NodeDeserializer.deserialize(map1)).toThrowError(
+      `This is not a valid JSON-like value. Found 'undefined' as a value.`
+    );
+  });
 });
