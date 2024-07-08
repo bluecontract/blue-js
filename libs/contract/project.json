@@ -1,7 +1,7 @@
 {
-  "name": "language",
+  "name": "contract",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/language/src",
+  "sourceRoot": "libs/contract/src",
   "projectType": "library",
   "release": {
     "version": {
@@ -12,16 +12,6 @@
   },
   "tags": [],
   "targets": {
-    "build": {
-      "executor": "@nx/vite:build",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/libs/language",
-        "main": "libs/language/src/index.ts",
-        "tsConfig": "libs/language/tsconfig.lib.json",
-        "assets": ["libs/language/*.md"]
-      }
-    },
     "nx-release-publish": {
       "options": {
         "packageRoot": "dist/{projectRoot}"
@@ -37,7 +27,7 @@
     "yalc-push-watch": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": ["nx watch --projects=language -- nx yalc-push language"]
+        "commands": ["nx watch --projects=contract -- nx yalc-push contract"]
       }
     },
     "tsc": {

@@ -9,6 +9,10 @@ export type JsonObject = { [Key in string]: JsonValue };
 
 export type JsonArray = JsonValue[] | readonly JsonValue[];
 
+/**
+ * JSON value
+ * Cannot be a function, a symbol, or undefined
+ */
 export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 export const jsonObjectSchema: z.ZodType<JsonObject> = z.lazy(() =>

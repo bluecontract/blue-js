@@ -6,6 +6,11 @@ export type JsonBlueObject = { [Key in string]: JsonBlueValue };
 
 export type JsonBlueArray = JsonBlueValue[] | readonly JsonBlueValue[];
 
+/**
+ * JSON Blue value.
+ * Cannot be a function, a symbol, or undefined.
+ * Additional to basic JSON value, it can be a Big.js instance to represent a number with arbitrary precision.
+ */
 export type JsonBlueValue =
   | JsonPrimitive
   | JsonBlueObject
