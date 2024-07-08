@@ -1,9 +1,15 @@
 {
   "name": "@blue-company/shared-utils",
-  "version": "0.0.1",
+  "version": "0.3.3",
   "dependencies": {},
-  "main": "./index.js",
-  "module": "./index.mjs",
-  "typings": "./index.d.ts",
-  "private": true
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  }
 }

@@ -1,18 +1,21 @@
 {
-  "name": "utils",
+  "name": "shared-utils",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/utils/src",
   "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "packageRoot": "dist/{projectRoot}",
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
   "tags": [],
   "targets": {
-    "build": {
-      "executor": "@nx/vite:build",
-      "outputs": ["{options.outputPath}"],
+    "nx-release-publish": {
       "options": {
-        "outputPath": "dist/libs/shared/utils",
-        "main": "libs/shared/utils/src/index.ts",
-        "tsConfig": "libs/shared/utils/tsconfig.lib.json",
-        "assets": []
+        "packageRoot": "dist/{projectRoot}"
       }
     },
     "tsc": {

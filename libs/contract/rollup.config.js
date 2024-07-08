@@ -13,14 +13,11 @@ module.exports = withNx(
     assets: [
       { input: '.', output: '.', glob: './libs/contract/{*.md,LICENSE}' },
     ],
+  },
+  {
     external: (id) => {
       const dependencies = packageJson.dependencies;
       return !!dependencies[id];
     },
-  },
-  {
-    // Provide additional rollup configuration here. See: https://rollupjs.org/configuration-options
-    // e.g.
-    // output: { sourcemap: true },
   }
 );
