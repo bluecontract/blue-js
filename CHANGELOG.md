@@ -1,3 +1,13 @@
+## 0.4.0 (2024-07-08)
+
+
+### 🚀 Features
+
+- calculateBlueId take a JsonBlueValue as a param and add test case for empty document in NodeDeserializer test ([b821805](https://github.com/bluecontract/blue-js/commit/b821805))
+- init shared utils ([d68daab](https://github.com/bluecontract/blue-js/commit/d68daab))
+- init @blue-company/contract ([9c37cd9](https://github.com/bluecontract/blue-js/commit/9c37cd9))
+- add shared-utils package - publishable ([90cfb74](https://github.com/bluecontract/blue-js/commit/90cfb74))
+
 ## 0.3.3 (2024-07-05)
 
 
