@@ -1,6 +1,6 @@
 import { omit } from 'radash';
 import { BlueObject } from '../../schema';
-import { isNonNullable } from '../typeGuards';
+import { isNonNullable } from '@blue-company/shared-utils';
 
 export const isBlueObjectResolved = (value?: BlueObject): boolean => {
   return (

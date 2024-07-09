@@ -1,7 +1,7 @@
 import { omit } from 'radash';
 import { Properties } from '../../lib';
 import { Writable } from 'type-fest';
-import { isNullable } from '../typeGuards';
+import { isNullable } from '@blue-company/shared-utils';
 
 export const getBlueObjectProperties = <T extends Record<string, unknown>>(
   blueObject?: T

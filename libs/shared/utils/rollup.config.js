@@ -8,6 +8,11 @@ module.exports = withNx(
     compiler: 'swc',
     format: ['cjs', 'esm'],
     assets: [{ input: '.', output: '.', glob: './libs/shared/utils/*.md' }],
+    additionalEntryPoints: [
+      './src/json/json.ts',
+      './src/typeGuards/typeGuards.ts',
+    ],
+    generateExportsField: true,
   },
   {
     // Provide additional rollup configuration here. See: https://rollupjs.org/configuration-options
