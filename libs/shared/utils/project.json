@@ -17,6 +17,21 @@
         "packageRoot": "dist/{projectRoot}"
       }
     },
+    "yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "dist/{projectRoot}",
+        "commands": ["yalc push"]
+      }
+    },
+    "yalc-push-watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx watch --projects=shared-utils -- nx yalc-push shared-utils"
+        ]
+      }
+    },
     "tsc": {
       "executor": "@webpro/nx-tsc:tsc",
       "options": {

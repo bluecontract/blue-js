@@ -1,3 +1,3 @@
 export * from './json';
-export * from './typeGuards';
 export * from './numbers';
+export * from './typeGuards';
