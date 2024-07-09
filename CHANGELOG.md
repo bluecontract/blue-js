@@ -1,3 +1,10 @@
+## 0.5.1 (2024-07-09)
+
+
+### 🩹 Fixes
+
+- shared-utils dependency ([4adab1c](https://github.com/bluecontract/blue-js/commit/4adab1c))
+
 ## 0.5.0 (2024-07-09)
 
 
