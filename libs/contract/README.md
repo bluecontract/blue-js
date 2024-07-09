@@ -10,6 +10,10 @@ npm install @blue-company/contract
 yarn add @blue-company/contract
 ```
 
+## Changelog
+
+The [Changelog](https://github.com/bluecontract/blue-js/blob/main/CHANGELOG.md) is regularly updated to reflect what's changed in each new release.
+
 ## Contributing
 
 We welcome contributions! Please read our [Contributing Guide](https://github.com/bluecontract/blue-js/blob/main/CONTRIBUTING.md) to learn about how you can contribute.
