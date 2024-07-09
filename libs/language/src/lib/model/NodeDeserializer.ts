@@ -10,11 +10,8 @@ import {
   OBJECT_TYPE,
   OBJECT_VALUE,
 } from '../utils/Properties';
-import {
-  isBigNumber,
-  isJsonPrimitive,
-  isReadonlyArray,
-} from '../../utils/typeGuards';
+import { isBigNumber, isJsonPrimitive } from '../../utils/typeGuards';
+import { isReadonlyArray } from '@blue-company/shared-utils';
 
 export class NodeDeserializer {
   static deserialize(json: JsonBlueValue) {

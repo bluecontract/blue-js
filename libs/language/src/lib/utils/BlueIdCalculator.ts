@@ -8,11 +8,8 @@ import {
   OBJECT_REF,
   OBJECT_VALUE,
 } from './Properties';
-import {
-  isBigNumber,
-  isJsonPrimitive,
-  isReadonlyArray,
-} from '../../utils/typeGuards';
+import { isBigNumber, isJsonPrimitive } from '../../utils/typeGuards';
+import { isReadonlyArray } from '@blue-company/shared-utils';
 import { JsonBlueArray, JsonBlueObject, JsonBlueValue } from '../../schema';
 
 type HashProvider = { apply: (object: JsonBlueValue) => Promise<string> };

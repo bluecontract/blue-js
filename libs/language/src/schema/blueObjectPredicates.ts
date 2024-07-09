@@ -1,6 +1,6 @@
 import { SetRequired } from 'type-fest';
 import { BlueObject, BlueObjectWithId, blueObjectSchema } from './blueObject';
-import { isNonNullable } from '../utils/typeGuards';
+import { isNonNullable } from '@blue-company/shared-utils';
 
 export const isBlueObject = (value: unknown): value is BlueObject => {
   const blueObjectParseResult = blueObjectSchema.safeParse(value);

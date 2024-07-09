@@ -1,8 +1,5 @@
-import {
-  isBigNumber,
-  isJsonPrimitive,
-  isReadonlyArray,
-} from '../../utils/typeGuards';
+import { isBigNumber, isJsonPrimitive } from '../../utils/typeGuards';
+import { isReadonlyArray } from '@blue-company/shared-utils';
 import { JsonBlueValue, JsonPrimitive } from '../../schema';
 import { Big } from 'big.js';
 
