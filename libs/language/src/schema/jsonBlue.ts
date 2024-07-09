@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { default as Big } from 'big.js';
-import { JsonPrimitive, jsonPrimitiveSchema } from './json';
+import { JsonPrimitive, jsonPrimitiveSchema } from '@blue-company/shared-utils';
 
 export type JsonBlueObject = { [Key in string]: JsonBlueValue };
 

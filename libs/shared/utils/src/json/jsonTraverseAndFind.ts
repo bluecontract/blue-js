@@ -1,10 +1,6 @@
-type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
-type JsonObject = {
-  [key: string]: JsonValue;
-};
-type JsonArray = JsonValue[];
+import { JsonValue } from './schema';
 
-export const traverseAndFind = <T extends JsonValue, TObject = T>(
+export const jsonTraverseAndFind = <T extends JsonValue, TObject = T>(
   obj: TObject,
   predicate: (obj: TObject) => boolean
 ) => {

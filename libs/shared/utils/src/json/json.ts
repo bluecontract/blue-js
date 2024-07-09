@@ -1,1 +1,3 @@
-export * from './traverseAndFind';
+export * from './predicates';
+export * from './schema';
+export * from './jsonTraverseAndFind';

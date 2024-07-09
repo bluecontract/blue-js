@@ -1,5 +1,5 @@
 import Big from 'big.js';
-import { JsonPrimitive } from '../../schema';
+import { JsonPrimitive } from '@blue-company/shared-utils';
 
 export class BlueNode {
   static INTEGER: BlueNode = new BlueNode('Integer');

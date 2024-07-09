@@ -4,7 +4,7 @@ import {
   actionByParticipantEventSchema,
   initiateContractActionSchema,
 } from './schema';
-import { traverseAndFind } from '@blue-company/shared-utils';
+import { jsonTraverseAndFind } from '@blue-company/shared-utils';
 
 export const findAllInitiateContractActions = (contract: Contract) => {
   return contract.workflows?.items.flatMap((workflow) => {
@@ -29,7 +29,7 @@ export const findAllInitiateContractActions = (contract: Contract) => {
 };
 
 const findActionByParticipantEvents = (json: JsonValue) => {
-  const eventsJsonValues = traverseAndFind(json, (obj) => {
+  const eventsJsonValues = jsonTraverseAndFind(json, (obj) => {
     const resultInitiateContractAction =
       actionByParticipantEventSchema.safeParse(obj);
     return resultInitiateContractAction.success;

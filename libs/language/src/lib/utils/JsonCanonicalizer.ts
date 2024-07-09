@@ -1,6 +1,10 @@
-import { isBigNumber, isJsonPrimitive } from '../../utils/typeGuards';
-import { isReadonlyArray } from '@blue-company/shared-utils';
-import { JsonBlueValue, JsonPrimitive } from '../../schema';
+import { isBigNumber } from '../../utils/typeGuards';
+import {
+  isJsonPrimitive,
+  isReadonlyArray,
+  JsonPrimitive,
+} from '@blue-company/shared-utils';
+import { JsonBlueValue } from '../../schema';
 import { Big } from 'big.js';
 
 export class JsonCanonicalizer {
