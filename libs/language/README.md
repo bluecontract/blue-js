@@ -40,8 +40,8 @@ Here are the key features and services provided by the @blue-company/language li
   - Calculates blueId for a given JSON like value.
 - **getBlueObjectProperties**
   - Returns properties of a BlueObject that are not specific to this object.
-- **getBlueObjectTypeName**
-  - Retrieves the type name of a BlueObject based on its type, value, or items.
+- **getBlueObjectTypeLabel**
+  - Retrieves the type label of a BlueObject based on its type, value, or items.
 - **isBlueObjectResolved**
   - Checks if a BlueObject is fully resolved or if there is something apart from blueId.
 
@@ -69,8 +69,6 @@ Here are the key features and services provided by the @blue-company/language li
 
 - **resolveBlueObjectItems**
   - Resolves BlueObject items in order from last to first.
-- **traverseAndFind**
-  - Helper function to traverse through JSON and find sub-objects.
 - **yamlBlueDump**
   - Loads YAML.
 - **yamlBlueParse**

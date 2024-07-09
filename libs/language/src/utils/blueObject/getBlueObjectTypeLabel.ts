@@ -7,9 +7,9 @@ import {
 } from '../../schema';
 
 /**
- * Get the type name of a BlueObject based on its type, value, or items.
+ * Get the type label of a BlueObject based on its type, value, or items.
  */
-export const getBlueObjectTypeName = (blueObject: BlueObject) => {
+export const getBlueObjectTypeLabel = (blueObject: BlueObject) => {
   if (hasBlueObjectTypeDefined(blueObject)) {
     return blueObject.type.name ?? null;
   }

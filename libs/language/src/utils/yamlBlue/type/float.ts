@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { isPreciseNumberString } from '../../numbers';
+import { isPreciseNumberString } from '@blue-company/shared-utils';
 import Big from 'big.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,3 +1,16 @@
+## 0.6.0 (2024-07-09)
+
+
+### 🚀 Features
+
+- getBlueObjectTypeName -> getBlueObjectTypeLabel ([7075350](https://github.com/bluecontract/blue-js/commit/7075350))
+- json utils module ([44ef45e](https://github.com/bluecontract/blue-js/commit/44ef45e))
+- move numbers utils to shared ([b4f77bf](https://github.com/bluecontract/blue-js/commit/b4f77bf))
+
+### 🩹 Fixes
+
+- add zod to shared-utils as a dep ([2f85e45](https://github.com/bluecontract/blue-js/commit/2f85e45))
+
 ## 0.5.1 (2024-07-09)
 
 
