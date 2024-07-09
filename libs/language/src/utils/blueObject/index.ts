@@ -1,5 +1,5 @@
 export { getBlueObjectProperties } from './getBlueObjectProperties';
-export { getBlueObjectTypeName } from './getBlueObjectTypeName';
+export { getBlueObjectTypeLabel } from './getBlueObjectTypeLabel';
 export * from './isBlueObjectResolved';
 export { normalizeToBlueObject } from './normalizeToBlueObject';
 export {
