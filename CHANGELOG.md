@@ -1,3 +1,10 @@
+## 0.5.0 (2024-07-09)
+
+
+### 🚀 Features
+
+- add more utils ([aea9591](https://github.com/bluecontract/blue-js/commit/aea9591))
+
 ## 0.4.0 (2024-07-08)
 
 
