@@ -38,6 +38,8 @@ Here are the key features and services provided by the @blue-company/language li
 
 - **calculateBlueId**
   - Calculates blueId for a given JSON like value.
+- **enrichWithBlueId**
+  - Enriches a given BlueObject with calculated blueId.
 - **getBlueObjectProperties**
   - Returns properties of a BlueObject that are not specific to this object.
 - **getBlueObjectTypeLabel**

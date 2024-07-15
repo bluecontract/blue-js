@@ -1,3 +1,4 @@
+export { enrichWithBlueId } from './enrichWithBlueId';
 export { getBlueObjectProperties } from './getBlueObjectProperties';
 export { getBlueObjectTypeLabel } from './getBlueObjectTypeLabel';
 export * from './isBlueObjectResolved';
