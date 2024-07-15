@@ -7,9 +7,10 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true
   },
-  "files": [],
+  "files": ["../language/src/types/base32.js.d.ts"],
   "include": [],
   "references": [
     {
