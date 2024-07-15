@@ -1,3 +1,14 @@
+## 0.7.0 (2024-07-15)
+
+
+### 🚀 Features
+
+- enrichWithBlueId function ([b8b242e](https://github.com/bluecontract/blue-js/commit/b8b242e))
+
+### 🩹 Fixes
+
+- tsc command for contract ([fe9372b](https://github.com/bluecontract/blue-js/commit/fe9372b))
+
 ## 0.6.0 (2024-07-09)
 
 
