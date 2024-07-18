@@ -28,6 +28,7 @@
     },
     "changelog": {
       "workspaceChangelog": {
+        "createRelease": "github",
         "renderOptions": {
           "authors": false
         }
