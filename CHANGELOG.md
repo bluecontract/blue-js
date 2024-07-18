@@ -1,3 +1,10 @@
+## 0.7.1 (2024-07-18)
+
+
+### 🩹 Fixes
+
+- Base58 decode (issue with BlueIdToCid) ([fc59b8c](https://github.com/bluecontract/blue-js/commit/fc59b8c))
+
 ## 0.7.0 (2024-07-15)
 
 
