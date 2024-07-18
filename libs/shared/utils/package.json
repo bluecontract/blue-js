@@ -1,6 +1,6 @@
 {
   "name": "@blue-company/shared-utils",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "dependencies": {
     "zod": "3.23.8"
   },
