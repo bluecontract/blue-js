@@ -46,7 +46,7 @@ describe('NodeToObject', () => {
         b: new BlueNode().setValue('xyz2').setDescription('descriptionXyz2'),
       });
 
-    const object = NodeToObject.get(node, 'domainMapping');
+    const object = NodeToObject.get(node, 'simple');
     expect(typeof object).toBe('object');
 
     const result = object as Record<string, unknown>;
@@ -137,7 +137,7 @@ describe('NodeToObject', () => {
         ]),
       ]);
 
-    const object = NodeToObject.get(node, 'domainMapping');
+    const object = NodeToObject.get(node, 'simple');
     expect(Array.isArray(object)).toBeTruthy();
 
     const result = object as JsonValue[];

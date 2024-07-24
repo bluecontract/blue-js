@@ -11,12 +11,12 @@ import {
 } from './Properties';
 import { isBigNumber } from '../../utils/typeGuards';
 
-export type Strategy = 'standard' | 'domainMapping';
+export type Strategy = 'official' | 'simple' | 'simpleNoType';
 
 export class NodeToObject {
-  static get(node: BlueNode, strategy: Strategy = 'standard'): JsonValue {
+  static get(node: BlueNode, strategy: Strategy = 'official'): JsonValue {
     const value = this.serializeValue(node.getValue());
-    if (value !== undefined && strategy === 'domainMapping') {
+    if (value !== undefined && this.isStrategySimple(strategy)) {
       return value;
     }
 
@@ -24,7 +24,7 @@ export class NodeToObject {
       .getItems()
       ?.map((item) => NodeToObject.get(item, strategy));
 
-    if (items !== undefined && strategy === 'domainMapping') {
+    if (items !== undefined && this.isStrategySimple(strategy)) {
       return items;
     }
 
@@ -40,7 +40,7 @@ export class NodeToObject {
     }
 
     const type = node.getType();
-    if (type !== undefined) {
+    if (type !== undefined && strategy !== 'simpleNoType') {
       result[OBJECT_TYPE] = NodeToObject.get(type);
     }
 
@@ -62,7 +62,8 @@ export class NodeToObject {
       result[OBJECT_BLUE_ID] = blueId;
     }
 
-    if (node.getConstraints() !== undefined) {
+    const constraints = node.getConstraints();
+    if (constraints !== undefined) {
       // TODO: implement constraints
     }
 
@@ -81,5 +82,9 @@ export class NodeToObject {
       return value.toNumber();
     }
     return value;
+  }
+
+  private static isStrategySimple(strategy: Strategy): boolean {
+    return strategy === 'simple' || strategy === 'simpleNoType';
   }
 }

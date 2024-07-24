@@ -208,10 +208,7 @@ describe('BlueIdCalculator - additional tests', () => {
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toBe('Hgs3ynEk81ymjehsozXqDaTYt1s7NzF9HNrN3upiNTY7');
 
-    const blueId2 = await BlueIdCalculator.calculateBlueId(
-      node,
-      'domainMapping'
-    );
+    const blueId2 = await BlueIdCalculator.calculateBlueId(node, 'simple');
     expect(blueId2).toBe('EsuXA8sD4ZmfCs1phE8GqXwWCWK85zYTKdNJ5inZSBkA');
   });
 
@@ -220,7 +217,7 @@ describe('BlueIdCalculator - additional tests', () => {
     subNode.setItems([child1Node, child2Node]);
     const subNodeBlueId = await BlueIdCalculator.calculateBlueId(
       subNode,
-      'domainMapping'
+      'simple'
     );
 
     const calculatedSubNode = new BlueNode().setBlueId(subNodeBlueId);
@@ -228,10 +225,7 @@ describe('BlueIdCalculator - additional tests', () => {
     const node = new BlueNode();
     node.setItems([calculatedSubNode, child3Node]);
 
-    const blueId = await BlueIdCalculator.calculateBlueId(
-      node,
-      'domainMapping'
-    );
+    const blueId = await BlueIdCalculator.calculateBlueId(node, 'simple');
     expect(blueId).toBe('EsuXA8sD4ZmfCs1phE8GqXwWCWK85zYTKdNJ5inZSBkA');
   });
 
@@ -247,10 +241,7 @@ describe('BlueIdCalculator - additional tests', () => {
       child3Node,
     ]);
 
-    const blueId = await BlueIdCalculator.calculateBlueId(
-      node,
-      'domainMapping'
-    );
+    const blueId = await BlueIdCalculator.calculateBlueId(node, 'simple');
     expect(blueId).toBe('AoSXTXT3hGr6YtuDmaaS8dwByAKjB4rZqGHqGzxKLuxP');
   });
 
