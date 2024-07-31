@@ -7,16 +7,17 @@ import {
 } from '../types/zod';
 import { SetRequired } from 'type-fest';
 
-const literal = [z.string(), z.number(), z.boolean(), z.null()] as const;
-
 const baseBlueObjectSchema = z
   .object({
+    value: z.union([z.string(), z.number(), z.boolean()]).optional().nullable(),
     blueId: blueIdSchema.optional(),
     name: z.string().optional(),
     description: z.string().optional(),
-    value: z.union(literal).optional(),
   })
   .passthrough();
+
+type BaseBlueObjectInput = z.input<typeof baseBlueObjectSchema>;
+type BaseBlueObjectOutput = z.infer<typeof baseBlueObjectSchema>;
 
 type BaseBlueObjectRawShape = InferZodObjectRawShape<
   typeof baseBlueObjectSchema
@@ -38,33 +39,38 @@ type BlueObjectShape = objectUtil.extendShape<
   typeof baseBlueObjectLazyRawShape
 >;
 
-type BlueObjectInput = z.input<typeof baseBlueObjectSchema> & {
+type BlueObjectInput = BaseBlueObjectInput & {
   items?: BlueObject[];
   type?: BlueObject;
 };
 
-export type BlueObject = z.output<typeof baseBlueObjectSchema> & {
+export type BlueObject = BaseBlueObjectOutput & {
   items?: BlueObject[];
   type?: BlueObject;
 };
 
 export type BlueObjectWithId = SetRequired<BlueObject, 'blueId'>;
 
-/**
- * BlueObject schema
- * Doesn't have information about other attributes.
- * Those are BlueObject's so can be parsed separately.
- */
 const _blueObjectSchema: z.ZodType<
   BlueObject,
   z.ZodObjectDef,
   BlueObjectInput
 > = baseBlueObjectSchema.extend(baseBlueObjectLazyRawShape);
 
-export const blueObjectSchema = _blueObjectSchema as z.ZodObject<
+type BlueObjectZodObjectSchema = z.ZodObject<
   BlueObjectShape,
   BaseBlueObjectUnknownKeys,
   BaseBlueObjectCatchAll,
   BlueObject,
   BlueObjectInput
 >;
+/**
+ * BlueObject schema
+ * Doesn't have information about other attributes.
+ * Those are BlueObject's so can be parsed separately.
+ */
+export const blueObjectSchema = _blueObjectSchema as BlueObjectZodObjectSchema;
+
+export const blueObjectStringValueSchema = blueObjectSchema.extend({
+  value: z.string().optional(),
+});

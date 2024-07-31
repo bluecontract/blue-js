@@ -1,21 +1,29 @@
-import { BlueObject, blueObjectSchema } from '@blue-company/language';
+import { blueObjectSchema } from '@blue-company/language';
 import { z } from 'zod';
-import { Contract, contractSchema } from '../contract';
-import { Merge, MergeDeep } from 'type-fest';
-import { Action, actionSchema } from './action';
+import { ContractInput, Contract, contractSchema } from '../contract';
+import { actionSchema } from './action';
 
-export type InitiateContractAction = MergeDeep<
-  Action,
-  {
-    type: Merge<BlueObject, { name: 'Initiate Contract' }>;
-    contract: Contract;
-  }
->;
+const baseInitiateContractAction = actionSchema.extend({
+  type: blueObjectSchema.extend({
+    name: z.literal('Initiate Contract'),
+  }),
+});
 
-export const initiateContractActionSchema: z.ZodType<InitiateContractAction> =
-  actionSchema.extend({
-    type: blueObjectSchema.extend({
-      name: z.literal('Initiate Contract'),
-    }),
-    contract: contractSchema,
-  });
+type InitiateContractActionInput = z.input<
+  typeof baseInitiateContractAction
+> & {
+  contract: ContractInput;
+};
+
+export type InitiateContractAction = z.output<
+  typeof baseInitiateContractAction
+> & {
+  contract: Contract;
+};
+export const initiateContractActionSchema: z.ZodType<
+  InitiateContractAction,
+  z.ZodTypeDef,
+  InitiateContractActionInput
+> = baseInitiateContractAction.extend({
+  contract: z.lazy(() => contractSchema),
+});

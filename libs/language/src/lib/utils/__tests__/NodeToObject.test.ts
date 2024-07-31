@@ -1,7 +1,11 @@
 import { JsonObject, JsonValue } from 'type-fest';
 import { BlueNode } from '../../model/Node';
 import { NodeToObject } from '../NodeToObject';
-import { BigDecimalNumber, BigIntegerNumber } from '../../model';
+import {
+  BigDecimalNumber,
+  BigIntegerNumber,
+  NodeDeserializer,
+} from '../../model';
 
 describe('NodeToObject', () => {
   it('testBasicStandardStrategy', () => {
@@ -192,6 +196,98 @@ describe('NodeToObject', () => {
             },
             "value": "132452345234524739582739458723948572934875",
           },
+        }
+      `);
+    });
+
+    it('should return simplified object with blueId on nested level', () => {
+      const node1 = NodeDeserializer.deserialize({
+        description: 'Creamy risotto with porcini mushrooms.',
+        image: {
+          description: 'Image of Risotto al Funghi Porcini',
+          value: '/images/risotto-porcini.webp',
+        },
+        name: 'Risotto al Funghi Porcini',
+        price: {
+          value: 16,
+        },
+      });
+
+      const object1 = NodeToObject.get(node1, 'simple');
+      expect(object1).toMatchInlineSnapshot(`
+        {
+          "description": "Creamy risotto with porcini mushrooms.",
+          "image": "/images/risotto-porcini.webp",
+          "name": "Risotto al Funghi Porcini",
+          "price": 16,
+        }
+      `);
+
+      const node2 = NodeDeserializer.deserialize({
+        name: 'nameA',
+        description: 'descriptionA',
+        property1: {
+          name: 'nameB',
+          subProperty: '2RFx2oVzzuDJFVoagK5rohbCkFFA5SBp8WPmuyQ56UV6',
+        },
+        property2: {
+          name: 'nameC',
+          value: 3,
+        },
+      });
+
+      const object2 = NodeToObject.get(node2, 'simple');
+      expect(object2).toMatchInlineSnapshot(`
+        {
+          "description": "descriptionA",
+          "name": "nameA",
+          "property1": {
+            "name": "nameB",
+            "subProperty": {
+              "blueId": "2RFx2oVzzuDJFVoagK5rohbCkFFA5SBp8WPmuyQ56UV6",
+            },
+          },
+          "property2": 3,
+        }
+      `);
+
+      const contractNode1 = NodeDeserializer.deserialize({
+        name: 'nameA',
+        description: 'descriptionA',
+        participants: {
+          description: 'participants part',
+        },
+      });
+
+      const contract1 = NodeToObject.get(contractNode1, 'simple');
+      expect(contract1).toMatchInlineSnapshot(`
+        {
+          "description": "descriptionA",
+          "name": "nameA",
+          "participants": {
+            "description": "participants part",
+          },
+        }
+      `);
+
+      const contractNode2 = NodeDeserializer.deserialize({
+        name: 'nameA',
+        description: 'descriptionA',
+        participants: {
+          description: 'participants part',
+          items: ['Alice', 'Bob'],
+        },
+      });
+
+      const contract2 = NodeToObject.get(contractNode2, 'simple');
+      expect(contract2).toMatchInlineSnapshot(`
+        {
+          "description": "descriptionA",
+          "name": "nameA",
+          "participants": [
+            "Alice",
+            "Bob",
+          ],
         }
       `);
     });
