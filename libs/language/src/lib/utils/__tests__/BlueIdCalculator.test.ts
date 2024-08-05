@@ -1,7 +1,7 @@
 import { BlueNode } from '../../model/Node';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
 import { JsonBlueValue } from '../../../schema';
-import { BlueId } from '../BlueId';
+import { BlueIds } from '../BlueIds';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
 import {
@@ -379,7 +379,7 @@ describe('BlueIdCalculator - additional tests', () => {
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect('1wiWAr5NPzuyiPG4jiftmu8PeAXnTw7anrqGjiaKRD').toBe(blueId);
     expect(blueId).toHaveLength(42);
-    expect(BlueId.isPotentialBlueId(blueId)).toBe(true);
+    expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
   });
 
   it('should calculate a blue id from more complex json', async () => {
