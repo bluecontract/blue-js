@@ -1,5 +1,6 @@
 import Big from 'big.js';
 import { JsonPrimitive } from '@blue-company/shared-utils';
+import { NodePathAccessor } from '../utils/NodePathAccessor';
 
 export class BlueNode {
   static INTEGER: BlueNode = new BlueNode('Integer');
@@ -7,13 +8,16 @@ export class BlueNode {
   private name?: string;
   private description?: string;
   private type?: BlueNode;
+  private itemType?: BlueNode;
+  private keyType?: BlueNode;
+  private valueType?: BlueNode;
   private value?: Exclude<JsonPrimitive, number> | Big;
   private items?: BlueNode[];
   private properties?: Record<string, BlueNode>;
-  private ref?: string;
   private blueId?: string;
   private constraints?: Constraints;
-  private features?: Feature[];
+  private blue?: BlueNode;
+  private inlineValue = false;
 
   constructor(name?: string) {
     this.name = name;
@@ -43,17 +47,49 @@ export class BlueNode {
 
   setType(type: BlueNode | string): BlueNode {
     if (typeof type === 'string') {
-      this.type = isBasicType(type)
-        ? new BlueNode().setValue(type)
-        : new BlueNode().setBlueId(type);
+      this.type = new BlueNode().setValue(type).setInlineValue(true);
     } else {
       this.type = type;
     }
     return this;
   }
 
-  eraseType(): BlueNode {
-    this.type = undefined;
+  getItemType() {
+    return this.itemType;
+  }
+
+  setItemType(itemType: BlueNode | string): BlueNode {
+    if (typeof itemType === 'string') {
+      this.itemType = new BlueNode().setValue(itemType).setInlineValue(true);
+    } else {
+      this.itemType = itemType;
+    }
+    return this;
+  }
+
+  getKeyType() {
+    return this.keyType;
+  }
+
+  setKeyType(keyType: BlueNode | string): BlueNode {
+    if (typeof keyType === 'string') {
+      this.keyType = new BlueNode().setValue(keyType).setInlineValue(true);
+    } else {
+      this.keyType = keyType;
+    }
+    return this;
+  }
+
+  getValueType() {
+    return this.valueType;
+  }
+
+  setValueType(valueType: BlueNode | string): BlueNode {
+    if (typeof valueType === 'string') {
+      this.valueType = new BlueNode().setValue(valueType).setInlineValue(true);
+    } else {
+      this.valueType = valueType;
+    }
     return this;
   }
 
@@ -104,15 +140,6 @@ export class BlueNode {
     return this;
   }
 
-  getRef() {
-    return this.ref;
-  }
-
-  setRef(ref: string): BlueNode {
-    this.ref = ref;
-    return this;
-  }
-
   getBlueId() {
     return this.blueId;
   }
@@ -131,34 +158,53 @@ export class BlueNode {
     return this;
   }
 
-  setFeatures(features: Feature[]): BlueNode {
-    this.features = features;
+  getBlue() {
+    return this.blue;
+  }
+
+  setBlue(blue: BlueNode): BlueNode {
+    this.blue = blue;
     return this;
+  }
+
+  isInlineValue() {
+    return this.inlineValue;
+  }
+
+  setInlineValue(inlineValue: boolean): BlueNode {
+    this.inlineValue = inlineValue;
+    return this;
+  }
+
+  get(path: string, linkingProvider?: (node: BlueNode) => BlueNode | null) {
+    return NodePathAccessor.get(this, path, linkingProvider);
   }
 
   clone(): BlueNode {
     const cloned = new BlueNode(this.name);
     cloned.description = this.description;
     cloned.type = this.type?.clone();
+    cloned.itemType = this.itemType?.clone();
+    cloned.keyType = this.keyType?.clone();
+    cloned.valueType = this.valueType?.clone();
     cloned.value = this.value;
     cloned.items = this.items?.map((item) => item.clone());
-    cloned.properties = { ...this.properties };
-    cloned.ref = this.ref;
+    cloned.properties = this.properties
+      ? Object.fromEntries(
+          Object.entries(this.properties).map(([k, v]) => [k, v.clone()])
+        )
+      : undefined;
     cloned.blueId = this.blueId;
     cloned.constraints = this.constraints;
+    cloned.blue = this.blue?.clone();
+    cloned.inlineValue = this.inlineValue;
     return cloned;
   }
 
   toString(): string {
-    return `BlueNode{name='${this.name}', description='${this.description}', type=${this.type}, value=${this.value}, items=${this.items}, properties=${this.properties}, ref='${this.ref}', blueId='${this.blueId}', constraints=${this.constraints}}`;
+    return `BlueNode{name='${this.name}', description='${this.description}', type=${this.type}, itemType=${this.itemType}, keyType=${this.keyType}, valueType=${this.valueType}, value=${this.value}, items=${this.items}, properties=${this.properties}, blueId='${this.blueId}', constraints=${this.constraints}, blue=${this.blue}, inlineValue=${this.inlineValue}}`;
   }
 }
 
-// Helper function to determine if a type is basic
-function isBasicType(type: string): boolean {
-  return ['string', 'number', 'boolean'].includes(type);
-}
-
-// Dummy classes to simulate environment
+// Dummy class to simulate environment
 class Constraints {}
-class Feature {}
