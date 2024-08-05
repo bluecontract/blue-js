@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import { isPreciseNumberString } from '@blue-company/shared-utils';
-import Big from 'big.js';
+import { BigDecimalNumber } from '../../../lib/model';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const floatTypeOptions = (yaml as any).types.float
@@ -12,7 +12,7 @@ const options = {
     const value = data.replace(/_/g, '').toLowerCase();
 
     if (!isPreciseNumberString(value)) {
-      return new Big(value);
+      return new BigDecimalNumber(value);
     }
 
     if (floatTypeOptions.construct) {

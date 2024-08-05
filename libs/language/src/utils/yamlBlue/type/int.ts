@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import { isPreciseNumberString } from '@blue-company/shared-utils';
-import Big from 'big.js';
+import { BigIntegerNumber } from '../../../lib/model';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const intTypeOptions = (yaml as any).types.int
@@ -16,7 +16,7 @@ const options = {
     }
 
     if (!isPreciseNumberString(value)) {
-      return new Big(value);
+      return new BigIntegerNumber(value);
     }
 
     if (intTypeOptions.construct) {

@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { BlueId as BlueIdService } from '../lib/utils/BlueId';
+import { BlueIds as BlueIdsService } from '../lib/utils/BlueIds';
 import { Base58 } from '../lib/utils/Base58';
 
 export const blueIdSchema = z
   .string()
-  .max(BlueIdService.BLUE_ID_MAX_LENGTH, {
-    message: 'Blue Id has a maximum length of 44 characters',
+  .max(BlueIdsService.MAX_BLUE_ID_LENGTH, {
+    message: 'Blue Id has a maximum length of 45 characters',
   })
-  .min(BlueIdService.BLUE_ID_MIN_LENGTH, {
+  .min(BlueIdsService.MIN_BLUE_ID_LENGTH, {
     message: 'Blue Id has a minimum length of 41 characters',
   })
   .refine(

@@ -45,6 +45,15 @@
       "options": {
         "tsConfig": ["tsconfig.lib.json", "tsconfig.spec.json"]
       }
+    },
+    "find-short-blue-id": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/language",
+        "commands": [
+          "node --import @swc-node/register/esm-register scripts/findShortBlueIds.ts"
+        ]
+      }
     }
   }
 }

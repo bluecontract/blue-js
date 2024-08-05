@@ -1,6 +1,6 @@
 export { Base58 } from './Base58';
 export { Base58Sha256Provider } from './Base58Sha256Provider';
-export { BlueId } from './BlueId';
+export { BlueIds } from './BlueIds';
 export { BlueIdCalculator } from './BlueIdCalculator';
 export { BlueIdToCid } from './BlueIdToCid';
 export { JsonCanonicalizer } from './JsonCanonicalizer';
