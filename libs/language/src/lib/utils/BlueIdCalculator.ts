@@ -1,11 +1,10 @@
 import { BlueNode } from '../model/Node';
-import { NodeToObject, Strategy } from './NodeToObject';
+import { NodeToObject } from './NodeToObject';
 import { Base58Sha256Provider } from './Base58Sha256Provider';
 import {
   OBJECT_BLUE_ID,
   OBJECT_DESCRIPTION,
   OBJECT_NAME,
-  OBJECT_REF,
   OBJECT_VALUE,
 } from './Properties';
 import { isBigNumber } from '../../utils/typeGuards';
@@ -23,12 +22,7 @@ export class BlueIdCalculator {
     this.hashProvider = hashProvider;
   }
 
-  public static async calculateBlueId(node: BlueNode, strategy?: Strategy) {
-    if (strategy) {
-      return BlueIdCalculator.INSTANCE.calculate(
-        NodeToObject.get(node, strategy)
-      );
-    }
+  public static async calculateBlueId(node: BlueNode) {
     return BlueIdCalculator.INSTANCE.calculate(NodeToObject.get(node));
   }
 
@@ -60,11 +54,7 @@ export class BlueIdCalculator {
     const mapKeys = Object.keys(map);
     const hashes = {} as JsonBlueObject;
     for (const key of mapKeys) {
-      if (
-        [OBJECT_NAME, OBJECT_VALUE, OBJECT_REF, OBJECT_DESCRIPTION].includes(
-          key
-        )
-      ) {
+      if ([OBJECT_NAME, OBJECT_VALUE, OBJECT_DESCRIPTION].includes(key)) {
         hashes[key] = map[key];
       } else {
         hashes[key] = await this.calculate(map[key]);

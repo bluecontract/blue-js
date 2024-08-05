@@ -1,3 +1,15 @@
+## 0.8.0 (2024-08-05)
+
+
+### 🚀 Features
+
+- update NodeToObject ([18afed3](https://github.com/bluecontract/blue-js/commit/18afed3))
+- changes according to new version of blue-language-java ([e8091c3](https://github.com/bluecontract/blue-js/commit/e8091c3))
+- handle blueId in NodePathAccessor ([81b787c](https://github.com/bluecontract/blue-js/commit/81b787c))
+- use Number.MIN_SAFE_INTEGER and Number.MAX_SAFE_INTEGER ([a0514b6](https://github.com/bluecontract/blue-js/commit/a0514b6))
+- handle BigDecimal and BigInteger separately ([e00b80c](https://github.com/bluecontract/blue-js/commit/e00b80c))
+- changes in BlueIds class ([3992696](https://github.com/bluecontract/blue-js/commit/3992696))
+
 ## 0.7.1 (2024-07-18)
 
 

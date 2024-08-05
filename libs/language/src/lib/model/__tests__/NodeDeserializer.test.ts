@@ -10,7 +10,6 @@ describe('NodeDeserializer', () => {
       'description: description\n' +
       'type: type\n' +
       'value: value\n' +
-      'ref: ref\n' +
       'blueId: blueId\n' +
       'x: x\n' +
       'y:\n' +
@@ -23,15 +22,19 @@ describe('NodeDeserializer', () => {
 
     expect(node.getName()).toEqual('name');
     expect(node.getDescription()).toEqual('description');
-    expect(node.getType()?.getName()).toEqual('type');
+    expect(node.getType()?.getValue()).toEqual('type');
     expect(node.getValue()).toEqual('value');
-    expect(node.getRef()).toEqual('ref');
     expect(node.getBlueId()).toEqual('blueId');
     expect(node.getProperties()?.['x'].getValue()).toEqual('x');
 
     const y = node.getProperties()?.['y'];
-    expect(y?.getProperties()?.['y1'].getValue()).toEqual('y1');
-    expect(y?.getProperties()?.['y2'].getValue()).toEqual('y2');
+    const y1 = y?.getProperties()?.['y1'];
+    expect(y1?.getValue()).toEqual('y1');
+    expect(y1?.isInlineValue()).toBeTruthy();
+
+    const y2 = y?.getProperties()?.['y2'];
+    expect(y2?.getValue()).toEqual('y2');
+    expect(y2?.isInlineValue()).toBeFalsy();
   });
 
   it('testNumbers', () => {
@@ -55,12 +58,14 @@ describe('NodeDeserializer', () => {
   it('testType', () => {
     const doc =
       'a:\n' +
-      '  type: Integer\n' +
+      '  type:\n' +
+      '    name: Integer\n' +
       'b:\n' +
       '  type:\n' +
       '    name: Integer\n' +
       'c:\n' +
-      '  type: 84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH\n' +
+      '  type:\n' +
+      '    blueId: 84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH\n' +
       'd:\n' +
       '  type:\n' +
       '    blueId: 84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH';
@@ -95,7 +100,7 @@ describe('NodeDeserializer', () => {
     expect(node.getDescription()).toEqual(
       '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
     );
-    expect(node.getProperties()?.['x'].getBlueId()).toEqual(
+    expect(node.getProperties()?.['x'].getValue()).toEqual(
       '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
     );
     expect(node.getProperties()?.['y'].getValue()).toEqual(

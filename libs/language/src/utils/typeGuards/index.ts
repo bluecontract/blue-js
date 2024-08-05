@@ -1,1 +1,1 @@
-export { isBigNumber } from './isBigNumber';
+export * from './isBigNumber';

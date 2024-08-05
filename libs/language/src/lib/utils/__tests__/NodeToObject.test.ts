@@ -1,7 +1,7 @@
 import { JsonObject, JsonValue } from 'type-fest';
 import { BlueNode } from '../../model/Node';
 import { NodeToObject } from '../NodeToObject';
-import Big from 'big.js';
+import { BigDecimalNumber, BigIntegerNumber } from '../../model';
 
 describe('NodeToObject', () => {
   it('testBasicStandardStrategy', () => {
@@ -46,7 +46,7 @@ describe('NodeToObject', () => {
         b: new BlueNode().setValue('xyz2').setDescription('descriptionXyz2'),
       });
 
-    const object = NodeToObject.get(node, 'domainMapping');
+    const object = NodeToObject.get(node, 'simple');
     expect(typeof object).toBe('object');
 
     const result = object as Record<string, unknown>;
@@ -137,7 +137,7 @@ describe('NodeToObject', () => {
         ]),
       ]);
 
-    const object = NodeToObject.get(node, 'domainMapping');
+    const object = NodeToObject.get(node, 'simple');
     expect(Array.isArray(object)).toBeTruthy();
 
     const result = object as JsonValue[];
@@ -162,37 +162,38 @@ describe('NodeToObject', () => {
 
   describe('additional', () => {
     it('should throw error if an imprecise conversion occurs on node value', () => {
-      const errorSnapshot = `[Error: [big.js] Imprecise conversion]`;
       const node1 = new BlueNode().setValue(
-        new Big(
+        new BigDecimalNumber(
           '132452345234524739582739458723948572934875.132452345234524739582739458723948572934875'
         )
       );
 
-      expect(() => NodeToObject.get(node1)).toThrowErrorMatchingInlineSnapshot(
-        errorSnapshot
-      );
+      expect(NodeToObject.get(node1)).toMatchInlineSnapshot(`
+        {
+          "type": {
+            "blueId": "68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L",
+          },
+          "value": 1.3245234523452473e+41,
+        }
+      `);
 
       const node2 = new BlueNode().addProperty(
         'key',
         new BlueNode().setValue(
-          new Big('132452345234524739582739458723948572934875')
+          new BigIntegerNumber('132452345234524739582739458723948572934875')
         )
       );
 
-      expect(() => NodeToObject.get(node2)).toThrowErrorMatchingInlineSnapshot(
-        errorSnapshot
-      );
-
-      const node3 = new BlueNode().addItems(
-        new BlueNode().setValue(
-          new Big('132452345234524739582739458723948572934875')
-        )
-      );
-
-      expect(() => NodeToObject.get(node3)).toThrowErrorMatchingInlineSnapshot(
-        errorSnapshot
-      );
+      expect(NodeToObject.get(node2)).toMatchInlineSnapshot(`
+        {
+          "key": {
+            "type": {
+              "blueId": "DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8",
+            },
+            "value": "132452345234524739582739458723948572934875",
+          },
+        }
+      `);
     });
   });
 });
