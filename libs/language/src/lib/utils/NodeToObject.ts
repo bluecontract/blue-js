@@ -108,8 +108,8 @@ export class NodeToObject {
 
   private static handleValue(value: BlueNode['value']) {
     if (isBigNumber(value)) {
-      const lowerBound = new Big('-9007199254740991');
-      const upperBound = new Big('9007199254740991');
+      const lowerBound = new Big(Number.MIN_SAFE_INTEGER.toString());
+      const upperBound = new Big(Number.MAX_SAFE_INTEGER.toString());
 
       if (value.lt(lowerBound) || value.gt(upperBound)) {
         return value.toString();
