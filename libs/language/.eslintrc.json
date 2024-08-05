@@ -25,7 +25,11 @@
               "{projectRoot}/vite.config.{js,ts,mjs,mts}",
               "{projectRoot}/vitest-setup.ts"
             ],
-            "ignoredDependencies": ["@types/big.js", "@types/js-yaml"]
+            "ignoredDependencies": [
+              "@types/big.js",
+              "@types/js-yaml",
+              "canonicalize"
+            ]
           }
         ]
       }
