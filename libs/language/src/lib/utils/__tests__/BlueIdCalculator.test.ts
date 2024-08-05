@@ -233,7 +233,7 @@ describe('BlueIdCalculator', () => {
     expect(blueId2).toEqual(blueId);
   });
 
-  it.skip('testBigDecimal', async () => {
+  it('testBigDecimal', async () => {
     const yaml = `num: 36928735469874359687345908673940586739458679548679034857690345876905238476903485769.36928735469874359687345908673940586739458679548679034857690345876905238476903485769`;
     const node = NodeDeserializer.deserialize(
       yamlBlueParse(yaml) as JsonBlueValue
@@ -301,7 +301,7 @@ describe('BlueIdCalculator - additional tests', () => {
 
       const node = NodeDeserializer.deserialize(object);
       const result2 = await BlueIdCalculator.calculateBlueId(node);
-      expect(result2).toBe('9vVH8gYrxDDG2aZvrYe5a5k5UEQ6xaHsobBM5ZFTx4hF');
+      expect(result2).toBe('Fco5jExLUUXQXLpC2vT22dvu1mB9vFpvn1699Lp3WTR6');
     });
   });
 

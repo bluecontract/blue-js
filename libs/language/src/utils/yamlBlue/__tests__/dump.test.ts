@@ -1,3 +1,4 @@
+import { BigDecimalNumber, BigIntegerNumber } from '../../../lib/model';
 import { yamlBlueDump } from '../dump';
 import Big from 'big.js';
 
@@ -40,7 +41,7 @@ describe('yamlBlueDump', () => {
   });
 
   it('correctly serializes a small Big.js number', () => {
-    const smallBigNum = new Big('0.0000000000000000000123456789');
+    const smallBigNum = new BigDecimalNumber('0.0000000000000000000123456789');
     const dumpedYaml = yamlBlueDump({ smallBigNum });
     expect(dumpedYaml).toMatchInlineSnapshot(`
       "smallBigNum: 1.23456789e-20
@@ -48,10 +49,13 @@ describe('yamlBlueDump', () => {
     `);
   });
 
-  it('throws an error when attempting to serialize a Big.js number beyond JavaScript number limits', () => {
-    const bigNum = new Big('1234567890123456789012345678901234567890');
-    expect(() => yamlBlueDump({ bigNum })).toThrowErrorMatchingInlineSnapshot(
-      `[Error: [big.js] Imprecise conversion]`
+  it("didn't throws an error when attempting to serialize a Big.js number beyond JavaScript number limits", () => {
+    const bigNum = new BigIntegerNumber(
+      '1234567890123456789012345678901234567890'
     );
+    expect(yamlBlueDump({ bigNum })).toMatchInlineSnapshot(`
+      "bigNum: '1234567890123456789012345678901234567890'
+      "
+    `);
   });
 });

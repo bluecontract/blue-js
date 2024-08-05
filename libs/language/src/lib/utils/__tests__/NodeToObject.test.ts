@@ -1,7 +1,7 @@
 import { JsonObject, JsonValue } from 'type-fest';
 import { BlueNode } from '../../model/Node';
 import { NodeToObject } from '../NodeToObject';
-import Big from 'big.js';
+import { BigDecimalNumber, BigIntegerNumber } from '../../model';
 
 describe('NodeToObject', () => {
   it('testBasicStandardStrategy', () => {
@@ -163,7 +163,7 @@ describe('NodeToObject', () => {
   describe('additional', () => {
     it('should throw error if an imprecise conversion occurs on node value', () => {
       const node1 = new BlueNode().setValue(
-        new Big(
+        new BigDecimalNumber(
           '132452345234524739582739458723948572934875.132452345234524739582739458723948572934875'
         )
       );
@@ -173,14 +173,14 @@ describe('NodeToObject', () => {
           "type": {
             "blueId": "68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L",
           },
-          "value": "132452345234524739582739458723948572934875.132452345234524739582739458723948572934875",
+          "value": 1.3245234523452473e+41,
         }
       `);
 
       const node2 = new BlueNode().addProperty(
         'key',
         new BlueNode().setValue(
-          new Big('132452345234524739582739458723948572934875')
+          new BigIntegerNumber('132452345234524739582739458723948572934875')
         )
       );
 

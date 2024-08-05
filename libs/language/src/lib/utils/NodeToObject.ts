@@ -17,7 +17,7 @@ import {
   NUMBER_TYPE_BLUE_ID,
   BOOLEAN_TYPE_BLUE_ID,
 } from './Properties';
-import { isBigNumber } from '../../utils/typeGuards';
+import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
 import { jsonValueSchema } from '@blue-company/shared-utils';
 
 export type Strategy = 'official' | 'simple' | 'simpleNoType';
@@ -108,11 +108,13 @@ export class NodeToObject {
 
   private static handleValue(value: BlueNode['value']) {
     if (isBigNumber(value)) {
-      const lowerBound = new Big(Number.MIN_SAFE_INTEGER.toString());
-      const upperBound = new Big(Number.MAX_SAFE_INTEGER.toString());
+      if (isBigIntegerNumber(value)) {
+        const lowerBound = new Big(Number.MIN_SAFE_INTEGER.toString());
+        const upperBound = new Big(Number.MAX_SAFE_INTEGER.toString());
 
-      if (value.lt(lowerBound) || value.gt(upperBound)) {
-        return value.toString();
+        if (value.lt(lowerBound) || value.gt(upperBound)) {
+          return value.toString();
+        }
       }
       return value.toNumber();
     }
@@ -123,7 +125,7 @@ export class NodeToObject {
     if (typeof value === 'string') {
       return TEXT_TYPE_BLUE_ID;
     } else if (isBigNumber(value)) {
-      return isBigIntegerType(value)
+      return isBigIntegerNumber(value)
         ? INTEGER_TYPE_BLUE_ID
         : NUMBER_TYPE_BLUE_ID;
     } else if (typeof value === 'boolean') {
@@ -135,8 +137,4 @@ export class NodeToObject {
   private static isStrategySimple(strategy: Strategy): boolean {
     return strategy === 'simple' || strategy === 'simpleNoType';
   }
-}
-
-function isBigIntegerType(bigNumber: Big) {
-  return bigNumber.mod('1').eq('0');
 }

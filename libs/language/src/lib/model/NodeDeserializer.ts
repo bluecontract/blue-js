@@ -20,8 +20,13 @@ import {
 } from '../utils/Properties';
 import { isBigNumber } from '../../utils/typeGuards';
 import { isReadonlyArray } from '@blue-company/shared-utils';
-import Big from 'big.js';
 import { isArray, isObject } from 'radash';
+import {
+  isBigDecimalNumber,
+  isBigIntegerNumber,
+} from '../../utils/typeGuards/isBigNumber';
+import { BigIntegerNumber } from './BigIntegerNumber';
+import { BigDecimalNumber } from './BigDecimalNumber';
 
 export class NodeDeserializer {
   static deserialize(json: JsonBlueValue) {
@@ -136,17 +141,26 @@ export class NodeDeserializer {
     const typeBlueId = typeNode.getBlueId();
     if (typeBlueId === TEXT_TYPE_BLUE_ID) {
       return String(valueNode);
-    } else if (
-      typeBlueId === INTEGER_TYPE_BLUE_ID ||
-      typeBlueId === NUMBER_TYPE_BLUE_ID
-    ) {
-      if (isBigNumber(valueNode)) {
+    } else if (typeBlueId === INTEGER_TYPE_BLUE_ID) {
+      if (isBigIntegerNumber(valueNode)) {
         return valueNode;
       } else if (
         typeof valueNode === 'number' ||
         typeof valueNode === 'string'
       ) {
-        return new Big(valueNode.toString());
+        return new BigIntegerNumber(valueNode.toString());
+      }
+      throw new Error(
+        `The ${OBJECT_VALUE} field must be a string or a number.`
+      );
+    } else if (typeBlueId === NUMBER_TYPE_BLUE_ID) {
+      if (isBigDecimalNumber(valueNode)) {
+        return valueNode;
+      } else if (
+        typeof valueNode === 'number' ||
+        typeof valueNode === 'string'
+      ) {
+        return new BigDecimalNumber(valueNode.toString());
       }
       throw new Error(
         `The ${OBJECT_VALUE} field must be a string or a number.`
