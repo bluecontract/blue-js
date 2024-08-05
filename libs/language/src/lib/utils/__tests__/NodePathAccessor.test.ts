@@ -33,51 +33,52 @@ b:
     rootNode = NodeDeserializer.deserialize(parsedYaml);
   });
 
-  test('root level access', () => {
-    expect(rootNode.get('/name')).toBe('Root');
-    expect(rootNode.get('/value')).toBe('RootValue');
-    expect(rootNode.get('/type')).toBeInstanceOf(BlueNode);
-    expect((rootNode.get('/type') as BlueNode).getName()).toBe('RootType');
+  test('root level access', async () => {
+    expect(await rootNode.get('/name')).toBe('Root');
+    expect(await rootNode.get('/value')).toBe('RootValue');
+    expect(await rootNode.get('/type')).toBeInstanceOf(BlueNode);
+    expect(((await rootNode.get('/type')) as BlueNode).getName()).toBe(
+      'RootType'
+    );
   });
 
-  test('nested access', () => {
-    expect(rootNode.get('/b/name')).toBe('B');
-    expect(rootNode.get('/b/c/value')).toBe('ValueC');
+  test('nested access', async () => {
+    expect(await rootNode.get('/b/name')).toBe('B');
+    expect(await rootNode.get('/b/c/value')).toBe('ValueC');
   });
 
-  test('list access', () => {
-    expect(rootNode.get('/a/0')).toBeInstanceOf(BlueNode);
-    expect(rootNode.get('/a/0/name')).toBe('A1');
-    expect(rootNode.get('/a/1/value')).toEqual(new Big('42'));
+  test('list access', async () => {
+    expect(await rootNode.get('/a/0')).toBeInstanceOf(BlueNode);
+    expect(await rootNode.get('/a/0/name')).toBe('A1');
+    expect(await rootNode.get('/a/1/value')).toEqual(new Big('42'));
   });
 
-  test('type access', () => {
-    expect(rootNode.get('/a/0/type/name')).toBe('TypeA');
-    expect(rootNode.get('/type/type/name')).toBe('MetaType');
+  test('type access', async () => {
+    expect(await rootNode.get('/a/0/type/name')).toBe('TypeA');
+    expect(await rootNode.get('/type/type/name')).toBe('MetaType');
   });
 
-  // TODO:
-  // test('blueId access', () => {
-  //   expect(rootNode.get('/blueId')).not.toBeNull();
-  //   expect(rootNode.get('/a/0/blueId')).not.toBeNull();
-  // });
-
-  test('invalid path', () => {
-    expect(() => rootNode.get('/nonexistent')).toThrow();
-    expect(() => rootNode.get('/a/5')).toThrow();
-    expect(() => rootNode.get('invalid')).toThrow();
+  test('blueId access', async () => {
+    expect(await rootNode.get('/blueId')).not.toBeNull();
+    expect(await rootNode.get('/a/0/blueId')).not.toBeNull();
   });
 
-  test('value precedence', () => {
+  test('invalid path', async () => {
+    expect(() => rootNode.get('/nonexistent')).rejects.toThrow();
+    expect(() => rootNode.get('/a/5')).rejects.toThrow();
+    expect(() => rootNode.get('invalid')).rejects.toThrow();
+  });
+
+  test('value precedence', async () => {
     const nodeWithValue = new BlueNode().setName('Test').setValue('TestValue');
     const nodeWithoutValue = new BlueNode().setName('Test');
 
-    expect(NodePathAccessor.get(nodeWithValue, '/')).toBe('TestValue');
-    expect(NodePathAccessor.get(nodeWithValue, '/name')).toBe('Test');
+    expect(await NodePathAccessor.get(nodeWithValue, '/')).toBe('TestValue');
+    expect(await NodePathAccessor.get(nodeWithValue, '/name')).toBe('Test');
 
-    expect(NodePathAccessor.get(nodeWithoutValue, '/')).toBeInstanceOf(
+    expect(await NodePathAccessor.get(nodeWithoutValue, '/')).toBeInstanceOf(
       BlueNode
     );
-    expect(NodePathAccessor.get(nodeWithoutValue, '/name')).toBe('Test');
+    expect(await NodePathAccessor.get(nodeWithoutValue, '/name')).toBe('Test');
   });
 });
