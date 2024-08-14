@@ -27,6 +27,8 @@ export const baseBlueObjectSchema = z.object({
 
 export const contractsListObjectSchema = blueObjectSchema;
 
+export const eventBlueObjectSchema = blueObjectSchema;
+
 export const eventSchema = baseBlueObjectSchema;
 
 export const actionSchema = baseBlueObjectSchema;
@@ -71,7 +73,7 @@ export const participantObjectListSchema = baseBlueObjectSchema.extend({
 
 export const workflowSchema = baseBlueObjectSchema.extend({
   steps: workflowStepObjectListSchema.optional(),
-  trigger: eventSchema.optional(),
+  trigger: eventBlueObjectSchema.optional(),
 });
 
 export const actionByParticipantEventSchema = eventSchema.extend({

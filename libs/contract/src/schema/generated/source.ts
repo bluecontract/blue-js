@@ -33,8 +33,10 @@ export interface WorkflowObjectList extends BaseBlueObject {
 
 export interface Workflow extends BaseBlueObject {
   steps?: WorkflowStepObjectList;
-  trigger?: Event;
+  trigger?: EventBlueObject;
 }
+
+export interface EventBlueObject extends BlueObject {}
 
 export interface Event extends BaseBlueObject {}
 
