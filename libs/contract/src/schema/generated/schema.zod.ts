@@ -25,6 +25,20 @@ export const baseBlueObjectSchema = z.object({
   type: blueObjectSchema.optional(),
 });
 
+const blueObjectStringValueSchema = baseBlueObjectSchema.extend({
+  value: z.string().optional(),
+});
+
+const blueObjectBooleanValueSchema = baseBlueObjectSchema.extend({
+  value: z.boolean().optional(),
+});
+
+export const contractMessagingSchema = baseBlueObjectSchema.extend({
+  participants: blueObjectSchema.optional(),
+});
+
+export const contractPhotoSchema = blueObjectStringValueSchema;
+
 export const contractsListObjectSchema = blueObjectSchema;
 
 export const eventBlueObjectSchema = blueObjectSchema;
@@ -33,13 +47,7 @@ export const eventSchema = baseBlueObjectSchema;
 
 export const actionSchema = baseBlueObjectSchema;
 
-export const workflowStepSchema = baseBlueObjectSchema;
-
-const blueObjectStringValueSchema = baseBlueObjectSchema.extend({
-  value: z.string().optional(),
-});
-
-export const contractPhotoSchema = blueObjectStringValueSchema;
+export const workflowStepSchema = blueObjectSchema;
 
 export const timelineEntryBlueObjectSchema = baseBlueObjectSchema.extend({
   id: blueObjectStringValueSchema,
@@ -57,11 +65,13 @@ export const workflowStepObjectListSchema = baseBlueObjectSchema.extend({
 });
 
 export const participantSchema = baseBlueObjectSchema.extend({
-  type: blueObjectSchema.and(
-    z.object({
-      name: z.literal('Participant'),
-    }),
-  ),
+  type: blueObjectSchema
+    .and(
+      z.object({
+        name: z.literal('Participant').optional(),
+      }),
+    )
+    .optional(),
   timeline: blueObjectStringValueSchema.optional(),
   thread: blueObjectStringValueSchema.optional(),
   timelineSource: timelineEntryBlueObjectSchema.optional(),
@@ -98,6 +108,7 @@ export const contractSchema = baseBlueObjectSchema.extend({
   properties: blueObjectSchema.optional(),
   photo: contractPhotoSchema.optional(),
   contracts: contractsListObjectSchema.optional(),
+  messaging: contractMessagingSchema.optional(),
 });
 
 export const initiateContractActionSchema = actionSchema.extend({
@@ -109,6 +120,24 @@ export const initiateContractActionSchema = actionSchema.extend({
     )
     .optional(),
   contract: contractSchema,
+});
+
+export const contractChessSchema = contractSchema.extend({
+  properties: z.object({
+    chessboard: blueObjectStringValueSchema,
+    playerToMove: z.object({
+      value: z.union([z.literal('White'), z.literal('Black')]),
+    }),
+    winner: z.object({
+      value: z.union([
+        z.literal('White'),
+        z.literal('Black'),
+        z.literal('None'),
+      ]),
+    }),
+    draw: blueObjectBooleanValueSchema,
+    gameOver: blueObjectBooleanValueSchema,
+  }),
 });
 
 export const contractInstanceSchema: z.ZodSchema<ContractInstance> = z.lazy(

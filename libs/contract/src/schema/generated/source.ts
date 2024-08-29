@@ -17,6 +17,18 @@ export interface BaseBlueObject {
   type?: BlueObject;
 }
 
+interface BlueObjectStringValue extends BaseBlueObject {
+  value?: string;
+}
+
+interface BlueObjectBooleanValue extends BaseBlueObject {
+  value?: boolean;
+}
+
+export interface ContractMessaging extends BaseBlueObject {
+  participants?: BlueObject;
+}
+
 export interface Contract extends BaseBlueObject {
   participants?: {
     [k: string]: ParticipantObjectList;
@@ -25,6 +37,21 @@ export interface Contract extends BaseBlueObject {
   properties?: BlueObject;
   photo?: ContractPhoto;
   contracts?: ContractsListObject;
+  messaging?: ContractMessaging;
+}
+
+export interface ContractChess extends Contract {
+  properties: {
+    chessboard: BlueObjectStringValue;
+    playerToMove: {
+      value: 'White' | 'Black';
+    };
+    winner: {
+      value: 'White' | 'Black' | 'None';
+    };
+    draw: BlueObjectBooleanValue;
+    gameOver: BlueObjectBooleanValue;
+  };
 }
 
 export interface WorkflowObjectList extends BaseBlueObject {
@@ -61,21 +88,17 @@ export interface WorkflowStepObjectList extends BaseBlueObject {
   items?: WorkflowStep[];
 }
 
-export type WorkflowStep = BaseBlueObject;
+export type WorkflowStep = BlueObject;
 
 export interface ParticipantObjectList extends BaseBlueObject {
   items?: Participant[];
 }
 
-interface BlueObjectStringValue extends BaseBlueObject {
-  value?: string;
-}
-
 export type ContractPhoto = BlueObjectStringValue;
 
 export interface Participant extends BaseBlueObject {
-  type: BlueObject & {
-    name: 'Participant';
+  type?: BlueObject & {
+    name?: 'Participant';
   };
   timeline?: BlueObjectStringValue;
   thread?: BlueObjectStringValue;

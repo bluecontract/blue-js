@@ -1,9 +1,7 @@
 import { getBlueObjectProperties } from '@blue-company/language';
-import { Contract } from './schema';
+import { BlueObject } from './schema';
 
-export const getParticipantsRoles = (
-  participants: Contract['participants']
-) => {
+export const getParticipantsRoles = (participants?: BlueObject) => {
   const properties = getBlueObjectProperties(participants);
 
   return Object.keys(properties);
