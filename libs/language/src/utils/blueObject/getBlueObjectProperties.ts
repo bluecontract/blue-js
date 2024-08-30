@@ -1,13 +1,15 @@
 import { omit } from 'radash';
 import { Properties } from '../../lib';
-import { Writable } from 'type-fest';
+import { Writable, ArrayValues } from 'type-fest';
 import { isNullable } from '@blue-company/shared-utils';
+
+type ObjectSpecificKeys = ArrayValues<typeof Properties.OBJECT_SPECIFIC_KEYS>;
 
 export const getBlueObjectProperties = <T extends Record<string, unknown>>(
   blueObject?: T
-) =>
+): Omit<T, ObjectSpecificKeys> =>
   isNullable(blueObject)
-    ? {}
+    ? ({} as Omit<T, ObjectSpecificKeys>)
     : omit(
         blueObject,
         Properties.OBJECT_SPECIFIC_KEYS as Writable<

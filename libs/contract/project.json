@@ -30,6 +30,13 @@
         "commands": ["nx watch --projects=contract -- nx yalc-push contract"]
       }
     },
+    "generate-schema": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["node scripts/generate-schema.mjs"]
+      }
+    },
     "tsc": {
       "executor": "@webpro/nx-tsc:tsc",
       "options": {
