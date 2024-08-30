@@ -17,11 +17,11 @@ export interface BaseBlueObject {
   type?: BlueObject;
 }
 
-interface BlueObjectStringValue extends BaseBlueObject {
+export interface BlueObjectStringValue extends BaseBlueObject {
   value?: string;
 }
 
-interface BlueObjectBooleanValue extends BaseBlueObject {
+export interface BlueObjectBooleanValue extends BaseBlueObject {
   value?: boolean;
 }
 
@@ -130,13 +130,13 @@ export interface TimelineEntryBlueObject extends BaseBlueObject {
   signature: BlueObjectStringValue;
 }
 
-// export type InitialTimelineBlueMessageType = BlueObject & {
-//   name: 'Timeline by Timeline.blue';
-// };
+export type InitialTimelineBlueMessageType = BlueObject & {
+  name: 'Timeline by Timeline.blue';
+};
 
-// export interface InitialTimelineBlueMessage extends BaseBlueObject {
-//   type: InitialTimelineBlueMessageType;
-//   timelineAlias: BlueObjectStringValue;
-//   avatar: BlueObjectStringValue;
-//   signature: unknown;
-// }
+export interface InitialTimelineBlueMessage extends BaseBlueObject {
+  type?: InitialTimelineBlueMessageType;
+  timelineAlias: BlueObjectStringValue;
+  avatar?: BlueObjectStringValue;
+  signingMethod?: unknown;
+}

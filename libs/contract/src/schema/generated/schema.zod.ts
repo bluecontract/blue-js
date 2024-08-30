@@ -60,6 +60,19 @@ export const timelineEntryBlueObjectSchema = baseBlueObjectSchema.extend({
   signature: blueObjectStringValueSchema,
 });
 
+export const initialTimelineBlueMessageTypeSchema = blueObjectSchema.and(
+  z.object({
+    name: z.literal('Timeline by Timeline.blue'),
+  }),
+);
+
+export const initialTimelineBlueMessageSchema = baseBlueObjectSchema.extend({
+  type: initialTimelineBlueMessageTypeSchema.optional(),
+  timelineAlias: blueObjectStringValueSchema,
+  avatar: blueObjectStringValueSchema.optional(),
+  signingMethod: z.unknown().optional(),
+});
+
 export const workflowStepObjectListSchema = baseBlueObjectSchema.extend({
   items: z.array(workflowStepSchema).optional(),
 });
