@@ -228,7 +228,9 @@ describe('NodeToObject', () => {
         description: 'descriptionA',
         property1: {
           name: 'nameB',
-          subProperty: '2RFx2oVzzuDJFVoagK5rohbCkFFA5SBp8WPmuyQ56UV6',
+          subProperty: {
+            blueId: '2RFx2oVzzuDJFVoagK5rohbCkFFA5SBp8WPmuyQ56UV6',
+          },
         },
         property2: {
           name: 'nameC',

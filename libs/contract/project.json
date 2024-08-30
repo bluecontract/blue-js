@@ -34,7 +34,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "{projectRoot}",
-        "commands": ["ts-to-zod"]
+        "commands": ["node scripts/generate-schema.mjs"]
       }
     },
     "tsc": {

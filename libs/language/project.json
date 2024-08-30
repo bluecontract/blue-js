@@ -46,6 +46,13 @@
         "tsConfig": ["tsconfig.lib.json", "tsconfig.spec.json"]
       }
     },
+    "generate-schema": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["ts-to-zod"]
+      }
+    },
     "find-short-blue-id": {
       "executor": "nx:run-commands",
       "options": {
