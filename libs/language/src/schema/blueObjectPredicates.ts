@@ -1,5 +1,5 @@
 import { SetRequired } from 'type-fest';
-import { BlueObject, BlueObjectWithId, blueObjectSchema } from './blueObject';
+import { blueObjectSchema, BlueObject, BlueObjectWithId } from './generated';
 import { isNonNullable } from '@blue-company/shared-utils';
 
 export const isBlueObject = (value: unknown): value is BlueObject => {

@@ -1,5 +1,4 @@
-import { getBlueObjectProperties } from '@blue-company/language';
-import { BlueObject } from './schema';
+import { getBlueObjectProperties, BlueObject } from '@blue-company/language';
 
 export const getParticipantsRoles = (participants?: BlueObject) => {
   const properties = getBlueObjectProperties(participants);
