@@ -4,7 +4,7 @@ import {
   JsonBlueValue,
 } from '@blue-company/language';
 import { isString } from 'radash';
-import { contractSchema } from './schema';
+import { contractSchema } from '../schema';
 
 const getJsonValue = (content: string | JsonBlueValue) => {
   if (isString(content)) {
@@ -21,5 +21,6 @@ const getJsonValue = (content: string | JsonBlueValue) => {
 export const parseAsContract = (content: string | JsonBlueValue) => {
   const jsonValue = getJsonValue(content);
   const blueObject = normalizeToBlueObject(jsonValue);
+
   return contractSchema.parse(blueObject);
 };

@@ -7,7 +7,7 @@ import {
 import { jsonTraverseAndFind } from '@blue-company/shared-utils';
 
 export const findAllInitiateContractActions = (contract: Contract) => {
-  return contract.workflows?.items.flatMap((workflow) => {
+  return contract.workflows?.items?.flatMap((workflow) => {
     const actionByParticipantEvents = findActionByParticipantEvents(
       workflow as JsonObject
     );

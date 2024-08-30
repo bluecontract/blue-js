@@ -1,3 +1,17 @@
+## 0.9.0 (2024-08-30)
+
+
+### 🚀 Features
+
+- Add ts-to-zod dependency, generate schema based on interfaces, helpers for participant, workflow and contract instance parser ([039b284](https://github.com/bluecontract/blue-js/commit/039b284))
+- ContractChess and Messaging part in contract ([7e90c00](https://github.com/bluecontract/blue-js/commit/7e90c00))
+- InitialTimelineBlueMessage schema ([752d635](https://github.com/bluecontract/blue-js/commit/752d635))
+- generate schema based on ts files ([3099d8d](https://github.com/bluecontract/blue-js/commit/3099d8d))
+
+### 🩹 Fixes
+
+- treat trigger as a unknown blue object ([bea4238](https://github.com/bluecontract/blue-js/commit/bea4238))
+
 ## 0.8.0 (2024-08-05)
 
 
