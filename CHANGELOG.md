@@ -1,3 +1,10 @@
+## 0.9.1 (2024-09-09)
+
+
+### 🩹 Fixes
+
+- **contract:** update ActionByParticipantEvent schema ([e8f0c68](https://github.com/bluecontract/blue-js/commit/e8f0c68))
+
 ## 0.9.0 (2024-08-30)
 
 
