@@ -1,12 +1,11 @@
-import { BlueObject } from '@blue-company/language';
+import { BlueObject, BlueObjectStringValue } from '@blue-company/language';
 import { ContractEvent } from './contractEvent';
-import { Participant } from '../contract/contract';
-import { ContractAction } from '../contractAction/contractAction';
+import { InitiateContractAction } from '../contractAction/initiateContractAction';
 
 export interface ActionByParticipantEvent extends ContractEvent {
   type?: BlueObject & {
     name: 'Action by Participant';
   };
-  participant: Participant;
-  action: ContractAction;
+  participant: BlueObjectStringValue;
+  action: InitiateContractAction;
 }
