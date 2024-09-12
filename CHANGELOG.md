@@ -1,3 +1,10 @@
+## 0.11.0 (2024-09-12)
+
+
+### 🚀 Features
+
+- **contract:** Add participant utility functions ([1ac074f](https://github.com/bluecontract/blue-js/commit/1ac074f))
+
 ## 0.10.0 (2024-09-12)
 
 
