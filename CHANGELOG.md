@@ -1,3 +1,11 @@
+## 0.10.0 (2024-09-12)
+
+
+### 🚀 Features
+
+- **contract:** Add ChessContract and TaskContract schemas ([69310ae](https://github.com/bluecontract/blue-js/commit/69310ae))
+- **contractInstance:** Add processingState parsing with localContractInstances ([dc0517c](https://github.com/bluecontract/blue-js/commit/dc0517c))
+
 ## 0.9.1 (2024-09-09)
 
 
