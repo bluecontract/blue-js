@@ -41,6 +41,26 @@ export const workflowSchema = baseBlueObjectSchema.extend({
   trigger: contractEventBlueObjectSchema.optional(),
 });
 
+export const localContractSchema = baseBlueObjectSchema.extend({
+  id: z.object({
+    type: blueObjectSchema
+      .and(
+        z.object({
+          blueId: z.literal('DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8'),
+        })
+      )
+      .optional(),
+    value: z.number().optional(),
+  }),
+  type: blueObjectSchema
+    .and(
+      z.object({
+        blueId: z.literal('6gBMYGeWw1Cutbsrzj3c98RH4VrSJNvPsgZ4F4A19i3f'),
+      })
+    )
+    .optional(),
+});
+
 export const workflowObjectListSchema = baseBlueObjectSchema.extend({
   items: z.array(workflowSchema).optional(),
 });
@@ -52,22 +72,4 @@ export const contractSchema = baseBlueObjectSchema.extend({
   photo: contractPhotoSchema.optional(),
   contracts: contractsListObjectSchema.optional(),
   messaging: contractMessagingSchema.optional(),
-});
-
-export const contractChessSchema = contractSchema.extend({
-  properties: z.object({
-    chessboard: blueObjectStringValueSchema,
-    playerToMove: z.object({
-      value: z.union([z.literal('White'), z.literal('Black')]),
-    }),
-    winner: z.object({
-      value: z.union([
-        z.literal('White'),
-        z.literal('Black'),
-        z.literal('None'),
-      ]),
-    }),
-    draw: blueObjectBooleanValueSchema,
-    gameOver: blueObjectBooleanValueSchema,
-  }),
 });

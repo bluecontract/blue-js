@@ -38,20 +38,6 @@ export interface Contract extends BaseBlueObject {
   messaging?: ContractMessaging;
 }
 
-export interface ContractChess extends Contract {
-  properties: {
-    chessboard: BlueObjectStringValue;
-    playerToMove: {
-      value: 'White' | 'Black';
-    };
-    winner: {
-      value: 'White' | 'Black' | 'None';
-    };
-    draw: BlueObjectBooleanValue;
-    gameOver: BlueObjectBooleanValue;
-  };
-}
-
 export interface WorkflowObjectList extends BaseBlueObject {
   items?: Workflow[];
 }
@@ -64,3 +50,15 @@ export interface Workflow extends BaseBlueObject {
 export type ContractPhoto = BlueObjectStringValue;
 
 export type ContractsListObject = BlueObject;
+
+export interface LocalContract extends BaseBlueObject {
+  id: {
+    type?: BlueObject & {
+      blueId: 'DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8';
+    };
+    value?: number;
+  };
+  type?: BlueObject & {
+    blueId: '6gBMYGeWw1Cutbsrzj3c98RH4VrSJNvPsgZ4F4A19i3f';
+  };
+}
