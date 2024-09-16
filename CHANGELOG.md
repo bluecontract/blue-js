@@ -1,3 +1,10 @@
+## 0.12.0 (2024-09-16)
+
+
+### 🚀 Features
+
+- Update timeline and contract schemas ([af80ec6](https://github.com/bluecontract/blue-js/commit/af80ec6))
+
 ## 0.11.0 (2024-09-12)
 
 

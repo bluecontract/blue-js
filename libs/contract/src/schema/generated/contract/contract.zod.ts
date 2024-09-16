@@ -9,7 +9,7 @@ import {
 } from '@blue-company/language';
 import { workflowStepObjectListSchema } from './../workflowStep/workflowStep.zod';
 import { contractEventBlueObjectSchema } from './../contractEvent/contractEvent.zod';
-import { timelineEntryBlueObjectSchema } from './../timeline/timelineEntry.zod';
+import { timelineEntrySchema } from './../timeline/timelineEntry.zod';
 
 export const participantTypeSchema = blueObjectSchema.and(
   z.object({
@@ -21,7 +21,7 @@ export const participantSchema = baseBlueObjectSchema.extend({
   type: participantTypeSchema.optional(),
   timeline: blueObjectStringValueSchema.optional(),
   thread: blueObjectStringValueSchema.optional(),
-  timelineSource: timelineEntryBlueObjectSchema.optional(),
+  timelineSource: timelineEntrySchema.optional(),
 });
 
 export const participantObjectListSchema = baseBlueObjectSchema.extend({

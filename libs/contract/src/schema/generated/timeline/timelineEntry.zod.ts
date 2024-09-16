@@ -7,9 +7,7 @@ import {
   blueObjectStringValueSchema,
 } from '@blue-company/language';
 
-export const timelineEntryBlueObjectSchema = baseBlueObjectSchema.extend({
-  id: blueObjectStringValueSchema,
-  created: z.unknown().optional(),
+export const timelineEntrySchema = baseBlueObjectSchema.extend({
   timeline: blueObjectStringValueSchema.optional(),
   timelinePrev: blueObjectStringValueSchema.optional(),
   thread: blueObjectStringValueSchema.optional(),
