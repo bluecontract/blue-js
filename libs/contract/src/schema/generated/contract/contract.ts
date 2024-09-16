@@ -6,7 +6,7 @@ import {
 } from '@blue-company/language';
 import { WorkflowStepObjectList } from '../workflowStep/workflowStep';
 import { ContractEventBlueObject } from '../contractEvent/contractEvent';
-import { TimelineEntryBlueObject } from '../timeline/timelineEntry';
+import { TimelineEntry } from '../timeline/timelineEntry';
 
 export type ParticipantType = BlueObject & {
   name?: 'Participant';
@@ -16,7 +16,7 @@ export interface Participant extends BaseBlueObject {
   type?: ParticipantType;
   timeline?: BlueObjectStringValue;
   thread?: BlueObjectStringValue;
-  timelineSource?: TimelineEntryBlueObject;
+  timelineSource?: TimelineEntry;
 }
 
 export interface ParticipantObjectList extends BaseBlueObject {

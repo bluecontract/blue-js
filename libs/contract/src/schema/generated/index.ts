@@ -3,6 +3,8 @@ export * from './workflowStep/workflowStep';
 export * from './workflowStep/workflowStep.zod';
 export * from './timelineMessage/initialTimelineBlueMessage';
 export * from './timelineMessage/initialTimelineBlueMessage.zod';
+export * from './timelineMessage/initialAWSBasicTimelineMessage';
+export * from './timelineMessage/initialAWSBasicTimelineMessage.zod';
 export * from './timeline/timelineEntry';
 export * from './timeline/timelineEntry.zod';
 export * from './contractInstance/contractInstance';

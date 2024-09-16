@@ -4,9 +4,7 @@ import {
   BlueObjectStringValue,
 } from '@blue-company/language';
 
-export interface TimelineEntryBlueObject extends BaseBlueObject {
-  id: BlueObjectStringValue;
-  created?: unknown;
+export interface TimelineEntry extends BaseBlueObject {
   timeline?: BlueObjectStringValue;
   timelinePrev?: BlueObjectStringValue;
   thread?: BlueObjectStringValue;

@@ -32,6 +32,5 @@ export interface TaskContract extends Contract {
   properties: {
     conversation: ConversationObjectList;
     actualTask: LocalContract;
-    contractDef: Contract;
   };
 }

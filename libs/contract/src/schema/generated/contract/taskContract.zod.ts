@@ -51,6 +51,5 @@ export const taskContractSchema = contractSchema.extend({
   properties: z.object({
     conversation: conversationObjectListSchema,
     actualTask: localContractSchema,
-    contractDef: contractSchema,
   }),
 });
