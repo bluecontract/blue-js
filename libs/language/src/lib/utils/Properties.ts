@@ -27,7 +27,7 @@ export const OBJECT_SPECIFIC_KEYS = [
 ] as const;
 
 export const TEXT_TYPE = 'Text';
-export const NUMBER_TYPE = 'Number';
+export const DOUBLE_TYPE = 'Double';
 export const INTEGER_TYPE = 'Integer';
 export const BOOLEAN_TYPE = 'Boolean';
 export const LIST_TYPE = 'List';
@@ -35,14 +35,14 @@ export const DICTIONARY_TYPE = 'Dictionary';
 
 export const BASIC_TYPES = [
   TEXT_TYPE,
-  NUMBER_TYPE,
+  DOUBLE_TYPE,
   INTEGER_TYPE,
   BOOLEAN_TYPE,
 ] as const;
 export const CORE_TYPES = [...BASIC_TYPES, LIST_TYPE, DICTIONARY_TYPE] as const;
 
 export const TEXT_TYPE_BLUE_ID = 'F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP';
-export const NUMBER_TYPE_BLUE_ID =
+export const DOUBLE_TYPE_BLUE_ID =
   '68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L';
 export const INTEGER_TYPE_BLUE_ID =
   'DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8';
@@ -54,7 +54,7 @@ export const DICTIONARY_TYPE_BLUE_ID =
 
 export const BASIC_TYPE_BLUE_IDS = [
   TEXT_TYPE_BLUE_ID,
-  NUMBER_TYPE_BLUE_ID,
+  DOUBLE_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
   BOOLEAN_TYPE_BLUE_ID,
 ] as const;

@@ -1,8 +1,13 @@
 import Big from 'big.js';
-import { JsonPrimitive } from '@blue-company/shared-utils';
+import { isNonNullable, JsonPrimitive } from '@blue-company/shared-utils';
 import { NodePathAccessor } from '../utils/NodePathAccessor';
 import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';
+import {
+  BOOLEAN_TYPE_BLUE_ID,
+  DOUBLE_TYPE_BLUE_ID,
+  INTEGER_TYPE_BLUE_ID,
+} from '../utils/Properties';
 
 export class BlueNode {
   static INTEGER: BlueNode = new BlueNode('Integer');
@@ -13,7 +18,10 @@ export class BlueNode {
   private itemType?: BlueNode;
   private keyType?: BlueNode;
   private valueType?: BlueNode;
-  private value?: Exclude<JsonPrimitive, number> | Big;
+  private value?:
+    | Exclude<JsonPrimitive, number>
+    | BigIntegerNumber
+    | BigDecimalNumber;
   private items?: BlueNode[];
   private properties?: Record<string, BlueNode>;
   private blueId?: string;
@@ -29,7 +37,7 @@ export class BlueNode {
     return this.name;
   }
 
-  setName(name: string): BlueNode {
+  setName(name: string | undefined): BlueNode {
     this.name = name;
     return this;
   }
@@ -38,7 +46,7 @@ export class BlueNode {
     return this.description;
   }
 
-  setDescription(description: string): BlueNode {
+  setDescription(description: string | undefined): BlueNode {
     this.description = description;
     return this;
   }
@@ -47,7 +55,7 @@ export class BlueNode {
     return this.type;
   }
 
-  setType(type: BlueNode | string): BlueNode {
+  setType(type: BlueNode | string | undefined): BlueNode {
     if (typeof type === 'string') {
       this.type = new BlueNode().setValue(type).setInlineValue(true);
     } else {
@@ -60,7 +68,7 @@ export class BlueNode {
     return this.itemType;
   }
 
-  setItemType(itemType: BlueNode | string): BlueNode {
+  setItemType(itemType: BlueNode | string | undefined): BlueNode {
     if (typeof itemType === 'string') {
       this.itemType = new BlueNode().setValue(itemType).setInlineValue(true);
     } else {
@@ -73,7 +81,7 @@ export class BlueNode {
     return this.keyType;
   }
 
-  setKeyType(keyType: BlueNode | string): BlueNode {
+  setKeyType(keyType: BlueNode | string | undefined): BlueNode {
     if (typeof keyType === 'string') {
       this.keyType = new BlueNode().setValue(keyType).setInlineValue(true);
     } else {
@@ -86,7 +94,7 @@ export class BlueNode {
     return this.valueType;
   }
 
-  setValueType(valueType: BlueNode | string): BlueNode {
+  setValueType(valueType: BlueNode | string | undefined): BlueNode {
     if (typeof valueType === 'string') {
       this.valueType = new BlueNode().setValue(valueType).setInlineValue(true);
     } else {
@@ -96,6 +104,27 @@ export class BlueNode {
   }
 
   getValue() {
+    const typeBlueId = this.type?.getBlueId();
+    if (isNonNullable(typeBlueId) && isNonNullable(this.value)) {
+      if (
+        typeBlueId === INTEGER_TYPE_BLUE_ID &&
+        typeof this.value === 'string'
+      ) {
+        return new BigIntegerNumber(this.value);
+      } else if (
+        typeBlueId === DOUBLE_TYPE_BLUE_ID &&
+        typeof this.value === 'string'
+      ) {
+        const parsed = new BigDecimalNumber(this.value);
+        const doubleValue = parseFloat(parsed.toString());
+        return new BigDecimalNumber(doubleValue.toString());
+      } else if (
+        typeBlueId === BOOLEAN_TYPE_BLUE_ID &&
+        typeof this.value === 'string'
+      ) {
+        return this.value.toLowerCase() === 'true';
+      }
+    }
     return this.value;
   }
 
@@ -116,7 +145,7 @@ export class BlueNode {
     return this.items;
   }
 
-  setItems(items: BlueNode[]): BlueNode {
+  setItems(items: BlueNode[] | undefined): BlueNode {
     this.items = items;
     return this;
   }
@@ -133,7 +162,7 @@ export class BlueNode {
     return this.properties;
   }
 
-  setProperties(properties: Record<string, BlueNode>): BlueNode {
+  setProperties(properties: Record<string, BlueNode> | undefined): BlueNode {
     this.properties = properties;
     return this;
   }
@@ -150,7 +179,7 @@ export class BlueNode {
     return this.blueId;
   }
 
-  setBlueId(blueId: string): BlueNode {
+  setBlueId(blueId: string | undefined): BlueNode {
     this.blueId = blueId;
     return this;
   }
@@ -159,7 +188,7 @@ export class BlueNode {
     return this.constraints;
   }
 
-  setConstraints(constraints: Constraints): BlueNode {
+  setConstraints(constraints: Constraints | undefined): BlueNode {
     this.constraints = constraints;
     return this;
   }
@@ -168,7 +197,7 @@ export class BlueNode {
     return this.blue;
   }
 
-  setBlue(blue: BlueNode): BlueNode {
+  setBlue(blue: BlueNode | undefined): BlueNode {
     this.blue = blue;
     return this;
   }
@@ -195,13 +224,16 @@ export class BlueNode {
     cloned.valueType = this.valueType?.clone();
     cloned.value = this.value;
     cloned.items = this.items?.map((item) => item.clone());
-    cloned.properties = this.properties
-      ? Object.fromEntries(
-          Object.entries(this.properties).map(([k, v]) => [k, v.clone()])
-        )
-      : undefined;
+    if (this.properties) {
+      cloned.properties = Object.fromEntries(
+        Object.entries(this.properties).map(([k, v]) => [k, v.clone()])
+      );
+    }
     cloned.blueId = this.blueId;
-    cloned.constraints = this.constraints;
+    // TODO: Implement constraints
+    // if (this.constraints) {
+    //   cloned.constraints = this.constraints.clone();
+    // }
     cloned.blue = this.blue?.clone();
     cloned.inlineValue = this.inlineValue;
     return cloned;

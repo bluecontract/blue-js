@@ -14,26 +14,26 @@ import {
   OBJECT_BLUE,
   TEXT_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
-  NUMBER_TYPE_BLUE_ID,
+  DOUBLE_TYPE_BLUE_ID,
   BOOLEAN_TYPE_BLUE_ID,
 } from './Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
 import { jsonValueSchema } from '@blue-company/shared-utils';
 
-export type Strategy = 'official' | 'simple' | 'simpleNoType';
+export type Strategy = 'official' | 'simple';
 
-export class NodeToObject {
+export class NodeToMapListOrValue {
   static get(node: BlueNode, strategy: Strategy = 'official'): JsonValue {
     const value = node.getValue();
     const handledValue = this.handleValue(value);
-    if (handledValue !== undefined && this.isStrategySimple(strategy)) {
+    if (handledValue !== undefined && strategy === 'simple') {
       return handledValue;
     }
 
     const items = node
       .getItems()
-      ?.map((item) => NodeToObject.get(item, strategy));
-    if (items !== undefined && this.isStrategySimple(strategy)) {
+      ?.map((item) => NodeToMapListOrValue.get(item, strategy));
+    if (items !== undefined && strategy === 'simple') {
       return items;
     }
 
@@ -54,23 +54,23 @@ export class NodeToObject {
       if (inferredTypeBlueId !== null) {
         result[OBJECT_TYPE] = { [OBJECT_BLUE_ID]: inferredTypeBlueId };
       }
-    } else if (type !== undefined && strategy !== 'simpleNoType') {
-      result[OBJECT_TYPE] = NodeToObject.get(type, strategy);
+    } else if (type !== undefined) {
+      result[OBJECT_TYPE] = NodeToMapListOrValue.get(type, strategy);
     }
 
     const itemType = node.getItemType();
-    if (itemType !== undefined && strategy !== 'simpleNoType') {
-      result[OBJECT_ITEM_TYPE] = NodeToObject.get(itemType, strategy);
+    if (itemType !== undefined) {
+      result[OBJECT_ITEM_TYPE] = NodeToMapListOrValue.get(itemType, strategy);
     }
 
     const keyType = node.getKeyType();
-    if (keyType !== undefined && strategy !== 'simpleNoType') {
-      result[OBJECT_KEY_TYPE] = NodeToObject.get(keyType, strategy);
+    if (keyType !== undefined) {
+      result[OBJECT_KEY_TYPE] = NodeToMapListOrValue.get(keyType, strategy);
     }
 
     const valueType = node.getValueType();
-    if (valueType !== undefined && strategy !== 'simpleNoType') {
-      result[OBJECT_VALUE_TYPE] = NodeToObject.get(valueType, strategy);
+    if (valueType !== undefined) {
+      result[OBJECT_VALUE_TYPE] = NodeToMapListOrValue.get(valueType, strategy);
     }
 
     if (handledValue !== undefined) {
@@ -99,7 +99,7 @@ export class NodeToObject {
     const properties = node.getProperties();
     if (properties !== undefined) {
       Object.entries(properties).forEach(([key, value]) => {
-        result[key] = NodeToObject.get(value, strategy);
+        result[key] = NodeToMapListOrValue.get(value, strategy);
       });
     }
 
@@ -127,14 +127,10 @@ export class NodeToObject {
     } else if (isBigNumber(value)) {
       return isBigIntegerNumber(value)
         ? INTEGER_TYPE_BLUE_ID
-        : NUMBER_TYPE_BLUE_ID;
+        : DOUBLE_TYPE_BLUE_ID;
     } else if (typeof value === 'boolean') {
       return BOOLEAN_TYPE_BLUE_ID;
     }
     return null;
-  }
-
-  private static isStrategySimple(strategy: Strategy): boolean {
-    return strategy === 'simple' || strategy === 'simpleNoType';
   }
 }
