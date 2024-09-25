@@ -39,9 +39,7 @@ export class BlueIdCalculator {
     const cleanedObject = this.cleanStructure(object);
 
     if (cleanedObject === undefined) {
-      throw new Error(
-        `Object after cleaning cannot be null or undefined object.`
-      );
+      throw new Error(`Object after cleaning cannot be null or undefined.`);
     }
 
     if (isJsonPrimitive(cleanedObject) || isBigNumber(cleanedObject)) {
