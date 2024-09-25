@@ -1,3 +1,10 @@
+## 0.13.0 (2024-09-25)
+
+
+### 🚀 Features
+
+- **contract:** Add Blink message types and utility functions ([a45612b](https://github.com/bluecontract/blue-js/commit/a45612b))
+
 ## 0.12.0 (2024-09-16)
 
 
