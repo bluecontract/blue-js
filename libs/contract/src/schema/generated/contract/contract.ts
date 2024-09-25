@@ -1,12 +1,12 @@
 import {
   BaseBlueObject,
   BlueObject,
-  BlueObjectBooleanValue,
   BlueObjectStringValue,
 } from '@blue-company/language';
 import { WorkflowStepObjectList } from '../workflowStep/workflowStep';
 import { ContractEventBlueObject } from '../contractEvent/contractEvent';
 import { TimelineEntry } from '../timeline/timelineEntry';
+import { ContractBlueIds, DefaultBlueIds } from '../blueIds';
 
 export type ParticipantType = BlueObject & {
   name?: 'Participant';
@@ -27,7 +27,12 @@ export interface ContractMessaging extends BaseBlueObject {
   participants?: BlueObject;
 }
 
+export type ContractType = BlueObject & {
+  blueId: ContractBlueIds['Contract'] | ContractBlueIds['GenericContract'];
+};
+
 export interface Contract extends BaseBlueObject {
+  // type?: ContractType;
   participants?: {
     [k: string]: ParticipantObjectList;
   };
@@ -54,11 +59,11 @@ export type ContractsListObject = BlueObject;
 export interface LocalContract extends BaseBlueObject {
   id: {
     type?: BlueObject & {
-      blueId: 'DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8';
+      blueId: DefaultBlueIds['Integer'];
     };
     value?: number;
   };
   type?: BlueObject & {
-    blueId: '6gBMYGeWw1Cutbsrzj3c98RH4VrSJNvPsgZ4F4A19i3f';
+    blueId: ContractBlueIds['LocalContract'];
   };
 }
