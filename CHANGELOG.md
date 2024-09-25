@@ -1,3 +1,10 @@
+## 0.14.0 (2024-09-25)
+
+
+### 🚀 Features
+
+- **language:** changes according to the new version of language-java ([720c683](https://github.com/bluecontract/blue-js/commit/720c683))
+
 ## 0.13.0 (2024-09-25)
 
 
