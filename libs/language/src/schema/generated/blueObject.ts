@@ -27,6 +27,10 @@ export interface BlueObjectBooleanValue extends BaseBlueObject {
   value?: boolean;
 }
 
+export interface BlueObjectStringListItems extends BaseBlueObject {
+  items?: string[];
+}
+
 /**
  * @ts-to-zod-ignore
  */

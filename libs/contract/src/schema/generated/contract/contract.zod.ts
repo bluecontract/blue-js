@@ -4,12 +4,12 @@ import { z } from 'zod';
 import {
   baseBlueObjectSchema,
   blueObjectSchema,
-  blueObjectBooleanValueSchema,
   blueObjectStringValueSchema,
 } from '@blue-company/language';
 import { workflowStepObjectListSchema } from './../workflowStep/workflowStep.zod';
 import { contractEventBlueObjectSchema } from './../contractEvent/contractEvent.zod';
 import { timelineEntrySchema } from './../timeline/timelineEntry.zod';
+import { contractBlueIdsSchema, defaultBlueIdsSchema } from './../blueIds.zod';
 
 export const participantTypeSchema = blueObjectSchema.and(
   z.object({
@@ -32,6 +32,15 @@ export const contractMessagingSchema = baseBlueObjectSchema.extend({
   participants: blueObjectSchema.optional(),
 });
 
+export const contractTypeSchema = blueObjectSchema.and(
+  z.object({
+    blueId: z.union([
+      contractBlueIdsSchema.shape.Contract,
+      contractBlueIdsSchema.shape.GenericContract,
+    ]),
+  })
+);
+
 export const contractPhotoSchema = blueObjectStringValueSchema;
 
 export const contractsListObjectSchema = blueObjectSchema;
@@ -46,7 +55,7 @@ export const localContractSchema = baseBlueObjectSchema.extend({
     type: blueObjectSchema
       .and(
         z.object({
-          blueId: z.literal('DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8'),
+          blueId: defaultBlueIdsSchema.shape.Integer,
         })
       )
       .optional(),
@@ -55,7 +64,7 @@ export const localContractSchema = baseBlueObjectSchema.extend({
   type: blueObjectSchema
     .and(
       z.object({
-        blueId: z.literal('6gBMYGeWw1Cutbsrzj3c98RH4VrSJNvPsgZ4F4A19i3f'),
+        blueId: contractBlueIdsSchema.shape.LocalContract,
       })
     )
     .optional(),
