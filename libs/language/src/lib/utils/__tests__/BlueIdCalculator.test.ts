@@ -6,7 +6,7 @@ import { BlueIdCalculator } from '../BlueIdCalculator';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
 import {
   INTEGER_TYPE_BLUE_ID,
-  NUMBER_TYPE_BLUE_ID,
+  DOUBLE_TYPE_BLUE_ID,
   TEXT_TYPE_BLUE_ID,
 } from '../Properties';
 
@@ -180,7 +180,7 @@ describe('BlueIdCalculator', () => {
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
-    const json = `{"num":{"type":{"blueId":"${NUMBER_TYPE_BLUE_ID}"},"value":36.55}}`;
+    const json = `{"num":{"type":{"blueId":"${DOUBLE_TYPE_BLUE_ID}"},"value":36.55}}`;
     const node2 = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
 
@@ -194,7 +194,7 @@ describe('BlueIdCalculator', () => {
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
-    const json = `{"num":{"type":{"blueId":"${INTEGER_TYPE_BLUE_ID}"},"value":"36928735469874359687345908673940586739458679548679034857690345876905238476903485769"}}`;
+    const json = `{"num":{"type":{"blueId":"${INTEGER_TYPE_BLUE_ID}"},"value":"9007199254740991"}}`;
     const node2 = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
 
@@ -240,7 +240,7 @@ describe('BlueIdCalculator', () => {
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
-    const json = `{"num":{"type":{"blueId":"${NUMBER_TYPE_BLUE_ID}"},"value":3.692873546987436e+82}}`;
+    const json = `{"num":{"type":{"blueId":"${DOUBLE_TYPE_BLUE_ID}"},"value":3.692873546987436e+82}}`;
     const node2 = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
 
@@ -279,6 +279,52 @@ describe('BlueIdCalculator', () => {
 
     expect(blueId2).toEqual(blueId);
   });
+
+  it('should remove null and empty values when calculating BlueId', async () => {
+    const yaml1 = `
+a: 1
+b: null`;
+    const yaml2 = `a: 1`;
+    const yaml3 = `
+a: 1
+b: null
+c: null`;
+    const yaml4 = `
+a: 1
+b: null
+c: []
+d: null`;
+    const yaml5 = `
+a: 1
+d: {}`;
+
+    const node1 = NodeDeserializer.deserialize(
+      yamlBlueParse(yaml1) as JsonBlueValue
+    );
+    const node2 = NodeDeserializer.deserialize(
+      yamlBlueParse(yaml2) as JsonBlueValue
+    );
+    const node3 = NodeDeserializer.deserialize(
+      yamlBlueParse(yaml3) as JsonBlueValue
+    );
+    const node4 = NodeDeserializer.deserialize(
+      yamlBlueParse(yaml4) as JsonBlueValue
+    );
+    const node5 = NodeDeserializer.deserialize(
+      yamlBlueParse(yaml5) as JsonBlueValue
+    );
+
+    const result1 = await BlueIdCalculator.calculateBlueId(node1);
+    const result2 = await BlueIdCalculator.calculateBlueId(node2);
+    const result3 = await BlueIdCalculator.calculateBlueId(node3);
+    const result4 = await BlueIdCalculator.calculateBlueId(node4);
+    const result5 = await BlueIdCalculator.calculateBlueId(node5);
+
+    expect(result2).toEqual(result1);
+    expect(result3).toEqual(result1);
+    expect(result4).toEqual(result1);
+    expect(result5).toEqual(result1);
+  });
 });
 
 describe('BlueIdCalculator - additional tests', () => {
@@ -301,7 +347,7 @@ describe('BlueIdCalculator - additional tests', () => {
 
       const node = NodeDeserializer.deserialize(object);
       const result2 = await BlueIdCalculator.calculateBlueId(node);
-      expect(result2).toBe('Fco5jExLUUXQXLpC2vT22dvu1mB9vFpvn1699Lp3WTR6');
+      expect(result2).toBe('99Y9oZLEPEBSPRTdo4s1pwcvyVyKL71WvzFDYQS7wdcz');
     });
   });
 

@@ -83,6 +83,12 @@ export class NodePathAccessor {
       }
       case 'type':
         return node.getType() ?? new BlueNode();
+      case 'itemType':
+        return node.getItemType() ?? new BlueNode();
+      case 'keyType':
+        return node.getKeyType() ?? new BlueNode();
+      case 'valueType':
+        return node.getValueType() ?? new BlueNode();
       case 'value': {
         const value = node.getValue();
         return value ? new BlueNode().setValue(value) : new BlueNode();
