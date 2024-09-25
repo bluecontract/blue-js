@@ -1,5 +1,5 @@
 import { BlueNode } from '../model/Node';
-import { NodeToObject } from './NodeToObject';
+import { NodeToMapListOrValue } from './NodeToMapListOrValue';
 import { Base58Sha256Provider } from './Base58Sha256Provider';
 import {
   OBJECT_BLUE_ID,
@@ -8,7 +8,11 @@ import {
   OBJECT_VALUE,
 } from './Properties';
 import { isBigNumber } from '../../utils/typeGuards';
-import { isJsonPrimitive, isReadonlyArray } from '@blue-company/shared-utils';
+import {
+  isJsonPrimitive,
+  isNonNullable,
+  isReadonlyArray,
+} from '@blue-company/shared-utils';
 import { JsonBlueArray, JsonBlueObject, JsonBlueValue } from '../../schema';
 
 type HashProvider = { apply: (object: JsonBlueValue) => Promise<string> };
@@ -23,23 +27,29 @@ export class BlueIdCalculator {
   }
 
   public static async calculateBlueId(node: BlueNode) {
-    return BlueIdCalculator.INSTANCE.calculate(NodeToObject.get(node));
+    return BlueIdCalculator.INSTANCE.calculate(NodeToMapListOrValue.get(node));
   }
 
   public static async calculateBlueIdForNodes(nodes: BlueNode[]) {
-    const objects = nodes.map((node) => NodeToObject.get(node));
+    const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
     return BlueIdCalculator.INSTANCE.calculate(objects);
   }
 
   public async calculate(object: JsonBlueValue) {
-    if (isJsonPrimitive(object) || isBigNumber(object)) {
-      return this.hashProvider.apply(
-        object === null ? 'null' : object.toString()
+    const cleanedObject = this.cleanStructure(object);
+
+    if (cleanedObject === undefined) {
+      throw new Error(
+        `Object after cleaning cannot be null or undefined object.`
       );
-    } else if (Array.isArray(object) || isReadonlyArray(object)) {
-      return this.calculateList(object);
+    }
+
+    if (isJsonPrimitive(cleanedObject) || isBigNumber(cleanedObject)) {
+      return this.hashProvider.apply(cleanedObject.toString());
+    } else if (Array.isArray(cleanedObject) || isReadonlyArray(cleanedObject)) {
+      return this.calculateList(cleanedObject);
     } else {
-      return this.calculateMap(object);
+      return this.calculateMap(cleanedObject);
     }
     throw new Error(
       `Object must be a String, Number, Boolean, List or Map - found ${typeof object}`
@@ -51,9 +61,8 @@ export class BlueIdCalculator {
       return map[OBJECT_BLUE_ID] as string;
     }
 
-    const mapKeys = Object.keys(map);
     const hashes = {} as JsonBlueObject;
-    for (const key of mapKeys) {
+    for (const key in map) {
       if ([OBJECT_NAME, OBJECT_VALUE, OBJECT_DESCRIPTION].includes(key)) {
         hashes[key] = map[key];
       } else {
@@ -65,9 +74,6 @@ export class BlueIdCalculator {
   }
 
   private async calculateList(list: JsonBlueArray): Promise<string> {
-    if (list.length === 0) {
-      throw new Error('List must not be empty.');
-    }
     if (list.length === 1) {
       return this.calculate(list[0]);
     }
@@ -79,5 +85,32 @@ export class BlueIdCalculator {
     const hashOfLastElement = await this.calculate(lastElement);
 
     return this.hashProvider.apply([hashOfSubList, hashOfLastElement]);
+  }
+
+  private cleanStructure(
+    obj: JsonBlueValue
+  ): NonNullable<JsonBlueValue> | undefined {
+    if (obj === null || obj === undefined) {
+      return undefined;
+    } else if (isJsonPrimitive(obj) || isBigNumber(obj)) {
+      return obj;
+    } else if (Array.isArray(obj) || isReadonlyArray(obj)) {
+      const cleanedList = obj
+        .map((item) => this.cleanStructure(item))
+        .filter(isNonNullable);
+
+      return cleanedList.length > 0 ? cleanedList : undefined;
+    } else if (typeof obj === 'object') {
+      const cleanedMap: JsonBlueObject = {};
+      for (const key in obj) {
+        const cleanedValue = this.cleanStructure(obj[key]);
+        if (cleanedValue !== null && cleanedValue !== undefined) {
+          cleanedMap[key] = cleanedValue;
+        }
+      }
+      return Object.keys(cleanedMap).length > 0 ? cleanedMap : undefined;
+    } else {
+      return obj;
+    }
   }
 }

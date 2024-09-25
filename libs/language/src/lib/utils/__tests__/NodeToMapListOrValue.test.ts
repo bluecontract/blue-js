@@ -1,13 +1,13 @@
 import { JsonObject, JsonValue } from 'type-fest';
 import { BlueNode } from '../../model/Node';
-import { NodeToObject } from '../NodeToObject';
+import { NodeToMapListOrValue } from '../NodeToMapListOrValue';
 import {
   BigDecimalNumber,
   BigIntegerNumber,
   NodeDeserializer,
 } from '../../model';
 
-describe('NodeToObject', () => {
+describe('NodeToMapListOrValue', () => {
   it('testBasicStandardStrategy', () => {
     const node = new BlueNode()
       .setName('nameA')
@@ -18,7 +18,7 @@ describe('NodeToObject', () => {
         b: new BlueNode().setValue('xyz2').setDescription('descriptionXyz2'),
       });
 
-    const object = NodeToObject.get(node);
+    const object = NodeToMapListOrValue.get(node);
     expect(typeof object).toBe('object');
 
     const result = object as Record<string, unknown>;
@@ -50,7 +50,7 @@ describe('NodeToObject', () => {
         b: new BlueNode().setValue('xyz2').setDescription('descriptionXyz2'),
       });
 
-    const object = NodeToObject.get(node, 'simple');
+    const object = NodeToMapListOrValue.get(node, 'simple');
     expect(typeof object).toBe('object');
 
     const result = object as Record<string, unknown>;
@@ -84,7 +84,7 @@ describe('NodeToObject', () => {
         ]),
       ]);
 
-    const object = NodeToObject.get(node);
+    const object = NodeToMapListOrValue.get(node);
     expect(typeof object).toBe('object');
 
     const result = object as Record<string, unknown>;
@@ -141,7 +141,7 @@ describe('NodeToObject', () => {
         ]),
       ]);
 
-    const object = NodeToObject.get(node, 'simple');
+    const object = NodeToMapListOrValue.get(node, 'simple');
     expect(Array.isArray(object)).toBeTruthy();
 
     const result = object as JsonValue[];
@@ -172,7 +172,7 @@ describe('NodeToObject', () => {
         )
       );
 
-      expect(NodeToObject.get(node1)).toMatchInlineSnapshot(`
+      expect(NodeToMapListOrValue.get(node1)).toMatchInlineSnapshot(`
         {
           "type": {
             "blueId": "68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L",
@@ -188,7 +188,7 @@ describe('NodeToObject', () => {
         )
       );
 
-      expect(NodeToObject.get(node2)).toMatchInlineSnapshot(`
+      expect(NodeToMapListOrValue.get(node2)).toMatchInlineSnapshot(`
         {
           "key": {
             "type": {
@@ -213,7 +213,7 @@ describe('NodeToObject', () => {
         },
       });
 
-      const object1 = NodeToObject.get(node1, 'simple');
+      const object1 = NodeToMapListOrValue.get(node1, 'simple');
       expect(object1).toMatchInlineSnapshot(`
         {
           "description": "Creamy risotto with porcini mushrooms.",
@@ -238,7 +238,7 @@ describe('NodeToObject', () => {
         },
       });
 
-      const object2 = NodeToObject.get(node2, 'simple');
+      const object2 = NodeToMapListOrValue.get(node2, 'simple');
       expect(object2).toMatchInlineSnapshot(`
         {
           "description": "descriptionA",
@@ -261,7 +261,7 @@ describe('NodeToObject', () => {
         },
       });
 
-      const contract1 = NodeToObject.get(contractNode1, 'simple');
+      const contract1 = NodeToMapListOrValue.get(contractNode1, 'simple');
       expect(contract1).toMatchInlineSnapshot(`
         {
           "description": "descriptionA",
@@ -281,7 +281,7 @@ describe('NodeToObject', () => {
         },
       });
 
-      const contract2 = NodeToObject.get(contractNode2, 'simple');
+      const contract2 = NodeToMapListOrValue.get(contractNode2, 'simple');
       expect(contract2).toMatchInlineSnapshot(`
         {
           "description": "descriptionA",

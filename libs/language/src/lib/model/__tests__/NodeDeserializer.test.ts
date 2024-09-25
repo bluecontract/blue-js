@@ -2,6 +2,10 @@ import { NodeDeserializer } from '../NodeDeserializer';
 import Big from 'big.js';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
 import { JsonBlueValue } from '../../../schema';
+import {
+  DOUBLE_TYPE_BLUE_ID,
+  INTEGER_TYPE_BLUE_ID,
+} from '../../utils/Properties';
 
 describe('NodeDeserializer', () => {
   it('testBasics', () => {
@@ -39,19 +43,39 @@ describe('NodeDeserializer', () => {
 
   it('testNumbers', () => {
     const doc =
-      'int: 132452345234524739582739458723948572934875\n' +
-      'dec: 132452345234524739582739458723948572934875.132452345234524739582739458723948572934875';
+      'int1: 9007199254740991\n' +
+      'int2: 132452345234524739582739458723948572934875\n' +
+      'int3:\n' +
+      '  type:\n' +
+      '    blueId: ' +
+      INTEGER_TYPE_BLUE_ID +
+      '\n' +
+      '  value: "132452345234524739582739458723948572934875"\n' +
+      'dec1: 132452345234524739582739458723948572934875.132452345234524739582739458723948572934875\n' +
+      'dec2:\n' +
+      '  type:\n' +
+      '    blueId: ' +
+      DOUBLE_TYPE_BLUE_ID +
+      '\n' +
+      '  value: "132452345234524739582739458723948572934875.132452345234524739582739458723948572934875"\n';
 
     const map1 = yamlBlueParse(doc) as JsonBlueValue;
     const node = NodeDeserializer.deserialize(map1);
 
-    expect(node.getProperties()?.['int'].getValue()).toEqual(
+    expect(node.getProperties()?.['int1'].getValue()).toEqual(
+      new Big('9007199254740991')
+    );
+    expect(node.getProperties()?.['int2'].getValue()).toEqual(
+      new Big('9007199254740991')
+    );
+    expect(node.getProperties()?.['int3'].getValue()).toEqual(
       new Big('132452345234524739582739458723948572934875')
     );
-    expect(node.getProperties()?.['dec'].getValue()).toEqual(
-      new Big(
-        '132452345234524739582739458723948572934875.132452345234524739582739458723948572934875'
-      )
+    expect(node.getProperties()?.['dec1'].getValue()).toEqual(
+      new Big('1.3245234523452473E+41')
+    );
+    expect(node.getProperties()?.['dec2'].getValue()).toEqual(
+      new Big('1.3245234523452473E+41')
     );
   });
 

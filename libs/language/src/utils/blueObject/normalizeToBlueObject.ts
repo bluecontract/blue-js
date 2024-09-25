@@ -1,4 +1,4 @@
-import { NodeDeserializer, NodeToObject } from '../../lib';
+import { NodeDeserializer, NodeToMapListOrValue } from '../../lib';
 import { blueObjectSchema, JsonBlueValue } from '../../schema';
 
 /**
@@ -11,7 +11,7 @@ import { blueObjectSchema, JsonBlueValue } from '../../schema';
 export const normalizeToBlueObject = (json: JsonBlueValue) => {
   try {
     const node = NodeDeserializer.deserialize(json);
-    const jsonBlueObject = NodeToObject.get(node);
+    const jsonBlueObject = NodeToMapListOrValue.get(node);
     return blueObjectSchema.parse(jsonBlueObject);
   } catch (error) {
     throw new Error(
