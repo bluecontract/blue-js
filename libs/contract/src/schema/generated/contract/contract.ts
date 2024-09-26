@@ -57,7 +57,7 @@ export type ContractPhoto = BlueObjectStringValue;
 export type ContractsListObject = BlueObject;
 
 export interface LocalContract extends BaseBlueObject {
-  id: {
+  id?: {
     type?: BlueObject & {
       blueId: DefaultBlueIds['Integer'];
     };

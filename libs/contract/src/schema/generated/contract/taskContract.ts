@@ -12,6 +12,6 @@ export interface ConversationObjectList extends BaseBlueObject {
 export interface TaskContract extends Contract {
   properties: {
     conversation: ConversationObjectList;
-    actualTask: LocalContract;
+    actualTask?: LocalContract;
   };
 }
