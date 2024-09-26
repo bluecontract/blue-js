@@ -1,3 +1,15 @@
+## 0.15.0 (2024-09-26)
+
+
+### 🚀 Features
+
+- **json:** add jsonTraverse function and update jsonTraverseAndFind ([949d99c](https://github.com/bluecontract/blue-js/commit/949d99c))
+
+### 🩹 Fixes
+
+- **BlueIdCalculator:** refine error message for undefined cleaned object ([fa42412](https://github.com/bluecontract/blue-js/commit/fa42412))
+- **language:** update ESLint and Vite configurations ([274aa13](https://github.com/bluecontract/blue-js/commit/274aa13))
+
 ## 0.14.0 (2024-09-25)
 
 
