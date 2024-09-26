@@ -25,5 +25,6 @@ export default defineConfig({
       provider: 'v8',
     },
     passWithNoTests: true,
+    setupFiles: ['./vitest-setup.ts'],
   },
 });
