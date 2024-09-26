@@ -36,6 +36,6 @@ const findActionByParticipantEvents = (json: JsonValue) => {
   });
 
   return eventsJsonValues.map((obj) =>
-    actionByParticipantEventSchema.parse(obj)
+    actionByParticipantEventSchema.parse(obj.value)
   );
 };
