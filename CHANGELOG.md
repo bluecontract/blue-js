@@ -1,3 +1,10 @@
+## 0.16.0 (2024-09-26)
+
+
+### 🚀 Features
+
+- **contract:** make id and actualTask properties optional ([d89038b](https://github.com/bluecontract/blue-js/commit/d89038b))
+
 ## 0.15.0 (2024-09-26)
 
 

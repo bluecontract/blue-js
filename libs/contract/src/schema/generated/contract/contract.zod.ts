@@ -51,16 +51,18 @@ export const workflowSchema = baseBlueObjectSchema.extend({
 });
 
 export const localContractSchema = baseBlueObjectSchema.extend({
-  id: z.object({
-    type: blueObjectSchema
-      .and(
-        z.object({
-          blueId: defaultBlueIdsSchema.shape.Integer,
-        })
-      )
-      .optional(),
-    value: z.number().optional(),
-  }),
+  id: z
+    .object({
+      type: blueObjectSchema
+        .and(
+          z.object({
+            blueId: defaultBlueIdsSchema.shape.Integer,
+          })
+        )
+        .optional(),
+      value: z.number().optional(),
+    })
+    .optional(),
   type: blueObjectSchema
     .and(
       z.object({

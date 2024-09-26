@@ -19,6 +19,6 @@ export const conversationObjectListSchema = baseBlueObjectSchema.extend({
 export const taskContractSchema = contractSchema.extend({
   properties: z.object({
     conversation: conversationObjectListSchema,
-    actualTask: localContractSchema,
+    actualTask: localContractSchema.optional(),
   }),
 });
