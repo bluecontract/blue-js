@@ -1,23 +1,17 @@
+import { jsonTraverse } from './jsonTraverse';
 import { JsonValue } from './schema';
 
-export const jsonTraverseAndFind = <T extends JsonValue, TObject = T>(
-  obj: TObject,
-  predicate: (obj: TObject) => boolean
-) => {
-  const results: TObject[] = [];
+export const jsonTraverseAndFind = (
+  obj: JsonValue,
+  predicate: (value: JsonValue, path: string[]) => boolean
+): { value: JsonValue; path: string[] }[] => {
+  const results: { value: JsonValue; path: string[] }[] = [];
 
-  const traverse = (obj: TObject) => {
-    if (Array.isArray(obj)) {
-      obj.forEach((item) => traverse(item));
-    } else if (typeof obj === 'object' && obj !== null) {
-      if (predicate(obj)) {
-        results.push(obj);
-      }
-
-      Object.values(obj).forEach((value) => traverse(value));
+  jsonTraverse(obj, (value, path) => {
+    if (predicate(value, path)) {
+      results.push({ value, path });
     }
-  };
+  });
 
-  traverse(obj);
   return results;
 };
