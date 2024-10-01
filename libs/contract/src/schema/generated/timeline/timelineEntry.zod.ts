@@ -7,11 +7,14 @@ import {
   blueObjectStringValueSchema,
 } from '@blue-company/language';
 
-export const timelineEntrySchema = baseBlueObjectSchema.extend({
+export const unsignedTimelineEntrySchema = baseBlueObjectSchema.extend({
   timeline: blueObjectStringValueSchema.optional(),
   timelinePrev: blueObjectStringValueSchema.optional(),
   thread: blueObjectStringValueSchema.optional(),
   threadPrev: blueObjectStringValueSchema.optional(),
   message: blueObjectSchema,
+});
+
+export const timelineEntrySchema = unsignedTimelineEntrySchema.extend({
   signature: blueObjectStringValueSchema,
 });

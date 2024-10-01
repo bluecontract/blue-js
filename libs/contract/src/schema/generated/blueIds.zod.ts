@@ -98,3 +98,8 @@ export const blinkBlueIdsSchema = z.object({
   APIRequest: z.literal('6QzWdtAdH7LGrhoBdTpCgDE188jp4MWuXv8tXJwK4RE5'),
   SampleTask: z.literal('HfEJxGN1sP6vq1d8wmjBEvYhhyma89zR692kbJ3yxRtJ'),
 });
+
+export const chessBlueIdsSchema = z.object({
+  Chess: z.literal('8Jsf9iRy6TQDLAXPoPe5LUgHYJNxZ4UNNGTJhG1jtLtM'),
+  ChessMove: z.literal('8jZbrfLeR9hmGRarz7N5wqpFVnrWwhA4Gb2UfwZqzpsX'),
+});
