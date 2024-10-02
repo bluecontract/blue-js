@@ -61,3 +61,8 @@ export type BlinkBlueIds = {
   APIRequest: '6QzWdtAdH7LGrhoBdTpCgDE188jp4MWuXv8tXJwK4RE5';
   SampleTask: 'HfEJxGN1sP6vq1d8wmjBEvYhhyma89zR692kbJ3yxRtJ';
 };
+
+export type ChessBlueIds = {
+  Chess: '8Jsf9iRy6TQDLAXPoPe5LUgHYJNxZ4UNNGTJhG1jtLtM';
+  ChessMove: '8jZbrfLeR9hmGRarz7N5wqpFVnrWwhA4Gb2UfwZqzpsX';
+};

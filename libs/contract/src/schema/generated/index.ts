@@ -25,6 +25,8 @@ export * from './contract/contract';
 export * from './contract/contract.zod';
 export * from './contract/chessContract';
 export * from './contract/chessContract.zod';
+export * from './chess/chessMove';
+export * from './chess/chessMove.zod';
 export * from './blink/userMessage';
 export * from './blink/userMessage.zod';
 export * from './blink/taskDefiningMessage';
