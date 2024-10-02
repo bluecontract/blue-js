@@ -1,3 +1,11 @@
+## 0.17.0 (2024-10-02)
+
+
+### 🚀 Features
+
+- **chess:** Add ChessMove schema and Zod validation ([dadf68c](https://github.com/bluecontract/blue-js/commit/dadf68c))
+- **contract:** Add Chess blue IDs and update TimelineEntry schema ([a6005c6](https://github.com/bluecontract/blue-js/commit/a6005c6))
+
 ## 0.16.0 (2024-09-26)
 
 
