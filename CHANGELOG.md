@@ -1,3 +1,11 @@
+## 1.0.1 (2024-10-09)
+
+
+### 🩹 Fixes
+
+- lint command ([21afec4](https://github.com/bluecontract/blue-js/commit/21afec4))
+- **language:** replace multiformats with @aws-crypto/sha256-universal and base32.js ([1f3b76e](https://github.com/bluecontract/blue-js/commit/1f3b76e))
+
 # 1.0.0 (2024-10-09)
 
 
