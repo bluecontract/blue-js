@@ -9,31 +9,42 @@ import {
   DOUBLE_TYPE_BLUE_ID,
   TEXT_TYPE_BLUE_ID,
 } from '../Properties';
+import { isBigNumber } from '../../../utils/typeGuards';
+
+const stringify = (obj: unknown): string => {
+  if (
+    typeof obj === 'number' ||
+    typeof obj === 'string' ||
+    typeof obj === 'boolean' ||
+    typeof obj === 'bigint' ||
+    isBigNumber(obj)
+  ) {
+    return obj.toString();
+  }
+
+  if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
+    const stringifiedObject = Object.keys(obj)
+      .map((key) => {
+        const value = stringify((obj as Record<string, string | number>)[key]);
+        return `${key}=${value}`;
+      })
+      .join(', ');
+
+    return `{${stringifiedObject}}`;
+  }
+
+  if (Array.isArray(obj)) {
+    return `[${obj.map(stringify).join(', ')}]`;
+  }
+
+  return JSON.stringify(obj);
+};
 
 const fakeHashValueProvider = () => {
   return {
     apply: async (obj: unknown) => {
-      if (
-        typeof obj === 'number' ||
-        typeof obj === 'string' ||
-        typeof obj === 'boolean'
-      ) {
-        return `hash(${obj})`;
-      }
-
-      if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
-        const stringifiedObject = Object.keys(obj)
-          .map((key) => {
-            return `${key}=${(obj as Record<string, string | number>)[key]}`;
-          })
-          .join(', ');
-        return `hash({${stringifiedObject}})`;
-      }
-
-      if (Array.isArray(obj)) {
-        return `hash([${obj.join(', ')}])`;
-      }
-      return `hash(${JSON.stringify(obj)})`;
+      const stringified = stringify(obj);
+      return `hash(${stringified})`;
     },
   };
 };
@@ -62,7 +73,7 @@ describe('BlueIdCalculator', () => {
       '  def:\n' +
       '    value: 1\n' +
       '  ghi:\n' +
-      '    blueId: hash({jkl=hash({value=2}), mno=hash({value=x})})\n' +
+      '    blueId: hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})\n' +
       'pqr:\n' +
       '  value: 1';
 
@@ -71,7 +82,7 @@ describe('BlueIdCalculator', () => {
 
     const yaml3 =
       'abc:\n' +
-      '  blueId: hash({def=hash({value=1}), ghi=hash({jkl=hash({value=2}), mno=hash({value=x})})})\n' +
+      '  blueId: hash({def={blueId=hash({value=1})}, ghi={blueId=hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})}})\n' +
       'pqr:\n' +
       '  value: 1';
 
@@ -79,13 +90,13 @@ describe('BlueIdCalculator', () => {
     const result3 = await fakeBlueIdCalculator.calculate(map3);
 
     const yaml4 =
-      'blueId: hash({abc=hash({def=hash({value=1}), ghi=hash({jkl=hash({value=2}), mno=hash({value=x})})}), pqr=hash({value=1})})';
+      'blueId: hash({abc={blueId=hash({def={blueId=hash({value=1})}, ghi={blueId=hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})}})}, pqr={blueId=hash({value=1})}})';
 
     const map4 = yamlBlueParse(yaml4) as JsonBlueValue;
     const result4 = await fakeBlueIdCalculator.calculate(map4);
 
     const expectedResult =
-      'hash({abc=hash({def=hash({value=1}), ghi=hash({jkl=hash({value=2}), mno=hash({value=x})})}), pqr=hash({value=1})})';
+      'hash({abc={blueId=hash({def={blueId=hash({value=1})}, ghi={blueId=hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})}})}, pqr={blueId=hash({value=1})}})';
 
     expect(result1).toEqual(expectedResult);
     expect(result2).toEqual(expectedResult);
@@ -102,18 +113,18 @@ describe('BlueIdCalculator', () => {
     const result1 = await fakeBlueIdCalculator.calculate(map1);
 
     const list2 = `abc:
-      - blueId: hash([hash(1), hash(2)])
+      - blueId: hash([{blueId=hash(1)}, {blueId=hash(2)}])
       - 3`;
     const map2 = yamlBlueParse(list2) as JsonBlueValue;
     const result2 = await fakeBlueIdCalculator.calculate(map2);
 
     const list3 = `abc:
-      - blueId: hash([hash([hash(1), hash(2)]), hash(3)])`;
+      - blueId: hash([{blueId=hash([{blueId=hash(1)}, {blueId=hash(2)}])}, {blueId=hash(3)}])`;
     const map3 = yamlBlueParse(list3) as JsonBlueValue;
     const result3 = await fakeBlueIdCalculator.calculate(map3);
 
     const expectedResult =
-      'hash({abc=hash([hash([hash(1), hash(2)]), hash(3)])})';
+      'hash({abc={blueId=hash([{blueId=hash([{blueId=hash(1)}, {blueId=hash(2)}])}, {blueId=hash(3)}])}})';
     expect(result1).toEqual(expectedResult);
     expect(result2).toEqual(expectedResult);
     expect(result3).toEqual(expectedResult);
@@ -130,7 +141,7 @@ describe('BlueIdCalculator', () => {
     const map2 = yamlBlueParse(list2) as JsonBlueValue;
     const result2 = await fakeBlueIdCalculator.calculate(map2);
 
-    const expectedResult = 'hash({abc=hash({value=x})})';
+    const expectedResult = 'hash({abc={blueId=hash({value=x})}})';
     expect(result1).toEqual(expectedResult);
     expect(result2).toEqual(expectedResult);
   });
@@ -342,13 +353,57 @@ describe('BlueIdCalculator - additional tests', () => {
 
       const result1 = await fakeBlueIdCalculator.calculate(object);
       expect(result1).toBe(
-        'hash({abc=hash({def=hash({value=132452345234524739582739458723948572934875}), ghi=hash({jkl=hash({value=132452345234524739582739458723948572934875.132452345234524739582739458723948572934875})})})})'
+        'hash({abc={blueId=hash({def={blueId=hash({value=132452345234524739582739458723948572934875})}, ghi={blueId=hash({jkl={blueId=hash({value=132452345234524739582739458723948572934875.132452345234524739582739458723948572934875})}})}})}})'
       );
 
       const node = NodeDeserializer.deserialize(object);
       const result2 = await BlueIdCalculator.calculateBlueId(node);
-      expect(result2).toBe('99Y9oZLEPEBSPRTdo4s1pwcvyVyKL71WvzFDYQS7wdcz');
+      expect(result2).toMatchInlineSnapshot(
+        '"AfcbaDxwJwMMLD9xzjjPZuks4jvxPv2jvkjrJXh8EkiA"'
+      );
     });
+  });
+
+  it('should generate identical BlueIds for equivalent nested structures with and without pre-calculated BlueIds', async () => {
+    const yaml1 = `
+jkl:
+  value: 2
+mno:
+  value: x
+`;
+
+    const map1 = yamlBlueParse(yaml1) as JsonBlueValue;
+    const node1 = NodeDeserializer.deserialize(map1);
+    const blueId1 = await BlueIdCalculator.calculateBlueId(node1);
+
+    const yaml2 = `
+abc:
+  def:
+    value: 1
+  ghi:
+    blueId: ${blueId1}
+`;
+
+    const map2 = yamlBlueParse(yaml2) as JsonBlueValue;
+    const node2 = NodeDeserializer.deserialize(map2);
+    const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
+
+    const yaml3 = `
+    abc:
+      def:
+        value: 1
+      ghi:
+        jkl:
+          value: 2
+        mno:
+          value: x
+    `;
+
+    const map3 = yamlBlueParse(yaml3) as JsonBlueValue;
+    const node3 = NodeDeserializer.deserialize(map3);
+    const blueId3 = await BlueIdCalculator.calculateBlueId(node3);
+
+    expect(blueId2).toEqual(blueId3);
   });
 
   it('should calculate a blue id for object', async () => {
@@ -369,7 +424,9 @@ describe('BlueIdCalculator - additional tests', () => {
 
     const result1 = await BlueIdCalculator.calculateBlueId(node);
 
-    expect(result1).toBe('E4oEABLzbC75BKEnb9NcGUog2Fy8oHGRFY4EBCog6o9g');
+    expect(result1).toMatchInlineSnapshot(
+      `"6MD6VFSkf4QqWHR3vwNhhsT9nM22NU1BBDrKitxH9fzD"`
+    );
   });
 
   const child1Node = new BlueNode('child1');
@@ -386,7 +443,9 @@ describe('BlueIdCalculator - additional tests', () => {
     node.setItems([child1Node, child2Node, child3Node]);
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
-    expect(blueId).toBe('HA2VakcnhLmYf3enA4jqCJ5Uxud1mZbpEofaape24PA5');
+    expect(blueId).toMatchInlineSnapshot(
+      `"AbzmfN3VhcFAmWTnvfHgLZCkqhLCEW1RbGqMVTdAE2fm"`
+    );
   });
 
   it('should calculate a blue id for a node with items which one is a sub item of another item', async () => {
@@ -400,7 +459,9 @@ describe('BlueIdCalculator - additional tests', () => {
     node.setItems([calculatedSubNode, child3Node]);
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
-    expect(blueId).toBe('6sYRRKgYcKPLoUNaTktBhGskjbCZbnhCpT28zm87ZMMf');
+    expect(blueId).toMatchInlineSnapshot(
+      `"9Avar4YLc5rtenpsqQppYYQuF3bSYEkq7iAougGPd1zv"`
+    );
   });
 
   it('should calculate a blue id for a node with items which one is a sublist', async () => {
@@ -416,14 +477,20 @@ describe('BlueIdCalculator - additional tests', () => {
     ]);
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
-    expect(blueId).toBe('EhxTdmkjxTvDj6oMoXRa4uhX7fc5KBeHuUHDkrMcLZi8');
+    expect(blueId).toMatchInlineSnapshot(
+      `"8rchyLLTuDsCgawPy7usKsgVrt7h3EaVGCFBXrahMf7D"`
+    );
   });
 
   it('should calculate a blue id with less characters than 44', async () => {
-    const json = { value: 'b31f63d91d8bafa5f1ec6bd7a3fd1580' };
+    const json = { value: '18e1ca8a8de189d9759057ab4251fd97' };
+
     const node = NodeDeserializer.deserialize(json);
     const blueId = await BlueIdCalculator.calculateBlueId(node);
-    expect('1wiWAr5NPzuyiPG4jiftmu8PeAXnTw7anrqGjiaKRD').toBe(blueId);
+
+    expect(blueId).toMatchInlineSnapshot(
+      `"1xqjcHGX3aF3um8LtfbMAZGdRT74j3k5GXT4yqSbp8"`
+    );
     expect(blueId).toHaveLength(42);
     expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
   });
@@ -434,6 +501,8 @@ describe('BlueIdCalculator - additional tests', () => {
 
     const node = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId = await BlueIdCalculator.calculateBlueId(node);
-    expect('7JhfTR7eM6zsYRepYntoFR4rGQwfPYDuheu4jRy6BaPD').toBe(blueId);
+    expect(blueId).toMatchInlineSnapshot(
+      `"ToF7bZomuz2gbY3ZoARG9a2QhV2L39AtRRAaQADA1NR"`
+    );
   });
 });

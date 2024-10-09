@@ -7,7 +7,7 @@ function generateRandomHex(size = 16) {
 
 function createDataObject() {
   return JSON.stringify({
-    type: 'F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP',
+    type: { blueId: 'F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP' },
     value: generateRandomHex(16),
   });
 }
