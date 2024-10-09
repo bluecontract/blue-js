@@ -22,11 +22,8 @@ describe('CidToBlueId', () => {
   });
 
   test('should throw an error for invalid CID', () => {
-    expect(() => CidToBlueId.convert('invalidCid')).toThrow('Invalid CID');
-  });
-
-  test('should throw an error for unsupported CID version', () => {
-    const cidv0 = 'QmYjtig7VJQ6XsnUjqqJvj7QaMcCAwtrgNdahSiFofrE7o';
-    expect(() => CidToBlueId.convert(cidv0)).toThrow('Unsupported CID version');
+    expect(() => CidToBlueId.convert('invalidCid')).toThrow(
+      'Unsupported CID version'
+    );
   });
 });

@@ -30,7 +30,8 @@
             "ignoredDependencies": [
               "@types/big.js",
               "@types/js-yaml",
-              "canonicalize"
+              "canonicalize",
+              "multiformats"
             ]
           }
         ]
