@@ -1,15 +1,13 @@
-const { withNx } = require('@nx/rollup/with-nx');
+import { withNx } from '@nx/rollup/with-nx.js';
+import packageJson from './package.json' assert { type: 'json' };
 
-// @ts-expect-error - This is a valid import.
-const packageJson = require('./package.json');
-
-module.exports = withNx(
+export default withNx(
   {
     main: './src/index.ts',
     outputPath: '../../dist/libs/language',
     tsConfig: './tsconfig.lib.json',
     compiler: 'swc',
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     assets: [
       { input: '.', output: '.', glob: './libs/language/{*.md,LICENSE}' },
     ],
