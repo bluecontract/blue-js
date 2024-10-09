@@ -20,6 +20,5 @@
       "@blue-company/shared-utils": ["libs/shared/utils/src/index.ts"]
     }
   },
-  "files": ["types/base32.js.d.ts"],
   "exclude": ["node_modules", "tmp"]
 }

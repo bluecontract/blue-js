@@ -1,14 +1,13 @@
 {
   "name": "@blue-company/language",
-  "version": "0.17.0",
+  "version": "1.0.0",
   "dependencies": {
-    "@aws-crypto/sha256-universal": "5.1.0",
-    "@blue-company/shared-utils": "0.17.0",
+    "@blue-company/shared-utils": "1.0.0",
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",
-    "base32.js": "0.1.0",
     "big.js": "6.2.1",
     "js-yaml": "4.1.0",
+    "multiformats": "13.3.0",
     "radash": "12.1.0",
     "type-fest": "4.20.1",
     "zod": "3.23.8"

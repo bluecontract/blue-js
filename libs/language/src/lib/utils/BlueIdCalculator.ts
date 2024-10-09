@@ -64,7 +64,10 @@ export class BlueIdCalculator {
       if ([OBJECT_NAME, OBJECT_VALUE, OBJECT_DESCRIPTION].includes(key)) {
         hashes[key] = map[key];
       } else {
-        hashes[key] = await this.calculate(map[key]);
+        const blueId = await this.calculate(map[key]);
+        hashes[key] = {
+          blueId,
+        };
       }
     }
 
@@ -82,7 +85,10 @@ export class BlueIdCalculator {
     const lastElement = list[list.length - 1];
     const hashOfLastElement = await this.calculate(lastElement);
 
-    return this.hashProvider.apply([hashOfSubList, hashOfLastElement]);
+    return this.hashProvider.apply([
+      { blueId: hashOfSubList },
+      { blueId: hashOfLastElement },
+    ]);
   }
 
   private cleanStructure(

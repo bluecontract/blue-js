@@ -10,7 +10,6 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true
   },
-  "files": ["../language/src/types/base32.js.d.ts"],
   "include": [],
   "references": [
     {
