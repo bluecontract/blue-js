@@ -1,6 +1,6 @@
 import { Base58 } from './Base58';
 import { JsonBlueValue } from '../../schema';
-import { sha256 } from 'multiformats/hashes/sha2';
+import { Sha256 } from '@aws-crypto/sha256-universal';
 import { JsonCanonicalizer } from './JsonCanonicalizer';
 
 export class Base58Sha256Provider {
@@ -18,10 +18,11 @@ export class Base58Sha256Provider {
     }
   }
 
-  private async sha256(input: string): Promise<Uint8Array> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(input);
-    const hash = await sha256.digest(data);
-    return hash.digest;
+  private async sha256(input: string) {
+    const hash = new Sha256();
+    hash.update(input, 'utf8');
+    const result = await hash.digest();
+
+    return result;
   }
 }

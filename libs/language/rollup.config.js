@@ -18,9 +18,6 @@ module.exports = withNx(
     external: (id) => {
       const dependencies = Object.keys(packageJson.dependencies);
       return dependencies.some((dependency) => {
-        if (id.startsWith('multiformats')) {
-          return true;
-        }
         return id === dependency;
       });
     },
