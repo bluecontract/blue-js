@@ -16,8 +16,8 @@ module.exports = withNx(
   },
   {
     external: (id) => {
-      const dependencies = packageJson.dependencies;
-      return !!dependencies[id];
+      const dependencies = Object.keys(packageJson.dependencies);
+      return dependencies.some((dependency) => id.includes(dependency));
     },
   }
 );
