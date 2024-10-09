@@ -1,3 +1,18 @@
+# 1.0.0 (2024-10-09)
+
+
+### 🚀 Features
+
+- ⚠️  **language:** overhaul BlueId calculation and CID conversion ([0bd76bb](https://github.com/bluecontract/blue-js/commit/0bd76bb))
+
+### 🩹 Fixes
+
+- **language:** update external dependency handling in rollup config ([b0a1a87](https://github.com/bluecontract/blue-js/commit/b0a1a87))
+
+#### ⚠️  Breaking Changes
+
+- **language:** Fundamentally altered how BlueIdCalculator generates BlueIds
+
 ## 0.17.0 (2024-10-02)
 
 
