@@ -35,3 +35,7 @@ export interface BlueObjectStringListItems extends BaseBlueObject {
  * @ts-to-zod-ignore
  */
 export type BlueObjectWithId = SetRequired<BlueObject, 'blueId'>;
+/**
+ * @ts-to-zod-ignore
+ */
+export type BaseBlueObjectWithId = SetRequired<BaseBlueObject, 'blueId'>;
