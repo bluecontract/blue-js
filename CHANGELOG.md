@@ -1,3 +1,10 @@
+## 1.1.0 (2024-10-11)
+
+
+### 🚀 Features
+
+- **language,utils:** Add BaseBlueObjectWithId type and JSON type predicates ([2a9a231](https://github.com/bluecontract/blue-js/commit/2a9a231))
+
 ## 1.0.1 (2024-10-09)
 
 
