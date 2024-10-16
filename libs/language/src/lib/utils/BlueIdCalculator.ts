@@ -15,7 +15,9 @@ import {
 } from '@blue-company/shared-utils';
 import { JsonBlueArray, JsonBlueObject, JsonBlueValue } from '../../schema';
 
-type HashProvider = { apply: (object: JsonBlueValue) => Promise<string> };
+type HashProvider = {
+  apply: (object: JsonBlueValue) => string | Promise<string>;
+};
 
 export class BlueIdCalculator {
   public static INSTANCE = new BlueIdCalculator(new Base58Sha256Provider());
