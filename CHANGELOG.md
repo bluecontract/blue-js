@@ -1,3 +1,12 @@
+## 1.2.0 (2024-10-16)
+
+
+### 🚀 Features
+
+- **contract:** update Blue IDs and add new Chess-related types ([8012a5a](https://github.com/bluecontract/blue-js/commit/8012a5a))
+- **contract:** update schema for contract actions and timeline entries ([c0dc5fa](https://github.com/bluecontract/blue-js/commit/c0dc5fa))
+- **language:** add number value support to BlueObject ([ae930ac](https://github.com/bluecontract/blue-js/commit/ae930ac))
+
 ## 1.1.0 (2024-10-11)
 
 
