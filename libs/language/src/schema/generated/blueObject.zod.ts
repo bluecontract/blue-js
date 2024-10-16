@@ -29,6 +29,10 @@ export const blueObjectStringValueSchema = baseBlueObjectSchema.extend({
   value: z.string().optional(),
 });
 
+export const blueObjectNumberValueSchema = baseBlueObjectSchema.extend({
+  value: z.number().optional(),
+});
+
 export const blueObjectBooleanValueSchema = baseBlueObjectSchema.extend({
   value: z.boolean().optional(),
 });
