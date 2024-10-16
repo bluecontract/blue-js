@@ -6,15 +6,21 @@ import {
   blueObjectSchema,
   blueObjectStringValueSchema,
 } from '@blue-company/language';
+import { contractBlueIdsSchema } from './../blueIds.zod';
 
-export const unsignedTimelineEntrySchema = baseBlueObjectSchema.extend({
+export const timelineEntrySchema = baseBlueObjectSchema.extend({
+  type: blueObjectSchema
+    .and(
+      z.object({
+        name: z.literal('Timeline Entry').optional(),
+        blueId: contractBlueIdsSchema.shape.TimelineEntry.optional(),
+      })
+    )
+    .optional(),
   timeline: blueObjectStringValueSchema.optional(),
   timelinePrev: blueObjectStringValueSchema.optional(),
   thread: blueObjectStringValueSchema.optional(),
   threadPrev: blueObjectStringValueSchema.optional(),
-  message: blueObjectSchema,
-});
-
-export const timelineEntrySchema = unsignedTimelineEntrySchema.extend({
-  signature: blueObjectStringValueSchema,
+  message: blueObjectSchema.optional(),
+  signature: blueObjectStringValueSchema.optional(),
 });

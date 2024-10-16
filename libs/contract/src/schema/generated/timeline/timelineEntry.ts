@@ -3,15 +3,17 @@ import {
   BlueObject,
   BlueObjectStringValue,
 } from '@blue-company/language';
+import { ContractBlueIds } from '../blueIds';
 
-export interface UnsignedTimelineEntry extends BaseBlueObject {
+export interface TimelineEntry extends BaseBlueObject {
+  type?: BlueObject & {
+    name?: 'Timeline Entry';
+    blueId?: ContractBlueIds['TimelineEntry'];
+  };
   timeline?: BlueObjectStringValue;
   timelinePrev?: BlueObjectStringValue;
   thread?: BlueObjectStringValue;
   threadPrev?: BlueObjectStringValue;
-  message: BlueObject;
-}
-
-export interface TimelineEntry extends UnsignedTimelineEntry {
-  signature: BlueObjectStringValue;
+  message?: BlueObject;
+  signature?: BlueObjectStringValue;
 }
