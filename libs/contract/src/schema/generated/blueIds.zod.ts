@@ -2,69 +2,72 @@
 import { z } from 'zod';
 
 export const contractBlueIdsSchema = z.object({
-  WorkflowInstance: z.literal('BmspTjZ2WAxagBXbCtEvo6WwQRnhWqwQAGEEQqP9s7QW'),
-  ExternalContract: z.literal('83vpYdEkjbguc9Mbixz2qV2ZkzaCgV4gptSeyyU4QzaJ'),
+  WorkflowInstance: z.literal('HX3J23DpxGanyzSHZtY1VGNno4qapcHUkGW2Ha2WYf92'),
+  ExternalContract: z.literal('A5wPMJi6naaUtbmo5iPqUVG5Q8Wg5r68WERCarJctSoK'),
   InitiateContractAction: z.literal(
-    'HpPxeht2KPwJQ6DdP1uJBC6osvWz63NAh6i4uKTzJhD'
+    'EmyutwPX7UgfUayYoZqFAxjNY6DYoNoj67Hqg36GACym'
   ),
-  FatalErrorEvent: z.literal('9NSnAkLGgfj2bHkkT6RzjjSgqt68B5kaotFK5aCoP317'),
+  FatalErrorEvent: z.literal('4cSr9TtEebEMxghBQD9ybAW6Tf6TUGGLG45fZxkxJQaP'),
   AllEventsExternalContractSubscription: z.literal(
-    'BactZk5uMdvw7cVx4uPxmMaT8Qp9jiHKiDtYaiF8kpf7'
+    'JCUV8S58BvgAr8LzsHxPRtm72PsxPvgzZGLiqgwRM6xS'
   ),
-  GenericContract: z.literal('97s226iRjUBjr3aqvhXJzrQfSXb7LWMcGAv6Wo9MaRJH'),
+  GenericContract: z.literal('9Wpm7tPqAYoaS45ky18v61WBy6KdR78awSTv8wX8AprN'),
   WorkflowInstanceStartedEvent: z.literal(
-    'A9pApEKBEFEsJ8H6LoUVfdwBQheuehHo96tbaXiqheLi'
+    'Gn7ajBNyZhKNohLbfZhnYPs5s7NmtZR3RxJv1rGGZjg8'
   ),
   PerformContractAction: z.literal(
-    'HdkTbotdG7d3mZZ5Ne3j3juCFshjHpuTsy1XVtfuisi5'
+    '4H8MC7tvfQR5MnuRimNqScZ1RWjwDrZza7uuHWUmMVQj'
   ),
   AssistantTaskReadyEvent: z.literal(
-    '5Q1m2vuLKyuSLGK2YAEgqw52kZNWBRx4SC5gHzgzcANf'
+    'CUKPAHgXTYtEUwyT172ejy694PR41rsy5VG1n5Wfsu2p'
   ),
   WorkflowFunction: z.literal('66oteHvnKcpRvS1ty6qND1keob9PJVakKxjTQPQY8YFA'),
+  InitialTimelineMessage: z.literal(
+    '7rhXztX94ehngtETBBsq4pY3e1siDPjd7xrV1y6rrtye'
+  ),
   InitiateContractProcessingAction: z.literal(
-    '3kCjhLink96f48Zqw8mTLunyU56Eq2xkdsMSZHN4gX4v'
+    'E64ZQaX4sFUD3CsVpb7bWZwBznbNDsJCJtRxux4FdWGm'
   ),
   ContractProcessingEvent: z.literal(
-    'HQgee2RezD7yupwCgRnSzKwhqUGwzNNRq1n1eyFD9X1w'
+    'CzZuis9rsRZdmS5nzdgp9RtTknQbs8Jxxp95djCmbAW1'
   ),
   WorkflowFunctionStep: z.literal(
-    '8ZZiA8FgJC1scybYXCVt4Qf9Zh9LQGMLChDtVmDfZh9o'
+    'EZjDfHEnvvwhP14FXdzLSBXBW9BcanYefW9mRfZNLh7D'
   ),
   ContractSubscription: z.literal(
     'BnzvPoTRbeT8JmH6rDn3Sh9f2gfCNBTm58WVxdUcorXr'
   ),
   AgreedUponSimulatedEvent: z.literal(
-    '7AvxNpdw5rH2bExYcLd9QQPTFJudYhgj2fCdMQGB5JJf'
+    '6AxdkLN2PgdzYJhojHRH6rt3oTAoifrJYikYvNHMbw2t'
   ),
   WorkflowStep: z.literal('H5YcJM1fBf57BjYjc7hXbotGh5RuD8bwXLTVY4PA353u'),
-  AssistantTask: z.literal('7vshb7SKU42xGbchkfGJbvT6cQSBpAKQJ14iwKZX6nir'),
-  Workflow: z.literal('9JQcxofDEFQR5jGxxyTSB4Nz7k3SSkzt3CTBGGKFokRC'),
+  AssistantTask: z.literal('8ChHz6j1f3G1hnq11UPgM6Gm61viW2uJWkBPueWXP4dc'),
+  Workflow: z.literal('Fq9xM7HgfQRq2zZWc2mKMXBhbwADtBBtas7y9FTRuyvb'),
   ContractInitializationEvent: z.literal(
     '3uzSCGkrdX4hTFGuLbyZES7NQmiuFskCpUy572GxNQuC'
   ),
   LocalContractSubscription: z.literal(
-    'FtP9G2GnGiWDGn4jzPp9x4o2Hwat11VyWkbqdJ1DPvNw'
+    'CTeVLJrK2kNQ4WhC7nd7JrsDcQtyEU9oBHgE23sEmoTK'
   ),
-  JsonPatchEntry: z.literal('4eHyQgPrziZkS9ins71KmWn9AiXaYPXAmAhEei9ZGcYR'),
-  TriggerEventStep: z.literal('3uFwcdCx8Sdw43hGbBL3t9YGRocLbAewHzzxbrKAkUKF'),
-  JavaScriptCodeStep: z.literal('5TrdtnYzrxenA6HLujs6z2Q5gLcS9heyrr3HpBNSbeFb'),
-  TimelineEntry: z.literal('HWeoWDoYuMGdfzrCJoy58LeH9pFuPQXE9ioHvxVNBcPC'),
-  Participant: z.literal('B12ov2o8fMv2W9PVCy6FDivfCu8LHrxkHnZXvaL5uLEe'),
+  JsonPatchEntry: z.literal('EnUQeMiMa2wHFW3JbeSPvdgfpL6qZYCR29m3SfeHsKSY'),
+  TriggerEventStep: z.literal('6sdEGwtrVJhdto5CsDzm81YrJtHTZrdsenZkyCWJLniU'),
+  JavaScriptCodeStep: z.literal('CFKAD5Up8XpNyPHwRBEwiwSUdfFUoGqVVsW29k6te88p'),
+  TimelineEntry: z.literal('5BDj3UbH6nUPh6bUQ9vfEchjV2vGLMwhd1FJ5UYaRcos'),
+  Participant: z.literal('ATbZ8UAASUy2PaooqZx6CE9giEfKcvrs3nQPcK5jTmBJ'),
   ContractUpdateAction: z.literal(
-    '2ZAaS6aFz4NKLk6uQLUmsozwqXnThqsK1jNN6EnQAMq3'
+    '94birjcTV223qXtC1aq4xZRWfvxrzh9a1dF99YV5wWwr'
   ),
-  UpdateStep: z.literal('6PsXX3HF74kESc6eg58z8kNwzqD64xQ3PjGPUppzcWg6'),
-  ContractInstance: z.literal('6VqSQTZD1MZwwvMXuBhW5cDjGrwYJq16nLGunf6Vubek'),
-  ExpectEventStep: z.literal('81yruzcExdbod4xZ49qxZpnaWEnDEiGZ7xe5sh13AQ7g'),
+  UpdateStep: z.literal('DpdjTNXQdgWGxDyB1LLUNFvxSNNM9L9qGMoKZxzYMDoB'),
+  ContractInstance: z.literal('WtsCXffC75An6E8EMfR4VMZvJ9bXzCPDAsD5hncpZ97'),
+  ExpectEventStep: z.literal('3UXhfjDZ8EMopVJrDxS8Gf2USfLZvzFGpzyzconyzAkm'),
   InitializeLocalContractStep: z.literal(
-    'D7bzHri8CT5j7aZtWVLcTAXkVdrrhe9inGbQopszrtbB'
+    'FF88BRKtRXQ2cCCBR28cFUB5mHdPsWjj8gVBgz4VmQm7'
   ),
   ContractUpdateEvent: z.literal(
-    'DgQKBxaG8m5xfuZSQDm3yJqGZusU8k7tuizzQgg2XMa5'
+    '2bsu7Nx1vCXquU24RUXcc5b8tHrNgve26MXia4vUBuvN'
   ),
-  LocalContract: z.literal('6gBMYGeWw1Cutbsrzj3c98RH4VrSJNvPsgZ4F4A19i3f'),
-  Contract: z.literal('6F9bjtAd85XgPGvzh7zcZp92tdR4mTcQcMUC8VuPYgZb'),
+  LocalContract: z.literal('Cwqs1QterdmwBAARMViJsepJAdYLGdhLHHg1u7awytAN'),
+  Contract: z.literal('6j4rVp2aAm35U7dvbYPQsdi82JUpRPb1kTfkYrhHxvqE'),
 });
 
 export const defaultBlueIdsSchema = z.object({
@@ -78,28 +81,46 @@ export const defaultBlueIdsSchema = z.object({
 
 export const blinkBlueIdsSchema = z.object({
   RecommendedUserActionMessage: z.literal(
-    'HWvjD6iit7dToeSjMtCJWPCvuihZkBuuraDZin8DJAvi'
+    '6tT1c5aaMTPMfsHggfgpST76qkPzME3Cx9EobJJ3bJfk'
   ),
-  Task: z.literal('7Uu6y7qTmcWMT9JAxXqxhN3XVvmQN1X7ZkEeS4f7PX5L'),
-  APIResponse: z.literal('CT1QjaY8RYryxR596hph2SX6wwC1wGvipi1CjDRcJbd4'),
-  UserMessage: z.literal('CDX6FY7NR1ezZ1CnZRqGyqQ4SLj6u3W8ZWEL6oaRtpr8'),
-  StockfishResponse: z.literal('CBnTbyZvyrsGozRyUH4sUMHboJvP7a2fGGejyh2x1XWD'),
-  AssistantMessage: z.literal('AKUEwDRue5k66kqfT6CszvRbNFNj9hwABKcsHR1WfMHx'),
-  TempSample: z.literal('kSWhv7TESst22gZa5sAXhDdkKWUpe99nLQMiFskD3hF'),
-  LLMRequest: z.literal('GXkQ3iphMJRzWukJt8fAJNr7kSBpKfkVxH4j1VdBpcoo'),
-  MainChatMessage: z.literal('9nFWBvNxVD9fHsMFmqM5wxTGn36Q5Tw6dSDFnsnyF1w8'),
+  Task: z.literal('D2Wwk8kBwhtYLBZbWKuS6UCEod1i2sR9TQVqWRrnudTX'),
+  APIResponse: z.literal('64xVBbuh3o2a269kU3Rmx4ETZ1uEASE2pVFXmhwsdZFH'),
+  UserMessage: z.literal('H75oAUyeH4kyp8sidp1afKGMsesxANoN3v82eh4e4gPP'),
+  StockfishResponse: z.literal('HDUvE6rArTzKHvn8e8dsX5YJBQfvMDnsV1hupmU1sWgr'),
+  AssistantMessage: z.literal('6wtiVAmwtfYXLJJ5tfwVoFKxdgDgpdNjQZQXtiCfGCdm'),
+  TempSample: z.literal('D61kv21RCrWgzthg1Cqhq7RN2aobtAFku4ec8ZFWBVfX'),
+  LLMRequest: z.literal('5SMFXuRXtmkVMQa4jKG7NkZEPFrJTZK8sFPpAZXr5U4N'),
+  MainChatMessage: z.literal('3TS9tpbW1c5ub7AMhKV58iEciWK1Ujd4FUvoSyz8BZnK'),
   TaskDefiningMessage: z.literal(
-    'DiJtrmS4p5KnJQJcV5UpEqvEmtuy9DK5JruJc6wxVT9R'
+    'CgN81ZKQcuCswPcWtananHkTLAnXM7hUJSYEUxNQYN99'
   ),
-  LLMResponse: z.literal('9Rie4HdYiHTEJRLF77d4VHmaQv43QJvdJ9oUrQy89hMn'),
+  LLMResponse: z.literal('FBopupDhC6PTB3PYWFDUYkC5K2UQQF2KEw6AoQcrV3B7'),
   ConversationEntry: z.literal('6vXs1bm6wdzhFhmcs1yGtwrcC2xXFRmVyPTgBzu9Vyhy'),
-  SampleAPIContract: z.literal('wdnhRDzkqrp3ZmnbvhZReKSeLaHcT9A37xnW1x7vwat'),
-  StockfishRequest: z.literal('7ViSN3jxBZ9bgy764CyzduFgPxsYWCyArWYd2fibY8xC'),
-  APIRequest: z.literal('6QzWdtAdH7LGrhoBdTpCgDE188jp4MWuXv8tXJwK4RE5'),
-  SampleTask: z.literal('HfEJxGN1sP6vq1d8wmjBEvYhhyma89zR692kbJ3yxRtJ'),
+  ProcessedConversationPair: z.literal(
+    'EfibjrpxEHGnDFMGehH9X75UoXixHga9Ps1KJMJp2KCg'
+  ),
+  SampleAPIContract: z.literal('AvfWHdSRoqMEedTrFeAnPwUjdALMiUogmNo2KTuyuCfv'),
+  StockfishRequest: z.literal('521WpKH2pQs58JJjUvpGH9PNqjnwEjbT48cbZ8EcdHLx'),
+  APIRequest: z.literal('47qi3uTyCfHcRuy7GsihvjVNYVEBSVtAVwZZRJMz6651'),
+  SampleTask: z.literal('BFWx739bL9bGK7a9xp8u6KQBKwJ2Z5QD5QxHHewvTfrC'),
 });
 
 export const chessBlueIdsSchema = z.object({
-  Chess: z.literal('8Jsf9iRy6TQDLAXPoPe5LUgHYJNxZ4UNNGTJhG1jtLtM'),
-  ChessMove: z.literal('8jZbrfLeR9hmGRarz7N5wqpFVnrWwhA4Gb2UfwZqzpsX'),
+  Chess: z.literal('HbtaSKMq4rEPVv4LbzbniLp5VKBtyn7wcBBa6Z7HtqzA'),
+  ChessAssisted: z.literal('Huc83h7n7pZnBMk4GBad3TSi8dHnNGhDLg1uz3h4FCkx'),
+  ChessGameStartedEvent: z.literal(
+    'H6u17c2fXJnmshciJVjqxoHVH48YirQYVbFXCTk8ZSym'
+  ),
+  MakeChessMoveTask: z.literal('58URWFP2Z9W9RgqwxoXJDtv6LfoKDSHvSeWWjpDkz9BU'),
+  ProcessedTask: z.literal('28zqhvDUrrYkjodDBRuCc63SrQD8hTDKqwS353E4DNsS'),
+  ChessAssistedRemotely: z.literal(
+    '85KVBga7k37DHrLyQR2riqxfsycwXxBCHjm34qrwZyQR'
+  ),
+  ChessAssistedTwoPlayers: z.literal(
+    '5V3W5ZD5sGzQw1bgM9gooTx778XtmuxRf1kGVmT5KQxw'
+  ),
+  ChessMove: z.literal('MFGzp8CtRVLb9CF2xAc8kt3jwV99sag7jpdHemZmGz9'),
+  ChessGameMoveMadeEvent: z.literal(
+    'EkEtUob9ZEKzd61Fk8u1KFDZVZAhCLmzxcvTLvYgp3iw'
+  ),
 });

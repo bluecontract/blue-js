@@ -23,6 +23,10 @@ export interface BlueObjectStringValue extends BaseBlueObject {
   value?: string;
 }
 
+export interface BlueObjectNumberValue extends BaseBlueObject {
+  value?: number;
+}
+
 export interface BlueObjectBooleanValue extends BaseBlueObject {
   value?: boolean;
 }
