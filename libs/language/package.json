@@ -7,6 +7,7 @@
     "@types/js-yaml": "4.0.9",
     "base32.js": "0.1.0",
     "big.js": "6.2.1",
+    "js-sha256": "0.11.0",
     "js-yaml": "4.1.0",
     "radash": "12.1.0",
     "type-fest": "4.20.1",
