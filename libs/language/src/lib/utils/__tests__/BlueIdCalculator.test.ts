@@ -10,6 +10,7 @@ import {
   TEXT_TYPE_BLUE_ID,
 } from '../Properties';
 import { isBigNumber } from '../../../utils/typeGuards';
+import { Base58Sha256Provider } from '../Base58Sha256Provider';
 
 const stringify = (obj: unknown): string => {
   if (
@@ -23,7 +24,8 @@ const stringify = (obj: unknown): string => {
   }
 
   if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
-    const stringifiedObject = Object.keys(obj)
+    const sortedKeys = Object.keys(obj).sort();
+    const stringifiedObject = sortedKeys
       .map((key) => {
         const value = stringify((obj as Record<string, string | number>)[key]);
         return `${key}=${value}`;
@@ -46,10 +48,17 @@ const fakeHashValueProvider = () => {
       const stringified = stringify(obj);
       return `hash(${stringified})`;
     },
+
+    applySync: (obj: unknown) => {
+      const stringified = stringify(obj);
+      return `hash(${stringified})`;
+    },
   };
 };
 
-const fakeBlueIdCalculator = new BlueIdCalculator(fakeHashValueProvider());
+const fakeBlueIdCalculator = new BlueIdCalculator(
+  fakeHashValueProvider() as Base58Sha256Provider
+);
 
 describe('BlueIdCalculator', () => {
   it('testObject', async () => {
@@ -495,6 +504,10 @@ abc:
     expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
   });
 
+  /**
+   * @vitest-environment jsdom
+   */
+
   it('should calculate a blue id from more complex json', async () => {
     const json =
       '{"name":"New Products c1fxfa","products":{"items":[{"blueId":"9mGcQeKTSDTrAdD9bJ1kDSxhRbPqKLudvX937Fvxm1Qs"},["Sub Product 1","Sub Product 2"]]},"property_1":{"name":"Products 5ktky8","products":{"items":[{"blueId":"AEW8Ze5C5KZwaVX17a5ZR2fAuCrTe6uwdKMDvk7hXpQ1"},{"blueId":"BnhdJXp2FdXeksB1gUqvrMDtLm88ZjtXKPvNL4Spvptd"}]},"property_1_1":{"name":"New Products by5ed","products":{"items":[{"blueId":"9mGcQeKTSDTrAdD9bJ1kDSxhRbPqKLudvX937Fvxm1Qs"},["Sub Product 1","Sub Product 2"]]},"property_1_1_1":{"blueId":"FZPSkgZWYy8x3ZEUeHJqF8BQ1epjRQeQDG89SnJhssf1"},"property_1_1_2":{"blueId":"FdaqU1kLfmJUpQoij9cmQJ8zTvxVbuB7uVJMwznvXdKC"},"property_1_1_3":{"blueId":"DapL23Dsy8XAbzThQD44RrpQT4ADEooMbu21sPXcAweo"}},"property_1_2":{"name":"Products ofzo8k","products":{"items":[{"blueId":"AEW8Ze5C5KZwaVX17a5ZR2fAuCrTe6uwdKMDvk7hXpQ1"},{"blueId":"BnhdJXp2FdXeksB1gUqvrMDtLm88ZjtXKPvNL4Spvptd"}]},"property_1_2_1":{"blueId":"A5u5qmMjxVHdH7PyTPxoose7PwWRCZTwVXvEFBnrLFro"},"property_1_2_2":{"blueId":"HgzxNcR2D7ujv8rrT7yxQ6tbaighDAnezomL9vNQgd8P"},"property_1_2_3":{"blueId":"3kyKhhXy2jpvQb59gFAFmSMBzAzbho3HomizWUNSY7by"}},"property_1_3":{"name":"Name wuwdq","createdAt":{"blueId":"GDjcyo4wGFv6HL4Tx6tRMqDk7N2gt8KUvFh2RTz57mWD","value":"2024-05-15T09:11:13.136Z"},"createdBy":{"blueId":"5BphmBv2gKGyU2VrEmajDaSWP3KcWdCZBzhrP5fUjfH6","value":"User 839"},"property_1_3_1":{"blueId":"J9t7hQqbVCoQsnACG9K44idXURutzkqLKpaAxXVZpB82"},"property_1_3_2":{"blueId":"DckK5rS4L15eaHFfgKWe2xatieo3RkVS4PBCDmTVp6GT"},"property_1_3_3":{"blueId":"E6RpVNecRSxL9veDZrzrbt9uj68BWWMhoGKbz87xhJ42"}}},"property_2":{"name":"Name rwjit8","description":"Description v1upvgi","property_2_1":{"name":"Name zm7kcj","description":"Description f7wmyo","property_2_1_1":{"blueId":"D4TkogpTBpbCrJstjBM7cNkWSgMZQuw4utHahP1DMiFe"},"property_2_1_2":{"blueId":"5otp8bVB7WsmqZUYtW2vycsi6DiD7M7w6oKTfnsG6eP1"},"property_2_1_3":{"blueId":"Gz8yFmjphw7SfBpt7gaBCbTmdBGvTkRfpCWbTNSdghHC"}},"property_2_2":{"blueId":"12nR2SBWR9QT4bt97N9w1emGdHfo97ySGvYysZXA5CEH"}},"property_3":{"blueId":"97i78hcHUnEiWvx1ESHiFShPBbmtXZDrL1dp5ZRrjptr"},"property_4":{"blueId":"DdvTnSUx3QPaA7QbKaNmxFUL2VjriQgR3LwbKDMFJm5F"},"property_5":{"blueId":"HM5xSf98Hq37GYe1zu5Mgy4u3tMWYsZ7EcyyenKDCRWL"}}';
@@ -502,6 +515,23 @@ abc:
     const node = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
+      `"ToF7bZomuz2gbY3ZoARG9a2QhV2L39AtRRAaQADA1NR"`
+    );
+  });
+
+  /**
+   * @vitest-environment jsdom
+   */
+
+  it('should calculate a blue id from more complex json on browser', async () => {
+    const json =
+      '{"name":"New Products c1fxfa","products":{"items":[{"blueId":"9mGcQeKTSDTrAdD9bJ1kDSxhRbPqKLudvX937Fvxm1Qs"},["Sub Product 1","Sub Product 2"]]},"property_1":{"name":"Products 5ktky8","products":{"items":[{"blueId":"AEW8Ze5C5KZwaVX17a5ZR2fAuCrTe6uwdKMDvk7hXpQ1"},{"blueId":"BnhdJXp2FdXeksB1gUqvrMDtLm88ZjtXKPvNL4Spvptd"}]},"property_1_1":{"name":"New Products by5ed","products":{"items":[{"blueId":"9mGcQeKTSDTrAdD9bJ1kDSxhRbPqKLudvX937Fvxm1Qs"},["Sub Product 1","Sub Product 2"]]},"property_1_1_1":{"blueId":"FZPSkgZWYy8x3ZEUeHJqF8BQ1epjRQeQDG89SnJhssf1"},"property_1_1_2":{"blueId":"FdaqU1kLfmJUpQoij9cmQJ8zTvxVbuB7uVJMwznvXdKC"},"property_1_1_3":{"blueId":"DapL23Dsy8XAbzThQD44RrpQT4ADEooMbu21sPXcAweo"}},"property_1_2":{"name":"Products ofzo8k","products":{"items":[{"blueId":"AEW8Ze5C5KZwaVX17a5ZR2fAuCrTe6uwdKMDvk7hXpQ1"},{"blueId":"BnhdJXp2FdXeksB1gUqvrMDtLm88ZjtXKPvNL4Spvptd"}]},"property_1_2_1":{"blueId":"A5u5qmMjxVHdH7PyTPxoose7PwWRCZTwVXvEFBnrLFro"},"property_1_2_2":{"blueId":"HgzxNcR2D7ujv8rrT7yxQ6tbaighDAnezomL9vNQgd8P"},"property_1_2_3":{"blueId":"3kyKhhXy2jpvQb59gFAFmSMBzAzbho3HomizWUNSY7by"}},"property_1_3":{"name":"Name wuwdq","createdAt":{"blueId":"GDjcyo4wGFv6HL4Tx6tRMqDk7N2gt8KUvFh2RTz57mWD","value":"2024-05-15T09:11:13.136Z"},"createdBy":{"blueId":"5BphmBv2gKGyU2VrEmajDaSWP3KcWdCZBzhrP5fUjfH6","value":"User 839"},"property_1_3_1":{"blueId":"J9t7hQqbVCoQsnACG9K44idXURutzkqLKpaAxXVZpB82"},"property_1_3_2":{"blueId":"DckK5rS4L15eaHFfgKWe2xatieo3RkVS4PBCDmTVp6GT"},"property_1_3_3":{"blueId":"E6RpVNecRSxL9veDZrzrbt9uj68BWWMhoGKbz87xhJ42"}}},"property_2":{"name":"Name rwjit8","description":"Description v1upvgi","property_2_1":{"name":"Name zm7kcj","description":"Description f7wmyo","property_2_1_1":{"blueId":"D4TkogpTBpbCrJstjBM7cNkWSgMZQuw4utHahP1DMiFe"},"property_2_1_2":{"blueId":"5otp8bVB7WsmqZUYtW2vycsi6DiD7M7w6oKTfnsG6eP1"},"property_2_1_3":{"blueId":"Gz8yFmjphw7SfBpt7gaBCbTmdBGvTkRfpCWbTNSdghHC"}},"property_2_2":{"blueId":"12nR2SBWR9QT4bt97N9w1emGdHfo97ySGvYysZXA5CEH"}},"property_3":{"blueId":"97i78hcHUnEiWvx1ESHiFShPBbmtXZDrL1dp5ZRrjptr"},"property_4":{"blueId":"DdvTnSUx3QPaA7QbKaNmxFUL2VjriQgR3LwbKDMFJm5F"},"property_5":{"blueId":"HM5xSf98Hq37GYe1zu5Mgy4u3tMWYsZ7EcyyenKDCRWL"}}';
+
+    const node = NodeDeserializer.deserialize(JSON.parse(json));
+    const blueId1 = BlueIdCalculator.calculateBlueIdSync(node);
+    const blueId2 = await BlueIdCalculator.calculateBlueId(node);
+    expect(blueId1).toEqual(blueId2);
+    expect(blueId2).toMatchInlineSnapshot(
       `"ToF7bZomuz2gbY3ZoARG9a2QhV2L39AtRRAaQADA1NR"`
     );
   });
