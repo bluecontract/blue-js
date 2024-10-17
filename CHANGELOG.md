@@ -1,3 +1,14 @@
+## 1.3.0 (2024-10-17)
+
+
+### 🚀 Features
+
+- **blue-id:** add synchronous Blue ID calculation ([2331871](https://github.com/bluecontract/blue-js/commit/2331871))
+
+### 🩹 Fixes
+
+- **language:** add js-sha256 to language dependencies ([865b480](https://github.com/bluecontract/blue-js/commit/865b480))
+
 ## 1.2.0 (2024-10-16)
 
 
