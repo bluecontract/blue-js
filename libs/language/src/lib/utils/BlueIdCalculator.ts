@@ -1,3 +1,5 @@
+// File: libs/language/src/lib/utils/BlueIdCalculator.ts
+
 import { BlueNode } from '../model/Node';
 import { NodeToMapListOrValue } from './NodeToMapListOrValue';
 import { Base58Sha256Provider } from './Base58Sha256Provider';
@@ -16,8 +18,11 @@ import {
 import { JsonBlueArray, JsonBlueObject, JsonBlueValue } from '../../schema';
 
 type HashProvider = {
-  apply: (object: JsonBlueValue) => string | Promise<string>;
+  apply: (object: JsonBlueValue) => Promise<string>;
+  applySync: (object: JsonBlueValue) => string;
 };
+
+type SyncOrAsync<T> = T | Promise<T>;
 
 export class BlueIdCalculator {
   public static INSTANCE = new BlueIdCalculator(new Base58Sha256Provider());
@@ -28,16 +33,38 @@ export class BlueIdCalculator {
     this.hashProvider = hashProvider;
   }
 
-  public static async calculateBlueId(node: BlueNode) {
+  public static calculateBlueId(node: BlueNode) {
     return BlueIdCalculator.INSTANCE.calculate(NodeToMapListOrValue.get(node));
   }
 
-  public static async calculateBlueIdForNodes(nodes: BlueNode[]) {
+  public static calculateBlueIdSync(node: BlueNode) {
+    return BlueIdCalculator.INSTANCE.calculateSync(
+      NodeToMapListOrValue.get(node)
+    );
+  }
+
+  public static calculateBlueIdForNodes(nodes: BlueNode[]) {
     const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
     return BlueIdCalculator.INSTANCE.calculate(objects);
   }
 
-  public async calculate(object: JsonBlueValue) {
+  public static calculateBlueIdSyncForNodes(nodes: BlueNode[]) {
+    const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
+    return BlueIdCalculator.INSTANCE.calculateSync(objects);
+  }
+
+  public calculate(object: JsonBlueValue) {
+    return this.internalCalculate(object, false) as Promise<string>;
+  }
+
+  public calculateSync(object: JsonBlueValue) {
+    return this.internalCalculate(object, true) as string;
+  }
+
+  private internalCalculate(
+    object: JsonBlueValue,
+    isSync: boolean
+  ): SyncOrAsync<string> {
     const cleanedObject = this.cleanStructure(object);
 
     if (cleanedObject === undefined) {
@@ -45,52 +72,89 @@ export class BlueIdCalculator {
     }
 
     if (isJsonPrimitive(cleanedObject) || isBigNumber(cleanedObject)) {
-      return this.hashProvider.apply(cleanedObject.toString());
+      return this.applyHash(cleanedObject.toString(), isSync);
     } else if (Array.isArray(cleanedObject) || isReadonlyArray(cleanedObject)) {
-      return this.calculateList(cleanedObject);
+      return this.calculateList(cleanedObject, isSync);
     } else {
-      return this.calculateMap(cleanedObject);
+      return this.calculateMap(cleanedObject, isSync);
     }
-    throw new Error(
-      `Object must be a String, Number, Boolean, List or Map - found ${typeof object}`
-    );
   }
 
-  private async calculateMap(map: JsonBlueObject) {
+  private calculateMap(map: JsonBlueObject, isSync: boolean) {
     if (map[OBJECT_BLUE_ID] !== undefined && map[OBJECT_BLUE_ID] !== null) {
       return map[OBJECT_BLUE_ID] as string;
     }
 
-    const hashes = {} as JsonBlueObject;
+    const hashes: JsonBlueObject = {};
+    const promises: Promise<void>[] = [];
+
     for (const key in map) {
       if ([OBJECT_NAME, OBJECT_VALUE, OBJECT_DESCRIPTION].includes(key)) {
         hashes[key] = map[key];
       } else {
-        const blueId = await this.calculate(map[key]);
-        hashes[key] = {
-          blueId,
+        const calculateBlueId = () => {
+          const result = this.internalCalculate(map[key], isSync);
+          if (result instanceof Promise) {
+            return result.then((blueId) => {
+              hashes[key] = { blueId };
+            });
+          } else {
+            hashes[key] = { blueId: result };
+            return Promise.resolve();
+          }
         };
+        promises.push(calculateBlueId());
       }
     }
 
-    return this.hashProvider.apply(hashes);
+    if (isSync) {
+      return this.applyHash(hashes, true);
+    } else {
+      return Promise.all(promises).then(() => this.applyHash(hashes, false));
+    }
   }
 
-  private async calculateList(list: JsonBlueArray): Promise<string> {
+  private calculateList(
+    list: JsonBlueArray,
+    isSync: boolean
+  ): SyncOrAsync<string> {
     if (list.length === 1) {
-      return this.calculate(list[0]);
+      return this.internalCalculate(list[0], isSync);
     }
 
     const subList = list.slice(0, -1);
-    const hashOfSubList = await this.calculateList(subList);
-
     const lastElement = list[list.length - 1];
-    const hashOfLastElement = await this.calculate(lastElement);
 
-    return this.hashProvider.apply([
-      { blueId: hashOfSubList },
-      { blueId: hashOfLastElement },
-    ]);
+    const calculateHashes = () => {
+      const hashOfSubList = this.calculateList(subList, isSync);
+      const hashOfLastElement = this.internalCalculate(lastElement, isSync);
+
+      if (isSync) {
+        return this.applyHash(
+          [
+            { blueId: hashOfSubList as string },
+            { blueId: hashOfLastElement as string },
+          ],
+          true
+        );
+      } else {
+        return Promise.all([hashOfSubList, hashOfLastElement]).then(
+          ([subListHash, lastElementHash]) =>
+            this.applyHash(
+              [{ blueId: subListHash }, { blueId: lastElementHash }],
+              false
+            )
+        );
+      }
+    };
+
+    return calculateHashes();
+  }
+
+  private applyHash(value: JsonBlueValue, isSync: boolean) {
+    return isSync
+      ? this.hashProvider.applySync(value)
+      : this.hashProvider.apply(value);
   }
 
   private cleanStructure(
