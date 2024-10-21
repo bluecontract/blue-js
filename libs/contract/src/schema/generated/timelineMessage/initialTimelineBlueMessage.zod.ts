@@ -6,16 +6,23 @@ import {
   blueObjectSchema,
   blueObjectStringValueSchema,
 } from '@blue-company/language';
+import { timelineBlueIdsSchema } from './../blueIds.zod';
 
 export const initialTimelineBlueMessageTypeSchema = blueObjectSchema.and(
   z.object({
-    name: z.literal('Timeline by Timeline.blue'),
+    name: z.literal('Timeline by Timeline.blue').optional(),
+    blueId: timelineBlueIdsSchema.shape.TimelineByTimelineBlue.optional(),
   })
 );
 
 export const initialTimelineBlueMessageSchema = baseBlueObjectSchema.extend({
   type: initialTimelineBlueMessageTypeSchema.optional(),
   timelineAlias: blueObjectStringValueSchema,
+  website: blueObjectStringValueSchema.optional(),
+  phone: blueObjectStringValueSchema.optional(),
+  about: blueObjectStringValueSchema.optional(),
   avatar: blueObjectStringValueSchema.optional(),
+  instagram: blueObjectStringValueSchema.optional(),
   signingMethod: z.unknown().optional(),
+  email: blueObjectStringValueSchema.optional(),
 });

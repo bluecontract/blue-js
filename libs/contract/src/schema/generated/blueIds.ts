@@ -75,3 +75,8 @@ export type ChessBlueIds = {
   ChessMove: 'MFGzp8CtRVLb9CF2xAc8kt3jwV99sag7jpdHemZmGz9';
   ChessGameMoveMadeEvent: 'EkEtUob9ZEKzd61Fk8u1KFDZVZAhCLmzxcvTLvYgp3iw';
 };
+
+export type TimelineBlueIds = {
+  TimelineByTimelineBlue: 'H2T3u5R8DATZ29sM9yHUnsnKysjuK8hFEd6Yggfepg2m';
+  SchnorrSignatureAlgorithmOverTheEllipticCurveSecp256k1: '4MPkWDpSC8oZ83UfAi51Sh79BUtXKdAcXtDhYLDJ79mD';
+};
