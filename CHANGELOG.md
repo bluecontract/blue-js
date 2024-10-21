@@ -1,3 +1,10 @@
+## 1.4.0 (2024-10-21)
+
+
+### 🚀 Features
+
+- **contract:** Add Timeline Blue IDs and update InitialTimelineBlueMessage ([c21f902](https://github.com/bluecontract/blue-js/commit/c21f902))
+
 ## 1.3.0 (2024-10-17)
 
 
