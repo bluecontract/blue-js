@@ -1,7 +1,13 @@
-import { BaseBlueObject, BlueObject } from '@blue-company/language';
+import {
+  BaseBlueObject,
+  BlueObject,
+  BlueObjectStringValue,
+} from '@blue-company/language';
 
 export interface WorkflowStepObjectList extends BaseBlueObject {
-  items?: WorkflowStep[];
+  items?: BlueObject[];
 }
 
-export type WorkflowStep = BlueObject;
+export interface WorkflowStep extends BaseBlueObject {
+  condition?: BlueObjectStringValue;
+}

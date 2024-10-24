@@ -2,13 +2,13 @@
 import { z } from 'zod';
 
 import {
+  baseBlueObjectSchema,
   blueObjectSchema,
   blueObjectStringValueSchema,
 } from '@blue-company/language';
-import { contractEventSchema } from './contractEvent.zod';
 import { initiateContractActionSchema } from './../contractAction/initiateContractAction.zod';
 
-export const actionByParticipantEventSchema = contractEventSchema.extend({
+export const actionByParticipantEventSchema = baseBlueObjectSchema.extend({
   type: blueObjectSchema
     .and(
       z.object({

@@ -1,8 +1,11 @@
-import { BlueObject, BlueObjectStringValue } from '@blue-company/language';
-import { ContractEvent } from './contractEvent';
+import {
+  BaseBlueObject,
+  BlueObject,
+  BlueObjectStringValue,
+} from '@blue-company/language';
 import { InitiateContractAction } from '../contractAction/initiateContractAction';
 
-export interface ActionByParticipantEvent extends ContractEvent {
+export interface ActionByParticipantEvent extends BaseBlueObject {
   type?: BlueObject & {
     name: 'Action by Participant';
   };
