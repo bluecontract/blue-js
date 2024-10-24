@@ -10,10 +10,10 @@ export interface TimelineEntry extends BaseBlueObject {
     name?: 'Timeline Entry';
     blueId?: ContractBlueIds['TimelineEntry'];
   };
-  timeline?: BlueObjectStringValue;
-  timelinePrev?: BlueObjectStringValue;
-  thread?: BlueObjectStringValue;
-  threadPrev?: BlueObjectStringValue;
+  timeline?: BaseBlueObject;
+  timelinePrev?: BaseBlueObject;
+  thread?: BaseBlueObject;
+  threadPrev?: BaseBlueObject;
   message?: BlueObject;
   signature?: BlueObjectStringValue;
 }

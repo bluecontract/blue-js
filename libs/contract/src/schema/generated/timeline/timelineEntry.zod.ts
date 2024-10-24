@@ -17,10 +17,10 @@ export const timelineEntrySchema = baseBlueObjectSchema.extend({
       })
     )
     .optional(),
-  timeline: blueObjectStringValueSchema.optional(),
-  timelinePrev: blueObjectStringValueSchema.optional(),
-  thread: blueObjectStringValueSchema.optional(),
-  threadPrev: blueObjectStringValueSchema.optional(),
+  timeline: baseBlueObjectSchema.optional(),
+  timelinePrev: baseBlueObjectSchema.optional(),
+  thread: baseBlueObjectSchema.optional(),
+  threadPrev: baseBlueObjectSchema.optional(),
   message: blueObjectSchema.optional(),
   signature: blueObjectStringValueSchema.optional(),
 });
