@@ -1,5 +1,6 @@
 import { getBlueObjectItems } from '@blue-company/language';
-import { Contract } from './schema';
+import { Contract, Workflow } from './schema';
+import { isNonNullable } from '@blue-company/shared-utils';
 
 export const getWorkflowByName = ({
   contract,
@@ -11,4 +12,15 @@ export const getWorkflowByName = ({
   return getBlueObjectItems(contract?.workflows)?.find(
     (workflow) => workflow.name === workflowName
   );
+};
+
+export const getUIWorkflowName = (workflow?: Workflow, index?: number) => {
+  return (
+    workflow?.name ??
+    `Untitled Workflow${isNonNullable(index) ? ` #${index}` : ''}`
+  );
+};
+
+export const getUIWorkflowTriggerName = (workflow?: Workflow) => {
+  return workflow?.trigger?.name ?? 'Untitled Workflow Trigger';
 };

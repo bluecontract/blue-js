@@ -4,9 +4,9 @@ import {
   BlueObjectStringValue,
 } from '@blue-company/language';
 import { WorkflowStepObjectList } from '../workflowStep/workflowStep';
-import { ContractEventBlueObject } from '../contractEvent/contractEvent';
 import { TimelineEntry } from '../timeline/timelineEntry';
 import { ContractBlueIds, DefaultBlueIds } from '../blueIds';
+import { ExpectEventStep } from '../workflowStep/expectEventStep';
 
 export type ParticipantType = BlueObject & {
   name?: 'Participant';
@@ -49,7 +49,7 @@ export interface WorkflowObjectList extends BaseBlueObject {
 
 export interface Workflow extends BaseBlueObject {
   steps?: WorkflowStepObjectList;
-  trigger?: ContractEventBlueObject;
+  trigger?: ExpectEventStep;
 }
 
 export type ContractPhoto = BlueObjectStringValue;
