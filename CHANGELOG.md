@@ -1,3 +1,14 @@
+## 1.5.0 (2024-10-24)
+
+
+### 🚀 Features
+
+- **contract:** add workflow step types and JSON patch functionality ([5aab76f](https://github.com/bluecontract/blue-js/commit/5aab76f))
+
+### 🩹 Fixes
+
+- timeline entry schema ([1d842ab](https://github.com/bluecontract/blue-js/commit/1d842ab))
+
 ## 1.4.0 (2024-10-21)
 
 
