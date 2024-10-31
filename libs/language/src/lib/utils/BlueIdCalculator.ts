@@ -1,5 +1,3 @@
-// File: libs/language/src/lib/utils/BlueIdCalculator.ts
-
 import { BlueNode } from '../model/Node';
 import { NodeToMapListOrValue } from './NodeToMapListOrValue';
 import { Base58Sha256Provider } from './Base58Sha256Provider';
@@ -14,8 +12,27 @@ import {
   isJsonPrimitive,
   isNonNullable,
   isReadonlyArray,
+  JsonPrimitive,
 } from '@blue-company/shared-utils';
-import { JsonBlueArray, JsonBlueObject, JsonBlueValue } from '../../schema';
+import { JsonBlueValue } from '../../schema';
+import { default as Big } from 'big.js';
+
+type NonNullableJsonPrimitive = NonNullable<JsonPrimitive>;
+type NonNullableJsonObject = { [Key in string]: NonNullableJsonValue };
+type NonNullableJsonArray =
+  | NonNullableJsonValue[]
+  | readonly NonNullableJsonValue[];
+type NonNullableJsonValue =
+  | NonNullableJsonPrimitive
+  | NonNullableJsonObject
+  | NonNullableJsonArray
+  | Big;
+
+const isNonNullableJsonPrimitive = (
+  value: JsonBlueValue
+): value is NonNullableJsonPrimitive => {
+  return isJsonPrimitive(value) && isNonNullable(value);
+};
 
 type HashProvider = {
   apply: (object: JsonBlueValue) => Promise<string>;
@@ -54,24 +71,31 @@ export class BlueIdCalculator {
   }
 
   public calculate(object: JsonBlueValue) {
-    return this.internalCalculate(object, false) as Promise<string>;
-  }
-
-  public calculateSync(object: JsonBlueValue) {
-    return this.internalCalculate(object, true) as string;
-  }
-
-  private internalCalculate(
-    object: JsonBlueValue,
-    isSync: boolean
-  ): SyncOrAsync<string> {
     const cleanedObject = this.cleanStructure(object);
-
     if (cleanedObject === undefined) {
       throw new Error(`Object after cleaning cannot be null or undefined.`);
     }
 
-    if (isJsonPrimitive(cleanedObject) || isBigNumber(cleanedObject)) {
+    return this.internalCalculate(cleanedObject, false) as Promise<string>;
+  }
+
+  public calculateSync(object: JsonBlueValue) {
+    const cleanedObject = this.cleanStructure(object);
+    if (cleanedObject === undefined) {
+      throw new Error(`Object after cleaning cannot be null or undefined.`);
+    }
+
+    return this.internalCalculate(cleanedObject, true) as string;
+  }
+
+  private internalCalculate(
+    cleanedObject: NonNullableJsonValue,
+    isSync: boolean
+  ): SyncOrAsync<string> {
+    if (
+      isNonNullableJsonPrimitive(cleanedObject) ||
+      isBigNumber(cleanedObject)
+    ) {
       return this.applyHash(cleanedObject.toString(), isSync);
     } else if (Array.isArray(cleanedObject) || isReadonlyArray(cleanedObject)) {
       return this.calculateList(cleanedObject, isSync);
@@ -80,12 +104,12 @@ export class BlueIdCalculator {
     }
   }
 
-  private calculateMap(map: JsonBlueObject, isSync: boolean) {
+  private calculateMap(map: NonNullableJsonObject, isSync: boolean) {
     if (map[OBJECT_BLUE_ID] !== undefined && map[OBJECT_BLUE_ID] !== null) {
       return map[OBJECT_BLUE_ID] as string;
     }
 
-    const hashes: JsonBlueObject = {};
+    const hashes: NonNullableJsonObject = {};
     const promises: Promise<void>[] = [];
 
     for (const key in map) {
@@ -115,7 +139,7 @@ export class BlueIdCalculator {
   }
 
   private calculateList(
-    list: JsonBlueArray,
+    list: NonNullableJsonArray,
     isSync: boolean
   ): SyncOrAsync<string> {
     if (list.length === 1) {
@@ -151,15 +175,13 @@ export class BlueIdCalculator {
     return calculateHashes();
   }
 
-  private applyHash(value: JsonBlueValue, isSync: boolean) {
+  private applyHash(value: NonNullableJsonValue, isSync: boolean) {
     return isSync
       ? this.hashProvider.applySync(value)
       : this.hashProvider.apply(value);
   }
 
-  private cleanStructure(
-    obj: JsonBlueValue
-  ): NonNullable<JsonBlueValue> | undefined {
+  private cleanStructure(obj: JsonBlueValue): NonNullableJsonValue | undefined {
     if (obj === null || obj === undefined) {
       return undefined;
     } else if (isJsonPrimitive(obj) || isBigNumber(obj)) {
@@ -171,7 +193,7 @@ export class BlueIdCalculator {
 
       return cleanedList.length > 0 ? cleanedList : undefined;
     } else if (typeof obj === 'object') {
-      const cleanedMap: JsonBlueObject = {};
+      const cleanedMap: NonNullableJsonObject = {};
       for (const key in obj) {
         const cleanedValue = this.cleanStructure(obj[key]);
         if (cleanedValue !== null && cleanedValue !== undefined) {

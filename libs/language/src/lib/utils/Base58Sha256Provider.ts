@@ -1,15 +1,7 @@
-import { Base58 } from './Base58';
 import { JsonBlueValue } from '../../schema';
 import { JsonCanonicalizer } from './JsonCanonicalizer';
 import { sha256 } from 'js-sha256';
-
-type NodeCrypto = {
-  createHash(algorithm: string): {
-    update(data: string): {
-      digest(): Buffer;
-    };
-  };
-};
+import bs58 from 'bs58';
 
 function supportsCryptoModule(): boolean {
   try {
@@ -20,21 +12,12 @@ function supportsCryptoModule(): boolean {
   }
 }
 
+const isNode = typeof window === 'undefined' && typeof process !== 'undefined';
+const nodeCrypto = (() => {
+  return supportsCryptoModule() ? require('crypto') : null;
+})();
+
 export class Base58Sha256Provider {
-  private isNode: boolean;
-  private nodeCrypto: NodeCrypto | null;
-
-  constructor() {
-    this.isNode =
-      typeof window === 'undefined' && typeof process !== 'undefined';
-
-    if (supportsCryptoModule()) {
-      this.nodeCrypto = require('crypto');
-    } else {
-      this.nodeCrypto = null;
-    }
-  }
-
   public applySync(object: JsonBlueValue): string {
     const canonized = JsonCanonicalizer.canonicalize(object);
     if (typeof canonized !== 'string') {
@@ -43,13 +26,13 @@ export class Base58Sha256Provider {
 
     let hash: ArrayBuffer | Buffer;
 
-    if (this.isNode && this.nodeCrypto) {
+    if (isNode && nodeCrypto) {
       hash = this.sha256Sync(canonized);
     } else {
       hash = this.sha256SyncBrowser(canonized);
     }
 
-    return Base58.encode(new Uint8Array(hash));
+    return bs58.encode(new Uint8Array(hash));
   }
 
   public async apply(object: JsonBlueValue): Promise<string> {
@@ -60,23 +43,23 @@ export class Base58Sha256Provider {
 
     let hash: ArrayBuffer | Buffer;
 
-    if (this.isNode && this.nodeCrypto) {
+    if (isNode && nodeCrypto) {
       hash = this.sha256Sync(canonized);
     } else {
       hash = await this.sha256Async(canonized);
     }
 
-    return Base58.encode(new Uint8Array(hash));
+    return bs58.encode(new Uint8Array(hash));
   }
 
   private sha256Sync(input: string): Buffer {
-    if (!this.isNode || !this.nodeCrypto) {
+    if (!isNode || !nodeCrypto) {
       throw new Error(
         'Synchronous SHA-256 is not available in this environment'
       );
     }
 
-    return this.nodeCrypto.createHash('sha256').update(input).digest();
+    return nodeCrypto.createHash('sha256').update(input).digest();
   }
 
   private sha256SyncBrowser(input: string): ArrayBuffer {
@@ -84,7 +67,7 @@ export class Base58Sha256Provider {
   }
 
   private async sha256Async(input: string): Promise<ArrayBuffer> {
-    if (this.isNode && this.nodeCrypto) {
+    if (isNode && nodeCrypto) {
       return this.sha256Sync(input);
     } else {
       const encoder = new TextEncoder();

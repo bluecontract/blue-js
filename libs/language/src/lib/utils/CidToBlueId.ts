@@ -1,5 +1,5 @@
 import base32 from 'base32.js';
-import { Base58 } from './Base58';
+import bs58 from 'bs58';
 
 export class CidToBlueId {
   static convert(cid: string): string {
@@ -21,7 +21,7 @@ export class CidToBlueId {
     }
 
     const sha256Bytes = multihash.slice(2);
-    const blueId = Base58.encode(sha256Bytes);
+    const blueId = bs58.encode(sha256Bytes);
 
     return blueId;
   }

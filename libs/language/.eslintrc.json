@@ -31,7 +31,8 @@
               "@types/big.js",
               "@types/js-yaml",
               "canonicalize",
-              "multiformats"
+              "multiformats",
+              "bs58"
             ]
           }
         ]

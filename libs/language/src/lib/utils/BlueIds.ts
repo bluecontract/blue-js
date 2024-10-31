@@ -1,4 +1,4 @@
-import { Base58 } from './Base58';
+import bs58 from 'bs58';
 
 export class BlueIds {
   public static readonly MIN_BLUE_ID_LENGTH = 41;
@@ -27,7 +27,7 @@ export class BlueIds {
     }
 
     try {
-      const decoded = Base58.decode(blueIdPart);
+      const decoded = bs58.decode(blueIdPart);
       if (decoded.length !== 32) {
         return false;
       }

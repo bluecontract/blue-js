@@ -1,4 +1,3 @@
-export { Base58 } from './Base58';
 export { Base58Sha256Provider } from './Base58Sha256Provider';
 export { BlueIds } from './BlueIds';
 export { BlueIdCalculator } from './BlueIdCalculator';
