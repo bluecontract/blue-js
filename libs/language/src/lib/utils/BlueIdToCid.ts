@@ -1,9 +1,9 @@
 import base32 from 'base32.js';
-import { Base58 } from './Base58';
+import bs58 from 'bs58';
 
 export class BlueIdToCid {
   static convert(blueId: string): string {
-    const sha256Bytes: Uint8Array = Base58.decode(blueId);
+    const sha256Bytes: Uint8Array = bs58.decode(blueId);
 
     // Create the multihash bytes for SHA-256 (0x12 for the hash function and 0x20 for the length)
     const multihash: Uint8Array = new Uint8Array(2 + sha256Bytes.length);

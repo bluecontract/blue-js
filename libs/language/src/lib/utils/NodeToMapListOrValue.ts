@@ -18,7 +18,6 @@ import {
   BOOLEAN_TYPE_BLUE_ID,
 } from './Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
-import { jsonValueSchema } from '@blue-company/shared-utils';
 
 export type Strategy = 'official' | 'simple';
 
@@ -93,7 +92,7 @@ export class NodeToMapListOrValue {
 
     const blue = node.getBlue();
     if (blue !== undefined) {
-      result[OBJECT_BLUE] = jsonValueSchema.parse(blue);
+      result[OBJECT_BLUE] = blue as unknown as JsonValue;
     }
 
     const properties = node.getProperties();

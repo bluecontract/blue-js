@@ -27,7 +27,7 @@ describe('BlueIdToCid', () => {
 
   test('should throw an error for invalid blueId', () => {
     expect(() => BlueIdToCid.convert('invalidBlueId')).toThrow(
-      'Invalid character found: l'
+      'Non-base58 character'
     );
   });
 

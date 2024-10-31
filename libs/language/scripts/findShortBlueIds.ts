@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Base58 } from '../src/lib/utils/Base58.ts';
+import bs58 from 'bs58';
 
 function generateRandomHex(size = 16) {
   return crypto.randomBytes(size).toString('hex');
@@ -18,7 +18,7 @@ function findHashWithBase58Length(targetLengths = [42, 43]) {
   while (true) {
     const data = createDataObject();
     const hashBuffer = crypto.createHash('sha256').update(data).digest();
-    const base58Encoded = Base58.encode(hashBuffer);
+    const base58Encoded = bs58.encode(hashBuffer);
     if (targetLengths.includes(base58Encoded.length)) {
       return { data, hash: hashBuffer.toString('hex'), base58Encoded, attempt };
     }
