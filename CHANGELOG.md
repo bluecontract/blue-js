@@ -1,3 +1,10 @@
+## 1.6.0 (2024-10-31)
+
+
+### 🚀 Features
+
+- optimize blueId calculation and base58 handling ([a6fa814](https://github.com/bluecontract/blue-js/commit/a6fa814))
+
 ## 1.5.0 (2024-10-24)
 
 
