@@ -58,5 +58,6 @@
         "buildTargetName": "build"
       }
     }
-  ]
+  ],
+  "useLegacyCache": true
 }
