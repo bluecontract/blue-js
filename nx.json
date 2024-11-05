@@ -12,11 +12,6 @@
     "sharedGlobals": []
   },
   "targetDefaults": {
-    "@nx/vite:build": {
-      "cache": true,
-      "dependsOn": ["^build"],
-      "inputs": ["production", "^production"]
-    },
     "yalc-push": {
       "dependsOn": ["build"]
     }
@@ -37,25 +32,32 @@
   },
   "plugins": [
     {
+      "plugin": "@nx/js/typescript",
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        },
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.lib.json"
+        }
+      }
+    },
+    {
       "plugin": "@nx/vite/plugin",
       "options": {
         "buildTargetName": "build",
         "testTargetName": "test",
         "serveTargetName": "serve",
         "previewTargetName": "preview",
-        "serveStaticTargetName": "serve-static"
+        "serveStaticTargetName": "serve-static",
+        "typecheckTargetName": "typecheck"
       }
     },
     {
       "plugin": "@nx/eslint/plugin",
       "options": {
         "targetName": "lint"
-      }
-    },
-    {
-      "plugin": "@nx/rollup/plugin",
-      "options": {
-        "buildTargetName": "build"
       }
     }
   ],

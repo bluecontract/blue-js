@@ -17,12 +17,10 @@
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
     "@types/node": "18.16.9",
-    "@typescript-eslint/eslint-plugin": "7.18.0",
-    "@typescript-eslint/parser": "7.18.0",
     "@vitest/coverage-v8": "^1.0.4",
     "@vitest/ui": "^1.3.1",
     "@webpro/nx-tsc": "0.0.2",
-    "eslint": "~8.57.0",
+    "eslint": "9.14.0",
     "eslint-config-prettier": "^9.0.0",
     "glob": "11.0.0",
     "jsdom": "25.0.1",
@@ -32,6 +30,7 @@
     "swc-loader": "0.1.15",
     "ts-to-zod": "3.10.0",
     "typescript": "5.5.4",
+    "typescript-eslint": "8.12.2",
     "verdaccio": "^5.0.4",
     "vite": "^5.0.0",
     "vite-plugin-dts": "~3.8.1",
@@ -39,6 +38,10 @@
     "vitest": "^1.3.1",
     "yalc": "1.0.0-pre.53"
   },
+  "workspaces": [
+    "libs/*",
+    "libs/shared/*"
+  ],
   "dependencies": {
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",

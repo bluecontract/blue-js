@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BlueIds as BlueIdsService } from '../lib/utils/BlueIds';
-import bs58 from 'bs58';
+import { bs58 } from '../utils/bs58';
 
 export const blueIdSchema = z
   .string()
@@ -15,7 +15,7 @@ export const blueIdSchema = z
       try {
         bs58.decode(data);
         return true;
-      } catch (e) {
+      } catch {
         return false;
       }
     },

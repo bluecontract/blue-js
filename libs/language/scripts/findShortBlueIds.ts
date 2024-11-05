@@ -14,7 +14,6 @@ function createDataObject() {
 
 function findHashWithBase58Length(targetLengths = [42, 43]) {
   let attempt = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const data = createDataObject();
     const hashBuffer = crypto.createHash('sha256').update(data).digest();

@@ -1,8 +1,9 @@
-import { CID } from 'multiformats/cid';
-import { sha256 } from 'multiformats/hashes/sha2';
 import { JsonCanonicalizer } from '../JsonCanonicalizer';
 
 export const calculateCidFromString = async (input: string) => {
+  const { CID } = await import('multiformats/cid');
+  const { sha256 } = await import('multiformats/hashes/sha2');
+
   const bytes = new TextEncoder().encode(input);
   const result = await sha256.digest(bytes);
   const cid = CID.create(1, 0x55, result);

@@ -12,15 +12,10 @@
   },
   "tags": [],
   "targets": {
-    "nx-release-publish": {
-      "options": {
-        "packageRoot": "dist/{projectRoot}"
-      }
-    },
     "yalc-push": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "dist/{projectRoot}",
+        "cwd": "{projectRoot}",
         "commands": ["yalc push"]
       }
     },

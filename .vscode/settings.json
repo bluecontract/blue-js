@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["canonicalize", "Canonicalizer", "yalc"]
+  "cSpell.words": ["canonicalize", "Canonicalizer", "yalc"],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }
