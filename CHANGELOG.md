@@ -1,3 +1,9 @@
+## 1.6.1 (2024-11-05)
+
+### 🩹 Fixes
+
+- resolve build and ESLint configuration issues ([35f2ff4](https://github.com/bluecontract/blue-js/commit/35f2ff4))
+
 ## 1.6.0 (2024-10-31)
 
 
