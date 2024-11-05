@@ -1,4 +1,4 @@
-import bs58 from 'bs58';
+import { bs58 } from '../../utils/bs58';
 
 export class BlueIds {
   public static readonly MIN_BLUE_ID_LENGTH = 41;
@@ -31,7 +31,7 @@ export class BlueIds {
       if (decoded.length !== 32) {
         return false;
       }
-    } catch (e) {
+    } catch {
       return false;
     }
 
@@ -41,7 +41,7 @@ export class BlueIds {
         if (index < 0) {
           return false;
         }
-      } catch (e) {
+      } catch {
         return false;
       }
     }

@@ -1,5 +1,5 @@
 import base32 from 'base32.js';
-import bs58 from 'bs58';
+import { bs58 } from '../../utils/bs58';
 
 export class CidToBlueId {
   static convert(cid: string): string {

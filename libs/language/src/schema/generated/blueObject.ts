@@ -1,6 +1,5 @@
 import { SetRequired } from 'type-fest';
 
-/* eslint-disable @typescript-eslint/no-empty-interface */
 export interface BlueObject {
   blueId?: string;
   name?: string;

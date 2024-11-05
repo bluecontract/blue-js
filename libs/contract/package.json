@@ -1,15 +1,21 @@
 {
   "name": "@blue-company/contract",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "dependencies": {
     "type-fest": "4.20.1",
     "zod": "3.23.8",
-    "@blue-company/language": "1.6.0",
-    "@blue-company/shared-utils": "1.6.0",
+    "@blue-company/language": "1.6.1",
+    "@blue-company/shared-utils": "1.6.1",
     "radash": "12.1.0"
   },
-  "main": "./index.cjs",
-  "module": "./index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
+  ],
   "license": "MIT",
   "publishConfig": {
     "access": "public"
@@ -17,5 +23,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bluecontract/blue-js.git"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
   }
 }
