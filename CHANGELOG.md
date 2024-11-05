@@ -1,3 +1,9 @@
+## 1.6.2 (2024-11-05)
+
+### 🩹 Fixes
+
+- update package.json type declarations for better Node.js compatibility ([60c97d8](https://github.com/bluecontract/blue-js/commit/60c97d8))
+
 ## 1.6.1 (2024-11-05)
 
 ### 🩹 Fixes
