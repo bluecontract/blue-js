@@ -19,7 +19,7 @@ module.exports = [
             '@types/js-yaml',
             'canonicalize',
             'multiformats',
-            'bs58',
+            '@blue-company/shared-utils',
           ],
         },
       ],

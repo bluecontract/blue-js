@@ -13,6 +13,10 @@ module.exports = [
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
             '{projectRoot}/scripts/*.{js,ts,mjs,mts}',
           ],
+          ignoredDependencies: [
+            '@blue-company/language',
+            '@blue-company/shared-utils',
+          ],
         },
       ],
     },
