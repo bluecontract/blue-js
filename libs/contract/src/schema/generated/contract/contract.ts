@@ -41,6 +41,7 @@ export interface Contract extends BaseBlueObject {
   photo?: ContractPhoto;
   contracts?: ContractsListObject;
   messaging?: ContractMessaging;
+  subscriptions?: BlueObject;
 }
 
 export interface WorkflowObjectList extends BaseBlueObject {
