@@ -1,6 +1,7 @@
 import { BlueNode } from '../model/Node';
 import { NodeToMapListOrValue } from './NodeToMapListOrValue';
 import { Base58Sha256Provider } from './Base58Sha256Provider';
+import { Base58XXHashProvider } from './Base58XXHashProvider';
 import {
   OBJECT_BLUE_ID,
   OBJECT_DESCRIPTION,

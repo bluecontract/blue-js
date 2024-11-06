@@ -66,7 +66,7 @@ const fakeBlueIdCalculator = new BlueIdCalculator(
 describe('BlueIdCalculator', () => {
   const parsedJson = JSON.parse(longContent);
 
-  it.skip('should calculate a blue id from more complex json on browser', async () => {
+  it.only('should calculate a blue id from more complex json on browser', async () => {
     const session = new Session();
     session.connect();
 
@@ -99,8 +99,10 @@ describe('BlueIdCalculator', () => {
 
       // Run the calculation
       console.time('BlueId Calculation');
-      const node = NodeDeserializer.deserialize(parsedJson);
-      const result = await BlueIdCalculator.calculateBlueId(node);
+      for (let i = 0; i < 1000; i++) {
+        const node = NodeDeserializer.deserialize(parsedJson);
+        const result = await BlueIdCalculator.calculateBlueId(node);
+      }
       console.timeEnd('BlueId Calculation');
 
       // Stop profiler and get detailed results
@@ -131,7 +133,7 @@ describe('BlueIdCalculator', () => {
         metadata: {
           timestamp: new Date().toISOString(),
           nodeSize: JSON.stringify(parsedJson).length,
-          result,
+          // result,
           duration: profile.endTime - profile.startTime,
           totalSamples: profile.samples?.length || 0,
         },
