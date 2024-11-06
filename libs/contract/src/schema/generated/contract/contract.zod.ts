@@ -83,4 +83,5 @@ export const contractSchema = baseBlueObjectSchema.extend({
   photo: contractPhotoSchema.optional(),
   contracts: contractsListObjectSchema.optional(),
   messaging: contractMessagingSchema.optional(),
+  subscriptions: blueObjectSchema.optional(),
 });
