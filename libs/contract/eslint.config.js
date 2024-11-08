@@ -25,9 +25,11 @@ module.exports = [
     },
   },
   {
-    files: ['**/*.zod.ts'],
+    files: ['src/schema/generated/**/*.{js,ts}'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-empty-interface': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
 ];
