@@ -80,27 +80,38 @@ describe('BlueIdCalculator', () => {
     };
 
     try {
-      // Enable profiler with more detailed settings
+      // Enable CPU profiler with more detailed settings
       await postAsync('Profiler.enable');
+      await postAsync('Runtime.enable');
 
-      // Start profiler with detailed configuration
+      // Enable precise sampling
+      await postAsync('Profiler.setSamplingInterval', { interval: 100 });
+
+      // Start profiler with enhanced configuration
       await postAsync('Profiler.start', {
-        samplingInterval: 100, // Microseconds between samples (lower = more detailed)
-        includePlatformFrames: true, // Include native frames in profile
+        samplingInterval: 100,
+        includePlatformFrames: true,
         includeCategories: [
           'disabled-by-default-v8.cpu_profiler',
           'disabled-by-default-v8.cpu_profiler.hires',
+          'disabled-by-default-v8.runtime_stats',
+          'v8',
+          'v8.execute',
         ],
-        // Optional: collect samples from the beginning
         collectRetainedMemory: true,
-        // Track object allocation
         trackAllocations: true,
+        // Add these new options
+        captureCallStacks: true,
+        showInternalFunctions: true,
+        recordAllocationStacks: true,
       });
 
       // Run the calculation
       console.time('BlueId Calculation');
-      const node = NodeDeserializer.deserialize(parsedJson);
-      const result = await BlueIdCalculator.calculateBlueId(node);
+      for (let i = 0; i < 1000; i++) {
+        const node = NodeDeserializer.deserialize(parsedJson);
+        await BlueIdCalculator.calculateBlueId(node);
+      }
       console.timeEnd('BlueId Calculation');
 
       // Stop profiler and get detailed results
@@ -131,7 +142,7 @@ describe('BlueIdCalculator', () => {
         metadata: {
           timestamp: new Date().toISOString(),
           nodeSize: JSON.stringify(parsedJson).length,
-          result,
+          // result,
           duration: profile.endTime - profile.startTime,
           totalSamples: profile.samples?.length || 0,
         },
