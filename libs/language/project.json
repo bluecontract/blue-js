@@ -46,6 +46,23 @@
           "node --import @swc-node/register/esm-register scripts/findShortBlueIds.ts"
         ]
       }
+    },
+    "benchmark:generate-data": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/language",
+        "commands": ["node scripts/benchmark/generateData.mjs"]
+      }
+    },
+    "benchmark:calculate-blue-id": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build", "benchmark:generate-data"],
+      "options": {
+        "cwd": "libs/language",
+        "commands": [
+          "command -v clinic >/dev/null 2>&1 && clinic flame -- node scripts/benchmark/calculateBlueId.mjs || node scripts/benchmark/calculateBlueId.mjs"
+        ]
+      }
     }
   }
 }

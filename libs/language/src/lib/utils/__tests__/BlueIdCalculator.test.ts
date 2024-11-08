@@ -11,9 +11,6 @@ import {
 } from '../Properties';
 import { isBigNumber } from '../../../utils/typeGuards';
 import { Base58Sha256Provider } from '../Base58Sha256Provider';
-import longContent from './longContent.json?raw';
-import { Session } from 'inspector';
-import fs from 'fs';
 
 const stringify = (obj: unknown): string => {
   if (
@@ -64,102 +61,6 @@ const fakeBlueIdCalculator = new BlueIdCalculator(
 );
 
 describe('BlueIdCalculator', () => {
-  const parsedJson = JSON.parse(longContent);
-
-  it.skip('should calculate a blue id from more complex json on browser', async () => {
-    const session = new Session();
-    session.connect();
-
-    const postAsync = (method: string, params = {}) => {
-      return new Promise((resolve, reject) => {
-        session.post(method, params, (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        });
-      });
-    };
-
-    try {
-      // Enable CPU profiler with more detailed settings
-      await postAsync('Profiler.enable');
-      await postAsync('Runtime.enable');
-
-      // Enable precise sampling
-      await postAsync('Profiler.setSamplingInterval', { interval: 100 });
-
-      // Start profiler with enhanced configuration
-      await postAsync('Profiler.start', {
-        samplingInterval: 100,
-        includePlatformFrames: true,
-        includeCategories: [
-          'disabled-by-default-v8.cpu_profiler',
-          'disabled-by-default-v8.cpu_profiler.hires',
-          'disabled-by-default-v8.runtime_stats',
-          'v8',
-          'v8.execute',
-        ],
-        collectRetainedMemory: true,
-        trackAllocations: true,
-        // Add these new options
-        captureCallStacks: true,
-        showInternalFunctions: true,
-        recordAllocationStacks: true,
-      });
-
-      // Run the calculation
-      console.time('BlueId Calculation');
-      for (let i = 0; i < 1000; i++) {
-        const node = NodeDeserializer.deserialize(parsedJson);
-        await BlueIdCalculator.calculateBlueId(node);
-      }
-      console.timeEnd('BlueId Calculation');
-
-      // Stop profiler and get detailed results
-      const { profile } = (await postAsync('Profiler.stop')) as {
-        profile: {
-          startTime: number;
-          endTime: number;
-          nodes: Array<{
-            id: number;
-            callFrame: {
-              functionName: string;
-              scriptId: string;
-              url: string;
-              lineNumber: number;
-              columnNumber: number;
-            };
-            hitCount?: number;
-            children?: number[];
-          }>;
-          samples?: number[];
-          timeDeltas?: number[];
-        };
-      };
-
-      // Add some metadata to help with analysis
-      const enrichedProfile = {
-        ...profile,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          nodeSize: JSON.stringify(parsedJson).length,
-          // result,
-          duration: profile.endTime - profile.startTime,
-          totalSamples: profile.samples?.length || 0,
-        },
-      };
-
-      fs.writeFileSync(
-        `profile-${Date.now()}.cpuprofile`,
-        JSON.stringify(enrichedProfile, null, 2)
-      );
-    } catch (error) {
-      console.error('Profiling failed:', error);
-      throw error;
-    } finally {
-      session.disconnect();
-    }
-  }, 10000);
-
   it('testObject', async () => {
     const yaml1 =
       'abc:\n' +
