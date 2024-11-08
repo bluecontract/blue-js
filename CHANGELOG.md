@@ -1,3 +1,14 @@
+## 1.7.0 (2024-11-08)
+
+### 🚀 Features
+
+- **contract:** add subscriptions field to Contract interface ([51877aa](https://github.com/bluecontract/blue-js/commit/51877aa))
+- **language:** add benchmarking tools for BlueId calculation ([e4ea768](https://github.com/bluecontract/blue-js/commit/e4ea768))
+
+### 🩹 Fixes
+
+- **BlueIdCalculator:** improve performance of hash computation algorithm ([198fc71](https://github.com/bluecontract/blue-js/commit/198fc71))
+
 ## 1.6.2 (2024-11-05)
 
 ### 🩹 Fixes

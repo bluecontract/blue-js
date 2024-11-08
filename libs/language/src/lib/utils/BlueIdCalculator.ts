@@ -17,6 +17,7 @@ import {
 import { JsonBlueValue } from '../../schema';
 import { default as Big } from 'big.js';
 
+// Type definitions for non-nullable JSON values
 type NonNullableJsonPrimitive = NonNullable<JsonPrimitive>;
 type NonNullableJsonObject = { [Key in string]: NonNullableJsonValue };
 type NonNullableJsonArray =
@@ -28,6 +29,7 @@ type NonNullableJsonValue =
   | NonNullableJsonArray
   | Big;
 
+// Type guard to check for non-nullable JSON primitives
 const isNonNullableJsonPrimitive = (
   value: JsonBlueValue
 ): value is NonNullableJsonPrimitive => {
@@ -39,7 +41,11 @@ type HashProvider = {
   applySync: (object: JsonBlueValue) => string;
 };
 
+// Utility type to handle synchronous or asynchronous return types
 type SyncOrAsync<T> = T | Promise<T>;
+
+// Type to represent the value associated with a key in the hash computation
+type HashValue = NonNullableJsonValue | { blueId: string };
 
 export class BlueIdCalculator {
   public static INSTANCE = new BlueIdCalculator(new Base58Sha256Provider());
@@ -51,13 +57,13 @@ export class BlueIdCalculator {
   }
 
   public static calculateBlueId(node: BlueNode) {
-    return BlueIdCalculator.INSTANCE.calculate(NodeToMapListOrValue.get(node));
+    const object = NodeToMapListOrValue.get(node);
+    return BlueIdCalculator.INSTANCE.calculate(object);
   }
 
   public static calculateBlueIdSync(node: BlueNode) {
-    return BlueIdCalculator.INSTANCE.calculateSync(
-      NodeToMapListOrValue.get(node)
-    );
+    const object = NodeToMapListOrValue.get(node);
+    return BlueIdCalculator.INSTANCE.calculateSync(object);
   }
 
   public static calculateBlueIdForNodes(nodes: BlueNode[]) {
@@ -75,7 +81,6 @@ export class BlueIdCalculator {
     if (cleanedObject === undefined) {
       throw new Error(`Object after cleaning cannot be null or undefined.`);
     }
-
     return this.internalCalculate(cleanedObject, false) as Promise<string>;
   }
 
@@ -84,10 +89,10 @@ export class BlueIdCalculator {
     if (cleanedObject === undefined) {
       throw new Error(`Object after cleaning cannot be null or undefined.`);
     }
-
     return this.internalCalculate(cleanedObject, true) as string;
   }
 
+  // Internal method to calculate BlueId recursively
   private internalCalculate(
     cleanedObject: NonNullableJsonValue,
     isSync: boolean
@@ -96,45 +101,63 @@ export class BlueIdCalculator {
       isNonNullableJsonPrimitive(cleanedObject) ||
       isBigNumber(cleanedObject)
     ) {
+      // Base case: primitive or Big number, convert to string and hash
       return this.applyHash(cleanedObject.toString(), isSync);
     } else if (Array.isArray(cleanedObject) || isReadonlyArray(cleanedObject)) {
+      // Handle arrays
       return this.calculateList(cleanedObject, isSync);
     } else {
+      // Handle objects (maps)
       return this.calculateMap(cleanedObject, isSync);
     }
   }
 
-  private calculateMap(map: NonNullableJsonObject, isSync: boolean) {
-    if (map[OBJECT_BLUE_ID] !== undefined && map[OBJECT_BLUE_ID] !== null) {
+  private calculateMap(
+    map: NonNullableJsonObject,
+    isSync: boolean
+  ): SyncOrAsync<string> {
+    // If the object already has a BlueId, return it
+    if (map[OBJECT_BLUE_ID] !== undefined) {
       return map[OBJECT_BLUE_ID] as string;
     }
 
-    const hashes: NonNullableJsonObject = {};
-    const promises: Promise<void>[] = [];
+    const keys = Object.keys(map);
 
-    for (const key in map) {
+    // Prepare an array to collect hash computations for each key-value pair
+    const hashPromises: SyncOrAsync<[string, HashValue]>[] = keys.map((key) => {
+      const value = map[key];
+
+      // If the key is one of the specified properties, use the value directly
       if ([OBJECT_NAME, OBJECT_VALUE, OBJECT_DESCRIPTION].includes(key)) {
-        hashes[key] = map[key];
+        return isSync ? [key, value] : Promise.resolve([key, value]);
       } else {
-        const calculateBlueId = () => {
-          const result = this.internalCalculate(map[key], isSync);
-          if (result instanceof Promise) {
-            return result.then((blueId) => {
-              hashes[key] = { blueId };
-            });
-          } else {
-            hashes[key] = { blueId: result };
-            return Promise.resolve();
-          }
-        };
-        promises.push(calculateBlueId());
+        // Recursively compute the BlueId of the value
+        const hashedValue = this.internalCalculate(value, isSync);
+        if (isSync) {
+          return [key, { blueId: hashedValue as string }];
+        } else {
+          // For async, resolve the promise and return the key-hash pair
+          return Promise.resolve(hashedValue).then((hv) => [
+            key,
+            { blueId: hv },
+          ]);
+        }
       }
-    }
+    });
+
+    // Function to process all hash computations and combine them
+    const processHashes = (entries: [string, HashValue][]) => {
+      const hashes: NonNullableJsonObject = {};
+      for (const [key, hashValue] of entries) {
+        hashes[key] = hashValue;
+      }
+      return this.applyHash(hashes, isSync);
+    };
 
     if (isSync) {
-      return this.applyHash(hashes, true);
+      return processHashes(hashPromises as [string, HashValue][]);
     } else {
-      return Promise.all(promises).then(() => this.applyHash(hashes, false));
+      return Promise.all(hashPromises).then(processHashes);
     }
   }
 
@@ -142,57 +165,64 @@ export class BlueIdCalculator {
     list: NonNullableJsonArray,
     isSync: boolean
   ): SyncOrAsync<string> {
-    if (list.length === 1) {
-      return this.internalCalculate(list[0], isSync);
+    if (list.length === 0) {
+      throw new Error('Cannot calculate BlueId for an empty list.');
     }
 
-    const subList = list.slice(0, -1);
-    const lastElement = list[list.length - 1];
+    // Start with the hash of the first element
+    let accumulatedHash: SyncOrAsync<string> = this.internalCalculate(
+      list[0],
+      isSync
+    );
 
-    const calculateHashes = () => {
-      const hashOfSubList = this.calculateList(subList, isSync);
-      const hashOfLastElement = this.internalCalculate(lastElement, isSync);
-
+    // Function to combine two hashes
+    const combineTwoHashes = (
+      hash1: SyncOrAsync<string>,
+      hash2: SyncOrAsync<string>
+    ): SyncOrAsync<string> => {
       if (isSync) {
         return this.applyHash(
-          [
-            { blueId: hashOfSubList as string },
-            { blueId: hashOfLastElement as string },
-          ],
+          [{ blueId: hash1 as string }, { blueId: hash2 as string }],
           true
-        );
+        ) as string;
       } else {
-        return Promise.all([hashOfSubList, hashOfLastElement]).then(
-          ([subListHash, lastElementHash]) =>
-            this.applyHash(
-              [{ blueId: subListHash }, { blueId: lastElementHash }],
-              false
-            )
+        return Promise.all([hash1, hash2]).then(([h1, h2]) =>
+          this.applyHash([{ blueId: h1 }, { blueId: h2 }], false)
         );
       }
     };
 
-    return calculateHashes();
+    // Iteratively combine the hashes of the list elements
+    for (let i = 1; i < list.length; i++) {
+      const elementHash = this.internalCalculate(list[i], isSync);
+      accumulatedHash = combineTwoHashes(accumulatedHash, elementHash);
+    }
+
+    return accumulatedHash;
   }
 
+  // Method to apply the hash provider to a value
   private applyHash(value: NonNullableJsonValue, isSync: boolean) {
     return isSync
       ? this.hashProvider.applySync(value)
       : this.hashProvider.apply(value);
   }
 
+  // Method to clean the input structure by removing null or undefined values
   private cleanStructure(obj: JsonBlueValue): NonNullableJsonValue | undefined {
     if (obj === null || obj === undefined) {
       return undefined;
     } else if (isJsonPrimitive(obj) || isBigNumber(obj)) {
       return obj;
     } else if (Array.isArray(obj) || isReadonlyArray(obj)) {
+      // Recursively clean each item in the array
       const cleanedList = obj
         .map((item) => this.cleanStructure(item))
         .filter(isNonNullable);
 
       return cleanedList.length > 0 ? cleanedList : undefined;
     } else if (typeof obj === 'object') {
+      // Recursively clean each key-value pair in the object
       const cleanedMap: NonNullableJsonObject = {};
       for (const key in obj) {
         const cleanedValue = this.cleanStructure(obj[key]);

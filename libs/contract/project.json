@@ -29,7 +29,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "{projectRoot}",
-        "commands": ["node scripts/generate-schema.mjs"]
+        "commands": ["node scripts/generateSchema.mjs"]
       }
     },
     "tsc": {

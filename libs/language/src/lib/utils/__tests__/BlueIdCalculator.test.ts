@@ -11,9 +11,6 @@ import {
 } from '../Properties';
 import { isBigNumber } from '../../../utils/typeGuards';
 import { Base58Sha256Provider } from '../Base58Sha256Provider';
-import longContent from './longContent.json?raw';
-import { Session } from 'inspector';
-import fs from 'fs';
 
 const stringify = (obj: unknown): string => {
   if (
@@ -64,91 +61,6 @@ const fakeBlueIdCalculator = new BlueIdCalculator(
 );
 
 describe('BlueIdCalculator', () => {
-  const parsedJson = JSON.parse(longContent);
-
-  it.skip('should calculate a blue id from more complex json on browser', async () => {
-    const session = new Session();
-    session.connect();
-
-    const postAsync = (method: string, params = {}) => {
-      return new Promise((resolve, reject) => {
-        session.post(method, params, (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        });
-      });
-    };
-
-    try {
-      // Enable profiler with more detailed settings
-      await postAsync('Profiler.enable');
-
-      // Start profiler with detailed configuration
-      await postAsync('Profiler.start', {
-        samplingInterval: 100, // Microseconds between samples (lower = more detailed)
-        includePlatformFrames: true, // Include native frames in profile
-        includeCategories: [
-          'disabled-by-default-v8.cpu_profiler',
-          'disabled-by-default-v8.cpu_profiler.hires',
-        ],
-        // Optional: collect samples from the beginning
-        collectRetainedMemory: true,
-        // Track object allocation
-        trackAllocations: true,
-      });
-
-      // Run the calculation
-      console.time('BlueId Calculation');
-      const node = NodeDeserializer.deserialize(parsedJson);
-      const result = await BlueIdCalculator.calculateBlueId(node);
-      console.timeEnd('BlueId Calculation');
-
-      // Stop profiler and get detailed results
-      const { profile } = (await postAsync('Profiler.stop')) as {
-        profile: {
-          startTime: number;
-          endTime: number;
-          nodes: Array<{
-            id: number;
-            callFrame: {
-              functionName: string;
-              scriptId: string;
-              url: string;
-              lineNumber: number;
-              columnNumber: number;
-            };
-            hitCount?: number;
-            children?: number[];
-          }>;
-          samples?: number[];
-          timeDeltas?: number[];
-        };
-      };
-
-      // Add some metadata to help with analysis
-      const enrichedProfile = {
-        ...profile,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          nodeSize: JSON.stringify(parsedJson).length,
-          result,
-          duration: profile.endTime - profile.startTime,
-          totalSamples: profile.samples?.length || 0,
-        },
-      };
-
-      fs.writeFileSync(
-        `profile-${Date.now()}.cpuprofile`,
-        JSON.stringify(enrichedProfile, null, 2)
-      );
-    } catch (error) {
-      console.error('Profiling failed:', error);
-      throw error;
-    } finally {
-      session.disconnect();
-    }
-  }, 10000);
-
   it('testObject', async () => {
     const yaml1 =
       'abc:\n' +
