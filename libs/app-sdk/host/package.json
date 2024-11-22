@@ -1,6 +1,6 @@
 {
   "name": "@blue-company/app-sdk-host",
-  "version": "0.0.1",
+  "version": "1.7.0",
   "dependencies": {},
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

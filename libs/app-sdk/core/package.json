@@ -1,13 +1,30 @@
 {
   "name": "@blue-company/app-sdk-core",
-  "version": "0.0.1",
-  "dependencies": {},
+  "version": "1.7.0",
+  "dependencies": {
+    "radash": "12.1.0"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
-  "typings": "./dist/index.d.ts",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "!**/*.tsbuildinfo"
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
   ],
-  "nx": {}
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  }
 }

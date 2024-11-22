@@ -1,1 +1,1 @@
-export * from './lib/app-sdk';
+export * from './messaging/Messenger';
