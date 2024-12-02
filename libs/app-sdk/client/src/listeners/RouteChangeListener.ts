@@ -35,13 +35,10 @@ export class RouteChangeListener {
   }
 
   private startListeningToHistory() {
-    this.originalPushState = history.pushState;
-    this.originalReplaceState = history.replaceState;
-
     history.pushState = (
       ...args: Parameters<typeof this.originalPushState>
     ) => {
-      this.originalPushState(...args);
+      this.originalPushState.apply(history, args);
       window.dispatchEvent(
         new Event(RouteChangeListener.historyStateChangeEvent)
       );
@@ -50,7 +47,7 @@ export class RouteChangeListener {
     history.replaceState = (
       ...args: Parameters<typeof this.originalReplaceState>
     ) => {
-      this.originalReplaceState(...args);
+      this.originalReplaceState.apply(history, args);
       window.dispatchEvent(
         new Event(RouteChangeListener.historyStateChangeEvent)
       );

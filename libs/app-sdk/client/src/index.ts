@@ -29,7 +29,7 @@ export class AppSDK {
     this.logger.debug('Initializing AppSDK client...');
 
     this.messageBus = new MessageBus();
-    this.communicator = new HostCommunicator(this.messageBus);
+    this.communicator = new HostCommunicator(this.messageBus, this.logger);
     this.pageHeightListener = new PageHeightListener(this.communicator);
     this.routeChangeListener = new RouteChangeListener(this.communicator);
     this.routeChangeHandler = new RouteChangeHandler(
@@ -41,20 +41,25 @@ export class AppSDK {
     this.logger.debug('AppSDK client initialized successfully');
   }
 
+  // TODO: Probably this should be done in constructor
   connectHost() {
     this.logger.info('Connecting to host...');
+
     this.communicator.startListeningForMessages();
+    this.routeChangeHandler.startHandling();
+
     this.pageHeightListener.startListening();
     this.routeChangeListener.startListening();
-    this.routeChangeHandler.startHandling();
+
     this.logger.info('Successfully connected to host');
 
     return () => {
       this.logger.info('Disconnecting from host...');
-      this.communicator.stopListeningForMessages();
       this.pageHeightListener.stopListening();
       this.routeChangeListener.stopListening();
+
       this.routeChangeHandler.stopHandling();
+      this.communicator.stopListeningForMessages();
       this.logger.info('Successfully disconnected from host');
     };
   }

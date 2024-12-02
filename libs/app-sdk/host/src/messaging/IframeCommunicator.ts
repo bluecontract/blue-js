@@ -1,4 +1,9 @@
-import { Communicator, Message, MessageBus } from '@blue-company/app-sdk-core';
+import {
+  Communicator,
+  Message,
+  MessageBus,
+  Logger,
+} from '@blue-company/app-sdk-core';
 
 type SendMessageOptions = {
   waitUntilConnected?: boolean;
@@ -12,8 +17,8 @@ export class IframeCommunicator extends Communicator {
   }> = [];
   private isConnected = false;
 
-  constructor(messageBus: MessageBus) {
-    super({ origin: '*', messageBus });
+  constructor(messageBus: MessageBus, logger: Logger) {
+    super({ origin: '*', messageBus, logger });
   }
 
   connect(iframeElement: HTMLIFrameElement) {

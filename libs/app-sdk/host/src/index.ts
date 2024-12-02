@@ -30,7 +30,7 @@ export class HostAppSDK {
     this.messageBus = new MessageBus();
     this.providerManager = new KnowledgeProviderManager();
 
-    this.communicator = new IframeCommunicator(this.messageBus);
+    this.communicator = new IframeCommunicator(this.messageBus, this.logger);
     this.pageHeightHandler = new PageHeightHandler(
       this.messageBus,
       this.communicator
@@ -77,7 +77,6 @@ export class HostAppSDK {
   }
 
   public sendRouteChangeMessage(path: string) {
-    this.logger.debug(`Sending route change message for path: ${path}`);
     this.communicator.sendMessage(
       { type: 'route-change', payload: { path } },
       { waitUntilConnected: true }
