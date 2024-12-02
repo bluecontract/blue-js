@@ -1,4 +1,4 @@
-import { BaseMessage } from './MessageTypes';
+import { BaseMessage } from './types';
 
 type CallbackFunction<TPayload = BaseMessage['payload']> = (
   payload: TPayload

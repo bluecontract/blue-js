@@ -1,4 +1,4 @@
-import { Message } from './MessageTypes';
+import { Message } from './types';
 import { MessageBus } from './MessageBus';
 import { Logger } from '../logger';
 import { isMessage } from './isMessage';

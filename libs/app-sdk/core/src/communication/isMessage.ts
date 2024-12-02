@@ -1,6 +1,8 @@
-import { Message } from './MessageTypes';
+import { Message } from './types';
 
 const messageTypes = [
+  'init',
+  'init-response',
   'page-height',
   'route-change',
   'custom',

@@ -4,21 +4,20 @@ import {
   MessageBus,
   Logger,
 } from '@blue-company/app-sdk-core';
+import { ConnectionManager } from './ConnectionManager';
 
 type SendMessageOptions = {
   waitUntilConnected?: boolean;
+  description?: string;
 };
 
 export class IframeCommunicator extends Communicator {
   private iframeElement: HTMLIFrameElement | null = null;
-  private messagesToSend: Array<{
-    message: Message;
-    options?: SendMessageOptions;
-  }> = [];
-  private isConnected = false;
+  private connectionManager: ConnectionManager;
 
   constructor(messageBus: MessageBus, logger: Logger) {
     super({ origin: '*', messageBus, logger });
+    this.connectionManager = new ConnectionManager(this, messageBus);
   }
 
   connect(iframeElement: HTMLIFrameElement) {
@@ -29,17 +28,16 @@ export class IframeCommunicator extends Communicator {
       );
     }
     this.targetWindow = iframeElement.contentWindow;
-    this.isConnected = true;
-    this.flushMessageQueue();
     super.startListeningForMessages();
+
+    this.connectionManager.initialize();
   }
 
   disconnect() {
+    this.connectionManager.disconnect();
+    super.stopListeningForMessages();
     this.iframeElement = null;
     this.targetWindow = null;
-    this.isConnected = false;
-    this.messagesToSend = [];
-    super.stopListeningForMessages();
   }
 
   getIframeElement() {
@@ -47,8 +45,8 @@ export class IframeCommunicator extends Communicator {
   }
 
   override sendMessage(message: Message, options?: SendMessageOptions) {
-    if (!this.isConnected && options?.waitUntilConnected) {
-      this.messagesToSend.push({ message, options });
+    if (!this.connectionManager.isConnected && options?.waitUntilConnected) {
+      this.connectionManager.queueMessage(message, options);
     } else {
       this.sendMessageImmediately(message);
     }
@@ -59,14 +57,6 @@ export class IframeCommunicator extends Communicator {
       super.sendMessage(message);
     } catch (error) {
       console.error('Error sending message', error);
-    }
-  }
-
-  private flushMessageQueue() {
-    while (this.messagesToSend.length > 0) {
-      const [messageToSend, ...remainingMessages] = this.messagesToSend;
-      this.messagesToSend = remainingMessages;
-      this.sendMessageImmediately(messageToSend.message);
     }
   }
 }
