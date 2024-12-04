@@ -36,4 +36,8 @@ export class MessageBus {
       callbacks.forEach((callback) => callback(message.payload));
     }
   }
+
+  unsubscribeAll(): void {
+    this.listeners.clear();
+  }
 }

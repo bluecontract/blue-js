@@ -20,11 +20,17 @@ export class HostAPI {
   constructor(
     private communicator: HostCommunicator,
     private messageBus: MessageBus
-  ) {
+  ) {}
+
+  startListening(): void {
     this.unsubscribe = this.messageBus.subscribe<ApiResponseMessage['payload']>(
       'api-response',
       this.handleResponse.bind(this)
     );
+  }
+
+  stopListening(): void {
+    this.unsubscribe?.();
   }
 
   callAPI({
@@ -60,9 +66,5 @@ export class HostAPI {
 
   private generateRequestId(): string {
     return Math.random().toString(36).substring(2);
-  }
-
-  destroy(): void {
-    this.unsubscribe?.();
   }
 }

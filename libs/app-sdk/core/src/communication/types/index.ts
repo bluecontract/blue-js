@@ -20,7 +20,15 @@ export type InitResponseMessage = BaseMessage & {
   type: 'init-response';
   payload: {
     appId: string;
+    version?: string;
   };
+};
+
+/**
+ * Sent by the client to the host to indicate that the client is ready
+ */
+export type ReadyMessage = BaseMessage & {
+  type: 'ready';
 };
 
 export type PageHeightMessage = BaseMessage & {
@@ -54,6 +62,7 @@ export type ApiResponseMessage = BaseMessage & {
 export type Message =
   | InitMessage
   | InitResponseMessage
+  | ReadyMessage
   | PageHeightMessage
   | RouteChangeMessage
   | CustomMessage

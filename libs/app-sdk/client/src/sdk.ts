@@ -2,18 +2,19 @@ import { HostCommunicator } from './messaging/HostCommunicator';
 import { HostAPI } from './api/HostAPI';
 import { PageHeightListener } from './listeners/PageHeightListener';
 import { RouteChangeHandler } from './handlers/RouteChangeHandler';
-import { MessageBus, Logger, LoggerConfig } from '@blue-company/app-sdk-core';
+import {
+  MessageBus,
+  Logger,
+  LoggerConfig,
+  InitMessage,
+} from '@blue-company/app-sdk-core';
 import { RouteChangeListener } from './listeners/RouteChangeListener';
+import { defaultLoggerConfig } from './constants/logger';
 
-export type AppSDKOptions = {
+export type AppSDKConfig = Readonly<{
   onRouteChange?: ConstructorParameters<typeof RouteChangeHandler>[1];
   loggerConfig?: Partial<LoggerConfig>;
-};
-
-const defaultLoggerConfig: LoggerConfig = {
-  level: 'info',
-  prefix: 'AppSDK-Client',
-};
+}>;
 
 export class AppSDK {
   private static instance: AppSDK | null = null;
@@ -26,9 +27,24 @@ export class AppSDK {
   private hostAPI: HostAPI;
   private logger: Logger;
 
-  constructor({ onRouteChange, loggerConfig }: AppSDKOptions = {}) {
-    this.logger = new Logger({ ...defaultLoggerConfig, ...loggerConfig });
-    this.logger.debug('Initializing AppSDK client...');
+  private isConnected = false;
+
+  private unsubscribeInitListener?: () => void;
+
+  static getInstance(config: AppSDKConfig = {}): AppSDK {
+    if (!AppSDK.instance) {
+      AppSDK.instance = new AppSDK(config);
+    }
+
+    return AppSDK.instance;
+  }
+
+  private constructor({ loggerConfig, onRouteChange }: AppSDKConfig = {}) {
+    this.logger = new Logger({
+      ...defaultLoggerConfig,
+      ...loggerConfig,
+    });
+    this.logger.debug('Creating AppSDK instance...');
 
     this.messageBus = new MessageBus();
     this.communicator = new HostCommunicator(this.messageBus, this.logger);
@@ -40,42 +56,71 @@ export class AppSDK {
     );
     this.hostAPI = new HostAPI(this.communicator, this.messageBus);
 
-    this.logger.debug('AppSDK client initialized successfully');
-
-    this.connectHost();
+    this.connect();
   }
 
-  connectHost() {
-    this.logger.info('Connecting to host...');
+  public connect(): void {
+    if (this.isConnected) {
+      this.logger.warn('AppSDK is already connected');
+      return;
+    }
 
+    this.logger.debug('Connecting AppSDK to host...');
+
+    this.unsubscribeInitListener = this.messageBus.subscribe<
+      InitMessage['payload']
+    >('init', this.handleInitMessage);
     this.communicator.startListeningForMessages();
-    this.routeChangeHandler.startHandling();
+    this.communicator.sendMessage({
+      type: 'ready',
+    });
+  }
 
+  private handleInitMessage = (payload: InitMessage['payload']) => {
+    if (this.isConnected) {
+      this.logger.warn('AppSDK is already connected to host');
+      return;
+    }
+
+    this.communicator.sendMessage({
+      type: 'init-response',
+      payload: {
+        ...payload,
+        version: '0.0.0',
+      },
+    });
+
+    this.routeChangeHandler.startHandling();
     this.pageHeightListener.startListening();
     this.routeChangeListener.startListening();
+    this.hostAPI.startListening();
 
-    this.logger.info('Successfully connected to host');
-
-    return () => {
-      this.logger.info('Disconnecting from host...');
-      this.pageHeightListener.stopListening();
-      this.routeChangeListener.stopListening();
-
-      this.routeChangeHandler.stopHandling();
-      this.communicator.stopListeningForMessages();
-      this.logger.info('Successfully disconnected from host');
-    };
-  }
+    this.isConnected = true;
+    this.logger.info('AppSDK connected successfully to host');
+  };
 
   get api() {
     return this.hostAPI;
   }
 
-  static getInstance(config?: AppSDKOptions): AppSDK {
-    if (!AppSDK.instance) {
-      AppSDK.instance = new AppSDK(config || {});
+  public disconnect(): void {
+    if (!this.isConnected) {
+      this.logger.warn('AppSDK is already disconnected');
+      return;
     }
 
-    return AppSDK.instance;
+    this.logger.info('Disconnecting AppSDK from host...');
+
+    this.pageHeightListener.stopListening();
+    this.routeChangeListener.stopListening();
+    this.routeChangeHandler.stopHandling();
+    this.hostAPI.stopListening();
+
+    this.unsubscribeInitListener?.();
+    this.messageBus.unsubscribeAll();
+    this.communicator.stopListeningForMessages();
+
+    this.isConnected = false;
+    this.logger.info('AppSDK disconnected successfully from host');
   }
 }

@@ -34,6 +34,8 @@ export class ConnectionManager {
       ?.addEventListener('load', this.sendInitMessage);
 
     this.sendInitMessage();
+
+    // TODO: Add handler for ready message
   }
 
   public queueMessage(message: Message, options?: SendMessageOptions) {

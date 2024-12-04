@@ -16,30 +16,36 @@ export type LoggerConfig = {
   enabled?: boolean;
 };
 
-export class Logger {
-  private level: LogLevel;
-  private levelWeight: number;
-  private prefix: string;
-  private showTimestamp: boolean;
-  private enabled: boolean;
+const defaultConfig: LoggerConfig = {
+  level: 'info',
+  showTimestamp: true,
+  enabled: process.env.NODE_ENV === 'development',
+};
 
-  constructor(config: LoggerConfig) {
-    this.level = config.level;
-    this.levelWeight = LogLevelWeight[this.level];
-    this.prefix = config.prefix || '';
-    this.showTimestamp = config.showTimestamp ?? true;
-    this.enabled = config.enabled ?? process.env.NODE_ENV === 'development';
+export class Logger {
+  private config: LoggerConfig;
+
+  constructor(config?: Partial<LoggerConfig>) {
+    this.config = {
+      ...defaultConfig,
+      ...config,
+    };
   }
 
-  private formatMessage(message: string): string {
-    const timestampStr = this.showTimestamp ? getTimestamp() : '';
-    const prefixStr = this.prefix ? `[${this.prefix}] ` : '';
+  get levelWeight() {
+    return LogLevelWeight[this.config.level];
+  }
+
+  private formatMessage(message: string) {
+    const { showTimestamp, prefix } = this.config;
+    const timestampStr = showTimestamp ? getTimestamp() : '';
+    const prefixStr = prefix ? `[${prefix}] ` : '';
 
     return [timestampStr, prefixStr, message].filter(Boolean).join(' ');
   }
 
-  error(message: string, ...args: unknown[]): void {
-    if (!this.enabled) {
+  error(message: string, ...args: unknown[]) {
+    if (!this.config.enabled) {
       return;
     }
     if (this.levelWeight >= LogLevelWeight.error) {
@@ -47,8 +53,8 @@ export class Logger {
     }
   }
 
-  warn(message: string, ...args: unknown[]): void {
-    if (!this.enabled) {
+  warn(message: string, ...args: unknown[]) {
+    if (!this.config.enabled) {
       return;
     }
     if (this.levelWeight >= LogLevelWeight.warn) {
@@ -56,8 +62,8 @@ export class Logger {
     }
   }
 
-  info(message: string, ...args: unknown[]): void {
-    if (!this.enabled) {
+  info(message: string, ...args: unknown[]) {
+    if (!this.config.enabled) {
       return;
     }
     if (this.levelWeight >= LogLevelWeight.info) {
@@ -65,12 +71,19 @@ export class Logger {
     }
   }
 
-  debug(message: string, ...args: unknown[]): void {
-    if (!this.enabled) {
+  debug(message: string, ...args: unknown[]) {
+    if (!this.config.enabled) {
       return;
     }
     if (this.levelWeight >= LogLevelWeight.debug) {
       console.debug(this.formatMessage(message), ...args);
     }
+  }
+
+  updateConfig(config: Partial<LoggerConfig>) {
+    this.config = {
+      ...this.config,
+      ...config,
+    };
   }
 }
