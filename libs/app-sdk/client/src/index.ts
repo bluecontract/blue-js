@@ -60,3 +60,6 @@ if (typeof window !== 'undefined') {
 
 export { AppSDK };
 export type { SDKCommand, SDKFunction, SDKDataLayer };
+
+export { EmailSetterMethod } from './api/methods/EmailSetter';
+export { StripeCustomer } from './api/contracts/StripeCustomer';

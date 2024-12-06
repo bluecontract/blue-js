@@ -3,6 +3,7 @@ import { Message } from './types';
 const messageTypes = [
   'init',
   'init-response',
+  'ready',
   'page-height',
   'route-change',
   'custom',

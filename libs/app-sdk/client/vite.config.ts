@@ -2,6 +2,10 @@ import * as path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 const dts = require('vite-plugin-dts').default;
+import * as ts from 'typescript';
+import createParameterNamesTransformer from './src/tools/parameterNamesTransformer';
+// @ts-expect-error - This is a valid import.
+import packageJson from './package.json';
 
 /** @type {import('vite').UserConfig} */
 export default {
@@ -14,6 +18,31 @@ export default {
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    {
+      name: 'typescript-transform',
+      enforce: 'pre',
+      transform(code: string, id: string) {
+        if (!id.endsWith('.ts')) return;
+        if (!id.includes('/src/')) return;
+
+        const result = ts.transpileModule(code, {
+          compilerOptions: {
+            target: ts.ScriptTarget.ESNext,
+            module: ts.ModuleKind.ESNext,
+            experimentalDecorators: true,
+            emitDecoratorMetadata: true,
+          },
+          transformers: {
+            before: [createParameterNamesTransformer()],
+          },
+        });
+
+        return {
+          code: result.outputText,
+          map: result.sourceMapText,
+        };
+      },
+    },
   ],
   // Uncomment this if you are using workers.
   // worker: {
@@ -38,8 +67,12 @@ export default {
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      // External packages that should not be bundled into your library.
-      external: [],
+      external: (id: string) => {
+        const dependencies = Object.keys(packageJson.dependencies);
+        return dependencies.some((dependency) => {
+          return id === dependency;
+        });
+      },
     },
   },
   test: {

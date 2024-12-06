@@ -23,9 +23,22 @@ type ListContractsQuery = BaseApiRequestPayload & {
   type: 'list-contracts';
   variables: ListContractsQueryVariables;
 };
+
+type CallMethodMutationVariables = {
+  contractId: string;
+  methodDefinition: string;
+  params: unknown[];
+};
+
+type CallMethodMutation = BaseApiRequestPayload & {
+  type: 'call-method';
+  variables: CallMethodMutationVariables;
+};
+
 export type ApiRequestMessagePayload =
   | GetContractDetailsQuery
-  | ListContractsQuery;
+  | ListContractsQuery
+  | CallMethodMutation;
 
 export type ApiRequestMessage<
   T extends BaseApiRequestPayload = BaseApiRequestPayload

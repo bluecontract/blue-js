@@ -11,8 +11,8 @@ module.exports = [
           ignoredFiles: [
             '{projectRoot}/eslint.config.{js,cjs,mjs}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
+            '{projectRoot}/src/tools/**/*.ts',
           ],
-          ignoredDependencies: ['@blue-company/app-sdk-core'],
         },
       ],
     },
