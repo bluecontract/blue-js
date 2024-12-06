@@ -6,11 +6,17 @@ import { KnowledgeProviderManager } from './knowledgeProviders/Manager';
 import { KnowledgeProvider } from './knowledgeProviders/types';
 
 import { IframeCommunicator } from './messaging/IframeCommunicator';
-import { MessageBus, Logger, LoggerConfig } from '@blue-company/app-sdk-core';
+import {
+  MessageBus,
+  Logger,
+  LoggerConfig,
+  RouteChangeMessage,
+} from '@blue-company/app-sdk-core';
 
 export type HostAppSDKOptions = {
   onRouteChange: ConstructorParameters<typeof RouteChangeHandler>[1];
   loggerConfig?: Partial<LoggerConfig>;
+  initPathname?: string;
 };
 
 export class HostAppSDK {
@@ -76,9 +82,9 @@ export class HostAppSDK {
     };
   }
 
-  public sendRouteChangeMessage(path: string) {
+  public sendRouteChangeMessage(payload: RouteChangeMessage['payload']) {
     this.communicator.sendMessage(
-      { type: 'route-change', payload: { path } },
+      { type: 'route-change', payload },
       { waitUntilConnected: true }
     );
   }

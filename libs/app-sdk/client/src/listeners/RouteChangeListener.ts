@@ -75,7 +75,7 @@ export class RouteChangeListener {
       this.previousPathName = pathname;
       this.communicator.sendMessage({
         type: 'route-change',
-        payload: { path: pathname },
+        payload: { pathname },
       });
     }
   };

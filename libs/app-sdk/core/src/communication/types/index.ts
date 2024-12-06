@@ -42,7 +42,7 @@ export type PageHeightMessage = BaseMessage & {
 export type RouteChangeMessage = BaseMessage & {
   type: 'route-change';
   payload: {
-    path: string;
+    pathname: string;
   };
 };
 

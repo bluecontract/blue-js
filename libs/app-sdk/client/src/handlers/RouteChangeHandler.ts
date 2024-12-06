@@ -25,17 +25,19 @@ export class RouteChangeHandler {
   }
 
   private handleRouteChange = (payload: RouteChangeMessage['payload']) => {
-    const { path } = payload;
-    if (path === this.previousPathname) {
+    const { pathname } = payload;
+    if (pathname === this.previousPathname) {
       return;
     }
 
-    this.previousPathname = path;
+    this.previousPathname = pathname;
 
     if (this.onRouteChange) {
       this.onRouteChange(payload);
     } else {
-      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      const normalizedPath = pathname.startsWith('/')
+        ? pathname
+        : `/${pathname}`;
       const url = `${window.location.origin}${normalizedPath}`;
       window.location.href = url;
     }
