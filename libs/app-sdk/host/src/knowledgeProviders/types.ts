@@ -2,6 +2,7 @@ import { SubscriptionHandle } from '../api/types';
 import {
   ListContractsQueryVariables,
   GetContractDetailsQueryVariables,
+  CallMethodMutationVariables,
 } from '@blue-company/app-sdk-core';
 
 export interface ContractState {
@@ -44,4 +45,5 @@ export interface KnowledgeProvider {
     variables: GetContractDetailsQueryVariables,
     callback: (contract: Contract) => void
   ): Promise<SubscriptionHandle>;
+  callMethod?(variables: CallMethodMutationVariables): Promise<unknown>;
 }

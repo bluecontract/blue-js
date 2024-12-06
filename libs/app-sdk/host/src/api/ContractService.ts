@@ -3,6 +3,7 @@ import { Contract } from '../knowledgeProviders/types';
 import {
   ListContractsQueryVariables,
   GetContractDetailsQueryVariables,
+  CallMethodMutationVariables,
 } from '@blue-company/app-sdk-core';
 
 export class ContractService {
@@ -34,5 +35,15 @@ export class ContractService {
       }
     }
     throw new Error('Contract not found');
+  }
+
+  async callMethod(variables: CallMethodMutationVariables) {
+    for (const provider of this.providerManager.getProviders()) {
+      const result = await provider.callMethod?.(variables);
+      if (result) {
+        return result;
+      }
+    }
+    throw new Error('Method not found');
   }
 }

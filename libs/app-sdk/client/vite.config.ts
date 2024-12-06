@@ -78,7 +78,7 @@ export default {
   test: {
     watch: false,
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
@@ -86,5 +86,6 @@ export default {
       provider: 'v8',
     },
     passWithNoTests: true,
+    setupFiles: ['./vitest.setup.ts'],
   },
 };

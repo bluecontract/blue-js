@@ -24,10 +24,10 @@ type ListContractsQuery = BaseApiRequestPayload & {
   variables: ListContractsQueryVariables;
 };
 
-type CallMethodMutationVariables = {
-  contractId: string;
-  methodDefinition: string;
-  params: unknown[];
+export type CallMethodMutationVariables = {
+  // contractId: string;
+  methodDefinition: unknown;
+  // params: unknown[];
 };
 
 type CallMethodMutation = BaseApiRequestPayload & {

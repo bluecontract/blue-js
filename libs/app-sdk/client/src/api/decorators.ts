@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { AppSDK } from 'src/sdk';
 
 const BLUE_ID_KEY = Symbol('blueId');
 const BLUE_MARKER_KEY = Symbol('blueMarker');
@@ -47,6 +48,15 @@ export function BlueMethodApiClient<
 
       if (methodMetadata) {
         descriptor.value = async function (...methodArgs: unknown[]) {
+          // TODO: Make it work with classes that have optional sdk property
+          const sdk = (this as { sdk?: AppSDK }).sdk;
+
+          if (!sdk) {
+            throw new Error(
+              'SDK instance not found. Make sure it is passed to the constructor.'
+            );
+          }
+
           const className =
             (Reflect.getOwnMetadata(
               TS_BLUE_METHOD_API_CLIENT_CLASS_NAME_KEY,
@@ -92,9 +102,12 @@ export function BlueMethodApiClient<
             },
           };
 
-          console.log(JSON.stringify(methodDefinition, null, 2));
-
-          const resultFromServer = true;
+          const resultFromServer = await sdk.api.callAPI({
+            type: 'call-method',
+            variables: {
+              methodDefinition,
+            },
+          });
 
           return resultFromServer;
         };

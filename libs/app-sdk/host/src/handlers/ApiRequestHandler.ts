@@ -60,6 +60,8 @@ export class ApiRequestHandler {
         return this.contractService.listContracts(payload.variables);
       case 'get-contract-details':
         return this.contractService.getContractDetails(payload.variables);
+      case 'call-method':
+        return this.contractService.callMethod(payload.variables);
       // default: {
       //   throw new Error(`Unsupported API request type: ${payload.type}`);
       // }

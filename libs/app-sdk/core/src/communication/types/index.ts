@@ -7,6 +7,7 @@ export type {
   ApiRequestMessagePayload,
   ListContractsQueryVariables,
   GetContractDetailsQueryVariables,
+  CallMethodMutationVariables,
 } from './apiRequest';
 
 export type InitMessage = BaseMessage & {
