@@ -108,12 +108,19 @@ export class HostAppSDK {
   }
 
   private sendInitMessage = () => {
+    const payload: { appId: string; initialPathname?: string } = {
+      appId: 'host-sdk',
+    };
+    if (!this.isConnected) {
+      payload.initialPathname = this.options.initialPathname;
+    }
     this.sendMessage({
       type: 'init',
-      payload: {
-        appId: 'host-sdk',
-        initialPathname: this.options.initialPathname,
-      },
+      payload,
     });
   };
+
+  get isConnected() {
+    return this.communicator.isConnected;
+  }
 }
