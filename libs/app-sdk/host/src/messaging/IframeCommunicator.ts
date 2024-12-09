@@ -8,7 +8,6 @@ import { ConnectionManager } from './ConnectionManager';
 
 type SendMessageOptions = {
   waitUntilConnected?: boolean;
-  description?: string;
 };
 
 export class IframeCommunicator extends Communicator {
@@ -29,7 +28,6 @@ export class IframeCommunicator extends Communicator {
     }
     this.targetWindow = iframeElement.contentWindow;
     super.startListeningForMessages();
-
     this.connectionManager.initialize();
   }
 
@@ -48,15 +46,15 @@ export class IframeCommunicator extends Communicator {
     if (!this.connectionManager.isConnected && options?.waitUntilConnected) {
       this.connectionManager.queueMessage(message, options);
     } else {
-      this.sendMessageImmediately(message);
+      try {
+        super.sendMessage(message);
+      } catch (error) {
+        console.error('Error sending message', error);
+      }
     }
   }
 
-  private sendMessageImmediately(message: Message) {
-    try {
-      super.sendMessage(message);
-    } catch (error) {
-      console.error('Error sending message', error);
-    }
+  public get isConnected() {
+    return this.connectionManager.isConnected;
   }
 }

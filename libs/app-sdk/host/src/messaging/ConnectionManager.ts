@@ -1,7 +1,6 @@
 import {
   Message,
   MessageBus,
-  InitMessage,
   InitResponseMessage,
 } from '@blue-company/app-sdk-core';
 import { IframeCommunicator } from './IframeCommunicator';
@@ -28,14 +27,6 @@ export class ConnectionManager {
     this.unsubscribeInitResponse = this.messageBus.subscribe<
       InitResponseMessage['payload']
     >('init-response', this.handleInitResponseMessage);
-
-    this.communicator
-      .getIframeElement()
-      ?.addEventListener('load', this.sendInitMessage);
-
-    this.sendInitMessage();
-
-    // TODO: Add handler for ready message
   }
 
   public queueMessage(message: Message, options?: SendMessageOptions) {
@@ -49,21 +40,6 @@ export class ConnectionManager {
       this.isConnected = true;
       this.flushMessageQueue();
     }
-  };
-
-  private createInitMessage(): InitMessage {
-    return {
-      type: 'init',
-      payload: {
-        appId: 'host-sdk',
-      },
-    };
-  }
-
-  private sendInitMessage = () => {
-    this.communicator.sendMessage(this.createInitMessage(), {
-      waitUntilConnected: false,
-    });
   };
 
   private flushMessageQueue() {
@@ -80,10 +56,6 @@ export class ConnectionManager {
   public disconnect() {
     this.isConnected = false;
     this.messagesToSend = [];
-
     this.unsubscribeInitResponse?.();
-    this.communicator
-      .getIframeElement()
-      ?.removeEventListener('load', this.sendInitMessage);
   }
 }

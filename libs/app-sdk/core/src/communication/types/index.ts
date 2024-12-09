@@ -14,6 +14,7 @@ export type InitMessage = BaseMessage & {
   type: 'init';
   payload: {
     appId: string;
+    initialPathname?: string;
   };
 };
 

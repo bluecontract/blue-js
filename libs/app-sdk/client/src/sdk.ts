@@ -90,7 +90,7 @@ export class AppSDK {
       },
     });
 
-    this.routeChangeHandler.startHandling();
+    this.routeChangeHandler.startHandling(payload.initialPathname);
     this.pageHeightListener.startListening();
     this.routeChangeListener.startListening();
     this.hostAPI.startListening();

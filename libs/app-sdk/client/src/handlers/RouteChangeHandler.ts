@@ -11,12 +11,16 @@ export class RouteChangeHandler {
     private onRouteChange?: OnRouteChange
   ) {}
 
-  public startHandling() {
+  public startHandling(initialPathname?: string) {
     this.previousPathname = window.location.pathname;
 
     this.unsubscribeRouteChange = this.messageBus.subscribe<
       RouteChangeMessage['payload']
     >('route-change', this.handleRouteChange);
+
+    if (initialPathname && initialPathname !== window.location.pathname) {
+      this.handleRouteChange({ pathname: initialPathname });
+    }
   }
 
   public stopHandling() {
@@ -30,8 +34,6 @@ export class RouteChangeHandler {
       return;
     }
 
-    this.previousPathname = pathname;
-
     if (this.onRouteChange) {
       this.onRouteChange(payload);
     } else {
@@ -41,5 +43,7 @@ export class RouteChangeHandler {
       const url = `${window.location.origin}${normalizedPath}`;
       window.location.href = url;
     }
+
+    this.previousPathname = pathname;
   };
 }

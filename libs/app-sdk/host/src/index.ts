@@ -11,12 +11,13 @@ import {
   Logger,
   LoggerConfig,
   RouteChangeMessage,
+  Message,
 } from '@blue-company/app-sdk-core';
 
 export type HostAppSDKOptions = {
   onRouteChange: ConstructorParameters<typeof RouteChangeHandler>[1];
   loggerConfig?: Partial<LoggerConfig>;
-  initPathname?: string;
+  initialPathname?: string;
 };
 
 export class HostAppSDK {
@@ -29,8 +30,11 @@ export class HostAppSDK {
   private apiRequestHandler: ApiRequestHandler;
   private routeChangeHandler: RouteChangeHandler;
 
-  constructor({ onRouteChange, loggerConfig }: HostAppSDKOptions) {
-    this.logger = new Logger({ ...defaultLoggerConfig, ...loggerConfig });
+  constructor(private options: HostAppSDKOptions) {
+    this.logger = new Logger({
+      ...defaultLoggerConfig,
+      ...options.loggerConfig,
+    });
     this.logger.debug('Initializing HostAppSDK...');
 
     this.messageBus = new MessageBus();
@@ -48,7 +52,7 @@ export class HostAppSDK {
     );
     this.routeChangeHandler = new RouteChangeHandler(
       this.messageBus,
-      onRouteChange
+      options.onRouteChange
     );
 
     this.logger.debug('HostAppSDK initialized successfully');
@@ -67,6 +71,12 @@ export class HostAppSDK {
   public connectIframe(iframe: HTMLIFrameElement) {
     this.logger.info('Connecting iframe...');
     this.communicator.connect(iframe);
+
+    iframe.addEventListener('load', this.sendInitMessage);
+    this.sendInitMessage();
+
+    // TODO: Add handler for ready message
+
     this.pageHeightHandler.startHandling();
     this.apiRequestHandler.startHandling();
     this.routeChangeHandler.startHandling();
@@ -74,6 +84,7 @@ export class HostAppSDK {
 
     return () => {
       this.logger.info('Disconnecting iframe...');
+      iframe.removeEventListener('load', this.sendInitMessage);
       this.communicator.disconnect();
       this.pageHeightHandler.stopHandling();
       this.apiRequestHandler.stopHandling();
@@ -82,10 +93,27 @@ export class HostAppSDK {
     };
   }
 
+  public sendMessage(
+    message: Message,
+    options?: { waitUntilConnected?: boolean }
+  ) {
+    this.communicator.sendMessage(message, options);
+  }
+
   public sendRouteChangeMessage(payload: RouteChangeMessage['payload']) {
-    this.communicator.sendMessage(
+    this.sendMessage(
       { type: 'route-change', payload },
       { waitUntilConnected: true }
     );
   }
+
+  private sendInitMessage = () => {
+    this.sendMessage({
+      type: 'init',
+      payload: {
+        appId: 'host-sdk',
+        initialPathname: this.options.initialPathname,
+      },
+    });
+  };
 }
