@@ -13,6 +13,7 @@ module.exports = [
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
             '{projectRoot}/src/tools/**/*.ts',
           ],
+          ignoredDependencies: ['@blue-company/app-sdk-core'],
         },
       ],
     },
