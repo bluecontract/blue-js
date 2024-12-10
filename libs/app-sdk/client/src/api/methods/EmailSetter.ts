@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { AppSDK } from '../../sdk';
 import {
   BlueMethodApiClient,
   BlueMethod,
@@ -8,6 +9,8 @@ import {
 
 @BlueMethodApiClient
 export abstract class EmailSetterMethod {
+  constructor(public sdk: AppSDK) {}
+
   @BlueMethod({ returnType: 'Boolean' })
   setEmail(
     @BlueMethodParam('Text') email: string,

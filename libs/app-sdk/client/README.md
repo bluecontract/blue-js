@@ -1,11 +1,25 @@
-# app-sdk
+# @blue-company/app-sdk
 
-This library was generated with [Nx](https://nx.dev).
+Client library for the Blue Company App SDK.
 
-## Building
+## Installation
 
-Run `nx build app-sdk` to build the library.
+To install the library, use npm or yarn:
 
-## Running unit tests
+```bash
+npm install @blue-company/app-sdk
+# or
+yarn add @blue-company/app-sdk
+```
 
-Run `nx test app-sdk` to execute the unit tests via [Vitest](https://vitest.dev/).
+## Changelog
+
+The [Changelog](https://github.com/bluecontract/blue-js/blob/main/CHANGELOG.md) is regularly updated to reflect what's changed in each new release.
+
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guide](https://github.com/bluecontract/blue-js/blob/main/CONTRIBUTING.md) to learn about how you can contribute.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
