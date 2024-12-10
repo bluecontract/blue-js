@@ -31,6 +31,9 @@ export type InitResponseMessage = BaseMessage & {
  */
 export type ReadyMessage = BaseMessage & {
   type: 'ready';
+  payload: {
+    pathname?: string;
+  };
 };
 
 export type PageHeightMessage = BaseMessage & {

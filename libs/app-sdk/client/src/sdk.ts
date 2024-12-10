@@ -10,6 +10,7 @@ import {
 } from '@blue-company/app-sdk-core';
 import { RouteChangeListener } from './listeners/RouteChangeListener';
 import { defaultLoggerConfig } from './constants/logger';
+import { IframeResizer } from './resizer/IframeResizer';
 
 export type AppSDKConfig = Readonly<{
   onRouteChange?: ConstructorParameters<typeof RouteChangeHandler>[1];
@@ -26,6 +27,7 @@ export class AppSDK {
   private routeChangeHandler: RouteChangeHandler;
   private hostAPI: HostAPI;
   private logger: Logger;
+  private iframeResizer: IframeResizer;
 
   private isConnected = false;
 
@@ -48,7 +50,13 @@ export class AppSDK {
 
     this.messageBus = new MessageBus();
     this.communicator = new HostCommunicator(this.messageBus, this.logger);
-    this.pageHeightListener = new PageHeightListener(this.communicator);
+    this.iframeResizer = new IframeResizer(this.logger);
+
+    this.pageHeightListener = new PageHeightListener(
+      this.communicator,
+      this.iframeResizer
+    );
+
     this.routeChangeListener = new RouteChangeListener(this.communicator);
     this.routeChangeHandler = new RouteChangeHandler(
       this.messageBus,
@@ -73,6 +81,9 @@ export class AppSDK {
     this.communicator.startListeningForMessages();
     this.communicator.sendMessage({
       type: 'ready',
+      payload: {
+        pathname: window.location.pathname,
+      },
     });
   }
 
@@ -81,6 +92,11 @@ export class AppSDK {
       this.logger.warn('AppSDK is already connected to host');
       return;
     }
+    this.iframeResizer.checkAndSetupTags();
+
+    this.iframeResizer.injectClearFixIntoBodyElement();
+    this.iframeResizer.stopInfiniteResizingOfIframe();
+    this.iframeResizer.applySizeSelector();
 
     this.communicator.sendMessage({
       type: 'init-response',

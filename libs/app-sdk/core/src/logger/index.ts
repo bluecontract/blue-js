@@ -80,10 +80,10 @@ export class Logger {
     }
   }
 
-  updateConfig(config: Partial<LoggerConfig>) {
-    this.config = {
+  cloneWithConfig(config: Partial<LoggerConfig>) {
+    return new Logger({
       ...this.config,
       ...config,
-    };
+    });
   }
 }
