@@ -1,7 +1,7 @@
 import { BaseMessage } from './base';
 
 export type BaseApiRequestPayload = {
-  requestId?: string;
+  requestId: string;
 };
 
 export type GetContractDetailsQueryVariables = {

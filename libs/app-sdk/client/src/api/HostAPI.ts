@@ -36,7 +36,9 @@ export class HostAPI {
   callAPI({
     requestId: requestIdArg,
     ...payload
-  }: ApiRequestMessagePayload): Promise<unknown> {
+  }: Omit<ApiRequestMessagePayload, 'requestId'> & {
+    requestId?: string;
+  }): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const requestId = requestIdArg ?? this.generateRequestId();
       this.pendingPromises.set(requestId, { resolve, reject });

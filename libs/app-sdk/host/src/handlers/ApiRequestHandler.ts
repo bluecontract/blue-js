@@ -31,8 +31,7 @@ export class ApiRequestHandler {
   }
 
   private handleApiRequest = async (payload: ApiRequestMessagePayload) => {
-    // TODO: Fix this
-    const requestId = payload.requestId!;
+    const requestId = payload.requestId;
 
     try {
       const result = await this.processApiRequest(payload);

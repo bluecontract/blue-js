@@ -7,12 +7,12 @@ import {
 
 export interface ContractState {
   type?: 'Order' | 'Product' | 'Shop' | string;
-  participants?: { [key: string]: any };
-  properties?: { [key: string]: any };
+  participants?: { [key: string]: unknown };
+  properties?: { [key: string]: unknown };
   messaging?: {
-    participants?: { [key: string]: any };
+    participants?: { [key: string]: unknown };
   };
-  subscriptions?: { [key: string]: any };
+  subscriptions?: { [key: string]: unknown };
 }
 
 export interface ContractEpoch {
