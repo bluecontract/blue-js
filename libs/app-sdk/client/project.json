@@ -1,0 +1,29 @@
+{
+  "name": "app-sdk",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/app-sdk/client/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
+  "tags": [],
+  "targets": {
+    "yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["yalc push"]
+      }
+    },
+    "yalc-push-watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["nx watch --projects=app-sdk -- nx yalc-push app-sdk"]
+      }
+    }
+  }
+}

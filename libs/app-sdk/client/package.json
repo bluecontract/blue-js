@@ -1,0 +1,31 @@
+{
+  "name": "@blue-company/app-sdk",
+  "version": "1.7.0",
+  "dependencies": {
+    "@blue-company/app-sdk-core": "1.7.0",
+    "reflect-metadata": "0.2.2"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  }
+}
