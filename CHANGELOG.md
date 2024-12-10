@@ -1,3 +1,22 @@
+## 1.8.0 (2024-12-10)
+
+### 🚀 Features
+
+- init app-sdk libs ([305bd57](https://github.com/bluecontract/blue-js/commit/305bd57))
+- core features ([ac9e0fc](https://github.com/bluecontract/blue-js/commit/ac9e0fc))
+- implement logger ([310ee70](https://github.com/bluecontract/blue-js/commit/310ee70))
+- Enhance logging and message validation in AppSDK ([083dd9a](https://github.com/bluecontract/blue-js/commit/083dd9a))
+- Implement method call functionality in AppSDK ([3edb999](https://github.com/bluecontract/blue-js/commit/3edb999))
+- Add initial pathname handling for route changes ([19ab4fb](https://github.com/bluecontract/blue-js/commit/19ab4fb))
+- Enhance iframe resizing mechanism ([eee6c50](https://github.com/bluecontract/blue-js/commit/eee6c50))
+- **app-sdk:** implement core messaging and API infrastructure ([25e90dd](https://github.com/bluecontract/blue-js/commit/25e90dd))
+- **app-sdk:** Add method decorators and API client infrastructure ([a0518d0](https://github.com/bluecontract/blue-js/commit/a0518d0))
+- **app-sdk:** add SDK dependency injection and improve documentation ([0246ca0](https://github.com/bluecontract/blue-js/commit/0246ca0))
+
+### 🩹 Fixes
+
+- **host-sdk:** send initialPathname only on first connection ([4e7b971](https://github.com/bluecontract/blue-js/commit/4e7b971))
+
 ## 1.7.0 (2024-11-08)
 
 ### 🚀 Features
