@@ -3,8 +3,23 @@
   "compileOnSave": false,
   "files": [],
   "references": [
-    { "path": "./libs/shared/utils" },
-    { "path": "./libs/language" },
-    { "path": "./libs/contract" }
+    {
+      "path": "./libs/shared/utils"
+    },
+    {
+      "path": "./libs/language"
+    },
+    {
+      "path": "./libs/contract"
+    },
+    {
+      "path": "./libs/app-sdk/core"
+    },
+    {
+      "path": "./libs/app-sdk/host"
+    },
+    {
+      "path": "./libs/app-sdk/client"
+    }
   ]
 }
