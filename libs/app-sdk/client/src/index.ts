@@ -61,5 +61,6 @@ if (typeof window !== 'undefined') {
 export { AppSDK };
 export type { SDKCommand, SDKFunction, SDKDataLayer };
 
-export { StripeCustomer } from './api/contracts/StripeCustomer';
-export { Chess } from './api/contracts/Chess';
+export { EmployeeAgentClient } from './api/agents/Employee';
+export { OrganizationAgentClient } from './api/agents/Organization';
+export { EmployeeCatalogueAgentClient } from './api/agents/EmployeeCatalogue';

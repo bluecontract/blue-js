@@ -61,9 +61,11 @@ export class ApiRequestHandler {
         return this.contractService.getContractDetails(payload.variables);
       case 'call-method':
         return this.contractService.callMethod(payload.variables);
-      // default: {
-      //   throw new Error(`Unsupported API request type: ${payload.type}`);
-      // }
+      case 'initialize-agent':
+        return this.contractService.initializeAgent(payload.variables);
+      default: {
+        throw new Error(`Unsupported API request type: ${payload.type}`);
+      }
     }
   };
 }

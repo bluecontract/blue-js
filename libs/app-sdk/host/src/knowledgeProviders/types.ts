@@ -3,6 +3,7 @@ import {
   ListContractsQueryVariables,
   GetContractDetailsQueryVariables,
   CallMethodMutationVariables,
+  InitializeAgentQueryVariables,
 } from '@blue-company/app-sdk-core';
 
 export interface ContractState {
@@ -36,6 +37,7 @@ export interface KnowledgeProvider {
   getContractDetails?(
     variables: GetContractDetailsQueryVariables
   ): Promise<Contract>;
+  initializeAgent?(variables: InitializeAgentQueryVariables): Promise<unknown>;
   subscribeByType?(
     contractType: string,
     variables: ListContractsQueryVariables,

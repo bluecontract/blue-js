@@ -4,6 +4,7 @@ import {
   ListContractsQueryVariables,
   GetContractDetailsQueryVariables,
   CallMethodMutationVariables,
+  InitializeAgentQueryVariables,
 } from '@blue-company/app-sdk-core';
 
 export class ContractService {
@@ -35,6 +36,16 @@ export class ContractService {
       }
     }
     throw new Error('Contract not found');
+  }
+
+  async initializeAgent(variables: InitializeAgentQueryVariables) {
+    for (const provider of this.providerManager.getProviders()) {
+      const result = await provider.initializeAgent?.(variables);
+      if (result) {
+        return result;
+      }
+    }
+    throw new Error('Agent not found');
   }
 
   async callMethod(variables: CallMethodMutationVariables) {
