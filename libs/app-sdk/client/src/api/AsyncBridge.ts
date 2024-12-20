@@ -3,25 +3,25 @@ import {
   AsyncRequestMessage,
   AsyncRequestMessagePayload,
   AsyncResponseMessage,
+  AsyncResponsePayloadData,
   MessageBus,
 } from '@blue-company/app-sdk-core';
+import { SetOptional } from 'type-fest';
 
 type RequestId = AsyncRequestMessage['payload']['requestId'];
-type PromiseResolve = (value: unknown) => void;
+type PromiseResolve<T> = (value: T | PromiseLike<T>) => void;
 type PromiseReject = (reason?: unknown) => void;
 
-export type SendRequestPayload = Omit<
+export type SendRequestPayload = SetOptional<
   AsyncRequestMessagePayload,
   'requestId'
-> & {
-  requestId?: string;
-};
+>;
 
 export class AsyncBridge {
   private unsubscribe: (() => void) | undefined = undefined;
   private pendingPromises: Map<
     RequestId,
-    { resolve: PromiseResolve; reject: PromiseReject }
+    { resolve: PromiseResolve<unknown>; reject: PromiseReject }
   > = new Map();
 
   constructor(
@@ -39,13 +39,17 @@ export class AsyncBridge {
     this.unsubscribe?.();
   }
 
-  sendRequest({
-    requestId: requestIdArg,
-    ...payload
-  }: SendRequestPayload): Promise<unknown> {
-    return new Promise((resolve, reject) => {
+  sendRequest<
+    TPayload extends SendRequestPayload,
+    TResponse = AsyncResponsePayloadData<TPayload['type']>
+  >({ requestId: requestIdArg, ...payload }: TPayload) {
+    return new Promise<TResponse>((resolve, reject) => {
       const requestId = requestIdArg ?? this.generateRequestId();
-      this.pendingPromises.set(requestId, { resolve, reject });
+      this.pendingPromises.set(requestId, {
+        resolve: resolve as PromiseResolve<unknown>,
+        reject,
+      });
+
       this.communicator.sendMessage({
         type: 'async-request',
         payload: {

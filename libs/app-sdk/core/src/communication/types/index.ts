@@ -1,17 +1,8 @@
 import { BaseMessage } from './base';
-import { AsyncRequestMessage } from './asyncRequest';
+import { BaseAsyncPayload, AsyncResponseMessagePayload } from './asyncPayload';
 
 export type { BaseMessage } from './base';
-export type {
-  AsyncRequestMessage,
-  AsyncRequestMessagePayload,
-  ListContractsQueryVariables,
-  GetContractDetailsQueryVariables,
-  CallMethodMutationVariables,
-  InitializeAgentQueryVariables,
-  MethodDefinition,
-  MethodDefinitionParam,
-} from './asyncRequest';
+export * from './asyncPayload';
 
 export type InitMessage = BaseMessage & {
   type: 'init';
@@ -58,13 +49,17 @@ export type CustomMessage = BaseMessage & {
   payload: unknown;
 };
 
-export type AsyncResponseMessage = BaseMessage & {
-  type: 'async-response';
-  payload: {
-    requestId: string;
-    data?: unknown;
-    error?: string;
+export type AsyncRequestMessage<T extends BaseAsyncPayload = BaseAsyncPayload> =
+  BaseMessage & {
+    type: 'async-request';
+    payload: T;
   };
+
+export type AsyncResponseMessage<
+  T extends AsyncResponseMessagePayload = AsyncResponseMessagePayload
+> = BaseMessage & {
+  type: 'async-response';
+  payload: T;
 };
 
 export type Message =

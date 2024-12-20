@@ -1,9 +1,4 @@
-import { AppSDK } from '../../sdk';
-import {
-  BLUE_AGENT_CLIENT_KEY,
-  BlueAgentClientMetadata,
-  getMethodDefinition,
-} from '../decorators';
+import { getMethodDefinition } from '../decorators';
 
 const getPrototypeChain = (proto: unknown): object[] => {
   if (typeof proto !== 'object' || proto === null) {
@@ -23,21 +18,7 @@ const getPrototypeChain = (proto: unknown): object[] => {
 export class BaseAgentClient {
   public constructor(public agentId: string) {}
 
-  public static async getInstance<T extends BaseAgentClient>(
-    this: new (agentId: string) => T,
-    {
-      agentId,
-      contract,
-    }: {
-      agentId?: string;
-      contract?: Record<string, unknown>;
-    } = {}
-  ): Promise<T> {
-    if (agentId) {
-      return new this(agentId);
-    }
-    const sdk = AppSDK.getInstance();
-
+  public static getMethodDefinitions() {
     const proto = this.prototype;
 
     const protoChain = getPrototypeChain(proto);
@@ -60,27 +41,8 @@ export class BaseAgentClient {
       .map((methodName) => {
         return getMethodDefinition(proto, methodName);
       })
-      .filter(Boolean);
+      .filter((v) => v !== null && v !== undefined);
 
-    const { objectType } =
-      (Reflect.getOwnMetadata(BLUE_AGENT_CLIENT_KEY, this) as
-        | BlueAgentClientMetadata
-        | undefined) ?? {};
-
-    const response = (await sdk.sendRequest({
-      type: 'initialize-agent',
-      variables: {
-        contract: {
-          ...contract,
-          object: {
-            type: objectType,
-            ...(contract?.object ?? {}),
-          },
-          workflows: methodDefinitions,
-        },
-      },
-    })) as { agentId: string };
-
-    return new this(response.agentId);
+    return methodDefinitions;
   }
 }
