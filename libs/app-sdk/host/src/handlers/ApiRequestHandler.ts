@@ -54,17 +54,14 @@ export class ApiRequestHandler {
   private processApiRequest = async (
     payload: ApiRequestMessagePayload
   ): Promise<unknown> => {
-    switch (payload.type) {
-      case 'list-contracts':
-        return this.contractService.listContracts(payload.variables);
-      case 'get-contract-details':
-        return this.contractService.getContractDetails(payload.variables);
+    const { type, variables } = payload;
+    switch (type) {
       case 'call-method':
-        return this.contractService.callMethod(payload.variables);
+        return this.contractService.callMethod(variables);
       case 'initialize-agent':
-        return this.contractService.initializeAgent(payload.variables);
+        return this.contractService.initializeAgent(variables);
       default: {
-        throw new Error(`Unsupported API request type: ${payload.type}`);
+        throw new Error(`Unsupported API request type: ${type}`);
       }
     }
   };

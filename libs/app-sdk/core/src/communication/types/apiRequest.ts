@@ -48,20 +48,10 @@ export type GetContractDetailsQueryVariables = {
   contractId: string;
 };
 
-type GetContractDetailsQuery = BaseApiRequestPayload & {
-  type: 'get-contract-details';
-  variables: GetContractDetailsQueryVariables;
-};
-
 export type ListContractsQueryVariables = {
   type?: string;
   participants?: { [key: string]: unknown };
   properties?: { [key: string]: unknown };
-};
-
-type ListContractsQuery = BaseApiRequestPayload & {
-  type: 'list-contracts';
-  variables: ListContractsQueryVariables;
 };
 
 export type CallMethodMutationVariables = {
@@ -84,22 +74,7 @@ type InitializeAgentQuery = BaseApiRequestPayload & {
   variables: InitializeAgentQueryVariables;
 };
 
-/**
- * New API for getting the latest state of a BlueObject
- */
-export type GetLatestBlueObjectStateQueryVariables = {
-  blueObjectId: string;
-};
-
-type GetLatestBlueObjectStateQuery = BaseApiRequestPayload & {
-  type: 'get-latest-blue-object-state';
-  variables: GetLatestBlueObjectStateQueryVariables;
-};
-
 export type ApiRequestMessagePayload =
-  | GetContractDetailsQuery
-  | GetLatestBlueObjectStateQuery
-  | ListContractsQuery
   | CallMethodMutation
   | InitializeAgentQuery;
 

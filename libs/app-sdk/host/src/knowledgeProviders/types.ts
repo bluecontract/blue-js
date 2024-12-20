@@ -33,10 +33,6 @@ export interface Contract {
 export interface KnowledgeProvider {
   readonly name: string;
   authenticate?(): Promise<void>;
-  listContracts?(variables: ListContractsQueryVariables): Promise<Contract[]>;
-  getContractDetails?(
-    variables: GetContractDetailsQueryVariables
-  ): Promise<Contract>;
   initializeAgent?(variables: InitializeAgentQueryVariables): Promise<unknown>;
   subscribeByType?(
     contractType: string,
