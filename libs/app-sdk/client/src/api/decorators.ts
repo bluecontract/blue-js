@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { AppSDK } from '../sdk';
 import { BaseAgentClient } from './agents/BaseAgentClient';
+import { MethodDefinition } from '@blue-company/app-sdk-core';
 
 const BLUE_ID_KEY = Symbol('blueId');
 const BLUE_MARKER_KEY = Symbol('blueMarker');
@@ -69,7 +70,7 @@ export function getMethodDefinition(proto: object, methodName: string) {
       methodName
     ) || [];
 
-  const params$ = parametersMetadata.map((p) => {
+  const params = parametersMetadata.map((p) => {
     const extractedTSMetadata = parametersTSMetadata[p.index] || {
       name: `param${p.index}`,
       isOptional: false,
@@ -87,11 +88,11 @@ export function getMethodDefinition(proto: object, methodName: string) {
   return {
     name: methodName,
     type: 'Method Definition',
-    params: params$,
+    params,
     returns: {
       type: methodMetadata.returnType,
     },
-  };
+  } satisfies MethodDefinition;
 }
 
 export const BlueAgentClientDecoratorName = 'BlueAgentClient';
@@ -126,6 +127,12 @@ export function BlueAgentClient(metadata: BlueAgentClientMetadata) {
             }
 
             const methodDefinition = getMethodDefinition(proto, propertyKey);
+
+            if (!methodDefinition) {
+              throw new Error(
+                `Method definition not found for method ${propertyKey}`
+              );
+            }
 
             const resultFromServer = await sdk.api.callAPI({
               type: 'call-method',

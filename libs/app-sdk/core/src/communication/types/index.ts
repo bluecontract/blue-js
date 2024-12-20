@@ -9,6 +9,8 @@ export type {
   GetContractDetailsQueryVariables,
   CallMethodMutationVariables,
   InitializeAgentQueryVariables,
+  MethodDefinition,
+  MethodDefinitionParam,
 } from './apiRequest';
 
 export type InitMessage = BaseMessage & {

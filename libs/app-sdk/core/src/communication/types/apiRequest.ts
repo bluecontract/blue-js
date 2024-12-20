@@ -23,6 +23,23 @@ type FilterQuery<T> = T extends Primitive
       [P in keyof T]?: FilterQuery<T[P]> | ComparisonOperators<T[P]>;
     };
 
+export type MethodDefinitionParam = {
+  name: string;
+  type: string;
+  constraints: {
+    required: boolean;
+  };
+};
+
+export type MethodDefinition = {
+  name: string;
+  type: 'Method Definition';
+  params: MethodDefinitionParam[];
+  returns: {
+    type: string;
+  };
+};
+
 export type BaseApiRequestPayload = {
   requestId: string;
 };
@@ -48,9 +65,8 @@ type ListContractsQuery = BaseApiRequestPayload & {
 };
 
 export type CallMethodMutationVariables = {
-  // contractId: string;
   agentId: string;
-  methodDefinition: unknown;
+  methodDefinition: MethodDefinition;
   params: unknown[];
 };
 
