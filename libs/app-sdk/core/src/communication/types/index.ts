@@ -1,17 +1,17 @@
 import { BaseMessage } from './base';
-import { ApiRequestMessage } from './apiRequest';
+import { AsyncRequestMessage } from './asyncRequest';
 
 export type { BaseMessage } from './base';
 export type {
-  ApiRequestMessage,
-  ApiRequestMessagePayload,
+  AsyncRequestMessage,
+  AsyncRequestMessagePayload,
   ListContractsQueryVariables,
   GetContractDetailsQueryVariables,
   CallMethodMutationVariables,
   InitializeAgentQueryVariables,
   MethodDefinition,
   MethodDefinitionParam,
-} from './apiRequest';
+} from './asyncRequest';
 
 export type InitMessage = BaseMessage & {
   type: 'init';
@@ -58,8 +58,8 @@ export type CustomMessage = BaseMessage & {
   payload: unknown;
 };
 
-export type ApiResponseMessage = BaseMessage & {
-  type: 'api-response';
+export type AsyncResponseMessage = BaseMessage & {
+  type: 'async-response';
   payload: {
     requestId: string;
     data?: unknown;
@@ -74,5 +74,5 @@ export type Message =
   | PageHeightMessage
   | RouteChangeMessage
   | CustomMessage
-  | ApiRequestMessage
-  | ApiResponseMessage;
+  | AsyncRequestMessage
+  | AsyncResponseMessage;

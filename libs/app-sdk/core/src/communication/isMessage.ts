@@ -7,8 +7,8 @@ const messageTypes = [
   'page-height',
   'route-change',
   'custom',
-  'api-request',
-  'api-response',
+  'async-request',
+  'async-response',
 ] as const;
 
 export const isMessage = (data: unknown): data is Message => {

@@ -1,13 +1,13 @@
 import {
   MessageBus,
-  ApiRequestMessagePayload,
+  AsyncRequestMessagePayload,
 } from '@blue-company/app-sdk-core';
 import { IframeCommunicator } from '../messaging/IframeCommunicator';
 import { KnowledgeProviderManager } from '../knowledgeProviders/Manager';
 import { ContractService } from '../api/ContractService';
 
-export class ApiRequestHandler {
-  private unsubscribeApiRequest: (() => void) | undefined = undefined;
+export class AsyncRequestHandler {
+  private unsubscribeAsyncRequest: (() => void) | undefined = undefined;
   private contractService: ContractService;
 
   constructor(
@@ -19,30 +19,30 @@ export class ApiRequestHandler {
   }
 
   public startHandling() {
-    this.unsubscribeApiRequest =
-      this.messageBus.subscribe<ApiRequestMessagePayload>(
-        'api-request',
-        this.handleApiRequest
+    this.unsubscribeAsyncRequest =
+      this.messageBus.subscribe<AsyncRequestMessagePayload>(
+        'async-request',
+        this.handleAsyncRequest
       );
   }
 
   public stopHandling() {
-    this.unsubscribeApiRequest?.();
+    this.unsubscribeAsyncRequest?.();
   }
 
-  private handleApiRequest = async (payload: ApiRequestMessagePayload) => {
+  private handleAsyncRequest = async (payload: AsyncRequestMessagePayload) => {
     const requestId = payload.requestId;
 
     try {
-      const result = await this.processApiRequest(payload);
+      const result = await this.processAsyncRequest(payload);
 
       this.communicator.sendMessage({
-        type: 'api-response',
+        type: 'async-response',
         payload: { requestId, data: result },
       });
     } catch (error) {
       this.communicator.sendMessage({
-        type: 'api-response',
+        type: 'async-response',
         payload: {
           requestId,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -51,8 +51,8 @@ export class ApiRequestHandler {
     }
   };
 
-  private processApiRequest = async (
-    payload: ApiRequestMessagePayload
+  private processAsyncRequest = async (
+    payload: AsyncRequestMessagePayload
   ): Promise<unknown> => {
     const { type, variables } = payload;
     switch (type) {
@@ -61,7 +61,7 @@ export class ApiRequestHandler {
       case 'initialize-agent':
         return this.contractService.initializeAgent(variables);
       default: {
-        throw new Error(`Unsupported API request type: ${type}`);
+        throw new Error(`Unsupported async request type: ${type}`);
       }
     }
   };

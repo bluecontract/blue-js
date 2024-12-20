@@ -1,5 +1,5 @@
 import { HostCommunicator } from './messaging/HostCommunicator';
-import { HostAPI } from './api/HostAPI';
+import { AsyncBridge, SendRequestPayload } from './api/AsyncBridge';
 import { PageHeightListener } from './listeners/PageHeightListener';
 import { RouteChangeHandler } from './handlers/RouteChangeHandler';
 import {
@@ -25,7 +25,7 @@ export class AppSDK {
   private pageHeightListener: PageHeightListener;
   private routeChangeListener: RouteChangeListener;
   private routeChangeHandler: RouteChangeHandler;
-  private hostAPI: HostAPI;
+  private asyncBridge: AsyncBridge;
   private logger: Logger;
   private iframeResizer: IframeResizer;
 
@@ -62,7 +62,7 @@ export class AppSDK {
       this.messageBus,
       onRouteChange
     );
-    this.hostAPI = new HostAPI(this.communicator, this.messageBus);
+    this.asyncBridge = new AsyncBridge(this.communicator, this.messageBus);
 
     this.connect();
   }
@@ -109,14 +109,14 @@ export class AppSDK {
     this.routeChangeHandler.startHandling(payload.initialPathname);
     this.pageHeightListener.startListening();
     this.routeChangeListener.startListening();
-    this.hostAPI.startListening();
+    this.asyncBridge.startListening();
 
     this.isConnected = true;
     this.logger.info('AppSDK connected successfully to host');
   };
 
-  get api() {
-    return this.hostAPI;
+  public sendRequest(payload: SendRequestPayload) {
+    return this.asyncBridge.sendRequest(payload);
   }
 
   public disconnect(): void {
@@ -130,7 +130,7 @@ export class AppSDK {
     this.pageHeightListener.stopListening();
     this.routeChangeListener.stopListening();
     this.routeChangeHandler.stopHandling();
-    this.hostAPI.stopListening();
+    this.asyncBridge.stopListening();
 
     this.unsubscribeInitListener?.();
     this.messageBus.unsubscribeAll();

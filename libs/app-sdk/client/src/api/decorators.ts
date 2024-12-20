@@ -134,7 +134,7 @@ export function BlueAgentClient(metadata: BlueAgentClientMetadata) {
               );
             }
 
-            const resultFromServer = await sdk.api.callAPI({
+            const resultFromServer = await sdk.sendRequest({
               type: 'call-method',
               variables: {
                 agentId: this.agentId,

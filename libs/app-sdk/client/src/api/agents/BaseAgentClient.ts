@@ -67,7 +67,7 @@ export class BaseAgentClient {
         | BlueAgentClientMetadata
         | undefined) ?? {};
 
-    const response = (await sdk.api.callAPI({
+    const response = (await sdk.sendRequest({
       type: 'initialize-agent',
       variables: {
         contract: {

@@ -40,7 +40,7 @@ export type MethodDefinition = {
   };
 };
 
-export type BaseApiRequestPayload = {
+export type BaseAsyncRequestPayload = {
   requestId: string;
 };
 
@@ -60,7 +60,7 @@ export type CallMethodMutationVariables = {
   params: unknown[];
 };
 
-type CallMethodMutation = BaseApiRequestPayload & {
+type CallMethodMutation = BaseAsyncRequestPayload & {
   type: 'call-method';
   variables: CallMethodMutationVariables;
 };
@@ -69,18 +69,18 @@ export type InitializeAgentQueryVariables = {
   contract: FilterQuery<unknown>;
 };
 
-type InitializeAgentQuery = BaseApiRequestPayload & {
+type InitializeAgentQuery = BaseAsyncRequestPayload & {
   type: 'initialize-agent';
   variables: InitializeAgentQueryVariables;
 };
 
-export type ApiRequestMessagePayload =
+export type AsyncRequestMessagePayload =
   | CallMethodMutation
   | InitializeAgentQuery;
 
-export type ApiRequestMessage<
-  T extends BaseApiRequestPayload = BaseApiRequestPayload
+export type AsyncRequestMessage<
+  T extends BaseAsyncRequestPayload = BaseAsyncRequestPayload
 > = BaseMessage & {
-  type: 'api-request';
+  type: 'async-request';
   payload: T;
 };

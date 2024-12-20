@@ -1,16 +1,23 @@
 import { HostCommunicator } from '../messaging/HostCommunicator';
 import {
-  ApiRequestMessage,
-  ApiRequestMessagePayload,
-  ApiResponseMessage,
+  AsyncRequestMessage,
+  AsyncRequestMessagePayload,
+  AsyncResponseMessage,
   MessageBus,
 } from '@blue-company/app-sdk-core';
 
-type RequestId = ApiRequestMessage['payload']['requestId'];
+type RequestId = AsyncRequestMessage['payload']['requestId'];
 type PromiseResolve = (value: unknown) => void;
 type PromiseReject = (reason?: unknown) => void;
 
-export class HostAPI {
+export type SendRequestPayload = Omit<
+  AsyncRequestMessagePayload,
+  'requestId'
+> & {
+  requestId?: string;
+};
+
+export class AsyncBridge {
   private unsubscribe: (() => void) | undefined = undefined;
   private pendingPromises: Map<
     RequestId,
@@ -23,27 +30,24 @@ export class HostAPI {
   ) {}
 
   startListening(): void {
-    this.unsubscribe = this.messageBus.subscribe<ApiResponseMessage['payload']>(
-      'api-response',
-      this.handleResponse.bind(this)
-    );
+    this.unsubscribe = this.messageBus.subscribe<
+      AsyncResponseMessage['payload']
+    >('async-response', this.handleResponse.bind(this));
   }
 
   stopListening(): void {
     this.unsubscribe?.();
   }
 
-  callAPI({
+  sendRequest({
     requestId: requestIdArg,
     ...payload
-  }: Omit<ApiRequestMessagePayload, 'requestId'> & {
-    requestId?: string;
-  }): Promise<unknown> {
+  }: SendRequestPayload): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const requestId = requestIdArg ?? this.generateRequestId();
       this.pendingPromises.set(requestId, { resolve, reject });
       this.communicator.sendMessage({
-        type: 'api-request',
+        type: 'async-request',
         payload: {
           requestId,
           ...payload,
@@ -52,7 +56,7 @@ export class HostAPI {
     });
   }
 
-  private handleResponse(payload: ApiResponseMessage['payload']): void {
+  private handleResponse(payload: AsyncResponseMessage['payload']): void {
     const { requestId, data, error } = payload;
     const promiseHandlers = this.pendingPromises.get(requestId);
 
