@@ -3,7 +3,7 @@ import {
   TSBlueMethodParameterMetadata,
   TS_BLUE_METHOD_PARAMETERS_KEY,
   TS_BLUE_METHOD_API_CLIENT_CLASS_NAME_KEY,
-  BlueAgentClientDecoratorName,
+  BLUE_AGENT_CLIENT_KEY,
 } from '../api/decorators';
 import { hasDecorator } from './hasDecorator';
 
@@ -20,7 +20,7 @@ function createParameterNamesTransformer(): ts.TransformerFactory<ts.SourceFile>
     function visit(node: ts.Node): ts.VisitResult<ts.Node> {
       if (ts.isClassDeclaration(node) && node.name) {
         // Only process if the class has @BlueAgentClient decorator
-        if (!hasDecorator(node, BlueAgentClientDecoratorName)) {
+        if (!hasDecorator(node, BLUE_AGENT_CLIENT_KEY.toString())) {
           return node;
         }
 

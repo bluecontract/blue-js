@@ -7,10 +7,14 @@ import {
   Logger,
   LoggerConfig,
   InitMessage,
+  AsyncResponsePayloadData,
+  InitializeAgentQueryVariables,
 } from '@blue-company/app-sdk-core';
 import { RouteChangeListener } from './listeners/RouteChangeListener';
 import { defaultLoggerConfig } from './constants/logger';
 import { IframeResizer } from './resizer/IframeResizer';
+import { BaseAgentClient } from './api/agents/BaseAgentClient';
+import { getBlueAgentClientMetadata } from './api/decorators';
 
 export type AppSDKConfig = Readonly<{
   onRouteChange?: ConstructorParameters<typeof RouteChangeHandler>[1];
@@ -115,8 +119,37 @@ export class AppSDK {
     this.logger.info('AppSDK connected successfully to host');
   };
 
-  public sendRequest(payload: SendRequestPayload) {
-    return this.asyncBridge.sendRequest(payload);
+  public askUserForAgent = async <T extends typeof BaseAgentClient>(
+    variables: InitializeAgentQueryVariables,
+    AgentClient: T
+  ) => {
+    const methodDefinitions = AgentClient.getMethodDefinitions();
+    const clientMetadata = getBlueAgentClientMetadata(AgentClient, true);
+
+    const { contract } = variables;
+
+    const response = await this.sendAsyncRequest({
+      type: 'initialize-agent',
+      variables: {
+        contract: {
+          ...contract,
+          object: {
+            type: clientMetadata?.objectType,
+            ...(contract?.object ?? {}),
+          },
+          workflows: methodDefinitions,
+        },
+      },
+    });
+
+    return new AgentClient(response.agentId) as InstanceType<T>;
+  };
+
+  public sendAsyncRequest<
+    TPayload extends SendRequestPayload,
+    TResponse = AsyncResponsePayloadData<TPayload['type']>
+  >(payload: TPayload) {
+    return this.asyncBridge.sendRequest<TPayload, TResponse>(payload);
   }
 
   public disconnect(): void {

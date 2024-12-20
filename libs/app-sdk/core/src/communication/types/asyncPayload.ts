@@ -1,28 +1,3 @@
-import { BaseMessage } from './base';
-
-type Primitive = string | number | boolean | null;
-
-type ComparisonOperators<T> = {
-  $eq?: T;
-  $ne?: T;
-  $gt?: T;
-  $gte?: T;
-  $lt?: T;
-  $lte?: T;
-  $in?: T[];
-  $nin?: T[];
-  $regex?: T extends string ? string : never;
-  // Add more operators as needed
-};
-
-type FilterQuery<T> = T extends Primitive
-  ? ComparisonOperators<T>
-  : T extends Array<infer U>
-  ? ComparisonOperators<U> | FilterQuery<U>
-  : {
-      [P in keyof T]?: FilterQuery<T[P]> | ComparisonOperators<T[P]>;
-    };
-
 export type MethodDefinitionParam = {
   name: string;
   type: string;
@@ -40,7 +15,7 @@ export type MethodDefinition = {
   };
 };
 
-export type BaseAsyncRequestPayload = {
+export type BaseAsyncPayload = {
   requestId: string;
 };
 
@@ -60,27 +35,33 @@ export type CallMethodMutationVariables = {
   params: unknown[];
 };
 
-type CallMethodMutation = BaseAsyncRequestPayload & {
+type CallMethodMutation = BaseAsyncPayload & {
   type: 'call-method';
   variables: CallMethodMutationVariables;
 };
 
 export type InitializeAgentQueryVariables = {
-  contract: FilterQuery<unknown>;
+  contract: Record<string, unknown>;
 };
 
-type InitializeAgentQuery = BaseAsyncRequestPayload & {
+type InitializeAgentQuery = BaseAsyncPayload & {
   type: 'initialize-agent';
   variables: InitializeAgentQueryVariables;
+};
+
+export type InitializeAgentQueryResponse = {
+  agentId: string;
 };
 
 export type AsyncRequestMessagePayload =
   | CallMethodMutation
   | InitializeAgentQuery;
 
-export type AsyncRequestMessage<
-  T extends BaseAsyncRequestPayload = BaseAsyncRequestPayload
-> = BaseMessage & {
-  type: 'async-request';
-  payload: T;
+export type AsyncResponseMessagePayload<T = unknown> = BaseAsyncPayload & {
+  data?: T;
+  error?: string;
 };
+
+export type AsyncResponsePayloadData<
+  TType = AsyncRequestMessagePayload['type']
+> = TType extends 'initialize-agent' ? InitializeAgentQueryResponse : unknown;
