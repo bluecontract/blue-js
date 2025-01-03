@@ -126,16 +126,15 @@ export class AppSDK {
     const methodDefinitions = AgentClient.getMethodDefinitions();
     const clientMetadata = getBlueAgentClientMetadata(AgentClient, true);
 
-    const { contract } = variables;
-
     const response = await this.sendAsyncRequest({
       type: 'initialize-agent',
       variables: {
+        ...variables,
         contract: {
-          ...contract,
+          ...variables.contract,
           object: {
             type: clientMetadata?.objectType,
-            ...(contract?.object ?? {}),
+            ...(variables.contract?.object ?? {}),
           },
           workflows: methodDefinitions,
         },
