@@ -1,5 +1,5 @@
 import { defaultLoggerConfig } from './constants/logger';
-import { ApiRequestHandler } from './handlers/ApiRequestHandler';
+import { AsyncRequestHandler } from './handlers/AsyncRequestHandler';
 import { PageHeightHandler } from './handlers/PageHeightHandler';
 import { RouteChangeHandler } from './handlers/RouteChangeHandler';
 import { KnowledgeProviderManager } from './knowledgeProviders/Manager';
@@ -27,7 +27,7 @@ export class HostAppSDK {
 
   private communicator: IframeCommunicator;
   private pageHeightHandler: PageHeightHandler;
-  private apiRequestHandler: ApiRequestHandler;
+  private asyncRequestHandler: AsyncRequestHandler;
   private routeChangeHandler: RouteChangeHandler;
 
   constructor(private options: HostAppSDKOptions) {
@@ -45,7 +45,7 @@ export class HostAppSDK {
       this.messageBus,
       this.communicator
     );
-    this.apiRequestHandler = new ApiRequestHandler(
+    this.asyncRequestHandler = new AsyncRequestHandler(
       this.messageBus,
       this.communicator,
       this.providerManager
@@ -78,7 +78,7 @@ export class HostAppSDK {
     // TODO: Add handler for ready message
 
     this.pageHeightHandler.startHandling();
-    this.apiRequestHandler.startHandling();
+    this.asyncRequestHandler.startHandling();
     this.routeChangeHandler.startHandling();
     this.logger.info('Iframe connected successfully');
 
@@ -87,7 +87,7 @@ export class HostAppSDK {
       iframe.removeEventListener('load', this.sendInitMessage);
       this.communicator.disconnect();
       this.pageHeightHandler.stopHandling();
-      this.apiRequestHandler.stopHandling();
+      this.asyncRequestHandler.stopHandling();
       this.routeChangeHandler.stopHandling();
       this.logger.info('Iframe disconnected successfully');
     };

@@ -1,20 +1,27 @@
 import { HostCommunicator } from '../messaging/HostCommunicator';
 import {
-  ApiRequestMessage,
-  ApiRequestMessagePayload,
-  ApiResponseMessage,
+  AsyncRequestMessage,
+  AsyncRequestMessagePayload,
+  AsyncResponseMessage,
+  AsyncResponsePayloadData,
   MessageBus,
 } from '@blue-company/app-sdk-core';
+import { SetOptional } from 'type-fest';
 
-type RequestId = ApiRequestMessage['payload']['requestId'];
-type PromiseResolve = (value: unknown) => void;
+type RequestId = AsyncRequestMessage['payload']['requestId'];
+type PromiseResolve<T> = (value: T | PromiseLike<T>) => void;
 type PromiseReject = (reason?: unknown) => void;
 
-export class HostAPI {
+export type SendRequestPayload = SetOptional<
+  AsyncRequestMessagePayload,
+  'requestId'
+>;
+
+export class AsyncBridge {
   private unsubscribe: (() => void) | undefined = undefined;
   private pendingPromises: Map<
     RequestId,
-    { resolve: PromiseResolve; reject: PromiseReject }
+    { resolve: PromiseResolve<unknown>; reject: PromiseReject }
   > = new Map();
 
   constructor(
@@ -23,27 +30,28 @@ export class HostAPI {
   ) {}
 
   startListening(): void {
-    this.unsubscribe = this.messageBus.subscribe<ApiResponseMessage['payload']>(
-      'api-response',
-      this.handleResponse.bind(this)
-    );
+    this.unsubscribe = this.messageBus.subscribe<
+      AsyncResponseMessage['payload']
+    >('async-response', this.handleResponse.bind(this));
   }
 
   stopListening(): void {
     this.unsubscribe?.();
   }
 
-  callAPI({
-    requestId: requestIdArg,
-    ...payload
-  }: Omit<ApiRequestMessagePayload, 'requestId'> & {
-    requestId?: string;
-  }): Promise<unknown> {
-    return new Promise((resolve, reject) => {
+  sendRequest<
+    TPayload extends SendRequestPayload,
+    TResponse = AsyncResponsePayloadData<TPayload['type']>
+  >({ requestId: requestIdArg, ...payload }: TPayload) {
+    return new Promise<TResponse>((resolve, reject) => {
       const requestId = requestIdArg ?? this.generateRequestId();
-      this.pendingPromises.set(requestId, { resolve, reject });
+      this.pendingPromises.set(requestId, {
+        resolve: resolve as PromiseResolve<unknown>,
+        reject,
+      });
+
       this.communicator.sendMessage({
-        type: 'api-request',
+        type: 'async-request',
         payload: {
           requestId,
           ...payload,
@@ -52,7 +60,7 @@ export class HostAPI {
     });
   }
 
-  private handleResponse(payload: ApiResponseMessage['payload']): void {
+  private handleResponse(payload: AsyncResponseMessage['payload']): void {
     const { requestId, data, error } = payload;
     const promiseHandlers = this.pendingPromises.get(requestId);
 

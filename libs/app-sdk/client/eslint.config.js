@@ -21,4 +21,10 @@ module.exports = [
       parser: require('jsonc-eslint-parser'),
     },
   },
+  {
+    files: ['src/api/agents/**/*.{js,ts}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
 ];
