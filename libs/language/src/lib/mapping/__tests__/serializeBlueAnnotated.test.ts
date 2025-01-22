@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { serializeBlueAnnotated } from '../serializeBlueAnnotated';
-import { withTypeBlueId } from '../annotations/typeBlueId';
-import { blueIdField } from '../annotations/blueId';
-import { blueNameField } from '../annotations/blueName';
-import { blueDescriptionField } from '../annotations/blueDescription';
+import { withTypeBlueId } from '../../../schema/annotations';
+import { blueIdField } from '../../../schema/annotations';
+import { blueNameField } from '../../../schema/annotations';
+import { blueDescriptionField } from '../../../schema/annotations';
 
 describe('serializeBlueAnnotated Tests', () => {
   // @TypeBlueId("Example-BlueId")

@@ -4,7 +4,7 @@ import {
   getBlueNameAnnotation,
   getBlueDescriptionAnnotation,
   getTypeBlueIdAnnotation,
-} from './annotations';
+} from '../../schema/annotations';
 
 type BlueSerialized = Record<string, unknown>;
 

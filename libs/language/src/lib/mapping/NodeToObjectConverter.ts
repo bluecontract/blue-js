@@ -13,7 +13,7 @@ import { BlueNode } from '../model';
 import { TypeSchemaResolver } from '../utils/TypeSchemaResolver';
 import { ConverterFactory } from './ConverterFactory';
 import { isNonNullable } from '@blue-company/shared-utils';
-import { isSchemaExtendedFrom } from './annotations';
+import { isSchemaExtendedFrom } from '../../schema/annotations';
 
 export class NodeToObjectConverter {
   private readonly converterFactory: ConverterFactory;

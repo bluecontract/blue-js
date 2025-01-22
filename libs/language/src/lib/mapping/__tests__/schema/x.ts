@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { withTypeBlueId } from '../../annotations';
+import { withTypeBlueId } from '../../../../schema/annotations';
 
 export enum TestEnum {
   SOME_ENUM_VALUE = 'SOME_ENUM_VALUE',

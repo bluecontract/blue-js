@@ -4,7 +4,7 @@ import {
   blueNameField,
   blueNodeField,
   withTypeBlueId,
-} from '../../annotations';
+} from '../../../../schema/annotations';
 import { personSchema } from './person';
 
 export const personListExampleSchema = withTypeBlueId('PersonList-BlueId')(
