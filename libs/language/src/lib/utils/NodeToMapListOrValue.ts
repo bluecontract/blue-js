@@ -105,7 +105,7 @@ export class NodeToMapListOrValue {
     return result;
   }
 
-  private static handleValue(value: BlueNode['value']) {
+  static handleValue(value: BlueNode['value']) {
     if (isBigNumber(value)) {
       if (isBigIntegerNumber(value)) {
         const lowerBound = new Big(Number.MIN_SAFE_INTEGER.toString());

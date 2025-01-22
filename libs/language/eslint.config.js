@@ -28,4 +28,7 @@ module.exports = [
       parser: require('jsonc-eslint-parser'),
     },
   },
+  {
+    ignores: ['scripts/benchmark/data/**'],
+  },
 ];
