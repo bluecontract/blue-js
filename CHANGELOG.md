@@ -1,3 +1,9 @@
+## 1.9.0 (2025-02-10)
+
+### 🚀 Features
+
+- **language:** add node to object mapping with zod schemas ([4fa84b7](https://github.com/bluecontract/blue-js/commit/4fa84b7))
+
 ## 1.8.0 (2024-12-10)
 
 ### 🚀 Features
