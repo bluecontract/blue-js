@@ -1,5 +1,5 @@
 import { ZodTypeAny } from 'zod';
-import { getTypeBlueIdAnnotation } from '../mapping/annotations';
+import { getTypeBlueIdAnnotation } from '../../schema/annotations';
 import { isNonNullable, isNullable } from '@blue-company/shared-utils';
 
 type TypeBlueIdAnnotation = ReturnType<typeof getTypeBlueIdAnnotation>;

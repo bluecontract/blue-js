@@ -1,5 +1,9 @@
 import z from 'zod';
-import { blueIdField, blueNodeField, withTypeBlueId } from '../../annotations';
+import {
+  blueIdField,
+  blueNodeField,
+  withTypeBlueId,
+} from '../../../../schema/annotations';
 
 const WorkflowStepSchema = withTypeBlueId('WorkflowStep-BlueId')(
   z.object({

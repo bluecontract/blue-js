@@ -1,5 +1,5 @@
 import z from 'zod';
-import { withTypeBlueId } from '../../annotations';
+import { withTypeBlueId } from '../../../../schema/annotations';
 
 export const personSchema = withTypeBlueId('Person-BlueId')(
   z.object({
