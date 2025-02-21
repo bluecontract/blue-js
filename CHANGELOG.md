@@ -1,3 +1,9 @@
+## 1.10.0 (2025-02-21)
+
+### 🚀 Features
+
+- Add support for Zod tuple type conversion ([d248bb5](https://github.com/bluecontract/blue-js/commit/d248bb5))
+
 ## 1.9.0 (2025-02-10)
 
 ### 🚀 Features
