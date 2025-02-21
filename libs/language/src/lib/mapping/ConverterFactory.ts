@@ -18,6 +18,7 @@ import {
 import { NodeToObjectConverter } from './NodeToObjectConverter';
 import { UnknownConverter } from './UnknownConverter';
 import { AnyConverter } from './AnyConverter';
+import { TupleConverter } from './TupleConverter';
 
 const zodSchemaTypeNamesSchema = z.union([
   z.literal('ZodString'),
@@ -33,6 +34,7 @@ const zodSchemaTypeNamesSchema = z.union([
   z.literal('ZodNativeEnum'),
   z.literal('ZodUnknown'),
   z.literal('ZodAny'),
+  z.literal('ZodTuple'),
 ]);
 
 type ZodSchemaTypeNames = z.infer<typeof zodSchemaTypeNamesSchema>;
@@ -52,6 +54,7 @@ export class ConverterFactory {
   private registerConverters() {
     const primitiveConverter = new PrimitiveConverter();
     const arrayConverter = new ArrayConverter(this.nodeToObjectConverter);
+    const tupleConverter = new TupleConverter(this.nodeToObjectConverter);
     const setConverter = new SetConverter(this.nodeToObjectConverter);
     const mapConverter = new MapConverter(this.nodeToObjectConverter);
 
@@ -71,6 +74,7 @@ export class ConverterFactory {
 
     // Register collection converters
     this.converters.set('ZodArray', arrayConverter);
+    this.converters.set('ZodTuple', tupleConverter);
     this.converters.set('ZodSet', setConverter);
     this.converters.set('ZodMap', mapConverter);
     this.converters.set('ZodRecord', mapConverter);
@@ -110,7 +114,13 @@ export class ConverterFactory {
     }
 
     const schemaTypeName = schema.constructor.name;
-    const parsedSchemaTypeName = zodSchemaTypeNamesSchema.parse(schemaTypeName);
-    return parsedSchemaTypeName;
+
+    try {
+      const parsedSchemaTypeName =
+        zodSchemaTypeNamesSchema.parse(schemaTypeName);
+      return parsedSchemaTypeName;
+    } catch {
+      throw new Error(`Schema type name ${schemaTypeName} is not supported`);
+    }
   }
 }
