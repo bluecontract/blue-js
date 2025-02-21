@@ -156,6 +156,21 @@ describe('blueNodeToObject', () => {
         `);
   });
 
+  it('should convert a zod tuple to a tuple', () => {
+    const tupleSchema = z.object({
+      tuple: z.tuple([z.string(), z.number()]),
+    });
+    const node = NodeDeserializer.deserialize(
+      yamlBlueParse(`
+        tuple:
+          - Hello
+          - 1
+      `) as JsonBlueValue
+    );
+    const result = converter.convert(node, tupleSchema);
+    expect(result).toEqual({ tuple: ['Hello', 1] });
+  });
+
   describe('additional tests', () => {
     it('should convert X with primitive fields - testXConversion', () => {
       const xYaml = `
