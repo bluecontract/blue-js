@@ -18,7 +18,7 @@ import { isSchemaExtendedFrom } from '../../schema/annotations';
 export class NodeToObjectConverter {
   private readonly converterFactory: ConverterFactory;
 
-  constructor(private typeSchemaResolver: TypeSchemaResolver) {
+  constructor(private typeSchemaResolver?: TypeSchemaResolver | null) {
     this.converterFactory = new ConverterFactory(this);
   }
 
@@ -27,7 +27,7 @@ export class NodeToObjectConverter {
     Def extends ZodTypeDef = ZodTypeDef,
     Input = Output
   >(node: BlueNode, targetType: ZodType<Output, Def, Input>): Output {
-    const resolvedSchema = this.typeSchemaResolver.resolveSchema(node);
+    const resolvedSchema = this.typeSchemaResolver?.resolveSchema(node);
     const unwrappedTargetType = this.unwrapSchema(targetType);
 
     let schemaToUse = unwrappedTargetType;

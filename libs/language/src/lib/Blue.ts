@@ -1,12 +1,68 @@
 import { blueObjectSchema, JsonBlueValue } from '../schema';
 import { NodeToObjectConverter } from './mapping';
 import { BlueNode, NodeDeserializer } from './model';
+import { NodeProvider, createNodeProvider } from './NodeProvider';
 import { NodeToMapListOrValue, TypeSchemaResolver } from './utils';
+import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
 import { ZodTypeDef, ZodType } from 'zod';
 import { calculateBlueId, calculateBlueIdSync, yamlBlueParse } from '../utils';
 
 export class Blue {
-  constructor(private typeSchemaResolver: TypeSchemaResolver) {}
+  private nodeProvider: NodeProvider;
+  private typeSchemaResolver: TypeSchemaResolver | null;
+
+  /**
+   * Create a new Blue instance with default NodeProvider
+   */
+  constructor();
+
+  /**
+   * Create a new Blue instance with custom NodeProvider
+   * @param nodeProvider The NodeProvider to use
+   */
+  constructor(nodeProvider: NodeProvider);
+
+  /**
+   * Create a new Blue instance with custom TypeSchemaResolver
+   * @param typeSchemaResolver The TypeSchemaResolver to use
+   */
+  constructor(typeSchemaResolver: TypeSchemaResolver);
+
+  /**
+   * Create a new Blue instance with custom NodeProvider and TypeSchemaResolver
+   * @param nodeProvider The NodeProvider to use
+   * @param typeSchemaResolver The TypeSchemaResolver to use
+   */
+  constructor(
+    nodeProvider: NodeProvider,
+    typeSchemaResolver: TypeSchemaResolver
+  );
+
+  constructor(
+    nodeProviderOrResolver?: NodeProvider | TypeSchemaResolver,
+    maybeTypeSchemaResolver?: TypeSchemaResolver
+  ) {
+    let nodeProvider: NodeProvider | undefined;
+    if (nodeProviderOrResolver instanceof NodeProvider) {
+      nodeProvider = nodeProviderOrResolver;
+    }
+
+    const defaultProvider = createNodeProvider(() => []);
+    this.nodeProvider = NodeProviderWrapper.wrap(
+      nodeProvider || defaultProvider
+    );
+
+    if (maybeTypeSchemaResolver) {
+      this.typeSchemaResolver = maybeTypeSchemaResolver;
+    } else if (
+      nodeProviderOrResolver &&
+      !(nodeProviderOrResolver instanceof NodeProvider)
+    ) {
+      this.typeSchemaResolver = nodeProviderOrResolver;
+    } else {
+      this.typeSchemaResolver = null;
+    }
+  }
 
   public nodeToSchemaOutput<
     Output = unknown,
@@ -54,5 +110,25 @@ export class Blue {
 
   public calculateBlueIdSync(value: JsonBlueValue) {
     return calculateBlueIdSync(value);
+  }
+
+  public getNodeProvider(): NodeProvider {
+    return this.nodeProvider;
+  }
+
+  public setNodeProvider(nodeProvider: NodeProvider): Blue {
+    this.nodeProvider = NodeProviderWrapper.wrap(nodeProvider);
+    return this;
+  }
+
+  public getTypeSchemaResolver(): TypeSchemaResolver | null {
+    return this.typeSchemaResolver;
+  }
+
+  public setTypeSchemaResolver(
+    typeSchemaResolver: TypeSchemaResolver | null
+  ): Blue {
+    this.typeSchemaResolver = typeSchemaResolver;
+    return this;
   }
 }
