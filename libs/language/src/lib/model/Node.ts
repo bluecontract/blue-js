@@ -1,4 +1,3 @@
-import Big from 'big.js';
 import { isNonNullable, JsonPrimitive } from '@blue-company/shared-utils';
 import { NodePathAccessor } from '../utils/NodePathAccessor';
 import { BigIntegerNumber } from './BigIntegerNumber';
@@ -128,7 +127,9 @@ export class BlueNode {
     return this.value;
   }
 
-  setValue(value: JsonPrimitive | Big): BlueNode {
+  setValue(
+    value: JsonPrimitive | BigIntegerNumber | BigDecimalNumber | number
+  ): BlueNode {
     if (typeof value === 'number') {
       if (value % 1 === 0) {
         this.value = new BigIntegerNumber(value.toString());

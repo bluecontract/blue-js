@@ -1,5 +1,6 @@
 import { NodeProvider } from '../NodeProvider';
 import { BlueNode } from '../model';
+import { BasicDirectoryBasedNodeProvider } from './DirectoryBasedNodeProvider';
 
 /**
  * A provider that supplies bootstrap nodes
@@ -8,17 +9,14 @@ import { BlueNode } from '../model';
 export class BootstrapProvider extends NodeProvider {
   public static readonly INSTANCE: BootstrapProvider = new BootstrapProvider();
 
+  private nodeProvider: NodeProvider;
+
   private constructor() {
     super();
-    // Private constructor to enforce singleton pattern
+    this.nodeProvider = new BasicDirectoryBasedNodeProvider();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  override fetchByBlueId(blueId: string): BlueNode[] {
-    // In TypeScript implementation we're returning an empty array
-    // The actual implementation would load bootstrap nodes from a resource
-    return [];
+  override fetchByBlueId(blueId: string): BlueNode[] | null {
+    return this.nodeProvider.fetchByBlueId(blueId);
   }
-
-  // We don't need to implement fetchFirstByBlueId as it's inherited from NodeProvider
 }

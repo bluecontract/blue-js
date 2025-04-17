@@ -73,22 +73,12 @@ items:
 
   it('testPreprocessWithCustomBlueExtendingDefaultBlue- should preprocess with custom Blue extending default Blue using NodeTransformer', async () => {
     const doc = `
-blue:
-  - type:
-      blueId: 27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo
-    mappings:
-      Text: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
-      Double: 68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L
-      Integer: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8
-      Boolean: EL6AjrbJsxTWRTPzY8WR8Y2zAMXRbydQj83PcZwuAHbo
-      List: G8wmfjEqugPEEXByMYWJXiEdbLToPRWNQEekNxrxfQWB
-      Dictionary: 294NBTj2mFRL3RB4kDRUSckwGg7Kzj6T8CTAFeR1kcSA
-  - type:
-      blueId: FGYuTXwaoSKfZmpTysLTLsb8WzSqf43384rKZDkXhxD4
-  - name: MyTestTransformation
-x:
-  type: Integer
-y: ABC`;
+    blue:
+      - blueId: ${Preprocessor.DEFAULT_BLUE_BLUE_ID}
+      - name: MyTestTransformation
+    x:
+      type: Integer
+    y: ABC`;
 
     const parsedYaml = yamlBlueParse(doc);
     const node = NodeDeserializer.deserialize(parsedYaml ?? '');

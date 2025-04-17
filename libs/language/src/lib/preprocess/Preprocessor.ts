@@ -11,12 +11,14 @@ import {
   InferBasicTypesForUntypedValues,
   ReplaceInlineValuesForTypeAttributesWithImports,
 } from './processor';
+import { NodeExtender } from '../utils/NodeExtender';
+import { PathLimits } from '../utils/limits';
+import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
 
 /**
  * Preprocessor class for transforming BlueNodes
  */
 export class Preprocessor {
-  // Default Blue ID for the default Blue transformation
   public static readonly DEFAULT_BLUE_BLUE_ID =
     'FREHAAGDZSzpnoTUoCQ86bBmxbVCULMjvx9JZM6fyqT1';
 
@@ -86,8 +88,10 @@ export class Preprocessor {
     }
 
     if (blueNode) {
-      // TODO
-      // new NodeExtender(nodeProvider).extend(blueNode, PathLimits.withSinglePath("/*"));
+      new NodeExtender(this.nodeProvider).extend(
+        blueNode,
+        PathLimits.withSinglePath('/*')
+      );
 
       const transformations = blueNode.getItems();
       if (transformations && transformations.length > 0) {
@@ -102,7 +106,6 @@ export class Preprocessor {
           }
         }
 
-        // Clear the blue node after processing
         processedDocument.setBlue(undefined);
       }
     }
@@ -124,7 +127,6 @@ export class Preprocessor {
         const INFER_BASIC_TYPES =
           'FGYuTXwaoSKfZmpTysLTLsb8WzSqf43384rKZDkXhxD4';
 
-        // Using path accessor to get blueId; getAsText isn't available in the BlueNode class
         const blueId = transformation.getType()?.getBlueId();
 
         if (REPLACE_INLINE_TYPES === blueId) {
@@ -145,25 +147,8 @@ export class Preprocessor {
    */
   private loadDefaultSimpleBlue(): void {
     try {
-      // Load the DefaultBlue.blue content
-      const defaultBlueContent = `
-- type:
-    blueId: 27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo
-  mappings:
-    Text: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
-    Double: 68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L
-    Integer: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8
-    Boolean: EL6AjrbJsxTWRTPzY8WR8Y2zAMXRbydQj83PcZwuAHbo
-    List: G8wmfjEqugPEEXByMYWJXiEdbLToPRWNQEekNxrxfQWB
-    Dictionary: 294NBTj2mFRL3RB4kDRUSckwGg7Kzj6T8CTAFeR1kcSA
-- type:
-    blueId: FGYuTXwaoSKfZmpTysLTLsb8WzSqf43384rKZDkXhxD4
-`;
-
-      // Parse the yaml content using NodeDeserializer
-      const parsedYaml = yamlBlueParse(defaultBlueContent);
+      const parsedYaml = yamlBlueParse(DefaultBlueYaml);
       if (parsedYaml) {
-        // Create the default Blue node
         this.defaultSimpleBlue = NodeDeserializer.deserialize(parsedYaml);
       } else {
         throw new Error('Failed to parse default Blue content');

@@ -10,7 +10,7 @@ export abstract class NodeProvider {
    * @param blueId - The Blue ID to fetch nodes for
    * @returns A list of nodes found for the Blue ID
    */
-  abstract fetchByBlueId(blueId: string): BlueNode[];
+  abstract fetchByBlueId(blueId: string): BlueNode[] | null;
 
   /**
    * Fetches the first node associated with the given Blue ID
