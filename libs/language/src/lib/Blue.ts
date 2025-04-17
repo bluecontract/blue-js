@@ -2,14 +2,16 @@ import { blueObjectSchema, JsonBlueValue } from '../schema';
 import { NodeToObjectConverter } from './mapping';
 import { BlueNode, NodeDeserializer } from './model';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
-import { NodeToMapListOrValue, TypeSchemaResolver } from './utils';
+import { NodeToMapListOrValue, TypeSchemaResolver, BlueIds } from './utils';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
 import { ZodTypeDef, ZodType } from 'zod';
 import { calculateBlueId, calculateBlueIdSync, yamlBlueParse } from '../utils';
+import { Preprocessor } from './preprocess/Preprocessor';
 
 export class Blue {
   private nodeProvider: NodeProvider;
   private typeSchemaResolver: TypeSchemaResolver | null;
+  private preprocessingAliases: Map<string, string> = new Map();
 
   /**
    * Create a new Blue instance with default NodeProvider
@@ -74,9 +76,14 @@ export class Blue {
   }
 
   public jsonValueToNode(json: JsonBlueValue) {
-    return NodeDeserializer.deserialize(json);
+    return this.preprocess(NodeDeserializer.deserialize(json));
   }
 
+  /**
+   * Converts a YAML string to a BlueNode and preprocesses it
+   * @param yaml - The YAML string to convert
+   * @returns The preprocessed BlueNode
+   */
   public yamlToNode(yaml: string) {
     const json = yamlBlueParse(yaml);
     if (!json) {
@@ -112,6 +119,60 @@ export class Blue {
     return calculateBlueIdSync(value);
   }
 
+  /**
+   * Adds preprocessing aliases to the map
+   * @param aliases - A map of aliases to add
+   */
+  public addPreprocessingAliases(aliases: Map<string, string>): void {
+    // Merge the maps
+    aliases.forEach((value, key) => {
+      this.preprocessingAliases.set(key, value);
+    });
+  }
+
+  /**
+   * Preprocesses a node
+   * @param node - The node to preprocess
+   * @returns The preprocessed node
+   */
+  public preprocess(node: BlueNode): BlueNode {
+    // If the node has a blue value that's a string
+    const blueNode = node.getBlue();
+    if (blueNode && typeof blueNode.getValue() === 'string') {
+      const blueValue = blueNode.getValue() as string;
+
+      // TODO: Check it if the aliases works
+      // Check if it's an alias
+      if (this.preprocessingAliases.has(blueValue)) {
+        // Clone the node and replace the blue value with the alias
+        const clonedNode = node.clone();
+        const newBlueNode = new BlueNode();
+        newBlueNode.setBlueId(this.preprocessingAliases.get(blueValue));
+        clonedNode.setBlue(newBlueNode);
+        return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
+          clonedNode
+        );
+      }
+      // Check if it's a potential blue ID
+      else if (BlueIds.isPotentialBlueId(blueValue)) {
+        // Clone the node and set the blue ID
+        const clonedNode = node.clone();
+        const newBlueNode = new BlueNode();
+        newBlueNode.setBlueId(blueValue);
+        clonedNode.setBlue(newBlueNode);
+        return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
+          clonedNode
+        );
+      }
+      // Invalid blue value
+      else {
+        throw new Error(`Invalid blue value: ${blueValue}`);
+      }
+    }
+
+    return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(node);
+  }
+
   public getNodeProvider(): NodeProvider {
     return this.nodeProvider;
   }
@@ -129,6 +190,24 @@ export class Blue {
     typeSchemaResolver: TypeSchemaResolver | null
   ): Blue {
     this.typeSchemaResolver = typeSchemaResolver;
+    return this;
+  }
+
+  /**
+   * Gets the preprocessing aliases
+   * @returns The preprocessing aliases map
+   */
+  public getPreprocessingAliases(): Map<string, string> {
+    return this.preprocessingAliases;
+  }
+
+  /**
+   * Sets the preprocessing aliases
+   * @param aliases - The preprocessing aliases to set
+   * @returns This Blue instance
+   */
+  public setPreprocessingAliases(aliases: Map<string, string>): Blue {
+    this.preprocessingAliases = aliases;
     return this;
   }
 }
