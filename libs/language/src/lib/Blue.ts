@@ -136,36 +136,25 @@ export class Blue {
    * @returns The preprocessed node
    */
   public preprocess(node: BlueNode): BlueNode {
-    // If the node has a blue value that's a string
     const blueNode = node.getBlue();
     if (blueNode && typeof blueNode.getValue() === 'string') {
       const blueValue = blueNode.getValue() as string;
 
-      // TODO: Check it if the aliases works
-      // Check if it's an alias
       if (this.preprocessingAliases.has(blueValue)) {
-        // Clone the node and replace the blue value with the alias
         const clonedNode = node.clone();
-        const newBlueNode = new BlueNode();
-        newBlueNode.setBlueId(this.preprocessingAliases.get(blueValue));
-        clonedNode.setBlue(newBlueNode);
+        clonedNode.setBlue(
+          new BlueNode().setBlueId(this.preprocessingAliases.get(blueValue))
+        );
         return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
           clonedNode
         );
-      }
-      // Check if it's a potential blue ID
-      else if (BlueIds.isPotentialBlueId(blueValue)) {
-        // Clone the node and set the blue ID
+      } else if (BlueIds.isPotentialBlueId(blueValue)) {
         const clonedNode = node.clone();
-        const newBlueNode = new BlueNode();
-        newBlueNode.setBlueId(blueValue);
-        clonedNode.setBlue(newBlueNode);
+        clonedNode.setBlue(new BlueNode().setBlueId(blueValue));
         return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
           clonedNode
         );
-      }
-      // Invalid blue value
-      else {
+      } else {
         throw new Error(`Invalid blue value: ${blueValue}`);
       }
     }
