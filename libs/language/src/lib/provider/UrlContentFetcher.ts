@@ -3,8 +3,13 @@ import { isUrl } from '../../utils/url';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue } from '../../schema';
 
+type UrlFetchResult = {
+  data: string;
+  contentType: string;
+};
+
 export interface UrlFetchStrategy {
-  fetchUrl(url: string): Promise<{ data: string; contentType: string }>;
+  fetchUrl(url: string): Promise<UrlFetchResult>;
 }
 
 const DefaultUrlFetchStrategy: UrlFetchStrategy = {
@@ -36,45 +41,44 @@ export class UrlContentFetcher {
     return this.cache.get(url) || [];
   }
 
-  public async fetchAndCache(url: string): Promise<BlueNode[] | null> {
+  public async fetchAndCache(url: string): Promise<BlueNode[]> {
     if (!this.canHandleUrl(url)) {
-      return null;
+      throw new Error(`Unsupported URL: ${url}`);
     }
-
+    let urlFetchResult: UrlFetchResult;
     try {
-      const { data, contentType } = await this.fetchStrategy.fetchUrl(url);
-      let parsedData: JsonBlueValue | undefined;
-
-      if (
-        contentType.includes('application/json') ||
-        contentType.includes('text/yaml') ||
-        contentType.includes('application/yaml') ||
-        contentType.includes('text/plain')
-      ) {
-        parsedData = yamlBlueParse(data);
-      } else {
-        console.error(`Unsupported content type from URL: ${contentType}`);
-        return null;
-      }
-
-      if (parsedData === undefined) {
-        console.error(`Failed to parse content from URL: ${url}`);
-        return null;
-      }
-
-      let nodes: BlueNode[];
-      if (Array.isArray(parsedData)) {
-        nodes = parsedData.map((item) => NodeDeserializer.deserialize(item));
-      } else {
-        nodes = [NodeDeserializer.deserialize(parsedData)];
-      }
-
-      this.cache.set(url, nodes);
-      return nodes;
+      urlFetchResult = await this.fetchStrategy.fetchUrl(url);
     } catch (error) {
-      console.error(`Error fetching from URL: ${url}`, error);
-      return null;
+      throw new Error(`Error fetching from URL: ${url}`, { cause: error });
     }
+
+    const { data, contentType } = urlFetchResult;
+    let parsedData: JsonBlueValue | undefined;
+
+    if (
+      contentType.includes('application/json') ||
+      contentType.includes('text/yaml') ||
+      contentType.includes('application/yaml') ||
+      contentType.includes('text/plain')
+    ) {
+      parsedData = yamlBlueParse(data);
+    } else {
+      throw new Error(`Unsupported content type from URL: ${contentType}`);
+    }
+
+    if (parsedData === undefined) {
+      throw new Error(`Failed to parse content from URL: ${url}`);
+    }
+
+    let nodes: BlueNode[];
+    if (Array.isArray(parsedData)) {
+      nodes = parsedData.map((item) => NodeDeserializer.deserialize(item));
+    } else {
+      nodes = [NodeDeserializer.deserialize(parsedData)];
+    }
+
+    this.cache.set(url, nodes);
+    return nodes;
   }
 
   public prefetchUrl(url: string, nodes: BlueNode[]): void {

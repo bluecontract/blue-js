@@ -130,18 +130,12 @@ export class BlueDirectivePreprocessor {
    * @param url - The URL to fetch from
    * @returns Promise that resolves to the fetched BlueNodes or null if fetch fails
    */
-  private async fetchFromUrl(url: string): Promise<BlueNode[] | null> {
+  private async fetchFromUrl(url: string): Promise<BlueNode[]> {
     if (!this.urlContentFetcher) {
-      return null;
+      throw new Error(`UrlContentFetcher not provided for URL: ${url}`);
     }
 
-    try {
-      // Use the UrlContentFetcher to load the URL content
-      return await this.urlContentFetcher.fetchAndCache(url);
-    } catch (error) {
-      console.error(`Error fetching from URL: ${url}`, error);
-      return null;
-    }
+    return await this.urlContentFetcher.fetchAndCache(url);
   }
 
   /**
