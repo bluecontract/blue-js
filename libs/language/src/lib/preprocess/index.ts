@@ -7,3 +7,4 @@ export {
   ReplaceInlineValuesForTypeAttributesWithImports,
 } from './processor';
 export { Preprocessor } from './Preprocessor';
+export { BlueDirectivePreprocessor } from './BlueDirectivePreprocessor';

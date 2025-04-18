@@ -34,7 +34,7 @@ describe('Blue', () => {
 
     it('should create instance with NodeProvider only', () => {
       const nodeProvider = new MockNodeProvider();
-      const blue = new Blue(nodeProvider);
+      const blue = new Blue({ nodeProvider });
 
       expect(blue).toBeInstanceOf(Blue);
       expect(blue.getNodeProvider()).toBe(nodeProvider);
@@ -46,7 +46,7 @@ describe('Blue', () => {
         resolveSchema: vi.fn(),
         getBlueIdMap: vi.fn().mockReturnValue(new Map()),
       } as unknown as TypeSchemaResolver;
-      const blue = new Blue(mockTypeSchemaResolver);
+      const blue = new Blue({ typeSchemaResolver: mockTypeSchemaResolver });
       expect(blue).toBeInstanceOf(Blue);
       expect(blue.getNodeProvider()).toBeDefined();
       expect(blue.getTypeSchemaResolver()).toBe(mockTypeSchemaResolver);
@@ -59,7 +59,10 @@ describe('Blue', () => {
         getBlueIdMap: vi.fn().mockReturnValue(new Map()),
       } as unknown as TypeSchemaResolver;
 
-      const blue = new Blue(nodeProvider, typeResolver);
+      const blue = new Blue({
+        nodeProvider,
+        typeSchemaResolver: typeResolver,
+      });
 
       expect(blue).toBeInstanceOf(Blue);
       expect(blue.getNodeProvider()).toBe(nodeProvider);
