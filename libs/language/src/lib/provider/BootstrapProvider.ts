@@ -1,6 +1,6 @@
 import { NodeProvider } from '../NodeProvider';
 import { BlueNode } from '../model';
-import { BasicDirectoryBasedNodeProvider } from './DirectoryBasedNodeProvider';
+import { BaseContentNodeProvider } from './BaseContentNodeProvider';
 
 /**
  * A provider that supplies bootstrap nodes
@@ -13,7 +13,7 @@ export class BootstrapProvider extends NodeProvider {
 
   private constructor() {
     super();
-    this.nodeProvider = new BasicDirectoryBasedNodeProvider();
+    this.nodeProvider = new BaseContentNodeProvider();
   }
 
   override fetchByBlueId(blueId: string): BlueNode[] | null {

@@ -15,8 +15,8 @@ const contents = [
   ReplaceInlineTypesWithBlueIdsYaml,
 ];
 
-export class BasicDirectoryBasedNodeProvider extends NodeProvider {
-  private blueIdToContentMap: Map<string, BlueNode[]> = new Map();
+export class BaseContentNodeProvider extends NodeProvider {
+  private blueIdToNodesMap: Map<string, BlueNode[]> = new Map();
 
   constructor() {
     super();
@@ -24,7 +24,7 @@ export class BasicDirectoryBasedNodeProvider extends NodeProvider {
   }
 
   override fetchByBlueId(blueId: string): BlueNode[] {
-    return this.blueIdToContentMap.get(blueId) || [];
+    return this.blueIdToNodesMap.get(blueId) || [];
   }
 
   private load() {
@@ -41,11 +41,11 @@ export class BasicDirectoryBasedNodeProvider extends NodeProvider {
           NodeDeserializer.deserialize(item)
         );
         const blueId = BlueIdCalculator.calculateBlueIdSyncForNodes(nodes);
-        this.blueIdToContentMap.set(blueId, nodes);
+        this.blueIdToNodesMap.set(blueId, nodes);
       } else {
         const node = NodeDeserializer.deserialize(parsedYaml);
         const blueId = BlueIdCalculator.calculateBlueIdSync(node);
-        this.blueIdToContentMap.set(blueId, [node]);
+        this.blueIdToNodesMap.set(blueId, [node]);
       }
     }
   }

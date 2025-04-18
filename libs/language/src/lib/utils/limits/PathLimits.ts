@@ -1,5 +1,12 @@
 import { Limits } from './Limits';
 
+function javaLikeSplit(input: string, delimiter: string | RegExp): string[] {
+  const parts = input.split(delimiter);
+  const reversedIndex = [...parts].reverse().findIndex((part) => part !== '');
+  const cutoff = reversedIndex === -1 ? 0 : parts.length - reversedIndex;
+  return parts.slice(0, cutoff);
+}
+
 /**
  * Supported features:
  * 1. Exact path matching (e.g., "/a/b/c")
@@ -69,8 +76,8 @@ export class PathLimits extends Limits {
    * @returns True if the path matches the allowed path pattern, false otherwise
    */
   private matchesAllowedPath(allowedPath: string, path: string): boolean {
-    const allowedParts = allowedPath.split('/');
-    const pathParts = path.split('/');
+    const allowedParts = javaLikeSplit(allowedPath, '/');
+    const pathParts = javaLikeSplit(path, '/');
 
     if (pathParts.length > allowedParts.length) {
       return false;
