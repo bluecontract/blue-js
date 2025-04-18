@@ -1,9 +1,9 @@
 export { Base58Sha256Provider } from './Base58Sha256Provider';
-export { BlueIds } from './BlueIds';
-export { BlueIdCalculator } from './BlueIdCalculator';
+export * from './BlueIds';
+export * from './BlueIdCalculator';
 export { BlueIdToCid } from './BlueIdToCid';
 export { JsonCanonicalizer } from './JsonCanonicalizer';
-export { NodeToMapListOrValue } from './NodeToMapListOrValue';
+export * from './NodeToMapListOrValue';
 export * as Properties from './Properties';
-export { TypeSchemaResolver } from './TypeSchemaResolver';
+export * from './TypeSchemaResolver';
 export * from './NodeTransformer';

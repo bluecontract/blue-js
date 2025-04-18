@@ -1,17 +1,20 @@
-import { blueObjectSchema, JsonBlueValue } from '../schema';
+import { JsonBlueValue } from '../schema';
 import { NodeToObjectConverter } from './mapping';
 import { BlueNode, NodeDeserializer } from './model';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
-import { NodeToMapListOrValue, TypeSchemaResolver, BlueIds } from './utils';
+import { TypeSchemaResolver, BlueIds } from './utils';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
 import { ZodTypeDef, ZodType } from 'zod';
 import { calculateBlueId, calculateBlueIdSync, yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
+import { isUrl } from '../utils/url';
+import { UrlNodeProvider } from './provider/UrlNodeProvider';
 
 export class Blue {
   private nodeProvider: NodeProvider;
   private typeSchemaResolver: TypeSchemaResolver | null;
   private preprocessingAliases: Map<string, string> = new Map();
+  private urlNodeProvider: UrlNodeProvider;
 
   /**
    * Create a new Blue instance with default NodeProvider
@@ -49,6 +52,9 @@ export class Blue {
       nodeProvider = nodeProviderOrResolver;
     }
 
+    // Initialize URL node provider for use in preprocess method
+    this.urlNodeProvider = new UrlNodeProvider();
+
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider || defaultProvider
@@ -75,8 +81,22 @@ export class Blue {
     return converter.convert(node, schema);
   }
 
+  /**
+   * Converts JSON to node and preprocesses it
+   * @param json - The JSON value to convert
+   * @returns The preprocessed BlueNode
+   */
   public jsonValueToNode(json: JsonBlueValue) {
     return this.preprocess(NodeDeserializer.deserialize(json));
+  }
+
+  /**
+   * Asynchronously converts JSON to node and preprocesses it
+   * @param json - The JSON value to convert
+   * @returns Promise that resolves to the preprocessed BlueNode
+   */
+  public async jsonValueToNodeAsync(json: JsonBlueValue): Promise<BlueNode> {
+    return this.preprocessAsync(NodeDeserializer.deserialize(json));
   }
 
   /**
@@ -92,23 +112,17 @@ export class Blue {
     return this.jsonValueToNode(json);
   }
 
-  public nodeToBlueObject(node: BlueNode) {
-    try {
-      const jsonBlueObject = NodeToMapListOrValue.get(node);
-      return blueObjectSchema.parse(jsonBlueObject);
-    } catch (error) {
-      throw new Error(`Failed transforming BlueNode to BlueObject: ${error}`);
+  /**
+   * Asynchronously converts a YAML string to a BlueNode and preprocesses it
+   * @param yaml - The YAML string to convert
+   * @returns Promise that resolves to the preprocessed BlueNode
+   */
+  public async yamlToNodeAsync(yaml: string): Promise<BlueNode> {
+    const json = yamlBlueParse(yaml);
+    if (!json) {
+      throw new Error('Failed to parse YAML to JSON');
     }
-  }
-
-  public jsonValueToBlueObject(json: JsonBlueValue) {
-    const node = this.jsonValueToNode(json);
-    return this.nodeToBlueObject(node);
-  }
-
-  public yamlToBlueObject(yaml: string) {
-    const node = this.yamlToNode(yaml);
-    return this.nodeToBlueObject(node);
+    return this.jsonValueToNodeAsync(json);
   }
 
   public calculateBlueId(value: JsonBlueValue) {
@@ -124,7 +138,6 @@ export class Blue {
    * @param aliases - A map of aliases to add
    */
   public addPreprocessingAliases(aliases: Map<string, string>): void {
-    // Merge the maps
     aliases.forEach((value, key) => {
       this.preprocessingAliases.set(key, value);
     });
@@ -137,29 +150,94 @@ export class Blue {
    */
   public preprocess(node: BlueNode): BlueNode {
     const blueNode = node.getBlue();
-    if (blueNode && typeof blueNode.getValue() === 'string') {
-      const blueValue = blueNode.getValue() as string;
+    const blueNodeValue = blueNode?.getValue();
+    if (blueNodeValue && typeof blueNodeValue === 'string') {
+      const clonedNode = node.clone();
 
-      if (this.preprocessingAliases.has(blueValue)) {
-        const clonedNode = node.clone();
+      if (this.preprocessingAliases.has(blueNodeValue)) {
         clonedNode.setBlue(
-          new BlueNode().setBlueId(this.preprocessingAliases.get(blueValue))
+          new BlueNode().setBlueId(this.preprocessingAliases.get(blueNodeValue))
         );
         return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
           clonedNode
         );
-      } else if (BlueIds.isPotentialBlueId(blueValue)) {
-        const clonedNode = node.clone();
-        clonedNode.setBlue(new BlueNode().setBlueId(blueValue));
+      } else if (isUrl(blueNodeValue)) {
+        throw new Error(
+          `URL '${blueNodeValue}' detected. Use the async version of this method to fetch the content.`
+        );
+      } else if (BlueIds.isPotentialBlueId(blueNodeValue)) {
+        clonedNode.setBlue(new BlueNode().setBlueId(blueNodeValue));
         return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
           clonedNode
         );
       } else {
-        throw new Error(`Invalid blue value: ${blueValue}`);
+        throw new Error(`Invalid blue value: ${blueNodeValue}`);
       }
     }
 
     return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(node);
+  }
+
+  /**
+   * Asynchronously preprocesses a node, with support for URL fetching
+   * @param node - The node to preprocess
+   * @returns Promise that resolves to the preprocessed node
+   */
+  public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
+    const blueNode = node.getBlue();
+    const blueNodeValue = blueNode?.getValue();
+    if (blueNodeValue && typeof blueNodeValue === 'string') {
+      const clonedNode = node.clone();
+
+      if (this.preprocessingAliases.has(blueNodeValue)) {
+        clonedNode.setBlue(
+          new BlueNode().setBlueId(this.preprocessingAliases.get(blueNodeValue))
+        );
+        return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
+          clonedNode
+        );
+      } else if (BlueIds.isPotentialBlueId(blueNodeValue)) {
+        clonedNode.setBlue(new BlueNode().setBlueId(blueNodeValue));
+        return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
+          clonedNode
+        );
+      } else if (isUrl(blueNodeValue)) {
+        const urlNodes = await this.fetchFromUrl(blueNodeValue);
+        if (urlNodes) {
+          clonedNode.setBlue(new BlueNode().setItems(urlNodes));
+        }
+
+        return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
+          clonedNode
+        );
+      } else {
+        throw new Error(`Invalid blue value: ${blueNodeValue}`);
+      }
+    }
+
+    return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(node);
+  }
+
+  /**
+   * Fetches content from a URL
+   * @param url - The URL to fetch from
+   * @returns Promise that resolves to the fetched JSON data or null if fetch fails
+   */
+  private async fetchFromUrl(url: string): Promise<BlueNode[] | null> {
+    try {
+      // Use the UrlNodeProvider to load the URL content
+      await this.urlNodeProvider.fetchAndCacheAsync(url);
+
+      // Check if the content was loaded successfully
+      const nodes = this.urlNodeProvider.fetchByBlueId(url);
+      if (nodes && nodes.length > 0) {
+        return nodes;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error fetching from URL: ${url}`, error);
+      return null;
+    }
   }
 
   public getNodeProvider(): NodeProvider {
@@ -182,19 +260,10 @@ export class Blue {
     return this;
   }
 
-  /**
-   * Gets the preprocessing aliases
-   * @returns The preprocessing aliases map
-   */
   public getPreprocessingAliases(): Map<string, string> {
     return this.preprocessingAliases;
   }
 
-  /**
-   * Sets the preprocessing aliases
-   * @param aliases - The preprocessing aliases to set
-   * @returns This Blue instance
-   */
   public setPreprocessingAliases(aliases: Map<string, string>): Blue {
     this.preprocessingAliases = aliases;
     return this;
