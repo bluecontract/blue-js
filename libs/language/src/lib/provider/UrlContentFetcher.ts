@@ -24,27 +24,58 @@ export class UrlContentFetcher {
   // Cache to avoid repeated network requests for the same URL
   private cache: Map<string, BlueNode[]> = new Map();
   private fetchStrategy: UrlFetchStrategy;
+  private enabled = false;
+  private allowedDomains: string[] = [];
 
   constructor(fetchStrategy?: UrlFetchStrategy) {
     this.fetchStrategy = fetchStrategy || DefaultUrlFetchStrategy;
   }
 
-  public canHandleUrl(url: string): boolean {
-    return isUrl(url);
+  public validateUrl(url: string): boolean {
+    if (!isUrl(url)) {
+      throw new Error(`Invalid URL: ${url}`);
+    }
+    return true;
+  }
+
+  public isDomainAllowed(url: string): boolean {
+    if (this.allowedDomains.length === 0) {
+      return true;
+    }
+
+    try {
+      const urlObj = new URL(url);
+      return this.allowedDomains.some(
+        (domain) =>
+          urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
+      );
+    } catch {
+      return false;
+    }
   }
 
   public getFromCache(url: string): BlueNode[] {
-    if (!this.canHandleUrl(url)) {
+    try {
+      this.validateUrl(url);
+      return this.cache.get(url) || [];
+    } catch {
       return [];
     }
-
-    return this.cache.get(url) || [];
   }
 
   public async fetchAndCache(url: string): Promise<BlueNode[]> {
-    if (!this.canHandleUrl(url)) {
-      throw new Error(`Unsupported URL: ${url}`);
+    this.validateUrl(url);
+
+    if (!this.enabled) {
+      throw new Error(
+        `URL fetching is disabled. Enable it using the enableFetching method.`
+      );
     }
+
+    if (!this.isDomainAllowed(url)) {
+      throw new Error(`Domain not allowed for URL: ${url}.`);
+    }
+
     let urlFetchResult: UrlFetchResult;
     try {
       urlFetchResult = await this.fetchStrategy.fetchUrl(url);
@@ -82,8 +113,11 @@ export class UrlContentFetcher {
   }
 
   public prefetchUrl(url: string, nodes: BlueNode[]): void {
-    if (this.canHandleUrl(url)) {
+    try {
+      this.validateUrl(url);
       this.cache.set(url, nodes);
+    } catch {
+      // Silently ignore invalid URLs for prefetch
     }
   }
 
@@ -98,5 +132,79 @@ export class UrlContentFetcher {
 
   public getFetchStrategy(): UrlFetchStrategy {
     return this.fetchStrategy;
+  }
+
+  /**
+   * Enables fetching for all URLs
+   * @returns This instance for chaining
+   */
+  public enableFetching(): UrlContentFetcher {
+    this.enabled = true;
+    this.allowedDomains = [];
+    return this;
+  }
+
+  /**
+   * Enables fetching for specific domains only
+   * @param domains Array of allowed domains
+   * @returns This instance for chaining
+   */
+  public enableFetchingForDomains(domains: string[]): UrlContentFetcher {
+    this.enabled = true;
+    this.allowedDomains = [...domains];
+    return this;
+  }
+
+  /**
+   * Disables all URL fetching
+   * @returns This instance for chaining
+   */
+  public disableFetching(): UrlContentFetcher {
+    this.enabled = false;
+    return this;
+  }
+
+  public isFetchingEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /**
+   * Gets the list of allowed domains
+   * An empty list means all domains are allowed when fetching is enabled
+   * @returns Array of allowed domains
+   */
+  public getAllowedDomains(): string[] {
+    return [...this.allowedDomains];
+  }
+
+  /**
+   * Adds a domain to the allowed domains list
+   * @param domain Domain to allow
+   * @returns This instance for chaining
+   */
+  public allowDomain(domain: string): UrlContentFetcher {
+    if (!this.allowedDomains.includes(domain)) {
+      this.allowedDomains.push(domain);
+    }
+    return this;
+  }
+
+  /**
+   * Removes a domain from the allowed domains list
+   * @param domain Domain to disallow
+   * @returns This instance for chaining
+   */
+  public disallowDomain(domain: string): UrlContentFetcher {
+    this.allowedDomains = this.allowedDomains.filter((d) => d !== domain);
+    return this;
+  }
+
+  /**
+   * Clears all allowed domains, meaning all domains will be allowed when fetching is enabled
+   * @returns This instance for chaining
+   */
+  public clearAllowedDomains(): UrlContentFetcher {
+    this.allowedDomains = [];
+    return this;
   }
 }

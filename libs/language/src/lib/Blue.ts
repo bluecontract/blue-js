@@ -136,6 +136,81 @@ export class Blue {
     return this;
   }
 
+  /**
+   * Enables fetching content from URLs in blue directives for all domains.
+   * By default, URL fetching is disabled for security reasons.
+   * This clears any domain restrictions that may have been set.
+   *
+   * @returns This instance for chaining
+   */
+  public enablePreprocessingDirectivesFetchForUrls(): Blue {
+    this.urlContentFetcher.enableFetching();
+    return this;
+  }
+
+  /**
+   * Enables fetching content from URLs in blue directives only for specified domains.
+   * By default, URL fetching is disabled for security reasons.
+   *
+   * @param domains Array of domains to allow (e.g. ['example.com', 'api.github.com'])
+   * @returns This instance for chaining
+   */
+  public enablePreprocessingDirectivesFetchForDomains(domains: string[]): Blue {
+    this.urlContentFetcher.enableFetchingForDomains(domains);
+    return this;
+  }
+
+  /**
+   * Adds a domain to the list of allowed domains for URL fetching.
+   *
+   * @param domain Domain to allow (e.g. 'example.com')
+   * @returns This instance for chaining
+   */
+  public allowUrlFetchingForDomain(domain: string): Blue {
+    this.urlContentFetcher.allowDomain(domain);
+    return this;
+  }
+
+  /**
+   * Removes a domain from the list of allowed domains for URL fetching.
+   *
+   * @param domain Domain to disallow
+   * @returns This instance for chaining
+   */
+  public disallowUrlFetchingForDomain(domain: string): Blue {
+    this.urlContentFetcher.disallowDomain(domain);
+    return this;
+  }
+
+  /**
+   * Gets the list of domains allowed for URL fetching.
+   * An empty list means all domains are allowed when fetching is enabled.
+   *
+   * @returns Array of allowed domains
+   */
+  public getAllowedUrlFetchingDomains(): string[] {
+    return this.urlContentFetcher.getAllowedDomains();
+  }
+
+  /**
+   * Disables fetching content from URLs in blue directives.
+   *
+   * @returns This instance for chaining
+   */
+  public disablePreprocessingDirectivesFetchForUrls(): Blue {
+    this.urlContentFetcher.disableFetching();
+    return this;
+  }
+
+  /**
+   * Checks if URL fetching is enabled for blue directives
+   *
+   * @returns true if URL fetching is enabled, false otherwise
+   */
+  public isPreprocessingDirectivesFetchForUrlsEnabled(): boolean {
+    return this.urlContentFetcher.isFetchingEnabled();
+  }
+
   public getPreprocessingAliases(): Map<string, string> {
     return this.blueDirectivePreprocessor.getPreprocessingAliases();
   }

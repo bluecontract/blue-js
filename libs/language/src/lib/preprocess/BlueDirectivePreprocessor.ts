@@ -71,11 +71,20 @@ export class BlueDirectivePreprocessor {
       } else if (BlueIds.isPotentialBlueId(blueNodeValue)) {
         return this.handleBlueId(clonedNode, blueNodeValue);
       } else if (isUrl(blueNodeValue) && this.urlContentFetcher) {
-        const urlNodes = await this.fetchFromUrl(blueNodeValue);
-        if (urlNodes) {
-          clonedNode.setBlue(new BlueNode().setItems(urlNodes));
+        try {
+          const urlNodes = await this.fetchFromUrl(blueNodeValue);
+          if (urlNodes) {
+            clonedNode.setBlue(new BlueNode().setItems(urlNodes));
+          }
+          return clonedNode;
+        } catch (error) {
+          if (error instanceof Error) {
+            throw new Error(
+              `Failed to fetch from URL '${blueNodeValue}'.\n${error.message}`
+            );
+          }
+          throw error;
         }
-        return clonedNode;
       } else if (isUrl(blueNodeValue)) {
         throw new Error(
           `UrlContentFetcher not provided for URL: ${blueNodeValue}`

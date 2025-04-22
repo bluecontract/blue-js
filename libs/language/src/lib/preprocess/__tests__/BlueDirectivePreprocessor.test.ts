@@ -135,12 +135,28 @@ describe('BlueDirectivePreprocessor', () => {
       spy.mockRestore();
     });
 
-    it('should fetch content from URL and set it as items in the blue node', async () => {
+    it('should throw error for URL fetching when fetching is disabled (default)', async () => {
+      const mockFetchStrategy = new MockUrlFetchStrategy();
+      const fetcher = new UrlContentFetcher(mockFetchStrategy);
+      preprocessor = new BlueDirectivePreprocessor(new Map(), fetcher);
+
+      const url = 'https://example.com/data.json';
+      const node = new BlueNode().setBlue(new BlueNode().setValue(url));
+
+      await expect(preprocessor.processAsync(node)).rejects.toThrow(
+        'URL fetching is disabled. Enable it using the enableFetching method.'
+      );
+
+      expect(mockFetchStrategy.fetchCalled).toBe(false);
+    });
+
+    it('should fetch content from URL when fetching is enabled', async () => {
       const mockFetchStrategy = new MockUrlFetchStrategy({
         data: JSON.stringify({ value: 'test data' }),
         contentType: 'application/json',
       });
       const fetcher = new UrlContentFetcher(mockFetchStrategy);
+      fetcher.enableFetching();
       preprocessor = new BlueDirectivePreprocessor(new Map(), fetcher);
 
       const url = 'https://example.com/data.json';
