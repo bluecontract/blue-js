@@ -1,3 +1,9 @@
+## 1.12.0 (2025-04-22)
+
+### 🚀 Features
+
+- Refactor BlueId calculation methods for improved flexibility and performance ([73bde17](https://github.com/bluecontract/blue-js/commit/73bde17))
+
 ## 1.11.0 (2025-04-22)
 
 ### 🚀 Features
