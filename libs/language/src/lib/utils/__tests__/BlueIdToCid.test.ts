@@ -148,9 +148,7 @@ describe('BlueIdToCid - additional tests', async () => {
       const ingredientsNodes = twoIngredients.map((ingredient) =>
         NodeDeserializer.deserialize(ingredient)
       );
-      const blueId = await BlueIdCalculator.calculateBlueIdForNodes(
-        ingredientsNodes
-      );
+      const blueId = await BlueIdCalculator.calculateBlueId(ingredientsNodes);
       const cidFromBlueId = BlueIdToCid.convert(blueId);
 
       const ingredientsBlueIds = await Promise.all(

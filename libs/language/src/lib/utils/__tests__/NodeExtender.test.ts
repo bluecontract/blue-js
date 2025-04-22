@@ -159,10 +159,7 @@ value: 3`;
 
     nodeProvider.addSingleNodes(nodeA, nodeB, nodeC);
 
-    const listBlueId = BlueIdCalculator.calculateBlueIdSyncForNodes([
-      nodeA,
-      nodeB,
-    ]);
+    const listBlueId = BlueIdCalculator.calculateBlueIdSync([nodeA, nodeB]);
     nodeProvider.addListAndItsItems([nodeA, nodeB]);
 
     const blueIdC = BlueIdCalculator.calculateBlueIdSync(nodeC);
@@ -236,10 +233,7 @@ value: 3`;
     nodeProvider.addSingleNodes(nodeA, nodeB, nodeC);
 
     // Create a list of A and B nodes
-    const listABBlueId = BlueIdCalculator.calculateBlueIdSyncForNodes([
-      nodeA,
-      nodeB,
-    ]);
+    const listABBlueId = BlueIdCalculator.calculateBlueIdSync([nodeA, nodeB]);
     nodeProvider.addList([nodeA, nodeB]);
 
     // Create a reference node for AB list
@@ -253,10 +247,7 @@ value: 3`;
 
     // Create a list of AB reference and C
     nodeProvider.addList([nodeAB, nodeC]);
-    const listABCBlueId = BlueIdCalculator.calculateBlueIdSyncForNodes([
-      nodeAB,
-      nodeC,
-    ]);
+    const listABCBlueId = BlueIdCalculator.calculateBlueIdSync([nodeAB, nodeC]);
 
     // Create a reference node for the final ABC list
     const abcDocument = `blueId: ${listABCBlueId}`;
