@@ -1,3 +1,15 @@
+## 1.11.0 (2025-04-22)
+
+### 🚀 Features
+
+- Introduce NodeProvider and enhance Blue class ([93166f7](https://github.com/bluecontract/blue-js/commit/93166f7))
+- Implement preprocessing functionality in Blue class ([63068b6](https://github.com/bluecontract/blue-js/commit/63068b6))
+- Introduced NodeExtender class for resolving node references and extending nodes with their properties ([b5fc472](https://github.com/bluecontract/blue-js/commit/b5fc472))
+- Implement BaseContentNodeProvider and InMemoryNodeProvider for enhanced node management ([043abc5](https://github.com/bluecontract/blue-js/commit/043abc5))
+- Add UrlNodeProvider for fetching nodes from URLs ([89ee46f](https://github.com/bluecontract/blue-js/commit/89ee46f))
+- Refactor Blue class to use UrlContentFetcher and BlueDirectivePreprocessor ([9e91b82](https://github.com/bluecontract/blue-js/commit/9e91b82))
+- Enhance URL fetching capabilities in Blue and UrlContentFetcher ([52a935a](https://github.com/bluecontract/blue-js/commit/52a935a))
+
 ## 1.10.0 (2025-02-21)
 
 ### 🚀 Features
