@@ -56,25 +56,35 @@ export class BlueIdCalculator {
     this.hashProvider = hashProvider;
   }
 
-  public static calculateBlueId(node: BlueNode) {
+  public static calculateBlueId(node: BlueNode | BlueNode[]) {
+    if (Array.isArray(node)) {
+      const nodes = node.map((n) => NodeToMapListOrValue.get(n));
+      return BlueIdCalculator.INSTANCE.calculate(nodes);
+    }
+
     const object = NodeToMapListOrValue.get(node);
     return BlueIdCalculator.INSTANCE.calculate(object);
   }
 
-  public static calculateBlueIdSync(node: BlueNode) {
+  public static calculateBlueIdSync(node: BlueNode | BlueNode[]) {
+    if (Array.isArray(node)) {
+      const nodes = node.map((n) => NodeToMapListOrValue.get(n));
+      return BlueIdCalculator.INSTANCE.calculateSync(nodes);
+    }
+
     const object = NodeToMapListOrValue.get(node);
     return BlueIdCalculator.INSTANCE.calculateSync(object);
   }
 
-  public static calculateBlueIdForNodes(nodes: BlueNode[]) {
-    const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
-    return BlueIdCalculator.INSTANCE.calculate(objects);
-  }
+  // public static calculateBlueIdForNodes(nodes: BlueNode[]) {
+  //   const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
+  //   return BlueIdCalculator.INSTANCE.calculate(objects);
+  // }
 
-  public static calculateBlueIdSyncForNodes(nodes: BlueNode[]) {
-    const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
-    return BlueIdCalculator.INSTANCE.calculateSync(objects);
-  }
+  // public static calculateBlueIdSyncForNodes(nodes: BlueNode[]) {
+  //   const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
+  //   return BlueIdCalculator.INSTANCE.calculateSync(objects);
+  // }
 
   public calculate(object: JsonBlueValue) {
     const cleanedObject = this.cleanStructure(object);

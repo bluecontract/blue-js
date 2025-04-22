@@ -2,10 +2,10 @@ import { JsonBlueValue } from '../schema';
 import { NodeToObjectConverter } from './mapping';
 import { BlueNode, NodeDeserializer } from './model';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
-import { TypeSchemaResolver } from './utils';
+import { BlueIdCalculator, TypeSchemaResolver } from './utils';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
 import { ZodTypeDef, ZodType } from 'zod';
-import { calculateBlueId, calculateBlueIdSync, yamlBlueParse } from '../utils';
+import { yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
 import { BlueDirectivePreprocessor } from './preprocess/BlueDirectivePreprocessor';
 import {
@@ -79,12 +79,53 @@ export class Blue {
     return this.jsonValueToNodeAsync(json);
   }
 
-  public calculateBlueId(value: JsonBlueValue) {
-    return calculateBlueId(value);
-  }
+  private prepareForBlueIdCalculation = async (
+    value: JsonBlueValue | BlueNode | BlueNode[]
+  ): Promise<BlueNode | BlueNode[]> => {
+    if (
+      value instanceof BlueNode ||
+      (Array.isArray(value) && value.every((v) => v instanceof BlueNode))
+    ) {
+      return value;
+    }
 
-  public calculateBlueIdSync(value: JsonBlueValue) {
-    return calculateBlueIdSync(value);
+    if (Array.isArray(value)) {
+      const nodes = await Promise.all(
+        value.map((v) => this.jsonValueToNodeAsync(v))
+      );
+      return nodes;
+    }
+
+    return this.jsonValueToNodeAsync(value);
+  };
+
+  public calculateBlueId = async (
+    value: JsonBlueValue | BlueNode | BlueNode[]
+  ) => {
+    const prepared = await this.prepareForBlueIdCalculation(value);
+    return BlueIdCalculator.calculateBlueId(prepared);
+  };
+
+  private prepareForBlueIdCalculationSync = (
+    value: JsonBlueValue | BlueNode | BlueNode[]
+  ): BlueNode | BlueNode[] => {
+    if (
+      value instanceof BlueNode ||
+      (Array.isArray(value) && value.every((v) => v instanceof BlueNode))
+    ) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((v) => this.jsonValueToNode(v));
+    }
+
+    return this.jsonValueToNode(value);
+  };
+
+  public calculateBlueIdSync(value: JsonBlueValue | BlueNode | BlueNode[]) {
+    const prepared = this.prepareForBlueIdCalculationSync(value);
+    return BlueIdCalculator.calculateBlueIdSync(prepared);
   }
 
   public addPreprocessingAliases(aliases: Map<string, string>): void {

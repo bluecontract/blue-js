@@ -19,7 +19,7 @@ export class InMemoryNodeProvider extends NodeProvider {
   };
 
   private processNodeList = (nodes: BlueNode[]) => {
-    const blueId = BlueIdCalculator.calculateBlueIdSyncForNodes(nodes);
+    const blueId = BlueIdCalculator.calculateBlueIdSync(nodes);
     this.blueIdToNodesMap.set(blueId, nodes);
   };
 

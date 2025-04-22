@@ -40,7 +40,7 @@ export class BaseContentNodeProvider extends NodeProvider {
         const nodes = parsedYaml.map((item) =>
           NodeDeserializer.deserialize(item)
         );
-        const blueId = BlueIdCalculator.calculateBlueIdSyncForNodes(nodes);
+        const blueId = BlueIdCalculator.calculateBlueIdSync(nodes);
         this.blueIdToNodesMap.set(blueId, nodes);
       } else {
         const node = NodeDeserializer.deserialize(parsedYaml);
