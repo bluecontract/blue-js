@@ -1,19 +1,9 @@
 import 'reflect-metadata';
-import { AppSDK } from 'src/sdk';
 
-const BLUE_ID_KEY = Symbol('blueId');
-const BLUE_MARKER_KEY = Symbol('blueMarker');
-
-const BLUE_METHOD_KEY = Symbol('BlueMethod');
-type BlueMethodMetadata = {
-  returnType: string;
-};
-
-const BLUE_METHOD_PARAMETERS_KEY = Symbol('blueMethodParameters');
-type BlueMethodParameterMetadata = {
-  index: number;
-  type: string;
-};
+import { AppSDK } from '../sdk';
+import { BaseAgentClient } from './agents/BaseAgentClient';
+import { MethodDefinition } from '@blue-company/app-sdk-core';
+import { getReflectMetadata, getReflectPropertyMetadata } from './reflect';
 
 export const TS_BLUE_METHOD_PARAMETERS_KEY = 'TSBlueMethodParameters';
 export type TSBlueMethodParameterMetadata = {
@@ -24,113 +14,10 @@ export type TSBlueMethodParameterMetadata = {
 export const TS_BLUE_METHOD_API_CLIENT_CLASS_NAME_KEY =
   'TSBlueMethodApiClientClassName';
 
-const getReflectMetadata = <T>(
-  metadataKey: unknown,
-  target: object,
-  propertyKey: string | symbol
-) => {
-  return Reflect.getMetadata(metadataKey, target, propertyKey) as T | undefined;
+const BLUE_METHOD_KEY = Symbol('BlueMethod');
+type BlueMethodMetadata = {
+  returnType: string;
 };
-
-export function BlueMethodApiClient<
-  T extends abstract new (...args: never[]) => object
->(target: T) {
-  const proto = target.prototype;
-
-  for (const propertyKey of Object.getOwnPropertyNames(proto)) {
-    const descriptor = Object.getOwnPropertyDescriptor(proto, propertyKey);
-    if (descriptor && typeof descriptor.value === 'function') {
-      const methodMetadata = getReflectMetadata<BlueMethodMetadata>(
-        BLUE_METHOD_KEY,
-        proto,
-        propertyKey
-      );
-
-      if (methodMetadata) {
-        descriptor.value = async function (...methodArgs: unknown[]) {
-          // TODO: Make it work with classes that have optional sdk property
-          const sdk = (this as { sdk?: AppSDK }).sdk;
-
-          if (!sdk) {
-            throw new Error(
-              'SDK instance not found. Make sure it is passed to the constructor.'
-            );
-          }
-
-          const className =
-            (Reflect.getOwnMetadata(
-              TS_BLUE_METHOD_API_CLIENT_CLASS_NAME_KEY,
-              this.constructor
-            ) as string | undefined) ?? this.constructor.name;
-
-          const parametersTSMetadata =
-            getReflectMetadata<TSBlueMethodParameterMetadata[]>(
-              TS_BLUE_METHOD_PARAMETERS_KEY,
-              proto,
-              propertyKey
-            ) || [];
-
-          const parametersMetadata =
-            getReflectMetadata<BlueMethodParameterMetadata[]>(
-              BLUE_METHOD_PARAMETERS_KEY,
-              proto,
-              propertyKey
-            ) || [];
-
-          const params = parametersMetadata.reduce((acc, p) => {
-            const extractedTSMetadata =
-              parametersTSMetadata[p.index] || `param${p.index}`;
-
-            acc[extractedTSMetadata.name] = {
-              type: p.type,
-              constraints: {
-                required: !extractedTSMetadata.isOptional,
-              },
-              value: methodArgs[p.index],
-            };
-
-            return acc;
-          }, {} as Record<string, unknown>);
-
-          const methodDefinition = {
-            name: propertyKey,
-            type: 'Method Definition',
-            objectType: className,
-            params,
-            returns: {
-              type: methodMetadata.returnType,
-            },
-          };
-
-          const resultFromServer = await sdk.api.callAPI({
-            type: 'call-method',
-            variables: {
-              methodDefinition,
-            },
-          });
-
-          return resultFromServer;
-        };
-
-        Object.defineProperty(proto, propertyKey, descriptor);
-      }
-    }
-  }
-}
-
-export function Blue<T extends abstract new (...args: unknown[]) => object>(
-  target: T
-) {
-  Reflect.defineMetadata(BLUE_MARKER_KEY, true, target);
-}
-
-export function BlueId(metadata: string) {
-  return function <T extends { new (...args: unknown[]): object }>(target: T) {
-    Reflect.defineMetadata(BLUE_ID_KEY, metadata, target);
-    return target;
-  };
-}
-
 type MethodDecoratorTarget = object;
 
 export function BlueMethod(metadata: BlueMethodMetadata) {
@@ -142,6 +29,11 @@ export function BlueMethod(metadata: BlueMethodMetadata) {
   };
 }
 
+const BLUE_METHOD_PARAMETERS_KEY = Symbol('blueMethodParameters');
+type BlueMethodParameterMetadata = {
+  index: number;
+  type: string;
+};
 export function BlueMethodParam(type: string) {
   return function (
     target: MethodDecoratorTarget,
@@ -149,11 +41,11 @@ export function BlueMethodParam(type: string) {
     parameterIndex: number
   ) {
     const metadata =
-      getReflectMetadata<BlueMethodParameterMetadata[]>(
-        BLUE_METHOD_PARAMETERS_KEY,
+      getReflectPropertyMetadata<BlueMethodParameterMetadata[]>({
+        metadataKey: BLUE_METHOD_PARAMETERS_KEY,
         target,
-        propertyKey
-      ) || [];
+        propertyKey,
+      }) || [];
 
     metadata.push({ index: parameterIndex, type });
 
@@ -165,3 +57,131 @@ export function BlueMethodParam(type: string) {
     );
   };
 }
+
+export interface BlueAgentClientStatic<T> {
+  new (agentId: string): T;
+  getInstance(options?: {
+    agentId?: string;
+    filter?: Record<string, unknown>;
+  }): Promise<T>;
+}
+
+export function getMethodDefinition(proto: object, methodName: string) {
+  const methodMetadata = getReflectPropertyMetadata<BlueMethodMetadata>({
+    metadataKey: BLUE_METHOD_KEY,
+    target: proto,
+    propertyKey: methodName,
+  });
+
+  if (!methodMetadata) return null;
+
+  const parametersTSMetadata =
+    getReflectPropertyMetadata<TSBlueMethodParameterMetadata[]>({
+      metadataKey: TS_BLUE_METHOD_PARAMETERS_KEY,
+      target: proto,
+      propertyKey: methodName,
+    }) || [];
+
+  const parametersMetadata =
+    getReflectPropertyMetadata<BlueMethodParameterMetadata[]>({
+      metadataKey: BLUE_METHOD_PARAMETERS_KEY,
+      target: proto,
+      propertyKey: methodName,
+    }) || [];
+
+  const params = parametersMetadata.map((p) => {
+    const extractedTSMetadata = parametersTSMetadata[p.index] || {
+      name: `param${p.index}`,
+      isOptional: false,
+    };
+
+    return {
+      name: extractedTSMetadata.name,
+      type: p.type,
+      constraints: {
+        required: !extractedTSMetadata.isOptional,
+      },
+    };
+  });
+
+  return {
+    name: methodName,
+    type: 'Method Definition',
+    params,
+    returns: {
+      type: methodMetadata.returnType,
+    },
+  } satisfies MethodDefinition;
+}
+
+export const BLUE_AGENT_CLIENT_KEY = Symbol('BlueAgentClient');
+export type BlueAgentClientMetadata = {
+  objectType: string;
+};
+export function BlueAgentClient(metadata: BlueAgentClientMetadata) {
+  return function <TCtor extends abstract new (...args: never[]) => object>(
+    ctor: TCtor
+  ) {
+    Reflect.defineMetadata(BLUE_AGENT_CLIENT_KEY, metadata, ctor);
+    const proto = ctor.prototype;
+
+    for (const propertyKey of Object.getOwnPropertyNames(proto)) {
+      const descriptor = Object.getOwnPropertyDescriptor(proto, propertyKey);
+      if (descriptor && typeof descriptor.value === 'function') {
+        const methodMetadata = getReflectPropertyMetadata<BlueMethodMetadata>({
+          metadataKey: BLUE_METHOD_KEY,
+          target: proto,
+          propertyKey,
+        });
+
+        if (methodMetadata) {
+          descriptor.value = async function (
+            this: BaseAgentClient,
+            ...methodArgs: unknown[]
+          ) {
+            const sdk = AppSDK.getInstance();
+
+            if (!sdk) {
+              throw new Error(
+                'SDK instance not found. Make sure it is passed to the constructor.'
+              );
+            }
+
+            const methodDefinition = getMethodDefinition(proto, propertyKey);
+
+            if (!methodDefinition) {
+              throw new Error(
+                `Method definition not found for method ${propertyKey}`
+              );
+            }
+
+            const resultFromServer = await sdk.sendAsyncRequest({
+              type: 'call-method',
+              variables: {
+                agentId: this.agentId,
+                methodDefinition,
+                params: methodArgs,
+              },
+            });
+
+            return resultFromServer;
+          };
+
+          Object.defineProperty(proto, propertyKey, descriptor);
+        }
+      }
+    }
+
+    return ctor as TCtor & BlueAgentClientStatic<InstanceType<TCtor>>;
+  };
+}
+export const getBlueAgentClientMetadata = (
+  target: object,
+  useOwnMetadata = false
+) => {
+  return getReflectMetadata<BlueAgentClientMetadata>({
+    metadataKey: BLUE_AGENT_CLIENT_KEY,
+    target,
+    useOwnMetadata,
+  });
+};
