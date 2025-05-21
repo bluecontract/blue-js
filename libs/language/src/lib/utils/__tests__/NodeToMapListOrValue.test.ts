@@ -67,6 +67,106 @@ describe('NodeToMapListOrValue', () => {
     expect(result['b']).toEqual('xyz2');
   });
 
+  it('testContractsStandardStrategy', () => {
+    const node = new BlueNode()
+      .setName('Agreement')
+      .setDescription('Legal agreement')
+      .setContracts({
+        party1: new BlueNode().setName('Alice').setProperties({
+          role: new BlueNode().setValue('Seller'),
+        }),
+        party2: new BlueNode().setName('Bob').setProperties({
+          role: new BlueNode().setValue('Buyer'),
+          contactInfo: new BlueNode().setValue('bob@example.com'),
+        }),
+        terms: new BlueNode().setItems([
+          new BlueNode().setValue('Term 1'),
+          new BlueNode().setValue('Term 2'),
+        ]),
+      });
+
+    const object = NodeToMapListOrValue.get(node);
+    expect(typeof object).toBe('object');
+
+    const result = object as Record<string, unknown>;
+    expect(result['name']).toEqual('Agreement');
+    expect(result['description']).toEqual('Legal agreement');
+
+    const contracts = result['contracts'] as Record<string, unknown>;
+    expect(contracts).toBeDefined();
+
+    const party1 = contracts['party1'] as Record<string, unknown>;
+    expect(party1).toBeDefined();
+    expect(party1['name']).toEqual('Alice');
+    expect((party1['role'] as Record<string, unknown>)['value']).toEqual(
+      'Seller'
+    );
+
+    const party2 = contracts['party2'] as Record<string, unknown>;
+    expect(party2).toBeDefined();
+    expect(party2['name']).toEqual('Bob');
+    expect((party2['role'] as Record<string, unknown>)['value']).toEqual(
+      'Buyer'
+    );
+    expect((party2['contactInfo'] as Record<string, unknown>)['value']).toEqual(
+      'bob@example.com'
+    );
+
+    const terms = contracts['terms'] as Record<string, unknown>;
+    expect(terms).toBeDefined();
+    const termsItems = terms['items'] as Record<string, unknown>[];
+    expect(termsItems).toBeDefined();
+    expect(termsItems.length).toEqual(2);
+    expect(termsItems[0]['value']).toEqual('Term 1');
+    expect(termsItems[1]['value']).toEqual('Term 2');
+  });
+
+  it('testContractsSimpleStrategy', () => {
+    const node = new BlueNode()
+      .setName('Agreement')
+      .setDescription('Legal agreement')
+      .setContracts({
+        party1: new BlueNode().setName('Alice').setProperties({
+          role: new BlueNode().setValue('Seller'),
+        }),
+        party2: new BlueNode().setName('Bob').setProperties({
+          role: new BlueNode().setValue('Buyer'),
+          contactInfo: new BlueNode().setValue('bob@example.com'),
+        }),
+        terms: new BlueNode().setItems([
+          new BlueNode().setValue('Term 1'),
+          new BlueNode().setValue('Term 2'),
+        ]),
+      });
+
+    const object = NodeToMapListOrValue.get(node, 'simple');
+    expect(typeof object).toBe('object');
+
+    const result = object as Record<string, unknown>;
+    expect(result['name']).toEqual('Agreement');
+    expect(result['description']).toEqual('Legal agreement');
+
+    const contracts = result['contracts'] as Record<string, unknown>;
+    expect(contracts).toBeDefined();
+
+    const party1 = contracts['party1'] as Record<string, unknown>;
+    expect(party1).toBeDefined();
+    expect(party1['name']).toEqual('Alice');
+    expect(party1['role']).toEqual('Seller');
+
+    const party2 = contracts['party2'] as Record<string, unknown>;
+    expect(party2).toBeDefined();
+    expect(party2['name']).toEqual('Bob');
+    expect(party2['role']).toEqual('Buyer');
+    expect(party2['contactInfo']).toEqual('bob@example.com');
+
+    const terms = contracts['terms'] as string[];
+    expect(terms).toBeDefined();
+    expect(terms.length).toEqual(2);
+    expect(terms[0]).toEqual('Term 1');
+    expect(terms[1]).toEqual('Term 2');
+  });
+
   it('testListStandardStrategy', () => {
     const node = new BlueNode()
       .setName('nameA')
@@ -292,6 +392,90 @@ describe('NodeToMapListOrValue', () => {
           ],
         }
       `);
+    });
+
+    it('should properly serialize BlueNode with contracts', () => {
+      const node = NodeDeserializer.deserialize({
+        name: 'Contract',
+        description: 'Main contract',
+        contracts: {
+          clientA: {
+            name: 'Company A',
+            details: {
+              registrationNumber: '12345',
+              country: 'US',
+            },
+          },
+          clientB: {
+            name: 'Company B',
+            details: {
+              registrationNumber: '67890',
+              country: 'UK',
+            },
+          },
+          agreement: {
+            items: ['First clause', 'Second clause'],
+          },
+        },
+      });
+
+      // Test official strategy
+      const officialResult = NodeToMapListOrValue.get(node);
+      expect(officialResult).toMatchObject({
+        name: 'Contract',
+        description: 'Main contract',
+        contracts: {
+          clientA: {
+            name: 'Company A',
+            details: {
+              registrationNumber: {
+                value: '12345',
+              },
+              country: {
+                value: 'US',
+              },
+            },
+          },
+          clientB: {
+            name: 'Company B',
+            details: {
+              registrationNumber: {
+                value: '67890',
+              },
+              country: {
+                value: 'UK',
+              },
+            },
+          },
+          agreement: {
+            items: [{ value: 'First clause' }, { value: 'Second clause' }],
+          },
+        },
+      });
+
+      // Test simple strategy
+      const simpleResult = NodeToMapListOrValue.get(node, 'simple');
+      expect(simpleResult).toMatchObject({
+        name: 'Contract',
+        description: 'Main contract',
+        contracts: {
+          clientA: {
+            name: 'Company A',
+            details: {
+              registrationNumber: '12345',
+              country: 'US',
+            },
+          },
+          clientB: {
+            name: 'Company B',
+            details: {
+              registrationNumber: '67890',
+              country: 'UK',
+            },
+          },
+          agreement: ['First clause', 'Second clause'],
+        },
+      });
     });
   });
 });
