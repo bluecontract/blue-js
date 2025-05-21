@@ -150,6 +150,5 @@ export class NodeExtender {
     target.setValue(source.getValue() ?? null);
     target.setItems(source.getItems());
     target.setProperties(source.getProperties());
-    target.setConstraints(source.getConstraints());
   }
 }
