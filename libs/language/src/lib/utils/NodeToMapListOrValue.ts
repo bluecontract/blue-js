@@ -85,11 +85,6 @@ export class NodeToMapListOrValue {
       result[OBJECT_BLUE_ID] = blueId;
     }
 
-    const constraints = node.getConstraints();
-    if (constraints !== undefined) {
-      // TODO: implement constraints
-    }
-
     const blue = node.getBlue();
     if (blue !== undefined) {
       result[OBJECT_BLUE] = blue as unknown as JsonValue;

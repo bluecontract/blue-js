@@ -86,10 +86,6 @@ export class NodeDeserializer {
           case OBJECT_BLUE:
             obj.setBlue(NodeDeserializer.handleNode(value));
             break;
-          // TODO: Implement constraints
-          // case OBJECT_CONSTRAINTS:
-          //   obj.setConstraints(NodeDeserializer.handleConstraints(value));
-          //   break;
           default:
             properties[key] = NodeDeserializer.handleNode(value);
             break;
@@ -148,9 +144,4 @@ export class NodeDeserializer {
       throw new Error('Expected an array node');
     }
   }
-
-  // TODO: Implement constraints
-  // private static handleConstraints(constraintsNode: any): Constraints {
-  //   return plainToClass(Constraints, constraintsNode);
-  // }
 }

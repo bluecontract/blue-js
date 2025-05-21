@@ -24,7 +24,6 @@ export class BlueNode {
   private items?: BlueNode[];
   private properties?: Record<string, BlueNode>;
   private blueId?: string;
-  private constraints?: Constraints;
   private blue?: BlueNode;
   private inlineValue = false;
 
@@ -185,15 +184,6 @@ export class BlueNode {
     return this;
   }
 
-  getConstraints() {
-    return this.constraints;
-  }
-
-  setConstraints(constraints: Constraints | undefined): BlueNode {
-    this.constraints = constraints;
-    return this;
-  }
-
   getBlue() {
     return this.blue;
   }
@@ -231,19 +221,12 @@ export class BlueNode {
       );
     }
     cloned.blueId = this.blueId;
-    // TODO: Implement constraints
-    // if (this.constraints) {
-    //   cloned.constraints = this.constraints.clone();
-    // }
     cloned.blue = this.blue?.clone();
     cloned.inlineValue = this.inlineValue;
     return cloned;
   }
 
   toString(): string {
-    return `BlueNode{name='${this.name}', description='${this.description}', type=${this.type}, itemType=${this.itemType}, keyType=${this.keyType}, valueType=${this.valueType}, value=${this.value}, items=${this.items}, properties=${this.properties}, blueId='${this.blueId}', constraints=${this.constraints}, blue=${this.blue}, inlineValue=${this.inlineValue}}`;
+    return `BlueNode{name='${this.name}', description='${this.description}', type=${this.type}, itemType=${this.itemType}, keyType=${this.keyType}, valueType=${this.valueType}, value=${this.value}, items=${this.items}, properties=${this.properties}, blueId='${this.blueId}', blue=${this.blue}, inlineValue=${this.inlineValue}}`;
   }
 }
-
-// Dummy class to simulate environment
-class Constraints {}

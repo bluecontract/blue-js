@@ -91,7 +91,6 @@ Every node in Blue is of this type. If any node does not specify a `type`, it is
 - **Number**: A basic number type.
 - **Boolean**: A basic boolean type. If value is not specified, it means false.
 - **Type**: A type that can reference other types. To be used only for `type` attribute definition.
-- **Constraints**: Defines constraints that can be applied to attributes.
 
 ### Example
 
@@ -99,15 +98,12 @@ Every node in Blue is of this type. If any node does not specify a `type`, it is
 name:
   value: Pet
   description: Name of the pet. Every pet must have a name.
-  constraints:
-    required: true
 description: A base type for all pets.
 abstract: true
 age:
   description: The age of the pet in years.
   type: Integer
-  constraints:
-    minimum: 0
+
 ---
 name:
   value: Dog
@@ -117,8 +113,6 @@ type: Pet
 breed:
   description: The breed of the dog.
   type: Text
-  constraints:
-    required: true
 isTrained:
   description: Indicates if the dog is trained.
   type: Boolean
