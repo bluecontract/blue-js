@@ -1,8 +1,7 @@
 import { BlueNode } from '../model';
-import { BlueIdCalculator } from './BlueIdCalculator';
 
 export class NodePathAccessor {
-  static async get(
+  static get(
     node: BlueNode,
     path: string,
     linkingProvider?: (node: BlueNode) => BlueNode | null,
@@ -27,13 +26,13 @@ export class NodePathAccessor {
     );
   }
 
-  private static async getRecursive(
+  private static getRecursive(
     node: BlueNode,
     segments: string[],
     index: number,
     linkingProvider?: (node: BlueNode) => BlueNode | null,
     resolveFinalLink?: boolean
-  ): Promise<BlueNode | NonNullable<BlueNode['value']>> {
+  ): BlueNode | NonNullable<BlueNode['value']> {
     if (index === segments.length - 1 && !resolveFinalLink) {
       return this.getNodeForSegment(
         node,
@@ -49,7 +48,7 @@ export class NodePathAccessor {
     }
 
     const segment = segments[index];
-    const nextNode = await this.getNodeForSegment(
+    const nextNode = this.getNodeForSegment(
       node,
       segment,
       linkingProvider,
@@ -64,7 +63,7 @@ export class NodePathAccessor {
     );
   }
 
-  private static async getNodeForSegment(
+  private static getNodeForSegment(
     node: BlueNode,
     segment: string,
     linkingProvider?: (node: BlueNode) => BlueNode | null,
@@ -93,10 +92,10 @@ export class NodePathAccessor {
         const value = node.getValue();
         return value ? new BlueNode().setValue(value) : new BlueNode();
       }
-      case 'blueId':
-        return new BlueNode().setValue(
-          await BlueIdCalculator.calculateBlueId(node)
-        );
+      case 'blueId': {
+        const blueId = node.getBlueId();
+        return blueId ? new BlueNode().setValue(blueId) : new BlueNode();
+      }
     }
 
     let result: BlueNode;

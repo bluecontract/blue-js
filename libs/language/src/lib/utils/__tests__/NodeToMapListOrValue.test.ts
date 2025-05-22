@@ -398,84 +398,155 @@ describe('NodeToMapListOrValue', () => {
       const node = NodeDeserializer.deserialize({
         name: 'Contract',
         description: 'Main contract',
+        mainRegistrationNumber: {
+          description: 'Address',
+          value: '123 Main St, Anytown, USA',
+        },
+        mainCountry: 'US',
         contracts: {
-          clientA: {
-            name: 'Company A',
-            details: {
-              registrationNumber: '12345',
-              country: 'US',
-            },
+          timelineCh: {
+            type: 'Timeline Channel',
+            timelineId: 'user-123',
           },
-          clientB: {
-            name: 'Company B',
-            details: {
-              registrationNumber: '67890',
-              country: 'UK',
-            },
-          },
-          agreement: {
-            items: ['First clause', 'Second clause'],
+          childWf: {
+            type: 'Sequential Workflow',
+            channel: 'timelineCh',
+            steps: [
+              {
+                type: 'Update Document',
+                changeset: [
+                  {
+                    op: 'replace',
+                    path: '/mainRegistrationNumber/value',
+                    val: '12345',
+                  },
+                ],
+              },
+            ],
           },
         },
       });
 
       // Test official strategy
       const officialResult = NodeToMapListOrValue.get(node);
-      expect(officialResult).toMatchObject({
-        name: 'Contract',
-        description: 'Main contract',
-        contracts: {
-          clientA: {
-            name: 'Company A',
-            details: {
-              registrationNumber: {
-                value: '12345',
+      expect(officialResult).toMatchInlineSnapshot(`
+        {
+          "contracts": {
+            "childWf": {
+              "channel": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "timelineCh",
               },
-              country: {
-                value: 'US',
+              "steps": {
+                "items": [
+                  {
+                    "changeset": {
+                      "items": [
+                        {
+                          "op": {
+                            "type": {
+                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                            },
+                            "value": "replace",
+                          },
+                          "path": {
+                            "type": {
+                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                            },
+                            "value": "/mainRegistrationNumber/value",
+                          },
+                          "val": {
+                            "type": {
+                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                            },
+                            "value": "12345",
+                          },
+                        },
+                      ],
+                    },
+                    "type": {
+                      "type": {
+                        "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                      },
+                      "value": "Update Document",
+                    },
+                  },
+                ],
+              },
+              "type": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "Sequential Workflow",
+              },
+            },
+            "timelineCh": {
+              "timelineId": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "user-123",
+              },
+              "type": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "Timeline Channel",
               },
             },
           },
-          clientB: {
-            name: 'Company B',
-            details: {
-              registrationNumber: {
-                value: '67890',
-              },
-              country: {
-                value: 'UK',
-              },
+          "description": "Main contract",
+          "mainCountry": {
+            "type": {
+              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
             },
+            "value": "US",
           },
-          agreement: {
-            items: [{ value: 'First clause' }, { value: 'Second clause' }],
+          "mainRegistrationNumber": {
+            "description": "Address",
+            "type": {
+              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+            },
+            "value": "123 Main St, Anytown, USA",
           },
-        },
-      });
+          "name": "Contract",
+        }
+      `);
 
       // Test simple strategy
       const simpleResult = NodeToMapListOrValue.get(node, 'simple');
-      expect(simpleResult).toMatchObject({
-        name: 'Contract',
-        description: 'Main contract',
-        contracts: {
-          clientA: {
-            name: 'Company A',
-            details: {
-              registrationNumber: '12345',
-              country: 'US',
+      expect(simpleResult).toMatchInlineSnapshot(`
+        {
+          "contracts": {
+            "childWf": {
+              "channel": "timelineCh",
+              "steps": [
+                {
+                  "changeset": [
+                    {
+                      "op": "replace",
+                      "path": "/mainRegistrationNumber/value",
+                      "val": "12345",
+                    },
+                  ],
+                  "type": "Update Document",
+                },
+              ],
+              "type": "Sequential Workflow",
+            },
+            "timelineCh": {
+              "timelineId": "user-123",
+              "type": "Timeline Channel",
             },
           },
-          clientB: {
-            name: 'Company B',
-            details: {
-              registrationNumber: '67890',
-              country: 'UK',
-            },
-          },
-          agreement: ['First clause', 'Second clause'],
-        },
-      });
+          "description": "Main contract",
+          "mainCountry": "US",
+          "mainRegistrationNumber": "123 Main St, Anytown, USA",
+          "name": "Contract",
+        }
+      `);
     });
   });
 });

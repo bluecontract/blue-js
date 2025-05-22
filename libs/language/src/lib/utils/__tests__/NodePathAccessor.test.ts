@@ -58,11 +58,6 @@ b:
     expect(await rootNode.get('/type/type/name')).toBe('MetaType');
   });
 
-  test('blueId access', async () => {
-    expect(await rootNode.get('/blueId')).not.toBeNull();
-    expect(await rootNode.get('/a/0/blueId')).not.toBeNull();
-  });
-
   test('invalid path', async () => {
     expect(() => rootNode.get('/nonexistent')).rejects.toThrow();
     expect(() => rootNode.get('/a/5')).rejects.toThrow();

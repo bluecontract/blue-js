@@ -219,6 +219,46 @@ v:
     assertNodesEqual(expectedRaw, rawNode);
   });
 
+  it('testTypeConsistencyAfterMultiplePreprocessingWithMappings- should maintain type consistency after multiple preprocessing with mappings', async () => {
+    const doc = `
+    blue: 
+      - type:
+          blueId: 27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo
+        mappings:
+          Text: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+          Double: 68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L
+          Integer: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8
+          Boolean: EL6AjrbJsxTWRTPzY8WR8Y2zAMXRbydQj83PcZwuAHbo
+          List: G8wmfjEqugPEEXByMYWJXiEdbLToPRWNQEekNxrxfQWB
+          Dictionary: 294NBTj2mFRL3RB4kDRUSckwGg7Kzj6T8CTAFeR1kcSA
+          Person: 8xYi5Svou5DVawB7CDEGuZitUGFChRYcJUF67bQ3NfXt
+      - type:
+          blueId: FGYuTXwaoSKfZmpTysLTLsb8WzSqf43384rKZDkXhxD4
+    a:
+      type: Person
+    b:
+      type:
+        blueId: 8xYi5Svou5DVawB7CDEGuZitUGFChRYcJUF67bQ3NfXt
+    `;
+
+    const blue = new Blue();
+    const parsedYaml = yamlBlueParse(doc);
+    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+    const preprocessedNode = blue.preprocess(node);
+
+    const aTypeBlueId = preprocessedNode
+      .getProperties()
+      ?.['a']?.getType()
+      ?.getBlueId();
+
+    const bTypeBlueId = preprocessedNode
+      .getProperties()
+      ?.['b']?.getType()
+      ?.getBlueId();
+
+    expect(aTypeBlueId).toBe(bTypeBlueId);
+  });
+
   // Helper function to assert nodes equality, similar to Java version
   function assertNodesEqual(expected: BlueNode, actual: BlueNode) {
     expect(actual.isInlineValue()).toBe(expected.isInlineValue());
