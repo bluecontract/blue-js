@@ -32,7 +32,7 @@ export class NodePathAccessor {
     index: number,
     linkingProvider?: (node: BlueNode) => BlueNode | null,
     resolveFinalLink?: boolean
-  ): BlueNode | NonNullable<BlueNode['value']> {
+  ): BlueNode | NonNullable<BlueNode['value']> | undefined {
     if (index === segments.length - 1 && !resolveFinalLink) {
       return this.getNodeForSegment(
         node,
@@ -54,6 +54,9 @@ export class NodePathAccessor {
       linkingProvider,
       true
     );
+    if (!nextNode) {
+      return undefined;
+    }
     return this.getRecursive(
       nextNode,
       segments,
@@ -104,13 +107,13 @@ export class NodePathAccessor {
       const itemIndex = parseInt(segment, 10);
       const items = node.getItems();
       if (!items || itemIndex >= items.length) {
-        throw new Error(`Invalid item index: ${itemIndex}`);
+        return undefined;
       }
       result = items[itemIndex];
     } else {
       const properties = node.getProperties();
       if (!properties || !(segment in properties)) {
-        throw new Error(`Property not found: ${segment}`);
+        return undefined;
       }
       result = properties[segment];
     }

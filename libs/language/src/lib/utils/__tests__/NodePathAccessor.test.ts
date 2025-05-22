@@ -59,9 +59,9 @@ b:
   });
 
   test('invalid path', async () => {
-    expect(() => rootNode.get('/nonexistent')).rejects.toThrow();
-    expect(() => rootNode.get('/a/5')).rejects.toThrow();
-    expect(() => rootNode.get('invalid')).rejects.toThrow();
+    expect(rootNode.get('/nonexistent')).toBeUndefined();
+    expect(rootNode.get('/a/5')).toBeUndefined();
+    expect(() => rootNode.get('invalid')).toThrow();
   });
 
   test('value precedence', async () => {
