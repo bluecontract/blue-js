@@ -16,8 +16,8 @@ describe('applyBluePatch → BlueNode', () => {
   it('adds primitive via /age', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [{ op: 'add', path: '/age', value: 30 }];
-    expect(applyBlueNodePatch(root, patch)).toBe(true);
-    expect(root.get('/age/value')?.toString()).toBe('30');
+    const result = applyBlueNodePatch(root, patch);
+    expect(result.get('/age/value')?.toString()).toBe('30');
   });
 
   it('replaces string via /personName', () => {
@@ -25,8 +25,8 @@ describe('applyBluePatch → BlueNode', () => {
     const patch: BlueNodePatch[] = [
       { op: 'replace', path: '/personName', value: 'Bob' },
     ];
-    applyBlueNodePatch(root, patch);
-    expect(root.get('/personName/value')).toBe('Bob');
+    const result = applyBlueNodePatch(root, patch);
+    expect(result.get('/personName/value')).toBe('Bob');
   });
 
   it('adds using explicit /age/value path', () => {
@@ -34,15 +34,15 @@ describe('applyBluePatch → BlueNode', () => {
     const patch: BlueNodePatch[] = [
       { op: 'replace', path: '/age/value', value: 25 },
     ];
-    applyBlueNodePatch(root, patch);
-    expect(root.get('/age/value')?.toString()).toBe('25');
+    const result = applyBlueNodePatch(root, patch);
+    expect(result.get('/age/value')?.toString()).toBe('25');
   });
 
   it('removes a property', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [{ op: 'remove', path: '/personName' }];
-    applyBlueNodePatch(root, patch);
-    expect(root.get('/personName')).toBeUndefined();
+    const result = applyBlueNodePatch(root, patch);
+    expect(result.get('/personName')).toBeUndefined();
   });
 
   it('copies and moves between properties', () => {
@@ -51,11 +51,11 @@ describe('applyBluePatch → BlueNode', () => {
       { op: 'copy', from: '/personName', path: '/nick' },
       { op: 'move', from: '/age', path: '/years' },
     ];
-    applyBlueNodePatch(root, patch);
-    expect(root.get('/personName')).toBe('Alice');
-    expect(root.get('/nick/value')).toBe('Alice');
-    expect(root.get('/years/value')?.toString()).toBe('1');
-    expect(root.get('/age')).toBeUndefined();
+    const result = applyBlueNodePatch(root, patch);
+    expect(result.get('/personName')).toBe('Alice');
+    expect(result.get('/nick/value')).toBe('Alice');
+    expect(result.get('/years/value')?.toString()).toBe('1');
+    expect(result.get('/age')).toBeUndefined();
   });
 
   it('adds element to list array via "-" index', () => {
@@ -63,8 +63,8 @@ describe('applyBluePatch → BlueNode', () => {
     const patch: BlueNodePatch[] = [
       { op: 'add', path: '/list/-', value: { value: 'third' } },
     ];
-    applyBlueNodePatch(root, patch);
-    expect(root.get('/list/2/value')).toBe('third');
+    const result = applyBlueNodePatch(root, patch);
+    expect(result.get('/list/2/value')).toBe('third');
   });
 
   it('passes test when value matches', () => {
@@ -72,7 +72,8 @@ describe('applyBluePatch → BlueNode', () => {
     const patch: BlueNodePatch[] = [
       { op: 'test', path: '/personName/value', value: 'Alice' },
     ];
-    expect(applyBlueNodePatch(root, patch)).toBe(true);
+    const result = applyBlueNodePatch(root, patch);
+    expect(result).toBeDefined();
   });
 
   it('throws on test when value mismatches', () => {

@@ -21,9 +21,12 @@ export type BlueNodePatch =
 
 export function applyBlueNodePatch(
   root: BlueNode,
-  patches: readonly BlueNodePatch[]
-): boolean {
-  return patches.every((p) => applySingle(root, p));
+  patches: readonly BlueNodePatch[],
+  mutateOriginal = false
+): BlueNode {
+  const base = mutateOriginal ? root : root.clone();
+  patches.forEach((p) => applySingle(base, p));
+  return base;
 }
 
 /* ------------------------------------------------------------------ */
