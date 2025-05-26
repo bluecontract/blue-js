@@ -5,13 +5,19 @@
   "projectType": "library",
   "release": {
     "version": {
-      "generatorOptions": {
-        "currentVersionResolver": "git-tag"
-      }
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
     }
   },
   "tags": [],
   "targets": {
+    "test": {
+      "options": {
+        "env": {
+          "NODE_OPTIONS": "--no-node-snapshot"
+        }
+      }
+    },
     "yalc-push": {
       "executor": "nx:run-commands",
       "options": {
