@@ -26,6 +26,10 @@ export const getBlueNodeAnnotation = (schema: ZodTypeAny) => {
   return null;
 };
 
+export const isBlueNodeSchema = (schema: ZodTypeAny) => {
+  return !!getBlueNodeAnnotation(schema);
+};
+
 export const blueNodeField = () => {
   const blueNodeFieldSchema = z.instanceof(BlueNode);
   return withBlueNode()(blueNodeFieldSchema);

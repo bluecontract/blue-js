@@ -1,12 +1,16 @@
 import {
   ZodIntersection,
+  ZodMap,
   ZodObject,
+  ZodRecord,
   ZodObjectDef,
   ZodType,
   ZodUnion,
+  ZodUnknown,
+  ZodAny,
 } from 'zod';
-import { BlueNode } from '../model';
-import { BlueIdCalculator } from '../utils';
+import { BlueNode, NodeDeserializer } from '../model';
+import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
 import { isNonNullable, isNullable } from '@blue-company/shared-utils';
 import {
   getBlueDescriptionAnnotation,
@@ -26,6 +30,19 @@ import { NodeToObjectConverter } from './NodeToObjectConverter';
 
 export class ComplexObjectConverter implements Converter {
   constructor(private readonly nodeToObjectConverter: NodeToObjectConverter) {}
+
+  /**
+   * Check if the valueSchema can handle structured data (contracts should be processed specially)
+   */
+  private canHandleStructuredData(valueSchema: ZodTypeAny): boolean {
+    return (
+      valueSchema instanceof ZodAny ||
+      valueSchema instanceof ZodObject ||
+      valueSchema instanceof ZodRecord ||
+      valueSchema instanceof ZodMap ||
+      valueSchema instanceof ZodUnknown
+    );
+  }
 
   public convert<
     T extends ZodRawShape,
@@ -103,6 +120,25 @@ export class ComplexObjectConverter implements Converter {
           acc[propertyName] = description;
 
           return acc;
+        }
+
+        const contracts = node.getContracts();
+        if (
+          propertyName === 'contracts' &&
+          isNonNullable(contracts) &&
+          this.canHandleStructuredData(schemaProperty)
+        ) {
+          const contractsJson = Object.fromEntries(
+            Object.entries(contracts).map(([key, value]) => [
+              key,
+              NodeToMapListOrValue.get(value),
+            ])
+          );
+          const contractsNode = NodeDeserializer.deserialize(contractsJson);
+          acc[propertyName] = this.nodeToObjectConverter.convert(
+            contractsNode,
+            schemaProperty
+          );
         }
 
         const propertyNode = properties?.[propertyName];

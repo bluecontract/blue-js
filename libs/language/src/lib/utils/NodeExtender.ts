@@ -89,6 +89,13 @@ export class NodeExtender {
         });
       }
 
+      const contracts = currentNode.getContracts();
+      if (contracts) {
+        Object.entries(contracts).forEach(([key, value]) => {
+          this.extendNode(value, currentLimits, key, false);
+        });
+      }
+
       const items = currentNode.getItems();
       if (items && items.length > 0) {
         this.reconstructList(items);
@@ -150,5 +157,6 @@ export class NodeExtender {
     target.setValue(source.getValue() ?? null);
     target.setItems(source.getItems());
     target.setProperties(source.getProperties());
+    target.setContracts(source.getContracts());
   }
 }
