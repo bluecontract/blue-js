@@ -15,7 +15,7 @@ describe('applyBluePatch → BlueNode', () => {
 
   it('adds primitive via /age', () => {
     const root = makeCustomer();
-    const patch: BlueNodePatch[] = [{ op: 'add', path: '/age', value: 30 }];
+    const patch: BlueNodePatch[] = [{ op: 'add', path: '/age', val: 30 }];
     const result = applyBlueNodePatch(root, patch);
     expect(result.get('/age/value')?.toString()).toBe('30');
   });
@@ -23,7 +23,7 @@ describe('applyBluePatch → BlueNode', () => {
   it('replaces string via /personName', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [
-      { op: 'replace', path: '/personName', value: 'Bob' },
+      { op: 'replace', path: '/personName', val: 'Bob' },
     ];
     const result = applyBlueNodePatch(root, patch);
     expect(result.get('/personName/value')).toBe('Bob');
@@ -32,7 +32,7 @@ describe('applyBluePatch → BlueNode', () => {
   it('adds using explicit /age/value path', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [
-      { op: 'replace', path: '/age/value', value: 25 },
+      { op: 'replace', path: '/age/value', val: 25 },
     ];
     const result = applyBlueNodePatch(root, patch);
     expect(result.get('/age/value')?.toString()).toBe('25');
@@ -61,7 +61,7 @@ describe('applyBluePatch → BlueNode', () => {
   it('adds element to list array via "-" index', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [
-      { op: 'add', path: '/list/-', value: { value: 'third' } },
+      { op: 'add', path: '/list/-', val: { value: 'third' } },
     ];
     const result = applyBlueNodePatch(root, patch);
     expect(result.get('/list/2/value')).toBe('third');
@@ -70,7 +70,7 @@ describe('applyBluePatch → BlueNode', () => {
   it('passes test when value matches', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [
-      { op: 'test', path: '/personName/value', value: 'Alice' },
+      { op: 'test', path: '/personName/value', val: 'Alice' },
     ];
     const result = applyBlueNodePatch(root, patch);
     expect(result).toBeDefined();
@@ -79,7 +79,7 @@ describe('applyBluePatch → BlueNode', () => {
   it('throws on test when value mismatches', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [
-      { op: 'test', path: '/personName/value', value: 'Bob' },
+      { op: 'test', path: '/personName/value', val: 'Bob' },
     ];
     expect(() => applyBlueNodePatch(root, patch)).toThrow(/TEST failed/);
   });
@@ -87,7 +87,7 @@ describe('applyBluePatch → BlueNode', () => {
   it('throws on replace to non-existing path', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [
-      { op: 'replace', path: '/missing', value: 1 },
+      { op: 'replace', path: '/missing', val: 1 },
     ];
     expect(() => applyBlueNodePatch(root, patch)).toThrow(
       /REPLACE path not found/

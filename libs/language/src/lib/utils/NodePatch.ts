@@ -12,12 +12,12 @@ import { JsonPrimitive } from '@blue-company/shared-utils';
 /* 1 · Public façade                                                  */
 /* ------------------------------------------------------------------ */
 export type BlueNodePatch =
-  | { op: 'add'; path: string; value: unknown }
+  | { op: 'add'; path: string; val: unknown }
   | { op: 'remove'; path: string }
-  | { op: 'replace'; path: string; value: unknown }
+  | { op: 'replace'; path: string; val: unknown }
   | { op: 'move'; path: string; from: string }
   | { op: 'copy'; path: string; from: string }
-  | { op: 'test'; path: string; value: unknown };
+  | { op: 'test'; path: string; val: unknown };
 
 export function applyBlueNodePatch(
   root: BlueNode,
@@ -219,9 +219,9 @@ function write(parent: Container, key: string | number, raw: RValue): void {
 function applySingle(root: BlueNode, p: BlueNodePatch): boolean {
   switch (p.op) {
     case 'add':
-      return opAdd(root, p.path, p.value);
+      return opAdd(root, p.path, p.val);
     case 'replace':
-      return opReplace(root, p.path, p.value);
+      return opReplace(root, p.path, p.val);
     case 'remove':
       return opRemove(root, p.path);
     case 'copy':
@@ -229,7 +229,7 @@ function applySingle(root: BlueNode, p: BlueNodePatch): boolean {
     case 'move':
       return opMove(root, p.from, p.path);
     case 'test':
-      return opTest(root, p.path, p.value);
+      return opTest(root, p.path, p.val);
   }
 }
 
