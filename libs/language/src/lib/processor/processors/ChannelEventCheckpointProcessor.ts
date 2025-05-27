@@ -9,7 +9,7 @@ import {
 } from '../types';
 import { CheckpointCache } from '../utils/CheckpointCache';
 import { blueIds } from '../../../repo/core';
-import { JsonBlueValue } from 'src/schema/jsonBlue';
+import { JsonBlueValue } from '../../../schema';
 
 /* ------------------------------------------------------------------------ */
 /* Channel Event Checkpoint – records the last processed event per channel  */

@@ -1,6 +1,6 @@
 import { Patch, DocumentNode, EventNode } from '../types';
 import { makePath } from './path';
-import { BlueNode } from 'src/lib/model';
+import { BlueNode } from '../../model/Node';
 
 type Entry = { docBase: string; event: EventNode; eventBlueId: string };
 

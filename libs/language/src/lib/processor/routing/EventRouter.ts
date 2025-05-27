@@ -15,7 +15,9 @@ import { makeTaskKey } from '../queue/TaskKey';
 import { TaskQueue } from '../queue/TaskQueue';
 import { ContractRegistry } from '../registry/ContractRegistry';
 import { EventTraceManager } from '../utils/EventTraceManager';
-import { Blue } from 'src/lib/Blue';
+import type { Blue } from '../../Blue';
+import { isBigNumber } from '../../../utils/typeGuards/isBigNumber';
+import { isNullable } from '@blue-company/shared-utils';
 
 /** Maximum recursion depth for inline adapter processing */
 const MAX_INLINE_ADAPTER_DEPTH = 64;
@@ -249,8 +251,9 @@ export class EventRouter {
 
     const typePriority = this.registry.orderOf(contractNodeType);
     const contractNodeOrder = contractNode.get('/order');
-    const contractOrder =
-      typeof contractNodeOrder === 'number' ? contractNodeOrder : 0;
+    const contractOrder = isBigNumber(contractNodeOrder)
+      ? contractNodeOrder.toNumber()
+      : 0;
     const taskId = this.getNextTaskId() + afterTaskId;
 
     const key = makeTaskKey(

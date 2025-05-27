@@ -12,6 +12,15 @@ import {
   UrlContentFetcher,
   UrlFetchStrategy,
 } from './provider/UrlContentFetcher';
+import { BlueDocumentProcessor } from './processor/BlueDocumentProcessor';
+import {
+  ProcessEmbeddedProcessor,
+  EmbeddedNodeChannelProcessor,
+  DocumentUpdateChannelProcessor,
+  TimelineChannelProcessor,
+  SequentialWorkflowProcessor,
+} from './processor/processors';
+import { EventNodePayload } from './processor/types';
 
 export interface BlueOptions {
   nodeProvider?: NodeProvider;
@@ -24,6 +33,7 @@ export class Blue {
   private typeSchemaResolver: TypeSchemaResolver | null;
   private blueDirectivePreprocessor: BlueDirectivePreprocessor;
   private urlContentFetcher: UrlContentFetcher;
+  private documentProcessor: BlueDocumentProcessor;
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -44,6 +54,15 @@ export class Blue {
       undefined,
       this.urlContentFetcher
     );
+
+    // TODO: make this configurable
+    this.documentProcessor = new BlueDocumentProcessor(this, [
+      new ProcessEmbeddedProcessor(),
+      new EmbeddedNodeChannelProcessor(),
+      new DocumentUpdateChannelProcessor(),
+      new TimelineChannelProcessor(),
+      new SequentialWorkflowProcessor(),
+    ]);
   }
 
   public nodeToSchemaOutput<
@@ -55,11 +74,16 @@ export class Blue {
     return converter.convert(node, schema);
   }
 
-  public jsonValueToNode(json: JsonBlueValue) {
+  public async process(node: BlueNode, events: EventNodePayload[]) {
+    await this.documentProcessor.initialise(node);
+    return this.documentProcessor.processEvents(node, events);
+  }
+
+  public jsonValueToNode(json: unknown) {
     return this.preprocess(NodeDeserializer.deserialize(json));
   }
 
-  public async jsonValueToNodeAsync(json: JsonBlueValue): Promise<BlueNode> {
+  public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
     return this.preprocessAsync(NodeDeserializer.deserialize(json));
   }
 

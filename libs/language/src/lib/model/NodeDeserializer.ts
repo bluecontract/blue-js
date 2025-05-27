@@ -1,5 +1,5 @@
 import { BlueNode } from './Node';
-import { JsonBlueValue } from '../../schema';
+import { isJsonBlueArray, isJsonBlueObject, JsonBlueValue } from '../../schema';
 import {
   OBJECT_BLUE_ID,
   OBJECT_DESCRIPTION,
@@ -20,21 +20,16 @@ import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';
 
 export class NodeDeserializer {
-  static deserialize(json: JsonBlueValue) {
+  static deserialize(json: unknown) {
     return NodeDeserializer.handleNode(json);
   }
 
-  private static handleNode(node: JsonBlueValue): BlueNode {
+  private static handleNode(node: unknown): BlueNode {
     if (node === undefined) {
       throw new Error(
         "This is not a valid JSON-like value. Found 'undefined' as a value."
       );
-    } else if (
-      isObject(node) &&
-      !isArray(node) &&
-      !isReadonlyArray(node) &&
-      !isBigNumber(node)
-    ) {
+    } else if (isJsonBlueObject(node)) {
       const obj = new BlueNode();
       const properties = {} as Record<string, BlueNode>;
       const contracts = {} as Record<string, BlueNode>;
@@ -109,11 +104,13 @@ export class NodeDeserializer {
         obj.setContracts(contracts);
       }
       return obj;
-    } else if (Array.isArray(node) || isReadonlyArray(node)) {
+    } else if (isJsonBlueArray(node)) {
       return new BlueNode().setItems(NodeDeserializer.handleArray(node));
     } else {
+      // It's a primitive value or a BigNumber
+      const nodeValue = node as JsonBlueValue;
       return new BlueNode()
-        .setValue(NodeDeserializer.handleValue(node))
+        .setValue(NodeDeserializer.handleValue(nodeValue))
         .setInlineValue(true);
     }
   }

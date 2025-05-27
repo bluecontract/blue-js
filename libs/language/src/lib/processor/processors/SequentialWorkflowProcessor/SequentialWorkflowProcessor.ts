@@ -51,9 +51,7 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
     return (
       isSequentialWorkflow &&
       event.source === 'channel' &&
-      (Array.isArray(channel)
-        ? channel.includes(event.channelName)
-        : event.channelName === channel)
+      event.channelName === channel
     );
   }
 

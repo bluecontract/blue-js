@@ -207,9 +207,14 @@ function write(parent: Container, key: string | number, raw: RValue): void {
   }
 
   if (Array.isArray(parent)) {
-    parent[key as number] = raw as BlueNode;
+    const idx = asIndex(key);
+    parent.splice(idx, 1);
   } else if (isDict(parent)) {
-    parent[key as string] = raw as BlueNode;
+    if (raw === undefined) {
+      delete parent[key as string];
+    } else {
+      parent[key as string] = raw as BlueNode;
+    }
   }
 }
 
@@ -241,12 +246,25 @@ function opAdd(root: BlueNode, path: string, raw: unknown): boolean {
 }
 /* -- replace ------------------------------------------------------- */
 function opReplace(root: BlueNode, path: string, raw: unknown): boolean {
-  const { parent, key } = resolve(root, split(path));
-  if (read(parent, key) === undefined) {
-    throw new Error(`REPLACE path not found: ${path}`);
+  try {
+    const { parent, key } = resolve(root, split(path));
+    const currentValue = read(parent, key);
+
+    if (currentValue === undefined) {
+      // Key doesn't exist, but parent exists (since resolve succeeded)
+      // Create the key (essentially an add operation)
+      insert(parent, key, raw, false);
+    } else {
+      // Key exists, do normal replace
+      insert(parent, key, raw, true);
+    }
+    return true;
+  } catch (error) {
+    // If resolve failed, it means intermediate paths don't exist
+    throw new Error(
+      `REPLACE failed: intermediate path does not exist in ${path}`
+    );
   }
-  insert(parent, key, raw, true);
-  return true;
 }
 /* -- remove -------------------------------------------------------- */
 function opRemove(root: BlueNode, path: string): boolean {

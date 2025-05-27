@@ -17,8 +17,6 @@ import { ensureCheckpointContracts } from './utils/checkpoint';
 import { ChannelEventCheckpointProcessor } from './processors/ChannelEventCheckpointProcessor';
 import { CheckpointCache } from './utils/CheckpointCache';
 import { Blue } from '../Blue';
-import { SequentialWorkflowProcessor } from './processors/SequentialWorkflowProcessor';
-import { TimelineChannelProcessor } from './processors/TimelineChannelProcessor';
 
 /**
  * BlueDocumentProcessor - Main orchestrator for document processing
@@ -41,10 +39,7 @@ export class BlueDocumentProcessor {
    */
   constructor(
     private readonly blue: Blue,
-    processors: ContractProcessor[] = [
-      new TimelineChannelProcessor(),
-      new SequentialWorkflowProcessor(),
-    ]
+    processors: ContractProcessor[] = []
   ) {
     this.registry = new ContractRegistry(processors);
     this.queue = new TaskQueue();

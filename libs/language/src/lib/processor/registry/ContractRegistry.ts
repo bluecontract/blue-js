@@ -1,4 +1,4 @@
-import { BlueNode } from 'src/lib/model/Node';
+import { BlueNode } from '../../model/Node';
 import { ContractProcessor } from '../types';
 
 /**

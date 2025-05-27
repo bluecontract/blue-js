@@ -3,6 +3,7 @@ import { EventNode, ProcessingContext } from '../../../types';
 import { DocumentNode } from '../../../types';
 import { WorkflowStepExecutor } from '../types';
 import { TriggerEventSchema } from '../../../../../repo/core';
+import { NodeToMapListOrValue } from '../../../../utils/NodeToMapListOrValue';
 
 export class TriggerEventExecutor implements WorkflowStepExecutor {
   readonly stepType = 'Trigger Event';
@@ -22,8 +23,14 @@ export class TriggerEventExecutor implements WorkflowStepExecutor {
       .getBlue()
       .nodeToSchemaOutput(step, TriggerEventSchema);
 
+    // TODO: change it
+    const payload = NodeToMapListOrValue.get(
+      triggerEventStep.event,
+      'simple'
+    ) as any;
+
     ctx.emitEvent({
-      payload: triggerEventStep.event,
+      payload,
     });
 
     return;

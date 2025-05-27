@@ -9,6 +9,17 @@ describe('applyBluePatch → BlueNode', () => {
       name: 'Customer',
       age: 1,
       personName: 'Alice',
+      contracts: {
+        timelineCh: {
+          type: 'Timeline Channel',
+          timelineId: 'timeline-1',
+        },
+        contract1: {
+          type: 'Sequential Workflow',
+          channel: 'timelineCh',
+          steps: [],
+        },
+      },
       list: [{ value: 'first' }, { value: 'second' }],
     });
   }
@@ -40,9 +51,22 @@ describe('applyBluePatch → BlueNode', () => {
 
   it('removes a property', () => {
     const root = makeCustomer();
-    const patch: BlueNodePatch[] = [{ op: 'remove', path: '/personName' }];
+    const patch: BlueNodePatch[] = [
+      { op: 'remove', path: '/personName' },
+      { op: 'remove', path: '/contracts/contract1' },
+      { op: 'remove', path: '/list/items/0' },
+      // TODO Make this work
+      // { op: 'remove', path: '/list/0' },
+    ];
     const result = applyBlueNodePatch(root, patch);
     expect(result.get('/personName')).toBeUndefined();
+    const contracts = result.getContracts();
+    expect(Object.keys(contracts ?? {}).some((c) => c === 'contract1')).toBe(
+      false
+    );
+    const list = result.get('/list') as BlueNode;
+    expect(list.getItems()).toHaveLength(1);
+    expect(result.get('/list/0')).toBe('second');
   });
 
   it('copies and moves between properties', () => {
@@ -84,13 +108,40 @@ describe('applyBluePatch → BlueNode', () => {
     expect(() => applyBlueNodePatch(root, patch)).toThrow(/TEST failed/);
   });
 
-  it('throws on replace to non-existing path', () => {
+  it('allows replace to create property if parent exists (one-hop creation)', () => {
     const root = makeCustomer();
     const patch: BlueNodePatch[] = [
       { op: 'replace', path: '/missing', val: 1 },
     ];
+    const result = applyBlueNodePatch(root, patch);
+    expect(result.get('/missing/value')?.toString()).toBe('1');
+  });
+
+  it('throws on replace when intermediate paths are missing', () => {
+    const root = makeCustomer();
+    const patch: BlueNodePatch[] = [
+      { op: 'replace', path: '/missing/nested', val: 1 },
+    ];
     expect(() => applyBlueNodePatch(root, patch)).toThrow(
-      /REPLACE path not found/
+      /intermediate path does not exist/
     );
+  });
+
+  it('allows replace to create contract in existing contracts object', () => {
+    const root = makeCustomer();
+    const patch: BlueNodePatch[] = [
+      {
+        op: 'replace',
+        path: '/contracts/newContract',
+        val: {
+          type: 'Timeline Channel',
+          timelineId: 'test-timeline',
+        },
+      },
+    ];
+    const result = applyBlueNodePatch(root, patch);
+    const contracts = result.getContracts();
+    expect(contracts?.newContract).toBeDefined();
+    expect(contracts?.newContract.get('/type/value')).toBe('Timeline Channel');
   });
 });

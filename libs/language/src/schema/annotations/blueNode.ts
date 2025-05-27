@@ -1,7 +1,7 @@
 import { isNonNullable } from '@blue-company/shared-utils';
 import { z, ZodTypeAny } from 'zod';
 import { setAnnotations, getAnnotations } from './annotations';
-import { BlueNode } from '../../lib';
+import { BlueNode } from '../../lib/model/Node';
 
 export const withBlueNode =
   () =>

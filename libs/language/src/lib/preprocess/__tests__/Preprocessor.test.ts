@@ -100,7 +100,6 @@ items:
         if (transformation.getName() === 'MyTestTransformation') {
           return {
             process: (document) => {
-              // Use NodeTransformer to transform the document
               return NodeTransformer.transform(document, transformer);
             },
           };

@@ -1,4 +1,4 @@
-import { TypeSchemaResolver } from '../..';
+import { TypeSchemaResolver } from '../../utils/TypeSchemaResolver';
 import {
   SequentialWorkflowSchema,
   TimelineChannelSchema,
@@ -7,7 +7,6 @@ import {
 } from '../../../repo/core';
 import { JavaScriptCodeSchema } from '../../../repo/core/schema/JavaScriptCode';
 import { Blue } from '../../Blue';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -26,11 +25,9 @@ describe('basic', () => {
     const blue = new Blue({
       typeSchemaResolver,
     });
-    const processor = new BlueDocumentProcessor(blue);
     const document = await blue.yamlToNodeAsync(doc);
-    await processor.initialise(document);
 
-    const result = await processor.processEvents(document, [
+    const result = await blue.process(document, [
       {
         type: 'Timeline Entry',
         timeline: { timelineId: 'user-123' },
