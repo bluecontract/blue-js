@@ -1,8 +1,8 @@
 {
   "name": "@blue-company/app-sdk-host",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "dependencies": {
-    "@blue-company/app-sdk-core": "1.12.0"
+    "@blue-company/app-sdk-core": "1.13.0"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

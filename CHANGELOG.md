@@ -1,3 +1,16 @@
+## 1.13.0 (2025-05-27)
+
+### 🚀 Features
+
+- Add contracts management to BlueNode and related classes ([356a7a0](https://github.com/bluecontract/blue-js/commit/356a7a0))
+- Implement BlueNode patching utility and enhance NodePathAccessor ([61d48c9](https://github.com/bluecontract/blue-js/commit/61d48c9))
+- Enhance applyBlueNodePatch to support cloning and return modified nodes ([e3650d5](https://github.com/bluecontract/blue-js/commit/e3650d5))
+- Enhance contract handling in converters and utilities ([349b8a6](https://github.com/bluecontract/blue-js/commit/349b8a6))
+- Update project configurations and dependencies for improved functionality ([5f03cba](https://github.com/bluecontract/blue-js/commit/5f03cba))
+- Add core schemas and blue-ids for language library ([6e0741f](https://github.com/bluecontract/blue-js/commit/6e0741f))
+- Implement BlueDocumentProcessor and related utilities for document processing ([8c61060](https://github.com/bluecontract/blue-js/commit/8c61060))
+- Enhance Blue processing capabilities with new document processors and schema updates ([4099509](https://github.com/bluecontract/blue-js/commit/4099509))
+
 ## 1.12.0 (2025-04-22)
 
 ### 🚀 Features
