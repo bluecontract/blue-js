@@ -13,7 +13,10 @@ import { BlueNode } from '../model';
 import { TypeSchemaResolver } from '../utils/TypeSchemaResolver';
 import { ConverterFactory } from './ConverterFactory';
 import { isNonNullable } from '@blue-company/shared-utils';
-import { isSchemaExtendedFrom } from '../../schema/annotations';
+import {
+  isBlueNodeSchema,
+  isSchemaExtendedFrom,
+} from '../../schema/annotations';
 
 export class NodeToObjectConverter {
   private readonly converterFactory: ConverterFactory;
@@ -29,6 +32,10 @@ export class NodeToObjectConverter {
   >(node: BlueNode, targetType: ZodType<Output, Def, Input>): Output {
     const resolvedSchema = this.typeSchemaResolver?.resolveSchema(node);
     const unwrappedTargetType = this.unwrapSchema(targetType);
+
+    if (isBlueNodeSchema(unwrappedTargetType)) {
+      return node as Output;
+    }
 
     let schemaToUse = unwrappedTargetType;
 
@@ -63,6 +70,10 @@ export class NodeToObjectConverter {
   }
 
   private unwrapSchema(schema: ZodTypeAny): ZodTypeAny {
+    if (isBlueNodeSchema(schema)) {
+      return schema;
+    }
+
     if (this.isWrapperType(schema)) {
       if (schema instanceof ZodEffects) {
         return this.unwrapSchema(schema.innerType());

@@ -6,6 +6,7 @@ import {
   INTEGER_TYPE_BLUE_ID,
   LIST_TYPE_BLUE_ID,
   TEXT_TYPE_BLUE_ID,
+  OBJECT_CONTRACTS,
 } from '../../utils/Properties';
 import { BlueIdCalculator, Properties } from '../../utils';
 import { schemas, TestEnum } from './schema';
@@ -945,6 +946,136 @@ describe('blueNodeToObject', () => {
       expect(doctor3.data?.specialization).toBe('surgeon');
       expect(nurse3.data?.name).toBe('Betty');
       expect(nurse3.data?.yearsOfExperience).toBe(12);
+    });
+
+    it('should handle contracts in map schemas correctly - testMapContracts', () => {
+      const mapWithContractsYaml = `
+        name: Team Registry
+        description: A registry of medical teams
+        contracts:
+          version: 1.0
+          author: Medical Department
+          requirements:
+            - Certified professionals only
+            - Active licenses required
+        person1:
+          type:
+            blueId: Doctor-BlueId
+          name: Dr. Alice
+          specialization: cardiology
+        person2:
+          type:
+            blueId: Nurse-BlueId
+          name: Nurse Bob
+          yearsOfExperience: 8`;
+
+      const node = NodeDeserializer.deserialize(
+        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue
+      );
+
+      const mapSchema = z.map(z.string(), z.unknown());
+      const result = converter.convert(node, mapSchema) as Map<string, unknown>;
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(Map);
+
+      // Test that contracts are properly stored (since z.any() can handle structured data)
+      expect(result.has(OBJECT_CONTRACTS)).toBeTruthy();
+      const contracts = result.get(OBJECT_CONTRACTS);
+      expect(contracts).toBeDefined();
+      expect(typeof contracts).toBe('object');
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contractsObj = contracts as Record<string, any>;
+
+      expect(contractsObj.version.value.toString()).toBe('1');
+      expect(contractsObj.author.value).toBe('Medical Department');
+      expect(contractsObj.requirements.items).toHaveLength(2);
+      expect(contractsObj.requirements.items[0].value).toBe(
+        'Certified professionals only'
+      );
+      expect(contractsObj.requirements.items[1].value).toBe(
+        'Active licenses required'
+      );
+
+      // Test that name and description are stored
+      expect(result.has('name')).toBeTruthy();
+      expect(result.get('name')).toBe('Team Registry');
+      expect(result.has('description')).toBeTruthy();
+      expect(result.get('description')).toBe('A registry of medical teams');
+
+      expect(result.has('person1')).toBeTruthy();
+      expect(result.has('person2')).toBeTruthy();
+    });
+
+    it('should apply valueSchema to contracts - testMapContractsWithNumberSchema', () => {
+      const mapWithContractsYaml = `
+        name: Numeric Registry
+        description: A registry with numeric values
+        contracts:
+          version: 1.5
+          count: 42
+          ratio: 3.14
+        item1: 100
+        item2: 200`;
+
+      const node = NodeDeserializer.deserialize(
+        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue
+      );
+
+      // Use z.number() valueSchema - contracts should NOT be processed specially
+      const mapSchema = z.map(z.string(), z.number());
+      const result = converter.convert(node, mapSchema) as Map<string, unknown>;
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(Map);
+
+      // Contracts should NOT be processed specially with z.number() valueSchema
+      expect(result.has(OBJECT_CONTRACTS)).toBeFalsy();
+
+      // Test that regular map values are numbers
+      expect(result.get('item1')).toBe(100);
+      expect(result.get('item2')).toBe(200);
+
+      // Test that name and description are stored
+      expect(result.get('name')).toBe('Numeric Registry');
+      expect(result.get('description')).toBe('A registry with numeric values');
+    });
+
+    it('should apply valueSchema to contracts - testMapContractsWithObjectSchema', () => {
+      const mapWithContractsYaml = `
+        name: Numeric Registry
+        description: A registry with numeric values
+        contracts:
+          version: 1.5
+          workflow:
+            - step1
+            - step2
+            - step3
+        `;
+
+      const node = NodeDeserializer.deserialize(
+        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue
+      );
+
+      const mapSchema = z.object({
+        name: z.string(),
+        description: z.string(),
+        contracts: z.object({
+          version: z.number(),
+          workflow: z.array(z.string()),
+        }),
+      });
+      const result = converter.convert(node, mapSchema);
+
+      expect(result).toBeDefined();
+      expect(result.name).toBe('Numeric Registry');
+      expect(result.description).toBe('A registry with numeric values');
+      expect(result.contracts.version).toBe(1.5);
+      expect(result.contracts.workflow).toHaveLength(3);
+      expect(result.contracts.workflow[0]).toBe('step1');
+      expect(result.contracts.workflow[1]).toBe('step2');
+      expect(result.contracts.workflow[2]).toBe('step3');
     });
 
     it('should convert a simple object correctly - testObjectSimple', () => {

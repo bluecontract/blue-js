@@ -1,0 +1,15 @@
+export const blueIds = {
+  Channel: '2RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc',
+  'Timeline Channel': 'RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2',
+  'MyOS Timeline Channel': 'MkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2R',
+  'Sequential Workflow': 'h3uDxZ7dr6Eo27B7fuxMkKoutP5qxkQCS1VAptiCPc2R',
+  'Sequential Workflow Step': '6EoMkKoutP5DxZ7drqxkh3u27B7fuxQCS1VAptiCPc2R',
+  'Process Embedded': 'DxZ7dr6EoMkKoutP5qxkh3u27B7fuxQCS1VAptiCPc2R',
+  'Embedded Node Channel': 'MkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2',
+  'Document Update Channel': 'MkKoutP5qxkh3uDQCS1VAptiCPc2xZ7dr6Eo27B7fux',
+  'Channel Event Checkpoint': 'o27B7fuxMkKoutPh3uDxZ7dr6E5qxkQCS1VAptiCPc2R',
+  'Update Document': '7fuxMkKoutPh3uDxZ7dr6E5qxkQCS1VAptiCPc2R',
+  'Trigger Event': 'kQCS1VAp7fuxMkKoutPh3uDxZ7dr6E5qxtiCPc2R',
+  'Json Patch Entry': 'EnUQeMiMa2wHFW3JbeSPvdgfpL6qZYCR29m3SfeHsKSY',
+  'JavaScript Code': 'MkKoutPDxZ7dr6Eo5qxkh3u27B7fuxQCS1VAptiCPc2R',
+} as const;

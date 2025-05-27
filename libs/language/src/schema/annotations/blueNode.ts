@@ -1,7 +1,7 @@
 import { isNonNullable } from '@blue-company/shared-utils';
 import { z, ZodTypeAny } from 'zod';
 import { setAnnotations, getAnnotations } from './annotations';
-import { BlueNode } from '../../lib';
+import { BlueNode } from '../../lib/model/Node';
 
 export const withBlueNode =
   () =>
@@ -24,6 +24,10 @@ export const getBlueNodeAnnotation = (schema: ZodTypeAny) => {
     return annotations.blueNode;
   }
   return null;
+};
+
+export const isBlueNodeSchema = (schema: ZodTypeAny) => {
+  return !!getBlueNodeAnnotation(schema);
 };
 
 export const blueNodeField = () => {

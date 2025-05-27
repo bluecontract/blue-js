@@ -92,7 +92,7 @@ forX:
     expect((await node.get('/forA/x'))?.toString()).toBe('1');
     expect((await node.get('/forA/y/z'))?.toString()).toBe('1');
 
-    await expect(node.get('/forX/a')).rejects.toThrow();
+    expect(await node.get('/forX/a')).toBeUndefined();
   });
 
   test('testExtendNestedProperty', async () => {
@@ -127,7 +127,7 @@ forX:
     expect(await node.get('/forA/name')).toBe('A');
     expect((await node.get('/forA/x'))?.toString()).toBe('1');
     expect(await node.get('/forX/name')).toBe('X');
-    await expect(node.get('/forX/a/prop')).rejects.toThrow();
+    expect(await node.get('/forX/a/prop')).toBeUndefined();
   });
 
   test('testExtendList', async () => {

@@ -63,6 +63,15 @@ export class NodeTransformer {
       transformedNode.setProperties(transformedProperties);
     }
 
+    const contracts = transformedNode.getContracts();
+    if (contracts !== undefined) {
+      const transformedContracts = Object.keys(contracts).reduce((acc, key) => {
+        acc[key] = NodeTransformer.transform(contracts[key], transformer);
+        return acc;
+      }, {} as Record<string, BlueNode>);
+      transformedNode.setContracts(transformedContracts);
+    }
+
     return transformedNode;
   }
 }

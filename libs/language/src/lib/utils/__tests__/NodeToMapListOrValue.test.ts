@@ -67,6 +67,106 @@ describe('NodeToMapListOrValue', () => {
     expect(result['b']).toEqual('xyz2');
   });
 
+  it('testContractsStandardStrategy', () => {
+    const node = new BlueNode()
+      .setName('Agreement')
+      .setDescription('Legal agreement')
+      .setContracts({
+        party1: new BlueNode().setName('Alice').setProperties({
+          role: new BlueNode().setValue('Seller'),
+        }),
+        party2: new BlueNode().setName('Bob').setProperties({
+          role: new BlueNode().setValue('Buyer'),
+          contactInfo: new BlueNode().setValue('bob@example.com'),
+        }),
+        terms: new BlueNode().setItems([
+          new BlueNode().setValue('Term 1'),
+          new BlueNode().setValue('Term 2'),
+        ]),
+      });
+
+    const object = NodeToMapListOrValue.get(node);
+    expect(typeof object).toBe('object');
+
+    const result = object as Record<string, unknown>;
+    expect(result['name']).toEqual('Agreement');
+    expect(result['description']).toEqual('Legal agreement');
+
+    const contracts = result['contracts'] as Record<string, unknown>;
+    expect(contracts).toBeDefined();
+
+    const party1 = contracts['party1'] as Record<string, unknown>;
+    expect(party1).toBeDefined();
+    expect(party1['name']).toEqual('Alice');
+    expect((party1['role'] as Record<string, unknown>)['value']).toEqual(
+      'Seller'
+    );
+
+    const party2 = contracts['party2'] as Record<string, unknown>;
+    expect(party2).toBeDefined();
+    expect(party2['name']).toEqual('Bob');
+    expect((party2['role'] as Record<string, unknown>)['value']).toEqual(
+      'Buyer'
+    );
+    expect((party2['contactInfo'] as Record<string, unknown>)['value']).toEqual(
+      'bob@example.com'
+    );
+
+    const terms = contracts['terms'] as Record<string, unknown>;
+    expect(terms).toBeDefined();
+    const termsItems = terms['items'] as Record<string, unknown>[];
+    expect(termsItems).toBeDefined();
+    expect(termsItems.length).toEqual(2);
+    expect(termsItems[0]['value']).toEqual('Term 1');
+    expect(termsItems[1]['value']).toEqual('Term 2');
+  });
+
+  it('testContractsSimpleStrategy', () => {
+    const node = new BlueNode()
+      .setName('Agreement')
+      .setDescription('Legal agreement')
+      .setContracts({
+        party1: new BlueNode().setName('Alice').setProperties({
+          role: new BlueNode().setValue('Seller'),
+        }),
+        party2: new BlueNode().setName('Bob').setProperties({
+          role: new BlueNode().setValue('Buyer'),
+          contactInfo: new BlueNode().setValue('bob@example.com'),
+        }),
+        terms: new BlueNode().setItems([
+          new BlueNode().setValue('Term 1'),
+          new BlueNode().setValue('Term 2'),
+        ]),
+      });
+
+    const object = NodeToMapListOrValue.get(node, 'simple');
+    expect(typeof object).toBe('object');
+
+    const result = object as Record<string, unknown>;
+    expect(result['name']).toEqual('Agreement');
+    expect(result['description']).toEqual('Legal agreement');
+
+    const contracts = result['contracts'] as Record<string, unknown>;
+    expect(contracts).toBeDefined();
+
+    const party1 = contracts['party1'] as Record<string, unknown>;
+    expect(party1).toBeDefined();
+    expect(party1['name']).toEqual('Alice');
+    expect(party1['role']).toEqual('Seller');
+
+    const party2 = contracts['party2'] as Record<string, unknown>;
+    expect(party2).toBeDefined();
+    expect(party2['name']).toEqual('Bob');
+    expect(party2['role']).toEqual('Buyer');
+    expect(party2['contactInfo']).toEqual('bob@example.com');
+
+    const terms = contracts['terms'] as string[];
+    expect(terms).toBeDefined();
+    expect(terms.length).toEqual(2);
+    expect(terms[0]).toEqual('Term 1');
+    expect(terms[1]).toEqual('Term 2');
+  });
+
   it('testListStandardStrategy', () => {
     const node = new BlueNode()
       .setName('nameA')
@@ -290,6 +390,161 @@ describe('NodeToMapListOrValue', () => {
             "Alice",
             "Bob",
           ],
+        }
+      `);
+    });
+
+    it('should properly serialize BlueNode with contracts', () => {
+      const node = NodeDeserializer.deserialize({
+        name: 'Contract',
+        description: 'Main contract',
+        mainRegistrationNumber: {
+          description: 'Address',
+          value: '123 Main St, Anytown, USA',
+        },
+        mainCountry: 'US',
+        contracts: {
+          timelineCh: {
+            type: 'Timeline Channel',
+            timelineId: 'user-123',
+          },
+          childWf: {
+            type: 'Sequential Workflow',
+            channel: 'timelineCh',
+            steps: [
+              {
+                type: 'Update Document',
+                changeset: [
+                  {
+                    op: 'replace',
+                    path: '/mainRegistrationNumber/value',
+                    val: '12345',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      });
+
+      // Test official strategy
+      const officialResult = NodeToMapListOrValue.get(node);
+      expect(officialResult).toMatchInlineSnapshot(`
+        {
+          "contracts": {
+            "childWf": {
+              "channel": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "timelineCh",
+              },
+              "steps": {
+                "items": [
+                  {
+                    "changeset": {
+                      "items": [
+                        {
+                          "op": {
+                            "type": {
+                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                            },
+                            "value": "replace",
+                          },
+                          "path": {
+                            "type": {
+                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                            },
+                            "value": "/mainRegistrationNumber/value",
+                          },
+                          "val": {
+                            "type": {
+                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                            },
+                            "value": "12345",
+                          },
+                        },
+                      ],
+                    },
+                    "type": {
+                      "type": {
+                        "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                      },
+                      "value": "Update Document",
+                    },
+                  },
+                ],
+              },
+              "type": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "Sequential Workflow",
+              },
+            },
+            "timelineCh": {
+              "timelineId": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "user-123",
+              },
+              "type": {
+                "type": {
+                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                },
+                "value": "Timeline Channel",
+              },
+            },
+          },
+          "description": "Main contract",
+          "mainCountry": {
+            "type": {
+              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+            },
+            "value": "US",
+          },
+          "mainRegistrationNumber": {
+            "description": "Address",
+            "type": {
+              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+            },
+            "value": "123 Main St, Anytown, USA",
+          },
+          "name": "Contract",
+        }
+      `);
+
+      // Test simple strategy
+      const simpleResult = NodeToMapListOrValue.get(node, 'simple');
+      expect(simpleResult).toMatchInlineSnapshot(`
+        {
+          "contracts": {
+            "childWf": {
+              "channel": "timelineCh",
+              "steps": [
+                {
+                  "changeset": [
+                    {
+                      "op": "replace",
+                      "path": "/mainRegistrationNumber/value",
+                      "val": "12345",
+                    },
+                  ],
+                  "type": "Update Document",
+                },
+              ],
+              "type": "Sequential Workflow",
+            },
+            "timelineCh": {
+              "timelineId": "user-123",
+              "type": "Timeline Channel",
+            },
+          },
+          "description": "Main contract",
+          "mainCountry": "US",
+          "mainRegistrationNumber": "123 Main St, Anytown, USA",
+          "name": "Contract",
         }
       `);
     });

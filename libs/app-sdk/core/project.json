@@ -5,9 +5,8 @@
   "projectType": "library",
   "release": {
     "version": {
-      "generatorOptions": {
-        "currentVersionResolver": "git-tag"
-      }
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
     }
   },
   "tags": [],

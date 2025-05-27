@@ -1,5 +1,5 @@
 import { BlueNode } from './Node';
-import { JsonBlueValue } from '../../schema';
+import { isJsonBlueArray, isJsonBlueObject, JsonBlueValue } from '../../schema';
 import {
   OBJECT_BLUE_ID,
   OBJECT_DESCRIPTION,
@@ -11,6 +11,7 @@ import {
   OBJECT_KEY_TYPE,
   OBJECT_VALUE_TYPE,
   OBJECT_BLUE,
+  OBJECT_CONTRACTS,
 } from '../utils/Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
 import { isReadonlyArray } from '@blue-company/shared-utils';
@@ -19,23 +20,19 @@ import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';
 
 export class NodeDeserializer {
-  static deserialize(json: JsonBlueValue) {
+  static deserialize(json: unknown) {
     return NodeDeserializer.handleNode(json);
   }
 
-  private static handleNode(node: JsonBlueValue): BlueNode {
+  private static handleNode(node: unknown): BlueNode {
     if (node === undefined) {
       throw new Error(
         "This is not a valid JSON-like value. Found 'undefined' as a value."
       );
-    } else if (
-      isObject(node) &&
-      !isArray(node) &&
-      !isReadonlyArray(node) &&
-      !isBigNumber(node)
-    ) {
+    } else if (isJsonBlueObject(node)) {
       const obj = new BlueNode();
       const properties = {} as Record<string, BlueNode>;
+      const contracts = {} as Record<string, BlueNode>;
 
       Object.entries(node).forEach(([key, value]) => {
         switch (key) {
@@ -86,10 +83,14 @@ export class NodeDeserializer {
           case OBJECT_BLUE:
             obj.setBlue(NodeDeserializer.handleNode(value));
             break;
-          // TODO: Implement constraints
-          // case OBJECT_CONSTRAINTS:
-          //   obj.setConstraints(NodeDeserializer.handleConstraints(value));
-          //   break;
+          case OBJECT_CONTRACTS:
+            if (isObject(value) && !isArray(value) && !isReadonlyArray(value)) {
+              Object.entries(value).forEach(([contractKey, contractValue]) => {
+                contracts[contractKey] =
+                  NodeDeserializer.handleNode(contractValue);
+              });
+            }
+            break;
           default:
             properties[key] = NodeDeserializer.handleNode(value);
             break;
@@ -99,12 +100,17 @@ export class NodeDeserializer {
       if (Object.keys(properties).length > 0) {
         obj.setProperties(properties);
       }
+      if (Object.keys(contracts).length > 0) {
+        obj.setContracts(contracts);
+      }
       return obj;
-    } else if (Array.isArray(node) || isReadonlyArray(node)) {
+    } else if (isJsonBlueArray(node)) {
       return new BlueNode().setItems(NodeDeserializer.handleArray(node));
     } else {
+      // It's a primitive value or a BigNumber
+      const nodeValue = node as JsonBlueValue;
       return new BlueNode()
-        .setValue(NodeDeserializer.handleValue(node))
+        .setValue(NodeDeserializer.handleValue(nodeValue))
         .setInlineValue(true);
     }
   }
@@ -148,9 +154,4 @@ export class NodeDeserializer {
       throw new Error('Expected an array node');
     }
   }
-
-  // TODO: Implement constraints
-  // private static handleConstraints(constraintsNode: any): Constraints {
-  //   return plainToClass(Constraints, constraintsNode);
-  // }
 }
