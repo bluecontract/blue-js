@@ -40,5 +40,13 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
+  },
+  "peerDependencies": {
+    "zod": "^3.20.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": false
+    }
   }
 }

@@ -2,7 +2,11 @@ import { JsonBlueValue } from '../schema';
 import { NodeToObjectConverter } from './mapping';
 import { BlueNode, NodeDeserializer } from './model';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
-import { BlueIdCalculator, TypeSchemaResolver } from './utils';
+import {
+  BlueIdCalculator,
+  NodeToMapListOrValue,
+  TypeSchemaResolver,
+} from './utils';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
 import { ZodTypeDef, ZodType } from 'zod';
 import { yamlBlueParse } from '../utils';
@@ -63,6 +67,10 @@ export class Blue {
       new TimelineChannelProcessor(),
       new SequentialWorkflowProcessor(),
     ]);
+  }
+
+  public nodeToJson(node: BlueNode) {
+    return NodeToMapListOrValue.get(node);
   }
 
   public nodeToSchemaOutput<
