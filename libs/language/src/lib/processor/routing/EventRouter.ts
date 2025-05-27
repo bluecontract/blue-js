@@ -6,18 +6,13 @@ import {
 } from '../types';
 import { InternalContext } from '../context';
 import { makePath } from '../utils/path';
-import {
-  // hasDocumentNodeOrder,
-  // hasDocumentNodeType,
-  isDocumentNode,
-} from '../utils/typeGuard';
+import { isDocumentNode } from '../utils/typeGuard';
 import { makeTaskKey } from '../queue/TaskKey';
 import { TaskQueue } from '../queue/TaskQueue';
 import { ContractRegistry } from '../registry/ContractRegistry';
 import { EventTraceManager } from '../utils/EventTraceManager';
 import type { Blue } from '../../Blue';
 import { isBigNumber } from '../../../utils/typeGuards/isBigNumber';
-import { isNullable } from '@blue-company/shared-utils';
 
 /** Maximum recursion depth for inline adapter processing */
 const MAX_INLINE_ADAPTER_DEPTH = 64;

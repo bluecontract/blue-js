@@ -112,7 +112,7 @@ describe('BlueDocumentProcessor', () => {
 
     const docNode = blue.jsonValueToNode(doc);
 
-    const { state, emitted } = await blue.process(docNode, [timelineEntry]);
+    const { state } = await blue.process(docNode, [timelineEntry]);
     const stateMap = NodeToMapListOrValue.get(state, 'simple') as any;
     expect(stateMap?.counter).toBe(3);
   });
@@ -172,7 +172,7 @@ describe('BlueDocumentProcessor', () => {
 
     const docNode = blue.jsonValueToNode(doc);
 
-    const { state, emitted } = await blue.process(docNode, [timelineEntry]);
+    const { state } = await blue.process(docNode, [timelineEntry]);
 
     const stateMap = NodeToMapListOrValue.get(state, 'simple') as any;
     expect(stateMap?.counter).toBe(1);
@@ -241,7 +241,7 @@ describe('BlueDocumentProcessor', () => {
 
     const docNode = blue.jsonValueToNode(doc);
 
-    const { state, emitted } = await blue.process(docNode, [timelineEntry]);
+    const { state } = await blue.process(docNode, [timelineEntry]);
 
     const stateMap = NodeToMapListOrValue.get(state, 'simple') as any;
     expect(stateMap?.counter).toBe(10);
@@ -457,7 +457,6 @@ describe('BlueDocumentProcessor', () => {
         e.payload.type === 'Payment Succeeded' && e.payload.amountUsd === 120
     );
 
-    console.log(result.emitted);
     expect(paymentSucceededEvent).toBeDefined();
 
     // Check if the embedded document events were propagated properly
