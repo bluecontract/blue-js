@@ -151,6 +151,63 @@ describe('NodeDeserializer', () => {
     expect(node.getProperties()?.['props2'].getItems()).toHaveLength(2);
   });
 
+  it('testContracts', () => {
+    const doc =
+      'name: Contract\n' +
+      'description: Contract description\n' +
+      'contracts:\n' +
+      '  partyA:\n' +
+      '    name: Alice\n' +
+      '    role: Buyer\n' +
+      '  partyB:\n' +
+      '    name: Bob\n' +
+      '    role: Seller\n' +
+      '    details:\n' +
+      '      companyId: 12345\n' +
+      '  terms:\n' +
+      '    items:\n' +
+      '      - name: Term1\n' +
+      '        description: First term\n' +
+      '      - name: Term2\n' +
+      '        description: Second term';
+
+    const map1 = yamlBlueParse(doc) as JsonBlueValue;
+    const node = NodeDeserializer.deserialize(map1);
+
+    expect(node.getName()).toEqual('Contract');
+    expect(node.getDescription()).toEqual('Contract description');
+
+    const contracts = node.getContracts();
+    expect(contracts).toBeDefined();
+
+    // Test partyA contract
+    const partyA = contracts?.['partyA'];
+    expect(partyA).toBeDefined();
+    expect(partyA?.getName()).toEqual('Alice');
+    expect(partyA?.getProperties()?.['role'].getValue()).toEqual('Buyer');
+
+    // Test partyB contract with nested property
+    const partyB = contracts?.['partyB'];
+    expect(partyB).toBeDefined();
+    expect(partyB?.getName()).toEqual('Bob');
+    expect(partyB?.getProperties()?.['role'].getValue()).toEqual('Seller');
+    expect(
+      partyB
+        ?.getProperties()
+        ?.['details'].getProperties()
+        ?.['companyId'].getValue()
+    ).toEqual(new Big('12345'));
+
+    // Test terms contract with items
+    const terms = contracts?.['terms'];
+    expect(terms).toBeDefined();
+    expect(terms?.getItems()).toHaveLength(2);
+    expect(terms?.getItems()?.[0].getName()).toEqual('Term1');
+    expect(terms?.getItems()?.[0].getDescription()).toEqual('First term');
+    expect(terms?.getItems()?.[1].getName()).toEqual('Term2');
+    expect(terms?.getItems()?.[1].getDescription()).toEqual('Second term');
+  });
+
   it('testText', () => {
     const doc = 'abc';
     const map1 = yamlBlueParse(doc) as JsonBlueValue;

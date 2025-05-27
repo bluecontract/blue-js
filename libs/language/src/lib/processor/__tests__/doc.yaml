@@ -1,0 +1,43 @@
+blue:
+  - type:
+      blueId: 27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo
+    mappings:
+      Text: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+      Double: 68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L
+      Integer: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8
+      Boolean: EL6AjrbJsxTWRTPzY8WR8Y2zAMXRbydQj83PcZwuAHbo
+      List: G8wmfjEqugPEEXByMYWJXiEdbLToPRWNQEekNxrxfQWB
+      Dictionary: 294NBTj2mFRL3RB4kDRUSckwGg7Kzj6T8CTAFeR1kcSA
+  - type:
+      blueId: FGYuTXwaoSKfZmpTysLTLsb8WzSqf43384rKZDkXhxD4
+  - type:
+      blueId: 27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo
+    mappings:
+      Timeline Channel: RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2
+      Sequential Workflow: h3uDxZ7dr6Eo27B7fuxMkKoutP5qxkQCS1VAptiCPc2R
+      Trigger Event: kQCS1VAp7fuxMkKoutPh3uDxZ7dr6E5qxtiCPc2R
+      Channel Event Checkpoint: o27B7fuxMkKoutPh3uDxZ7dr6E5qxkQCS1VAptiCPc2R
+      Update Document: 7fuxMkKoutPh3uDxZ7dr6E5qxkQCS1VAptiCPc2R
+      JavaScript Code: MkKoutPDxZ7dr6Eo5qxkh3u27B7fuxQCS1VAptiCPc2R
+counter: 1
+contracts:
+  timelineCh:
+    type: Timeline Channel
+    timelineId: user-123
+  parentWf:
+    type: Sequential Workflow
+    channel: timelineCh
+    steps:
+      - type: Trigger Event
+        name: triggerEvent
+        event:
+          type: Increment
+          amount: 1
+      - type: JavaScript Code
+        name: javaScriptCode
+        code: 'return { amount: 2, events: [{ type: "Increment", amount: 1 }] };'
+      - type: Update Document
+        changeset:
+          - op: add
+            path: /counter
+            val: ${document("/counter") + steps.javaScriptCode.amount}

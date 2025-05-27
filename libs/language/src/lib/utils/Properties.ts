@@ -6,11 +6,11 @@ export const OBJECT_TYPE = 'type';
 export const OBJECT_ITEM_TYPE = 'itemType';
 export const OBJECT_KEY_TYPE = 'keyType';
 export const OBJECT_VALUE_TYPE = 'valueType';
-export const OBJECT_CONSTRAINTS = 'constraints';
 export const OBJECT_VALUE = 'value';
 export const OBJECT_ITEMS = 'items';
 export const OBJECT_BLUE_ID = 'blueId';
 export const OBJECT_BLUE = 'blue';
+export const OBJECT_CONTRACTS = 'contracts';
 
 export const OBJECT_SPECIFIC_KEYS = [
   OBJECT_NAME,
@@ -19,11 +19,11 @@ export const OBJECT_SPECIFIC_KEYS = [
   OBJECT_ITEM_TYPE,
   OBJECT_KEY_TYPE,
   OBJECT_VALUE_TYPE,
-  OBJECT_CONSTRAINTS,
   OBJECT_VALUE,
   OBJECT_ITEMS,
   OBJECT_BLUE_ID,
   OBJECT_BLUE,
+  OBJECT_CONTRACTS,
 ] as const;
 
 export const TEXT_TYPE = 'Text';

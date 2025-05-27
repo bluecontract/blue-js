@@ -23,8 +23,8 @@ export class BlueNode {
     | BigDecimalNumber;
   private items?: BlueNode[];
   private properties?: Record<string, BlueNode>;
+  private contracts?: Record<string, BlueNode>;
   private blueId?: string;
-  private constraints?: Constraints;
   private blue?: BlueNode;
   private inlineValue = false;
 
@@ -176,21 +176,29 @@ export class BlueNode {
     return this;
   }
 
+  getContracts() {
+    return this.contracts;
+  }
+
+  setContracts(contracts: Record<string, BlueNode> | undefined): BlueNode {
+    this.contracts = contracts;
+    return this;
+  }
+
+  addContract(key: string, value: BlueNode): BlueNode {
+    if (!this.contracts) {
+      this.contracts = {};
+    }
+    this.contracts[key] = value;
+    return this;
+  }
+
   getBlueId() {
     return this.blueId;
   }
 
   setBlueId(blueId: string | undefined): BlueNode {
     this.blueId = blueId;
-    return this;
-  }
-
-  getConstraints() {
-    return this.constraints;
-  }
-
-  setConstraints(constraints: Constraints | undefined): BlueNode {
-    this.constraints = constraints;
     return this;
   }
 
@@ -230,20 +238,18 @@ export class BlueNode {
         Object.entries(this.properties).map(([k, v]) => [k, v.clone()])
       );
     }
+    if (this.contracts) {
+      cloned.contracts = Object.fromEntries(
+        Object.entries(this.contracts).map(([k, v]) => [k, v.clone()])
+      );
+    }
     cloned.blueId = this.blueId;
-    // TODO: Implement constraints
-    // if (this.constraints) {
-    //   cloned.constraints = this.constraints.clone();
-    // }
     cloned.blue = this.blue?.clone();
     cloned.inlineValue = this.inlineValue;
     return cloned;
   }
 
   toString(): string {
-    return `BlueNode{name='${this.name}', description='${this.description}', type=${this.type}, itemType=${this.itemType}, keyType=${this.keyType}, valueType=${this.valueType}, value=${this.value}, items=${this.items}, properties=${this.properties}, blueId='${this.blueId}', constraints=${this.constraints}, blue=${this.blue}, inlineValue=${this.inlineValue}}`;
+    return `BlueNode{name='${this.name}', description='${this.description}', type=${this.type}, itemType=${this.itemType}, keyType=${this.keyType}, valueType=${this.valueType}, value=${this.value}, items=${this.items}, properties=${this.properties}, contracts=${this.contracts}, blueId='${this.blueId}', blue=${this.blue}, inlineValue=${this.inlineValue}}`;
   }
 }
-
-// Dummy class to simulate environment
-class Constraints {}

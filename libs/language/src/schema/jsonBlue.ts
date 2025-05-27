@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { default as Big } from 'big.js';
-import { JsonPrimitive, jsonPrimitiveSchema } from '@blue-company/shared-utils';
+import {
+  isReadonlyArray,
+  JsonPrimitive,
+  jsonPrimitiveSchema,
+  isJsonPrimitive,
+} from '@blue-company/shared-utils';
+import { isArray, isObject } from 'radash';
+import { isBigNumber } from '../utils/typeGuards';
 
 export type JsonBlueObject = { [Key in string]: JsonBlueValue };
 
@@ -36,3 +43,25 @@ export const jsonBlueValueSchema: z.ZodType<JsonBlueValue> = z.lazy(() =>
     z.instanceof(Big),
   ])
 );
+
+export const isJsonBlueObject = (value: unknown): value is JsonBlueObject => {
+  return (
+    isObject(value) &&
+    !isArray(value) &&
+    !isReadonlyArray(value) &&
+    !isBigNumber(value)
+  );
+};
+
+export const isJsonBlueArray = (value: unknown): value is JsonBlueArray => {
+  return isArray(value) || isReadonlyArray(value);
+};
+
+export const isJsonBlueValue = (value: unknown): value is JsonBlueValue => {
+  return (
+    isJsonBlueArray(value) ||
+    isJsonBlueObject(value) ||
+    isBigNumber(value) ||
+    isJsonPrimitive(value)
+  );
+};
