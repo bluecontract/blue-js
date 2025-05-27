@@ -1,0 +1,40 @@
+name: root
+
+embA:
+  x: 0
+  contracts:
+    timelineA:
+      type: Timeline Channel
+      timelineId: t
+    wfA:
+      type: Sequential Workflow
+      channel: timelineA
+      steps:
+        - type: Update Document
+          changeset:
+            - op: replace
+              path: /x
+              val: ${document("/x") + 1}
+
+embB:
+  y: 0
+  contracts:
+    timelineB:
+      type: Timeline Channel
+      timelineId: t
+    wfB:
+      type: Sequential Workflow
+      channel: timelineB
+      steps:
+        - type: Update Document
+          changeset:
+            - op: replace
+              path: /y
+              val: ${document("/y") + 1}
+
+contracts:
+  processEmbedded:
+    type: Process Embedded
+    paths:
+      - /embA
+      - /embB

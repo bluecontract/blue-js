@@ -1,0 +1,36 @@
+name: root
+counter: 0
+salary: 0
+
+emb:
+  counter2: 0
+  salary2: 0
+  contracts:
+    timelineChannel:
+      type: Timeline Channel
+      timelineId: t
+
+contracts:
+  timelineChannel:
+    type: Timeline Channel
+    timelineId: t
+
+  dynamicWF:
+    type: Sequential Workflow
+    channel: timelineChannel
+    steps:
+      # STEP 1 – add the Process Embedded contract at runtime
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /contracts/processEmbeddedDynamic
+            val:
+              type: Process Embedded
+              paths:
+                - /emb
+      # STEP 2 – immediately try to write into the now-protected subtree
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /emb/salary2
+            val: ${document("/emb/salary2") + 99}

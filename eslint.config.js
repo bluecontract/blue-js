@@ -34,4 +34,24 @@ module.exports = [
     // Override or add rules here
     rules: {},
   },
+  // Config for  vitest test files
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', 'vitest.config.ts'],
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescript,
+    },
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 ];

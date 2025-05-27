@@ -69,8 +69,11 @@ export class Blue {
     ]);
   }
 
-  public nodeToJson(node: BlueNode) {
-    return NodeToMapListOrValue.get(node);
+  public nodeToJson(
+    node: BlueNode,
+    strategy: 'official' | 'simple' = 'official'
+  ) {
+    return NodeToMapListOrValue.get(node, strategy);
   }
 
   public nodeToSchemaOutput<

@@ -1,0 +1,78 @@
+name: root
+counter: 0
+salary: 1
+emb:
+  counter2: 0
+  salary2: 0
+  contracts:
+    timelineChannel:
+      type: Timeline Channel
+      timelineId: t
+    counterUpdateChannel:
+      type: Document Update Channel
+      path: /counter2
+    wf1:
+      type: Sequential Workflow
+      channel: timelineChannel
+      steps:
+        - type: Update Document
+          changeset:
+            - op: replace
+              path: /counter2
+              val: ${document("/counter2") + 1}
+    wf2:
+      type: Sequential Workflow
+      channel: counterUpdateChannel
+      steps:
+        - type: Update Document
+          changeset:
+            - op: replace
+              path: /salary2
+              val: ${document("/salary2") + 1}
+contracts:
+  processEmbedded:
+    type: Process Embedded
+    paths:
+      - /emb
+  timelineChannel:
+    type: Timeline Channel
+    timelineId: t
+  counterUpdateChannel:
+    type: Document Update Channel
+    path: /counter
+
+  wf1:
+    type: Sequential Workflow
+    channel: timelineChannel
+    steps:
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: ${document("/counter") + 1}
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /salary
+            val: ${document("/salary") + 1}
+
+  wf2:
+    type: Sequential Workflow
+    channel: timelineChannel
+    steps:
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /salary
+            val: ${document("/salary") + 2}
+
+  multiplySalary:
+    description: multiplies the value of the salary
+    type: Sequential Workflow
+    channel: counterUpdateChannel
+    steps:
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /salary
+            val: ${document("/salary") * 10}
