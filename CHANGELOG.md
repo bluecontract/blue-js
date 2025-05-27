@@ -1,3 +1,9 @@
+## 1.14.0 (2025-05-27)
+
+### 🚀 Features
+
+- Add peer dependency and new utility method in Blue class ([4764331](https://github.com/bluecontract/blue-js/commit/4764331))
+
 ## 1.13.0 (2025-05-27)
 
 ### 🚀 Features
