@@ -44,9 +44,6 @@ export function collectEmbeddedPaths(
   }
 
   for (const [key, value] of Object.entries(doc.getProperties() ?? {})) {
-    // if (key === 'contracts' || typeof value !== 'object' || value === null) {
-    //   continue;
-    // }
     collectEmbeddedPaths(value as DocumentNode, makePath(base, key), out);
   }
   return out;
