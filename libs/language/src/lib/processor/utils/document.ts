@@ -1,10 +1,10 @@
-import { DocumentNode, Patch } from '../types';
+import { DocumentNode } from '../types';
 import { makePath } from './path';
 import { PatchApplicationError } from './exceptions';
 import { ProcessEmbeddedSchema } from '../../../repo/core';
 import { BlueNodeTypeSchema } from '../../utils/TypeSchema';
 import { NodeToObjectConverter } from '../../mapping/NodeToObjectConverter';
-import { applyBlueNodePatch } from '../../utils/NodePatch';
+import { applyBlueNodePatch, BlueNodePatch } from '../../utils/NodePatch';
 import { deepFreeze } from '../../../utils/deepFreeze';
 
 // Config flag for enabling immutability
@@ -63,7 +63,7 @@ export function isInside(target: string, root: string): boolean {
  */
 export function applyPatches(
   document: DocumentNode,
-  patches: Patch[]
+  patches: BlueNodePatch[]
 ): DocumentNode {
   if (!patches.length) return document;
 

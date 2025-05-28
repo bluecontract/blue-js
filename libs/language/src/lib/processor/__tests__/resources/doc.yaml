@@ -35,7 +35,7 @@ contracts:
           amount: 1
       - type: JavaScript Code
         name: javaScriptCode
-        code: 'return { amount: 2, events: [{ type: "Increment", amount: 1 }] };'
+        code: 'return { amount: 2, events: [{ type: "Increment", amount: 2 }] };'
       - type: Update Document
         changeset:
           - op: add

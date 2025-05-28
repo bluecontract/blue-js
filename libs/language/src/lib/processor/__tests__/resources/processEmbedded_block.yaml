@@ -1,0 +1,30 @@
+name: root
+counter: 0
+salary: 0
+
+emb:
+  counter2: 0
+  salary2: 0
+  contracts:
+    timelineChannel:
+      type: Timeline Channel
+      timelineId: t
+
+contracts:
+  processEmbedded:
+    type: Process Embedded
+    paths:
+      - /emb
+  timelineChannel:
+    type: Timeline Channel
+    timelineId: t
+
+  illegalRootWF:
+    type: Sequential Workflow
+    channel: timelineChannel
+    steps:
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /emb/counter2
+            val: ${document("/emb/counter2") + 1}

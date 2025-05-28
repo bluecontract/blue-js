@@ -1,0 +1,88 @@
+import { describe, it, expect } from 'vitest';
+import yaml from 'js-yaml';
+import fs from 'fs';
+import path from 'path';
+import { EmbeddedDocumentModificationError } from '../utils/exceptions';
+import { Blue } from '../../Blue';
+
+function loadYamlFromResources(filename: string): Record<string, any> {
+  const resourcePath = path.join(__dirname, 'resources', filename);
+  return yaml.load(fs.readFileSync(resourcePath, 'utf8')) as any;
+}
+
+const TIMELINE_EVENT = {
+  type: 'Timeline Entry',
+  timelineId: 't',
+  message: { type: 'Ping' },
+};
+
+describe('Process Embedded – cross-boundary guard', () => {
+  const blue = new Blue();
+  it('allows workflows INSIDE the embedded subtree to mutate it', async () => {
+    const doc = loadYamlFromResources('processEmbedded_happy.yaml');
+
+    const docNode = blue.jsonValueToNode(doc);
+
+    const { state } = await blue.process(docNode, [TIMELINE_EVENT]);
+
+    const jsonState = blue.nodeToJson(state, 'simple') as any;
+
+    expect(jsonState.emb.counter2).toBe(1);
+    expect(jsonState.emb.salary2).toBe(1);
+    expect(jsonState.counter).toBe(0);
+    expect(jsonState.salary).toBe(0);
+  });
+
+  it('blocks a workflow OUTSIDE the subtree from writing inside', async () => {
+    const doc = loadYamlFromResources('processEmbedded_block.yaml');
+
+    const docNode = blue.jsonValueToNode(doc);
+
+    await expect(blue.process(docNode, [TIMELINE_EVENT])).rejects.toThrow(
+      EmbeddedDocumentModificationError
+    );
+  });
+
+  it('re-evaluates contracts added MID-FLUSH', async () => {
+    const doc = loadYamlFromResources('processEmbedded_live.yaml');
+
+    const docNode = blue.jsonValueToNode(doc);
+
+    await expect(blue.process(docNode, [TIMELINE_EVENT])).rejects.toThrow(
+      EmbeddedDocumentModificationError
+    );
+  });
+
+  it('blocks cross-boundary with multiple contracts', async () => {
+    const doc = loadYamlFromResources('processEmbedded_multiContracts.yaml');
+
+    const docNode = blue.jsonValueToNode(doc);
+
+    await expect(blue.process(docNode, [TIMELINE_EVENT])).rejects.toThrow(
+      EmbeddedDocumentModificationError
+    );
+  });
+
+  it('allows workflows under each of multiple paths', async () => {
+    const doc = loadYamlFromResources('processEmbedded_multiPaths_happy.yaml');
+
+    const docNode = blue.jsonValueToNode(doc);
+
+    const { state } = await blue.process(docNode, [TIMELINE_EVENT]);
+
+    const jsonState = blue.nodeToJson(state, 'simple') as any;
+
+    expect(jsonState.embA.x).toBe(1);
+    expect(jsonState.embB.y).toBe(1);
+  });
+
+  it('blocks root workflow touching any defined path', async () => {
+    const doc = loadYamlFromResources('processEmbedded_multiPaths_block.yaml');
+
+    const docNode = blue.jsonValueToNode(doc);
+
+    await expect(blue.process(docNode, [TIMELINE_EVENT])).rejects.toThrow(
+      EmbeddedDocumentModificationError
+    );
+  });
+});

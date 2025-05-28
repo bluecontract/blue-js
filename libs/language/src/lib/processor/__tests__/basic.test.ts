@@ -12,7 +12,7 @@ import path from 'path';
 
 describe('basic', () => {
   it('should work', async () => {
-    const pathToDoc = path.join(__dirname, 'doc.yaml');
+    const pathToDoc = path.join(__dirname, 'resources', 'doc.yaml');
     const doc = await fs.readFile(pathToDoc, 'utf8');
 
     const typeSchemaResolver = new TypeSchemaResolver([
@@ -30,7 +30,7 @@ describe('basic', () => {
     const result = await blue.process(document, [
       {
         type: 'Timeline Entry',
-        timeline: { timelineId: 'user-123' },
+        timelineId: 'user-123',
         message: { type: 'Ping' },
       },
     ]);

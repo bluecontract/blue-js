@@ -1,8 +1,11 @@
-import { Patch } from '../types';
+import { BlueNodePatch } from '../../utils/NodePatch';
 
 /** Custom error gives you the offending patch for logging / alerting */
 export class PatchApplicationError extends Error {
-  constructor(readonly patch: Patch, override readonly cause?: unknown) {
+  constructor(
+    readonly patch: BlueNodePatch,
+    override readonly cause?: unknown
+  ) {
     super(`Cannot apply patch ${JSON.stringify(patch)}`);
     this.name = 'PatchApplicationError';
   }
@@ -11,7 +14,7 @@ export class PatchApplicationError extends Error {
 /** Thrown when a patch targets a path protected by a Process Embedded contract */
 export class EmbeddedDocumentModificationError extends Error {
   constructor(
-    readonly patch: Patch,
+    readonly patch: BlueNodePatch,
     readonly offendingPath: string, // the embedded path that was hit
     readonly contractNodePath: string // where the Process Embedded contract sits
   ) {

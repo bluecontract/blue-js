@@ -19,10 +19,12 @@ import {
 import { BlueDocumentProcessor } from './processor/BlueDocumentProcessor';
 import {
   ProcessEmbeddedProcessor,
+  CompositeTimelineChannelProcessor,
   EmbeddedNodeChannelProcessor,
   DocumentUpdateChannelProcessor,
   TimelineChannelProcessor,
   SequentialWorkflowProcessor,
+  MyOSTimelineChannelProcessor,
 } from './processor/processors';
 import { EventNodePayload } from './processor/types';
 
@@ -65,12 +67,17 @@ export class Blue {
       new EmbeddedNodeChannelProcessor(),
       new DocumentUpdateChannelProcessor(),
       new TimelineChannelProcessor(),
+      new MyOSTimelineChannelProcessor(),
+      new CompositeTimelineChannelProcessor(),
       new SequentialWorkflowProcessor(),
     ]);
   }
 
-  public nodeToJson(node: BlueNode) {
-    return NodeToMapListOrValue.get(node);
+  public nodeToJson(
+    node: BlueNode,
+    strategy: 'official' | 'simple' = 'official'
+  ) {
+    return NodeToMapListOrValue.get(node, strategy);
   }
 
   public nodeToSchemaOutput<

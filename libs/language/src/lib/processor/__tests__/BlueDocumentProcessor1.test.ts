@@ -45,7 +45,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timeline: { timelineId: 'user-123' },
+      timelineId: 'user-123',
       message: { type: 'Ping' },
     };
 
@@ -106,7 +106,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timeline: { timelineId: 'timeline-1' },
+      timelineId: 'timeline-1',
       message: { type: 'Ping' },
     };
 
@@ -166,7 +166,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timeline: { timelineId: 'timeline-1' },
+      timelineId: 'timeline-1',
       message: { type: 'Ping' },
     };
 
@@ -235,7 +235,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timeline: { timelineId: 'timeline-1' },
+      timelineId: 'timeline-1',
       message: { type: 'Ping' },
     };
 
@@ -323,7 +323,7 @@ describe('BlueDocumentProcessor', () => {
     // Create timeline entry for deepest level
     const timelineEntry = {
       type: 'Timeline Entry',
-      timeline: { timelineId: 'level3-timeline' },
+      timelineId: 'level3-timeline',
       message: { type: 'Ping' },
     };
 
@@ -436,7 +436,7 @@ describe('BlueDocumentProcessor', () => {
     // Create a timeline entry for Alice
     const timelineEntry = {
       type: 'Timeline Entry',
-      timeline: { timelineId: 'Alice' },
+      timelineId: 'Alice',
       message: { type: 'Ping' },
     };
 
@@ -533,7 +533,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timeline: { timelineId: 't' },
+      timelineId: 't',
       message: { type: 'Ping' },
     };
 

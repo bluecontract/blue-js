@@ -1,0 +1,103 @@
+gameState:
+  fen: ''
+  turn: white
+  isCheck: false
+  isCheckmate: false
+  isDraw: false
+  history: []
+  validMove: false
+  message: ''
+  inDraw: false
+  winner: null
+contracts:
+  whiteTimeline:
+    type: Timeline Channel
+    timelineId: white-player
+  blackTimeline:
+    type: Timeline Channel
+    timelineId: black-player
+  compositeTimeline:
+    type: Composite Timeline Channel
+    channels:
+      - whiteTimeline
+      - blackTimeline
+  chessGame:
+    type: Sequential Workflow
+    channel: compositeTimeline
+    steps:
+      - type: JavaScript Code
+        name: ProcessChessMove
+        code: |
+          // Import Chess.js
+          import { Chess } from 'blue:chess';
+
+          // Initialize game for regular moves
+          let chess = new Chess();
+          const currentFen = document('/gameState/fen');
+          const currentHistory = document('/gameState/history') || [];
+
+          if (currentFen) {
+            chess = new Chess(currentFen);
+          }
+
+          // Get move data from event
+          const { move, player } = event.message;
+
+          // Determine whose turn it is
+          const currentTurn = chess.turn() === 'w' ? 'white' : 'black';
+          const expectedPlayer = currentTurn === 'white' ? 'white-player' : 'black-player';
+
+          // Check if it's this player's turn
+          const isCorrectPlayer = player === expectedPlayer;
+
+          let result = {
+            gameState: {
+              fen: chess.fen(),
+              turn: currentTurn,
+              isCheck: chess.isCheck(),
+              isCheckmate: chess.isCheckmate(),
+              isDraw: chess.isDraw(),
+              history: currentHistory,
+              validMove: false,
+              message: isCorrectPlayer ? '' : "Not your turn",
+              inDraw: chess.isInsufficientMaterial() || false,
+              winner: chess.isCheckmate() ? (chess.turn() === 'w' ? 'black' : 'white') : undefined
+            }
+          };
+
+          // Process move if it's the player's turn
+          if (isCorrectPlayer && move) {
+            try {
+              // Attempt to make the move
+              const moveResult = chess.move(move);
+              
+              if (moveResult) {
+                // Get the updated history with the new move
+                const newHistory = [...currentHistory, move];
+                
+                // Update game state if move was valid
+                result.gameState = {
+                  fen: chess.fen(),
+                  turn: chess.turn() === 'w' ? 'white' : 'black',
+                  isCheck: chess.isCheck(),
+                  isCheckmate: chess.isCheckmate(),
+                  isDraw: chess.isDraw(),
+                  history: newHistory,
+                  validMove: true,
+                  message: '',
+                  inDraw: chess.isInsufficientMaterial() || false,
+                  winner: chess.isCheckmate() ? (chess.turn() === 'w' ? 'black' : 'white') : undefined
+                };
+              }
+            } catch (err) {
+              // Handle invalid move
+              result.gameState.message = `Invalid move: ${err.message}`;
+            }
+          }
+
+          return result;
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /gameState
+            val: ${steps.ProcessChessMove.gameState}

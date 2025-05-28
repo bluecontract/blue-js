@@ -1,4 +1,5 @@
 import { BlueNode } from '../model';
+import { isNonNullable, isNullable } from '@blue-company/shared-utils';
 
 export class NodePathAccessor {
   static get(
@@ -7,13 +8,13 @@ export class NodePathAccessor {
     linkingProvider?: (node: BlueNode) => BlueNode | null,
     resolveFinalLink = true
   ) {
-    if (!path || !path.startsWith('/')) {
+    if (isNullable(path) || !path.startsWith('/')) {
       throw new Error(`Invalid path: ${path}`);
     }
 
     if (path === '/') {
       const value = node.getValue();
-      return value || node;
+      return isNonNullable(value) ? value : node;
     }
 
     const segments = path.substring(1).split('/');
@@ -44,7 +45,7 @@ export class NodePathAccessor {
 
     if (index === segments.length) {
       const value = node.getValue();
-      return value || node;
+      return isNonNullable(value) ? value : node;
     }
 
     const segment = segments[index];
@@ -75,11 +76,13 @@ export class NodePathAccessor {
     switch (segment) {
       case 'name': {
         const name = node.getName();
-        return name ? new BlueNode().setValue(name) : new BlueNode();
+        return isNonNullable(name)
+          ? new BlueNode().setValue(name)
+          : new BlueNode();
       }
       case 'description': {
         const description = node.getDescription();
-        return description
+        return isNonNullable(description)
           ? new BlueNode().setValue(description)
           : new BlueNode();
       }
@@ -93,11 +96,15 @@ export class NodePathAccessor {
         return node.getValueType() ?? new BlueNode();
       case 'value': {
         const value = node.getValue();
-        return value ? new BlueNode().setValue(value) : new BlueNode();
+        return isNonNullable(value)
+          ? new BlueNode().setValue(value)
+          : new BlueNode();
       }
       case 'blueId': {
         const blueId = node.getBlueId();
-        return blueId ? new BlueNode().setValue(blueId) : new BlueNode();
+        return isNonNullable(blueId)
+          ? new BlueNode().setValue(blueId)
+          : new BlueNode();
       }
     }
 
@@ -128,6 +135,6 @@ export class NodePathAccessor {
     linkingProvider: (node: BlueNode) => BlueNode | null
   ) {
     const linked = linkingProvider(node);
-    return linked || node;
+    return isNonNullable(linked) ? linked : node;
   }
 }

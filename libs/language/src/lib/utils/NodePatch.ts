@@ -368,7 +368,30 @@ function nodeify(v: unknown): BlueNode {
     return NodeDeserializer.deserialize(v as never);
   }
 
-  return NodeDeserializer.deserialize(v as never);
+  // Handle undefined values by converting them to null
+  const cleanValue = cleanUndefinedValues(v);
+  return NodeDeserializer.deserialize(cleanValue as never);
+}
+
+// Helper function to recursively clean undefined values
+function cleanUndefinedValues(obj: unknown): unknown {
+  if (obj === undefined) {
+    return null;
+  }
+
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefinedValues);
+  }
+
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    cleaned[key] = cleanUndefinedValues(value);
+  }
+  return cleaned;
 }
 
 function deepClone(v: RValue): RValue {

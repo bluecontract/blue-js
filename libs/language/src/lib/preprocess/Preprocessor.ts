@@ -150,6 +150,7 @@ ${defaultBlue}
   mappings:
     Channel: 2RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc
     Timeline Channel: RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2
+    Composite Timeline Channel: qxkh3uMkKoutP5DxZ7dr6Eo27B7fuxQCS1VAptiCPc2R
     MyOS Timeline Channel: MkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2R
     Sequential Workflow: h3uDxZ7dr6Eo27B7fuxMkKoutP5qxkQCS1VAptiCPc2R
     Sequential Workflow Step: 6EoMkKoutP5DxZ7drqxkh3u27B7fuxQCS1VAptiCPc2R
