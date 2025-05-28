@@ -1,3 +1,10 @@
+## 1.15.0 (2025-05-28)
+
+### 🚀 Features
+
+- Enhance ESLint configuration and add comprehensive tests for BlueDocumentProcessor ([50e2513](https://github.com/bluecontract/blue-js/commit/50e2513))
+- Introduce CompositeTimelineChannelProcessor and enhance timeline handling ([a8a6e35](https://github.com/bluecontract/blue-js/commit/a8a6e35))
+
 ## 1.14.0 (2025-05-27)
 
 ### 🚀 Features

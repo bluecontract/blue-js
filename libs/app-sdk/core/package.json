@@ -1,6 +1,6 @@
 {
   "name": "@blue-company/app-sdk-core",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
