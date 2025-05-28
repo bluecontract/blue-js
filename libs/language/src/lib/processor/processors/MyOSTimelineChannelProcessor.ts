@@ -1,32 +1,19 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
-import { z } from 'zod';
 import { isNonNullable } from '../utils/typeGuard';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
 import { blueIds } from '../../../repo/myos/blue-ids';
 import { MyOSTimelineChannelSchema } from '../../../repo/myos/schema';
+import { MyOSTimelineEntry, MyOSTimelineEntrySchema } from '../../../repo/myos';
 
-const timelineEntrySchema = z.object({
-  type: z.literal('Timeline Entry'),
-  timeline: z
-    .object({
-      timelineId: z.string().optional(),
-      account: z.string().optional(),
-      email: z.string().optional(),
-    })
-    .optional(),
-  message: z
-    .object({
-      type: z.string().optional(),
-    })
-    .optional(),
-});
-
-type TimelineEntry = z.infer<typeof timelineEntrySchema>;
-
+// TODO: Event payload probably should be also mapped to BlueNode
 const isTimelineEntryEvent = (
   evt: EventNode
-): evt is EventNode<TimelineEntry> =>
-  timelineEntrySchema.safeParse(evt.payload).success;
+): evt is EventNode<MyOSTimelineEntry> => {
+  return (
+    evt.payload.type === 'Timeline Entry' ||
+    evt.payload.type === 'MyOS Timeline Entry'
+  );
+};
 
 /* ------------------------------------------------------------------------ */
 /* Timeline Channel – unwraps timeline entries                              */
@@ -42,23 +29,33 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
   ): boolean {
     if (!this.baseSupports(event)) return false;
     if (!isTimelineEntryEvent(event)) return false;
+    const blue = ctx.getBlue();
 
+    const eventPayloadNode = blue.jsonValueToNode(event.payload);
+    const myosTimelineEntry = blue.nodeToSchemaOutput(
+      eventPayloadNode,
+      MyOSTimelineEntrySchema
+    );
     const myosTimelineChannel = ctx
       .getBlue()
       .nodeToSchemaOutput(node, MyOSTimelineChannelSchema);
 
-    const payloadTimeline = event.payload.timeline;
-    if (!payloadTimeline) return false;
-
-    const hasTimelineId = isNonNullable(myosTimelineChannel.timelineId);
-    const hasAccount = isNonNullable(myosTimelineChannel.account);
-    const hasEmail = isNonNullable(myosTimelineChannel.email);
+    const hasTimelineId =
+      isNonNullable(myosTimelineChannel.timelineId) &&
+      isNonNullable(myosTimelineEntry.timelineId);
+    const hasAccount =
+      isNonNullable(myosTimelineChannel.account) &&
+      isNonNullable(myosTimelineEntry.account);
+    const hasEmail =
+      isNonNullable(myosTimelineChannel.email) &&
+      isNonNullable(myosTimelineEntry.email);
 
     return (
       (hasTimelineId &&
-        payloadTimeline.timelineId === myosTimelineChannel.timelineId) ||
-      (hasAccount && payloadTimeline.account === myosTimelineChannel.account) ||
-      (hasEmail && payloadTimeline.email === myosTimelineChannel.email)
+        myosTimelineEntry.timelineId === myosTimelineChannel.timelineId) ||
+      (hasAccount &&
+        myosTimelineEntry.account === myosTimelineChannel.account) ||
+      (hasEmail && myosTimelineEntry.email === myosTimelineChannel.email)
     );
   }
 

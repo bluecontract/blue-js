@@ -1,4 +1,5 @@
 export * from './ChannelEventCheckpointProcessor';
+export * from './CompositeTimelineChannelProcessor';
 export * from './DocumentUpdateChannelProcessor';
 export * from './EmbeddedNodeChannelProcessor';
 export * from './MyOSTimelineChannelProcessor';

@@ -1,6 +1,7 @@
 export const blueIds = {
   Channel: '2RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc',
   'Timeline Channel': 'RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2',
+  'Composite Timeline Channel': 'qxkh3uMkKoutP5DxZ7dr6Eo27B7fuxQCS1VAptiCPc2R',
   'MyOS Timeline Channel': 'MkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2R',
   'Sequential Workflow': 'h3uDxZ7dr6Eo27B7fuxMkKoutP5qxkQCS1VAptiCPc2R',
   'Sequential Workflow Step': '6EoMkKoutP5DxZ7drqxkh3u27B7fuxQCS1VAptiCPc2R',
@@ -12,4 +13,5 @@ export const blueIds = {
   'Trigger Event': 'kQCS1VAp7fuxMkKoutPh3uDxZ7dr6E5qxtiCPc2R',
   'Json Patch Entry': 'EnUQeMiMa2wHFW3JbeSPvdgfpL6qZYCR29m3SfeHsKSY',
   'JavaScript Code': 'MkKoutPDxZ7dr6Eo5qxkh3u27B7fuxQCS1VAptiCPc2R',
+  'Timeline Entry': 'uDxZ7dr6Eo27B7fMkKoutP5qxkh3uxQCS1VAptiCPc2R',
 } as const;

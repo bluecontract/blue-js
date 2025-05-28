@@ -25,7 +25,7 @@ function makeWorkflowDoc(steps: JsonObject[]): JsonObject {
 function timelineEvent(message: unknown) {
   return {
     type: 'Timeline Entry',
-    timeline: { timelineId: 't1' },
+    timelineId: 't1',
     message,
   };
 }
@@ -77,9 +77,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
       {
         type: 'JavaScript Code',
         name: 'Emitter',
-        code: `return { events: [{ payload: ${JSON.stringify(
-          greetingEvt
-        )} }] };`,
+        code: `return { events: [${JSON.stringify(greetingEvt)}] };`,
       },
     ];
 

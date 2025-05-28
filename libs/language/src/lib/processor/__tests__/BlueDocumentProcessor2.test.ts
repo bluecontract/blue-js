@@ -51,14 +51,14 @@ describe('BlueDocumentProcessor', () => {
     let result = await blue.process(docNode, [
       {
         type: 'Timeline Entry',
-        timeline: { timelineId: 't1' },
+        timelineId: 't1',
         message: { type: 'Ping' },
       },
     ]);
     result = await blue.process(result.state, [
       {
         type: 'Timeline Entry',
-        timeline: { timelineId: 't1' },
+        timelineId: 't1',
         message: { type: 'Ping' },
       },
     ]);
@@ -97,7 +97,7 @@ describe('BlueDocumentProcessor', () => {
     const { state } = await blue.process(docNode, [
       {
         type: 'Timeline Entry',
-        timeline: { timelineId: 'x' },
+        timelineId: 'x',
         message: { type: 'Ping' },
       },
     ]);
@@ -139,7 +139,7 @@ describe('BlueDocumentProcessor', () => {
         blue.process(docNode, [
           {
             type: 'Timeline Entry',
-            timeline: { timelineId: 'e' },
+            timelineId: 'e',
             message: { type: 'Ping' },
           },
         ])
@@ -201,7 +201,7 @@ describe('BlueDocumentProcessor', () => {
     const r1 = await blue.process(docNode, [
       {
         type: 'Timeline Entry',
-        timeline: { timelineId: 'u1' },
+        timelineId: 'u1',
         message: { type: 'Ping' },
       },
     ]);
@@ -209,7 +209,7 @@ describe('BlueDocumentProcessor', () => {
     const r2 = await blue.process(r1.state, [
       {
         type: 'Timeline Entry',
-        timeline: { timelineId: 'u2' },
+        timelineId: 'u2',
         message: { type: 'Ping' },
       },
     ]);

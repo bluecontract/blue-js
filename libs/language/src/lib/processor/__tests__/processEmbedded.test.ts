@@ -12,7 +12,7 @@ function loadYamlFromResources(filename: string): Record<string, any> {
 
 const TIMELINE_EVENT = {
   type: 'Timeline Entry',
-  timeline: { timelineId: 't' },
+  timelineId: 't',
   message: { type: 'Ping' },
 };
 

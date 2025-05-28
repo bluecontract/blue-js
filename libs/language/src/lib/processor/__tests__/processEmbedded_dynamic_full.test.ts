@@ -12,17 +12,17 @@ function loadYamlFromResources(filename: string): Record<string, any> {
 
 const EVT1 = {
   type: 'Timeline Entry',
-  timeline: { timelineId: 't1' },
+  timelineId: 't1',
   message: { type: 'Ping' },
 };
 const EVT2 = {
   type: 'Timeline Entry',
-  timeline: { timelineId: 't2' },
+  timelineId: 't2',
   message: { type: 'Remove' },
 };
 const EVT3 = {
   type: 'Timeline Entry',
-  timeline: { timelineId: 't3' },
+  timelineId: 't3',
   message: { type: 'ReAdd' },
 };
 

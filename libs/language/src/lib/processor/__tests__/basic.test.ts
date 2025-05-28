@@ -30,7 +30,7 @@ describe('basic', () => {
     const result = await blue.process(document, [
       {
         type: 'Timeline Entry',
-        timeline: { timelineId: 'user-123' },
+        timelineId: 'user-123',
         message: { type: 'Ping' },
       },
     ]);

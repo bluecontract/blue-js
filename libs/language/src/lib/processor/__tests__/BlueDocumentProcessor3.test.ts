@@ -21,7 +21,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 't' },
+          timelineId: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -43,7 +43,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 't' },
+          timelineId: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -66,7 +66,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 't' },
+          timelineId: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -87,7 +87,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 't' },
+          timelineId: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -108,7 +108,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 't' },
+          timelineId: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -131,7 +131,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state1 } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 'sub1T' },
+          timelineId: 'sub1T',
           message: { type: 'Ping' },
         },
       ]);
@@ -150,7 +150,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state2 } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 'aT' },
+          timelineId: 'aT',
           message: { type: 'Ping' },
         },
       ]);
@@ -168,7 +168,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state3 } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 'nestedB1T' },
+          timelineId: 'nestedB1T',
           message: { type: 'Ping' },
         },
       ]);
@@ -190,7 +190,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state4 } = await blue.process(docNode, [
         {
           type: 'Timeline Entry',
-          timeline: { timelineId: 'bT' },
+          timelineId: 'bT',
           message: { type: 'Ping' },
         },
       ]);

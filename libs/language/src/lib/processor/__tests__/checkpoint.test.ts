@@ -9,7 +9,7 @@
  */
 import { vi, describe, expect, beforeEach, test } from 'vitest';
 import { Blue } from '../../Blue';
-import { EventNodePayload } from '../types';
+import { ContractProcessor, ContractRole, EventNodePayload } from '../types';
 import { JsonObject } from 'type-fest';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { blueIds } from '../../../repo/core';
@@ -131,15 +131,17 @@ describe('Checkpoint', () => {
   /* ------------------------------------------------------------------ */
   /* 4 – internal-only batch does NOT move checkpoint                    */
   /* ------------------------------------------------------------------ */
-  test.todo('internal events leave checkpoint unchanged', async () => {});
+  test.todo('internal events leave checkpoint unchanged', async () => {
+    // TODO: Implement
+  });
 
   /* ------------------------------------------------------------------ */
   /* 5 – if any handler throws, nothing is written                       */
   /* ------------------------------------------------------------------ */
-  class FailingProc {
+  class FailingProc implements ContractProcessor {
     contractType = 'Document Update Channel';
     contractBlueId = blueIds['Document Update Channel'];
-    role: 'adapter' = 'adapter';
+    role: ContractRole = 'adapter';
     supports() {
       return true;
     }

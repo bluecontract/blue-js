@@ -16,11 +16,14 @@ contracts:
   blackTimeline:
     type: Timeline Channel
     timelineId: black-player
-  chessGame:
-    type: Sequential Workflow
-    channel:
+  compositeTimeline:
+    type: Composite Timeline Channel
+    channels:
       - whiteTimeline
       - blackTimeline
+  chessGame:
+    type: Sequential Workflow
+    channel: compositeTimeline
     steps:
       - type: JavaScript Code
         name: ProcessChessMove
@@ -30,8 +33,8 @@ contracts:
 
           // Initialize game for regular moves
           let chess = new Chess();
-          const currentFen = document().gameState?.fen;
-          const currentHistory = document().gameState?.history || [];
+          const currentFen = document('/gameState/fen');
+          const currentHistory = document('/gameState/history') || [];
 
           if (currentFen) {
             chess = new Chess(currentFen);

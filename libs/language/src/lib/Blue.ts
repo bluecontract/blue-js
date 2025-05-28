@@ -19,10 +19,12 @@ import {
 import { BlueDocumentProcessor } from './processor/BlueDocumentProcessor';
 import {
   ProcessEmbeddedProcessor,
+  CompositeTimelineChannelProcessor,
   EmbeddedNodeChannelProcessor,
   DocumentUpdateChannelProcessor,
   TimelineChannelProcessor,
   SequentialWorkflowProcessor,
+  MyOSTimelineChannelProcessor,
 } from './processor/processors';
 import { EventNodePayload } from './processor/types';
 
@@ -65,6 +67,8 @@ export class Blue {
       new EmbeddedNodeChannelProcessor(),
       new DocumentUpdateChannelProcessor(),
       new TimelineChannelProcessor(),
+      new MyOSTimelineChannelProcessor(),
+      new CompositeTimelineChannelProcessor(),
       new SequentialWorkflowProcessor(),
     ]);
   }

@@ -1,4 +1,6 @@
 const nx = require('@nx/eslint-plugin');
+const typescriptParser = require('@typescript-eslint/parser');
+const typescript = require('@typescript-eslint/eslint-plugin');
 
 module.exports = [
   ...nx.configs['flat/base'],
