@@ -71,7 +71,7 @@ export function applyPatches(
 
   for (const patch of patches) {
     try {
-      mutableDoc = applyBlueNodePatch(mutableDoc, [patch]);
+      mutableDoc = applyBlueNodePatch(mutableDoc, patch, true);
     } catch (error) {
       throw new PatchApplicationError(patch, error);
     }

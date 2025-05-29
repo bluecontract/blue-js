@@ -19,13 +19,25 @@ export type BlueNodePatch =
   | { op: 'copy'; path: string; from: string }
   | { op: 'test'; path: string; val: unknown };
 
-export function applyBlueNodePatch(
+export function applyBlueNodePatches(
   root: BlueNode,
   patches: readonly BlueNodePatch[],
   mutateOriginal = false
 ): BlueNode {
+  let mutableBase = mutateOriginal ? root : root.clone();
+  for (const patch of patches) {
+    mutableBase = applyBlueNodePatch(mutableBase, patch, true);
+  }
+  return mutableBase;
+}
+
+export function applyBlueNodePatch(
+  root: BlueNode,
+  patch: BlueNodePatch,
+  mutateOriginal = false
+): BlueNode {
   const base = mutateOriginal ? root : root.clone();
-  patches.forEach((p) => applySingle(base, p));
+  applySingle(base, patch);
   return base;
 }
 

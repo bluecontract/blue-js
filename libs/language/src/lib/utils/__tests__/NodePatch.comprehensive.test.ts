@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { applyBlueNodePatch, BlueNodePatch } from '../NodePatch';
+import {
+  applyBlueNodePatch,
+  applyBlueNodePatches,
+  BlueNodePatch,
+} from '../NodePatch';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
 import { BlueNode } from '../../model/Node';
 import { BigIntegerNumber } from '../../model/BigIntegerNumber';
@@ -22,28 +26,34 @@ describe('NodePatch Comprehensive Tests', () => {
 
     it('should patch name property', () => {
       const node = createTestNode();
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/name', val: 'UpdatedName' },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/name',
+        val: 'UpdatedName',
+      };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getName()).toBe('UpdatedName');
     });
 
     it('should patch description property', () => {
       const node = createTestNode();
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/description', val: 'Updated description' },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/description',
+        val: 'Updated description',
+      };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getDescription()).toBe('Updated description');
     });
 
     it('should patch blueId property', () => {
       const node = createTestNode();
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/blueId', val: 'new-blue-id-456' },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/blueId',
+        val: 'new-blue-id-456',
+      };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getBlueId()).toBe('new-blue-id-456');
     });
 
@@ -54,7 +64,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'remove', path: '/description' },
         { op: 'remove', path: '/blueId' },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getName()).toBeUndefined();
       expect(result.getDescription()).toBeUndefined();
       expect(result.getBlueId()).toBeUndefined();
@@ -82,7 +92,7 @@ describe('NodePatch Comprehensive Tests', () => {
         },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getType()?.getBlueId()).toBe('new-type');
       expect(result.getItemType()?.getBlueId()).toBe('new-item-type');
       expect(result.getKeyType()?.getBlueId()).toBe('new-key-type');
@@ -103,7 +113,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'add', path: '/type/prop2', val: 'value2' },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getType()?.getName()).toBe('UpdatedTypeName');
       expect(result.getType()?.getProperties()?.prop2.getValue()).toBe(
         'value2'
@@ -114,48 +124,50 @@ describe('NodePatch Comprehensive Tests', () => {
   describe('Value Operations', () => {
     it('should patch primitive values', () => {
       const node = NodeDeserializer.deserialize({ value: 'old-value' });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/value', val: 'new-value' },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/value',
+        val: 'new-value',
+      };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getValue()).toBe('new-value');
     });
 
     it('should patch numeric values', () => {
       const node = NodeDeserializer.deserialize({ value: 42 });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/value', val: 100 },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = { op: 'replace', path: '/value', val: 100 };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getValue()).toBeInstanceOf(BigIntegerNumber);
       expect(result.getValue()?.toString()).toBe('100');
     });
 
     it('should patch decimal values', () => {
       const node = NodeDeserializer.deserialize({ value: 3.14 });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/value', val: 2.718 },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/value',
+        val: 2.718,
+      };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getValue()).toBeInstanceOf(BigDecimalNumber);
       expect(result.getValue()?.toString()).toBe('2.718');
     });
 
     it('should patch boolean values', () => {
       const node = NodeDeserializer.deserialize({ value: true });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/value', val: false },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/value',
+        val: false,
+      };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getValue()).toBe(false);
     });
 
     it('should handle null values', () => {
       const node = NodeDeserializer.deserialize({ value: 'something' });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/value', val: null },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = { op: 'replace', path: '/value', val: null };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getValue()).toBe(null);
     });
   });
@@ -178,7 +190,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'replace', path: '/list/1/name', val: 'ITEM1' },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const listItemsNodes = result.getProperties()?.list?.getItems();
       expect(listItemsNodes?.[0].getValue()).toBe('ZERO');
       expect(listItemsNodes?.[1].getName()).toBe('ITEM1');
@@ -190,7 +202,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'replace', path: '/list/items/0/value', val: 'ZERO' },
         { op: 'replace', path: '/list/items/1/name', val: 'ITEM1' },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const listItemsNodes = result.getProperties()?.list?.getItems();
       expect(listItemsNodes?.[0].getValue()).toBe('ZERO');
       expect(listItemsNodes?.[1].getName()).toBe('ITEM1');
@@ -198,10 +210,12 @@ describe('NodePatch Comprehensive Tests', () => {
 
     it('should add items at specific indices', () => {
       const node = createArrayNode();
-      const patches: BlueNodePatch[] = [
-        { op: 'add', path: '/list/1', val: { name: 'inserted', value: 'new' } },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'add',
+        path: '/list/1',
+        val: { name: 'inserted', value: 'new' },
+      };
+      const result = applyBlueNodePatch(node, patch);
       const listItemsNodes = result.getProperties()?.list?.getItems();
       expect(listItemsNodes?.length).toBe(4);
       expect(listItemsNodes?.[1].getName()).toBe('inserted');
@@ -218,7 +232,7 @@ describe('NodePatch Comprehensive Tests', () => {
           val: { name: 'item4', value: 'four' },
         },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const listItemsNodes = result.getProperties()?.list?.getItems();
 
       expect(listItemsNodes?.length).toBe(5);
@@ -228,10 +242,12 @@ describe('NodePatch Comprehensive Tests', () => {
 
     it('should throw error when adding to array at index > length', () => {
       const node = createArrayNode(); // list: [item0, item1, item2] (length 3)
-      const patches: BlueNodePatch[] = [
-        { op: 'add', path: '/list/4', val: { name: 'item4', value: 'four' } }, // index 4 > length 3
-      ];
-      expect(() => applyBlueNodePatch(node, patches)).toThrow(
+      const patch: BlueNodePatch = {
+        op: 'add',
+        path: '/list/4',
+        val: { name: 'item4', value: 'four' },
+      };
+      expect(() => applyBlueNodePatch(node, patch)).toThrow(
         /ADD operation failed: Target array index '4' is greater than array length 3/
       );
     });
@@ -242,7 +258,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'remove', path: '/list/1' },
         { op: 'remove', path: '/list/items/0' }, // now removes what was originally at index 2
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const listItemsNodes = result.getProperties()?.list?.getItems();
 
       expect(listItemsNodes?.length).toBe(1);
@@ -251,10 +267,12 @@ describe('NodePatch Comprehensive Tests', () => {
 
     it('should move items within array', () => {
       const node = createArrayNode();
-      const patches: BlueNodePatch[] = [
-        { op: 'move', from: '/list/0', path: '/list/2' },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'move',
+        from: '/list/0',
+        path: '/list/2',
+      };
+      const result = applyBlueNodePatch(node, patch);
       const listItemsNodes = result.getProperties()?.list?.getItems();
 
       expect(listItemsNodes?.[0].getName()).toBe('item1');
@@ -273,7 +291,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'replace', path: '/matrix/0/1/value', val: 22 },
         { op: 'add', path: '/matrix/1/-', val: 7 },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const matrix = result.get('/matrix') as BlueNode;
       expect(
         matrix.getItems()?.[0].getItems()?.[1].getValue()?.toString()
@@ -300,7 +318,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'replace', path: '/nestedData/innerList/2/value', val: 33 },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const myList = result.getProperties()?.myList as BlueNode;
       expect(myList.getItems()?.length).toBe(3); // was 3, removed 1, added 1
       expect(myList.getItems()?.[0].getValue()).toBe('A');
@@ -331,7 +349,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'add', path: '/properties/prop3', val: { value: 'value3' } },
         { op: 'add', path: '/prop4', val: { value: 'value4' } }, // direct property access
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getProperties()?.prop3.getValue()).toBe('value3');
       expect(result.getProperties()?.prop4.getValue()).toBe('value4');
     });
@@ -346,7 +364,7 @@ describe('NodePatch Comprehensive Tests', () => {
           val: { value: 'updated2' },
         },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getProperties()?.prop1.getValue()).toBe('updated1');
       expect(result.getProperties()?.prop2.getValue()).toBe('updated2');
     });
@@ -357,7 +375,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'remove', path: '/prop1' },
         { op: 'remove', path: '/properties/prop2' },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getProperties()?.prop1).toBeUndefined();
       expect(result.getProperties()?.prop2).toBeUndefined();
       expect(result.getProperties()?.nested).toBeDefined();
@@ -370,7 +388,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'add', path: '/nested/properties/subProp3', val: 'sub3' },
         { op: 'remove', path: '/nested/subProp2' },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const nested = result.getProperties()?.nested;
       expect(nested?.getProperties()?.subProp1.getValue()).toBe('updated-sub1');
       expect(nested?.getProperties()?.subProp3.getValue()).toBe('sub3');
@@ -382,7 +400,7 @@ describe('NodePatch Comprehensive Tests', () => {
       const patches: BlueNodePatch[] = [
         { op: 'replace', path: '/newProp', val: { value: 'new' } },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getProperties()?.newProp.getValue()).toBe('new');
     });
   });
@@ -407,17 +425,16 @@ describe('NodePatch Comprehensive Tests', () => {
 
     it('should add new contracts', () => {
       const node = createNodeWithContracts();
-      const patches: BlueNodePatch[] = [
-        {
-          op: 'add',
-          path: '/contracts/contract3',
-          val: {
-            type: 'Embedded Node Channel',
-            nodeId: 'node-123',
-          },
+      const patch: BlueNodePatch = {
+        op: 'add',
+        path: '/contracts/contract3',
+        val: {
+          type: 'Embedded Node Channel',
+          nodeId: 'node-123',
         },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      };
+
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getContracts()?.contract3).toBeDefined();
       expect(result.getContracts()?.contract3.get('/type/value')).toBe(
         'Embedded Node Channel'
@@ -438,7 +455,7 @@ describe('NodePatch Comprehensive Tests', () => {
           val: 'contract3',
         },
       ];
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.getContracts()?.contract1.get('/timelineId/value')).toBe(
         'timeline-2'
       );
@@ -449,27 +466,27 @@ describe('NodePatch Comprehensive Tests', () => {
 
     it('should remove contracts', () => {
       const node = createNodeWithContracts();
-      const patches: BlueNodePatch[] = [
-        { op: 'remove', path: '/contracts/contract1' },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      const patch: BlueNodePatch = {
+        op: 'remove',
+        path: '/contracts/contract1',
+      };
+      const result = applyBlueNodePatch(node, patch);
       expect(result.getContracts()?.contract1).toBeUndefined();
       expect(result.getContracts()?.contract2).toBeDefined();
     });
 
     it('should add steps to workflow contract', () => {
       const node = createNodeWithContracts();
-      const patches: BlueNodePatch[] = [
-        {
-          op: 'add',
-          path: '/contracts/contract2/steps/-',
-          val: {
-            type: 'Sequential Workflow Step',
-            action: 'Process',
-          },
+      const patch: BlueNodePatch = {
+        op: 'add',
+        path: '/contracts/contract2/steps/-',
+        val: {
+          type: 'Sequential Workflow Step',
+          action: 'Process',
         },
-      ];
-      const result = applyBlueNodePatch(node, patches);
+      };
+
+      const result = applyBlueNodePatch(node, patch);
       const steps = result.getContracts()?.contract2.get('/steps') as BlueNode;
       expect(steps.getItems()?.length).toBe(1);
       expect(steps.getItems()?.[0].get('/action/value')).toBe('Process');
@@ -495,7 +512,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'remove', path: '/blue/0' },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       const blueItems = result.getBlue()?.getItems();
       expect(blueItems?.length).toBe(2);
       expect(blueItems?.[0].getType()?.getBlueId()).toBe('transformation2');
@@ -515,7 +532,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'copy', from: '/source/nested', path: '/target/nested' },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.get('/backup/value')).toBe('to-copy');
       expect(result.get('/backup/nested/data/value')).toBe('nested-data');
       expect(result.get('/target/nested/data/value')).toBe('nested-data');
@@ -532,7 +549,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'move', from: '/oldLocation/data', path: '/newLocation/data' },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.get('/newLocation/data/value')).toBe('to-move');
       expect(result.get('/oldLocation/data')).toBeUndefined();
       expect(result.get('/oldLocation/keep/value')).toBe('this');
@@ -548,7 +565,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'move', from: '/list/1', path: '/obj/extracted' },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.get('/obj/extracted/value')).toBe('b');
       expect((result.get('/list') as BlueNode)?.getItems()?.length).toBe(2);
       expect(result.get('/list/0/value')).toBe('a');
@@ -572,7 +589,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'test', path: '/obj/nested/value', val: 'value' },
       ];
 
-      expect(() => applyBlueNodePatch(node, patches)).not.toThrow();
+      expect(() => applyBlueNodePatches(node, patches)).not.toThrow();
     });
 
     it('should throw when test fails', () => {
@@ -582,7 +599,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'test', path: '/value', val: 'expected' },
       ];
 
-      expect(() => applyBlueNodePatch(node, patches)).toThrow(/TEST failed/);
+      expect(() => applyBlueNodePatches(node, patches)).toThrow(/TEST failed/);
     });
 
     it('should test array elements', () => {
@@ -596,7 +613,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'test', path: '/list/2/value', val: 'c' },
       ];
 
-      expect(() => applyBlueNodePatch(node, patches)).not.toThrow();
+      expect(() => applyBlueNodePatches(node, patches)).not.toThrow();
     });
   });
 
@@ -642,7 +659,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'add', path: '/metadata/lastUpdate', val: '2024-01-15' },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
 
       expect((result.get('/users') as BlueNode)?.getItems()?.length).toBe(3);
       expect(result.get('/users/2/name/value')).toBe('Charlie');
@@ -658,7 +675,7 @@ describe('NodePatch Comprehensive Tests', () => {
       const patches1: BlueNodePatch[] = [
         { op: 'replace', path: '/1/value', val: 'B' },
       ];
-      const result1 = applyBlueNodePatch(arr1, patches1);
+      const result1 = applyBlueNodePatches(arr1, patches1);
       expect(result1.getItems()?.[1].getValue()).toBe('B');
 
       // Array as property
@@ -666,7 +683,7 @@ describe('NodePatch Comprehensive Tests', () => {
       const patches2: BlueNodePatch[] = [
         { op: 'replace', path: '/list/1/value', val: 'B' },
       ];
-      const result2 = applyBlueNodePatch(arr2, patches2);
+      const result2 = applyBlueNodePatches(arr2, patches2);
       expect(result2.get('/list/1/value')).toBe('B');
 
       // Array with explicit items
@@ -676,7 +693,7 @@ describe('NodePatch Comprehensive Tests', () => {
       const patches3: BlueNodePatch[] = [
         { op: 'replace', path: '/items/1/value', val: 'B' },
       ];
-      const result3 = applyBlueNodePatch(arr3, patches3);
+      const result3 = applyBlueNodePatches(arr3, patches3);
       expect(result3.getItems()?.[1].getValue()).toBe('B');
     });
 
@@ -694,7 +711,7 @@ describe('NodePatch Comprehensive Tests', () => {
         { op: 'replace', path: '/obj/nested', val: { deep: 'value' } },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.get('/nullable/value')).toBe('no-longer-null');
       expect(result.get('/defined/value')).toBe(null);
       expect(result.get('/newNull/value')).toBe(null);
@@ -727,7 +744,7 @@ describe('NodePatch Comprehensive Tests', () => {
         },
       ];
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatches(node, patches);
       expect(result.get('/root/level1/level2/level3/data/value')).toBe(
         'updated-deep'
       );
@@ -741,28 +758,32 @@ describe('NodePatch Comprehensive Tests', () => {
   describe('Error Cases', () => {
     it('should throw when path does not start with /', () => {
       const node = NodeDeserializer.deserialize({ value: 'test' });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: 'value', val: 'new' },
-      ];
-      expect(() => applyBlueNodePatch(node, patches)).toThrow(
-        /must start with/
-      );
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: 'value',
+        val: 'new',
+      };
+      expect(() => applyBlueNodePatch(node, patch)).toThrow(/must start with/);
     });
 
     it('should throw when trying to access non-existent intermediate paths', () => {
       const node = NodeDeserializer.deserialize({ shallow: 'value' });
-      const patches: BlueNodePatch[] = [
-        { op: 'add', path: '/does/not/exist', val: 'value' },
-      ];
-      expect(() => applyBlueNodePatch(node, patches)).toThrow();
+      const patch: BlueNodePatch = {
+        op: 'add',
+        path: '/does/not/exist',
+        val: 'value',
+      };
+      expect(() => applyBlueNodePatch(node, patch)).toThrow();
     });
 
     it('should handle out-of-bounds array access gracefully', () => {
       const node = NodeDeserializer.deserialize(['a', 'b']);
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/5', val: 'x' },
-      ];
-      expect(() => applyBlueNodePatch(node, patches)).toThrow(
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/5',
+        val: 'x',
+      };
+      expect(() => applyBlueNodePatch(node, patch)).toThrow(
         /REPLACE failed: Target array index '5' is out of bounds or does not exist at path '\/5'\./
       );
     });
@@ -771,22 +792,26 @@ describe('NodePatch Comprehensive Tests', () => {
   describe('Mutate vs Clone', () => {
     it('should not mutate original by default', () => {
       const node = NodeDeserializer.deserialize({ value: 'original' });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/value', val: 'modified' },
-      ];
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/value',
+        val: 'modified',
+      };
 
-      const result = applyBlueNodePatch(node, patches);
+      const result = applyBlueNodePatch(node, patch);
       expect(node.getValue()).toBe('original');
       expect(result.getValue()).toBe('modified');
     });
 
     it('should mutate original when mutateOriginal is true', () => {
       const node = NodeDeserializer.deserialize({ value: 'original' });
-      const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/value', val: 'modified' },
-      ];
+      const patch: BlueNodePatch = {
+        op: 'replace',
+        path: '/value',
+        val: 'modified',
+      };
 
-      const result = applyBlueNodePatch(node, patches, true);
+      const result = applyBlueNodePatch(node, patch, true);
       expect(node.getValue()).toBe('modified');
       expect(result).toBe(node); // same reference
     });
@@ -794,10 +819,12 @@ describe('NodePatch Comprehensive Tests', () => {
     it('should throw on move from non-existent path', () => {
       const problemFn = () => {
         const tempNode = NodeDeserializer.deserialize({ a: 1 });
-        const patches: BlueNodePatch[] = [
-          { op: 'move', from: '/does-not-exist', path: '/a' },
-        ];
-        applyBlueNodePatch(tempNode, patches);
+        const patch: BlueNodePatch = {
+          op: 'move',
+          from: '/does-not-exist',
+          path: '/a',
+        };
+        applyBlueNodePatch(tempNode, patch);
       };
       expect(problemFn).toThrow(
         /MOVE failed: 'from' location '\/does-not-exist' does not exist./
