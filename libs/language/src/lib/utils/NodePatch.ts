@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
-   blue-node-patch.ts · Apply RFC-6902 patches to BlueNode graphs
+   NodePatch.ts · Apply RFC-6902 patches to BlueNode graphs
    (c) 2025 — MIT licence
 --------------------------------------------------------------------------- */
 import { BlueNode } from '../model/Node';
@@ -24,11 +24,30 @@ export function applyBlueNodePatches(
   patches: readonly BlueNodePatch[],
   mutateOriginal = false
 ): BlueNode {
-  let mutableBase = mutateOriginal ? root : root.clone();
-  for (const patch of patches) {
-    mutableBase = applyBlueNodePatch(mutableBase, patch, true);
+  if (!patches.length) {
+    // If no patches, return original or a clone based on mutateOriginal intent for consistency,
+    // though typically one might expect original if no changes.
+    // For safety and consistency with patching always returning a new instance (if mutateOriginal=false at core level),
+    // let's return a clone if not mutating, or root if mutating.
+    return mutateOriginal ? root : root.clone();
   }
-  return mutableBase;
+
+  let workingNode = root.clone(); // Always start with a clone for the sequence integrity
+
+  for (const patch of patches) {
+    // applyBlueNodePatch (single patch version) will handle its own cloning via its mutateOriginal flag.
+    // To ensure that modifications within this loop don't affect 'workingNode' across iterations
+    // if an error occurs mid-patch, and to ensure each patch applies to the result of the PREVIOUS one,
+    // we pass `false` for mutateOriginal to the single patch function, so it always returns a new node.
+    workingNode = applyBlueNodePatch(workingNode, patch, false);
+  }
+  // At this point, workingNode is the result of all patches successfully applied to a clone of the original root.
+  // If the applyBlueNodePatches was called with mutateOriginal = true, we have an issue:
+  // we can't easily mutate the *original caller's root reference* from here.
+  // The best contract for applyBlueNodePatches is that it returns the new state.
+  // The caller can do `root = applyBlueNodePatches(root, patchesArray, true);` if they want to reassign.
+  // Therefore, the mutateOriginal flag on applyBlueNodePatches is best removed or ignored for the return.
+  return workingNode;
 }
 
 export function applyBlueNodePatch(
@@ -66,6 +85,71 @@ const isDict = (v: unknown): v is Dict =>
   !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof BlueNode);
 const isNumeric = (v: unknown): v is Numeric =>
   v instanceof BigIntegerNumber || v instanceof BigDecimalNumber;
+
+/* ------------------------------------------------------------------ */
+/* 4 · Internal Property Accessor Helper                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Internal helper to get special properties from a BlueNode.
+ * Used by both step and read to avoid duplicate switch statements.
+ * @param node The BlueNode to access.
+ * @param key The property key (e.g., 'name', 'items').
+ * @param forStepContext If true, behaves like 'step' (may return containers like arrays/dicts).
+ *                       If false, behaves like 'read' (may return primitives directly for some props).
+ * @param allowStepIntoBlueNodeValue Only relevant if forStepContext is true, mimics param from original step.
+ */
+function _getBlueNodeSpecialProperty(
+  node: BlueNode,
+  key: string,
+  forStepContext: boolean,
+  allowStepIntoBlueNodeValue = true
+): RValue | BlueNode[] | Dict | BlueNode | undefined {
+  switch (key) {
+    case 'name':
+      return forStepContext
+        ? allowStepIntoBlueNodeValue
+          ? node.getName() ?? null
+          : node
+        : node.getName();
+    case 'description':
+      return forStepContext
+        ? allowStepIntoBlueNodeValue
+          ? node.getDescription()
+          : node // undefined is fine for step
+        : node.getDescription();
+    case 'type':
+      return node.getType(); // Returns BlueNode | undefined
+    case 'itemType':
+      return node.getItemType();
+    case 'keyType':
+      return node.getKeyType();
+    case 'valueType':
+      return node.getValueType();
+    case 'value':
+      return forStepContext
+        ? allowStepIntoBlueNodeValue
+          ? node.getValue() ?? null
+          : node
+        : node.getValue();
+    case 'blueId':
+      return forStepContext
+        ? allowStepIntoBlueNodeValue
+          ? node.getBlueId() ?? null
+          : node
+        : node.getBlueId();
+    case 'blue':
+      return node.getBlue();
+    case 'items':
+      return node.getItems(); // BlueNode[] | undefined
+    case 'properties':
+      return node.getProperties(); // Record<string, BlueNode> | undefined
+    case 'contracts':
+      return node.getContracts(); // Record<string, BlueNode> | undefined
+    default:
+      return undefined; // Not a special property
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* 4 · Navigation                                                     */
@@ -148,65 +232,47 @@ function step(
   allowStepIntoBlueNodeValue = true
 ): Container {
   if (container instanceof BlueNode) {
-    switch (tok) {
-      case 'name':
-        return allowStepIntoBlueNodeValue
-          ? container.getName() ?? null
-          : container;
-      case 'description':
-        return allowStepIntoBlueNodeValue
-          ? container.getDescription()
-          : container;
-      case 'type':
-        return container.getType(); // getType already returns BlueNode or undefined
-      case 'itemType':
-        return container.getItemType();
-      case 'keyType':
-        return container.getKeyType();
-      case 'valueType':
-        return container.getValueType();
-      case 'value':
-        // For 'value', step should return the primitive value if allowStepIntoBlueNodeValue is true.
-        // If not, it implies we want the BlueNode itself to operate on its value property via 'write'.
-        return allowStepIntoBlueNodeValue
-          ? container.getValue() ?? null
-          : container;
-      case 'blueId':
-        return allowStepIntoBlueNodeValue
-          ? container.getBlueId() ?? null
-          : container;
-      case 'blue':
-        return container.getBlue();
-      case 'items':
-        return container.getItems(); // Returns BlueNode[] or undefined
-      case 'properties':
-        return container.getProperties(); // Returns Record<string, BlueNode> or undefined
-      case 'contracts':
-        return container.getContracts(); // Returns Record<string, BlueNode> or undefined
-      default: {
-        // Handle numeric index for items array
-        if (/^-?\d+$/.test(tok) && tok !== '-') {
-          // tok is a number (potentially negative, handled by asIndex later)
-          const items = container.getItems();
-          const idx = parseInt(tok, 10);
-          if (items && idx >= 0 && idx < items.length) {
-            return items[idx];
-          }
-          return undefined; // Index out of bounds or no items
-        }
-        // Handle user-defined properties
-        const props = container.getProperties();
-        if (props && tok in props) {
-          return props[tok];
-        }
-        // If token is '-', usually for appending to array, step itself shouldn't resolve it further.
-        // The operation ('add') will handle it using the parent array.
-        // For 'step', it means the path is invalid if not a known property or valid index.
-        if (tok === '-') return undefined;
-
-        return container.getProperties()?.[tok]; // Fallback, likely undefined if not found
-      }
+    const specialProp = _getBlueNodeSpecialProperty(
+      container,
+      tok,
+      true,
+      allowStepIntoBlueNodeValue
+    );
+    if (
+      specialProp !== undefined ||
+      [
+        'name',
+        'description',
+        'type',
+        'itemType',
+        'keyType',
+        'valueType',
+        'value',
+        'blueId',
+        'blue',
+        'items',
+        'properties',
+        'contracts',
+      ].includes(tok)
+    ) {
+      // If tok is a special property name, _getBlueNodeSpecialProperty handles it (even if it returns undefined e.g. for an unset optional like .blue)
+      return specialProp as Container; // Cast needed as specialProp can be BlueNode[] or Dict not in RValue leaf part
     }
+    // Not a special property, try user properties or indexed access
+    if (/^-?\d+$/.test(tok) && tok !== '-') {
+      const items = container.getItems();
+      const idx = parseInt(tok, 10);
+      if (items && idx >= 0 && idx < items.length) {
+        return items[idx];
+      }
+      return undefined;
+    }
+    const props = container.getProperties();
+    if (props && tok in props) {
+      return props[tok];
+    }
+    if (tok === '-') return undefined;
+    return undefined; // Fallback if not found anywhere
   }
   if (Array.isArray(container)) {
     if (tok === '-') return undefined; // '-' is for ops like 'add', not for stepping into.
@@ -231,46 +297,39 @@ type RValue = BlueNode | BlueNode[] | Dict | Leaf | undefined;
 function read(parent: Container, key: string | number): RValue {
   if (parent instanceof BlueNode) {
     const k = key as string;
-    switch (k) {
-      case 'name':
-        return parent.getName();
-      case 'description':
-        return parent.getDescription();
-      case 'type':
-        return parent.getType();
-      case 'itemType':
-        return parent.getItemType();
-      case 'keyType':
-        return parent.getKeyType();
-      case 'valueType':
-        return parent.getValueType();
-      case 'value':
-        return parent.getValue();
-      case 'blueId':
-        return parent.getBlueId();
-      case 'blue':
-        return parent.getBlue();
-      case 'items':
-        return parent.getItems();
-      case 'properties':
-        return parent.getProperties();
-      case 'contracts':
-        return parent.getContracts();
-      default:
-        // Check if key is an index for items
-        if (
-          typeof key === 'number' ||
-          (typeof key === 'string' && /^\d+$/.test(key))
-        ) {
-          const items = parent.getItems();
-          const idx = typeof key === 'number' ? key : parseInt(key, 10);
-          if (items && idx >= 0 && idx < items.length) {
-            return items[idx];
-          }
-        }
-        // Assume user property
-        return parent.getProperties()?.[k];
+    const specialProp = _getBlueNodeSpecialProperty(parent, k, false);
+    if (
+      specialProp !== undefined ||
+      [
+        'name',
+        'description',
+        'type',
+        'itemType',
+        'keyType',
+        'valueType',
+        'value',
+        'blueId',
+        'blue',
+        'items',
+        'properties',
+        'contracts',
+      ].includes(k)
+    ) {
+      return specialProp;
     }
+
+    // Not a special property, try user properties or indexed access
+    if (
+      typeof key === 'number' ||
+      (typeof key === 'string' && /^\d+$/.test(key))
+    ) {
+      const items = parent.getItems();
+      const idx = typeof key === 'number' ? key : parseInt(key, 10);
+      if (items && idx >= 0 && idx < items.length) {
+        return items[idx];
+      }
+    }
+    return parent.getProperties()?.[k];
   }
   if (Array.isArray(parent)) return parent[key as number];
   if (isDict(parent)) return parent[key as string];
@@ -665,6 +724,61 @@ function writePath(root: BlueNode, path: string, raw: unknown): void {
 /* ------------------------------------------------------------------ */
 /* 8 · Insert / remove                                                */
 /* ------------------------------------------------------------------ */
+
+function _insertOrReplaceBlueNodeItem(
+  blueNodeParent: BlueNode,
+  key: string | number, // Expect number or '-'
+  valueNode: BlueNode,
+  overwrite: boolean
+): void {
+  let numKey = -1;
+  if (key !== '-') {
+    numKey = typeof key === 'number' ? key : parseInt(key as string, 10);
+    // asIndex would have already validated if key was a string, but double check for safety / direct calls
+    if (isNaN(numKey))
+      throw new Error(
+        `Invalid numeric key for BlueNode item operation: ${key}`
+      );
+  }
+  if (numKey < -1)
+    throw new Error(`Invalid array index for BlueNode items: ${numKey}`);
+
+  let items = blueNodeParent.getItems();
+  if (!items) {
+    items = [];
+    blueNodeParent.setItems(items);
+  }
+
+  // For ADD (overwrite is false), index MUST NOT be greater than array length (RFC 6902, Sec 4.1)
+  if (!overwrite && numKey !== -1 && numKey > items.length) {
+    throw new Error(
+      `ADD operation failed: Target array index '${numKey}' is greater than array length ${items.length}.`
+    );
+  }
+
+  if (key === '-') {
+    // Append
+    items.push(valueNode);
+  } else if (overwrite) {
+    // Replace or upsert-like add to an array index
+    if (numKey >= 0) {
+      if (numKey < items.length) {
+        items[numKey] = valueNode;
+      } else {
+        // numKey >= items.length, extend array (for upsert-like replace)
+        for (let i = items.length; i < numKey; i++) {
+          items.push(NodeDeserializer.deserialize(null));
+        }
+        items.push(valueNode);
+      }
+    }
+  } else {
+    // Add (insert at numKey)
+    // numKey <= items.length due to check above for add operations.
+    items.splice(numKey, 0, valueNode);
+  }
+}
+
 function insert(
   parent: Container,
   key: string | number,
@@ -673,36 +787,26 @@ function insert(
 ): void {
   if (Array.isArray(parent)) {
     const idx = key === '-' ? parent.length : asIndex(key);
-    // For ADD (overwrite is false), index MUST NOT be greater than array length (RFC 6902, Sec 4.1)
     if (!overwrite && idx > parent.length) {
       throw new Error(
         `ADD operation failed: Target array index '${idx}' is greater than array length ${parent.length}. Path involving key '${key}'.`
       );
     }
-    // For REPLACE (overwrite is true), an out-of-bounds index means target doesn't exist (handled by opReplace throwing before calling insert, or insert should throw here too for safety)
-    // However, opReplace was modified to make out-of-bounds array replace a no-op if currentValue is undefined.
-    // If opReplace is strict and throws for out-of-bounds array replace, then insert won't be called for that case.
-    // If opReplace allows it (current user preference), then insert will extend.
-
     if (idx < 0 && key !== '-')
       throw new Error(`Invalid negative array index: ${key}`);
 
     const newNode = nodeify(rawVal);
 
     if (overwrite) {
-      // 'replace' operation or 'add' to an existing object property
       if (idx >= 0 && idx < parent.length) {
         parent[idx] = newNode;
       } else if (idx >= parent.length) {
-        // Index is at or beyond current length - extend (for upsert-like replace or add to object prop represented as array)
         for (let i = parent.length; i < idx; i++) {
           parent.push(NodeDeserializer.deserialize(null));
         }
         parent.push(newNode);
       }
     } else {
-      // 'add' operation (inserting into array, or adding to object property which should not hit this array logic directly if parent is BlueNode)
-      // idx <= parent.length due to check above for add operations.
       parent.splice(idx, 0, newNode);
     }
     return;
@@ -711,69 +815,21 @@ function insert(
   if (parent instanceof BlueNode) {
     if (
       key === '-' ||
-      (typeof key === 'number' && key !== -1 && !isNaN(key)) ||
+      (typeof key === 'number' && !isNaN(key)) || // Simplified check for number
       (typeof key === 'string' && /^\d+$/.test(key))
     ) {
-      let numKey = -1;
-      if (key !== '-') {
-        numKey = typeof key === 'number' ? key : parseInt(key as string, 10);
-      }
-
-      if (numKey < -1)
-        throw new Error(`Invalid array index for BlueNode items: ${numKey}`);
-      if (isNaN(numKey))
-        throw new Error(`Invalid array index (NaN) for BlueNode items: ${key}`);
-
-      let items = parent.getItems();
-      if (!items) {
-        items = [];
-        parent.setItems(items);
-      }
-      const newNode = nodeify(rawVal);
-
-      // For ADD (overwrite is false), index MUST NOT be greater than array length (RFC 6902, Sec 4.1)
-      if (!overwrite && numKey !== -1 && numKey > items.length) {
-        throw new Error(
-          `ADD operation failed: Target array index '${numKey}' is greater than array length ${items.length}.`
-        );
-      }
-
-      if (key === '-') {
-        items.push(newNode);
-      } else if (overwrite) {
-        if (numKey >= 0) {
-          if (numKey < items.length) {
-            items[numKey] = newNode;
-          } else {
-            for (let i = items.length; i < numKey; i++) {
-              items.push(NodeDeserializer.deserialize(null));
-            }
-            items.push(newNode);
-          }
-        }
-      } else {
-        // ADD operation (inserting)
-        // numKey <= items.length due to check above
-        items.splice(numKey, 0, newNode);
-      }
-      return;
+      _insertOrReplaceBlueNodeItem(parent, key, nodeify(rawVal), overwrite);
+    } else {
+      // Not an array-like operation on items, must be a property or special setter
+      write(parent, key as string, rawVal as RValue);
     }
-
-    // If key is not an index, it's a BlueNode special property or user property.
-    const stringKey = key as string;
-    // 'write' will handle if rawVal needs to be primitive or nodeified for specific setters.
-    write(parent, stringKey, rawVal as RValue);
     return;
   }
 
   if (isDict(parent)) {
-    // Parent is a plain JS object (Record<string, BlueNode>)
     parent[key as string] = nodeify(rawVal);
     return;
   }
-
-  // If parent is a primitive, cannot insert into it.
-  // This should ideally be caught by 'resolve' if path tries to go "through" a primitive.
   throw new Error(`Cannot insert into parent of type ${typeof parent}`);
 }
 
@@ -781,16 +837,15 @@ function remove(parent: Container, key: string | number): void {
   if (Array.isArray(parent)) {
     const idx = asIndex(key);
     if (idx === -1 && key === '-') {
-      // Removing last element with '-'
       if (parent.length > 0) parent.pop();
     } else if (idx >= 0 && idx < parent.length) {
-      parent.splice(idx, 1);
-    } else {
-      // Optionally throw an error if index is out of bounds for remove
-      // throw new Error(`REMOVE failed: index ${idx} out of bounds.`);
-      // Or silently do nothing, RFC is a bit vague, but implies target must exist.
+      parent.splice(idx, 1); // Directly splice, no call to write()
     }
-  } else if (parent instanceof BlueNode) {
+    // No error thrown for out-of-bounds remove, it's a no-op, which is acceptable.
+    return; // Ensure we return after handling array
+  }
+
+  if (parent instanceof BlueNode) {
     // Check if key is an index for BlueNode items
     if (
       typeof key === 'number' ||
