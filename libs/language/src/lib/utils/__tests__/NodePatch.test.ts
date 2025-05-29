@@ -54,9 +54,7 @@ describe('applyBluePatch → BlueNode', () => {
     const patch: BlueNodePatch[] = [
       { op: 'remove', path: '/personName' },
       { op: 'remove', path: '/contracts/contract1' },
-      { op: 'remove', path: '/list/items/0' },
-      // TODO Make this work
-      // { op: 'remove', path: '/list/0' },
+      { op: 'remove', path: '/list/0' },
     ];
     const result = applyBlueNodePatch(root, patch);
     expect(result.get('/personName')).toBeUndefined();
@@ -122,9 +120,14 @@ describe('applyBluePatch → BlueNode', () => {
     const patch: BlueNodePatch[] = [
       { op: 'replace', path: '/missing/nested', val: 1 },
     ];
-    expect(() => applyBlueNodePatch(root, patch)).toThrow(
-      /intermediate path does not exist/
-    );
+    let errorThrown: Error | undefined;
+    try {
+      applyBlueNodePatch(root, patch);
+    } catch (e) {
+      errorThrown = e as Error;
+    }
+    expect(errorThrown).toBeInstanceOf(Error);
+    expect(errorThrown?.message).toMatch(/Cannot resolve '\/missing'/);
   });
 
   it('allows replace to create contract in existing contracts object', () => {
