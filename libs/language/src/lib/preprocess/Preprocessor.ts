@@ -14,6 +14,12 @@ import {
 import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits';
 import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
+import { blueIds as myosBlueIds } from '../../repo/myos';
+import { blueIds as coreBlueIds } from '../../repo/core';
+import {
+  BlueIdsMappingGenerator,
+  type BlueIdsRecord,
+} from './utils/BlueIdsMappingGenerator';
 
 /**
  * Preprocessor class for transforming BlueNodes
@@ -49,7 +55,35 @@ export class Preprocessor {
         processorProviderOrNodeProvider as NodeProvider
       );
     }
+
+    // Initialize BlueIds mapping generator with default collections
+    BlueIdsMappingGenerator.initialize(coreBlueIds, myosBlueIds);
+
     this.loadDefaultSimpleBlue();
+  }
+
+  /**
+   * Registers additional BlueIds collections for dynamic mapping generation
+   * @param blueIdsCollections - Array of BlueIds objects to register
+   */
+  public static registerBlueIds(...blueIdsCollections: BlueIdsRecord[]): void {
+    BlueIdsMappingGenerator.registerBlueIds(...blueIdsCollections);
+  }
+
+  /**
+   * Resets BlueIds collections to defaults (core and myos only)
+   */
+  public static resetBlueIdsToDefaults(): void {
+    BlueIdsMappingGenerator.clear();
+    BlueIdsMappingGenerator.initialize(coreBlueIds, myosBlueIds);
+  }
+
+  /**
+   * Gets all currently registered BlueIds
+   * @returns Merged object containing all BlueIds from all collections
+   */
+  public static getAllRegisteredBlueIds(): Record<string, string> {
+    return BlueIdsMappingGenerator.getAllBlueIds();
   }
 
   /**
@@ -142,26 +176,17 @@ export class Preprocessor {
     };
   }
 
+  /**
+   * Enriches the default Blue YAML with dynamic BlueIds mappings
+   * @param defaultBlue - The base default Blue YAML content
+   * @returns Enriched YAML content with dynamic mappings
+   */
   private enrichDefaultBlue(defaultBlue: string): string {
+    const dynamicMappings = BlueIdsMappingGenerator.generateMappingsYaml();
+
     return `
 ${defaultBlue}
-- type:
-    blueId: 27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo
-  mappings:
-    Channel: 2RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc
-    Timeline Channel: RMkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2
-    Composite Timeline Channel: qxkh3uMkKoutP5DxZ7dr6Eo27B7fuxQCS1VAptiCPc2R
-    MyOS Timeline Channel: MkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2R
-    Sequential Workflow: h3uDxZ7dr6Eo27B7fuxMkKoutP5qxkQCS1VAptiCPc2R
-    Sequential Workflow Step: 6EoMkKoutP5DxZ7drqxkh3u27B7fuxQCS1VAptiCPc2R
-    Process Embedded: DxZ7dr6EoMkKoutP5qxkh3u27B7fuxQCS1VAptiCPc2R
-    Embedded Node Channel: MkKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2
-    Document Update Channel: MkKoutP5qxkh3uDQCS1VAptiCPc2xZ7dr6Eo27B7fux
-    Channel Event Checkpoint: o27B7fuxMkKoutPh3uDxZ7dr6E5qxkQCS1VAptiCPc2R
-    Update Document: 7fuxMkKoutPh3uDxZ7dr6E5qxkQCS1VAptiCPc2R
-    Trigger Event: kQCS1VAp7fuxMkKoutPh3uDxZ7dr6E5qxtiCPc2R
-    Json Patch Entry: EnUQeMiMa2wHFW3JbeSPvdgfpL6qZYCR29m3SfeHsKSY
-    JavaScript Code: MkKoutPDxZ7dr6Eo5qxkh3u27B7fuxQCS1VAptiCPc2R
+${dynamicMappings}
     `;
   }
 
