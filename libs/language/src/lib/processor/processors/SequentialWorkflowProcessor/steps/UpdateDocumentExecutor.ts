@@ -1,11 +1,10 @@
-import { isBigNumber } from '../../../../../utils/typeGuards';
 import { DocumentNode, EventNode, ProcessingContext } from '../../../types';
 import { WorkflowStepExecutor } from '../types';
 import { ExpressionEvaluator } from '../utils/ExpressionEvaluator';
 import { BlueNodeTypeSchema } from '../../../../utils/TypeSchema';
 import { UpdateDocumentSchema } from '../../../../../repo/core';
 import type { BlueNode } from '../../../../model/Node';
-import { isDocumentNode } from '../../../utils/typeGuard';
+import { BindingsFactory } from '../utils/BindingsFactory';
 
 /**
  * Executor for "Update Document" workflow steps
@@ -24,7 +23,6 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     stepResults: Record<string, unknown>
   ) {
     const evaluatedValueString = changeValueNode?.getValue();
-    const blue = ctx.getBlue();
 
     if (
       typeof evaluatedValueString === 'string' &&
@@ -35,21 +33,11 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
       const evaluatedValue = await ExpressionEvaluator.evaluate({
         code: expr,
         ctx,
-        bindings: {
-          document: (path: string) => {
-            const value = ctx.get(path);
-            if (isBigNumber(value)) {
-              return value.toNumber();
-            }
-            // TODO: Maybe we should do it for all results so make "get" on JSON-like objects
-            if (isDocumentNode(value)) {
-              return blue.nodeToJson(value, 'simple');
-            }
-            return value;
-          },
-          event: event.payload,
-          steps: stepResults,
-        },
+        bindings: BindingsFactory.createStandardBindings(
+          ctx,
+          event,
+          stepResults
+        ),
       });
       return evaluatedValue;
     }
