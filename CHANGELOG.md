@@ -1,3 +1,15 @@
+## 1.16.0 (2025-05-30)
+
+### 🚀 Features
+
+- Enhance Node and NodePathAccessor with improved type handling and comprehensive tests ([8fee10e](https://github.com/bluecontract/blue-js/commit/8fee10e))
+- implement BlueIds mapping functionality in Preprocessor ([7ece792](https://github.com/bluecontract/blue-js/commit/7ece792))
+- enhance JSON conversion strategy for BlueNode ([a145872](https://github.com/bluecontract/blue-js/commit/a145872))
+
+### 🩹 Fixes
+
+- update emitted events to use EventNodePayload ([dd1a5cd](https://github.com/bluecontract/blue-js/commit/dd1a5cd))
+
 ## 1.15.0 (2025-05-28)
 
 ### 🚀 Features
