@@ -97,7 +97,7 @@ export class BlueDocumentProcessor {
     incoming: EventNodePayload[]
   ): Promise<ProcessingResult> {
     let current = ensureCheckpointContracts(document);
-    const emitted: EventNode[] = [];
+    const emitted: EventNodePayload[] = [];
 
     for (const payload of incoming) {
       try {
@@ -148,7 +148,7 @@ export class BlueDocumentProcessor {
    */
   private async drainQueue(document: DocumentNode): Promise<ProcessingResult> {
     let current = document;
-    const emitted: EventNode[] = [];
+    const emitted: EventNodePayload[] = [];
     const MAX_STEPS = 10_000;
     let steps = 0;
 
@@ -216,7 +216,7 @@ export class BlueDocumentProcessor {
                 throw err;
               }
             } else if (act.kind === 'event') {
-              emitted.push(act.event);
+              emitted.push(act.event.payload);
               await this.router.route(current, [], act.event, task.key[5]);
             }
           }

@@ -220,7 +220,17 @@ export class BlueNode {
     return this;
   }
 
-  get(path: string, linkingProvider?: (node: BlueNode) => BlueNode | null) {
+  get(
+    path: string,
+    linkingProvider?: (node: BlueNode) => BlueNode | null
+  ):
+    | BlueNode
+    | string
+    | boolean
+    | BigIntegerNumber
+    | BigDecimalNumber
+    | null
+    | undefined {
     return NodePathAccessor.get(this, path, linkingProvider);
   }
 

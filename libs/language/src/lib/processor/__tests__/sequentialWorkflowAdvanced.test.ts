@@ -63,11 +63,9 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     expect(jsonState.total).toBe(123);
 
-    const docUpdateEvt = emitted.find(
-      (e) => e.payload && (e.payload as any).type === 'Document Update'
-    );
+    const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
     expect(docUpdateEvt).toBeDefined();
-    expect((docUpdateEvt!.payload as any).val).toBe(123);
+    expect(docUpdateEvt!.val).toBe(123);
   });
 
   test('JS‑Code step can emit events that are routed synchronously', async () => {
@@ -88,10 +86,10 @@ describe('Sequential Workflow – JavaScript Code step', () => {
     const evt = timelineEvent({ foo: 1 });
     const { emitted } = await blue.process(docNode, [evt]);
 
-    const found = emitted.find((e) => (e.payload as any).type === 'Greeting');
+    const found = emitted.find((e) => e.type === 'Greeting');
 
     expect(found).toBeDefined();
-    expect(found!.payload).toEqual(greetingEvt);
+    expect(found).toEqual(greetingEvt);
   });
 
   test('unnamed step exposes Step<N> key inside steps map', async () => {

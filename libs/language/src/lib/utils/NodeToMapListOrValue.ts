@@ -20,12 +20,28 @@ import {
 } from './Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
 
-export type Strategy = 'official' | 'simple';
+/**
+ * Strategy for converting BlueNode to JSON representation.
+ *
+ * @public
+ */
+export type Strategy = 'official' | 'simple' | 'original';
 
 export class NodeToMapListOrValue {
+  /**
+   * Converts a BlueNode to a JSON representation based on the specified strategy.
+   *
+   * @param node - The BlueNode to convert.
+   * @param strategy - The conversion strategy to use. Defaults to 'official'.
+   *   - `'official'`: Always returns complete objects with type information and metadata
+   *   - `'simple'`: Returns unwrapped values/arrays when possible, objects when metadata exists
+   *   - `'original'`: Returns simple values when no name/description, otherwise full objects
+   * @returns A JSON representation of the node.
+   */
   static get(node: BlueNode, strategy: Strategy = 'official'): JsonValue {
     const value = node.getValue();
     const handledValue = this.handleValue(value);
+
     if (handledValue !== undefined && strategy === 'simple') {
       return handledValue;
     }
@@ -37,13 +53,27 @@ export class NodeToMapListOrValue {
       return items;
     }
 
-    const result: JsonObject = {};
     const name = node.getName();
+    const description = node.getDescription();
+
+    if (
+      strategy === 'original' &&
+      name === undefined &&
+      description === undefined
+    ) {
+      if (handledValue !== undefined) {
+        return handledValue;
+      }
+      if (items !== undefined) {
+        return items;
+      }
+    }
+
+    const result: JsonObject = {};
     if (name !== undefined) {
       result[OBJECT_NAME] = name;
     }
 
-    const description = node.getDescription();
     if (description !== undefined) {
       result[OBJECT_DESCRIPTION] = description;
     }

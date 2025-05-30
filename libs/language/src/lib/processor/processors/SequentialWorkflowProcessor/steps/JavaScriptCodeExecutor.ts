@@ -8,8 +8,7 @@ import {
 import { WorkflowStepExecutor } from '../types';
 import { ExpressionEvaluator } from '../utils/ExpressionEvaluator';
 import { BlueNodeTypeSchema } from '../../../../utils/TypeSchema';
-import { isBigNumber } from '../../../../../utils/typeGuards';
-import { isDocumentNode } from '../../../utils/typeGuard';
+import { BindingsFactory } from '../utils/BindingsFactory';
 
 interface ResultWithEvents {
   events: EventNodePayload[];
@@ -28,7 +27,7 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
     evt: EventNode,
     ctx: ProcessingContext,
     documentPath: string,
-    steps?: Record<string, unknown>
+    stepResults: Record<string, unknown>
   ): Promise<unknown> {
     if (!BlueNodeTypeSchema.isTypeOf(step, JavaScriptCodeSchema)) return;
     const blue = ctx.getBlue();
@@ -45,21 +44,7 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
     const result = await ExpressionEvaluator.evaluate({
       code: javaScriptCodeStep.code,
       ctx,
-      bindings: {
-        document: (path: string) => {
-          const value = ctx.get(path);
-          if (isBigNumber(value)) {
-            return value.toNumber();
-          }
-          // TODO: Maybe we should do it for all results so make "get" on JSON-like objects
-          if (isDocumentNode(value)) {
-            return blue.nodeToJson(value, 'simple');
-          }
-          return value;
-        },
-        event: evt.payload,
-        steps,
-      },
+      bindings: BindingsFactory.createStandardBindings(ctx, evt, stepResults),
       options: {
         isCodeBlock: true,
         timeout: 500,

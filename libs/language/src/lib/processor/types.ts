@@ -43,7 +43,7 @@ export interface ProcessingResult {
   state: DocumentNode;
 
   /** All emitted events */
-  emitted: EventNode[];
+  emitted: EventNodePayload[];
 }
 
 /**
@@ -97,6 +97,7 @@ export type ProcessingContext = {
     | boolean
     | BigIntegerNumber
     | BigDecimalNumber
+    | null
     | undefined;
   addPatch(patch: Patch): void;
   getNodePath(): string;

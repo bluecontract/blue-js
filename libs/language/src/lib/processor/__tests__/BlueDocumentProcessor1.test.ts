@@ -54,9 +54,7 @@ describe('BlueDocumentProcessor', () => {
     const { state, emitted } = await blue.process(docNode, [timelineEntry]);
     const stateMap = NodeToMapListOrValue.get(state, 'simple') as any;
     expect(stateMap?.counter).toBe(2);
-    expect(emitted.some((e) => e.payload.type === 'Document Update')).toBe(
-      true
-    );
+    expect(emitted.some((e) => e.type === 'Document Update')).toBe(true);
   });
 
   it('processes Sequential Workflow contracts in alphabetical name order and evaluates expressions correctly', async () => {
@@ -341,13 +339,11 @@ describe('BlueDocumentProcessor', () => {
     expect(state.level1.level2.level3.counter).toBe(3);
 
     // Check events were propagated
-    const emittedTypes = emitted.map((e) => e.payload.type);
+    const emittedTypes = emitted.map((e) => e.type);
     expect(emittedTypes).toContain('Document Update');
 
     // Verify event propagation path
-    const documentUpdates = emitted.filter(
-      (e) => e.payload.type === 'Document Update'
-    );
+    const documentUpdates = emitted.filter((e) => e.type === 'Document Update');
 
     expect(documentUpdates.length).toBe(4); // One update per level
   });
@@ -453,17 +449,10 @@ describe('BlueDocumentProcessor', () => {
 
     // Check for emitted events
     const paymentSucceededEvent = result.emitted.find(
-      (e) =>
-        e.payload.type === 'Payment Succeeded' && e.payload.amountUsd === 120
+      (e) => e.type === 'Payment Succeeded' && e.amountUsd === 120
     );
 
     expect(paymentSucceededEvent).toBeDefined();
-
-    // Check if the embedded document events were propagated properly
-    const sub1Events = result.emitted.filter(
-      (e) => e.originNodePath === '/sub1'
-    );
-    expect(sub1Events.length).toBeGreaterThan(0);
   });
 
   it('dynamically adds contracts that respond to document updates in the same processing cycle', async () => {

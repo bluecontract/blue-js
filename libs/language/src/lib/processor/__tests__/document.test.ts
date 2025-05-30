@@ -1,13 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import {
-  applyPatches,
-  createImmutableDocument,
-  ENABLE_IMMUTABILITY,
-} from '../utils/document';
+import { describe, it, expect } from 'vitest';
+import { applyPatches, ENABLE_IMMUTABILITY } from '../utils/document';
 import { PatchApplicationError } from '../utils/exceptions';
-import { DocumentNode, Patch } from '../types';
 import { JsonObject } from '@blue-company/shared-utils';
-import { applyBlueNodePatch, BlueNodePatch } from '../../utils/NodePatch';
+import { BlueNodePatch } from '../../utils/NodePatch';
 import { Blue } from '../../Blue';
 
 describe('Document Utilities', () => {
@@ -134,23 +129,23 @@ describe('Document Utilities', () => {
         user: {
           id: 1,
           name: 'John',
-          email: 'john@example.com'
+          email: 'john@example.com',
         },
         settings: {
           theme: 'dark',
-          notifications: true
-        }
+          notifications: true,
+        },
       };
 
       const newUser = {
         id: 2,
         name: 'Jane',
         email: 'jane@example.com',
-        role: 'admin'
+        role: 'admin',
       };
 
       const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/user', val: newUser }
+        { op: 'replace', path: '/user', val: newUser },
       ];
 
       const docNode = blue.jsonValueToNode(document);
@@ -165,12 +160,12 @@ describe('Document Utilities', () => {
           id: 2,
           name: 'Jane',
           email: 'jane@example.com',
-          role: 'admin'
+          role: 'admin',
         },
         settings: {
           theme: 'dark',
-          notifications: true
-        }
+          notifications: true,
+        },
       });
       expect(result).not.toBe(document); // Should return a new object
     });
@@ -182,34 +177,34 @@ describe('Document Utilities', () => {
           name: 'OldCorp',
           employees: [
             { id: 1, name: 'Alice' },
-            { id: 2, name: 'Bob' }
+            { id: 2, name: 'Bob' },
           ],
           departments: {
             engineering: { budget: 100000, head: 'Charlie' },
-            marketing: { budget: 50000, head: 'Diana' }
-          }
+            marketing: { budget: 50000, head: 'Diana' },
+          },
         },
         metadata: {
           version: '1.0',
-          lastUpdated: '2023-01-01'
-        }
+          lastUpdated: '2023-01-01',
+        },
       };
 
       const newCompany = {
         name: 'NewCorp',
         employees: [
           { id: 1, name: 'Alice', role: 'Senior Dev' },
-          { id: 3, name: 'Eve', role: 'Junior Dev' }
+          { id: 3, name: 'Eve', role: 'Junior Dev' },
         ],
         departments: {
           engineering: { budget: 150000, head: 'Frank' },
-          sales: { budget: 75000, head: 'Grace' }
+          sales: { budget: 75000, head: 'Grace' },
         },
-        founded: '2024-01-01'
+        founded: '2024-01-01',
       };
 
       const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/company', val: newCompany }
+        { op: 'replace', path: '/company', val: newCompany },
       ];
 
       const docNode = blue.jsonValueToNode(document);
@@ -224,18 +219,18 @@ describe('Document Utilities', () => {
           name: 'NewCorp',
           employees: [
             { id: 1, name: 'Alice', role: 'Senior Dev' },
-            { id: 3, name: 'Eve', role: 'Junior Dev' }
+            { id: 3, name: 'Eve', role: 'Junior Dev' },
           ],
           departments: {
             engineering: { budget: 150000, head: 'Frank' },
-            sales: { budget: 75000, head: 'Grace' }
+            sales: { budget: 75000, head: 'Grace' },
           },
-          founded: '2024-01-01'
+          founded: '2024-01-01',
         },
         metadata: {
           version: '1.0',
-          lastUpdated: '2023-01-01'
-        }
+          lastUpdated: '2023-01-01',
+        },
       });
       expect(result).not.toBe(document); // Should return a new object
     });
@@ -250,21 +245,21 @@ describe('Document Utilities', () => {
               port: 5432,
               credentials: {
                 username: 'olduser',
-                password: 'oldpass'
-              }
+                password: 'oldpass',
+              },
             },
             replica: {
               host: 'old-replica.example.com',
-              port: 5433
-            }
+              port: 5433,
+            },
           },
           cache: {
             redis: {
               host: 'redis.example.com',
-              port: 6379
-            }
-          }
-        }
+              port: 6379,
+            },
+          },
+        },
       };
 
       const newPrimaryDb = {
@@ -272,17 +267,17 @@ describe('Document Utilities', () => {
         port: 5432,
         credentials: {
           username: 'newuser',
-          password: 'newpass'
+          password: 'newpass',
         },
         ssl: true,
         connectionPool: {
           min: 5,
-          max: 20
-        }
+          max: 20,
+        },
       };
 
       const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/config/database/primary', val: newPrimaryDb }
+        { op: 'replace', path: '/config/database/primary', val: newPrimaryDb },
       ];
 
       const docNode = blue.jsonValueToNode(document);
@@ -300,26 +295,26 @@ describe('Document Utilities', () => {
               port: 5432,
               credentials: {
                 username: 'newuser',
-                password: 'newpass'
+                password: 'newpass',
               },
               ssl: true,
               connectionPool: {
                 min: 5,
-                max: 20
-              }
+                max: 20,
+              },
             },
             replica: {
               host: 'old-replica.example.com',
-              port: 5433
-            }
+              port: 5433,
+            },
           },
           cache: {
             redis: {
               host: 'redis.example.com',
-              port: 6379
-            }
-          }
-        }
+              port: 6379,
+            },
+          },
+        },
       });
       expect(result).not.toBe(document); // Should return a new object
     });
@@ -330,11 +325,11 @@ describe('Document Utilities', () => {
         gameState: {
           fen: '',
           turn: 'white',
-          history: []
+          history: [],
         },
         contracts: {
-          someContract: { type: 'test' }
-        }
+          someContract: { type: 'test' },
+        },
       };
 
       const newGameState = {
@@ -347,11 +342,11 @@ describe('Document Utilities', () => {
         validMove: true,
         message: '',
         inDraw: false,
-        winner: null
+        winner: null,
       };
 
       const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/gameState', val: newGameState }
+        { op: 'replace', path: '/gameState', val: newGameState },
       ];
 
       const docNode = blue.jsonValueToNode(document);
@@ -372,11 +367,11 @@ describe('Document Utilities', () => {
           validMove: true,
           message: '',
           inDraw: false,
-          winner: null
+          winner: null,
         },
         contracts: {
-          someContract: { type: 'test' }
-        }
+          someContract: { type: 'test' },
+        },
       });
     });
 
@@ -387,11 +382,11 @@ describe('Document Utilities', () => {
       const newGameState = {
         fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
         turn: 'black',
-        history: ['e4']
+        history: ['e4'],
       };
 
       const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/gameState', val: newGameState }
+        { op: 'replace', path: '/gameState', val: newGameState },
       ];
 
       // Act
@@ -403,8 +398,8 @@ describe('Document Utilities', () => {
         gameState: {
           fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
           turn: 'black',
-          history: ['e4']
-        }
+          history: ['e4'],
+        },
       });
     });
 
@@ -421,26 +416,26 @@ describe('Document Utilities', () => {
           validMove: false,
           message: '',
           inDraw: false,
-          winner: null
+          winner: null,
         },
         contracts: {
           whiteTimeline: {
             type: 'Timeline Channel',
-            timelineId: 'white-player'
+            timelineId: 'white-player',
           },
           blackTimeline: {
             type: 'Timeline Channel',
-            timelineId: 'black-player'
+            timelineId: 'black-player',
           },
           compositeTimeline: {
             type: 'Composite Timeline Channel',
-            channels: ['whiteTimeline', 'blackTimeline']
+            channels: ['whiteTimeline', 'blackTimeline'],
           },
           chessGame: {
             type: 'Sequential Workflow',
-            channel: 'compositeTimeline'
-          }
-        }
+            channel: 'compositeTimeline',
+          },
+        },
       };
 
       const newGameState = {
@@ -453,11 +448,11 @@ describe('Document Utilities', () => {
         validMove: true,
         message: '',
         inDraw: false,
-        winner: null
+        winner: null,
       };
 
       const patches: BlueNodePatch[] = [
-        { op: 'replace', path: '/gameState', val: newGameState }
+        { op: 'replace', path: '/gameState', val: newGameState },
       ];
 
       const docNode = blue.jsonValueToNode(document);
@@ -471,13 +466,13 @@ describe('Document Utilities', () => {
       expect(resultJson.contracts).toBeDefined(); // Just check contracts exist
     });
 
-    it.todo('should apply complex nested patches correctly', () => {
+    it('should apply complex nested patches correctly', () => {
       // Arrange
       const document: JsonObject = {
         contracts: {
           test: {
             type: 'TestContract',
-            items: {},
+            list: [], // Initially empty
           },
         },
       };
@@ -485,17 +480,17 @@ describe('Document Utilities', () => {
       const patches: BlueNodePatch[] = [
         {
           op: 'add',
-          path: '/contracts/test/items/1',
-          val: { id: '1', name: 'Item 1' },
+          path: '/contracts/test/list/-', // Append first item
+          val: { id: '1', name: 'Item 1 Original Name' },
         },
         {
           op: 'add',
-          path: '/contracts/test/items/2',
+          path: '/contracts/test/list/1', // Append second item
           val: { id: '2', name: 'Item 2' },
         },
         {
           op: 'replace',
-          path: '/contracts/test/items/1/name',
+          path: '/contracts/test/list/0/name', // Replace name of the first item (now at index 0)
           val: 'Updated Item 1',
         },
       ];
@@ -507,45 +502,47 @@ describe('Document Utilities', () => {
       const resultJson = blue.nodeToJson(result, 'simple') as any;
 
       // Assert
-      const testContract = resultJson.contracts?.['test'] as any;
-      expect(testContract.items['1'].name).toBe('Updated Item 1');
-      expect(testContract.items['2'].name).toBe('Item 2');
+      const testContractList = resultJson.contracts?.['test']?.list as any[];
+      // Assuming nodeToJson serializes BlueNode arrays to JS arrays for 'simple' mode
+      expect(testContractList).toBeInstanceOf(Array);
+      expect(testContractList.length).toBe(2);
+      expect(testContractList[0].name).toBe('Updated Item 1');
+      expect(testContractList[0].id).toBe('1');
+      expect(testContractList[1].name).toBe('Item 2');
+      expect(testContractList[1].id).toBe('2');
     });
 
-    it.todo(
-      'should create an immutable result when ENABLE_IMMUTABILITY is true',
-      () => {
-        // This test assumes ENABLE_IMMUTABILITY is true in the actual code
-        if (!ENABLE_IMMUTABILITY) {
-          return; // Skip test if immutability is disabled
-        }
-
-        // Arrange
-        const document: JsonObject = {
-          counter: 1,
-          nested: { property: 'original' },
-        };
-        const patches: BlueNodePatch[] = [
-          { op: 'replace', path: '/counter', val: 2 },
-        ];
-
-        // Act
-        const docNode = blue.jsonValueToNode(document);
-        const result = applyPatches(docNode, patches);
-        const resultJson = blue.nodeToJson(result, 'simple') as any;
-
-        // Assert
-        expect(Object.isFrozen(resultJson)).toBe(true);
-        expect(Object.isFrozen(resultJson.nested)).toBe(true);
-
-        // In strict mode, attempting to modify a frozen object will throw a TypeError
-        expect(() => {
-          (resultJson as any).counter = 3;
-        }).toThrow(TypeError); // It will throw because the object is frozen
-
-        expect(resultJson.counter).toBe(2); // Value should remain unchanged
+    it('should create an immutable result when ENABLE_IMMUTABILITY is true', () => {
+      // This test assumes ENABLE_IMMUTABILITY is true in the actual code
+      if (!ENABLE_IMMUTABILITY) {
+        return; // Skip test if immutability is disabled
       }
-    );
+
+      // Arrange
+      const document: JsonObject = {
+        counter: 1,
+        nested: { property: 'original' },
+      };
+      const patches: BlueNodePatch[] = [
+        { op: 'replace', path: '/counter', val: 2 },
+      ];
+
+      // Act
+      const docNode = blue.jsonValueToNode(document);
+      const result = applyPatches(docNode, patches);
+
+      // Assert
+      expect(Object.isFrozen(result)).toBe(true);
+      expect(Object.isFrozen(result.getProperties()?.['nested'])).toBe(true);
+
+      const counterNode = result.getProperties()?.['counter'];
+
+      expect(() => {
+        counterNode?.setValue(3);
+      }).toThrow(TypeError);
+
+      expect(counterNode?.getValue()?.toString()).toBe('2');
+    });
   });
 
   // describe('createImmutableDocument', () => {

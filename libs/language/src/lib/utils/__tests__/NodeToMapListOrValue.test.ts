@@ -549,4 +549,180 @@ describe('NodeToMapListOrValue', () => {
       `);
     });
   });
+
+  describe('original strategy', () => {
+    it('should return simple value when node has no name or description', () => {
+      const node = NodeDeserializer.deserialize({
+        value: 'simple value',
+      });
+
+      const result = NodeToMapListOrValue.get(node, 'original');
+      expect(result).toEqual('simple value');
+    });
+
+    it('should return simple array when node has items but no name or description', () => {
+      const node = NodeDeserializer.deserialize({
+        items: ['item1', 'item2', 'item3'],
+      });
+
+      const result = NodeToMapListOrValue.get(node, 'original');
+      expect(result).toEqual(['item1', 'item2', 'item3']);
+    });
+
+    it('should return full object when node has name', () => {
+      const node = NodeDeserializer.deserialize({
+        name: 'Product',
+        value: 'Laptop Computer',
+      });
+
+      const result = NodeToMapListOrValue.get(node, 'original');
+      expect(typeof result).toBe('object');
+
+      const obj = result as Record<string, unknown>;
+      expect(obj['name']).toEqual('Product');
+      expect(obj['value']).toEqual('Laptop Computer');
+    });
+
+    it('should return full object when node has description', () => {
+      const node = NodeDeserializer.deserialize({
+        description: 'A high-performance laptop',
+        value: 'MacBook Pro',
+      });
+
+      const result = NodeToMapListOrValue.get(node, 'original');
+      expect(typeof result).toBe('object');
+
+      const obj = result as Record<string, unknown>;
+      expect(obj['description']).toEqual('A high-performance laptop');
+      expect(obj['value']).toEqual('MacBook Pro');
+    });
+
+    it('should handle mixed metadata in nested structures', () => {
+      const node = NodeDeserializer.deserialize({
+        name: 'Menu',
+        description: 'Restaurant menu',
+        items: [
+          'Simple Item',
+          {
+            name: 'Named Item',
+            price: 10.99,
+          },
+          {
+            value: 'Value Item',
+          },
+        ],
+        simpleProperty: 'just a value',
+        namedProperty: {
+          name: 'Complex Item',
+          details: 'some details',
+        },
+      });
+
+      const result = NodeToMapListOrValue.get(node, 'original') as Record<
+        string,
+        unknown
+      >;
+
+      expect(result['name']).toEqual('Menu');
+      expect(result['description']).toEqual('Restaurant menu');
+
+      const items = result['items'] as any[];
+      expect(items[0]).toEqual('Simple Item');
+      expect(items[1]).toEqual({ name: 'Named Item', price: 10.99 });
+      expect(items[2]).toEqual('Value Item');
+
+      expect(result['simpleProperty']).toEqual('just a value');
+      expect(result['namedProperty']).toEqual({
+        name: 'Complex Item',
+        details: 'some details',
+      });
+    });
+
+    it('should handle contracts with original strategy', () => {
+      const node = NodeDeserializer.deserialize({
+        name: 'Agreement',
+        description: 'Legal agreement',
+        contracts: {
+          simpleParty: 'Party Name',
+          namedParty: {
+            name: 'Alice',
+            role: 'Seller',
+          },
+        },
+      });
+
+      const result = NodeToMapListOrValue.get(node, 'original') as Record<
+        string,
+        unknown
+      >;
+
+      expect(result['name']).toEqual('Agreement');
+      expect(result['description']).toEqual('Legal agreement');
+
+      const contracts = result['contracts'] as Record<string, unknown>;
+      expect(contracts['simpleParty']).toEqual('Party Name');
+      expect(contracts['namedParty']).toEqual({
+        name: 'Alice',
+        role: 'Seller',
+      });
+    });
+
+    it('should handle primitive types correctly', () => {
+      const stringNode = NodeDeserializer.deserialize('Hello World');
+      const numberNode = NodeDeserializer.deserialize(42);
+      const booleanNode = NodeDeserializer.deserialize(true);
+      const arrayNode = NodeDeserializer.deserialize([1, 2, 3]);
+
+      expect(NodeToMapListOrValue.get(stringNode, 'original')).toEqual(
+        'Hello World'
+      );
+      expect(NodeToMapListOrValue.get(numberNode, 'original')).toEqual(42);
+      expect(NodeToMapListOrValue.get(booleanNode, 'original')).toEqual(true);
+      expect(NodeToMapListOrValue.get(arrayNode, 'original')).toEqual([
+        1, 2, 3,
+      ]);
+    });
+
+    it('should compare strategies on same data', () => {
+      const node = NodeDeserializer.deserialize({
+        name: 'Test Item',
+        value: 'test value',
+        simple: 'just text',
+        complex: {
+          name: 'Complex Property',
+          value: 'complex value',
+        },
+      });
+
+      const official = NodeToMapListOrValue.get(node, 'official') as Record<
+        string,
+        unknown
+      >;
+      const simple = NodeToMapListOrValue.get(node, 'simple') as Record<
+        string,
+        unknown
+      >;
+      const original = NodeToMapListOrValue.get(node, 'original') as Record<
+        string,
+        unknown
+      >;
+
+      expect(official['value']).toBe('test value');
+      expect(simple).toBe('test value');
+      expect(original['value']).toBe('test value');
+
+      expect(official['name']).toEqual('Test Item');
+      expect(simple?.['name']).toBeUndefined();
+      expect(original['name']).toEqual('Test Item');
+
+      expect(typeof official['simple']).toBe('object');
+      expect(simple?.['simple']).toBeUndefined();
+      expect(original['simple']).toEqual('just text');
+
+      expect(typeof official['complex']).toBe('object');
+      expect(simple?.['complex']).toBeUndefined();
+      expect(typeof original['complex']).toBe('object');
+      expect((original['complex'] as any)['name']).toEqual('Complex Property');
+    });
+  });
 });
