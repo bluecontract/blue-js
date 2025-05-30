@@ -45,14 +45,11 @@ export function applyBlueNodePatches(
   patches: readonly BlueNodePatch[],
   mutateOriginal = false
 ): BlueNode {
-  if (!patches.length) {
-    return mutateOriginal ? root : root.clone();
-  }
-  let workingNode = root.clone();
+  let mutableBase = mutateOriginal ? root : root.clone();
   for (const patch of patches) {
-    workingNode = applyBlueNodePatch(workingNode, patch, false);
+    mutableBase = applyBlueNodePatch(mutableBase, patch, true);
   }
-  return workingNode;
+  return mutableBase;
 }
 
 export function applyBlueNodePatch(
