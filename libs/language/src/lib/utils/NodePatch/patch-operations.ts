@@ -13,13 +13,10 @@ import {
   isNumeric,
   RValue,
   BigIntegerNumber,
-  BigDecimalNumber, // These are now re-exported from patch-utils
+  BigDecimalNumber,
   write,
-  Numeric, // write is also needed by opReplace for actualTarget logic
+  Numeric,
 } from './patch-utils';
-
-// opAdd, opReplace, opRemove, opCopy, opMove, opTest functions from NodePatch.ts will go here
-// (Their content is large, will be moved from existing NodePatch.ts by a subsequent delete/edit operation on NodePatch.ts)
 
 export function opAdd(root: BlueNode, path: string, raw: unknown): boolean {
   const tokens = split(path);
