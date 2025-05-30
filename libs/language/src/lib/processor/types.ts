@@ -97,6 +97,7 @@ export type ProcessingContext = {
     | boolean
     | BigIntegerNumber
     | BigDecimalNumber
+    | null
     | undefined;
   addPatch(patch: Patch): void;
   getNodePath(): string;

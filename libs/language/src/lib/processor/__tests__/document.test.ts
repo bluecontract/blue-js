@@ -1,13 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import {
-  applyPatches,
-  createImmutableDocument,
-  ENABLE_IMMUTABILITY,
-} from '../utils/document';
+import { describe, it, expect } from 'vitest';
+import { applyPatches, ENABLE_IMMUTABILITY } from '../utils/document';
 import { PatchApplicationError } from '../utils/exceptions';
-import { DocumentNode, Patch } from '../types';
 import { JsonObject } from '@blue-company/shared-utils';
-import { applyBlueNodePatch, BlueNodePatch } from '../../utils/NodePatch';
+import { BlueNodePatch } from '../../utils/NodePatch';
 import { Blue } from '../../Blue';
 
 describe('Document Utilities', () => {
