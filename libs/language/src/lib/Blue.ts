@@ -73,9 +73,16 @@ export class Blue {
     ]);
   }
 
+  /**
+   * Converts a BlueNode to a JSON representation based on the specified strategy.
+   *
+   * @param node - The BlueNode to convert.
+   * @param strategy - The conversion strategy to use. See {@link NodeToMapListOrValue.get} for detailed strategy descriptions.
+   * @returns A JSON representation of the node.
+   */
   public nodeToJson(
     node: BlueNode,
-    strategy: 'official' | 'simple' = 'official'
+    strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official'
   ) {
     return NodeToMapListOrValue.get(node, strategy);
   }

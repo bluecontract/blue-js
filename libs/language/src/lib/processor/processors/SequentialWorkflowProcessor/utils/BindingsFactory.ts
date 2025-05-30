@@ -23,9 +23,8 @@ export class BindingsFactory {
         if (isBigNumber(value)) {
           return value.toNumber();
         }
-        // TODO: Maybe we should do it for all results so make "get" on JSON-like objects
         if (isDocumentNode(value)) {
-          return blue.nodeToJson(value, 'simple');
+          return blue.nodeToJson(value, 'original');
         }
         return value;
       },
