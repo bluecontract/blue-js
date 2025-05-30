@@ -43,7 +43,7 @@ export interface ProcessingResult {
   state: DocumentNode;
 
   /** All emitted events */
-  emitted: EventNode[];
+  emitted: EventNodePayload[];
 }
 
 /**
