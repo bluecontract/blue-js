@@ -1,8 +1,8 @@
 {
   "name": "@blue-company/app-sdk",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "dependencies": {
-    "@blue-company/app-sdk-core": "1.17.0",
+    "@blue-company/app-sdk-core": "1.18.0",
     "reflect-metadata": "0.2.2"
   },
   "main": "./dist/index.js",

@@ -1,3 +1,9 @@
+## 1.18.0 (2025-06-03)
+
+### 🚀 Features
+
+- implement deepContains utility for nested object matching ([5f13ae3](https://github.com/bluecontract/blue-js/commit/5f13ae3))
+
 ## 1.17.0 (2025-06-03)
 
 ### 🚀 Features
