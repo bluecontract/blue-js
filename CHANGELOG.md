@@ -1,3 +1,13 @@
+## 1.17.0 (2025-06-03)
+
+### 🚀 Features
+
+- add MyOSAgentChannelProcessor and related schemas ([d52e793](https://github.com/bluecontract/blue-js/commit/d52e793))
+
+### 🩹 Fixes
+
+- update import paths for blueNodeField in MyOSAgent schemas ([95cfab1](https://github.com/bluecontract/blue-js/commit/95cfab1))
+
 ## 1.16.0 (2025-05-30)
 
 ### 🚀 Features
