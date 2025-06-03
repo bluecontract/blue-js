@@ -25,6 +25,7 @@ import {
   TimelineChannelProcessor,
   SequentialWorkflowProcessor,
   MyOSTimelineChannelProcessor,
+  MyOSAgentChannelProcessor,
 } from './processor/processors';
 import { EventNodePayload } from './processor/types';
 
@@ -68,6 +69,7 @@ export class Blue {
       new DocumentUpdateChannelProcessor(),
       new TimelineChannelProcessor(),
       new MyOSTimelineChannelProcessor(),
+      new MyOSAgentChannelProcessor(),
       new CompositeTimelineChannelProcessor(),
       new SequentialWorkflowProcessor(),
     ]);
