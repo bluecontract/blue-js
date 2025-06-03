@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { blueIds } from '../blue-ids';
 import { withTypeBlueId } from '../../../schema/annotations/typeBlueId';
-import { blueNodeField } from 'src/schema/annotations';
+import { blueNodeField } from '../../../schema/annotations/blueNode';
 
 export const MyOSAgentEventSchema = withTypeBlueId(blueIds['MyOS Agent Event'])(
   z.object({
