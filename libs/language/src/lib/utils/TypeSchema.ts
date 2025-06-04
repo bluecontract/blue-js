@@ -10,6 +10,7 @@ import { BlueNode } from '../model';
 import { BlueIdResolver } from './BlueIdResolver';
 import { isNullable } from '@blue-company/shared-utils';
 
+// TODO: Make it support a way if a schema supports more blueIds than one
 export class BlueNodeTypeSchema {
   static isTypeOf<
     T extends ZodRawShape,

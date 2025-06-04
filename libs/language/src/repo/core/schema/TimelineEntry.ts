@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { blueIds } from '../blue-ids';
 import { withTypeBlueId } from '../../../schema/annotations/typeBlueId';
+import { blueNodeField } from '../../../schema/annotations';
 
 export const TimelineEntrySchema = withTypeBlueId(blueIds['Timeline Entry'])(
   z.object({
@@ -8,7 +9,7 @@ export const TimelineEntrySchema = withTypeBlueId(blueIds['Timeline Entry'])(
     timelinePrev: z.string().optional(),
     thread: z.string().optional(),
     threadPrev: z.string().optional(),
-    message: z.unknown(),
+    message: blueNodeField(),
     signature: z.string().optional(),
   })
 );

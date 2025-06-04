@@ -9,7 +9,6 @@ import { UpdateDocumentExecutor } from './steps/UpdateDocumentExecutor';
 import { TriggerEventExecutor } from './steps/TriggerEventExecutor';
 import { JavaScriptCodeExecutor } from './steps/JavaScriptCodeExecutor';
 import { blueIds } from '../../../../repo/core/blue-ids';
-import { BlueNodeTypeSchema } from '../../../utils/TypeSchema';
 import { SequentialWorkflowSchema } from '../../../../repo/core/schema';
 
 const defaultExecutors: WorkflowStepExecutor[] = [
@@ -37,22 +36,16 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    context: ProcessingContext
   ): boolean {
-    const isSequentialWorkflow = BlueNodeTypeSchema.isTypeOf(
+    const blue = context.getBlue();
+    const sequentialWorkflow = blue.nodeToSchemaOutput(
       node,
       SequentialWorkflowSchema
     );
-    const sequentialWorkflow = ctx
-      .getBlue()
-      .nodeToSchemaOutput(node, SequentialWorkflowSchema);
     const channel = sequentialWorkflow.channel;
 
-    return (
-      isSequentialWorkflow &&
-      event.source === 'channel' &&
-      event.channelName === channel
-    );
+    return event.source === 'channel' && event.channelName === channel;
   }
 
   async handle(
@@ -61,15 +54,13 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
     context: ProcessingContext,
     path: string
   ): Promise<void> {
-    const isSequentialWorkflow = BlueNodeTypeSchema.isTypeOf(
+    const blue = context.getBlue();
+    const sequentialWorkflow = blue.nodeToSchemaOutput(
       node,
       SequentialWorkflowSchema
     );
-
-    if (!isSequentialWorkflow) return;
-
     const stepResults: Record<string, unknown> = {};
-    const stepNodes = node.getProperties()?.['steps'].getItems();
+    const stepNodes = sequentialWorkflow.steps;
 
     for (const [i, step] of (stepNodes ?? []).entries()) {
       const stepExecutor = this.executors.find((e) => e.supports(step));
