@@ -2,7 +2,7 @@ import { BlueNodeTypeSchema } from '../../../../utils/TypeSchema';
 import { EventNode, ProcessingContext } from '../../../types';
 import { DocumentNode } from '../../../types';
 import { WorkflowStepExecutor } from '../types';
-import { TriggerEventSchema } from '../../../../../repo/core';
+import { TriggerEventSchema } from '@blue-repository/core-dev';
 import { NodeToMapListOrValue } from '../../../../utils/NodeToMapListOrValue';
 
 export class TriggerEventExecutor implements WorkflowStepExecutor {
@@ -22,6 +22,8 @@ export class TriggerEventExecutor implements WorkflowStepExecutor {
     const triggerEventStep = ctx
       .getBlue()
       .nodeToSchemaOutput(step, TriggerEventSchema);
+
+    if (!triggerEventStep.event) return;
 
     // TODO: change it
     const payload = NodeToMapListOrValue.get(

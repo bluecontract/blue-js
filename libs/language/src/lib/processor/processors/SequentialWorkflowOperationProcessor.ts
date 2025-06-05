@@ -1,7 +1,6 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { SequentialWorkflowProcessor } from './SequentialWorkflowProcessor';
-import { blueIds } from '../../../repo/core/blue-ids';
-import { SequentialWorkflowOperationSchema } from '../../../repo/core/schema';
+import { blueIds, SequentialWorkflowOperationSchema } from '../../../repo/core';
 import { isNonNullable } from '@blue-company/shared-utils';
 
 export class SequentialWorkflowOperationProcessor {

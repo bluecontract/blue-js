@@ -9,7 +9,7 @@ export const TimelineEntrySchema = withTypeBlueId(blueIds['Timeline Entry'])(
     timelinePrev: z.string().optional(),
     thread: z.string().optional(),
     threadPrev: z.string().optional(),
-    message: blueNodeField(),
+    message: blueNodeField().optional(),
     signature: z.string().optional(),
   })
 );

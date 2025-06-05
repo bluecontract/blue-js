@@ -2,7 +2,7 @@ import { DocumentNode, EventNode, ProcessingContext } from '../../../types';
 import { WorkflowStepExecutor } from '../types';
 import { ExpressionEvaluator } from '../utils/ExpressionEvaluator';
 import { BlueNodeTypeSchema } from '../../../../utils/TypeSchema';
-import { UpdateDocumentSchema } from '../../../../../repo/core';
+import { UpdateDocumentSchema } from '@blue-repository/core-dev';
 import type { BlueNode } from '../../../../model/Node';
 import { BindingsFactory } from '../utils/BindingsFactory';
 

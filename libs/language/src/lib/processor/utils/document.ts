@@ -1,7 +1,7 @@
 import { DocumentNode } from '../types';
 import { makePath } from './path';
 import { PatchApplicationError } from './exceptions';
-import { ProcessEmbeddedSchema } from '../../../repo/core';
+import { ProcessEmbeddedSchema } from '@blue-repository/core-dev';
 import { BlueNodeTypeSchema } from '../../utils/TypeSchema';
 import { NodeToObjectConverter } from '../../mapping/NodeToObjectConverter';
 import { applyBlueNodePatch, BlueNodePatch } from '../../utils/NodePatch';
