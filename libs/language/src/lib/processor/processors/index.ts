@@ -4,6 +4,8 @@ export * from './DocumentUpdateChannelProcessor';
 export * from './EmbeddedNodeChannelProcessor';
 export * from './MyOSTimelineChannelProcessor';
 export * from './MyOSAgentChannelProcessor';
+export * from './OperationProcessor';
 export * from './ProcessEmbeddedProcessor';
+export * from './SequentialWorkflowOperationProcessor';
 export * from './TimelineChannelProcessor';
 export * from './SequentialWorkflowProcessor';

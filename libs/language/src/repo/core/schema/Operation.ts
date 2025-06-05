@@ -3,13 +3,12 @@ import { blueIds } from '../blue-ids';
 import { withTypeBlueId } from '../../../schema/annotations/typeBlueId';
 import { blueNodeField } from '../../../schema/annotations/blueNode';
 
-export const SequentialWorkflowSchema = withTypeBlueId(
-  blueIds['Sequential Workflow']
-)(
+export const OperationSchema = withTypeBlueId(blueIds['Operation'])(
   z.object({
-    steps: z.array(blueNodeField()).optional(),
+    request: blueNodeField().optional(),
+    description: z.string().optional(),
     channel: z.string().optional(),
   })
 );
 
-export type SequentialWorkflow = z.infer<typeof SequentialWorkflowSchema>;
+export type Operation = z.infer<typeof OperationSchema>;
