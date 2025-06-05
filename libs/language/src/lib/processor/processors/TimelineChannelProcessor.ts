@@ -8,6 +8,7 @@ import {
   TimelineEntrySchema,
 } from '../../../repo/core';
 
+// TODO: use mapping to TimelineEntry instead of type check
 const isTimelineEntryEvent = (
   evt: EventNode
 ): evt is EventNode<TimelineEntry> => evt.payload.type === 'Timeline Entry';

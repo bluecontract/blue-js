@@ -14,4 +14,8 @@ export const blueIds = {
   'Json Patch Entry': 'EnUQeMiMa2wHFW3JbeSPvdgfpL6qZYCR29m3SfeHsKSY',
   'JavaScript Code': 'MkKoutPDxZ7dr6Eo5qxkh3u27B7fuxQCS1VAptiCPc2R',
   'Timeline Entry': 'uDxZ7dr6Eo27B7fMkKoutP5qxkh3uxQCS1VAptiCPc2R',
+  Operation: 'OpKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiCPc2R',
+  'Sequential Workflow Operation':
+    'SeqOpKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiC',
+  'Operation Request': 'OpReqKoutP5qxkh3uDxZ7dr6Eo27B7fuxQCS1VAptiC',
 } as const;

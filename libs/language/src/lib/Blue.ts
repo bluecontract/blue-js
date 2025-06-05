@@ -26,6 +26,8 @@ import {
   SequentialWorkflowProcessor,
   MyOSTimelineChannelProcessor,
   MyOSAgentChannelProcessor,
+  SequentialWorkflowOperationProcessor,
+  OperationProcessor,
 } from './processor/processors';
 import { EventNodePayload } from './processor/types';
 
@@ -65,13 +67,19 @@ export class Blue {
     // TODO: make this configurable
     this.documentProcessor = new BlueDocumentProcessor(this, [
       new ProcessEmbeddedProcessor(),
+
+      // channels
       new EmbeddedNodeChannelProcessor(),
       new DocumentUpdateChannelProcessor(),
       new TimelineChannelProcessor(),
       new MyOSTimelineChannelProcessor(),
       new MyOSAgentChannelProcessor(),
       new CompositeTimelineChannelProcessor(),
+      new OperationProcessor(),
+
+      // sequential workflows
       new SequentialWorkflowProcessor(),
+      new SequentialWorkflowOperationProcessor(),
     ]);
   }
 
