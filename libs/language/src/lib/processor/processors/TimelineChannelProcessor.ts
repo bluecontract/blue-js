@@ -1,12 +1,12 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { isNonNullable } from '../utils/typeGuard';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
-import { blueIds } from '../../../repo/core/blue-ids';
 import {
+  blueIds,
   TimelineChannelSchema,
   TimelineEntry,
   TimelineEntrySchema,
-} from '../../../repo/core';
+} from '@blue-repository/core-dev';
 
 // TODO: use mapping to TimelineEntry instead of type check
 const isTimelineEntryEvent = (
@@ -40,10 +40,10 @@ export class TimelineChannelProcessor extends BaseChannelProcessor {
 
     const hasTimelineId =
       isNonNullable(timelineChannel.timelineId) &&
-      isNonNullable(timelineEntry.timelineId);
+      isNonNullable(timelineEntry.timeline);
 
     return (
-      hasTimelineId && timelineEntry.timelineId === timelineChannel.timelineId
+      hasTimelineId && timelineEntry.timeline === timelineChannel.timelineId
     );
   }
 

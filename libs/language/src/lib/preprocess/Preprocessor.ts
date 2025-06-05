@@ -15,7 +15,8 @@ import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits';
 import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
 import { blueIds as myosBlueIds } from '../../repo/myos';
-import { blueIds as coreBlueIds } from '../../repo/core';
+import { blueIds as customCoreBlueIds } from '../../repo/core';
+import { blueIds as coreBlueIds } from '@blue-repository/core-dev';
 import {
   BlueIdsMappingGenerator,
   type BlueIdsRecord,
@@ -57,7 +58,11 @@ export class Preprocessor {
     }
 
     // Initialize BlueIds mapping generator with default collections
-    BlueIdsMappingGenerator.initialize(coreBlueIds, myosBlueIds);
+    BlueIdsMappingGenerator.initialize(
+      coreBlueIds,
+      customCoreBlueIds,
+      myosBlueIds
+    );
 
     this.loadDefaultSimpleBlue();
   }
@@ -75,7 +80,11 @@ export class Preprocessor {
    */
   public static resetBlueIdsToDefaults(): void {
     BlueIdsMappingGenerator.clear();
-    BlueIdsMappingGenerator.initialize(coreBlueIds, myosBlueIds);
+    BlueIdsMappingGenerator.initialize(
+      coreBlueIds,
+      customCoreBlueIds,
+      myosBlueIds
+    );
   }
 
   /**

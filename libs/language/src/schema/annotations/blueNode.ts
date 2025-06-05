@@ -1,7 +1,7 @@
 import { isNonNullable } from '@blue-company/shared-utils';
 import { z, ZodTypeAny } from 'zod';
 import { setAnnotations, getAnnotations } from './annotations';
-import { BlueNode } from '../../lib/model/Node';
+import type { BlueNode } from '../../lib/model/Node';
 
 export const withBlueNode =
   () =>
@@ -31,6 +31,6 @@ export const isBlueNodeSchema = (schema: ZodTypeAny) => {
 };
 
 export const blueNodeField = () => {
-  const blueNodeFieldSchema = z.instanceof(BlueNode);
+  const blueNodeFieldSchema = z.custom<BlueNode>();
   return withBlueNode()(blueNodeFieldSchema);
 };

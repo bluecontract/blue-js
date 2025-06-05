@@ -8,8 +8,7 @@ import { WorkflowStepExecutor } from './types';
 import { UpdateDocumentExecutor } from './steps/UpdateDocumentExecutor';
 import { TriggerEventExecutor } from './steps/TriggerEventExecutor';
 import { JavaScriptCodeExecutor } from './steps/JavaScriptCodeExecutor';
-import { blueIds } from '../../../../repo/core/blue-ids';
-import { SequentialWorkflowSchema } from '../../../../repo/core/schema';
+import { blueIds, SequentialWorkflowSchema } from '@blue-repository/core-dev';
 
 const defaultExecutors: WorkflowStepExecutor[] = [
   new UpdateDocumentExecutor(),
@@ -54,13 +53,13 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
     context: ProcessingContext,
     path: string
   ): Promise<void> {
-    const blue = context.getBlue();
-    const sequentialWorkflow = blue.nodeToSchemaOutput(
-      node,
-      SequentialWorkflowSchema
-    );
+    // const blue = context.getBlue();
+    // const sequentialWorkflow = blue.nodeToSchemaOutput(
+    //   node,
+    //   SequentialWorkflowSchema
+    // );
     const stepResults: Record<string, unknown> = {};
-    const stepNodes = sequentialWorkflow.steps;
+    const stepNodes = node.getProperties()?.['steps'].getItems();
 
     for (const [i, step] of (stepNodes ?? []).entries()) {
       const stepExecutor = this.executors.find((e) => e.supports(step));

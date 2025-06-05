@@ -8,10 +8,11 @@ import { blueIds } from '../../../repo/core/blue-ids';
 import {
   OperationRequestSchema,
   OperationSchema,
-  TimelineEntrySchema,
 } from '../../../repo/core/schema';
+import { TimelineEntrySchema } from '@blue-repository/core-dev';
 import { BlueNodeTypeSchema } from '../../utils/TypeSchema';
 import { isNonNullable } from '../utils/typeGuard';
+import { BlueNode } from '../../model';
 
 export class OperationProcessor implements ContractProcessor {
   readonly contractType = 'Operation';
@@ -65,8 +66,9 @@ export class OperationProcessor implements ContractProcessor {
         eventPayloadNode,
         TimelineEntrySchema
       );
+      if (!timelineEntry.message) return null;
       const operationRequest = blue.nodeToSchemaOutput(
-        timelineEntry.message,
+        timelineEntry.message as unknown as BlueNode,
         OperationRequestSchema
       );
 

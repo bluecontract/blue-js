@@ -1,4 +1,4 @@
-import { blueIds, ProcessEmbeddedSchema } from '../../../repo/core';
+import { blueIds, ProcessEmbeddedSchema } from '@blue-repository/core-dev';
 import {
   ContractProcessor,
   DocumentNode,
