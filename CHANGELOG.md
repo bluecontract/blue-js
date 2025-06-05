@@ -1,3 +1,9 @@
+## 1.19.0 (2025-06-05)
+
+### 🚀 Features
+
+- add operation processing capabilities with SequentialWorkflowOperationProcessor ([7e8ecb7](https://github.com/bluecontract/blue-js/commit/7e8ecb7))
+
 ## 1.18.0 (2025-06-03)
 
 ### 🚀 Features
