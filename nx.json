@@ -49,7 +49,6 @@
         }
       }
     },
-
     {
       "plugin": "@nx/vite/plugin",
       "options": {

@@ -20,6 +20,9 @@
     },
     {
       "path": "./libs/app-sdk/client"
+    },
+    {
+      "path": "./libs/schema-annotations"
     }
   ]
 }
