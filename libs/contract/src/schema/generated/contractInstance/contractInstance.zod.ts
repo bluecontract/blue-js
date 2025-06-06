@@ -7,8 +7,8 @@ import {
   ProcessingStateBlueObject,
 } from './contractInstance';
 
-import { blueObjectNumberValueSchema } from '@blue-company/language';
-import { baseBlueObjectSchema } from '@blue-company/language';
+import { blueObjectNumberValueSchema } from '@blue-labs/language';
+import { baseBlueObjectSchema } from '@blue-labs/language';
 import { contractSchema } from './../contract/contract.zod';
 
 export const contractInstanceSchema: z.ZodSchema<ContractInstance> = z.lazy(

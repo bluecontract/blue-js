@@ -1,6 +1,6 @@
 import { SetRequired } from 'type-fest';
 import { blueObjectSchema, BlueObject, BlueObjectWithId } from './generated';
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 import {
   objectInputType,
   objectOutputType,

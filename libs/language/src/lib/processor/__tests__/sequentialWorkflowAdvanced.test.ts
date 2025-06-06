@@ -3,7 +3,7 @@ import {
   CodeBlockEvaluationError,
   ExpressionEvaluationError,
 } from '../utils/exceptions';
-import { JsonObject } from '@blue-company/shared-utils';
+import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '../../Blue';
 
 function makeWorkflowDoc(steps: JsonObject[]): JsonObject {

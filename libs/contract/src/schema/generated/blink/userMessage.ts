@@ -3,7 +3,7 @@ import {
   BlueObjectBooleanValue,
   BlueObjectStringValue,
   BlueObjectStringListItems,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { BlinkBlueIds } from '../blueIds';
 import { ConversationEntry } from './conversationEntry';
 

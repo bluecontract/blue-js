@@ -1,3 +1,3 @@
-# @blue-company/shared-utils
+# @blue-labs/shared-utils
 
-Shared utilities used by Blue Company packages.
+Shared utilities used by Blue Labs packages.

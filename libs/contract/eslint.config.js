@@ -14,8 +14,8 @@ module.exports = [
             '{projectRoot}/scripts/*.{js,ts,mjs,mts}',
           ],
           ignoredDependencies: [
-            '@blue-company/language',
-            '@blue-company/shared-utils',
+            '@blue-labs/language',
+            '@blue-labs/shared-utils',
           ],
         },
       ],

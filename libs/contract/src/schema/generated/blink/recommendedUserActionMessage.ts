@@ -1,4 +1,4 @@
-import { BlueObject, BlueObjectStringValue } from '@blue-company/language';
+import { BlueObject, BlueObjectStringValue } from '@blue-labs/language';
 import { BlinkBlueIds } from '../blueIds';
 import { ConversationEntry } from './conversationEntry';
 

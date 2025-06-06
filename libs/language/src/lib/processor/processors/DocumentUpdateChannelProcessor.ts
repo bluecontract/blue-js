@@ -1,5 +1,5 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
 import { blueIds, DocumentUpdateChannelSchema } from '../../../repo/core';
 

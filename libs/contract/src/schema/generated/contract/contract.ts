@@ -2,7 +2,7 @@ import {
   BaseBlueObject,
   BlueObject,
   BlueObjectStringValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { WorkflowStepObjectList } from '../workflowStep/workflowStep';
 import { TimelineEntry } from '../timeline/timelineEntry';
 import { ContractBlueIds, DefaultBlueIds } from '../blueIds';

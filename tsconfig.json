@@ -11,15 +11,6 @@
     },
     {
       "path": "./libs/contract"
-    },
-    {
-      "path": "./libs/app-sdk/core"
-    },
-    {
-      "path": "./libs/app-sdk/host"
-    },
-    {
-      "path": "./libs/app-sdk/client"
     }
   ]
 }

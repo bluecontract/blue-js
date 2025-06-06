@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   blueObjectBooleanValueSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { contractSchema } from './contract.zod';
 
 export const chessContractSchema = contractSchema.extend({

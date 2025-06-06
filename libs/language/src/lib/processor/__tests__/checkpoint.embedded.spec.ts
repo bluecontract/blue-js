@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '../../Blue';
 import { EventNodePayload } from '../types';
-import { JsonObject } from '@blue-company/shared-utils';
+import { JsonObject } from '@blue-labs/shared-utils';
 
 describe('Checkpoint – embedded documents via Process Embedded', () => {
   const blue = new Blue();

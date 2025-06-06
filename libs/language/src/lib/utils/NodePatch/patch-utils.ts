@@ -2,7 +2,7 @@ import { BlueNode } from '../../model/Node';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
 import { BigIntegerNumber as ModelBigIntegerNumber } from '../../model/BigIntegerNumber';
 import { BigDecimalNumber as ModelBigDecimalNumber } from '../../model/BigDecimalNumber';
-import { JsonPrimitive } from '@blue-company/shared-utils';
+import { JsonPrimitive } from '@blue-labs/shared-utils';
 
 export { ModelBigIntegerNumber as BigIntegerNumber };
 export { ModelBigDecimalNumber as BigDecimalNumber };
