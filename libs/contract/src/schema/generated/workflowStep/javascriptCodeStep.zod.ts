@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   blueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { workflowStepSchema } from './workflowStep.zod';
 import { contractBlueIdsSchema } from './../blueIds.zod';
 

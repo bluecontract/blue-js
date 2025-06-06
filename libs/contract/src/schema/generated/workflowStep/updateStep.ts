@@ -1,4 +1,4 @@
-import { BaseBlueObject, BlueObject } from '@blue-company/language';
+import { BaseBlueObject, BlueObject } from '@blue-labs/language';
 import { WorkflowStep } from './workflowStep';
 import { JsonPatchEntry } from '../jsonPatch/jsonPatchEntry';
 import { ContractBlueIds } from '../blueIds';

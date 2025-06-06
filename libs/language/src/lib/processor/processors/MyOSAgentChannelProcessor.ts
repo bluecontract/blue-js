@@ -8,7 +8,7 @@ import {
   MyOSAgentEvent,
   MyOSAgentChannel,
 } from '../../../repo/myos';
-import { deepContains } from '@blue-company/shared-utils';
+import { deepContains } from '@blue-labs/shared-utils';
 
 /* ------------------------------------------------------------------------ */
 /* MyOS Agent Channel – processes MyOS Agent Events                        */

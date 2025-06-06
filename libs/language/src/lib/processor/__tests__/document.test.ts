@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { applyPatches, ENABLE_IMMUTABILITY } from '../utils/document';
 import { PatchApplicationError } from '../utils/exceptions';
-import { JsonObject } from '@blue-company/shared-utils';
+import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueNodePatch } from '../../utils/NodePatch';
 import { Blue } from '../../Blue';
 

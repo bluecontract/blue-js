@@ -2,7 +2,7 @@ import {
   normalizeToBlueObject,
   yamlBlueParse,
   JsonBlueValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { isString } from 'radash';
 import { contractSchema } from '../schema';
 

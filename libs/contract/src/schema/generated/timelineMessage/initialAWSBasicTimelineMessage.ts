@@ -2,7 +2,7 @@ import {
   BaseBlueObject,
   BlueObject,
   BlueObjectStringValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 
 export type InitialAWSBasicTimelineMessageType = BlueObject & {
   name: 'AWS Basic Timeline with Secp256k1 Schnorr Signature';

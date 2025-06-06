@@ -1,4 +1,4 @@
-import { BaseBlueObject, BlueObjectStringValue } from '@blue-company/language';
+import { BaseBlueObject, BlueObjectStringValue } from '@blue-labs/language';
 
 interface JsonPatchOperationEntry extends BaseBlueObject {
   value?: 'add' | 'remove' | 'replace' | 'move' | 'copy' | 'test';

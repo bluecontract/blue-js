@@ -13,7 +13,7 @@ import {
   isNonNullable,
   isReadonlyArray,
   JsonPrimitive,
-} from '@blue-company/shared-utils';
+} from '@blue-labs/shared-utils';
 import { JsonBlueValue } from '../../schema';
 import { default as Big } from 'big.js';
 

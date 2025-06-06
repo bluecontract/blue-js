@@ -5,7 +5,7 @@ import {
   baseBlueObjectSchema,
   blueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { timelineBlueIdsSchema } from './../blueIds.zod';
 
 export const initialTimelineBlueMessageTypeSchema = blueObjectSchema.and(

@@ -2,7 +2,7 @@ import {
   BaseBlueObject,
   BlueObject,
   BlueObjectStringValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 
 export interface WorkflowStepObjectList extends BaseBlueObject {
   items?: BlueObject[];

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   baseBlueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 
 const jsonPatchOperationEntrySchema = baseBlueObjectSchema.extend({
   value: z

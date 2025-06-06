@@ -11,7 +11,7 @@ import {
 } from 'zod';
 import { BlueNode, NodeDeserializer } from '../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
-import { isNonNullable, isNullable } from '@blue-company/shared-utils';
+import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import {
   getBlueDescriptionAnnotation,
   getBlueIdAnnotation,
