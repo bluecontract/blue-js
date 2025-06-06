@@ -43,7 +43,6 @@
   },
   "workspaces": [
     "libs/*",
-    "libs/app-sdk/*",
     "libs/shared/*"
   ],
   "dependencies": {
