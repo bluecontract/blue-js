@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { xSchema } from './x';
-import { withTypeBlueId } from '../../../../schema/annotations';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 
 export const x1Schema = withTypeBlueId('X1-BlueId')(
   xSchema.extend({

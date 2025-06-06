@@ -1,6 +1,6 @@
 import z from 'zod';
 import { xSchema } from './x';
-import { withTypeBlueId } from '../../../../schema/annotations';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 
 /**
  * In the JAVA version, X3 is a class with concurrent fields.

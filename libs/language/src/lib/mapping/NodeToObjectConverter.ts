@@ -16,7 +16,7 @@ import { isNonNullable } from '@blue-company/shared-utils';
 import {
   isBlueNodeSchema,
   isSchemaExtendedFrom,
-} from '../../schema/annotations';
+} from '@blue-company/schema-annotations';
 
 export class NodeToObjectConverter {
   private readonly converterFactory: ConverterFactory;

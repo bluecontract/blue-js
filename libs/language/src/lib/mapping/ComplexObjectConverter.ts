@@ -16,7 +16,7 @@ import {
   getBlueDescriptionAnnotation,
   getBlueIdAnnotation,
   getBlueNameAnnotation,
-} from '../../schema/annotations';
+} from '@blue-company/schema-annotations';
 import { isString } from 'radash';
 import { Converter } from './Converter';
 import {

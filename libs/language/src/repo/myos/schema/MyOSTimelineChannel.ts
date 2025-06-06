@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { blueIds } from '../blue-ids';
-import { withTypeBlueId } from '../../../schema/annotations/typeBlueId';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 import { TimelineChannelSchema } from '../../core';
 
 export const MyOSTimelineChannelSchema = withTypeBlueId(

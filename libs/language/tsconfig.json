@@ -3,8 +3,17 @@
   "files": [],
   "include": [],
   "references": [
-    { "path": "../shared/utils" },
-    { "path": "./tsconfig.lib.json" },
-    { "path": "./tsconfig.spec.json" }
+    {
+      "path": "../shared/utils"
+    },
+    {
+      "path": "../schema-annotations"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
   ]
 }

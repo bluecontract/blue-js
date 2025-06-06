@@ -1,4 +1,4 @@
-import { withTypeBlueId } from '../../../schema/annotations/typeBlueId';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 import { blueIds } from '../blue-ids';
 import { z } from 'zod';
 

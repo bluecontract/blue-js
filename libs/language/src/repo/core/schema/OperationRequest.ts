@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { blueIds } from '../blue-ids';
-import { withTypeBlueId } from '../../../schema/annotations/typeBlueId';
-import { blueNodeField } from '../../../schema/annotations/blueNode';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
+import { blueNodeField } from '@blue-company/schema-annotations';
 
 export const OperationRequestSchema = withTypeBlueId(
   blueIds['Operation Request']

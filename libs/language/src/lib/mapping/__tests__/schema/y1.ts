@@ -2,7 +2,7 @@ import z from 'zod';
 import { x11Schema } from './x11';
 import { x12Schema } from './x12';
 import { ySchema } from './y';
-import { withTypeBlueId } from '../../../../schema/annotations';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 
 export const y1Schema = withTypeBlueId('Y1-BlueId')(
   ySchema.extend({

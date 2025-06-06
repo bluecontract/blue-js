@@ -3,7 +3,7 @@ import { xSchema } from './x';
 import { x1Schema } from './x1';
 import { x2Schema } from './x2';
 import { xSubscriptionSchema } from './xSubscription';
-import { withTypeBlueId } from '../../../../schema/annotations';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 
 export const ySchema = withTypeBlueId('Y-BlueId')(
   z.object({

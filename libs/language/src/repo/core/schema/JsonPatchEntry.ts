@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { blueNodeField } from '../../../schema/annotations/blueNode';
-import { withTypeBlueId } from '../../../schema/annotations/typeBlueId';
+import { blueNodeField } from '@blue-company/schema-annotations';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 import { blueIds } from '../blue-ids';
 
 export const JsonPatchEntrySchema = withTypeBlueId(blueIds['Json Patch Entry'])(

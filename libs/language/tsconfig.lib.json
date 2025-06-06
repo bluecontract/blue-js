@@ -9,7 +9,14 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src/**/*.ts", "types/base32.js.d.ts"],
-  "references": [{ "path": "../shared/utils/tsconfig.lib.json" }],
+  "references": [
+    {
+      "path": "../shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../schema-annotations/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",

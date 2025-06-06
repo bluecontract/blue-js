@@ -4,7 +4,7 @@ import {
   blueNameField,
   withTypeBlueId,
   blueNodeField,
-} from '../../../../schema/annotations';
+} from '@blue-company/schema-annotations';
 
 export const personValueExampleSchema = withTypeBlueId('PersonValue-BlueId')(
   z.object({

@@ -1,35 +1,15 @@
-import { isNonNullable } from '@blue-company/shared-utils';
-import { z, ZodTypeAny } from 'zod';
-import { setAnnotations, getAnnotations } from './annotations';
+import { z } from 'zod';
+import { withBlueNode } from '@blue-company/schema-annotations';
 import { BlueNode } from '../../lib/model/Node';
 
-export const withBlueNode =
-  () =>
-  <Schema extends ZodTypeAny = ZodTypeAny>(schema: Schema) => {
-    const annotations = getAnnotations(schema);
+// Export the generic annotation functions
+export {
+  withBlueNode,
+  getBlueNodeAnnotation,
+  isBlueNodeSchema,
+} from '@blue-company/schema-annotations';
 
-    return setAnnotations(schema, {
-      ...annotations,
-      blueNode: true,
-    });
-  };
-
-export const getBlueNodeAnnotation = (schema: ZodTypeAny) => {
-  const annotations = getAnnotations(schema);
-  if (
-    isNonNullable(annotations) &&
-    isNonNullable(annotations.blueNode) &&
-    annotations.blueNode === true
-  ) {
-    return annotations.blueNode;
-  }
-  return null;
-};
-
-export const isBlueNodeSchema = (schema: ZodTypeAny) => {
-  return !!getBlueNodeAnnotation(schema);
-};
-
+// Provide a BlueNode-specific version of blueNodeField
 export const blueNodeField = () => {
   const blueNodeFieldSchema = z.instanceof(BlueNode);
   return withBlueNode()(blueNodeFieldSchema);

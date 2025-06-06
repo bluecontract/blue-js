@@ -3,7 +3,7 @@ import {
   blueIdField,
   blueNodeField,
   withTypeBlueId,
-} from '../../../../schema/annotations';
+} from '@blue-company/schema-annotations';
 
 const WorkflowStepSchema = withTypeBlueId('WorkflowStep-BlueId')(
   z.object({

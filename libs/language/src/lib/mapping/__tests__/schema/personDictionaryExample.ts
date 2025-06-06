@@ -1,5 +1,5 @@
 import z from 'zod';
-import { withTypeBlueId } from '../../../../schema/annotations';
+import { withTypeBlueId } from '@blue-company/schema-annotations';
 import { personSchema } from './person';
 
 export const personDictionaryExampleSchema = withTypeBlueId(
