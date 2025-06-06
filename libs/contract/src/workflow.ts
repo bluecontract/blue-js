@@ -1,6 +1,6 @@
-import { getBlueObjectItems } from '@blue-company/language';
+import { getBlueObjectItems } from '@blue-labs/language';
 import { Contract, Workflow } from './schema';
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 
 export const getWorkflowByName = ({
   contract,

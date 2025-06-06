@@ -2,7 +2,7 @@ import {
   BaseBlueObject,
   BlueObject,
   BlueObjectStringValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { RecommendedUserActionMessage } from './recommendedUserActionMessage';
 import { BlinkBlueIds } from '../blueIds';
 import { ConversationEntry } from './conversationEntry';

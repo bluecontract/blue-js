@@ -5,7 +5,7 @@ import {
   baseBlueObjectSchema,
   blueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { initiateContractActionSchema } from './../contractAction/initiateContractAction.zod';
 
 export const actionByParticipantEventSchema = baseBlueObjectSchema.extend({

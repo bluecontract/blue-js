@@ -5,7 +5,7 @@ import {
   baseBlueObjectSchema,
   blueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 
 export const workflowStepObjectListSchema = baseBlueObjectSchema.extend({
   items: z.array(blueObjectSchema).optional(),

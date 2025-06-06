@@ -5,7 +5,7 @@ import {
   baseBlueObjectSchema,
   blueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { workflowStepObjectListSchema } from './../workflowStep/workflowStep.zod';
 import { timelineEntrySchema } from './../timeline/timelineEntry.zod';
 import { contractBlueIdsSchema, defaultBlueIdsSchema } from './../blueIds.zod';

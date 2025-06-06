@@ -9,7 +9,7 @@ import {
 import { BlueNode } from '../model';
 import { Converter } from './Converter';
 import { NodeToObjectConverter } from './NodeToObjectConverter';
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 import { ValueConverter } from './ValueConverter';
 import {
   OBJECT_CONTRACTS,

@@ -14,7 +14,7 @@ import {
   OBJECT_CONTRACTS,
 } from '../utils/Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
-import { isReadonlyArray } from '@blue-company/shared-utils';
+import { isReadonlyArray } from '@blue-labs/shared-utils';
 import { isArray, isObject } from 'radash';
 import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';

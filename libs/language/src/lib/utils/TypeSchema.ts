@@ -8,7 +8,7 @@ import {
 } from 'zod';
 import { BlueNode } from '../model';
 import { BlueIdResolver } from './BlueIdResolver';
-import { isNullable } from '@blue-company/shared-utils';
+import { isNullable } from '@blue-labs/shared-utils';
 
 // TODO: Make it support a way if a schema supports more blueIds than one
 export class BlueNodeTypeSchema {

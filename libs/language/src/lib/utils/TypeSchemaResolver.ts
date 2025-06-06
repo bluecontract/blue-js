@@ -1,5 +1,5 @@
 import { ZodTypeAny } from 'zod';
-import { isNonNullable, isNullable } from '@blue-company/shared-utils';
+import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import { BlueIdResolver } from './BlueIdResolver';
 import { BlueNode } from '../model/Node';
 import { BlueIdCalculator } from './BlueIdCalculator';

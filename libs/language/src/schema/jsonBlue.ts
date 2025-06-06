@@ -5,7 +5,7 @@ import {
   JsonPrimitive,
   jsonPrimitiveSchema,
   isJsonPrimitive,
-} from '@blue-company/shared-utils';
+} from '@blue-labs/shared-utils';
 import { isArray, isObject } from 'radash';
 import { isBigNumber } from '../utils/typeGuards';
 

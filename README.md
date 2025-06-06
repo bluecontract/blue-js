@@ -27,7 +27,7 @@ blue-js/
 
 Currently, the following libraries are available in this monorepo:
 
-1. **@blue-company/language** : This library, located in `libs/language`, provides tools for working with the Blue language, a YAML-based language with inheritance support. It includes services for calculating unique identifiers, schemas for validating Blue objects, various utility functions, and helpers for parsing and normalizing JSON and YAML data.
+1. **@blue-labs/language** : This library, located in `libs/language`, provides tools for working with the Blue language, a YAML-based language with inheritance support. It includes services for calculating unique identifiers, schemas for validating Blue objects, various utility functions, and helpers for parsing and normalizing JSON and YAML data.
 
 For detailed information on each library, please refer to their respective README files located in the libs/ directory.
 
