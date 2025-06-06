@@ -7,7 +7,7 @@ import {
   INTEGER_TYPE_BLUE_ID,
   BOOLEAN_TYPE_BLUE_ID,
 } from '../../utils/Properties';
-import { isNonNullable, isNullable } from '@blue-company/shared-utils';
+import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import {
   isBigDecimalNumber,
   isBigIntegerNumber,

@@ -1,5 +1,5 @@
 import { BlueNode } from '../model';
-import { isNonNullable, isNullable } from '@blue-company/shared-utils';
+import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import { BigIntegerNumber, BigDecimalNumber } from '../model';
 
 export class NodePathAccessor {

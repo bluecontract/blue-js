@@ -1,4 +1,4 @@
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 import { WorkflowStep } from './schema';
 
 export const getUIWorkflowStepName = (

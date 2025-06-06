@@ -12,7 +12,7 @@ import { ZodTypeDef } from 'zod';
 import { BlueNode } from '../model';
 import { TypeSchemaResolver } from '../utils/TypeSchemaResolver';
 import { ConverterFactory } from './ConverterFactory';
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 import {
   isBlueNodeSchema,
   isSchemaExtendedFrom,

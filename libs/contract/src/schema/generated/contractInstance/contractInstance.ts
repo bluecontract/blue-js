@@ -1,5 +1,5 @@
-import { BlueObjectNumberValue } from '@blue-company/language';
-import { BaseBlueObject } from '@blue-company/language';
+import { BlueObjectNumberValue } from '@blue-labs/language';
+import { BaseBlueObject } from '@blue-labs/language';
 import { Contract } from '../contract/contract';
 
 export interface ContractInstance {

@@ -1,20 +1,20 @@
-# @blue-company/language
+# @blue-labs/language
 
-@blue-company/language is a comprehensive library for working with the Blue language, a simple YAML-based language that supports inheritance. This library has been rewritten from the original Java version, which can be found [here](https://github.com/bluecontract/blue-language-java). The rewritten parts are located in the `src/lib` directory, while the rest of the code includes additional helper functions designed for TypeScript, enabling better manipulation and management of Blue objects.
+@blue-labs/language is a comprehensive library for working with the Blue language, a simple YAML-based language that supports inheritance. This library has been rewritten from the original Java version, which can be found [here](https://github.com/bluecontract/blue-language-java). The rewritten parts are located in the `src/lib` directory, while the rest of the code includes additional helper functions designed for TypeScript, enabling better manipulation and management of Blue objects.
 
 ## Installation
 
 To install the library, use npm or yarn:
 
 ```bash
-npm install @blue-company/language
+npm install @blue-labs/language
 # or
-yarn add @blue-company/language
+yarn add @blue-labs/language
 ```
 
 ## Usage
 
-Here are the key features and services provided by the @blue-company/language library:
+Here are the key features and services provided by the @blue-labs/language library:
 
 ### Services
 

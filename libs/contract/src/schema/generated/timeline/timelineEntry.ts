@@ -2,7 +2,7 @@ import {
   BaseBlueObject,
   BlueObject,
   BlueObjectStringValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { ContractBlueIds } from '../blueIds';
 
 export interface TimelineEntry extends BaseBlueObject {

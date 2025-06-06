@@ -1,5 +1,5 @@
 import { expect, describe, test } from 'vitest';
-import { JsonObject } from '@blue-company/shared-utils';
+import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '../../../Blue';
 
 function makeCounterWithOperationsDoc(): JsonObject {

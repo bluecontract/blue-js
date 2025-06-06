@@ -2,11 +2,11 @@ import {
   yamlBlueParse,
   JsonBlueValue,
   jsonBlueValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { isArray, isObject, isString } from 'radash';
 import { contractInstanceSchema, ContractInstance } from '../schema';
 import { parseAsContract } from './contract';
-import { isReadonlyArray } from '@blue-company/shared-utils';
+import { isReadonlyArray } from '@blue-labs/shared-utils';
 
 const getJsonValue = (content: string | JsonBlueValue) => {
   if (isString(content)) {

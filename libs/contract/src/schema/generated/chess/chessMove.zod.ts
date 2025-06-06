@@ -4,8 +4,8 @@ import { z } from 'zod';
 import {
   blueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
-import { baseBlueObjectSchema } from '@blue-company/language';
+} from '@blue-labs/language';
+import { baseBlueObjectSchema } from '@blue-labs/language';
 import { chessBlueIdsSchema } from './../blueIds.zod';
 
 export const chessMoveSchema = baseBlueObjectSchema.extend({

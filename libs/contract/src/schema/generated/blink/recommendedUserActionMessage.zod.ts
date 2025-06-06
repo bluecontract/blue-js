@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   blueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { blinkBlueIdsSchema } from './../blueIds.zod';
 import { conversationEntrySchema } from './conversationEntry.zod';
 
