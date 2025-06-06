@@ -4,7 +4,7 @@ import {
   BaseBlueObject,
   BlueObject,
   BlueObjectNumberValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { ContractBlueIds } from '../blueIds';
 
 export interface ContractUpdateAction extends BaseBlueObject {

@@ -63,7 +63,7 @@ const generateSchemaFile = (inputPath, outputPath) => {
   } = generate({
     sourceText,
     inputOutputMappings: [
-      { input: '@blue-company/language', output: '@blue-company/language' },
+      { input: '@blue-labs/language', output: '@blue-labs/language' },
       ...relativeIOMappings,
     ],
   });

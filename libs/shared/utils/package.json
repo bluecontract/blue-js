@@ -1,5 +1,5 @@
 {
-  "name": "@blue-company/shared-utils",
+  "name": "@blue-labs/shared-utils",
   "version": "1.19.0",
   "dependencies": {
     "fast-deep-equal": "3.1.3",

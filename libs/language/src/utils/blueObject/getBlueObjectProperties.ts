@@ -1,7 +1,7 @@
 import { omit } from 'radash';
 import { Properties } from '../../lib';
 import { Writable, ArrayValues } from 'type-fest';
-import { isNullable } from '@blue-company/shared-utils';
+import { isNullable } from '@blue-labs/shared-utils';
 
 type ObjectSpecificKeys = ArrayValues<typeof Properties.OBJECT_SPECIFIC_KEYS>;
 

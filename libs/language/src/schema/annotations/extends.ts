@@ -1,4 +1,4 @@
-import { isNonNullable, isNullable } from '@blue-company/shared-utils';
+import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import { AnyZodObject, ZodType, ZodTypeAny } from 'zod';
 import { setAnnotations, getAnnotations } from './annotations';
 

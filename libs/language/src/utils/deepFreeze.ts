@@ -1,4 +1,4 @@
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 
 /**
  * Deeply freezes an object recursively

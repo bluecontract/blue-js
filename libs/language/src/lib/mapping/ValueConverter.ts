@@ -14,7 +14,7 @@ import {
   INTEGER_TYPE_BLUE_ID,
   BOOLEAN_TYPE_BLUE_ID,
 } from '../utils/Properties';
-import { isNullable } from '@blue-company/shared-utils';
+import { isNullable } from '@blue-labs/shared-utils';
 
 export class ValueConverter {
   static convertValue(node: BlueNode, targetSchema: ZodTypeAny) {

@@ -1,6 +1,6 @@
-import { BlueObject, BlueObjectStringValue } from '@blue-company/language';
+import { BlueObject, BlueObjectStringValue } from '@blue-labs/language';
 
-import { BaseBlueObject } from '@blue-company/language';
+import { BaseBlueObject } from '@blue-labs/language';
 import { ChessBlueIds } from '../blueIds';
 
 export interface ChessMove extends BaseBlueObject {

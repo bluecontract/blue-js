@@ -1,13 +1,13 @@
-# @blue-company/contract
+# @blue-labs/contract
 
 ## Installation
 
 To install the library, use npm or yarn:
 
 ```bash
-npm install @blue-company/contract
+npm install @blue-labs/contract
 # or
-yarn add @blue-company/contract
+yarn add @blue-labs/contract
 ```
 
 ## Changelog

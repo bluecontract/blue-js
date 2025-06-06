@@ -1,10 +1,10 @@
-import { BlueObject } from '@blue-company/language';
+import { BlueObject } from '@blue-labs/language';
 import {
   Participant,
   participantObjectListSchema,
   participantSchema,
 } from '../../schema';
-import { isGivenTypeSchema, isNonNullable } from '@blue-company/shared-utils';
+import { isGivenTypeSchema, isNonNullable } from '@blue-labs/shared-utils';
 import { getParticipantsRoles } from '../getParticipantsRoles';
 
 /**

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   baseBlueObjectSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 
 export const conversationEntrySchema = baseBlueObjectSchema.extend({
   entryId: blueObjectStringValueSchema.optional(),

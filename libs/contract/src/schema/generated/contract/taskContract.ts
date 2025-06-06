@@ -1,4 +1,4 @@
-import { BaseBlueObject, BlueObject } from '@blue-company/language';
+import { BaseBlueObject, BlueObject } from '@blue-labs/language';
 import { Contract, LocalContract } from './contract';
 import { DefaultBlueIds } from '../blueIds';
 

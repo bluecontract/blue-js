@@ -1,7 +1,7 @@
 import {
   BlueObjectBooleanValue,
   BlueObjectStringValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { Contract } from './contract';
 
 export interface ChessContract extends Contract {

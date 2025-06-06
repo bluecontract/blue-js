@@ -2,7 +2,7 @@ import {
   BaseBlueObject,
   BlueObject,
   BlueObjectStringValue,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { TimelineBlueIds } from '../blueIds';
 
 export type InitialTimelineBlueMessageType = BlueObject & {

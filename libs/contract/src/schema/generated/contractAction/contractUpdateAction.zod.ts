@@ -7,7 +7,7 @@ import {
   baseBlueObjectSchema,
   blueObjectSchema,
   blueObjectNumberValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { contractBlueIdsSchema } from './../blueIds.zod';
 
 export const contractUpdateActionSchema = baseBlueObjectSchema.extend({

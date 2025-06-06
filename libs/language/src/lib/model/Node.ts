@@ -1,4 +1,4 @@
-import { isNonNullable, JsonPrimitive } from '@blue-company/shared-utils';
+import { isNonNullable, JsonPrimitive } from '@blue-labs/shared-utils';
 import { NodePathAccessor } from '../utils/NodePathAccessor';
 import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';

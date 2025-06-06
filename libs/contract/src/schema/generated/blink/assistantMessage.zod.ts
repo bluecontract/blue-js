@@ -5,7 +5,7 @@ import {
   blueObjectSchema,
   blueObjectStringListItemsSchema,
   blueObjectStringValueSchema,
-} from '@blue-company/language';
+} from '@blue-labs/language';
 import { blinkBlueIdsSchema } from './../blueIds.zod';
 import { conversationEntrySchema } from './conversationEntry.zod';
 

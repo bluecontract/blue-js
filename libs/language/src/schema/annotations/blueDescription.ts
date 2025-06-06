@@ -1,4 +1,4 @@
-import { isNonNullable } from '@blue-company/shared-utils';
+import { isNonNullable } from '@blue-labs/shared-utils';
 import { isString } from 'radash';
 import { z, ZodTypeAny } from 'zod';
 import { setAnnotations, getAnnotations } from './annotations';
