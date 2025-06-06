@@ -1,3 +1,9 @@
+## 1.20.0 (2025-06-06)
+
+### 🚀 Features
+
+- rename libraries to `@blue-labs` ([29273b6](https://github.com/bluecontract/blue-js/commit/29273b6))
+
 ## 1.19.0 (2025-06-05)
 
 ### 🚀 Features
