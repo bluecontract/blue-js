@@ -42,7 +42,17 @@ export default {
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: ['crypto', ...Object.keys(packageJson.dependencies)],
+      external: (id: string) => {
+        if (id === 'crypto') {
+          return true;
+        }
+        const dependencies = Object.keys(packageJson.dependencies);
+        const peerDependencies = Object.keys(packageJson.peerDependencies);
+        return (
+          dependencies.some((dependency) => id === dependency) ||
+          peerDependencies.some((dependency) => id === dependency)
+        );
+      },
       output: {
         interop: (id: string) => {
           // We need to use the require('bs58').default export for bs58

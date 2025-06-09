@@ -38,7 +38,14 @@ export default {
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: Object.keys(packageJson.dependencies),
+      external: (id: string) => {
+        const dependencies = Object.keys(packageJson.dependencies);
+        const peerDependencies = Object.keys(packageJson.peerDependencies);
+        return (
+          dependencies.some((dependency) => id === dependency) ||
+          peerDependencies.some((dependency) => id === dependency)
+        );
+      },
     },
   },
   test: {
