@@ -29,9 +29,6 @@ module.exports = [
     },
   },
   {
-    ignores: [
-      'scripts/benchmark/data/**',
-      'src/lib/processor/__tests__/resources/**',
-    ],
+    ignores: ['scripts/benchmark/data/**'],
   },
 ];

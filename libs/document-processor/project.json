@@ -1,0 +1,22 @@
+{
+  "name": "document-processor",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/document-processor/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
+    }
+  },
+  "tags": [],
+  "targets": {
+    "test": {
+      "options": {
+        "env": {
+          "NODE_OPTIONS": "--no-node-snapshot"
+        }
+      }
+    }
+  }
+}
