@@ -53,7 +53,7 @@ export class Blue {
       nodeProvider || defaultProvider
     );
 
-    this.typeSchemaResolver = typeSchemaResolver;
+    this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
@@ -64,23 +64,9 @@ export class Blue {
     this.blueIdsMappingGenerator = new BlueIdsMappingGenerator();
 
     if (repositories) {
-      const flattenedRepositories = repositories.reduce(
-        (acc, repository) => {
-          acc.blueIds = { ...acc.blueIds, ...repository.blueIds };
-          acc.schemas = [...acc.schemas, ...repository.schemas];
-          return acc;
-        },
-        {
-          blueIds: {} as BlueIdsRecord,
-          schemas: [] as ZodTypeAny[],
-        }
-      );
-
-      this.blueIdsMappingGenerator.initialize(flattenedRepositories.blueIds);
-      if (!this.typeSchemaResolver) {
-        this.typeSchemaResolver = new TypeSchemaResolver(
-          flattenedRepositories.schemas
-        );
+      for (const { schemas, blueIds } of repositories) {
+        this.typeSchemaResolver?.registerSchemas(schemas);
+        this.blueIdsMappingGenerator.registerBlueIds(blueIds);
       }
     }
   }

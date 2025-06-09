@@ -29,7 +29,7 @@ describe('Blue', () => {
       const blue = new Blue();
       expect(blue).toBeInstanceOf(Blue);
       expect(blue.getNodeProvider()).toBeDefined();
-      expect(blue.getTypeSchemaResolver()).toBeNull();
+      expect(blue.getTypeSchemaResolver()).toBeInstanceOf(TypeSchemaResolver);
     });
 
     it('should create instance with NodeProvider only', () => {
@@ -38,7 +38,7 @@ describe('Blue', () => {
 
       expect(blue).toBeInstanceOf(Blue);
       expect(blue.getNodeProvider()).toBe(nodeProvider);
-      expect(blue.getTypeSchemaResolver()).toBeNull();
+      expect(blue.getTypeSchemaResolver()).toBeInstanceOf(TypeSchemaResolver);
     });
 
     it('should create instance with TypeSchemaResolver only', () => {

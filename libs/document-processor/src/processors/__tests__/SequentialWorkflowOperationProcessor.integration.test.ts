@@ -2,7 +2,7 @@ import { expect, describe, test } from 'vitest';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
-import { repository as coreRepository } from '../../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 function makeCounterWithOperationsDoc(): JsonObject {
   return {
@@ -102,7 +102,7 @@ function makeCounterWithOperationsDoc(): JsonObject {
 function timelineEvent(message: unknown) {
   return {
     type: 'Timeline Entry',
-    timelineId: 'owner-timeline',
+    timeline: 'owner-timeline',
     message,
   };
 }

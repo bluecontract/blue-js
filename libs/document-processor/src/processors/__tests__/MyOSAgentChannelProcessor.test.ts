@@ -1,7 +1,7 @@
 import { MyOSAgentChannelProcessor } from '../MyOSAgentChannelProcessor';
 import { EventNode, ProcessingContext } from '../../types';
 import { Blue } from '@blue-labs/language';
-import { repository as coreRepository } from '../../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 describe('MyOSAgentChannelProcessor', () => {
   const blue = new Blue({

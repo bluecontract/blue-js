@@ -2,7 +2,7 @@ import { BlueNodeTypeSchema } from '@blue-labs/language';
 import { EventNode, EventNodePayload, ProcessingContext } from '../../../types';
 import { DocumentNode } from '../../../types';
 import { WorkflowStepExecutor } from '../types';
-import { TriggerEventSchema } from '../../../repo/core';
+import { TriggerEventSchema } from '@blue-repository/core-dev';
 
 export class TriggerEventExecutor implements WorkflowStepExecutor {
   readonly stepType = 'Trigger Event';
@@ -20,6 +20,8 @@ export class TriggerEventExecutor implements WorkflowStepExecutor {
     if (!BlueNodeTypeSchema.isTypeOf(step, TriggerEventSchema)) return;
 
     const triggerEventStep = blue.nodeToSchemaOutput(step, TriggerEventSchema);
+
+    if (!triggerEventStep.event) return;
 
     // TODO: change it
     const payload = blue.nodeToJson(

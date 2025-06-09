@@ -6,7 +6,7 @@ import {
   TimelineChannelSchema,
   TimelineEntry,
   TimelineEntrySchema,
-} from '../repo/core';
+} from '@blue-repository/core-dev';
 
 // TODO: use mapping to TimelineEntry instead of type check
 const isTimelineEntryEvent = (
@@ -29,21 +29,22 @@ export class TimelineChannelProcessor extends BaseChannelProcessor {
     if (!isTimelineEntryEvent(event)) return false;
 
     const blue = ctx.getBlue();
-    const eventPayloadNode = blue.jsonValueToNode(event.payload);
     const timelineEntry = blue.nodeToSchemaOutput(
-      eventPayloadNode,
+      blue.jsonValueToNode(event.payload),
       TimelineEntrySchema
     );
     const timelineChannel = ctx
       .getBlue()
       .nodeToSchemaOutput(node, TimelineChannelSchema);
 
+    const timelineEntryTimelineId = timelineEntry.timeline?.getValue();
+
     const hasTimelineId =
       isNonNullable(timelineChannel.timelineId) &&
-      isNonNullable(timelineEntry.timelineId);
+      isNonNullable(timelineEntryTimelineId);
 
     return (
-      hasTimelineId && timelineEntry.timelineId === timelineChannel.timelineId
+      hasTimelineId && timelineEntryTimelineId === timelineChannel.timelineId
     );
   }
 

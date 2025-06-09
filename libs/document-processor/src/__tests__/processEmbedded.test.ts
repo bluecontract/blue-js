@@ -5,7 +5,7 @@ import path from 'path';
 import { EmbeddedDocumentModificationError } from '../utils/exceptions';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
@@ -14,7 +14,7 @@ function loadYamlFromResources(filename: string): Record<string, any> {
 
 const TIMELINE_EVENT = {
   type: 'Timeline Entry',
-  timelineId: 't',
+  timeline: 't',
   message: { type: 'Ping' },
 };
 
