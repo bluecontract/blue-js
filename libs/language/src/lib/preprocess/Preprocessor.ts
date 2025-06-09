@@ -14,12 +14,13 @@ import {
 import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits';
 import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
-import { blueIds as myosBlueIds } from '../../repo/myos';
-import { blueIds as coreBlueIds } from '../../repo/core';
-import {
-  BlueIdsMappingGenerator,
-  type BlueIdsRecord,
-} from './utils/BlueIdsMappingGenerator';
+import { BlueIdsMappingGenerator } from './utils/BlueIdsMappingGenerator';
+
+export interface PreprocessorOptions {
+  nodeProvider?: NodeProvider;
+  processorProvider?: TransformationProcessorProvider;
+  blueIdsMappingGenerator?: BlueIdsMappingGenerator;
+}
 
 /**
  * Preprocessor class for transforming BlueNodes
@@ -31,59 +32,31 @@ export class Preprocessor {
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;
   private defaultSimpleBlue: BlueNode | null = null;
+  private blueIdsMappingGenerator: BlueIdsMappingGenerator;
 
   /**
-   * Creates a new Preprocessor with the specified provider and NodeProvider or just NodeProvider
-   * @param processorProviderOrNodeProvider - The TransformationProcessorProvider or NodeProvider to use
-   * @param nodeProvider - The NodeProvider to use for resolving nodes (optional)
+   * Creates a new Preprocessor with the specified options
+   * @param options - Configuration options for the preprocessor
    */
-  constructor(
-    processorProviderOrNodeProvider:
-      | TransformationProcessorProvider
-      | NodeProvider,
-    nodeProvider?: NodeProvider
-  ) {
-    if (nodeProvider) {
-      // First constructor signature (processorProvider, nodeProvider)
-      this.processorProvider =
-        processorProviderOrNodeProvider as TransformationProcessorProvider;
-      this.nodeProvider = NodeProviderWrapper.wrap(nodeProvider);
-    } else {
-      // Second constructor signature (nodeProvider only)
-      this.processorProvider = Preprocessor.getStandardProvider();
-      this.nodeProvider = NodeProviderWrapper.wrap(
-        processorProviderOrNodeProvider as NodeProvider
-      );
-    }
+  constructor(options: PreprocessorOptions = {}) {
+    const { nodeProvider, processorProvider, blueIdsMappingGenerator } =
+      options;
 
-    // Initialize BlueIds mapping generator with default collections
-    BlueIdsMappingGenerator.initialize(coreBlueIds, myosBlueIds);
+    // Set up node provider (required)
+    if (!nodeProvider) {
+      throw new Error('NodeProvider is required');
+    }
+    this.nodeProvider = NodeProviderWrapper.wrap(nodeProvider);
+
+    // Set up processor provider (optional, defaults to standard provider)
+    this.processorProvider =
+      processorProvider || Preprocessor.getStandardProvider();
+
+    // Set up BlueIds mapping generator (optional, creates new instance if not provided)
+    this.blueIdsMappingGenerator =
+      blueIdsMappingGenerator || new BlueIdsMappingGenerator();
 
     this.loadDefaultSimpleBlue();
-  }
-
-  /**
-   * Registers additional BlueIds collections for dynamic mapping generation
-   * @param blueIdsCollections - Array of BlueIds objects to register
-   */
-  public static registerBlueIds(...blueIdsCollections: BlueIdsRecord[]): void {
-    BlueIdsMappingGenerator.registerBlueIds(...blueIdsCollections);
-  }
-
-  /**
-   * Resets BlueIds collections to defaults (core and myos only)
-   */
-  public static resetBlueIdsToDefaults(): void {
-    BlueIdsMappingGenerator.clear();
-    BlueIdsMappingGenerator.initialize(coreBlueIds, myosBlueIds);
-  }
-
-  /**
-   * Gets all currently registered BlueIds
-   * @returns Merged object containing all BlueIds from all collections
-   */
-  public static getAllRegisteredBlueIds(): Record<string, string> {
-    return BlueIdsMappingGenerator.getAllBlueIds();
   }
 
   /**
@@ -182,7 +155,7 @@ export class Preprocessor {
    * @returns Enriched YAML content with dynamic mappings
    */
   private enrichDefaultBlue(defaultBlue: string): string {
-    const dynamicMappings = BlueIdsMappingGenerator.generateMappingsYaml();
+    const dynamicMappings = this.blueIdsMappingGenerator.generateMappingsYaml();
 
     return `
 ${defaultBlue}

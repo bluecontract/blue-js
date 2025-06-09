@@ -11,6 +11,9 @@
     },
     {
       "path": "./libs/contract"
+    },
+    {
+      "path": "./libs/document-processor"
     }
   ]
 }
