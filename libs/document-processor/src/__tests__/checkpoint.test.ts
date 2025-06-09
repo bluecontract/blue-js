@@ -12,7 +12,7 @@ import { Blue } from '@blue-labs/language';
 import { ContractProcessor, ContractRole, EventNodePayload } from '../types';
 import { JsonObject } from 'type-fest';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 let seq = 0;
 

@@ -1,4 +1,4 @@
-import { JavaScriptCodeSchema } from '../../../repo/core';
+import { JavaScriptCodeSchema } from '@blue-repository/core-dev';
 import {
   DocumentNode,
   EventNode,

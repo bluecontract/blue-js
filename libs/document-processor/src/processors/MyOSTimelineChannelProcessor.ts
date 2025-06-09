@@ -6,7 +6,7 @@ import {
   MyOSTimelineChannelSchema,
   MyOSTimelineEntry,
   MyOSTimelineEntrySchema,
-} from '../repo/myos';
+} from '@blue-repository/myos-dev';
 
 // TODO: Event payload probably should be also mapped to BlueNode
 const isTimelineEntryEvent = (
@@ -43,9 +43,11 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
       .getBlue()
       .nodeToSchemaOutput(node, MyOSTimelineChannelSchema);
 
+    const timelineEntryTimelineId = myosTimelineEntry.timeline?.getValue();
+
     const hasTimelineId =
       isNonNullable(myosTimelineChannel.timelineId) &&
-      isNonNullable(myosTimelineEntry.timelineId);
+      isNonNullable(timelineEntryTimelineId);
     const hasAccount =
       isNonNullable(myosTimelineChannel.account) &&
       isNonNullable(myosTimelineEntry.account);
@@ -55,7 +57,7 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
 
     return (
       (hasTimelineId &&
-        myosTimelineEntry.timelineId === myosTimelineChannel.timelineId) ||
+        timelineEntryTimelineId === myosTimelineChannel.timelineId) ||
       (hasAccount &&
         myosTimelineEntry.account === myosTimelineChannel.account) ||
       (hasEmail && myosTimelineEntry.email === myosTimelineChannel.email)

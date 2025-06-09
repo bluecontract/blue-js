@@ -3,7 +3,7 @@ import { Blue } from '@blue-labs/language';
 import { EventNodePayload } from '../types';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 describe('Checkpoint – embedded documents via Process Embedded', () => {
   const blue = new Blue({

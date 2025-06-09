@@ -4,12 +4,12 @@ import {
   EventNode,
   ProcessingContext,
 } from '../types';
-import { blueIds } from '../repo/core';
 import {
+  blueIds,
   OperationRequestSchema,
   OperationSchema,
   TimelineEntrySchema,
-} from '../repo/core';
+} from '@blue-repository/core-dev';
 import { BlueNodeTypeSchema } from '@blue-labs/language';
 import { isNonNullable } from '../utils/typeGuard';
 

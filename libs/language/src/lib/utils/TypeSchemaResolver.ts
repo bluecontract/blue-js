@@ -8,6 +8,10 @@ export class TypeSchemaResolver {
   private readonly blueIdMap = new Map<string, ZodTypeAny>();
 
   constructor(schemas: ZodTypeAny[]) {
+    this.registerSchemas(schemas);
+  }
+
+  public registerSchemas(schemas: ZodTypeAny[]) {
     for (const schema of schemas) {
       this.registerSchema(schema);
     }

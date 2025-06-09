@@ -3,7 +3,7 @@ import { applyPatches, ENABLE_IMMUTABILITY } from '../utils/document';
 import { PatchApplicationError } from '../utils/exceptions';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue, type BlueNodePatch } from '@blue-labs/language';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 describe('Document Utilities', () => {
   const blue = new Blue({

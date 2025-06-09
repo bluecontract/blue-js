@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
@@ -26,7 +26,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 't',
+          timeline: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -48,7 +48,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 't',
+          timeline: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -71,7 +71,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 't',
+          timeline: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -92,7 +92,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 't',
+          timeline: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -113,7 +113,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 't',
+          timeline: 't',
           message: { type: 'Ping' },
         },
       ]);
@@ -136,7 +136,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state1 } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 'sub1T',
+          timeline: 'sub1T',
           message: { type: 'Ping' },
         },
       ]);
@@ -155,7 +155,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state2 } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 'aT',
+          timeline: 'aT',
           message: { type: 'Ping' },
         },
       ]);
@@ -173,7 +173,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state3 } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 'nestedB1T',
+          timeline: 'nestedB1T',
           message: { type: 'Ping' },
         },
       ]);
@@ -195,7 +195,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const { state: state4 } = await documentProcessor.processEvents(docNode, [
         {
           type: 'Timeline Entry',
-          timelineId: 'bT',
+          timeline: 'bT',
           message: { type: 'Ping' },
         },
       ]);

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
@@ -49,7 +49,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timelineId: 'user-123',
+      timeline: 'user-123',
       message: { type: 'Ping' },
     };
 
@@ -110,7 +110,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timelineId: 'timeline-1',
+      timeline: 'timeline-1',
       message: { type: 'Ping' },
     };
 
@@ -172,7 +172,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timelineId: 'timeline-1',
+      timeline: 'timeline-1',
       message: { type: 'Ping' },
     };
 
@@ -243,7 +243,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timelineId: 'timeline-1',
+      timeline: 'timeline-1',
       message: { type: 'Ping' },
     };
 
@@ -333,7 +333,7 @@ describe('BlueDocumentProcessor', () => {
     // Create timeline entry for deepest level
     const timelineEntry = {
       type: 'Timeline Entry',
-      timelineId: 'level3-timeline',
+      timeline: 'level3-timeline',
       message: { type: 'Ping' },
     };
 
@@ -446,7 +446,7 @@ describe('BlueDocumentProcessor', () => {
     // Create a timeline entry for Alice
     const timelineEntry = {
       type: 'Timeline Entry',
-      timelineId: 'Alice',
+      timeline: 'Alice',
       message: { type: 'Ping' },
     };
 
@@ -538,7 +538,7 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = {
       type: 'Timeline Entry',
-      timelineId: 't',
+      timeline: 't',
       message: { type: 'Ping' },
     };
 

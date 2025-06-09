@@ -1,6 +1,9 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { SequentialWorkflowProcessor } from './SequentialWorkflowProcessor';
-import { blueIds, SequentialWorkflowOperationSchema } from '../repo/core';
+import {
+  blueIds,
+  SequentialWorkflowOperationSchema,
+} from '@blue-repository/core-dev';
 import { isNonNullable } from '@blue-labs/shared-utils';
 
 export class SequentialWorkflowOperationProcessor {

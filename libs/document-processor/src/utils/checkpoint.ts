@@ -2,8 +2,11 @@ import { deepFreeze } from '@blue-labs/shared-utils';
 import { DocumentNode } from '../types';
 import { collectEmbeddedPaths, ENABLE_IMMUTABILITY } from './document';
 import { isDocumentNode } from './typeGuard';
-import { Blue } from '@blue-labs/language';
-import { blueIds } from '../repo/core';
+import { Blue, BlueNodeTypeSchema } from '@blue-labs/language';
+import {
+  blueIds,
+  ChannelEventCheckpointSchema,
+} from '@blue-repository/core-dev';
 
 export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
   const cloned = doc.clone();
@@ -20,8 +23,10 @@ export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
 
     if (
       !contracts.checkpoint ||
-      contracts.checkpoint.getType()?.getBlueId() !==
-        blueIds['Channel Event Checkpoint']
+      !BlueNodeTypeSchema.isTypeOf(
+        contracts.checkpoint,
+        ChannelEventCheckpointSchema
+      )
     ) {
       node.addContract(
         'checkpoint',

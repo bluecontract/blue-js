@@ -7,7 +7,7 @@ import {
   MyOSAgentChannelSchema,
   MyOSAgentEvent,
   MyOSAgentChannel,
-} from '../repo/myos';
+} from '@blue-repository/myos-dev';
 import { deepContains } from '@blue-labs/shared-utils';
 
 /* ------------------------------------------------------------------------ */
