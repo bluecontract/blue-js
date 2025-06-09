@@ -1,3 +1,10 @@
+## 1.21.0 (2025-06-09)
+
+### 🚀 Features
+
+- generate document-processor library ([0a0ce70](https://github.com/bluecontract/blue-js/commit/0a0ce70))
+- move processor to document-processor library ([075d4d7](https://github.com/bluecontract/blue-js/commit/075d4d7))
+
 ## 1.20.0 (2025-06-06)
 
 ### 🚀 Features
