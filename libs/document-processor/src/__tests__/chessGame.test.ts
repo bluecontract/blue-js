@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 import yaml from 'js-yaml';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 /**
  * Loads a YAML document from the resources directory
@@ -24,7 +24,7 @@ async function loadYamlDocument(
 function timelineEvent(timelineId: string, move: string) {
   return {
     type: 'Timeline Entry',
-    timelineId,
+    timeline: timelineId,
     message: { move, player: timelineId },
     payload: { move, player: timelineId },
   };

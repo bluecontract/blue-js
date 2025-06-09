@@ -5,7 +5,7 @@ import path from 'path';
 import { EmbeddedDocumentModificationError } from '../utils/exceptions';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
@@ -14,17 +14,17 @@ function loadYamlFromResources(filename: string): Record<string, any> {
 
 const EVT1 = {
   type: 'Timeline Entry',
-  timelineId: 't1',
+  timeline: 't1',
   message: { type: 'Ping' },
 };
 const EVT2 = {
   type: 'Timeline Entry',
-  timelineId: 't2',
+  timeline: 't2',
   message: { type: 'Remove' },
 };
 const EVT3 = {
   type: 'Timeline Entry',
-  timelineId: 't3',
+  timeline: 't3',
   message: { type: 'ReAdd' },
 };
 

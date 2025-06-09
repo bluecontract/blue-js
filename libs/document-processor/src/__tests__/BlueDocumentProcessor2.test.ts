@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '../repo/core';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
@@ -56,14 +56,14 @@ describe('BlueDocumentProcessor', () => {
     let result = await documentProcessor.processEvents(docNode, [
       {
         type: 'Timeline Entry',
-        timelineId: 't1',
+        timeline: 't1',
         message: { type: 'Ping' },
       },
     ]);
     result = await documentProcessor.processEvents(result.state, [
       {
         type: 'Timeline Entry',
-        timelineId: 't1',
+        timeline: 't1',
         message: { type: 'Ping' },
       },
     ]);
@@ -102,7 +102,7 @@ describe('BlueDocumentProcessor', () => {
     const { state } = await documentProcessor.processEvents(docNode, [
       {
         type: 'Timeline Entry',
-        timelineId: 'x',
+        timeline: 'x',
         message: { type: 'Ping' },
       },
     ]);
@@ -144,7 +144,7 @@ describe('BlueDocumentProcessor', () => {
         documentProcessor.processEvents(docNode, [
           {
             type: 'Timeline Entry',
-            timelineId: 'e',
+            timeline: 'e',
             message: { type: 'Ping' },
           },
         ])
@@ -206,7 +206,7 @@ describe('BlueDocumentProcessor', () => {
     const r1 = await documentProcessor.processEvents(docNode, [
       {
         type: 'Timeline Entry',
-        timelineId: 'u1',
+        timeline: 'u1',
         message: { type: 'Ping' },
       },
     ]);
@@ -214,7 +214,7 @@ describe('BlueDocumentProcessor', () => {
     const r2 = await documentProcessor.processEvents(r1.state, [
       {
         type: 'Timeline Entry',
-        timelineId: 'u2',
+        timeline: 'u2',
         message: { type: 'Ping' },
       },
     ]);

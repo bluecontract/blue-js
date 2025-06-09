@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------------ */
 /* Embedded DocumentNode Channel – surfaces child events as a channel               */
 
-import { blueIds, EmbeddedNodeChannelSchema } from '../repo/core';
+import { blueIds, EmbeddedNodeChannelSchema } from '@blue-repository/core-dev';
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { isNonNullable } from '../utils/typeGuard';
 import { BaseChannelProcessor } from './BaseChannelProcessor';

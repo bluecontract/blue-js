@@ -1,6 +1,9 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
-import { blueIds, CompositeTimelineChannelSchema } from '../repo/core';
+import {
+  blueIds,
+  CompositeTimelineChannelSchema,
+} from '@blue-repository/core-dev';
 
 export class CompositeTimelineChannelProcessor extends BaseChannelProcessor {
   readonly contractType = 'Composite Timeline Channel';

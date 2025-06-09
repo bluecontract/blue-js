@@ -8,7 +8,7 @@ import {
   ProcessingContext,
 } from '../types';
 import { CheckpointCache } from '../utils/CheckpointCache';
-import { blueIds } from '../repo/core';
+import { blueIds } from '@blue-repository/core-dev';
 import { type JsonBlueValue } from '@blue-labs/language';
 
 /* ------------------------------------------------------------------------ */

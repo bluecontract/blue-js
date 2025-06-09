@@ -1,7 +1,10 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { isNonNullable } from '@blue-labs/shared-utils';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
-import { blueIds, DocumentUpdateChannelSchema } from '../repo/core';
+import {
+  blueIds,
+  DocumentUpdateChannelSchema,
+} from '@blue-repository/core-dev';
 
 /* ------------------------------------------------------------------------ */
 /* Document Update Channel – unwraps document updates                     */
