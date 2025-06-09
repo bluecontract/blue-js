@@ -19,4 +19,7 @@ module.exports = [
       parser: require('jsonc-eslint-parser'),
     },
   },
+  {
+    ignores: ['src/__tests__/resources/**'],
+  },
 ];

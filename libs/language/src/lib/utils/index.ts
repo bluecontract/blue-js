@@ -5,5 +5,7 @@ export { BlueIdToCid } from './BlueIdToCid';
 export { JsonCanonicalizer } from './JsonCanonicalizer';
 export * from './NodeToMapListOrValue';
 export * as Properties from './Properties';
-export * from './TypeSchemaResolver';
 export * from './NodeTransformer';
+export * from './NodePatch';
+export * from './TypeSchema';
+export * from './TypeSchemaResolver';

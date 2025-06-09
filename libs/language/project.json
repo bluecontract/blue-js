@@ -11,13 +11,6 @@
   },
   "tags": [],
   "targets": {
-    "test": {
-      "options": {
-        "env": {
-          "NODE_OPTIONS": "--no-node-snapshot"
-        }
-      }
-    },
     "yalc-push": {
       "executor": "nx:run-commands",
       "options": {

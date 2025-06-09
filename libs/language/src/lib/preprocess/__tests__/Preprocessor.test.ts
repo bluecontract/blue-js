@@ -109,7 +109,10 @@ items:
     };
 
     const nodeProvider = new MockNodeProvider();
-    const preprocessor = new Preprocessor(provider, nodeProvider);
+    const preprocessor = new Preprocessor({
+      processorProvider: provider,
+      nodeProvider: nodeProvider,
+    });
     const result = preprocessor.preprocess(node);
 
     expect(await result.get('/x/type/blueId')).toBe(INTEGER_TYPE_BLUE_ID);

@@ -1,7 +1,12 @@
 {
   "name": "@blue-labs/document-processor",
   "version": "1.20.0",
-  "dependencies": {},
+  "dependencies": {
+    "@blue-labs/language": "1.20.0",
+    "@blue-labs/shared-utils": "1.20.0",
+    "isolated-vm": "5.0.4",
+    "zod": "3.23.8"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -27,5 +32,13 @@
   },
   "nx": {
     "name": "document-processor"
+  },
+  "peerDependencies": {
+    "zod": "^3.20.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": false
+    }
   }
 }

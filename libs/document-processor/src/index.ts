@@ -1,1 +1,1 @@
-export * from './lib/document-processor.js';
+export * from './BlueDocumentProcessor';

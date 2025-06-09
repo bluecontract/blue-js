@@ -8,7 +8,7 @@ import {
   TypeSchemaResolver,
 } from './utils';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
-import { ZodTypeDef, ZodType } from 'zod';
+import { ZodTypeDef, ZodType, ZodTypeAny } from 'zod';
 import { yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
 import { BlueDirectivePreprocessor } from './preprocess/BlueDirectivePreprocessor';
@@ -16,25 +16,21 @@ import {
   UrlContentFetcher,
   UrlFetchStrategy,
 } from './provider/UrlContentFetcher';
-import { BlueDocumentProcessor } from './processor/BlueDocumentProcessor';
 import {
-  ProcessEmbeddedProcessor,
-  CompositeTimelineChannelProcessor,
-  EmbeddedNodeChannelProcessor,
-  DocumentUpdateChannelProcessor,
-  TimelineChannelProcessor,
-  SequentialWorkflowProcessor,
-  MyOSTimelineChannelProcessor,
-  MyOSAgentChannelProcessor,
-  SequentialWorkflowOperationProcessor,
-  OperationProcessor,
-} from './processor/processors';
-import { EventNodePayload } from './processor/types';
+  BlueIdsMappingGenerator,
+  BlueIdsRecord,
+} from './preprocess/utils/BlueIdsMappingGenerator';
+
+export interface BlueRepository {
+  blueIds: BlueIdsRecord;
+  schemas: ZodTypeAny[];
+}
 
 export interface BlueOptions {
   nodeProvider?: NodeProvider;
   typeSchemaResolver?: TypeSchemaResolver;
   urlFetchStrategy?: UrlFetchStrategy;
+  repositories?: BlueRepository[];
 }
 
 export class Blue {
@@ -42,13 +38,14 @@ export class Blue {
   private typeSchemaResolver: TypeSchemaResolver | null;
   private blueDirectivePreprocessor: BlueDirectivePreprocessor;
   private urlContentFetcher: UrlContentFetcher;
-  private documentProcessor: BlueDocumentProcessor;
+  private blueIdsMappingGenerator: BlueIdsMappingGenerator;
 
   constructor(options: BlueOptions = {}) {
     const {
       nodeProvider,
       typeSchemaResolver = null,
       urlFetchStrategy,
+      repositories,
     } = options;
 
     const defaultProvider = createNodeProvider(() => []);
@@ -64,23 +61,28 @@ export class Blue {
       this.urlContentFetcher
     );
 
-    // TODO: make this configurable
-    this.documentProcessor = new BlueDocumentProcessor(this, [
-      new ProcessEmbeddedProcessor(),
+    this.blueIdsMappingGenerator = new BlueIdsMappingGenerator();
 
-      // channels
-      new EmbeddedNodeChannelProcessor(),
-      new DocumentUpdateChannelProcessor(),
-      new TimelineChannelProcessor(),
-      new MyOSTimelineChannelProcessor(),
-      new MyOSAgentChannelProcessor(),
-      new CompositeTimelineChannelProcessor(),
-      new OperationProcessor(),
+    if (repositories) {
+      const flattenedRepositories = repositories.reduce(
+        (acc, repository) => {
+          acc.blueIds = { ...acc.blueIds, ...repository.blueIds };
+          acc.schemas = [...acc.schemas, ...repository.schemas];
+          return acc;
+        },
+        {
+          blueIds: {} as BlueIdsRecord,
+          schemas: [] as ZodTypeAny[],
+        }
+      );
 
-      // sequential workflows
-      new SequentialWorkflowProcessor(),
-      new SequentialWorkflowOperationProcessor(),
-    ]);
+      this.blueIdsMappingGenerator.initialize(flattenedRepositories.blueIds);
+      if (!this.typeSchemaResolver) {
+        this.typeSchemaResolver = new TypeSchemaResolver(
+          flattenedRepositories.schemas
+        );
+      }
+    }
   }
 
   /**
@@ -104,11 +106,6 @@ export class Blue {
   >(node: BlueNode, schema: ZodType<Output, Def, Input>): Output {
     const converter = new NodeToObjectConverter(this.typeSchemaResolver);
     return converter.convert(node, schema);
-  }
-
-  public async process(node: BlueNode, events: EventNodePayload[]) {
-    await this.documentProcessor.initialise(node);
-    return this.documentProcessor.processEvents(node, events);
   }
 
   public jsonValueToNode(json: unknown) {
@@ -190,18 +187,20 @@ export class Blue {
 
   public preprocess(node: BlueNode): BlueNode {
     const preprocessedNode = this.blueDirectivePreprocessor.process(node);
-    return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
-      preprocessedNode
-    );
+    return new Preprocessor({
+      nodeProvider: this.nodeProvider,
+      blueIdsMappingGenerator: this.blueIdsMappingGenerator,
+    }).preprocessWithDefaultBlue(preprocessedNode);
   }
 
   public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
     const preprocessedNode = await this.blueDirectivePreprocessor.processAsync(
       node
     );
-    return new Preprocessor(this.nodeProvider).preprocessWithDefaultBlue(
-      preprocessedNode
-    );
+    return new Preprocessor({
+      nodeProvider: this.nodeProvider,
+      blueIdsMappingGenerator: this.blueIdsMappingGenerator,
+    }).preprocessWithDefaultBlue(preprocessedNode);
   }
 
   public getNodeProvider(): NodeProvider {
@@ -315,5 +314,39 @@ export class Blue {
   public setPreprocessingAliases(aliases: Map<string, string>): Blue {
     this.blueDirectivePreprocessor.setPreprocessingAliases(aliases);
     return this;
+  }
+
+  /**
+   * Registers additional BlueIds collections for mapping generation
+   * @param blueIdsCollections - Array of BlueIds objects to register
+   * @returns This instance for chaining
+   */
+  public registerBlueIds(...blueIdsCollections: BlueIdsRecord[]): Blue {
+    this.blueIdsMappingGenerator.registerBlueIds(...blueIdsCollections);
+    return this;
+  }
+
+  /**
+   * Gets all currently registered BlueIds
+   * @returns Merged object containing all BlueIds from all collections
+   */
+  public getAllRegisteredBlueIds(): Record<string, string> {
+    return this.blueIdsMappingGenerator.getAllBlueIds();
+  }
+
+  /**
+   * Gets the names of all registered BlueIds
+   * @returns Array of all BlueId names
+   */
+  public getAllBlueIdNames(): string[] {
+    return this.blueIdsMappingGenerator.getAllBlueIdNames();
+  }
+
+  /**
+   * Gets the BlueIdsMappingGenerator instance
+   * @returns The BlueIdsMappingGenerator instance
+   */
+  public getBlueIdsMappingGenerator(): BlueIdsMappingGenerator {
+    return this.blueIdsMappingGenerator;
   }
 }

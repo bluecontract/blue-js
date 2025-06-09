@@ -9,13 +9,13 @@ export type BlueIdsRecord = Record<string, string>;
  * from various BlueIds collections, making it easy to extend with new collections.
  */
 export class BlueIdsMappingGenerator {
-  private static blueIdsCollections: BlueIdsRecord[] = [];
+  private blueIdsCollections: BlueIdsRecord[] = [];
 
   /**
    * Initializes the generator with default BlueIds collections
    * @param defaultCollections - Array of default BlueIds objects to initialize with
    */
-  static initialize(...defaultCollections: BlueIdsRecord[]): void {
+  initialize(...defaultCollections: BlueIdsRecord[]): void {
     this.blueIdsCollections = [...defaultCollections];
   }
 
@@ -23,7 +23,7 @@ export class BlueIdsMappingGenerator {
    * Registers additional BlueIds collections for mapping generation
    * @param blueIdsCollections - Array of BlueIds objects to register
    */
-  static registerBlueIds(...blueIdsCollections: BlueIdsRecord[]): void {
+  registerBlueIds(...blueIdsCollections: BlueIdsRecord[]): void {
     this.blueIdsCollections.push(...blueIdsCollections);
   }
 
@@ -32,7 +32,7 @@ export class BlueIdsMappingGenerator {
    * @param transformationBlueId - The BlueId for the transformation type (defaults to the standard one)
    * @returns YAML string with mappings for all BlueIds
    */
-  static generateMappingsYaml(
+  generateMappingsYaml(
     transformationBlueId = '27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo'
   ): string {
     const allMappings: Record<string, string> = {};
@@ -57,7 +57,7 @@ ${mappingsEntries}`;
    * Gets all currently registered BlueIds as a merged object
    * @returns Merged object containing all BlueIds from all collections
    */
-  static getAllBlueIds(): Record<string, string> {
+  getAllBlueIds(): Record<string, string> {
     const allMappings: Record<string, string> = {};
 
     for (const blueIdsCollection of this.blueIdsCollections) {
@@ -71,14 +71,14 @@ ${mappingsEntries}`;
    * Gets the names of all registered BlueIds
    * @returns Array of all BlueId names
    */
-  static getAllBlueIdNames(): string[] {
+  getAllBlueIdNames(): string[] {
     return Object.keys(this.getAllBlueIds());
   }
 
   /**
    * Clears all registered BlueIds collections
    */
-  static clear(): void {
+  clear(): void {
     this.blueIdsCollections = [];
   }
 
@@ -86,7 +86,7 @@ ${mappingsEntries}`;
    * Gets the count of registered BlueIds collections
    * @returns Number of registered collections
    */
-  static getCollectionCount(): number {
+  getCollectionCount(): number {
     return this.blueIdsCollections.length;
   }
 
@@ -94,7 +94,7 @@ ${mappingsEntries}`;
    * Gets the total count of unique BlueIds across all collections
    * @returns Number of unique BlueIds
    */
-  static getTotalBlueIdCount(): number {
+  getTotalBlueIdCount(): number {
     return Object.keys(this.getAllBlueIds()).length;
   }
 }
