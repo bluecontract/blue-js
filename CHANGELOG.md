@@ -1,3 +1,13 @@
+## 1.22.0 (2025-06-09)
+
+### 🚀 Features
+
+- migrate to @blue-repository packages and adopt `timeline` event field ([1d8664a](https://github.com/bluecontract/blue-js/commit/1d8664a))
+
+### 🩹 Fixes
+
+- enhance Vite configuration to handle optional dependencies ([3e95e72](https://github.com/bluecontract/blue-js/commit/3e95e72))
+
 ## 1.21.1 (2025-06-09)
 
 ### 🩹 Fixes
