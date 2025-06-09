@@ -1,7 +1,6 @@
 import {
   DocumentNode,
   ProcessingContext,
-  Patch,
   EventNode,
   ProcessingAction,
   HandlerTask,
@@ -9,7 +8,7 @@ import {
 } from './types';
 import { fetchText } from './utils/fetchText';
 import { makePath } from './utils/path';
-import { Blue } from '@blue-labs/language';
+import { Blue, BlueNodePatch } from '@blue-labs/language';
 
 export class InternalContext implements ProcessingContext {
   private readonly actions: ProcessingAction[] = [];
@@ -27,7 +26,7 @@ export class InternalContext implements ProcessingContext {
     return doc.get(resolvedPath);
   }
 
-  addPatch(patch: Patch): void {
+  addPatch(patch: BlueNodePatch): void {
     this.actions.push({
       kind: 'patch',
       patch: {

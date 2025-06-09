@@ -1,4 +1,4 @@
-import { Blue, BlueNode } from '@blue-labs/language';
+import { Blue, BlueNode, BlueNodePatch } from '@blue-labs/language';
 
 // ---------------------------------------------------------------------------
 // ⚙️  Core type definitions
@@ -43,17 +43,6 @@ export interface ProcessingResult {
   emitted: EventNodePayload[];
 }
 
-/**
- * JSON-Patch operation as defined in RFC-6902
- * This matches the Operation types from fast-json-patch
- */
-export type Patch =
-  | { op: 'add'; path: string; val: unknown }
-  | { op: 'remove'; path: string }
-  | { op: 'replace'; path: string; val: unknown }
-  | { op: 'move'; path: string; from: string }
-  | { op: 'copy'; path: string; from: string };
-
 export type ContractRole = 'adapter' | 'validator' | 'handler';
 
 // ---------------------------------------------------------------------------
@@ -79,7 +68,7 @@ export interface ContractProcessor {
 }
 
 export type ProcessingAction =
-  | { kind: 'patch'; patch: Patch }
+  | { kind: 'patch'; patch: BlueNodePatch }
   | { kind: 'event'; event: EventNode };
 
 export type BlueNodeGetResult = ReturnType<typeof BlueNode.prototype.get>;
@@ -89,7 +78,7 @@ export type BlueNodeGetResult = ReturnType<typeof BlueNode.prototype.get>;
 // ---------------------------------------------------------------------------
 export type ProcessingContext = {
   get(path: string): BlueNodeGetResult;
-  addPatch(patch: Patch): void;
+  addPatch(patch: BlueNodePatch): void;
   getNodePath(): string;
   resolvePath(path: string): string;
 

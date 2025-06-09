@@ -1,6 +1,6 @@
-import { Patch, DocumentNode, EventNode } from '../types';
+import { DocumentNode, EventNode } from '../types';
 import { makePath } from './path';
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, BlueNodePatch } from '@blue-labs/language';
 
 type Entry = { docBase: string; event: EventNode; eventBlueId: string };
 
@@ -19,8 +19,8 @@ export class CheckpointCache {
   }
 
   /** Turn cached data into JSON-Patch ops */
-  flush(document: DocumentNode): Patch[] {
-    const patches: Patch[] = [];
+  flush(document: DocumentNode): BlueNodePatch[] {
+    const patches: BlueNodePatch[] = [];
 
     for (const { docBase, event, eventBlueId } of this.firstSeen.values()) {
       if (!event.channelName) continue;

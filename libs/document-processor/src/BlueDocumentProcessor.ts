@@ -17,35 +17,7 @@ import { ensureCheckpointContracts } from './utils/checkpoint';
 import { ChannelEventCheckpointProcessor } from './processors/ChannelEventCheckpointProcessor';
 import { CheckpointCache } from './utils/CheckpointCache';
 import { Blue } from '@blue-labs/language';
-import {
-  ProcessEmbeddedProcessor,
-  EmbeddedNodeChannelProcessor,
-  DocumentUpdateChannelProcessor,
-  TimelineChannelProcessor,
-  MyOSTimelineChannelProcessor,
-  MyOSAgentChannelProcessor,
-  CompositeTimelineChannelProcessor,
-  OperationProcessor,
-  SequentialWorkflowProcessor,
-  SequentialWorkflowOperationProcessor,
-} from './processors';
-
-const defaultProcessors: ContractProcessor[] = [
-  new ProcessEmbeddedProcessor(),
-
-  // channels
-  new EmbeddedNodeChannelProcessor(),
-  new DocumentUpdateChannelProcessor(),
-  new TimelineChannelProcessor(),
-  new MyOSTimelineChannelProcessor(),
-  new MyOSAgentChannelProcessor(),
-  new CompositeTimelineChannelProcessor(),
-  new OperationProcessor(),
-
-  // sequential workflows
-  new SequentialWorkflowProcessor(),
-  new SequentialWorkflowOperationProcessor(),
-];
+import { defaultProcessors } from './config';
 
 /**
  * BlueDocumentProcessor - Main orchestrator for document processing

@@ -175,7 +175,9 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 });
 
 describe('Sequential Workflow – Error Handling', () => {
-  const blue = new Blue();
+  const blue = new Blue({
+    repositories: [coreRepository],
+  });
   const documentProcessor = new BlueDocumentProcessor(blue);
   test('throws ExpressionEvaluationError for invalid expressions', async () => {
     const steps: JsonObject[] = [
