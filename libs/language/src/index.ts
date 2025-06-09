@@ -6,7 +6,6 @@ export {
   BlueIdToCid,
   Base58Sha256Provider,
   TypeSchemaResolver,
-  NodeDeserializer,
   Blue,
   applyBlueNodePatch,
   type BlueNodePatch,

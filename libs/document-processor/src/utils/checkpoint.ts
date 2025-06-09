@@ -2,7 +2,7 @@ import { deepFreeze } from '@blue-labs/shared-utils';
 import { DocumentNode } from '../types';
 import { collectEmbeddedPaths, ENABLE_IMMUTABILITY } from './document';
 import { isDocumentNode } from './typeGuard';
-import { Blue, NodeDeserializer } from '@blue-labs/language';
+import { Blue } from '@blue-labs/language';
 import { blueIds } from '../repo/core';
 
 export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
@@ -25,7 +25,7 @@ export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
     ) {
       node.addContract(
         'checkpoint',
-        NodeDeserializer.deserialize({
+        blue.jsonValueToNode({
           type: {
             name: 'Channel Event Checkpoint',
             blueId: blueIds['Channel Event Checkpoint'],

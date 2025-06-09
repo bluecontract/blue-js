@@ -1,11 +1,15 @@
 import { MyOSAgentChannelProcessor } from '../MyOSAgentChannelProcessor';
 import { EventNode, ProcessingContext } from '../../types';
-import { NodeDeserializer, Blue } from '@blue-labs/language';
+import { Blue } from '@blue-labs/language';
+import { repository as coreRepository } from '../../repo/core';
 
 describe('MyOSAgentChannelProcessor', () => {
+  const blue = new Blue({
+    repositories: [coreRepository],
+  });
   let processor: MyOSAgentChannelProcessor;
   let mockContext: ProcessingContext;
-  const mockNode = NodeDeserializer.deserialize({
+  const mockNode = blue.jsonValueToNode({
     type: 'MyOS Agent Channel',
     agent: {
       agentId: 'test-1234',
@@ -20,7 +24,7 @@ describe('MyOSAgentChannelProcessor', () => {
     processor = new MyOSAgentChannelProcessor();
 
     mockContext = {
-      getBlue: vi.fn().mockReturnValue(new Blue()),
+      getBlue: vi.fn().mockReturnValue(blue),
       emitEvent: vi.fn(),
       resolvePath: vi.fn(),
       getNodePath: vi.fn(),
@@ -81,7 +85,7 @@ describe('MyOSAgentChannelProcessor', () => {
 
     describe('event matching with deepContains', () => {
       it('should return true when event payload exactly matches channel event pattern', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
@@ -109,7 +113,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should return true when event payload contains channel event pattern (superset)', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
@@ -137,7 +141,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should return false when event payload does not contain channel event pattern', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
@@ -165,7 +169,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should return false when event type does not match channel event type', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
@@ -193,7 +197,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should return true when channel event pattern is empty/undefined', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           // No event specified - should match any event
@@ -218,7 +222,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should return true when both channel and event have no event data', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           // No event specified
@@ -240,7 +244,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should handle nested object matching correctly', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
@@ -275,7 +279,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should return false when nested object values do not match', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
@@ -309,7 +313,7 @@ describe('MyOSAgentChannelProcessor', () => {
       });
 
       it('should return false when channel has event defined but incoming event has no event', () => {
-        const channelNode = NodeDeserializer.deserialize({
+        const channelNode = blue.jsonValueToNode({
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
