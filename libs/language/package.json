@@ -3,16 +3,15 @@
   "version": "1.21.0",
   "dependencies": {
     "@blue-labs/shared-utils": "1.21.0",
-    "@types/big.js": "6.2.2",
-    "@types/js-yaml": "4.0.9",
-    "base32.js": "0.1.0",
-    "big.js": "6.2.1",
-    "bs58": "6.0.0",
-    "js-sha256": "0.11.0",
-    "js-yaml": "4.1.0",
-    "radash": "12.1.0",
-    "type-fest": "4.20.1",
-    "zod": "3.23.8"
+    "@types/big.js": "^6.2.2",
+    "@types/js-yaml": "^4.0.9",
+    "base32.js": "^0.1.0",
+    "big.js": "^6.2.1",
+    "bs58": "^6.0.0",
+    "js-sha256": "^0.11.0",
+    "js-yaml": "^4.1.0",
+    "radash": "^12.1.0",
+    "type-fest": "^4.20.1"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -42,10 +41,5 @@
   },
   "peerDependencies": {
     "zod": "^3.20.0"
-  },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": false
-    }
   }
 }
