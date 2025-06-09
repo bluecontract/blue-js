@@ -1,3 +1,9 @@
+## 1.21.1 (2025-06-09)
+
+### 🩹 Fixes
+
+- update dependencies and improve Vite configuration ([d2f2602](https://github.com/bluecontract/blue-js/commit/d2f2602))
+
 ## 1.21.0 (2025-06-09)
 
 ### 🚀 Features
