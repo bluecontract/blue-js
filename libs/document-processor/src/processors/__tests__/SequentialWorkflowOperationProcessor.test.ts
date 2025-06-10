@@ -156,6 +156,9 @@ describe('SequentialWorkflowOperationProcessor', () => {
     });
 
     it('should propagate errors from SequentialWorkflowProcessor', async () => {
+      // Mock console.error to silence error logs during test
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(vi.fn());
+
       const error = new Error('Sequential workflow processing failed');
       (mockSequentialWorkflowProcessor.handle as any).mockRejectedValue(error);
 
@@ -177,6 +180,9 @@ describe('SequentialWorkflowOperationProcessor', () => {
           'incrementImpl'
         )
       ).rejects.toThrow('Sequential workflow processing failed');
+
+      // Restore console.error
+      consoleSpy.mockRestore();
     });
   });
 });
