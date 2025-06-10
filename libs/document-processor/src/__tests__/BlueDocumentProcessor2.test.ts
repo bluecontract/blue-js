@@ -32,6 +32,15 @@ describe('BlueDocumentProcessor', () => {
 
     expect(jsonState).toMatchInlineSnapshot(`
       {
+        "contracts": {
+          "checkpoint": {
+            "lastEvents": {},
+            "type": {
+              "blueId": "GWGpN9tAX5i3MUic8NhrfRtKDh9mz6dxBys8NXyPYXZf",
+              "name": "Channel Event Checkpoint",
+            },
+          },
+        },
         "foo": 123,
       }
     `);

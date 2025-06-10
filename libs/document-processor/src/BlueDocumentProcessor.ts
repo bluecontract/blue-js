@@ -83,7 +83,7 @@ export class BlueDocumentProcessor {
    * @param document - The document to initialize
    * @returns Processing result with final state and emitted events
    */
-  async initialise(document: DocumentNode): Promise<ProcessingResult> {
+  async initialize(document: DocumentNode): Promise<ProcessingResult> {
     let current = ensureCheckpointContracts(document, this.blue);
     // Emit the Document Processing Initiated event
     const initEvent: EventNode = {

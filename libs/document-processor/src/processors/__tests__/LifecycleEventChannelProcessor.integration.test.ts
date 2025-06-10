@@ -77,7 +77,7 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
     const doc = makeDocumentWithLifecycleChannels();
     const docNode = blue.jsonValueToNode(doc);
 
-    const { state, emitted } = await documentProcessor.initialise(docNode);
+    const { state, emitted } = await documentProcessor.initialize(docNode);
 
     // Verify the document was updated by the lifecycle handler
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -103,7 +103,7 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
     const docNode = blue.jsonValueToNode(doc);
 
     // First initialize the document
-    const initResult = await documentProcessor.initialise(docNode);
+    const initResult = await documentProcessor.initialize(docNode);
     expect((blue.nodeToJson(initResult.state, 'simple') as any).status).toBe(
       'initialized'
     );
@@ -171,7 +171,7 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
 
     // Initialize document - this should NOT trigger the pattern channel
     // because the default lifecycle event doesn't have the required context
-    const { state } = await documentProcessor.initialise(docNode);
+    const { state } = await documentProcessor.initialize(docNode);
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 

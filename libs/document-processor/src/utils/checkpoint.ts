@@ -17,12 +17,8 @@ export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
 
     const contracts = node.getContracts();
 
-    if (!contracts) {
-      return;
-    }
-
     if (
-      !contracts.checkpoint ||
+      !contracts?.checkpoint ||
       !BlueNodeTypeSchema.isTypeOf(
         contracts.checkpoint,
         ChannelEventCheckpointSchema

@@ -15,7 +15,7 @@ describe('LifecycleEventChannelProcessor', () => {
       contracts: {},
     });
 
-    const result = await processor.initialise(doc);
+    const result = await processor.initialize(doc);
 
     // The Document Processing Initiated event should be emitted even without contracts
     // This tests the new initialization mechanism
