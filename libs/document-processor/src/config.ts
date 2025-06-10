@@ -10,6 +10,7 @@ import {
   SequentialWorkflowProcessor,
   SequentialWorkflowOperationProcessor,
   LifecycleEventChannelProcessor,
+  InitializedMarkerProcessor,
 } from './processors';
 import { ContractProcessor } from './types';
 
@@ -29,4 +30,7 @@ export const defaultProcessors: ContractProcessor[] = [
   // sequential workflows
   new SequentialWorkflowProcessor(),
   new SequentialWorkflowOperationProcessor(),
+
+  // markers
+  new InitializedMarkerProcessor(),
 ];

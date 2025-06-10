@@ -2,6 +2,7 @@ export * from './ChannelEventCheckpointProcessor';
 export * from './CompositeTimelineChannelProcessor';
 export * from './DocumentUpdateChannelProcessor';
 export * from './EmbeddedNodeChannelProcessor';
+export * from './InitializedMarkerProcessor';
 export * from './LifecycleEventChannelProcessor';
 export * from './MyOSTimelineChannelProcessor';
 export * from './MyOSAgentChannelProcessor';

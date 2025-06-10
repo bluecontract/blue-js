@@ -43,7 +43,7 @@ export interface ProcessingResult {
   emitted: EventNodePayload[];
 }
 
-export type ContractRole = 'adapter' | 'validator' | 'handler';
+export type ContractRole = 'adapter' | 'validator' | 'handler' | 'marker';
 
 // ---------------------------------------------------------------------------
 // 🔌  ContractProcessor interface

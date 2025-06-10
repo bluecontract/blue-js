@@ -14,6 +14,7 @@ import { ContractRegistry } from './registry/ContractRegistry';
 import { EventRouter } from './routing/EventRouter';
 import { logPatchError } from './utils/logPatchError';
 import { ensureCheckpointContracts } from './utils/checkpoint';
+import { ensureInitializedContract } from './utils/initialized';
 import { ChannelEventCheckpointProcessor } from './processors/ChannelEventCheckpointProcessor';
 import { CheckpointCache } from './utils/CheckpointCache';
 import { Blue } from '@blue-labs/language';
@@ -62,6 +63,7 @@ export class BlueDocumentProcessor {
     // TODO: Remove this once we have proper blueIds
     this.blue.registerBlueIds({
       'Lifecycle Event Channel': mockBlueIds['Lifecycle Event Channel'],
+      'Initialized Marker': mockBlueIds['Initialized Marker'],
     });
   }
 
@@ -95,6 +97,9 @@ export class BlueDocumentProcessor {
     const result = await this.drainQueue(current);
     current = result.state;
     emitted.push(...result.emitted);
+
+    // Add initialized contract to mark the document as initialized
+    current = ensureInitializedContract(current, this.blue);
 
     return { state: current, emitted };
   }
