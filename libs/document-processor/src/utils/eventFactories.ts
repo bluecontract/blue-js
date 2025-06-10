@@ -60,3 +60,13 @@ export function createTimelineEntryEvent(
     message,
   };
 }
+
+/**
+ * Creates a Document Processing Initiated event payload
+ * This is a lifecycle event emitted when document processing starts
+ */
+export function createDocumentProcessingInitiatedEvent() {
+  return {
+    type: 'Document Processing Initiated',
+  };
+}

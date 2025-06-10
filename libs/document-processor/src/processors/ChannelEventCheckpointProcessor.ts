@@ -40,8 +40,4 @@ export class ChannelEventCheckpointProcessor implements ContractProcessor {
 
     this.cache.record(docBase, event, blueId);
   }
-
-  init(): EventNode[] {
-    return [];
-  }
 }

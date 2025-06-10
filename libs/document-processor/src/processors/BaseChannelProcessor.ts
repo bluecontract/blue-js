@@ -41,12 +41,4 @@ export abstract class BaseChannelProcessor implements ContractProcessor {
     ctx: ProcessingContext,
     contractName?: string
   ): void | Promise<void>;
-
-  /**
-   * Base implementation that returns empty array
-   * Can be overridden by derived classes if needed
-   */
-  init(): EventNode[] {
-    return [];
-  }
 }

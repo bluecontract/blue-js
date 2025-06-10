@@ -52,7 +52,6 @@ export interface ContractProcessor {
   readonly contractType: string;
   readonly contractBlueId: BlueId;
   readonly role: ContractRole;
-  init?(node: DocumentNode): Promise<EventNode[]> | EventNode[];
   supports(
     evt: EventNode,
     contractNode: DocumentNode,

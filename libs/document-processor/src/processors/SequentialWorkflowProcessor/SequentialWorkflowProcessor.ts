@@ -79,8 +79,4 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
       await context.flush();
     }
   }
-
-  init(): EventNode[] {
-    return [];
-  }
 }

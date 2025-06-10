@@ -18,6 +18,8 @@ import { ChannelEventCheckpointProcessor } from './processors/ChannelEventCheckp
 import { CheckpointCache } from './utils/CheckpointCache';
 import { Blue } from '@blue-labs/language';
 import { defaultProcessors } from './config';
+import { createDocumentProcessingInitiatedEvent } from './utils/eventFactories';
+import { mockBlueIds } from './mocks/blueIds';
 
 /**
  * BlueDocumentProcessor - Main orchestrator for document processing
@@ -56,6 +58,11 @@ export class BlueDocumentProcessor {
       new ChannelEventCheckpointProcessor(this.checkpointCache),
       9999
     );
+
+    // TODO: Remove this once we have proper blueIds
+    this.blue.registerBlueIds({
+      'Lifecycle Event Channel': mockBlueIds['Lifecycle Event Channel'],
+    });
   }
 
   /**
@@ -69,21 +76,27 @@ export class BlueDocumentProcessor {
   }
 
   /**
-   * Initializes a document and runs all init events
+   * Initializes a document by emitting a Document Processing Initiated event
    *
    * @param document - The document to initialize
    * @returns Processing result with final state and emitted events
    */
   async initialise(document: DocumentNode): Promise<ProcessingResult> {
-    document = ensureCheckpointContracts(document, this.blue);
-    const initEvents = await this.bootstrapContracts(document);
+    let current = ensureCheckpointContracts(document, this.blue);
+    // Emit the Document Processing Initiated event
+    const initEvent: EventNode = {
+      payload: createDocumentProcessingInitiatedEvent(),
+    };
 
-    // Enqueue all init events
-    for (const evt of initEvents) {
-      await this.router.route(document, [], evt, 0);
-    }
+    const emitted: EventNodePayload[] = [initEvent.payload];
 
-    return this.drainQueue(document);
+    await this.router.route(current, [], initEvent, 0);
+
+    const result = await this.drainQueue(current);
+    current = result.state;
+    emitted.push(...result.emitted);
+
+    return { state: current, emitted };
   }
 
   /**
@@ -119,29 +132,6 @@ export class BlueDocumentProcessor {
     }
 
     return { state: current, emitted };
-  }
-
-  /**
-   * Collects initialization events from contract processors
-   */
-  private async bootstrapContracts(
-    document: DocumentNode
-  ): Promise<EventNode[]> {
-    const initEvents: EventNode[] = [];
-
-    const contracts = document.getContracts();
-    if (!contracts) {
-      return initEvents;
-    }
-
-    for (const [, contractNode] of Object.entries(contracts)) {
-      const cp = this.registry.get(contractNode.getType());
-      if (cp?.init) {
-        initEvents.push(...(await cp.init(contractNode)));
-      }
-    }
-
-    return initEvents;
   }
 
   /**
