@@ -1,3 +1,18 @@
+## 1.23.0 (2025-06-10)
+
+### 🚀 Features
+
+- add tests for BlueDocumentProcessor and enhance UpdateDocumentExecutor ([f679c69](https://github.com/bluecontract/blue-js/commit/f679c69))
+- update type repositories and refactor timeline event structure ([31208dc](https://github.com/bluecontract/blue-js/commit/31208dc))
+- implement document update event factory and refactor UpdateDocumentExecutor ([a3bc119](https://github.com/bluecontract/blue-js/commit/a3bc119))
+- add LifecycleEventChannelProcessor and enhance document initialization ([65377b8](https://github.com/bluecontract/blue-js/commit/65377b8))
+- introduce Initialized Marker functionality and enhance document processing ([36c7060](https://github.com/bluecontract/blue-js/commit/36c7060))
+- add ESLint configuration for document processor and update package-lock ([eb4df9d](https://github.com/bluecontract/blue-js/commit/eb4df9d))
+
+### 🩹 Fixes
+
+- update import path for mockBlueIds in InitializedMarkerProcessor ([4b9d9ba](https://github.com/bluecontract/blue-js/commit/4b9d9ba))
+
 ## 1.22.0 (2025-06-09)
 
 ### 🚀 Features
