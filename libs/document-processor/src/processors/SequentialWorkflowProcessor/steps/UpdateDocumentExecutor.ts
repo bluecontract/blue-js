@@ -12,6 +12,7 @@ import type { BlueNode } from '@blue-labs/language';
 import { BindingsFactory } from '../utils/BindingsFactory';
 import { isDocumentNode } from '../../../utils/typeGuard';
 import { isNonNullable } from '@blue-labs/shared-utils';
+import { createDocumentUpdateEvent } from '../../../utils/eventFactories';
 
 /**
  * Executor for "Update Document" workflow steps
@@ -71,12 +72,11 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
           val: changeValueNode,
         });
         ctx.emitEvent({
-          payload: {
-            type: 'Document Update',
+          payload: createDocumentUpdateEvent({
             op: change.op,
             path: ctx.resolvePath(change.path),
             val: blue.nodeToJson(changeValueNode, 'original'),
-          },
+          }),
         });
       }
 
@@ -84,12 +84,11 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
         ctx.addPatch({ op: change.op, path: change.path });
 
         ctx.emitEvent({
-          payload: {
-            type: 'Document Update',
+          payload: createDocumentUpdateEvent({
             op: change.op,
             path: ctx.resolvePath(change.path),
             val: null,
-          },
+          }),
         });
       }
     }
