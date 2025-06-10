@@ -43,7 +43,7 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
       .getBlue()
       .nodeToSchemaOutput(node, MyOSTimelineChannelSchema);
 
-    const timelineEntryTimelineId = myosTimelineEntry.timeline?.getValue();
+    const timelineEntryTimelineId = myosTimelineEntry.timeline?.timelineId;
 
     const hasTimelineId =
       isNonNullable(myosTimelineChannel.timelineId) &&

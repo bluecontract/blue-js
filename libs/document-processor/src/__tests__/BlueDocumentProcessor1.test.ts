@@ -3,6 +3,17 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 
+const timelineEvent = (
+  timelineId: string,
+  message: unknown = { type: 'Ping' }
+) => {
+  return {
+    type: 'Timeline Entry',
+    timeline: { timelineId },
+    message,
+  };
+};
+
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository],
@@ -47,11 +58,7 @@ describe('BlueDocumentProcessor', () => {
       },
     };
 
-    const timelineEntry = {
-      type: 'Timeline Entry',
-      timeline: 'user-123',
-      message: { type: 'Ping' },
-    };
+    const timelineEntry = timelineEvent('user-123');
 
     const docNode = blue.jsonValueToNode(doc);
 
@@ -108,11 +115,7 @@ describe('BlueDocumentProcessor', () => {
       },
     };
 
-    const timelineEntry = {
-      type: 'Timeline Entry',
-      timeline: 'timeline-1',
-      message: { type: 'Ping' },
-    };
+    const timelineEntry = timelineEvent('timeline-1');
 
     const docNode = blue.jsonValueToNode(doc);
 
@@ -170,11 +173,7 @@ describe('BlueDocumentProcessor', () => {
       },
     };
 
-    const timelineEntry = {
-      type: 'Timeline Entry',
-      timeline: 'timeline-1',
-      message: { type: 'Ping' },
-    };
+    const timelineEntry = timelineEvent('timeline-1');
 
     const docNode = blue.jsonValueToNode(doc);
 
@@ -241,11 +240,7 @@ describe('BlueDocumentProcessor', () => {
       },
     };
 
-    const timelineEntry = {
-      type: 'Timeline Entry',
-      timeline: 'timeline-1',
-      message: { type: 'Ping' },
-    };
+    const timelineEntry = timelineEvent('timeline-1');
 
     const docNode = blue.jsonValueToNode(doc);
 
@@ -331,11 +326,7 @@ describe('BlueDocumentProcessor', () => {
     };
 
     // Create timeline entry for deepest level
-    const timelineEntry = {
-      type: 'Timeline Entry',
-      timeline: 'level3-timeline',
-      message: { type: 'Ping' },
-    };
+    const timelineEntry = timelineEvent('level3-timeline');
 
     // Process the event - should bubble up through all levels
     const docNode = blue.jsonValueToNode(doc);
@@ -444,11 +435,7 @@ describe('BlueDocumentProcessor', () => {
     };
 
     // Create a timeline entry for Alice
-    const timelineEntry = {
-      type: 'Timeline Entry',
-      timeline: 'Alice',
-      message: { type: 'Ping' },
-    };
+    const timelineEntry = timelineEvent('Alice');
 
     // Process the event
     const docNode = blue.jsonValueToNode(doc);
@@ -536,11 +523,7 @@ describe('BlueDocumentProcessor', () => {
       },
     };
 
-    const timelineEntry = {
-      type: 'Timeline Entry',
-      timeline: 't',
-      message: { type: 'Ping' },
-    };
+    const timelineEntry = timelineEvent('t');
 
     const docNode = blue.jsonValueToNode(doc);
     const result = await documentProcessor.processEvents(docNode, [

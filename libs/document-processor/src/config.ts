@@ -9,6 +9,8 @@ import {
   OperationProcessor,
   SequentialWorkflowProcessor,
   SequentialWorkflowOperationProcessor,
+  LifecycleEventChannelProcessor,
+  InitializedMarkerProcessor,
 } from './processors';
 import { ContractProcessor } from './types';
 
@@ -22,9 +24,13 @@ export const defaultProcessors: ContractProcessor[] = [
   new MyOSTimelineChannelProcessor(),
   new MyOSAgentChannelProcessor(),
   new CompositeTimelineChannelProcessor(),
+  new LifecycleEventChannelProcessor(),
   new OperationProcessor(),
 
   // sequential workflows
   new SequentialWorkflowProcessor(),
   new SequentialWorkflowOperationProcessor(),
+
+  // markers
+  new InitializedMarkerProcessor(),
 ];

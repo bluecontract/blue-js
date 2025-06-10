@@ -61,7 +61,7 @@ contracts:
               validMove: false,
               message: isCorrectPlayer ? '' : "Not your turn",
               inDraw: chess.isInsufficientMaterial() || false,
-              winner: chess.isCheckmate() ? (chess.turn() === 'w' ? 'black' : 'white') : undefined
+              winner: chess.isCheckmate() ? (chess.turn() === 'w' ? 'black' : 'white') : null
             }
           };
 
@@ -86,7 +86,7 @@ contracts:
                   validMove: true,
                   message: '',
                   inDraw: chess.isInsufficientMaterial() || false,
-                  winner: chess.isCheckmate() ? (chess.turn() === 'w' ? 'black' : 'white') : undefined
+                  winner: chess.isCheckmate() ? (chess.turn() === 'w' ? 'black' : 'white') : null
                 };
               }
             } catch (err) {

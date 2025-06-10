@@ -166,6 +166,8 @@ export class EventRouter {
         // Validators are ignored at enqueue step – they run inside handlers
         case 'validator':
           break;
+        case 'marker':
+          break;
       }
     }
   }

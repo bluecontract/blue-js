@@ -3,6 +3,17 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 
+const timelineEvent = (
+  timelineId: string,
+  message: unknown = { type: 'Ping' }
+) => {
+  return {
+    type: 'Timeline Entry',
+    timeline: { timelineId },
+    message,
+  };
+};
+
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository],
@@ -21,6 +32,15 @@ describe('BlueDocumentProcessor', () => {
 
     expect(jsonState).toMatchInlineSnapshot(`
       {
+        "contracts": {
+          "checkpoint": {
+            "lastEvents": {},
+            "type": {
+              "blueId": "GWGpN9tAX5i3MUic8NhrfRtKDh9mz6dxBys8NXyPYXZf",
+              "name": "Channel Event Checkpoint",
+            },
+          },
+        },
         "foo": 123,
       }
     `);
@@ -54,18 +74,10 @@ describe('BlueDocumentProcessor', () => {
     const docNode = blue.jsonValueToNode(doc);
 
     let result = await documentProcessor.processEvents(docNode, [
-      {
-        type: 'Timeline Entry',
-        timeline: 't1',
-        message: { type: 'Ping' },
-      },
+      timelineEvent('t1'),
     ]);
     result = await documentProcessor.processEvents(result.state, [
-      {
-        type: 'Timeline Entry',
-        timeline: 't1',
-        message: { type: 'Ping' },
-      },
+      timelineEvent('t1'),
     ]);
 
     const jsonState = blue.nodeToJson(result.state, 'simple') as any;
@@ -100,11 +112,7 @@ describe('BlueDocumentProcessor', () => {
     const docNode = blue.jsonValueToNode(doc);
 
     const { state } = await documentProcessor.processEvents(docNode, [
-      {
-        type: 'Timeline Entry',
-        timeline: 'x',
-        message: { type: 'Ping' },
-      },
+      timelineEvent('x'),
     ]);
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -141,13 +149,7 @@ describe('BlueDocumentProcessor', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       await expect(
-        documentProcessor.processEvents(docNode, [
-          {
-            type: 'Timeline Entry',
-            timeline: 'e',
-            message: { type: 'Ping' },
-          },
-        ])
+        documentProcessor.processEvents(docNode, [timelineEvent('e')])
       ).rejects.toThrow();
 
       // Verify that console.error was called (optional)
@@ -204,19 +206,11 @@ describe('BlueDocumentProcessor', () => {
 
     // Ping both timelines; they should both update their own embedded val
     const r1 = await documentProcessor.processEvents(docNode, [
-      {
-        type: 'Timeline Entry',
-        timeline: 'u1',
-        message: { type: 'Ping' },
-      },
+      timelineEvent('u1'),
     ]);
 
     const r2 = await documentProcessor.processEvents(r1.state, [
-      {
-        type: 'Timeline Entry',
-        timeline: 'u2',
-        message: { type: 'Ping' },
-      },
+      timelineEvent('u2'),
     ]);
 
     const jsonState = blue.nodeToJson(r2.state, 'simple') as any;

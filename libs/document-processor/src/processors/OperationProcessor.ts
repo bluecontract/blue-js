@@ -52,10 +52,6 @@ export class OperationProcessor implements ContractProcessor {
     });
   }
 
-  init(): EventNode[] {
-    return [];
-  }
-
   private parseEventPayload(event: EventNode, ctx: ProcessingContext) {
     const blue = ctx.getBlue();
     const eventPayloadNode = blue.jsonValueToNode(event.payload);

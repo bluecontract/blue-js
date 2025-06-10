@@ -27,8 +27,4 @@ export class ProcessEmbeddedProcessor implements ContractProcessor {
       });
     }
   }
-
-  init() {
-    return [];
-  }
 }

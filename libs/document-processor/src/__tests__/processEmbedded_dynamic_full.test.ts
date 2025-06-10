@@ -12,21 +12,19 @@ function loadYamlFromResources(filename: string): Record<string, any> {
   return yaml.load(fs.readFileSync(resourcePath, 'utf8')) as any;
 }
 
-const EVT1 = {
-  type: 'Timeline Entry',
-  timeline: 't1',
-  message: { type: 'Ping' },
+const timelineEvent = (
+  timelineId: string,
+  message: unknown = { type: 'Ping' }
+) => {
+  return {
+    type: 'Timeline Entry',
+    timeline: { timelineId },
+    message,
+  };
 };
-const EVT2 = {
-  type: 'Timeline Entry',
-  timeline: 't2',
-  message: { type: 'Remove' },
-};
-const EVT3 = {
-  type: 'Timeline Entry',
-  timeline: 't3',
-  message: { type: 'ReAdd' },
-};
+const EVT1 = timelineEvent('t1');
+const EVT2 = timelineEvent('t2', { type: 'Remove' });
+const EVT3 = timelineEvent('t3', { type: 'ReAdd' });
 
 describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () => {
   const doc = loadYamlFromResources('processEmbedded_dynamic_full.yaml');

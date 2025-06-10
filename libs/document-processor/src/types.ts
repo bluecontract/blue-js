@@ -43,7 +43,7 @@ export interface ProcessingResult {
   emitted: EventNodePayload[];
 }
 
-export type ContractRole = 'adapter' | 'validator' | 'handler';
+export type ContractRole = 'adapter' | 'validator' | 'handler' | 'marker';
 
 // ---------------------------------------------------------------------------
 // 🔌  ContractProcessor interface
@@ -52,7 +52,6 @@ export interface ContractProcessor {
   readonly contractType: string;
   readonly contractBlueId: BlueId;
   readonly role: ContractRole;
-  init?(node: DocumentNode): Promise<EventNode[]> | EventNode[];
   supports(
     evt: EventNode,
     contractNode: DocumentNode,
