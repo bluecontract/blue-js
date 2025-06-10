@@ -1,4 +1,4 @@
-import { mockBlueIds } from 'src/mocks/blueIds';
+import { mockBlueIds } from '../mocks/blueIds';
 import { ContractProcessor } from '../types';
 
 export class InitializedMarkerProcessor implements ContractProcessor {
