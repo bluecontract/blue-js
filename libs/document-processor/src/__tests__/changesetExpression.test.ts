@@ -83,7 +83,9 @@ contracts:
 
     const event = {
       type: 'Timeline Entry',
-      timeline: 'test-timeline',
+      timeline: {
+        timelineId: 'test-timeline',
+      },
       message: {
         type: 'Agent Subscription Request',
         subscriptions: [

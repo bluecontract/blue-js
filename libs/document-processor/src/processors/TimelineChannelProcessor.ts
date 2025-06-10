@@ -37,7 +37,7 @@ export class TimelineChannelProcessor extends BaseChannelProcessor {
       .getBlue()
       .nodeToSchemaOutput(node, TimelineChannelSchema);
 
-    const timelineEntryTimelineId = timelineEntry.timeline?.getValue();
+    const timelineEntryTimelineId = timelineEntry.timeline?.timelineId;
 
     const hasTimelineId =
       isNonNullable(timelineChannel.timelineId) &&

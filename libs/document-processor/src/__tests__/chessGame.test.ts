@@ -24,7 +24,7 @@ async function loadYamlDocument(
 function timelineEvent(timelineId: string, move: string) {
   return {
     type: 'Timeline Entry',
-    timeline: timelineId,
+    timeline: { timelineId },
     message: { move, player: timelineId },
     payload: { move, player: timelineId },
   };

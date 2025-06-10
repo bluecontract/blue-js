@@ -12,6 +12,17 @@ function loadYamlFromResources(filename: string): Record<string, any> {
   return yaml.load(yamlContent) as Record<string, any>;
 }
 
+const timelineEvent = (
+  timelineId: string,
+  message: unknown = { type: 'Ping' }
+) => {
+  return {
+    type: 'Timeline Entry',
+    timeline: { timelineId },
+    message,
+  };
+};
+
 describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
   const blue = new Blue({
     repositories: [coreRepository],
@@ -24,11 +35,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 't',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('t'),
       ]);
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -46,11 +53,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 't',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('t'),
       ]);
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -69,11 +72,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 't',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('t'),
       ]);
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -90,11 +89,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 't',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('t'),
       ]);
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -111,11 +106,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 't',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('t'),
       ]);
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -134,11 +125,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state: state1 } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 'sub1T',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('sub1T'),
       ]);
 
       const jsonState = blue.nodeToJson(state1, 'simple') as any;
@@ -153,11 +140,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state: state2 } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 'aT',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('aT'),
       ]);
 
       const jsonState = blue.nodeToJson(state2, 'simple') as any;
@@ -171,11 +154,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const docNode = blue.jsonValueToNode(doc);
       const { state: state3 } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 'nestedB1T',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('nestedB1T'),
       ]);
 
       const jsonState = blue.nodeToJson(state3, 'simple') as any;
@@ -193,11 +172,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       const docNode = blue.jsonValueToNode(doc);
 
       const { state: state4 } = await documentProcessor.processEvents(docNode, [
-        {
-          type: 'Timeline Entry',
-          timeline: 'bT',
-          message: { type: 'Ping' },
-        },
+        timelineEvent('bT'),
       ]);
 
       const jsonState = blue.nodeToJson(state4, 'simple') as any;

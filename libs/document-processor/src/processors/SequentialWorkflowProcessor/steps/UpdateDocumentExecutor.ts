@@ -10,7 +10,7 @@ import { applyBlueNodePatch, BlueNodeTypeSchema } from '@blue-labs/language';
 import { UpdateDocumentSchema } from '@blue-repository/core-dev';
 import type { BlueNode } from '@blue-labs/language';
 import { BindingsFactory } from '../utils/BindingsFactory';
-import { isDocumentNode } from 'src/utils/typeGuard';
+import { isDocumentNode } from '../../../utils/typeGuard';
 import { isNonNullable } from '@blue-labs/shared-utils';
 
 /**

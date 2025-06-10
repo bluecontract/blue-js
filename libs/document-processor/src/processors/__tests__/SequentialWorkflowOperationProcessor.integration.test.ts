@@ -102,7 +102,7 @@ function makeCounterWithOperationsDoc(): JsonObject {
 function timelineEvent(message: unknown) {
   return {
     type: 'Timeline Entry',
-    timeline: 'owner-timeline',
+    timeline: { timelineId: 'owner-timeline' },
     message,
   };
 }

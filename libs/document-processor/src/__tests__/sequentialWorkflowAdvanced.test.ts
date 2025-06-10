@@ -27,7 +27,7 @@ function makeWorkflowDoc(steps: JsonObject[]): JsonObject {
 function timelineEvent(message: unknown) {
   return {
     type: 'Timeline Entry',
-    timeline: 't1',
+    timeline: { timelineId: 't1' },
     message,
   };
 }
