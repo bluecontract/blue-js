@@ -1,10 +1,17 @@
-import { DocumentNode, EventNode, ProcessingContext } from '../../../types';
+import {
+  BlueNodeGetResult,
+  DocumentNode,
+  EventNode,
+  ProcessingContext,
+} from '../../../types';
 import { WorkflowStepExecutor } from '../types';
 import { ExpressionEvaluator } from '../utils/ExpressionEvaluator';
-import { BlueNodeTypeSchema } from '@blue-labs/language';
+import { applyBlueNodePatch, BlueNodeTypeSchema } from '@blue-labs/language';
 import { UpdateDocumentSchema } from '@blue-repository/core-dev';
 import type { BlueNode } from '@blue-labs/language';
 import { BindingsFactory } from '../utils/BindingsFactory';
+import { isDocumentNode } from 'src/utils/typeGuard';
+import { isNonNullable } from '@blue-labs/shared-utils';
 
 /**
  * Executor for "Update Document" workflow steps
@@ -16,35 +23,6 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     return BlueNodeTypeSchema.isTypeOf(node, UpdateDocumentSchema);
   }
 
-  private async evaluateChangeValue(
-    changeValueNode: BlueNode | undefined,
-    ctx: ProcessingContext,
-    event: EventNode,
-    stepResults: Record<string, unknown>
-  ) {
-    const evaluatedValueString = changeValueNode?.getValue();
-
-    if (
-      typeof evaluatedValueString === 'string' &&
-      evaluatedValueString.startsWith('${') &&
-      evaluatedValueString.endsWith('}')
-    ) {
-      const expr = evaluatedValueString.slice(2, -1);
-      const evaluatedValue = await ExpressionEvaluator.evaluate({
-        code: expr,
-        ctx,
-        bindings: BindingsFactory.createStandardBindings(
-          ctx,
-          event,
-          stepResults
-        ),
-      });
-      return evaluatedValue;
-    }
-
-    return changeValueNode;
-  }
-
   async execute(
     step: DocumentNode,
     event: EventNode,
@@ -52,22 +30,41 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     documentPath: string,
     stepResults: Record<string, unknown>
   ): Promise<void> {
+    const blue = ctx.getBlue();
     if (!BlueNodeTypeSchema.isTypeOf(step, UpdateDocumentSchema)) return;
+
+    const changesetNodeValue = await this.evaluateChangeset(
+      step.get('/changeset'),
+      ctx,
+      event,
+      stepResults
+    );
+
+    const newStep = applyBlueNodePatch(step, {
+      op: 'replace',
+      path: '/changeset',
+      val: changesetNodeValue,
+    });
 
     const updateDocumentStep = ctx
       .getBlue()
-      .nodeToSchemaOutput(step, UpdateDocumentSchema);
+      .nodeToSchemaOutput(newStep, UpdateDocumentSchema);
 
     for (const change of updateDocumentStep.changeset ?? []) {
       if (!change.path) continue;
 
-      if (change.op === 'replace' || change.op === 'add') {
+      const changeValue = change.val;
+      if (
+        (change.op === 'replace' || change.op === 'add') &&
+        isNonNullable(changeValue)
+      ) {
         const changeValueNode = await this.evaluateChangeValue(
-          change.val,
+          changeValue,
           ctx,
           event,
           stepResults
         );
+
         ctx.addPatch({
           op: change.op,
           path: change.path,
@@ -78,7 +75,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
             type: 'Document Update',
             op: change.op,
             path: ctx.resolvePath(change.path),
-            val: changeValueNode,
+            val: blue.nodeToJson(changeValueNode, 'original'),
           },
         });
       }
@@ -96,5 +93,67 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
         });
       }
     }
+  }
+
+  private async evaluateChangeset(
+    changesetNodeGetResult: BlueNodeGetResult,
+    ctx: ProcessingContext,
+    event: EventNode,
+    stepResults: Record<string, unknown>
+  ) {
+    const blue = ctx.getBlue();
+    if (
+      typeof changesetNodeGetResult === 'string' &&
+      changesetNodeGetResult.startsWith('${') &&
+      changesetNodeGetResult.endsWith('}')
+    ) {
+      const expr = changesetNodeGetResult.slice(2, -1);
+      const evaluatedValue = await ExpressionEvaluator.evaluate({
+        code: expr,
+        ctx,
+        bindings: BindingsFactory.createStandardBindings(
+          ctx,
+          event,
+          stepResults
+        ),
+      });
+      return blue.jsonValueToNode(evaluatedValue ?? null);
+    }
+
+    if (isDocumentNode(changesetNodeGetResult)) {
+      return changesetNodeGetResult;
+    }
+
+    throw new Error('Invalid changeset: expected a string or document node');
+  }
+
+  private async evaluateChangeValue(
+    changeValueNode: BlueNode,
+    ctx: ProcessingContext,
+    event: EventNode,
+    stepResults: Record<string, unknown>
+  ) {
+    const evaluatedValueString = changeValueNode.getValue();
+    const blue = ctx.getBlue();
+
+    if (
+      typeof evaluatedValueString === 'string' &&
+      evaluatedValueString.startsWith('${') &&
+      evaluatedValueString.endsWith('}')
+    ) {
+      const expr = evaluatedValueString.slice(2, -1);
+      const evaluatedValue = await ExpressionEvaluator.evaluate({
+        code: expr,
+        ctx,
+        bindings: BindingsFactory.createStandardBindings(
+          ctx,
+          event,
+          stepResults
+        ),
+      });
+      return blue.jsonValueToNode(evaluatedValue ?? null);
+    }
+
+    return changeValueNode;
   }
 }
