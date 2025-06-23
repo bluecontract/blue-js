@@ -3,7 +3,7 @@ import { DocumentNode } from '../types';
 import { ENABLE_IMMUTABILITY } from './document';
 import { isDocumentNode } from './typeGuard';
 import { Blue } from '@blue-labs/language';
-import { mockBlueIds } from '../mocks/blueIds';
+import { blueIds, InitializedMarkerSchema } from '@blue-repository/core-dev';
 
 export function ensureInitializedContract(
   doc: DocumentNode,
@@ -15,20 +15,26 @@ export function ensureInitializedContract(
     return ENABLE_IMMUTABILITY ? deepFreeze(cloned) : cloned;
   }
 
-  const contracts = cloned.getContracts();
-
-  // TODO: Should check if exists a contract with the type "Initialized Marker" using blueIds.
-  if (!contracts?.initialized) {
+  if (!isInitialized(cloned, blue)) {
     cloned.addContract(
       'initialized',
       blue.jsonValueToNode({
         type: {
           name: 'Initialized Marker',
-          blueId: mockBlueIds['Initialized Marker'],
+          blueId: blueIds['Initialized Marker'],
         },
       })
     );
   }
 
   return ENABLE_IMMUTABILITY ? deepFreeze(cloned) : cloned;
+}
+
+export function isInitialized(doc: DocumentNode, blue: Blue): boolean {
+  const contracts = doc.getContracts();
+  return Object.values(contracts ?? {}).some((contract) =>
+    blue.isTypeOf(contract, InitializedMarkerSchema, {
+      checkSchemaExtensions: true,
+    })
+  );
 }

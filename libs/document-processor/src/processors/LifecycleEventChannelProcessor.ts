@@ -1,7 +1,7 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
 import { deepContains } from '@blue-labs/shared-utils';
-import { mockBlueIds } from '../mocks/blueIds';
+import { blueIds } from '@blue-repository/core-dev';
 
 /**
  * Set of supported lifecycle event types
@@ -31,8 +31,7 @@ const LIFECYCLE_EVENT_TYPES = new Set([
  */
 export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
   readonly contractType = 'Lifecycle Event Channel';
-  // TODO: Add proper blueId when available in schema - using placeholder for now
-  readonly contractBlueId = mockBlueIds['Lifecycle Event Channel'];
+  readonly contractBlueId = blueIds['Lifecycle Event Channel'];
 
   supports(
     event: EventNode,
