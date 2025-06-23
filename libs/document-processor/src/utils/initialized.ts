@@ -17,6 +17,7 @@ export function ensureInitializedContract(
 
   const contracts = cloned.getContracts();
 
+  // TODO: Should check if exists a contract with the type "Initialized Marker" using blueIds.
   if (!contracts?.initialized) {
     cloned.addContract(
       'initialized',

@@ -10,7 +10,6 @@ import {
   OperationSchema,
   TimelineEntrySchema,
 } from '@blue-repository/core-dev';
-import { BlueNodeTypeSchema } from '@blue-labs/language';
 import { isNonNullable } from '../utils/typeGuard';
 
 export class OperationProcessor implements ContractProcessor {
@@ -56,7 +55,11 @@ export class OperationProcessor implements ContractProcessor {
     const blue = ctx.getBlue();
     const eventPayloadNode = blue.jsonValueToNode(event.payload);
 
-    if (BlueNodeTypeSchema.isTypeOf(eventPayloadNode, TimelineEntrySchema)) {
+    if (
+      blue.isTypeOf(eventPayloadNode, TimelineEntrySchema, {
+        checkSchemaExtensions: true,
+      })
+    ) {
       const timelineEntry = blue.nodeToSchemaOutput(
         eventPayloadNode,
         TimelineEntrySchema

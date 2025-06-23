@@ -7,8 +7,9 @@ import {
   NodeToMapListOrValue,
   TypeSchemaResolver,
 } from './utils';
+import { BlueNodeTypeSchema } from './utils/TypeSchema';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
-import { ZodTypeDef, ZodType, ZodTypeAny } from 'zod';
+import { ZodTypeDef, ZodType, ZodTypeAny, AnyZodObject } from 'zod';
 import { yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
 import { BlueDirectivePreprocessor } from './preprocess/BlueDirectivePreprocessor';
@@ -334,5 +335,26 @@ export class Blue {
    */
   public getBlueIdsMappingGenerator(): BlueIdsMappingGenerator {
     return this.blueIdsMappingGenerator;
+  }
+
+  /**
+   * Checks if a BlueNode is of a specific type schema.
+   *
+   * @param node - The BlueNode to check
+   * @param schema - The Zod schema to check against
+   * @param options - Optional configuration
+   * @returns true if the node matches the schema type, false otherwise
+   */
+  public isTypeOf(
+    node: BlueNode,
+    schema: AnyZodObject,
+    options?: {
+      checkSchemaExtensions?: boolean;
+    }
+  ): boolean {
+    return BlueNodeTypeSchema.isTypeOf(node, schema, {
+      checkSchemaExtensions: options?.checkSchemaExtensions,
+      typeSchemaResolver: this.typeSchemaResolver,
+    });
   }
 }
