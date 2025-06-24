@@ -14,13 +14,12 @@ import { ContractRegistry } from './registry/ContractRegistry';
 import { EventRouter } from './routing/EventRouter';
 import { logPatchError } from './utils/logPatchError';
 import { ensureCheckpointContracts } from './utils/checkpoint';
-import { ensureInitializedContract } from './utils/initialized';
+import { ensureInitializedContract, isInitialized } from './utils/initialized';
 import { ChannelEventCheckpointProcessor } from './processors/ChannelEventCheckpointProcessor';
 import { CheckpointCache } from './utils/CheckpointCache';
 import { Blue } from '@blue-labs/language';
 import { defaultProcessors } from './config';
 import { createDocumentProcessingInitiatedEvent } from './utils/eventFactories';
-import { mockBlueIds } from './mocks/blueIds';
 
 /**
  * BlueDocumentProcessor - Main orchestrator for document processing
@@ -59,12 +58,6 @@ export class BlueDocumentProcessor {
       new ChannelEventCheckpointProcessor(this.checkpointCache),
       9999
     );
-
-    // TODO: Remove this once we have proper blueIds
-    this.blue.registerBlueIds({
-      'Lifecycle Event Channel': mockBlueIds['Lifecycle Event Channel'],
-      'Initialized Marker': mockBlueIds['Initialized Marker'],
-    });
   }
 
   /**
@@ -117,6 +110,10 @@ export class BlueDocumentProcessor {
   ): Promise<ProcessingResult> {
     let current = ensureCheckpointContracts(document, this.blue);
     const emitted: EventNodePayload[] = [];
+
+    if (!isInitialized(current, this.blue)) {
+      throw new Error('Document is not initialized');
+    }
 
     for (const payload of incoming) {
       try {

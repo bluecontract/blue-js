@@ -13,6 +13,8 @@ const isTimelineEntryEvent = (
   evt: EventNode
 ): evt is EventNode<TimelineEntry> => evt.payload.type === 'Timeline Entry';
 
+// TODO: event check validation
+
 /* ------------------------------------------------------------------------ */
 /* Timeline Channel – unwraps timeline entries                              */
 /* ------------------------------------------------------------------------ */

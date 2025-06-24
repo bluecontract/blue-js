@@ -1,26 +1,31 @@
 import {
-  ZodRawShape,
-  objectOutputType,
-  objectInputType,
-  UnknownKeysParam,
   ZodTypeAny,
-  ZodObject,
+  ZodOptional,
+  ZodNullable,
+  ZodReadonly,
+  ZodBranded,
+  ZodEffects,
+  ZodLazy,
+  AnyZodObject,
 } from 'zod';
 import { BlueNode } from '../model';
 import { BlueIdResolver } from './BlueIdResolver';
-import { isNullable } from '@blue-labs/shared-utils';
+import { TypeSchemaResolver } from './TypeSchemaResolver';
+import { isNullable, isNonNullable } from '@blue-labs/shared-utils';
+import {
+  isBlueNodeSchema,
+  isSchemaExtendedFrom,
+} from '../../schema/annotations';
 
-// TODO: Make it support a way if a schema supports more blueIds than one
 export class BlueNodeTypeSchema {
-  static isTypeOf<
-    T extends ZodRawShape,
-    UnknownKeys extends UnknownKeysParam = UnknownKeysParam,
-    Catchall extends ZodTypeAny = ZodTypeAny,
-    Output = objectOutputType<T, Catchall, UnknownKeys>,
-    Input = objectInputType<T, Catchall, UnknownKeys>
-  >(
+  // TODO: Enhance to support schemas associated with multiple blueIds
+  static isTypeOf(
     node: BlueNode,
-    schema: ZodObject<T, UnknownKeys, Catchall, Output, Input>
+    schema: AnyZodObject,
+    options?: {
+      checkSchemaExtensions?: boolean;
+      typeSchemaResolver?: TypeSchemaResolver | null;
+    }
   ): boolean {
     const schemaBlueId = BlueIdResolver.resolveBlueId(schema);
     const nodeTypeBlueId = node.getType()?.getBlueId();
@@ -29,6 +34,67 @@ export class BlueNodeTypeSchema {
       return false;
     }
 
-    return schemaBlueId === nodeTypeBlueId;
+    // Direct BlueId match
+    if (schemaBlueId === nodeTypeBlueId) {
+      return true;
+    }
+
+    // Check schema extensions if enabled and resolver is provided
+    if (
+      options?.checkSchemaExtensions &&
+      isNonNullable(options.typeSchemaResolver)
+    ) {
+      const resolvedSchema = options.typeSchemaResolver.resolveSchema(node);
+      return BlueNodeTypeSchema.checkSchemaExtension(resolvedSchema, schema);
+    }
+
+    return false;
+  }
+
+  /**
+   * Checks if a schema extends a base schema.
+   */
+  static checkSchemaExtension(
+    extendedSchema: ZodTypeAny | null | undefined,
+    baseSchema: ZodTypeAny
+  ): boolean {
+    if (!isNonNullable(extendedSchema)) {
+      return false;
+    }
+
+    const unwrappedExtendedSchema =
+      BlueNodeTypeSchema.unwrapSchema(extendedSchema);
+    const unwrappedBaseSchema = BlueNodeTypeSchema.unwrapSchema(baseSchema);
+
+    return isSchemaExtendedFrom(unwrappedExtendedSchema, unwrappedBaseSchema);
+  }
+
+  private static isWrapperType(schema: ZodTypeAny) {
+    return (
+      schema instanceof ZodOptional ||
+      schema instanceof ZodNullable ||
+      schema instanceof ZodReadonly ||
+      schema instanceof ZodBranded ||
+      schema instanceof ZodEffects ||
+      schema instanceof ZodLazy
+    );
+  }
+
+  static unwrapSchema(schema: ZodTypeAny): ZodTypeAny {
+    if (isBlueNodeSchema(schema)) {
+      return schema;
+    }
+
+    if (BlueNodeTypeSchema.isWrapperType(schema)) {
+      if (schema instanceof ZodEffects) {
+        return BlueNodeTypeSchema.unwrapSchema(schema.innerType());
+      }
+      if (schema instanceof ZodLazy) {
+        return BlueNodeTypeSchema.unwrapSchema(schema.schema);
+      }
+      return BlueNodeTypeSchema.unwrapSchema(schema.unwrap());
+    }
+
+    return schema;
   }
 }

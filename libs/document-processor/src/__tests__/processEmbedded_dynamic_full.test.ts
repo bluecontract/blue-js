@@ -6,6 +6,7 @@ import { EmbeddedDocumentModificationError } from '../utils/exceptions';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
@@ -32,16 +33,23 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
-  const docNode = blue.jsonValueToNode(doc);
 
   it('1) initial t1 is blocked', async () => {
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
     await expect(
-      documentProcessor.processEvents(docNode, [EVT1])
+      documentProcessor.processEvents(initializedState, [EVT1])
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
   it('2) after t2 removal, t1 works', async () => {
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+    const { state } = await documentProcessor.processEvents(initializedState, [
       EVT2,
       EVT1,
     ]);
@@ -52,7 +60,11 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
   });
 
   it('3) after t3 re-add, t1 is blocked again', async () => {
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+    const { state } = await documentProcessor.processEvents(initializedState, [
       EVT2,
       EVT1,
       EVT3,

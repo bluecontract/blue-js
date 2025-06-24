@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 const timelineEvent = (
   timelineId: string,
@@ -59,12 +60,14 @@ describe('BlueDocumentProcessor', () => {
     };
 
     const timelineEntry = timelineEvent('user-123');
-
-    const docNode = blue.jsonValueToNode(doc);
-
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      timelineEntry,
-    ]);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [timelineEntry]
+    );
     const stateMap = blue.nodeToJson(state, 'simple') as any;
     expect(stateMap?.counter).toBe(2);
     expect(emitted.some((e) => e.type === 'Document Update')).toBe(true);
@@ -117,9 +120,12 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = timelineEvent('timeline-1');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { state } = await documentProcessor.processEvents(initializedState, [
       timelineEntry,
     ]);
     const stateMap = blue.nodeToJson(state, 'simple') as any;
@@ -175,9 +181,12 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = timelineEvent('timeline-1');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { state } = await documentProcessor.processEvents(initializedState, [
       timelineEntry,
     ]);
 
@@ -242,9 +251,12 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = timelineEvent('timeline-1');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { state } = await documentProcessor.processEvents(initializedState, [
       timelineEntry,
     ]);
 
@@ -329,8 +341,12 @@ describe('BlueDocumentProcessor', () => {
     const timelineEntry = timelineEvent('level3-timeline');
 
     // Process the event - should bubble up through all levels
-    const docNode = blue.jsonValueToNode(doc);
-    const result = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+
+    const result = await documentProcessor.processEvents(initializedState, [
       timelineEntry,
     ]);
 
@@ -438,8 +454,12 @@ describe('BlueDocumentProcessor', () => {
     const timelineEntry = timelineEvent('Alice');
 
     // Process the event
-    const docNode = blue.jsonValueToNode(doc);
-    const result = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+
+    const result = await documentProcessor.processEvents(initializedState, [
       timelineEntry,
     ]);
 
@@ -525,8 +545,12 @@ describe('BlueDocumentProcessor', () => {
 
     const timelineEntry = timelineEvent('t');
 
-    const docNode = blue.jsonValueToNode(doc);
-    const result = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+
+    const result = await documentProcessor.processEvents(initializedState, [
       timelineEntry,
     ]);
 

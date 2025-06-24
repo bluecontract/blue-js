@@ -4,6 +4,7 @@ import { EventNodePayload } from '../types';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 describe('Checkpoint – embedded documents via Process Embedded', () => {
   const blue = new Blue({
@@ -32,7 +33,6 @@ describe('Checkpoint – embedded documents via Process Embedded', () => {
       total: 10,
     },
   };
-  const docNode = blue.jsonValueToNode(doc);
 
   const payload: EventNodePayload = {
     type: 'Document Update',
@@ -42,7 +42,13 @@ describe('Checkpoint – embedded documents via Process Embedded', () => {
   };
 
   it('writes checkpoints in BOTH root and embedded docs', async () => {
-    const { state } = await documentProcessor.processEvents(docNode, [payload]);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+    const { state } = await documentProcessor.processEvents(initializedState, [
+      payload,
+    ]);
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 

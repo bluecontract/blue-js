@@ -1,22 +1,11 @@
-import {
-  ZodEffects,
-  ZodLazy,
-  ZodType,
-  ZodBranded,
-  ZodNullable,
-  ZodOptional,
-  ZodReadonly,
-  ZodTypeAny,
-} from 'zod';
+import { ZodType } from 'zod';
 import { ZodTypeDef } from 'zod';
 import { BlueNode } from '../model';
 import { TypeSchemaResolver } from '../utils/TypeSchemaResolver';
 import { ConverterFactory } from './ConverterFactory';
+import { isBlueNodeSchema } from '../../schema/annotations';
+import { BlueNodeTypeSchema } from '../utils/TypeSchema';
 import { isNonNullable } from '@blue-labs/shared-utils';
-import {
-  isBlueNodeSchema,
-  isSchemaExtendedFrom,
-} from '../../schema/annotations';
 
 export class NodeToObjectConverter {
   private readonly converterFactory: ConverterFactory;
@@ -31,7 +20,7 @@ export class NodeToObjectConverter {
     Input = Output
   >(node: BlueNode, targetType: ZodType<Output, Def, Input>): Output {
     const resolvedSchema = this.typeSchemaResolver?.resolveSchema(node);
-    const unwrappedTargetType = this.unwrapSchema(targetType);
+    const unwrappedTargetType = BlueNodeTypeSchema.unwrapSchema(targetType);
 
     if (isBlueNodeSchema(unwrappedTargetType)) {
       return node as Output;
@@ -40,8 +29,11 @@ export class NodeToObjectConverter {
     let schemaToUse = unwrappedTargetType;
 
     if (
-      isNonNullable(resolvedSchema) &&
-      isSchemaExtendedFrom(resolvedSchema, unwrappedTargetType)
+      BlueNodeTypeSchema.checkSchemaExtension(
+        resolvedSchema,
+        unwrappedTargetType
+      ) &&
+      isNonNullable(resolvedSchema)
     ) {
       schemaToUse = resolvedSchema;
     }
@@ -56,34 +48,5 @@ export class NodeToObjectConverter {
   >(node: BlueNode, targetType: ZodType<Output, Def, Input>): Output {
     const converter = this.converterFactory.getConverter(targetType);
     return converter.convert(node, targetType) as Output;
-  }
-
-  private isWrapperType(schema: ZodType) {
-    return (
-      schema instanceof ZodOptional ||
-      schema instanceof ZodNullable ||
-      schema instanceof ZodReadonly ||
-      schema instanceof ZodBranded ||
-      schema instanceof ZodEffects ||
-      schema instanceof ZodLazy
-    );
-  }
-
-  private unwrapSchema(schema: ZodTypeAny): ZodTypeAny {
-    if (isBlueNodeSchema(schema)) {
-      return schema;
-    }
-
-    if (this.isWrapperType(schema)) {
-      if (schema instanceof ZodEffects) {
-        return this.unwrapSchema(schema.innerType());
-      }
-      if (schema instanceof ZodLazy) {
-        return this.unwrapSchema(schema.schema);
-      }
-      return this.unwrapSchema(schema.unwrap());
-    }
-
-    return schema;
   }
 }

@@ -3,6 +3,7 @@ import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../../testUtils';
 
 function makeCounterWithOperationsDoc(): JsonObject {
   return {
@@ -122,13 +123,17 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
   const documentProcessor = new BlueDocumentProcessor(blue);
   test('processes increment operation and updates counter', async () => {
     const doc = makeCounterWithOperationsDoc();
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const incrementEvent = operationRequestEvent('increment', 3);
 
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      incrementEvent,
-    ]);
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [incrementEvent]
+    );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -144,13 +149,17 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
   test('processes decrement operation and updates counter', async () => {
     const doc = makeCounterWithOperationsDoc();
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const decrementEvent = operationRequestEvent('decrement', 2);
 
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      decrementEvent,
-    ]);
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [decrementEvent]
+    );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -166,13 +175,17 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
   test('processes reset operation with specific value', async () => {
     const doc = makeCounterWithOperationsDoc();
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const resetEvent = operationRequestEvent('reset', 10);
 
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      resetEvent,
-    ]);
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [resetEvent]
+    );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -188,7 +201,10 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
   test('processes reset operation with default value (0)', async () => {
     const doc = makeCounterWithOperationsDoc();
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     // Create reset event with null/undefined request to test default behavior
     const resetEvent = timelineEvent({
@@ -201,9 +217,10 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
       allowNewerVersion: true,
     });
 
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      resetEvent,
-    ]);
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [resetEvent]
+    );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -219,13 +236,17 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
   test('ignores operation request for non-matching operation name', async () => {
     const doc = makeCounterWithOperationsDoc();
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const nonMatchingEvent = operationRequestEvent('multiply', 2); // No 'multiply' operation defined
 
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      nonMatchingEvent,
-    ]);
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [nonMatchingEvent]
+    );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -239,11 +260,14 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
   test('processes multiple sequential operations correctly', async () => {
     const doc = makeCounterWithOperationsDoc();
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     // Increment by 5 (5 -> 10)
     const incrementEvent = operationRequestEvent('increment', 5);
-    const result1 = await documentProcessor.processEvents(docNode, [
+    const result1 = await documentProcessor.processEvents(initializedState, [
       incrementEvent,
     ]);
 
@@ -310,13 +334,20 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
       },
     };
 
-    const docNode = blue.jsonValueToNode(docWithComplexOperation);
+    const { initializedState } = await prepareToProcess(
+      docWithComplexOperation,
+      {
+        blue,
+        documentProcessor,
+      }
+    );
 
     const complexEvent = operationRequestEvent('doubleAndAdd', 3);
 
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      complexEvent,
-    ]);
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [complexEvent]
+    );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
