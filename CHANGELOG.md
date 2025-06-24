@@ -1,3 +1,11 @@
+## 1.24.0 (2025-06-24)
+
+### 🚀 Features
+
+- enhance OperationProcessor and add comprehensive tests ([9ba1698](https://github.com/bluecontract/blue-js/commit/9ba1698))
+- use real "Initialized Marker" and "Lifecycle Event Channel" types ([b8cde04](https://github.com/bluecontract/blue-js/commit/b8cde04))
+- throw error if document is not initialized ([e409e8c](https://github.com/bluecontract/blue-js/commit/e409e8c))
+
 ## 1.23.0 (2025-06-10)
 
 ### 🚀 Features
