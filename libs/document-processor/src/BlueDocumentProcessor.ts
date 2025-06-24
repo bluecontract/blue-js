@@ -14,7 +14,7 @@ import { ContractRegistry } from './registry/ContractRegistry';
 import { EventRouter } from './routing/EventRouter';
 import { logPatchError } from './utils/logPatchError';
 import { ensureCheckpointContracts } from './utils/checkpoint';
-import { ensureInitializedContract } from './utils/initialized';
+import { ensureInitializedContract, isInitialized } from './utils/initialized';
 import { ChannelEventCheckpointProcessor } from './processors/ChannelEventCheckpointProcessor';
 import { CheckpointCache } from './utils/CheckpointCache';
 import { Blue } from '@blue-labs/language';
@@ -110,6 +110,10 @@ export class BlueDocumentProcessor {
   ): Promise<ProcessingResult> {
     let current = ensureCheckpointContracts(document, this.blue);
     const emitted: EventNodePayload[] = [];
+
+    if (!isInitialized(current, this.blue)) {
+      throw new Error('Document is not initialized');
+    }
 
     for (const payload of incoming) {
       try {

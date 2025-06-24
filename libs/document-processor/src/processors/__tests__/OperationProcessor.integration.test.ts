@@ -4,6 +4,7 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
+import { prepareToProcess } from '../../testUtils';
 
 describe('OperationProcessor - Integration Tests', () => {
   describe('Timeline Channel', () => {
@@ -130,12 +131,15 @@ describe('OperationProcessor - Integration Tests', () => {
 
     test('should process increment operation request through timeline channel', async () => {
       const doc = makeDocumentWithOperations();
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
       const incrementEvent = createOperationRequestEvent('increment', 5);
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [incrementEvent]
       );
 
@@ -153,12 +157,15 @@ describe('OperationProcessor - Integration Tests', () => {
 
     test('should process decrement operation request', async () => {
       const doc = makeDocumentWithOperations();
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
       const decrementEvent = createOperationRequestEvent('decrement', 3);
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [decrementEvent]
       );
 
@@ -176,12 +183,15 @@ describe('OperationProcessor - Integration Tests', () => {
 
     test('should process string operation request', async () => {
       const doc = makeDocumentWithOperations();
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
       const statusEvent = createOperationRequestEvent('setStatus', 'active');
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [statusEvent]
       );
 
@@ -199,12 +209,15 @@ describe('OperationProcessor - Integration Tests', () => {
 
     test('should ignore operation requests for non-existent operations', async () => {
       const doc = makeDocumentWithOperations();
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
       const nonExistentEvent = createOperationRequestEvent('multiply', 2);
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [nonExistentEvent]
       );
 
@@ -263,7 +276,10 @@ describe('OperationProcessor - Integration Tests', () => {
         },
       };
 
-      const docNode = blue.jsonValueToNode(docWithWrongChannel);
+      const { initializedState } = await prepareToProcess(docWithWrongChannel, {
+        blue,
+        documentProcessor,
+      });
 
       // Send event to wrong timeline
       const wrongTimelineEvent = {
@@ -277,7 +293,7 @@ describe('OperationProcessor - Integration Tests', () => {
       };
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [wrongTimelineEvent]
       );
 
@@ -295,11 +311,14 @@ describe('OperationProcessor - Integration Tests', () => {
 
     test('should process multiple sequential operation requests', async () => {
       const doc = makeDocumentWithOperations();
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
       // Increment by 5 (10 -> 15)
       const incrementEvent = createOperationRequestEvent('increment', 5);
-      let result = await documentProcessor.processEvents(docNode, [
+      let result = await documentProcessor.processEvents(initializedState, [
         incrementEvent,
       ]);
 
@@ -378,7 +397,13 @@ describe('OperationProcessor - Integration Tests', () => {
         },
       };
 
-      const docNode = blue.jsonValueToNode(docWithComplexOperation);
+      const { initializedState } = await prepareToProcess(
+        docWithComplexOperation,
+        {
+          blue,
+          documentProcessor,
+        }
+      );
 
       const complexEvent = createOperationRequestEvent(
         'updateUser',
@@ -389,7 +414,7 @@ describe('OperationProcessor - Integration Tests', () => {
       );
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [complexEvent]
       );
 
@@ -406,7 +431,10 @@ describe('OperationProcessor - Integration Tests', () => {
 
     test('should ignore non-Operation Request timeline messages', async () => {
       const doc = makeDocumentWithOperations();
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
       // Send a regular timeline message that's not an operation request
       const regularEvent = createTimelineEvent({
@@ -415,7 +443,7 @@ describe('OperationProcessor - Integration Tests', () => {
       });
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [regularEvent]
       );
 
@@ -486,7 +514,10 @@ describe('OperationProcessor - Integration Tests', () => {
         },
       };
 
-      const docNode = blue.jsonValueToNode(docWithMyOSTimeline);
+      const { initializedState } = await prepareToProcess(docWithMyOSTimeline, {
+        blue,
+        documentProcessor,
+      });
 
       // Create MyOS Timeline Event with operation request
       const myosTimelineEvent = {
@@ -500,7 +531,7 @@ describe('OperationProcessor - Integration Tests', () => {
       };
 
       const { state, emitted } = await documentProcessor.processEvents(
-        docNode,
+        initializedState,
         [myosTimelineEvent]
       );
 

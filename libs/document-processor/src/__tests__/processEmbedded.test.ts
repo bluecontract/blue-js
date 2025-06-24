@@ -6,6 +6,7 @@ import { EmbeddedDocumentModificationError } from '../utils/exceptions';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
@@ -26,9 +27,12 @@ describe('Process Embedded – cross-boundary guard', () => {
   it('allows workflows INSIDE the embedded subtree to mutate it', async () => {
     const doc = loadYamlFromResources('processEmbedded_happy.yaml');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { state } = await documentProcessor.processEvents(initializedState, [
       TIMELINE_EVENT,
     ]);
 
@@ -43,39 +47,51 @@ describe('Process Embedded – cross-boundary guard', () => {
   it('blocks a workflow OUTSIDE the subtree from writing inside', async () => {
     const doc = loadYamlFromResources('processEmbedded_block.yaml');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     await expect(
-      documentProcessor.processEvents(docNode, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
   it('re-evaluates contracts added MID-FLUSH', async () => {
     const doc = loadYamlFromResources('processEmbedded_live.yaml');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     await expect(
-      documentProcessor.processEvents(docNode, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
   it('blocks cross-boundary with multiple contracts', async () => {
     const doc = loadYamlFromResources('processEmbedded_multiContracts.yaml');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     await expect(
-      documentProcessor.processEvents(docNode, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
   it('allows workflows under each of multiple paths', async () => {
     const doc = loadYamlFromResources('processEmbedded_multiPaths_happy.yaml');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { state } = await documentProcessor.processEvents(initializedState, [
       TIMELINE_EVENT,
     ]);
 
@@ -88,10 +104,13 @@ describe('Process Embedded – cross-boundary guard', () => {
   it('blocks root workflow touching any defined path', async () => {
     const doc = loadYamlFromResources('processEmbedded_multiPaths_block.yaml');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     await expect(
-      documentProcessor.processEvents(docNode, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 });
