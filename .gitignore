@@ -43,5 +43,5 @@ Thumbs.db
 
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
-.cursor/rules/nx-rules.mdc
+.cursor
 .github/instructions/nx.instructions.md

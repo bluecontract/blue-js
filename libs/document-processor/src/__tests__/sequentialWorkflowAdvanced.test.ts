@@ -7,6 +7,7 @@ import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 function makeWorkflowDoc(steps: JsonObject[]): JsonObject {
   return {
@@ -58,13 +59,17 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     const doc = makeWorkflowDoc(steps);
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt = timelineEvent({ amount: 100 });
 
-    const { state, emitted } = await documentProcessor.processEvents(docNode, [
-      evt,
-    ]);
+    const { state, emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [evt]
+    );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -88,10 +93,16 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     const doc = makeWorkflowDoc(steps);
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt = timelineEvent({ foo: 1 });
-    const { emitted } = await documentProcessor.processEvents(docNode, [evt]);
+    const { emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [evt]
+    );
 
     const found = emitted.find((e) => e.type === 'Greeting');
 
@@ -113,10 +124,15 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     const doc = makeWorkflowDoc(steps);
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt = timelineEvent({});
-    const { state } = await documentProcessor.processEvents(docNode, [evt]);
+    const { state } = await documentProcessor.processEvents(initializedState, [
+      evt,
+    ]);
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -134,10 +150,16 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     const doc = makeWorkflowDoc(steps);
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt = timelineEvent({});
-    const { emitted } = await documentProcessor.processEvents(docNode, [evt]);
+    const { emitted } = await documentProcessor.processEvents(
+      initializedState,
+      [evt]
+    );
 
     expect(emitted.length).toBe(0);
   });
@@ -156,12 +178,15 @@ describe('Sequential Workflow – JavaScript Code step', () => {
     ];
 
     const doc = makeWorkflowDoc(steps);
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt1 = timelineEvent({ n: 1 });
     const evt2 = timelineEvent({ n: 2 });
 
-    const r1 = await documentProcessor.processEvents(docNode, [evt1]);
+    const r1 = await documentProcessor.processEvents(initializedState, [evt1]);
     const r2 = await documentProcessor.processEvents(r1.state, [evt2]);
 
     const jsonState1 = blue.nodeToJson(r1.state, 'simple') as any;
@@ -194,12 +219,15 @@ describe('Sequential Workflow – Error Handling', () => {
     ];
 
     const doc = makeWorkflowDoc(steps);
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt = timelineEvent({});
 
     await expect(
-      documentProcessor.processEvents(docNode, [evt])
+      documentProcessor.processEvents(initializedState, [evt])
     ).rejects.toThrow(ExpressionEvaluationError);
   });
 
@@ -213,12 +241,15 @@ describe('Sequential Workflow – Error Handling', () => {
     ];
 
     const doc = makeWorkflowDoc(steps);
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt = timelineEvent({});
 
     await expect(
-      documentProcessor.processEvents(docNode, [evt])
+      documentProcessor.processEvents(initializedState, [evt])
     ).rejects.toThrow(CodeBlockEvaluationError);
   });
 
@@ -232,12 +263,15 @@ describe('Sequential Workflow – Error Handling', () => {
     ];
 
     const doc = makeWorkflowDoc(steps);
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     const evt = timelineEvent({});
 
     await expect(
-      documentProcessor.processEvents(docNode, [evt])
+      documentProcessor.processEvents(initializedState, [evt])
     ).rejects.toThrow(CodeBlockEvaluationError);
   });
 });

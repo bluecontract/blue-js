@@ -34,7 +34,7 @@ describe('ensureInitializedContract', () => {
     );
   });
 
-  it('should not overwrite existing initialized contract', () => {
+  it('should overwrite existing initialized contract if the name is the same', () => {
     const doc: JsonObject = {
       name: 'Test Document',
       contracts: {
@@ -53,10 +53,10 @@ describe('ensureInitializedContract', () => {
     const jsonResult = blue.nodeToJson(result, 'simple') as any;
 
     expect(jsonResult.contracts.initialized.type.name).toBe(
-      'Custom Initialized'
+      'Initialized Marker'
     );
-    expect(jsonResult.contracts.initialized.type.blueId).toBe('custom-id');
-    expect(jsonResult.contracts.initialized.customField).toBe('existing-value');
+    expect(jsonResult.contracts.initialized.type.blueId).not.toBe('custom-id');
+    expect(jsonResult.contracts.initialized.customField).toBeUndefined();
   });
 
   it('should add initialized contract even when no contracts exist initially', () => {

@@ -6,6 +6,7 @@ import yaml from 'js-yaml';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 /**
  * Loads a YAML document from the resources directory
@@ -59,14 +60,18 @@ describe('Chess Game with Two Timeline Channels', () => {
     // Load document from YAML
     const doc = await loadYamlDocument('chessGame.yaml');
 
-    const docNode = blue.jsonValueToNode(doc);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
 
     // Play a sequence of moves
     // 1. e4 (White's first move)
     const whiteMove1 = timelineEvent('white-player', 'e4');
-    const { state: state1 } = await documentProcessor.processEvents(docNode, [
-      whiteMove1,
-    ]);
+    const { state: state1 } = await documentProcessor.processEvents(
+      initializedState,
+      [whiteMove1]
+    );
 
     // Verify game state after first move
     const state1Typed = blue.nodeToJson(state1, 'simple') as any;

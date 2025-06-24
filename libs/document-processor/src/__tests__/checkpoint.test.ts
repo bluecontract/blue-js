@@ -13,6 +13,7 @@ import { ContractProcessor, ContractRole, EventNodePayload } from '../types';
 import { JsonObject } from 'type-fest';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 let seq = 0;
 
@@ -65,9 +66,11 @@ describe('Checkpoint', () => {
   /* 1 – root-level happy path                                          */
   /* ------------------------------------------------------------------ */
   test('root channel checkpoint is written once per external event', async () => {
-    const docNode = blue.jsonValueToNode(baseDoc);
-
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(baseDoc, {
+      blue,
+      documentProcessor,
+    });
+    const { state } = await documentProcessor.processEvents(initializedState, [
       updatePayload,
     ]);
 
@@ -94,9 +97,14 @@ describe('Checkpoint', () => {
       val: 'published',
     };
 
-    const docNode = blue.jsonValueToNode(embeddedDoc);
+    const { initializedState } = await prepareToProcess(embeddedDoc, {
+      blue,
+      documentProcessor,
+    });
 
-    const { state } = await documentProcessor.processEvents(docNode, [payload]);
+    const { state } = await documentProcessor.processEvents(initializedState, [
+      payload,
+    ]);
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -121,9 +129,12 @@ describe('Checkpoint', () => {
     const payloadA = { ...updatePayload, path: '/data/a', val: 2 };
     const payloadB = { ...updatePayload, path: '/data/b', val: 2 };
 
-    const docNode = blue.jsonValueToNode(complexDoc);
+    const { initializedState } = await prepareToProcess(complexDoc, {
+      blue,
+      documentProcessor,
+    });
 
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { state } = await documentProcessor.processEvents(initializedState, [
       payloadA,
       payloadB,
     ]);
@@ -162,14 +173,17 @@ describe('Checkpoint', () => {
   test('checkpoint write is rolled back when a handler errors', async () => {
     const engine = new BlueDocumentProcessor(blue, [new FailingProc()]);
 
-    const docNode = blue.jsonValueToNode(baseDoc);
+    const { initializedState } = await prepareToProcess(baseDoc, {
+      blue,
+      documentProcessor,
+    });
 
     await expect(
-      engine.processEvents(docNode, [updatePayload])
+      engine.processEvents(initializedState, [updatePayload])
     ).rejects.toThrow('boom');
 
     // second run with no events – state should still contain *no* blueId
-    const { state } = await engine.processEvents(docNode, []);
+    const { state } = await engine.processEvents(initializedState, []);
     const jsonState = blue.nodeToJson(state, 'simple') as any;
     expect(
       jsonState.contracts.checkpoint.lastEvents.nameUpdates

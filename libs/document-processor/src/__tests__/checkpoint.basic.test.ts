@@ -4,6 +4,7 @@ import { EventNodePayload } from '../types';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 let seq = 0;
 
@@ -30,7 +31,6 @@ describe('Checkpoint – basic root-channel scenario', () => {
     },
     profile: { username: 'old' },
   };
-  const docNode = blue.jsonValueToNode(doc);
 
   const updateEvt: EventNodePayload = {
     type: 'Document Update',
@@ -40,7 +40,11 @@ describe('Checkpoint – basic root-channel scenario', () => {
   };
 
   it('writes exactly one blueId for the channel after the batch', async () => {
-    const { state } = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+    const { state } = await documentProcessor.processEvents(initializedState, [
       updateEvt,
     ]);
 
@@ -52,7 +56,11 @@ describe('Checkpoint – basic root-channel scenario', () => {
   });
 
   it('replaces the blueId on the next external event', async () => {
-    const firstBatch = await documentProcessor.processEvents(docNode, [
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+    const firstBatch = await documentProcessor.processEvents(initializedState, [
       updateEvt,
     ]);
     const secondBatch = await documentProcessor.processEvents(

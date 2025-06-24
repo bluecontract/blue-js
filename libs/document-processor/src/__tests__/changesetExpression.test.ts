@@ -2,6 +2,7 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
+import { prepareToProcessYaml } from '../testUtils';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
@@ -79,7 +80,10 @@ contracts:
         type: Update Document
         changeset: "\${steps.CreateSubscriptions.changes}"`;
 
-    const result = blue.yamlToNode(docyaml);
+    const { initializedState } = await prepareToProcessYaml(docyaml, {
+      blue,
+      documentProcessor,
+    });
 
     const event = {
       type: 'Timeline Entry',
@@ -101,7 +105,9 @@ contracts:
       },
     };
 
-    const { state } = await documentProcessor.processEvents(result, [event]);
+    const { state } = await documentProcessor.processEvents(initializedState, [
+      event,
+    ]);
     const data = blue.nodeToJson(state, 'simple') as any;
 
     expect(data.contracts).toMatchObject({

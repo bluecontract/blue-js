@@ -5,6 +5,7 @@ import path from 'path';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { prepareToProcess } from '../testUtils';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
@@ -32,11 +33,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should create a new workflow contract dynamically', async () => {
       const doc = loadYamlFromResources('example2.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('t'),
-      ]);
+      const { state } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('t')]
+      );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -50,11 +55,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should remove a contract and add a new one dynamically', async () => {
       const doc = loadYamlFromResources('example3.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('t'),
-      ]);
+      const { state } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('t')]
+      );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -69,11 +78,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should handle counter updates and trigger salary multiplication', async () => {
       const doc = loadYamlFromResources('example4.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('t'),
-      ]);
+      const { state } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('t')]
+      );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -86,11 +99,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should execute multiple workflows from the same timeline event in order of sequence number', async () => {
       const doc = loadYamlFromResources('example5.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('t'),
-      ]);
+      const { state } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('t')]
+      );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -103,11 +120,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should handle embedded documents with their own contracts', async () => {
       const doc = loadYamlFromResources('example6.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('t'),
-      ]);
+      const { state } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('t')]
+      );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
 
@@ -122,11 +143,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should fire the sub-document workflow (wfSub1) when subTimeline1 ticks', async () => {
       const doc = loadYamlFromResources('example7.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state: state1 } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('sub1T'),
-      ]);
+      const { state: state1 } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('sub1T')]
+      );
 
       const jsonState = blue.nodeToJson(state1, 'simple') as any;
 
@@ -137,11 +162,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should fire the sub-document workflow (wfA1) when embTimeline ticks', async () => {
       const doc = loadYamlFromResources('example7.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state: state2 } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('aT'),
-      ]);
+      const { state: state2 } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('aT')]
+      );
 
       const jsonState = blue.nodeToJson(state2, 'simple') as any;
 
@@ -152,10 +181,14 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should fire the sub-document workflow (wfNested) from emb.nestedB1 when nestedTimeline ticks', async () => {
       const doc = loadYamlFromResources('example7.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
-      const { state: state3 } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('nestedB1T'),
-      ]);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
+      const { state: state3 } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('nestedB1T')]
+      );
 
       const jsonState = blue.nodeToJson(state3, 'simple') as any;
 
@@ -169,11 +202,15 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
     it('should fire the sub-document workflow (wfB1) from emb.nestedB1 and emb when embBTimeline ticks', async () => {
       const doc = loadYamlFromResources('example7.yaml');
 
-      const docNode = blue.jsonValueToNode(doc);
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
 
-      const { state: state4 } = await documentProcessor.processEvents(docNode, [
-        timelineEvent('bT'),
-      ]);
+      const { state: state4 } = await documentProcessor.processEvents(
+        initializedState,
+        [timelineEvent('bT')]
+      );
 
       const jsonState = blue.nodeToJson(state4, 'simple') as any;
 
