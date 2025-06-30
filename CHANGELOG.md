@@ -1,3 +1,9 @@
+## 1.24.1 (2025-06-30)
+
+### 🩹 Fixes
+
+- improve node crypto checks in CryptoEnvironment ([f89b3bb](https://github.com/bluecontract/blue-js/commit/f89b3bb))
+
 ## 1.24.0 (2025-06-24)
 
 ### 🚀 Features
