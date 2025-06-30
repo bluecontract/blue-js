@@ -33,7 +33,9 @@ export class CryptoEnvironment {
   }
 
   hasNodeCrypto(): boolean {
-    return !!nodeCrypto.createHash;
+    return (
+      isNode && !!nodeCrypto && typeof nodeCrypto.createHash === 'function'
+    );
   }
 
   getBrowserCrypto(): Crypto | null {
@@ -41,6 +43,6 @@ export class CryptoEnvironment {
   }
 
   getNodeCrypto(): Crypto | null {
-    return nodeCrypto;
+    return isNode ? nodeCrypto : null;
   }
 }
