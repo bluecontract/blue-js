@@ -113,7 +113,7 @@ export class ConverterFactory {
       return this.getSchemaTypeName(schema.unwrap());
     }
 
-    const schemaTypeName = schema.constructor.name;
+    const schemaTypeName = schema._def.typeName;
 
     try {
       const parsedSchemaTypeName =

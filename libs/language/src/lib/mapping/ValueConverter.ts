@@ -78,9 +78,7 @@ export class ValueConverter {
       return BigInt(value);
     }
 
-    throw new Error(
-      `Cannot convert String to ${targetSchema.constructor.name}`
-    );
+    throw new Error(`Cannot convert String to ${targetSchema._def.typeName}`);
   }
 
   private static convertFromBigDecimal(
@@ -95,9 +93,7 @@ export class ValueConverter {
       return value.toString();
     }
 
-    throw new Error(
-      `Cannot convert Number to ${targetSchema.constructor.name}`
-    );
+    throw new Error(`Cannot convert Number to ${targetSchema._def.typeName}`);
   }
 
   private static convertFromBigInteger(
@@ -116,9 +112,7 @@ export class ValueConverter {
       return value.toString();
     }
 
-    throw new Error(
-      `Cannot convert Number to ${targetSchema.constructor.name}`
-    );
+    throw new Error(`Cannot convert Number to ${targetSchema._def.typeName}`);
   }
 
   private static convertFromBoolean(value: boolean, targetSchema: ZodTypeAny) {
@@ -140,9 +134,7 @@ export class ValueConverter {
       return BigInt(value);
     }
 
-    throw new Error(
-      `Cannot convert Boolean to ${targetSchema.constructor.name}`
-    );
+    throw new Error(`Cannot convert Boolean to ${targetSchema._def.typeName}`);
   }
 
   private static isPrimitive(targetSchema: ZodTypeAny) {
@@ -168,7 +160,7 @@ export class ValueConverter {
     }
 
     throw new Error(
-      `Unsupported primitive type: ${targetSchema.constructor.name}`
+      `Unsupported primitive type: ${targetSchema._def.typeName}`
     );
   }
 }
