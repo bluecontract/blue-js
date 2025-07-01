@@ -159,6 +159,6 @@ export class ComplexObjectConverter implements Converter {
       return result;
     }
 
-    throw new Error('Unknown schema type, ' + schema.constructor.name);
+    throw new Error('Unknown schema type, ' + schema._def.typeName);
   }
 }
