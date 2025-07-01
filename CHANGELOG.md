@@ -1,3 +1,9 @@
+## 1.24.2 (2025-07-01)
+
+### 🩹 Fixes
+
+- use _def.typeName instead of constructor.name for zod schema types ([e71834b](https://github.com/bluecontract/blue-js/commit/e71834b))
+
 ## 1.24.1 (2025-06-30)
 
 ### 🩹 Fixes
