@@ -1,3 +1,9 @@
+## 1.24.3 (2025-07-02)
+
+### 🩹 Fixes
+
+- update dependencies and add peer dependencies for document-processor ([cb1fdbb](https://github.com/bluecontract/blue-js/commit/cb1fdbb))
+
 ## 1.24.2 (2025-07-01)
 
 ### 🩹 Fixes
