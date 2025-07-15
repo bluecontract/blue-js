@@ -9,6 +9,7 @@ import {
 } from './utils';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
+import { RepositoryNodeProviderFactory } from './utils/RepositoryNodeProviderFactory';
 import { ZodTypeDef, ZodType, ZodTypeAny, AnyZodObject } from 'zod';
 import { yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
@@ -24,6 +25,7 @@ import {
 import { JsonValue } from '@blue-labs/shared-utils';
 import { Limits, NO_LIMITS } from './utils/limits';
 import { NodeExtender } from './utils/NodeExtender';
+import { InMemoryNodeProvider } from './provider/InMemoryNodeProvider';
 
 export interface BlueRepository {
   blueIds: BlueIdsRecord;
@@ -45,6 +47,7 @@ export class Blue {
   private urlContentFetcher: UrlContentFetcher;
   private blueIdsMappingGenerator: BlueIdsMappingGenerator;
   private globalLimits = NO_LIMITS;
+  private definitionsProvider?: InMemoryNodeProvider;
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -54,9 +57,15 @@ export class Blue {
       repositories,
     } = options;
 
+    // Create definitions provider from repositories if available
+    this.definitionsProvider =
+      RepositoryNodeProviderFactory.createDefinitionsProvider(repositories);
+
+    // Use NodeProviderWrapper to create the provider chain
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = NodeProviderWrapper.wrap(
-      nodeProvider || defaultProvider
+      nodeProvider || defaultProvider,
+      this.definitionsProvider
     );
 
     this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
@@ -205,7 +214,10 @@ export class Blue {
   }
 
   public setNodeProvider(nodeProvider: NodeProvider): Blue {
-    this.nodeProvider = NodeProviderWrapper.wrap(nodeProvider);
+    this.nodeProvider = NodeProviderWrapper.wrap(
+      nodeProvider,
+      this.definitionsProvider
+    );
     return this;
   }
 

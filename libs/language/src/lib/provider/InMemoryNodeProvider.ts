@@ -35,4 +35,13 @@ export class InMemoryNodeProvider extends NodeProvider {
     this.processNodeList(nodes);
     nodes.forEach(this.processSingleNode);
   };
+
+  /**
+   * Adds a node with a specific blueId without calculating it
+   * @param blueId - The blueId to use as the key
+   * @param node - The node to add
+   */
+  public addNodeWithBlueId = (blueId: string, node: BlueNode) => {
+    this.blueIdToNodesMap.set(blueId, [node]);
+  };
 }
