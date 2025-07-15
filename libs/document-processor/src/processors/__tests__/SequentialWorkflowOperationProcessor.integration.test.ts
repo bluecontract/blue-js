@@ -2,8 +2,12 @@ import { expect, describe, test } from 'vitest';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
-import { repository as coreRepository } from '@blue-repository/core-dev';
+import {
+  repository as coreRepository,
+  DocumentUpdateSchema,
+} from '@blue-repository/core-dev';
 import { prepareToProcess } from '../../testUtils';
+import { createTimelineEntryEvent } from '../../utils/eventFactories';
 
 function makeCounterWithOperationsDoc(): JsonObject {
   return {
@@ -100,27 +104,22 @@ function makeCounterWithOperationsDoc(): JsonObject {
   };
 }
 
-function timelineEvent(message: unknown) {
-  return {
-    type: 'Timeline Entry',
-    timeline: { timelineId: 'owner-timeline' },
-    message,
-  };
-}
-
-function operationRequestEvent(operation: string, request: number) {
-  return timelineEvent({
-    type: 'Operation Request',
-    operation,
-    request,
-  });
-}
-
 describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+  function timelineEvent(message: unknown) {
+    return createTimelineEntryEvent('owner-timeline', message, blue);
+  }
+
+  function operationRequestEvent(operation: string, request: number) {
+    return timelineEvent({
+      type: 'Operation Request',
+      operation,
+      request,
+    });
+  }
   test('processes increment operation and updates counter', async () => {
     const doc = makeCounterWithOperationsDoc();
     const { initializedState } = await prepareToProcess(doc, {
@@ -141,10 +140,13 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
     expect(jsonState.counter).toBe(8);
 
     // Should emit a Document Update event
-    const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+    const docUpdateEvt = emitted.find((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvt).toBeDefined();
-    expect(docUpdateEvt!.path).toBe('/counter');
-    expect(docUpdateEvt!.val).toBe(8);
+    const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+    expect(docUpdateEvtJson.path).toBe('/counter');
+    expect(docUpdateEvtJson.val).toBe(8);
   });
 
   test('processes decrement operation and updates counter', async () => {
@@ -167,10 +169,13 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
     expect(jsonState.counter).toBe(3);
 
     // Should emit a Document Update event
-    const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+    const docUpdateEvt = emitted.find((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvt).toBeDefined();
-    expect(docUpdateEvt!.path).toBe('/counter');
-    expect(docUpdateEvt!.val).toBe(3);
+    const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+    expect(docUpdateEvtJson.path).toBe('/counter');
+    expect(docUpdateEvtJson.val).toBe(3);
   });
 
   test('processes reset operation with specific value', async () => {
@@ -193,10 +198,13 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
     expect(jsonState.counter).toBe(10);
 
     // Should emit a Document Update event
-    const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+    const docUpdateEvt = emitted.find((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvt).toBeDefined();
-    expect(docUpdateEvt!.path).toBe('/counter');
-    expect(docUpdateEvt!.val).toBe(10);
+    const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+    expect(docUpdateEvtJson.path).toBe('/counter');
+    expect(docUpdateEvtJson.val).toBe(10);
   });
 
   test('processes reset operation with default value (0)', async () => {
@@ -228,10 +236,13 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
     expect(jsonState.counter).toBe(0);
 
     // Should emit a Document Update event
-    const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+    const docUpdateEvt = emitted.find((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvt).toBeDefined();
-    expect(docUpdateEvt!.path).toBe('/counter');
-    expect(docUpdateEvt!.val).toBe(0);
+    const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+    expect(docUpdateEvtJson.path).toBe('/counter');
+    expect(docUpdateEvtJson.val).toBe(0);
   });
 
   test('ignores operation request for non-matching operation name', async () => {
@@ -254,7 +265,9 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
     expect(jsonState.counter).toBe(5);
 
     // Should not emit any Document Update events
-    const docUpdateEvts = emitted.filter((e) => e.type === 'Document Update');
+    const docUpdateEvts = emitted.filter((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvts).toHaveLength(0);
   });
 
@@ -355,8 +368,12 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
     expect(jsonState.counter).toBe(13);
 
     // Should emit a Document Update event
-    const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+    const docUpdateEvt = emitted.find((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvt).toBeDefined();
-    expect(docUpdateEvt!.val).toBe(13);
+    const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+    expect(docUpdateEvtJson.path).toBe('/counter');
+    expect(docUpdateEvtJson.val).toBe(13);
   });
 });

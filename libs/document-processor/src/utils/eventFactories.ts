@@ -1,4 +1,5 @@
 import { EventNodePayload } from '../types';
+import { Blue } from '@blue-labs/language';
 
 /**
  * Factory functions for creating common event payloads
@@ -27,7 +28,8 @@ export interface DocumentUpdateEventOptions {
  * Creates a Document Update event payload
  */
 export function createDocumentUpdateEvent(
-  options: DocumentUpdateEventOptions
+  options: DocumentUpdateEventOptions,
+  blue: Blue
 ): EventNodePayload {
   const { op, path, val, from } = options;
 
@@ -39,12 +41,16 @@ export function createDocumentUpdateEvent(
     throw new Error(`${op} operation requires 'val' property`);
   }
 
-  const payload: EventNodePayload = { type: 'Document Update', op, path };
+  const payload: Record<string, unknown> = {
+    type: 'Document Update',
+    op,
+    path,
+  };
 
   if (val !== undefined) payload.val = val;
   if (from !== undefined) payload.from = from;
 
-  return payload;
+  return blue.jsonValueToNode(payload);
 }
 
 /**
@@ -52,21 +58,34 @@ export function createDocumentUpdateEvent(
  */
 export function createTimelineEntryEvent(
   timelineId: string,
-  message: unknown
+  message: unknown,
+  blue: Blue
 ): EventNodePayload {
-  return {
+  return blue.jsonValueToNode({
     type: 'Timeline Entry',
     timeline: { timelineId },
     message,
-  };
+  });
+}
+
+export function createMyOSTimelineEntryEvent(
+  timelineId: string,
+  message: unknown,
+  blue: Blue
+): EventNodePayload {
+  return blue.jsonValueToNode({
+    type: 'MyOS Timeline Entry',
+    timeline: { timelineId },
+    message,
+  });
 }
 
 /**
  * Creates a Document Processing Initiated event payload
  * This is a lifecycle event emitted when document processing starts
  */
-export function createDocumentProcessingInitiatedEvent() {
-  return {
+export function createDocumentProcessingInitiatedEvent(blue: Blue) {
+  return blue.jsonValueToNode({
     type: 'Document Processing Initiated',
-  };
+  });
 }

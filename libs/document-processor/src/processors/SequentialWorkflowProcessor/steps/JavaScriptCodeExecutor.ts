@@ -24,7 +24,7 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
 
   async execute(
     step: DocumentNode,
-    evt: EventNode,
+    event: EventNode,
     ctx: ProcessingContext,
     documentPath: string,
     stepResults: Record<string, unknown>
@@ -44,7 +44,7 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
     const result = await ExpressionEvaluator.evaluate({
       code: javaScriptCodeStep.code,
       ctx,
-      bindings: BindingsFactory.createStandardBindings(ctx, evt, stepResults),
+      bindings: BindingsFactory.createStandardBindings(ctx, event, stepResults),
       options: {
         isCodeBlock: true,
         timeout: 500,
@@ -53,12 +53,11 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
 
     // Handle events in the result
     if (result && typeof result === 'object' && 'events' in result) {
-      // TODO: Validate the events
       const resultWithEvents = result as ResultWithEvents;
       if (Array.isArray(resultWithEvents.events)) {
         for (const event of resultWithEvents.events) {
           ctx.emitEvent({
-            payload: event,
+            payload: blue.jsonValueToNode(event),
           });
         }
       }

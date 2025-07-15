@@ -7,23 +7,20 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
   return yaml.load(fs.readFileSync(resourcePath, 'utf8')) as any;
 }
 
-const TIMELINE_EVENT = {
-  type: 'Timeline Entry',
-  timeline: { timelineId: 't' },
-  message: { type: 'Ping' },
-};
-
 describe('Process Embedded – cross-boundary guard', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+
+  const TIMELINE_EVENT = createTimelineEntryEvent('t', { type: 'Ping' }, blue);
   it('allows workflows INSIDE the embedded subtree to mutate it', async () => {
     const doc = loadYamlFromResources('processEmbedded_happy.yaml');
 

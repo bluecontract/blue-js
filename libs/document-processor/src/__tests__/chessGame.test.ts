@@ -7,6 +7,7 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 /**
  * Loads a YAML document from the resources directory
@@ -19,23 +20,22 @@ async function loadYamlDocument(
   return yaml.load(yamlContent) as Record<string, any>;
 }
 
-/**
- * Creates a timeline event for a player's move
- */
-function timelineEvent(timelineId: string, move: string) {
-  return {
-    type: 'Timeline Entry',
-    timeline: { timelineId },
-    message: { move, player: timelineId },
-    payload: { move, player: timelineId },
-  };
-}
-
 describe('Chess Game with Two Timeline Channels', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+
+  /**
+   * Creates a timeline event for a player's move
+   */
+  function timelineEvent(timelineId: string, move: string) {
+    return createTimelineEntryEvent(
+      timelineId,
+      { move, player: timelineId },
+      blue
+    );
+  }
 
   // Mock loadBlueContent to provide chess.js library
   beforeEach(() => {

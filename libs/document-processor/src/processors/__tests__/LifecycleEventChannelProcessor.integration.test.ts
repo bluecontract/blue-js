@@ -2,7 +2,12 @@ import { expect, describe, test, beforeEach } from 'vitest';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
-import { repository as coreRepository } from '@blue-repository/core-dev';
+import {
+  repository as coreRepository,
+  DocumentProcessingInitiatedSchema,
+  DocumentUpdateSchema,
+} from '@blue-repository/core-dev';
+import { createTimelineEntryEvent } from '../../utils/eventFactories';
 
 describe('LifecycleEventChannelProcessor - Integration Tests', () => {
   let blue: Blue;
@@ -84,18 +89,22 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
     expect(jsonState.status).toBe('initialized');
 
     // Should emit lifecycle events from channels
-    const lifecycleEvents = emitted.filter(
-      (e) => e.type === 'Document Processing Initiated'
+    const lifecycleEvents = emitted.filter((e) =>
+      blue.isTypeOf(e, DocumentProcessingInitiatedSchema)
     );
     expect(lifecycleEvents.length).toBe(1);
 
     // Should emit document update event from the sequential workflow
-    const docUpdateEvents = emitted.filter((e) => e.type === 'Document Update');
+    const docUpdateEvents = emitted.filter((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvents.length).toBe(1);
 
-    const statusUpdate = docUpdateEvents.find((e) => e.path === '/status');
+    const statusUpdate = docUpdateEvents.find(
+      (e) => e.get('/path') === '/status'
+    );
     expect(statusUpdate).toBeDefined();
-    expect(statusUpdate!.val).toBe('initialized');
+    expect(statusUpdate!.get('/val')).toBe('initialized');
   });
 
   test('should not interfere with regular event processing', async () => {
@@ -109,14 +118,14 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
     );
 
     // Then process a regular timeline event
-    const timelineEvent = {
-      type: 'Timeline Entry',
-      timeline: { timelineId: 'main-timeline' },
-      message: {
+    const timelineEvent = createTimelineEntryEvent(
+      'main-timeline',
+      {
         type: 'User Action',
         action: 'click',
       },
-    };
+      blue
+    );
 
     const { state: finalState } = await documentProcessor.processEvents(
       initResult.state,

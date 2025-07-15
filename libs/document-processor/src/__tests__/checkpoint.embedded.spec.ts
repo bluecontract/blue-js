@@ -5,6 +5,7 @@ import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createDocumentUpdateEvent } from '../utils/eventFactories';
 
 describe('Checkpoint – embedded documents via Process Embedded', () => {
   const blue = new Blue({
@@ -34,12 +35,14 @@ describe('Checkpoint – embedded documents via Process Embedded', () => {
     },
   };
 
-  const payload: EventNodePayload = {
-    type: 'Document Update',
-    op: 'replace',
-    path: '/order/total',
-    val: 15,
-  };
+  const payload: EventNodePayload = createDocumentUpdateEvent(
+    {
+      op: 'replace',
+      path: '/order/total',
+      val: 15,
+    },
+    blue
+  );
 
   it('writes checkpoints in BOTH root and embedded docs', async () => {
     const { initializedState } = await prepareToProcess(doc, {

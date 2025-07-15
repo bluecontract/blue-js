@@ -3,23 +3,21 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
-
-const timelineEvent = (
-  timelineId: string,
-  message: unknown = { type: 'Ping' }
-) => {
-  return {
-    type: 'Timeline Entry',
-    timeline: { timelineId },
-    message,
-  };
-};
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+
+  const timelineEvent = (
+    timelineId: string,
+    message: unknown = { type: 'Ping' }
+  ) => {
+    return createTimelineEntryEvent(timelineId, message, blue);
+  };
+
   it('ignores an event that matches no contract (state remains unchanged)', async () => {
     const doc = { foo: 123, contracts: {} };
 
@@ -30,7 +28,7 @@ describe('BlueDocumentProcessor', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [{ type: 'SomeRandomEvent' }]
+      [blue.jsonValueToNode({ type: 'SomeRandomEvent' })]
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;

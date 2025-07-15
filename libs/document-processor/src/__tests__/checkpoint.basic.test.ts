@@ -5,6 +5,7 @@ import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createDocumentUpdateEvent } from '../utils/eventFactories';
 
 let seq = 0;
 
@@ -32,12 +33,14 @@ describe('Checkpoint – basic root-channel scenario', () => {
     profile: { username: 'old' },
   };
 
-  const updateEvt: EventNodePayload = {
-    type: 'Document Update',
-    op: 'replace',
-    path: '/profile/username',
-    val: 'new',
-  };
+  const updateEvt: EventNodePayload = createDocumentUpdateEvent(
+    {
+      op: 'replace',
+      path: '/profile/username',
+      val: 'new',
+    },
+    blue
+  );
 
   it('writes exactly one blueId for the channel after the batch', async () => {
     const { initializedState } = await prepareToProcess(doc, {
