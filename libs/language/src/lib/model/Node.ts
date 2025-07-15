@@ -176,6 +176,13 @@ export class BlueNode {
     return this;
   }
 
+  removeProperty(key: string): BlueNode {
+    if (this.properties) {
+      delete this.properties[key];
+    }
+    return this;
+  }
+
   getContracts() {
     return this.contracts;
   }
@@ -190,6 +197,13 @@ export class BlueNode {
       this.contracts = {};
     }
     this.contracts[key] = value;
+    return this;
+  }
+
+  removeContract(key: string): BlueNode {
+    if (this.contracts) {
+      delete this.contracts[key];
+    }
     return this;
   }
 
