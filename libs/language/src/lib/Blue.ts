@@ -21,10 +21,14 @@ import {
   BlueIdsMappingGenerator,
   BlueIdsRecord,
 } from './preprocess/utils/BlueIdsMappingGenerator';
+import { JsonValue } from '@blue-labs/shared-utils';
+import { Limits, NO_LIMITS } from './utils/limits';
+import { NodeExtender } from './utils/NodeExtender';
 
 export interface BlueRepository {
   blueIds: BlueIdsRecord;
   schemas: ZodTypeAny[];
+  definitions?: Record<string, JsonValue>;
 }
 
 export interface BlueOptions {
@@ -40,6 +44,7 @@ export class Blue {
   private blueDirectivePreprocessor: BlueDirectivePreprocessor;
   private urlContentFetcher: UrlContentFetcher;
   private blueIdsMappingGenerator: BlueIdsMappingGenerator;
+  private globalLimits = NO_LIMITS;
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -93,6 +98,11 @@ export class Blue {
   >(node: BlueNode, schema: ZodType<Output, Def, Input>): Output {
     const converter = new NodeToObjectConverter(this.typeSchemaResolver);
     return converter.convert(node, schema);
+  }
+
+  public extend(node: BlueNode, limits: Limits) {
+    const effectiveLimits = this.combineWithGlobalLimits(limits);
+    new NodeExtender(this.nodeProvider).extend(node, effectiveLimits);
   }
 
   public jsonValueToNode(json: unknown) {
@@ -356,5 +366,19 @@ export class Blue {
       checkSchemaExtensions: options?.checkSchemaExtensions,
       typeSchemaResolver: this.typeSchemaResolver,
     });
+  }
+
+  private combineWithGlobalLimits(methodLimits: Limits) {
+    if (this.globalLimits == NO_LIMITS) {
+      return methodLimits;
+    }
+
+    if (methodLimits == NO_LIMITS) {
+      return this.globalLimits;
+    }
+
+    return NO_LIMITS;
+    // TODO: Implement this
+    // return new CompositeLimits(globalLimits, methodLimits);
   }
 }
