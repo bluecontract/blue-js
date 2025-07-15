@@ -72,11 +72,14 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
           val: changeValueNode,
         });
         ctx.emitEvent({
-          payload: createDocumentUpdateEvent({
-            op: change.op,
-            path: ctx.resolvePath(change.path),
-            val: blue.nodeToJson(changeValueNode, 'original'),
-          }),
+          payload: createDocumentUpdateEvent(
+            {
+              op: change.op,
+              path: ctx.resolvePath(change.path),
+              val: blue.nodeToJson(changeValueNode, 'original'),
+            },
+            blue
+          ),
         });
       }
 
@@ -84,11 +87,14 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
         ctx.addPatch({ op: change.op, path: change.path });
 
         ctx.emitEvent({
-          payload: createDocumentUpdateEvent({
-            op: change.op,
-            path: ctx.resolvePath(change.path),
-            val: null,
-          }),
+          payload: createDocumentUpdateEvent(
+            {
+              op: change.op,
+              path: ctx.resolvePath(change.path),
+              val: null,
+            },
+            blue
+          ),
         });
       }
     }

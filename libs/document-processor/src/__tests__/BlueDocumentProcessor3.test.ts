@@ -6,6 +6,7 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
@@ -13,22 +14,19 @@ function loadYamlFromResources(filename: string): Record<string, any> {
   return yaml.load(yamlContent) as Record<string, any>;
 }
 
-const timelineEvent = (
-  timelineId: string,
-  message: unknown = { type: 'Ping' }
-) => {
-  return {
-    type: 'Timeline Entry',
-    timeline: { timelineId },
-    message,
-  };
-};
-
 describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+
+  const timelineEvent = (
+    timelineId: string,
+    message: unknown = { type: 'Ping' }
+  ) => {
+    return createTimelineEntryEvent(timelineId, message, blue);
+  };
+
   describe('Example 2 - Dynamic Workflow Creation', () => {
     it('should create a new workflow contract dynamically', async () => {
       const doc = loadYamlFromResources('example2.yaml');

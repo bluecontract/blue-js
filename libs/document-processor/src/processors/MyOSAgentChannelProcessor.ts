@@ -91,9 +91,8 @@ export class MyOSAgentChannelProcessor extends BaseChannelProcessor {
   ) {
     const blue = ctx.getBlue();
 
-    const eventPayloadNode = blue.jsonValueToNode(event.payload);
     const myosAgentEvent = blue.nodeToSchemaOutput(
-      eventPayloadNode,
+      event.payload,
       MyOSAgentEventSchema
     );
 

@@ -53,15 +53,14 @@ export class OperationProcessor implements ContractProcessor {
 
   private parseEventPayload(event: EventNode, ctx: ProcessingContext) {
     const blue = ctx.getBlue();
-    const eventPayloadNode = blue.jsonValueToNode(event.payload);
 
     if (
-      blue.isTypeOf(eventPayloadNode, TimelineEntrySchema, {
+      blue.isTypeOf(event.payload, TimelineEntrySchema, {
         checkSchemaExtensions: true,
       })
     ) {
       const timelineEntry = blue.nodeToSchemaOutput(
-        eventPayloadNode,
+        event.payload,
         TimelineEntrySchema
       );
       if (timelineEntry.message) {

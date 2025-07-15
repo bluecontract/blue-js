@@ -14,18 +14,25 @@ import { JsonObject } from 'type-fest';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createDocumentUpdateEvent } from '../utils/eventFactories';
 
 let seq = 0;
 
 /* ------------------------------------------------------------------ */
 /* Test fixtures                                                      */
 /* ------------------------------------------------------------------ */
-const updatePayload: EventNodePayload = {
-  type: 'Document Update',
-  op: 'replace',
-  path: '/profile/name',
-  val: 'Alice',
-};
+const blue = new Blue({
+  repositories: [coreRepository],
+});
+
+const updatePayload: EventNodePayload = createDocumentUpdateEvent(
+  {
+    op: 'replace',
+    path: '/profile/name',
+    val: 'Alice',
+  },
+  blue
+);
 
 const baseDoc: JsonObject = {
   profile: { name: 'Bob' },
@@ -91,11 +98,14 @@ describe('Checkpoint', () => {
   /* 2 – root + embedded at once                                        */
   /* ------------------------------------------------------------------ */
   test('one external event updates in embedded docs', async () => {
-    const payload = {
-      ...updatePayload,
-      path: '/child/title',
-      val: 'published',
-    };
+    const payload = createDocumentUpdateEvent(
+      {
+        op: 'replace',
+        path: '/child/title',
+        val: 'published',
+      },
+      blue
+    );
 
     const { initializedState } = await prepareToProcess(embeddedDoc, {
       blue,
@@ -126,8 +136,14 @@ describe('Checkpoint', () => {
       },
     };
 
-    const payloadA = { ...updatePayload, path: '/data/a', val: 2 };
-    const payloadB = { ...updatePayload, path: '/data/b', val: 2 };
+    const payloadA = createDocumentUpdateEvent(
+      { op: 'replace', path: '/data/a', val: 2 },
+      blue
+    );
+    const payloadB = createDocumentUpdateEvent(
+      { op: 'replace', path: '/data/b', val: 2 },
+      blue
+    );
 
     const { initializedState } = await prepareToProcess(complexDoc, {
       blue,

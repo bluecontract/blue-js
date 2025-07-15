@@ -9,7 +9,6 @@ import {
 } from '../types';
 import { CheckpointCache } from '../utils/CheckpointCache';
 import { blueIds } from '@blue-repository/core-dev';
-import { type JsonBlueValue } from '@blue-labs/language';
 
 /* ------------------------------------------------------------------------ */
 /* Channel Event Checkpoint – records the last processed event per channel  */
@@ -32,9 +31,7 @@ export class ChannelEventCheckpointProcessor implements ContractProcessor {
   async handle(event: EventNode, node: DocumentNode, ctx: ProcessingContext) {
     if (!event.channelName || !event.rootEvent?.seq) return;
 
-    const blueId = await ctx
-      .getBlue()
-      .calculateBlueId(event.rootEvent.payload as JsonBlueValue);
+    const blueId = await ctx.getBlue().calculateBlueId(event.rootEvent.payload);
 
     const docBase = ctx.getNodePath().replace(/\/contracts\/checkpoint$/, '');
 

@@ -4,14 +4,13 @@ import { BaseChannelProcessor } from './BaseChannelProcessor';
 import {
   blueIds,
   TimelineChannelSchema,
-  TimelineEntry,
   TimelineEntrySchema,
 } from '@blue-repository/core-dev';
+import { BlueNodeTypeSchema } from '@blue-labs/language';
 
-// TODO: use mapping to TimelineEntry instead of type check
-const isTimelineEntryEvent = (
-  evt: EventNode
-): evt is EventNode<TimelineEntry> => evt.payload.type === 'Timeline Entry';
+const isTimelineEntryEvent = (evt: EventNode) => {
+  return BlueNodeTypeSchema.isTypeOf(evt.payload, TimelineEntrySchema);
+};
 
 // TODO: event check validation
 
@@ -32,7 +31,7 @@ export class TimelineChannelProcessor extends BaseChannelProcessor {
 
     const blue = ctx.getBlue();
     const timelineEntry = blue.nodeToSchemaOutput(
-      blue.jsonValueToNode(event.payload),
+      event.payload,
       TimelineEntrySchema
     );
     const timelineChannel = ctx

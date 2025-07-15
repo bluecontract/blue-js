@@ -8,10 +8,7 @@ export type BlueId = string;
 
 export type DocumentNode = BlueNode;
 
-export interface EventNodePayload {
-  type?: string;
-  [key: string]: unknown;
-}
+export type EventNodePayload = BlueNode;
 
 export interface EventNode<Payload = EventNodePayload> {
   payload: Payload;

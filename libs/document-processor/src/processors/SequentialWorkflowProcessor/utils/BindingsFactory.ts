@@ -16,6 +16,10 @@ export class BindingsFactory {
     stepResults: Record<string, unknown>
   ): VMBindings {
     const blue = ctx.getBlue();
+    const eventJson = blue.nodeToJson(event.payload, 'simple');
+    const eventParsed = isBigNumber(eventJson)
+      ? eventJson.toNumber()
+      : eventJson;
 
     return {
       document: (path: string) => {
@@ -28,7 +32,7 @@ export class BindingsFactory {
         }
         return value;
       },
-      event: event.payload,
+      event: eventParsed,
       steps: stepResults,
     };
   }

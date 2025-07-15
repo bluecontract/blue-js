@@ -1,0 +1,21 @@
+name: With Operation and State Change
+counter: 0
+contracts:
+  ownerChannel:
+    type: MyOS Timeline Channel
+    timelineId: owner-timeline
+  increment:
+    type: Operation
+    channel: ownerChannel
+    request:
+      description: Represents a value by which counter will be incremented
+      type: Integer
+  incrementImpl:
+    type: Sequential Workflow Operation
+    operation: increment
+    steps:
+      - type: Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: ${event.message.request + document('/counter')}

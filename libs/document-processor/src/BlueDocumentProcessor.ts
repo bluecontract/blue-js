@@ -80,7 +80,7 @@ export class BlueDocumentProcessor {
     let current = ensureCheckpointContracts(document, this.blue);
     // Emit the Document Processing Initiated event
     const initEvent: EventNode = {
-      payload: createDocumentProcessingInitiatedEvent(),
+      payload: createDocumentProcessingInitiatedEvent(this.blue),
     };
 
     const emitted: EventNodePayload[] = [initEvent.payload];
