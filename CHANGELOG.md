@@ -1,3 +1,10 @@
+## 1.25.0 (2025-07-15)
+
+### 🚀 Features
+
+- **Node:** add methods to remove properties and contracts ([4e387a5](https://github.com/bluecontract/blue-js/commit/4e387a5))
+- **document-processor:** Refactor event payloads to use BlueNode ([4111099](https://github.com/bluecontract/blue-js/commit/4111099))
+
 ## 1.24.3 (2025-07-02)
 
 ### 🩹 Fixes
