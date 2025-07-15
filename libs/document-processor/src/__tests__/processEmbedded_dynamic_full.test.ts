@@ -7,25 +7,12 @@ import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(__dirname, 'resources', filename);
   return yaml.load(fs.readFileSync(resourcePath, 'utf8')) as any;
 }
-
-const timelineEvent = (
-  timelineId: string,
-  message: unknown = { type: 'Ping' }
-) => {
-  return {
-    type: 'Timeline Entry',
-    timeline: { timelineId },
-    message,
-  };
-};
-const EVT1 = timelineEvent('t1');
-const EVT2 = timelineEvent('t2', { type: 'Remove' });
-const EVT3 = timelineEvent('t3', { type: 'ReAdd' });
 
 describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () => {
   const doc = loadYamlFromResources('processEmbedded_dynamic_full.yaml');
@@ -33,6 +20,15 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+  const timelineEvent = (
+    timelineId: string,
+    message: unknown = { type: 'Ping' }
+  ) => {
+    return createTimelineEntryEvent(timelineId, message, blue);
+  };
+  const EVT1 = timelineEvent('t1');
+  const EVT2 = timelineEvent('t2', { type: 'Remove' });
+  const EVT3 = timelineEvent('t3', { type: 'ReAdd' });
 
   it('1) initial t1 is blocked', async () => {
     const { initializedState } = await prepareToProcess(doc, {

@@ -1,25 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '@blue-repository/core-dev';
+import {
+  repository as coreRepository,
+  DocumentUpdateSchema,
+} from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
-
-const timelineEvent = (
-  timelineId: string,
-  message: unknown = { type: 'Ping' }
-) => {
-  return {
-    type: 'Timeline Entry',
-    timeline: { timelineId },
-    message,
-  };
-};
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+
+  const timelineEvent = (
+    timelineId: string,
+    message: unknown = { type: 'Ping' }
+  ) => {
+    return createTimelineEntryEvent(timelineId, message, blue);
+  };
 
   it('processes embedded documents before parent init contracts', async () => {
     const doc = {
@@ -70,7 +70,9 @@ describe('BlueDocumentProcessor', () => {
     );
     const stateMap = blue.nodeToJson(state, 'simple') as any;
     expect(stateMap?.counter).toBe(2);
-    expect(emitted.some((e) => e.type === 'Document Update')).toBe(true);
+    expect(emitted.some((e) => blue.isTypeOf(e, DocumentUpdateSchema))).toBe(
+      true
+    );
   });
 
   it('processes Sequential Workflow contracts in alphabetical name order and evaluates expressions correctly', async () => {
@@ -359,12 +361,10 @@ describe('BlueDocumentProcessor', () => {
     expect(state.level1.level2.counter).toBe(2);
     expect(state.level1.level2.level3.counter).toBe(3);
 
-    // Check events were propagated
-    const emittedTypes = emitted.map((e) => e.type);
-    expect(emittedTypes).toContain('Document Update');
-
     // Verify event propagation path
-    const documentUpdates = emitted.filter((e) => e.type === 'Document Update');
+    const documentUpdates = emitted.filter((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
 
     expect(documentUpdates.length).toBe(4); // One update per level
   });
@@ -471,9 +471,9 @@ describe('BlueDocumentProcessor', () => {
     expect(state.x).toBe(10);
 
     // Check for emitted events
-    const paymentSucceededEvent = result.emitted.find(
-      (e) => e.type === 'Payment Succeeded' && e.amountUsd === 120
-    );
+    const paymentSucceededEvent = result.emitted
+      .map((e) => blue.nodeToJson(e, 'simple') as any)
+      .find((e) => e.type === 'Payment Succeeded' && e.amountUsd === 120);
 
     expect(paymentSucceededEvent).toBeDefined();
   });

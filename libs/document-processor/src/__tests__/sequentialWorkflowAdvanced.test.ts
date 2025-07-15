@@ -6,8 +6,12 @@ import {
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
-import { repository as coreRepository } from '@blue-repository/core-dev';
+import {
+  repository as coreRepository,
+  DocumentUpdateSchema,
+} from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 function makeWorkflowDoc(steps: JsonObject[]): JsonObject {
   return {
@@ -25,19 +29,15 @@ function makeWorkflowDoc(steps: JsonObject[]): JsonObject {
   };
 }
 
-function timelineEvent(message: unknown) {
-  return {
-    type: 'Timeline Entry',
-    timeline: { timelineId: 't1' },
-    message,
-  };
-}
-
 describe('Sequential Workflow – JavaScript Code step', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+  const timelineEvent = (message: unknown) => {
+    return createTimelineEntryEvent('t1', message, blue);
+  };
+
   test('propagates step results into Update Document expressions', async () => {
     const steps: JsonObject[] = [
       {
@@ -75,9 +75,12 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     expect(jsonState.total).toBe(123);
 
-    const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+    const docUpdateEvt = emitted.find((e) =>
+      blue.isTypeOf(e, DocumentUpdateSchema)
+    );
     expect(docUpdateEvt).toBeDefined();
-    expect(docUpdateEvt!.val).toBe(123);
+    const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+    expect(docUpdateEvtJson.val).toBe(123);
   });
 
   test('JS‑Code step can emit events that are routed synchronously', async () => {
@@ -104,7 +107,9 @@ describe('Sequential Workflow – JavaScript Code step', () => {
       [evt]
     );
 
-    const found = emitted.find((e) => e.type === 'Greeting');
+    const found = emitted
+      .map((e) => blue.nodeToJson(e, 'simple') as any)
+      .find((e) => e.type === 'Greeting');
 
     expect(found).toBeDefined();
     expect(found).toEqual(greetingEvt);
@@ -204,6 +209,9 @@ describe('Sequential Workflow – Error Handling', () => {
     repositories: [coreRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+  const timelineEvent = (message: unknown) => {
+    return createTimelineEntryEvent('t1', message, blue);
+  };
   test('throws ExpressionEvaluationError for invalid expressions', async () => {
     const steps: JsonObject[] = [
       {

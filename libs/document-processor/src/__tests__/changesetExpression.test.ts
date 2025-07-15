@@ -3,12 +3,16 @@ import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
 import { prepareToProcessYaml } from '../testUtils';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository, myosRepository],
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
+  const timelineEntryEvent = (timelineId: string, message: unknown) => {
+    return createTimelineEntryEvent(timelineId, message, blue);
+  };
 
   it('creates dubscription to agent based on timeline event', async () => {
     const docyaml = `
@@ -85,25 +89,19 @@ contracts:
       documentProcessor,
     });
 
-    const event = {
-      type: 'Timeline Entry',
-      timeline: {
-        timelineId: 'test-timeline',
-      },
-      message: {
-        type: 'Agent Subscription Request',
-        subscriptions: [
-          {
-            agentId: 'agent-1',
-            eventType: 'EventType1',
-          },
-          {
-            agentId: 'agent-2',
-            eventType: 'EventType2',
-          },
-        ],
-      },
-    };
+    const event = timelineEntryEvent('test-timeline', {
+      type: 'Agent Subscription Request',
+      subscriptions: [
+        {
+          agentId: 'agent-1',
+          eventType: 'EventType1',
+        },
+        {
+          agentId: 'agent-2',
+          eventType: 'EventType2',
+        },
+      ],
+    });
 
     const { state } = await documentProcessor.processEvents(initializedState, [
       event,

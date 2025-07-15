@@ -2,10 +2,11 @@ import { MyOSAgentChannelProcessor } from '../MyOSAgentChannelProcessor';
 import { EventNode, ProcessingContext } from '../../types';
 import { Blue } from '@blue-labs/language';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { repository as myosRepository } from '@blue-repository/myos-dev';
 
 describe('MyOSAgentChannelProcessor', () => {
   const blue = new Blue({
-    repositories: [coreRepository],
+    repositories: [coreRepository, myosRepository],
   });
   let processor: MyOSAgentChannelProcessor;
   let mockContext: ProcessingContext;
@@ -19,6 +20,16 @@ describe('MyOSAgentChannelProcessor', () => {
       payload: { foo: 'bar' },
     },
   });
+
+  const myOSAgentEvent = (agentId: string, event: unknown = null) => {
+    return blue.jsonValueToNode({
+      type: 'MyOS Agent Event',
+      agentId: agentId,
+      id: 18440,
+      timestamp: 1748598263552984,
+      event,
+    });
+  };
 
   beforeEach(() => {
     processor = new MyOSAgentChannelProcessor();
@@ -34,16 +45,10 @@ describe('MyOSAgentChannelProcessor', () => {
   describe('supports', () => {
     it('should return true for matching MyOS Agent Event with correct agentId', () => {
       const event: EventNode = {
-        payload: {
-          type: 'MyOS Agent Event',
-          agentId: 'test-1234',
-          id: 18440,
-          timestamp: 1748598263552984,
-          event: {
-            type: 'SomeEventType',
-            payload: { foo: 'bar' },
-          },
-        },
+        payload: myOSAgentEvent('test-1234', {
+          type: 'SomeEventType',
+          payload: { foo: 'bar' },
+        }),
         source: 'external',
       };
 
@@ -53,13 +58,10 @@ describe('MyOSAgentChannelProcessor', () => {
 
     it('should return false for non-matching agentId', () => {
       const event: EventNode = {
-        payload: {
-          type: 'MyOS Agent Event',
-          agentId: 'different-agent',
-          id: 18440,
-          timestamp: 1748598263552984,
-          event: { type: 'SomeEventType', payload: { foo: 'bar' } },
-        },
+        payload: myOSAgentEvent('different-agent', {
+          type: 'SomeEventType',
+          payload: { foo: 'bar' },
+        }),
         source: 'external',
       };
 
@@ -69,13 +71,10 @@ describe('MyOSAgentChannelProcessor', () => {
 
     it('should return false for channel events', () => {
       const event: EventNode = {
-        payload: {
-          type: 'MyOS Agent Event',
-          agentId: 'test-1234',
-          id: 18440,
-          timestamp: 1748598263552984,
-          event: { type: 'SomeEventType', payload: { foo: 'bar' } },
-        },
+        payload: myOSAgentEvent('test-1234', {
+          type: 'SomeEventType',
+          payload: { foo: 'bar' },
+        }),
         source: 'channel',
       };
 
@@ -95,16 +94,10 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            event: {
-              type: 'UserAction',
-              payload: { action: 'click', target: 'button' },
-            },
-          },
+          payload: myOSAgentEvent('test-1234', {
+            type: 'UserAction',
+            payload: { action: 'click', target: 'button' },
+          }),
           source: 'external',
         };
 
@@ -123,16 +116,10 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            event: {
-              type: 'UserAction',
-              payload: { action: 'click', target: 'button', timestamp: 123456 },
-            },
-          },
+          payload: myOSAgentEvent('test-1234', {
+            type: 'UserAction',
+            payload: { action: 'click', target: 'button', timestamp: 123456 },
+          }),
           source: 'external',
         };
 
@@ -151,16 +138,10 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            event: {
-              type: 'UserAction',
-              payload: { action: 'hover' }, // Missing 'target' and different 'action'
-            },
-          },
+          payload: myOSAgentEvent('test-1234', {
+            type: 'UserAction',
+            payload: { action: 'hover' }, // Missing 'target' and different 'action'
+          }),
           source: 'external',
         };
 
@@ -179,16 +160,10 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            event: {
-              type: 'SystemEvent', // Different event type
-              payload: { action: 'click' },
-            },
-          },
+          payload: myOSAgentEvent('test-1234', {
+            type: 'SystemEvent', // Different event type
+            payload: { action: 'click' },
+          }),
           source: 'external',
         };
 
@@ -204,16 +179,10 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            event: {
-              type: 'AnyEventType',
-              payload: { some: 'data' },
-            },
-          },
+          payload: myOSAgentEvent('test-1234', {
+            type: 'AnyEventType',
+            payload: { some: 'data' },
+          }),
           source: 'external',
         };
 
@@ -229,13 +198,7 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            // No event specified
-          },
+          payload: myOSAgentEvent('test-1234'),
           source: 'external',
         };
 
@@ -257,20 +220,14 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            event: {
-              type: 'ComplexEvent',
-              payload: {
-                user: { id: 'user123', name: 'John Doe' },
-                metadata: { source: 'web', timestamp: 123456 },
-                extra: 'data',
-              },
+          payload: myOSAgentEvent('test-1234', {
+            type: 'ComplexEvent',
+            payload: {
+              user: { id: 'user123', name: 'John Doe' },
+              metadata: { source: 'web', timestamp: 123456 },
+              extra: 'data',
             },
-          },
+          }),
           source: 'external',
         };
 
@@ -292,19 +249,13 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            event: {
-              type: 'ComplexEvent',
-              payload: {
-                user: { id: 'user456' }, // Different user ID
-                metadata: { source: 'mobile' }, // Different source
-              },
+          payload: myOSAgentEvent('test-1234', {
+            type: 'ComplexEvent',
+            payload: {
+              user: { id: 'user456' }, // Different user ID
+              metadata: { source: 'mobile' }, // Different source
             },
-          },
+          }),
           source: 'external',
         };
 
@@ -323,13 +274,7 @@ describe('MyOSAgentChannelProcessor', () => {
         });
 
         const event: EventNode = {
-          payload: {
-            type: 'MyOS Agent Event',
-            agentId: 'test-1234',
-            id: 18440,
-            timestamp: 1748598263552984,
-            // No event field - incoming event has no event data
-          },
+          payload: myOSAgentEvent('test-1234'),
           source: 'external',
         };
 
@@ -342,13 +287,10 @@ describe('MyOSAgentChannelProcessor', () => {
   describe('handle', () => {
     it('should emit event with channel source and channelName', () => {
       const event: EventNode = {
-        payload: {
-          type: 'MyOS Agent Event',
-          agentId: 'test-1234',
-          id: 18440,
-          timestamp: 1748598263552984,
-          event: { type: 'SomeEventType', payload: { foo: 'bar' } },
-        },
+        payload: myOSAgentEvent('test-1234', {
+          type: 'SomeEventType',
+          payload: { foo: 'bar' },
+        }),
         source: 'external',
       };
 

@@ -3,6 +3,7 @@ import { OperationProcessor } from '../OperationProcessor';
 import { EventNode, ProcessingContext } from '../../types';
 import { Blue } from '@blue-labs/language';
 import { repository as coreRepository } from '@blue-repository/core-dev';
+import { createTimelineEntryEvent } from '../../utils/eventFactories';
 
 describe('OperationProcessor', () => {
   const blue = new Blue({
@@ -10,6 +11,10 @@ describe('OperationProcessor', () => {
   });
   let processor: OperationProcessor;
   let mockContext: ProcessingContext;
+
+  const timelineEntryEvent = (timelineId: string, message: unknown) => {
+    return createTimelineEntryEvent(timelineId, message, blue);
+  };
 
   beforeEach(() => {
     processor = new OperationProcessor();
@@ -33,15 +38,11 @@ describe('OperationProcessor', () => {
 
       // Create a matching timeline event with operation request
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          message: {
-            type: 'Operation Request',
-            operation: 'increment',
-            request: 5,
-          },
-        },
+        payload: timelineEntryEvent('owner-timeline', {
+          type: 'Operation Request',
+          operation: 'increment',
+          request: 5,
+        }),
         source: 'channel',
         channelName: 'ownerChannel',
       };
@@ -65,15 +66,11 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          message: {
-            type: 'Operation Request',
-            operation: 'increment',
-            request: 5,
-          },
-        },
+        payload: timelineEntryEvent('owner-timeline', {
+          type: 'Operation Request',
+          operation: 'increment',
+          request: 5,
+        }),
         source: 'external', // Not from channel
         channelName: 'ownerChannel',
       };
@@ -97,15 +94,11 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'other-timeline' },
-          message: {
-            type: 'Operation Request',
-            operation: 'increment',
-            request: 5,
-          },
-        },
+        payload: timelineEntryEvent('other-timeline', {
+          type: 'Operation Request',
+          operation: 'increment',
+          request: 5,
+        }),
         source: 'channel',
         channelName: 'differentChannel', // Different channel
       };
@@ -129,15 +122,11 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          message: {
-            type: 'Operation Request',
-            operation: 'decrement', // Different operation
-            request: 5,
-          },
-        },
+        payload: timelineEntryEvent('owner-timeline', {
+          type: 'Operation Request',
+          operation: 'decrement', // Different operation
+          request: 5,
+        }),
         source: 'channel',
         channelName: 'ownerChannel',
       };
@@ -161,15 +150,11 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          message: {
-            type: 'Operation Request',
-            operation: null, // Null operation
-            request: 5,
-          },
-        },
+        payload: timelineEntryEvent('owner-timeline', {
+          type: 'Operation Request',
+          operation: null, // Null operation
+          request: 5,
+        }),
         source: 'channel',
         channelName: 'ownerChannel',
       };
@@ -193,11 +178,11 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
+        payload: blue.jsonValueToNode({
           type: 'Some Other Event',
           operation: 'increment',
           request: 5,
-        },
+        }),
         source: 'channel',
         channelName: 'ownerChannel',
       };
@@ -221,11 +206,7 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          // No message property
-        },
+        payload: timelineEntryEvent('owner-timeline', null),
         source: 'channel',
         channelName: 'ownerChannel',
       };
@@ -249,14 +230,10 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          message: {
-            type: 'User Message', // Not an operation request
-            content: 'Hello world',
-          },
-        },
+        payload: timelineEntryEvent('owner-timeline', {
+          type: 'User Message', // Not an operation request
+          content: 'Hello world',
+        }),
         source: 'channel',
         channelName: 'ownerChannel',
       };
@@ -282,15 +259,11 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          message: {
-            type: 'Operation Request',
-            operation: 'increment',
-            request: 5,
-          },
-        },
+        payload: timelineEntryEvent('owner-timeline', {
+          type: 'Operation Request',
+          operation: 'increment',
+          request: 5,
+        }),
         source: 'channel',
         channelName: 'ownerChannel',
       };
@@ -314,15 +287,11 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
-          type: 'Timeline Entry',
-          timeline: { timelineId: 'owner-timeline' },
-          message: {
-            type: 'Operation Request',
-            operation: 'increment',
-            request: 5,
-          },
-        },
+        payload: timelineEntryEvent('owner-timeline', {
+          type: 'Operation Request',
+          operation: 'increment',
+          request: 5,
+        }),
         source: 'channel',
         channelName: 'ownerChannel',
       };

@@ -4,17 +4,15 @@ import { BaseChannelProcessor } from './BaseChannelProcessor';
 import {
   blueIds,
   MyOSTimelineChannelSchema,
-  MyOSTimelineEntry,
   MyOSTimelineEntrySchema,
 } from '@blue-repository/myos-dev';
+import { TimelineEntrySchema } from '@blue-repository/core-dev';
 
-// TODO: Event payload probably should be also mapped to BlueNode
-const isTimelineEntryEvent = (
-  evt: EventNode
-): evt is EventNode<MyOSTimelineEntry> => {
+const isTimelineEntryEvent = (evt: EventNode, ctx: ProcessingContext) => {
+  const blue = ctx.getBlue();
   return (
-    evt.payload.type === 'Timeline Entry' ||
-    evt.payload.type === 'MyOS Timeline Entry'
+    blue.isTypeOf(evt.payload, TimelineEntrySchema) ||
+    blue.isTypeOf(evt.payload, MyOSTimelineEntrySchema)
   );
 };
 
@@ -31,12 +29,11 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
     ctx: ProcessingContext
   ): boolean {
     if (!this.baseSupports(event)) return false;
-    if (!isTimelineEntryEvent(event)) return false;
+    if (!isTimelineEntryEvent(event, ctx)) return false;
     const blue = ctx.getBlue();
 
-    const eventPayloadNode = blue.jsonValueToNode(event.payload);
     const myosTimelineEntry = blue.nodeToSchemaOutput(
-      eventPayloadNode,
+      event.payload,
       MyOSTimelineEntrySchema
     );
     const myosTimelineChannel = ctx
@@ -70,7 +67,7 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
     ctx: ProcessingContext,
     path: string
   ): void {
-    if (!isTimelineEntryEvent(event)) return;
+    if (!isTimelineEntryEvent(event, ctx)) return;
 
     ctx.emitEvent({
       payload: event.payload,

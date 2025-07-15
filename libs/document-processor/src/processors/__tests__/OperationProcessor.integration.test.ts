@@ -2,21 +2,32 @@ import { expect, describe, test, beforeEach } from 'vitest';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
-import { repository as coreRepository } from '@blue-repository/core-dev';
+import {
+  repository as coreRepository,
+  DocumentUpdateSchema,
+} from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
 import { prepareToProcess } from '../../testUtils';
+import { createTimelineEntryEvent } from '../../utils/eventFactories';
 
 describe('OperationProcessor - Integration Tests', () => {
   describe('Timeline Channel', () => {
-    let blue: Blue;
-    let documentProcessor: BlueDocumentProcessor;
-
-    beforeEach(() => {
-      blue = new Blue({
-        repositories: [coreRepository],
-      });
-      documentProcessor = new BlueDocumentProcessor(blue);
+    const blue = new Blue({
+      repositories: [coreRepository],
     });
+    const documentProcessor = new BlueDocumentProcessor(blue);
+
+    function createOperationRequestEvent(operation: string, request: unknown) {
+      return createTimelineEntryEvent(
+        'owner-timeline',
+        {
+          type: 'Operation Request',
+          operation,
+          request,
+        },
+        blue
+      );
+    }
 
     function makeDocumentWithOperations(): JsonObject {
       return {
@@ -113,22 +124,6 @@ describe('OperationProcessor - Integration Tests', () => {
       };
     }
 
-    function createTimelineEvent(message: unknown) {
-      return {
-        type: 'Timeline Entry',
-        timeline: { timelineId: 'owner-timeline' },
-        message,
-      };
-    }
-
-    function createOperationRequestEvent(operation: string, request: unknown) {
-      return createTimelineEvent({
-        type: 'Operation Request',
-        operation,
-        request,
-      });
-    }
-
     test('should process increment operation request through timeline channel', async () => {
       const doc = makeDocumentWithOperations();
       const { initializedState } = await prepareToProcess(doc, {
@@ -149,10 +144,13 @@ describe('OperationProcessor - Integration Tests', () => {
       expect(jsonState.counter).toBe(15);
 
       // Should emit document update event
-      const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+      const docUpdateEvt = emitted.find((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
       expect(docUpdateEvt).toBeDefined();
-      expect(docUpdateEvt!.path).toBe('/counter');
-      expect(docUpdateEvt!.val).toBe(15);
+      const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+      expect(docUpdateEvtJson.path).toBe('/counter');
+      expect(docUpdateEvtJson.val).toBe(15);
     });
 
     test('should process decrement operation request', async () => {
@@ -175,10 +173,13 @@ describe('OperationProcessor - Integration Tests', () => {
       expect(jsonState.counter).toBe(7);
 
       // Should emit document update event
-      const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+      const docUpdateEvt = emitted.find((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
       expect(docUpdateEvt).toBeDefined();
-      expect(docUpdateEvt!.path).toBe('/counter');
-      expect(docUpdateEvt!.val).toBe(7);
+      const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+      expect(docUpdateEvtJson.path).toBe('/counter');
+      expect(docUpdateEvtJson.val).toBe(7);
     });
 
     test('should process string operation request', async () => {
@@ -201,10 +202,13 @@ describe('OperationProcessor - Integration Tests', () => {
       expect(jsonState.status).toBe('active');
 
       // Should emit document update event
-      const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+      const docUpdateEvt = emitted.find((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
       expect(docUpdateEvt).toBeDefined();
-      expect(docUpdateEvt!.path).toBe('/status');
-      expect(docUpdateEvt!.val).toBe('active');
+      const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+      expect(docUpdateEvtJson.path).toBe('/status');
+      expect(docUpdateEvtJson.val).toBe('active');
     });
 
     test('should ignore operation requests for non-existent operations', async () => {
@@ -227,14 +231,10 @@ describe('OperationProcessor - Integration Tests', () => {
       expect(jsonState.counter).toBe(10);
       expect(jsonState.status).toBe('idle');
 
-      // Should not emit any operation events
-      const operationEvents = emitted.filter(
-        (e) => e.source === 'channel' && e.channelName === 'multiply'
-      );
-      expect(operationEvents.length).toBe(0);
-
       // Should not emit document update events
-      const docUpdateEvts = emitted.filter((e) => e.type === 'Document Update');
+      const docUpdateEvts = emitted.filter((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
       expect(docUpdateEvts.length).toBe(0);
     });
 
@@ -282,17 +282,17 @@ describe('OperationProcessor - Integration Tests', () => {
       });
 
       // Send event to wrong timeline
-      const wrongTimelineEvent = {
-        type: 'Timeline Entry',
-        timeline: { timelineId: 'wrong-timeline' },
-        message: {
+      const wrongTimelineEvent = createTimelineEntryEvent(
+        'wrong-timeline',
+        {
           type: 'Operation Request',
           operation: 'increment',
           request: 5,
         },
-      };
+        blue
+      );
 
-      const { state, emitted } = await documentProcessor.processEvents(
+      const { state } = await documentProcessor.processEvents(
         initializedState,
         [wrongTimelineEvent]
       );
@@ -301,12 +301,6 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Counter should remain unchanged because operation doesn't match channel
       expect(jsonState.counter).toBe(10);
-
-      // Should not emit operation events
-      const operationEvents = emitted.filter(
-        (e) => e.source === 'channel' && e.channelName === 'increment'
-      );
-      expect(operationEvents.length).toBe(0);
     });
 
     test('should process multiple sequential operation requests', async () => {
@@ -425,7 +419,9 @@ describe('OperationProcessor - Integration Tests', () => {
       expect(jsonState.user.age).toBe(30);
 
       // Should emit document update events
-      const docUpdateEvts = emitted.filter((e) => e.type === 'Document Update');
+      const docUpdateEvts = emitted.filter((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
       expect(docUpdateEvts.length).toBe(2); // One for name, one for age
     });
 
@@ -437,12 +433,16 @@ describe('OperationProcessor - Integration Tests', () => {
       });
 
       // Send a regular timeline message that's not an operation request
-      const regularEvent = createTimelineEvent({
-        type: 'User Message',
-        content: 'Hello world',
-      });
+      const regularEvent = createTimelineEntryEvent(
+        'owner-timeline',
+        {
+          type: 'User Message',
+          content: 'Hello world',
+        },
+        blue
+      );
 
-      const { state, emitted } = await documentProcessor.processEvents(
+      const { state } = await documentProcessor.processEvents(
         initializedState,
         [regularEvent]
       );
@@ -452,13 +452,6 @@ describe('OperationProcessor - Integration Tests', () => {
       // Document should remain unchanged
       expect(jsonState.counter).toBe(10);
       expect(jsonState.status).toBe('idle');
-
-      // Should not emit any operation events
-      const operationEvents = emitted.filter((e) => e.source === 'channel');
-      const operationEventNames = operationEvents.map((e) => e.channelName);
-      expect(operationEventNames).not.toContain('increment');
-      expect(operationEventNames).not.toContain('decrement');
-      expect(operationEventNames).not.toContain('setStatus');
     });
   });
 
@@ -520,7 +513,7 @@ describe('OperationProcessor - Integration Tests', () => {
       });
 
       // Create MyOS Timeline Event with operation request
-      const myosTimelineEvent = {
+      const myosTimelineEvent = blue.jsonValueToNode({
         type: 'MyOS Timeline Entry',
         timeline: { timelineId: 'myos-timeline' },
         message: {
@@ -528,7 +521,7 @@ describe('OperationProcessor - Integration Tests', () => {
           operation: 'increment',
           request: 3,
         },
-      };
+      });
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
@@ -541,10 +534,13 @@ describe('OperationProcessor - Integration Tests', () => {
       expect(jsonState.counter).toBe(8);
 
       // Should emit document update event
-      const docUpdateEvt = emitted.find((e) => e.type === 'Document Update');
+      const docUpdateEvt = emitted.find((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
       expect(docUpdateEvt).toBeDefined();
-      expect(docUpdateEvt!.path).toBe('/counter');
-      expect(docUpdateEvt!.val).toBe(8);
+      const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
+      expect(docUpdateEvtJson.path).toBe('/counter');
+      expect(docUpdateEvtJson.val).toBe(8);
     });
   });
 });

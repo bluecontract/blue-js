@@ -1,17 +1,7 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
 import { deepContains } from '@blue-labs/shared-utils';
-import { blueIds } from '@blue-repository/core-dev';
-
-/**
- * Set of supported lifecycle event types
- */
-const LIFECYCLE_EVENT_TYPES = new Set([
-  'Document Processing Initiated',
-  // Add more lifecycle events here as needed
-  // 'Document Processing Completed',
-  // 'Document Processing Failed',
-]);
+import { blueIds, LifecycleEventSchema } from '@blue-repository/core-dev';
 
 /**
  * Lifecycle Event Channel Processor
@@ -41,7 +31,7 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
     if (!this.baseSupports(event)) return false;
 
     // Check if this is a lifecycle event
-    if (!this.isLifecycleEvent(event)) return false;
+    if (!this.isLifecycleEvent(event, ctx)) return false;
 
     // Check if the event matches the channel's event pattern (if specified)
     return this.isEventPatternMatch(event, node, ctx);
@@ -63,8 +53,13 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
   /**
    * Checks if the event is a supported lifecycle event type
    */
-  private isLifecycleEvent(event: EventNode): boolean {
-    return LIFECYCLE_EVENT_TYPES.has(event.payload.type as string);
+  private isLifecycleEvent(event: EventNode, ctx: ProcessingContext): boolean {
+    const blue = ctx.getBlue();
+    const eventPayloadNode = event.payload;
+
+    return blue.isTypeOf(eventPayloadNode, LifecycleEventSchema, {
+      checkSchemaExtensions: true,
+    });
   }
 
   /**
@@ -84,9 +79,7 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
 
     try {
       const blue = ctx.getBlue();
-      const eventPayloadJson = blue.nodeToJson(
-        blue.jsonValueToNode(event.payload)
-      );
+      const eventPayloadJson = blue.nodeToJson(event.payload);
       const channelEventJson = blue.nodeToJson(channelEvent);
 
       // Simple containment check - channel event pattern should be contained in the actual event

@@ -25,7 +25,7 @@ export class DocumentUpdateChannelProcessor extends BaseChannelProcessor {
       .getBlue()
       .nodeToSchemaOutput(contractNode, DocumentUpdateChannelSchema);
 
-    const payloadPath = event.payload.path;
+    const payloadPath = event.payload.get('/path');
     if (!payloadPath) return false;
     if (event.channelName === contractName) return false;
 

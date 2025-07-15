@@ -45,11 +45,11 @@ describe('SequentialWorkflowOperationProcessor', () => {
   describe('supports', () => {
     it('should return true for channel events with matching operation name', () => {
       const event: EventNode = {
-        payload: {
+        payload: blue.jsonValueToNode({
           type: 'Operation Request',
           operation: 'increment',
           request: 5,
-        },
+        }),
         source: 'channel',
         channelName: 'increment',
       };
@@ -64,11 +64,11 @@ describe('SequentialWorkflowOperationProcessor', () => {
 
     it('should return false for non-channel events', () => {
       const event: EventNode = {
-        payload: {
+        payload: blue.jsonValueToNode({
           type: 'Operation Request',
           operation: 'increment',
           request: 5,
-        },
+        }),
         source: 'external', // Not from channel
         channelName: 'increment',
       };
@@ -83,11 +83,11 @@ describe('SequentialWorkflowOperationProcessor', () => {
 
     it('should return false for non-matching operation names', () => {
       const event: EventNode = {
-        payload: {
+        payload: blue.jsonValueToNode({
           type: 'Operation Request',
           operation: 'decrement',
           request: 5,
-        },
+        }),
         source: 'channel',
         channelName: 'decrement', // channelName doesn't match node operation
       };
@@ -108,11 +108,11 @@ describe('SequentialWorkflowOperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: {
+        payload: blue.jsonValueToNode({
           type: 'Operation Request',
           operation: null,
           request: 5,
-        },
+        }),
         source: 'channel',
         channelName: undefined,
       };
@@ -129,11 +129,11 @@ describe('SequentialWorkflowOperationProcessor', () => {
   describe('handle', () => {
     it('should delegate to SequentialWorkflowProcessor', async () => {
       const event: EventNode = {
-        payload: {
+        payload: blue.jsonValueToNode({
           type: 'Operation Request',
           operation: 'increment',
           request: 5,
-        },
+        }),
         source: 'channel',
         channelName: 'increment',
       };
@@ -163,11 +163,11 @@ describe('SequentialWorkflowOperationProcessor', () => {
       (mockSequentialWorkflowProcessor.handle as any).mockRejectedValue(error);
 
       const event: EventNode = {
-        payload: {
+        payload: blue.jsonValueToNode({
           type: 'Operation Request',
           operation: 'increment',
           request: 5,
-        },
+        }),
         source: 'channel',
         channelName: 'increment',
       };

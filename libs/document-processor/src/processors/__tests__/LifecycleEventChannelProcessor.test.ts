@@ -3,9 +3,12 @@ import { LifecycleEventChannelProcessor } from '../LifecycleEventChannelProcesso
 import { Blue } from '@blue-labs/language';
 import { createDocumentProcessingInitiatedEvent } from '../../utils/eventFactories';
 import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 describe('LifecycleEventChannelProcessor', () => {
-  const blue = new Blue();
+  const blue = new Blue({
+    repositories: [coreRepository],
+  });
 
   it('should emit Document Processing Initiated event during initialization', async () => {
     const processor = new BlueDocumentProcessor(blue);
@@ -28,7 +31,7 @@ describe('LifecycleEventChannelProcessor', () => {
 
     // Create a lifecycle event
     const lifecycleEvent = {
-      payload: createDocumentProcessingInitiatedEvent(),
+      payload: createDocumentProcessingInitiatedEvent(blue),
       source: 'external' as const,
     };
 
@@ -72,7 +75,7 @@ describe('LifecycleEventChannelProcessor', () => {
 
     // Create a non-lifecycle event
     const nonLifecycleEvent = {
-      payload: { type: 'Some Other Event' },
+      payload: blue.jsonValueToNode({ type: 'Some Other Event' }),
       source: 'external' as const,
     };
 
@@ -93,7 +96,7 @@ describe('LifecycleEventChannelProcessor', () => {
 
     // Create a channel event (which should be rejected by baseSupports)
     const channelEvent = {
-      payload: createDocumentProcessingInitiatedEvent(),
+      payload: createDocumentProcessingInitiatedEvent(blue),
       source: 'channel' as const,
     };
 
