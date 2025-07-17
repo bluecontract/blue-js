@@ -1,3 +1,4 @@
+import { isNonNullable } from '@blue-labs/shared-utils';
 import { NodeProvider } from '../NodeProvider';
 import { BlueNode } from '../model';
 import { NodeProviderWrapper } from './NodeProviderWrapper';
@@ -51,7 +52,12 @@ export class NodeExtender {
 
     try {
       const blueId = currentNode.getBlueId();
-      if (blueId && !(blueId in CORE_TYPE_BLUE_IDS)) {
+      if (
+        blueId &&
+        !CORE_TYPE_BLUE_IDS.includes(
+          blueId as (typeof CORE_TYPE_BLUE_IDS)[number]
+        )
+      ) {
         const resolvedNodes = this.fetchNode(currentNode);
         if (resolvedNodes && resolvedNodes.length > 0) {
           if (resolvedNodes.length === 1) {
@@ -154,7 +160,10 @@ export class NodeExtender {
     target.setItemType(source.getItemType());
     target.setKeyType(source.getKeyType());
     target.setValueType(source.getValueType());
-    target.setValue(source.getValue() ?? null);
+    const sourceValue = source.getValue();
+    if (isNonNullable(sourceValue)) {
+      target.setValue(sourceValue);
+    }
     target.setItems(source.getItems());
     target.setProperties(source.getProperties());
     target.setContracts(source.getContracts());

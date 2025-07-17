@@ -9,7 +9,7 @@ import {
 } from './utils';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
-import { ZodTypeDef, ZodType, ZodTypeAny, AnyZodObject } from 'zod';
+import { ZodTypeDef, ZodType, AnyZodObject } from 'zod';
 import { yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
 import { BlueDirectivePreprocessor } from './preprocess/BlueDirectivePreprocessor';
@@ -21,17 +21,21 @@ import {
   BlueIdsMappingGenerator,
   BlueIdsRecord,
 } from './preprocess/utils/BlueIdsMappingGenerator';
+import { Limits, NO_LIMITS } from './utils/limits';
+import { NodeExtender } from './utils/NodeExtender';
+import { BlueRepository } from './types/BlueRepository';
+import { Merger } from './merge/Merger';
+import { MergingProcessor } from './merge/MergingProcessor';
+import { createDefaultNodeProcessor } from './merge/createDefaultNodeProcessor';
 
-export interface BlueRepository {
-  blueIds: BlueIdsRecord;
-  schemas: ZodTypeAny[];
-}
+export type { BlueRepository } from './types/BlueRepository';
 
 export interface BlueOptions {
   nodeProvider?: NodeProvider;
   typeSchemaResolver?: TypeSchemaResolver;
   urlFetchStrategy?: UrlFetchStrategy;
   repositories?: BlueRepository[];
+  mergingProcessor?: MergingProcessor;
 }
 
 export class Blue {
@@ -40,6 +44,9 @@ export class Blue {
   private blueDirectivePreprocessor: BlueDirectivePreprocessor;
   private urlContentFetcher: UrlContentFetcher;
   private blueIdsMappingGenerator: BlueIdsMappingGenerator;
+  private globalLimits = NO_LIMITS;
+  private mergingProcessor: MergingProcessor;
+  private repositories?: BlueRepository[];
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -47,14 +54,21 @@ export class Blue {
       typeSchemaResolver = null,
       urlFetchStrategy,
       repositories,
+      mergingProcessor,
     } = options;
 
+    // Store repositories for later use in setNodeProvider
+    this.repositories = repositories;
+
+    // Use NodeProviderWrapper to create the provider chain with repositories
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = NodeProviderWrapper.wrap(
-      nodeProvider || defaultProvider
+      nodeProvider || defaultProvider,
+      repositories
     );
 
     this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
+    this.mergingProcessor = mergingProcessor ?? createDefaultNodeProcessor();
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
@@ -93,6 +107,17 @@ export class Blue {
   >(node: BlueNode, schema: ZodType<Output, Def, Input>): Output {
     const converter = new NodeToObjectConverter(this.typeSchemaResolver);
     return converter.convert(node, schema);
+  }
+
+  public resolve(node: BlueNode, limits: Limits = NO_LIMITS) {
+    const effectiveLimits = this.combineWithGlobalLimits(limits);
+    const merger = new Merger(this.mergingProcessor, this.nodeProvider);
+    return merger.resolve(node, effectiveLimits);
+  }
+
+  public extend(node: BlueNode, limits: Limits) {
+    const effectiveLimits = this.combineWithGlobalLimits(limits);
+    new NodeExtender(this.nodeProvider).extend(node, effectiveLimits);
   }
 
   public jsonValueToNode(json: unknown) {
@@ -195,7 +220,10 @@ export class Blue {
   }
 
   public setNodeProvider(nodeProvider: NodeProvider): Blue {
-    this.nodeProvider = NodeProviderWrapper.wrap(nodeProvider);
+    this.nodeProvider = NodeProviderWrapper.wrap(
+      nodeProvider,
+      this.repositories
+    );
     return this;
   }
 
@@ -356,5 +384,19 @@ export class Blue {
       checkSchemaExtensions: options?.checkSchemaExtensions,
       typeSchemaResolver: this.typeSchemaResolver,
     });
+  }
+
+  private combineWithGlobalLimits(methodLimits: Limits) {
+    if (this.globalLimits == NO_LIMITS) {
+      return methodLimits;
+    }
+
+    if (methodLimits == NO_LIMITS) {
+      return this.globalLimits;
+    }
+
+    return NO_LIMITS;
+    // TODO: Implement this
+    // return new CompositeLimits(globalLimits, methodLimits);
   }
 }

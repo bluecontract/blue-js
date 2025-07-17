@@ -1,0 +1,136 @@
+import { describe, it, expect, vi } from 'vitest';
+import { Merger } from '../Merger';
+import { MergingProcessor } from '../MergingProcessor';
+import { BlueNode } from '../../model';
+import { createNodeProvider } from '../../NodeProvider';
+import { NO_LIMITS } from '../../utils/limits';
+
+describe('Merger', () => {
+  it('should create a Merger instance', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn(),
+    };
+    const mockProvider = createNodeProvider(() => []);
+
+    const merger = new Merger(mockProcessor, mockProvider);
+    expect(merger).toBeInstanceOf(Merger);
+  });
+
+  it('should resolve a simple node', () => {
+    const processFn = vi.fn((target: BlueNode, source: BlueNode) => {
+      // Copy value from source to target
+      if (source.getValue() !== undefined) {
+        target.setValue(source.getValue()!);
+      }
+    });
+    const mockProcessor: MergingProcessor = {
+      process: processFn,
+    };
+    const mockProvider = createNodeProvider(() => []);
+
+    const merger = new Merger(mockProcessor, mockProvider);
+    const sourceNode = new BlueNode('TestNode')
+      .setDescription('A test node')
+      .setValue('test value');
+
+    const resolved = merger.resolve(sourceNode, NO_LIMITS);
+
+    expect(resolved.getName()).toBe('TestNode');
+    expect(resolved.getDescription()).toBe('A test node');
+    expect(resolved.getValue()).toBe('test value');
+    expect(processFn).toHaveBeenCalled();
+  });
+
+  it('should throw error if source has blue attribute', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn(),
+    };
+    const mockProvider = createNodeProvider(() => []);
+
+    const merger = new Merger(mockProcessor, mockProvider);
+    const target = new BlueNode();
+    const source = new BlueNode().setBlue(new BlueNode());
+
+    expect(() => merger.merge(target, source, NO_LIMITS)).toThrow(
+      'Document contains "blue" attribute. Preprocess document before merging.'
+    );
+  });
+
+  it('should merge properties', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn((target: BlueNode, source: BlueNode) => {
+        // Copy value from source to target
+        if (source.getValue() !== undefined) {
+          target.setValue(source.getValue()!);
+        }
+      }),
+    };
+    const mockProvider = createNodeProvider(() => []);
+
+    const merger = new Merger(mockProcessor, mockProvider);
+    const sourceNode = new BlueNode('TestNode').setProperties({
+      prop1: new BlueNode().setValue('value1'),
+      prop2: new BlueNode().setValue('value2'),
+    });
+
+    const resolved = merger.resolve(sourceNode, NO_LIMITS);
+
+    expect(resolved.getProperties()).toBeDefined();
+    expect(resolved.getProperties()?.prop1?.getValue()).toBe('value1');
+    expect(resolved.getProperties()?.prop2?.getValue()).toBe('value2');
+  });
+
+  it('should call postProcess if defined', () => {
+    const postProcessFn = vi.fn();
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn(),
+      postProcess: postProcessFn,
+    };
+    const mockProvider = createNodeProvider(() => []);
+
+    const merger = new Merger(mockProcessor, mockProvider);
+    const sourceNode = new BlueNode('TestNode');
+
+    merger.resolve(sourceNode, NO_LIMITS);
+
+    expect(postProcessFn).toHaveBeenCalled();
+  });
+
+  it('should work with defaultMergingProcessor', () => {
+    const mockProvider = createNodeProvider(() => []);
+
+    /**
+     * Default MergingProcessor that copies basic node properties
+     */
+    const defaultMergingProcessor: MergingProcessor = {
+      process(target: BlueNode, source: BlueNode): void {
+        // Copy basic properties from source to target
+        if (source.getValue() !== undefined) {
+          target.setValue(source.getValue()!);
+        }
+        if (source.getType() !== undefined) {
+          target.setType(source.getType());
+        }
+        if (source.getItemType() !== undefined) {
+          target.setItemType(source.getItemType());
+        }
+        if (source.getKeyType() !== undefined) {
+          target.setKeyType(source.getKeyType());
+        }
+        if (source.getValueType() !== undefined) {
+          target.setValueType(source.getValueType());
+        }
+      },
+    };
+    const merger = new Merger(defaultMergingProcessor, mockProvider);
+
+    const sourceNode = new BlueNode('TestNode')
+      .setValue('test value')
+      .setType(new BlueNode().setValue('String'));
+
+    const resolved = merger.resolve(sourceNode, NO_LIMITS);
+
+    expect(resolved.getValue()).toBe('test value');
+    expect(resolved.getType()?.getValue()).toBe('String');
+  });
+});

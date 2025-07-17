@@ -1,20 +1,34 @@
 import { NodeProvider } from '../NodeProvider';
 import { SequentialNodeProvider } from '../provider/SequentialNodeProvider';
 import { BootstrapProvider } from '../provider/BootstrapProvider';
+import { RepositoryBasedNodeProvider } from '../provider/RepositoryBasedNodeProvider';
+import { BlueRepository } from '../types/BlueRepository';
 
 /**
  * Utility to wrap a NodeProvider with a SequentialNodeProvider that includes bootstrap providers
  */
 export class NodeProviderWrapper {
   /**
-   * Wraps a NodeProvider with a SequentialNodeProvider that includes bootstrap providers
+   * Wraps a NodeProvider with a SequentialNodeProvider that includes bootstrap providers and repository definitions
    * @param originalProvider - The original NodeProvider to wrap
-   * @returns A wrapped NodeProvider that includes bootstrap providers
+   * @param repositories - Optional repositories containing definitions
+   * @returns A wrapped NodeProvider that includes bootstrap providers and repository definitions
    */
-  public static wrap(originalProvider: NodeProvider): NodeProvider {
-    return new SequentialNodeProvider([
-      BootstrapProvider.INSTANCE,
-      originalProvider,
-    ]);
+  public static wrap(
+    originalProvider: NodeProvider,
+    repositories?: BlueRepository[]
+  ): NodeProvider {
+    const providers: NodeProvider[] = [BootstrapProvider.INSTANCE];
+
+    if (repositories && repositories.length > 0) {
+      // Create RepositoryBasedNodeProvider with access to the wrapped provider chain
+      // This allows preprocessing to work correctly with all providers
+      const repositoryProvider = new RepositoryBasedNodeProvider(repositories);
+      providers.push(repositoryProvider);
+    }
+
+    providers.push(originalProvider);
+
+    return new SequentialNodeProvider(providers);
   }
 }
