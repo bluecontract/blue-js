@@ -184,11 +184,12 @@ issuer:
     phone: "+1234567890"
     email: "info@hattorihanzo.com"`;
 
-    const voucherDetailsBlueId = BlueIdCalculator.calculateBlueIdSync(
-      NodeDeserializer.deserialize(
-        yamlBlueParse(voucherDetailsYaml) as JsonBlueValue
-      )
+    const voucherDetailsNode = NodeDeserializer.deserialize(
+      yamlBlueParse(voucherDetailsYaml) as JsonBlueValue
     );
+
+    const voucherDetailsBlueId =
+      BlueIdCalculator.calculateBlueIdSync(voucherDetailsNode);
 
     const voucherKillBillYaml = `name: Celebrating Kill Bill Anniversary 2024
 type:
@@ -235,12 +236,11 @@ availableMenuItems:
         description: "Effervescent plum wine, perfect for toasting the season."
         isAlcoholic: true
 `;
-
-    const voucherKillBillBlueId = BlueIdCalculator.calculateBlueIdSync(
-      NodeDeserializer.deserialize(
-        yamlBlueParse(voucherKillBillYaml) as JsonBlueValue
-      )
+    const voucherKillBillNode = NodeDeserializer.deserialize(
+      yamlBlueParse(voucherKillBillYaml) as JsonBlueValue
     );
+    const voucherKillBillBlueId =
+      BlueIdCalculator.calculateBlueIdSync(voucherKillBillNode);
 
     const myVoucherYaml = `name: My Voucher
 type:
@@ -248,21 +248,14 @@ type:
 serialNumber: 30902345235
 purchaseDate: 2024-04-01`;
 
-    // Parse YAML documents
-    const voucherDetails = NodeDeserializer.deserialize(
-      yamlBlueParse(voucherDetailsYaml) as JsonBlueValue
-    );
-    const voucherKillBill = NodeDeserializer.deserialize(
-      yamlBlueParse(voucherKillBillYaml) as JsonBlueValue
-    );
-    const myVoucher = NodeDeserializer.deserialize(
+    const myVoucherNode = NodeDeserializer.deserialize(
       yamlBlueParse(myVoucherYaml) as JsonBlueValue
     );
 
     const nodeProvider = new BasicNodeProvider([
-      voucherDetails,
-      voucherKillBill,
-      myVoucher,
+      voucherDetailsNode,
+      voucherKillBillNode,
+      myVoucherNode,
     ]);
 
     // Create merging processor with ValuePropagator and TypeAssigner
@@ -273,7 +266,7 @@ purchaseDate: 2024-04-01`;
 
     // Create merger and resolve
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const resolvedNode = merger.resolve(myVoucher, NO_LIMITS);
+    const resolvedNode = merger.resolve(myVoucherNode, NO_LIMITS);
 
     // Assert
     expect(

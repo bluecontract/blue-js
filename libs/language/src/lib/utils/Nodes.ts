@@ -12,20 +12,22 @@ import { BigDecimalNumber } from '../model/BigDecimalNumber';
 /**
  * Available fields in a BlueNode
  */
-export enum NodeField {
-  NAME = 'NAME',
-  DESCRIPTION = 'DESCRIPTION',
-  TYPE = 'TYPE',
-  BLUE_ID = 'BLUE_ID',
-  KEY_TYPE = 'KEY_TYPE',
-  VALUE_TYPE = 'VALUE_TYPE',
-  ITEM_TYPE = 'ITEM_TYPE',
-  VALUE = 'VALUE',
-  PROPERTIES = 'PROPERTIES',
-  BLUE = 'BLUE',
-  ITEMS = 'ITEMS',
-  CONTRACTS = 'CONTRACTS',
-}
+export const NODE_FIELDS = {
+  NAME: 'name',
+  DESCRIPTION: 'description',
+  TYPE: 'type',
+  BLUE_ID: 'blue_id',
+  KEY_TYPE: 'key_type',
+  VALUE_TYPE: 'value_type',
+  ITEM_TYPE: 'item_type',
+  VALUE: 'value',
+  PROPERTIES: 'properties',
+  BLUE: 'blue',
+  ITEMS: 'items',
+  CONTRACTS: 'contracts',
+} as const;
+
+export type NodeField = (typeof NODE_FIELDS)[keyof typeof NODE_FIELDS];
 
 /**
  * Utility class for BlueNode operations
@@ -35,29 +37,21 @@ export class Nodes {
    * Check if a node is empty (has no fields set)
    */
   static isEmptyNode(node: BlueNode): boolean {
-    return this.hasFieldsAndMayHaveFields(node, new Set(), new Set());
+    return this.hasFieldsAndMayHaveFields(node);
   }
 
   /**
    * Check if a node has only a Blue ID
    */
   static hasBlueIdOnly(node: BlueNode): boolean {
-    return this.hasFieldsAndMayHaveFields(
-      node,
-      new Set([NodeField.BLUE_ID]),
-      new Set()
-    );
+    return this.hasFieldsAndMayHaveFields(node, new Set([NODE_FIELDS.BLUE_ID]));
   }
 
   /**
    * Check if a node has only items
    */
   static hasItemsOnly(node: BlueNode): boolean {
-    return this.hasFieldsAndMayHaveFields(
-      node,
-      new Set([NodeField.ITEMS]),
-      new Set()
-    );
+    return this.hasFieldsAndMayHaveFields(node, new Set([NODE_FIELDS.ITEMS]));
   }
 
   /**
@@ -113,10 +107,10 @@ export class Nodes {
    */
   static hasFieldsAndMayHaveFields(
     node: BlueNode,
-    mustHaveFields: Set<NodeField>,
-    mayHaveFields: Set<NodeField>
+    mustHaveFields: Set<NodeField> = new Set(),
+    mayHaveFields: Set<NodeField> = new Set()
   ): boolean {
-    for (const field of Object.values(NodeField)) {
+    for (const field of Object.values(NODE_FIELDS)) {
       const fieldIsPresent = isNonNullable(this.getFieldValue(node, field));
 
       if (mustHaveFields.has(field)) {
@@ -133,31 +127,31 @@ export class Nodes {
   /**
    * Get the value of a field from a node
    */
-  private static getFieldValue(node: BlueNode, field: NodeField): any {
+  private static getFieldValue(node: BlueNode, field: NodeField) {
     switch (field) {
-      case NodeField.NAME:
+      case NODE_FIELDS.NAME:
         return node.getName();
-      case NodeField.TYPE:
+      case NODE_FIELDS.TYPE:
         return node.getType();
-      case NodeField.VALUE:
+      case NODE_FIELDS.VALUE:
         return node.getValue();
-      case NodeField.DESCRIPTION:
+      case NODE_FIELDS.DESCRIPTION:
         return node.getDescription();
-      case NodeField.PROPERTIES:
+      case NODE_FIELDS.PROPERTIES:
         return node.getProperties();
-      case NodeField.BLUE:
+      case NODE_FIELDS.BLUE:
         return node.getBlue();
-      case NodeField.ITEMS:
+      case NODE_FIELDS.ITEMS:
         return node.getItems();
-      case NodeField.CONTRACTS:
+      case NODE_FIELDS.CONTRACTS:
         return node.getContracts();
-      case NodeField.KEY_TYPE:
+      case NODE_FIELDS.KEY_TYPE:
         return node.getKeyType();
-      case NodeField.VALUE_TYPE:
+      case NODE_FIELDS.VALUE_TYPE:
         return node.getValueType();
-      case NodeField.ITEM_TYPE:
+      case NODE_FIELDS.ITEM_TYPE:
         return node.getItemType();
-      case NodeField.BLUE_ID:
+      case NODE_FIELDS.BLUE_ID:
         return node.getBlueId();
       default:
         throw new Error(`Unknown field: ${field}`);
