@@ -3,15 +3,15 @@ import { TypeAssigner } from '../processors/TypeAssigner';
 import { ValuePropagator } from '../processors/ValuePropagator';
 import { SequentialMergingProcessor } from '../processors/SequentialMergingProcessor';
 import { Merger } from '../Merger';
-import { InMemoryNodeProvider } from '../../provider/InMemoryNodeProvider';
 import { BlueNode, NodeDeserializer } from '../../model';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
 import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { NO_LIMITS } from '../../utils/limits';
 import { JsonBlueValue } from '../../../schema';
+import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 
 describe('TypeAssigner', () => {
-  it('should handle property subtype correctly', () => {
+  it('testPropertySubtype - should handle property subtype correctly', () => {
     // Create nodes
     const a = new BlueNode('A');
     const b = new BlueNode('B').setType(
@@ -37,9 +37,7 @@ describe('TypeAssigner', () => {
         ),
       });
 
-    // Create node provider and add nodes
-    const nodeProvider = new InMemoryNodeProvider();
-    nodeProvider.addSingleNodes(a, b, c, x, y);
+    const nodeProvider = new BasicNodeProvider([a, b, c, x, y]);
 
     // Create merging processor with TypeAssigner
     const mergingProcessor = new SequentialMergingProcessor([
@@ -49,14 +47,14 @@ describe('TypeAssigner', () => {
     // Create merger and resolve
     const merger = new Merger(mergingProcessor, nodeProvider);
     const blueIdY = BlueIdCalculator.calculateBlueIdSync(y);
-    const fetchedNodeY = nodeProvider.fetchByBlueId(blueIdY)[0];
-    const resolvedNode = merger.resolve(fetchedNodeY, NO_LIMITS);
+    const fetchedNodeY = nodeProvider.fetchByBlueId(blueIdY)?.[0];
+    const resolvedNode = merger.resolve(fetchedNodeY!, NO_LIMITS);
 
     // Assert
     expect(resolvedNode.getProperties()?.a?.getType()?.getName()).toBe('C');
   });
 
-  it('should inherit empty type from parent', () => {
+  it('testEmptyTypeIsInherited - should inherit empty type from parent', () => {
     // Create nodes
     const a = new BlueNode('A');
     const b = new BlueNode('B').setType(
@@ -80,9 +78,7 @@ describe('TypeAssigner', () => {
         a: new BlueNode(), // Empty type should inherit from parent
       });
 
-    // Create node provider and add nodes
-    const nodeProvider = new InMemoryNodeProvider();
-    nodeProvider.addSingleNodes(a, b, c, x, y);
+    const nodeProvider = new BasicNodeProvider([a, b, c, x, y]);
 
     // Create merging processor with TypeAssigner
     const mergingProcessor = new SequentialMergingProcessor([
@@ -91,15 +87,14 @@ describe('TypeAssigner', () => {
 
     // Create merger and resolve
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const blueIdY = BlueIdCalculator.calculateBlueIdSync(y);
-    const fetchedNodeY = nodeProvider.fetchByBlueId(blueIdY)[0];
-    const resolvedNode = merger.resolve(fetchedNodeY, NO_LIMITS);
+    const fetchedNodeY = nodeProvider.findNodeByName('Y');
+    const resolvedNode = merger.resolve(fetchedNodeY!, NO_LIMITS);
 
     // Assert
     expect(resolvedNode.getProperties()?.a?.getType()?.getName()).toBe('B');
   });
 
-  it('should handle property subtype on YAML docs with no BlueIds', () => {
+  it('testPropertySubtypeOnYamlDocsWithNoBlueIds - should handle property subtype on YAML docs with no BlueIds', () => {
     const aYaml = 'name: A';
 
     const bYaml = `name: B
@@ -137,9 +132,7 @@ a:
       }
     );
 
-    // Create node provider and add nodes
-    const nodeProvider = new InMemoryNodeProvider();
-    nodeProvider.addSingleNodes(...nodes);
+    const nodeProvider = new BasicNodeProvider(nodes);
 
     // Create merging processor with TypeAssigner
     const mergingProcessor = new SequentialMergingProcessor([
@@ -148,16 +141,14 @@ a:
 
     // Create merger and resolve
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const nodeY = nodes.find((n) => n.getName() === 'Y')!;
-    const blueIdY = BlueIdCalculator.calculateBlueIdSync(nodeY);
-    const fetchedNodeY = nodeProvider.fetchByBlueId(blueIdY)[0];
-    const resolvedNode = merger.resolve(fetchedNodeY, NO_LIMITS);
+    const fetchedNodeY = nodeProvider.findNodeByName('Y');
+    const resolvedNode = merger.resolve(fetchedNodeY!, NO_LIMITS);
 
     // Assert
     expect(resolvedNode.getProperties()?.a?.getType()?.getName()).toBe('B');
   });
 
-  it('should handle different subtype variations', async () => {
+  it('testDifferentSubtypeVariations2 - should handle different subtype variations', async () => {
     // Create sample nodes to simulate the directory-based test
     // Since we don't have the actual samples directory, we'll create test daata
 
@@ -268,9 +259,11 @@ purchaseDate: 2024-04-01`;
       yamlBlueParse(myVoucherYaml) as JsonBlueValue
     );
 
-    // Create node provider and add nodes
-    const nodeProvider = new InMemoryNodeProvider();
-    nodeProvider.addSingleNodes(voucherDetails, voucherKillBill, myVoucher);
+    const nodeProvider = new BasicNodeProvider([
+      voucherDetails,
+      voucherKillBill,
+      myVoucher,
+    ]);
 
     // Create merging processor with ValuePropagator and TypeAssigner
     const mergingProcessor = new SequentialMergingProcessor([

@@ -3,4 +3,8 @@ export * from './BootstrapProvider';
 export * from './InMemoryNodeProvider';
 export * from './RepositoryNodeProviderFactory';
 export * from './SequentialNodeProvider';
+export * from './AbstractNodeProvider';
+export * from './PreloadedNodeProvider';
+export * from './BasicNodeProvider';
+export * from './NodeContentHandler';
 export * from './UrlContentFetcher';

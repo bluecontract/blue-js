@@ -52,7 +52,12 @@ export class NodeExtender {
 
     try {
       const blueId = currentNode.getBlueId();
-      if (blueId && !(blueId in CORE_TYPE_BLUE_IDS)) {
+      if (
+        blueId &&
+        !CORE_TYPE_BLUE_IDS.includes(
+          blueId as (typeof CORE_TYPE_BLUE_IDS)[number]
+        )
+      ) {
         const resolvedNodes = this.fetchNode(currentNode);
         if (resolvedNodes && resolvedNodes.length > 0) {
           if (resolvedNodes.length === 1) {

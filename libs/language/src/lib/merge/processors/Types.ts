@@ -29,7 +29,11 @@ function getType(
   const typeBlueId = type.getBlueId();
   if (typeBlueId !== undefined) {
     // Handle core types
-    if (typeBlueId in CORE_TYPE_BLUE_IDS) {
+    if (
+      CORE_TYPE_BLUE_IDS.includes(
+        typeBlueId as (typeof CORE_TYPE_BLUE_IDS)[number]
+      )
+    ) {
       const typeName =
         CORE_TYPE_BLUE_ID_TO_NAME_MAP[
           typeBlueId as keyof typeof CORE_TYPE_BLUE_ID_TO_NAME_MAP
@@ -69,7 +73,12 @@ export function isSubtype(
   }
 
   // If subtype is a core type, check if supertype extends it
-  if (subtypeBlueId && subtypeBlueId in CORE_TYPE_BLUE_IDS) {
+  if (
+    subtypeBlueId &&
+    CORE_TYPE_BLUE_IDS.includes(
+      subtypeBlueId as (typeof CORE_TYPE_BLUE_IDS)[number]
+    )
+  ) {
     let current: BlueNode | undefined = supertype;
     while (current !== undefined) {
       const currentBlueId = BlueIdCalculator.calculateBlueIdSync(current);

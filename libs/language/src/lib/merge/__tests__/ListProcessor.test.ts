@@ -1,54 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { BlueNode, NodeDeserializer } from '../../model';
-import { InMemoryNodeProvider } from '../../provider/InMemoryNodeProvider';
+import { BlueNode } from '../../model';
 import { Merger } from '../Merger';
 import { MergingProcessor } from '../MergingProcessor';
 import { SequentialMergingProcessor } from '../processors/SequentialMergingProcessor';
 import { ListProcessor } from '../processors/ListProcessor';
 import { TypeAssigner } from '../processors/TypeAssigner';
 import { NodeExtender } from '../../utils/NodeExtender';
-import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
-import { yamlBlueParse } from '../../../utils/yamlBlue';
 import { NO_LIMITS } from '../../utils/limits';
 import {
   LIST_TYPE_BLUE_ID,
   CORE_TYPE_BLUE_ID_TO_NAME_MAP,
-  INTEGER_TYPE_BLUE_ID,
 } from '../../utils/Properties';
+import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 
 describe('ListProcessor', () => {
-  // Helper function to create a node provider with core types
-  function createNodeProviderWithCoreTypes(): InMemoryNodeProvider {
-    const provider = new InMemoryNodeProvider();
-
-    // Add List type
-    const listType = new BlueNode()
-      .setName('List')
-      .setBlueId(LIST_TYPE_BLUE_ID);
-    provider.addNodeWithBlueId(LIST_TYPE_BLUE_ID, listType);
-
-    // Add Integer type
-    const integerType = new BlueNode()
-      .setName('Integer')
-      .setBlueId(INTEGER_TYPE_BLUE_ID);
-    provider.addNodeWithBlueId(INTEGER_TYPE_BLUE_ID, integerType);
-
-    return provider;
-  }
-
   it('testItemTypeAssignment', () => {
-    const nodeProvider = createNodeProviderWithCoreTypes();
+    const nodeProvider = new BasicNodeProvider();
 
     const listA = new BlueNode()
       .setName('ListA')
-      .setType(new BlueNode().setBlueId(LIST_TYPE_BLUE_ID))
-      .setItemType(new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID));
+      .setType('List')
+      .setItemType('Integer');
     nodeProvider.addSingleNodes(listA);
 
-    const listABlueId = BlueIdCalculator.calculateBlueIdSync(listA);
     const listB = new BlueNode()
       .setName('ListB')
-      .setType(new BlueNode().setBlueId(listABlueId));
+      .setType(new BlueNode().setBlueId(nodeProvider.getBlueIdByName('ListA')));
     nodeProvider.addSingleNodes(listB);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
@@ -56,9 +33,12 @@ describe('ListProcessor', () => {
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const listBBlueId = BlueIdCalculator.calculateBlueIdSync(listB);
-    const listBNode = nodeProvider.fetchByBlueId(listBBlueId)[0];
-    new NodeExtender(nodeProvider).extend(listBNode, NO_LIMITS);
+
+    const listBNode = nodeProvider.findNodeByName('ListB');
+    if (!listBNode) {
+      throw new Error('ListB not found');
+    }
+
     const result = merger.resolve(listBNode, NO_LIMITS);
 
     expect(result.getItemType()?.getBlueId()).toBeDefined();
@@ -72,47 +52,36 @@ describe('ListProcessor', () => {
   });
 
   it('testListWithValidItemTypes', () => {
-    const nodeProvider = createNodeProviderWithCoreTypes();
+    const nodeProvider = new BasicNodeProvider();
 
     // Create node A
     const a = 'name: A';
-    const parsedA = yamlBlueParse(a);
-    const nodeA = NodeDeserializer.deserialize(parsedA!);
-    nodeProvider.addSingleNodes(nodeA);
-    const blueIdA = BlueIdCalculator.calculateBlueIdSync(nodeA);
+    nodeProvider.addSingleDocs(a);
 
     // Create node B
     const b = `name: B
 type:
-  blueId: ${blueIdA}`;
-    const parsedB = yamlBlueParse(b);
-    const nodeB = NodeDeserializer.deserialize(parsedB!);
-    nodeProvider.addSingleNodes(nodeB);
-    const blueIdB = BlueIdCalculator.calculateBlueIdSync(nodeB);
+  blueId: ${nodeProvider.getBlueIdByName('A')}`;
+    nodeProvider.addSingleDocs(b);
 
     // Create node C
     const c = `name: C
 type:
-  blueId: ${blueIdB}`;
-    const parsedC = yamlBlueParse(c);
-    const nodeC = NodeDeserializer.deserialize(parsedC!);
-    nodeProvider.addSingleNodes(nodeC);
-    const blueIdC = BlueIdCalculator.calculateBlueIdSync(nodeC);
+  blueId: ${nodeProvider.getBlueIdByName('B')}`;
+    nodeProvider.addSingleDocs(c);
 
     // Create ListOfB
     const listOfB = `name: ListOfB
 type:
   blueId: ${LIST_TYPE_BLUE_ID}
 itemType:
-  blueId: ${blueIdB}
+  blueId: ${nodeProvider.getBlueIdByName('B')}
 items:
   - type:
-      blueId: ${blueIdB}
+      blueId: ${nodeProvider.getBlueIdByName('B')}
   - type:
-      blueId: ${blueIdC}`;
-    const parsedListOfB = yamlBlueParse(listOfB);
-    const nodeListOfB = NodeDeserializer.deserialize(parsedListOfB!);
-    nodeProvider.addSingleNodes(nodeListOfB);
+      blueId: ${nodeProvider.getBlueIdByName('C')}`;
+    nodeProvider.addSingleDocs(listOfB);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -120,8 +89,10 @@ items:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const listOfBBlueId = BlueIdCalculator.calculateBlueIdSync(nodeListOfB);
-    const listOfBNode = nodeProvider.fetchByBlueId(listOfBBlueId)[0];
+    const listOfBNode = nodeProvider.findNodeByName('ListOfB');
+    if (!listOfBNode) {
+      throw new Error('ListOfB not found');
+    }
     new NodeExtender(nodeProvider).extend(listOfBNode, NO_LIMITS);
     const result = merger.resolve(listOfBNode, NO_LIMITS);
 
@@ -132,33 +103,25 @@ items:
   });
 
   it('testListWithInvalidItemType', () => {
-    const nodeProvider = createNodeProviderWithCoreTypes();
+    const nodeProvider = new BasicNodeProvider();
 
     // Create node A
     const a = 'name: A';
-    const parsedA = yamlBlueParse(a);
-    const nodeA = NodeDeserializer.deserialize(parsedA!);
-    nodeProvider.addSingleNodes(nodeA);
-    const blueIdA = BlueIdCalculator.calculateBlueIdSync(nodeA);
+    nodeProvider.addSingleDocs(a);
 
     // Create node B
     const b = `name: B
-type: ${blueIdA}`;
-    const parsedB = yamlBlueParse(b);
-    const nodeB = NodeDeserializer.deserialize(parsedB!);
-    nodeProvider.addSingleNodes(nodeB);
-    const blueIdB = BlueIdCalculator.calculateBlueIdSync(nodeB);
+type: ${nodeProvider.getBlueIdByName('A')}`;
+    nodeProvider.addSingleDocs(b);
 
     // Create ListOfB with invalid item type
     const listOfB = `name: ListOfB
 type: List
-itemType: ${blueIdB}
+itemType: ${nodeProvider.getBlueIdByName('B')}
 items:
-  - type: ${blueIdB}
-  - type: ${blueIdA}`; // This should cause an error
-    const parsedListOfB = yamlBlueParse(listOfB);
-    const nodeListOfB = NodeDeserializer.deserialize(parsedListOfB!);
-    nodeProvider.addSingleNodes(nodeListOfB);
+  - type: ${nodeProvider.getBlueIdByName('B')}
+  - type: ${nodeProvider.getBlueIdByName('A')}`; // This should cause an error
+    nodeProvider.addSingleDocs(listOfB);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -166,66 +129,52 @@ items:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const listOfBBlueId = BlueIdCalculator.calculateBlueIdSync(nodeListOfB);
-    const listOfBNode = nodeProvider.fetchByBlueId(listOfBBlueId)[0];
+    const listOfBNode = nodeProvider.findNodeByName('ListOfB');
+    if (!listOfBNode) {
+      throw new Error('ListOfB not found');
+    }
     new NodeExtender(nodeProvider).extend(listOfBNode, NO_LIMITS);
 
     expect(() => merger.resolve(listOfBNode, NO_LIMITS)).toThrow();
   });
 
   it('testInheritedList', () => {
-    const nodeProvider = createNodeProviderWithCoreTypes();
+    const nodeProvider = new BasicNodeProvider();
 
     // Create node A
     const a = 'name: A';
-    const parsedA = yamlBlueParse(a);
-    const nodeA = NodeDeserializer.deserialize(parsedA!);
-    nodeProvider.addSingleNodes(nodeA);
-    const blueIdA = BlueIdCalculator.calculateBlueIdSync(nodeA);
+    nodeProvider.addSingleDocs(a);
 
     // Create node B
     const b = `name: B
 type:
-  blueId: ${blueIdA}`;
-    const parsedB = yamlBlueParse(b);
-    const nodeB = NodeDeserializer.deserialize(parsedB!);
-    nodeProvider.addSingleNodes(nodeB);
-    const blueIdB = BlueIdCalculator.calculateBlueIdSync(nodeB);
+  blueId: ${nodeProvider.getBlueIdByName('A')}`;
+    nodeProvider.addSingleDocs(b);
 
     // Create node C
     const c = `name: C
 type:
-  blueId: ${blueIdB}`;
-    const parsedC = yamlBlueParse(c);
-    const nodeC = NodeDeserializer.deserialize(parsedC!);
-    nodeProvider.addSingleNodes(nodeC);
-    const blueIdC = BlueIdCalculator.calculateBlueIdSync(nodeC);
+  blueId: ${nodeProvider.getBlueIdByName('B')}`;
+    nodeProvider.addSingleDocs(c);
 
     // Create ListOfB
     const listOfB = `name: ListOfB
 type:
   blueId: ${LIST_TYPE_BLUE_ID}
 itemType:
-  blueId: ${blueIdB}`;
-    const parsedListOfB = yamlBlueParse(listOfB);
-    const nodeListOfB = NodeDeserializer.deserialize(parsedListOfB!);
-    nodeProvider.addSingleNodes(nodeListOfB);
-    const blueIdListOfB = BlueIdCalculator.calculateBlueIdSync(nodeListOfB);
+  blueId: ${nodeProvider.getBlueIdByName('B')}`;
+    nodeProvider.addSingleDocs(listOfB);
 
     // Create InheritedList
     const inheritedList = `name: InheritedList
 type:
-  blueId: ${blueIdListOfB}
+  blueId: ${nodeProvider.getBlueIdByName('ListOfB')}
 items:
   - type:
-      blueId: ${blueIdB}
+      blueId: ${nodeProvider.getBlueIdByName('B')}
   - type:
-      blueId: ${blueIdC}`;
-    const parsedInheritedList = yamlBlueParse(inheritedList);
-    const nodeInheritedList = NodeDeserializer.deserialize(
-      parsedInheritedList!
-    );
-    nodeProvider.addSingleNodes(nodeInheritedList);
+      blueId: ${nodeProvider.getBlueIdByName('C')}`;
+    nodeProvider.addSingleDocs(inheritedList);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -233,10 +182,10 @@ items:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const inheritedListBlueId =
-      BlueIdCalculator.calculateBlueIdSync(nodeInheritedList);
-    const inheritedListNode =
-      nodeProvider.fetchByBlueId(inheritedListBlueId)[0];
+    const inheritedListNode = nodeProvider.findNodeByName('InheritedList');
+    if (!inheritedListNode) {
+      throw new Error('InheritedList not found');
+    }
     new NodeExtender(nodeProvider).extend(inheritedListNode, NO_LIMITS);
     const result = merger.resolve(inheritedListNode, NO_LIMITS);
 
@@ -247,49 +196,36 @@ items:
   });
 
   it('testInheritedListWithInvalidItemType', () => {
-    const nodeProvider = createNodeProviderWithCoreTypes();
+    const nodeProvider = new BasicNodeProvider();
 
     // Create node A
     const a = 'name: A';
-    const parsedA = yamlBlueParse(a);
-    const nodeA = NodeDeserializer.deserialize(parsedA!);
-    nodeProvider.addSingleNodes(nodeA);
-    const blueIdA = BlueIdCalculator.calculateBlueIdSync(nodeA);
+    nodeProvider.addSingleDocs(a);
 
     // Create node B
     const b = `name: B
 type:
-  blueId: ${blueIdA}`;
-    const parsedB = yamlBlueParse(b);
-    const nodeB = NodeDeserializer.deserialize(parsedB!);
-    nodeProvider.addSingleNodes(nodeB);
-    const blueIdB = BlueIdCalculator.calculateBlueIdSync(nodeB);
+  blueId: ${nodeProvider.getBlueIdByName('A')}`;
+    nodeProvider.addSingleDocs(b);
 
     // Create ListOfB
     const listOfB = `name: ListOfB
 type:
   blueId: ${LIST_TYPE_BLUE_ID}
 itemType:
-  blueId: ${blueIdB}`;
-    const parsedListOfB = yamlBlueParse(listOfB);
-    const nodeListOfB = NodeDeserializer.deserialize(parsedListOfB!);
-    nodeProvider.addSingleNodes(nodeListOfB);
-    const blueIdListOfB = BlueIdCalculator.calculateBlueIdSync(nodeListOfB);
+  blueId: ${nodeProvider.getBlueIdByName('B')}`;
+    nodeProvider.addSingleDocs(listOfB);
 
     // Create InheritedList with invalid item type
     const inheritedList = `name: InheritedList
 type:
-  blueId: ${blueIdListOfB}
+  blueId: ${nodeProvider.getBlueIdByName('ListOfB')}
 items:
   - type:
-      blueId: ${blueIdB}
+      blueId: ${nodeProvider.getBlueIdByName('B')}
   - type:
-      blueId: ${blueIdA}`; // This should cause an error
-    const parsedInheritedList = yamlBlueParse(inheritedList);
-    const nodeInheritedList = NodeDeserializer.deserialize(
-      parsedInheritedList!
-    );
-    nodeProvider.addSingleNodes(nodeInheritedList);
+      blueId: ${nodeProvider.getBlueIdByName('A')}`; // This should cause an error
+    nodeProvider.addSingleDocs(inheritedList);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -297,24 +233,21 @@ items:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const inheritedListBlueId =
-      BlueIdCalculator.calculateBlueIdSync(nodeInheritedList);
-    const inheritedListNode =
-      nodeProvider.fetchByBlueId(inheritedListBlueId)[0];
+    const inheritedListNode = nodeProvider.findNodeByName('InheritedList');
+    if (!inheritedListNode) {
+      throw new Error('InheritedList not found');
+    }
     new NodeExtender(nodeProvider).extend(inheritedListNode, NO_LIMITS);
 
     expect(() => merger.resolve(inheritedListNode, NO_LIMITS)).toThrow();
   });
 
   it('testListWithNoItemType', () => {
-    const nodeProvider = createNodeProviderWithCoreTypes();
+    const nodeProvider = new BasicNodeProvider();
 
     // Create node A
     const a = 'name: A';
-    const parsedA = yamlBlueParse(a);
-    const nodeA = NodeDeserializer.deserialize(parsedA!);
-    nodeProvider.addSingleNodes(nodeA);
-    const blueIdA = BlueIdCalculator.calculateBlueIdSync(nodeA);
+    nodeProvider.addSingleDocs(a);
 
     // Create list with no itemType
     const listWithNoItemType = `name: ListWithNoItemType
@@ -322,10 +255,8 @@ type:
   blueId: ${LIST_TYPE_BLUE_ID}
 items:
   - type:
-      blueId: ${blueIdA}`;
-    const parsedList = yamlBlueParse(listWithNoItemType);
-    const nodeList = NodeDeserializer.deserialize(parsedList!);
-    nodeProvider.addSingleNodes(nodeList);
+      blueId: ${nodeProvider.getBlueIdByName('A')}`;
+    nodeProvider.addSingleDocs(listWithNoItemType);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -333,8 +264,10 @@ items:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const listBlueId = BlueIdCalculator.calculateBlueIdSync(nodeList);
-    const listNode = nodeProvider.fetchByBlueId(listBlueId)[0];
+    const listNode = nodeProvider.findNodeByName('ListWithNoItemType');
+    if (!listNode) {
+      throw new Error('ListWithNoItemType not found');
+    }
     new NodeExtender(nodeProvider).extend(listNode, NO_LIMITS);
     const result = merger.resolve(listNode, NO_LIMITS);
 
@@ -344,22 +277,18 @@ items:
   });
 
   it('testNonListTypeWithItemType', () => {
-    const nodeProvider = createNodeProviderWithCoreTypes();
+    const nodeProvider = new BasicNodeProvider();
 
     // Create node A
     const a = 'name: A';
-    const parsedA = yamlBlueParse(a);
-    const nodeA = NodeDeserializer.deserialize(parsedA!);
-    nodeProvider.addSingleNodes(nodeA);
-    const blueIdA = BlueIdCalculator.calculateBlueIdSync(nodeA);
+    nodeProvider.addSingleDocs(a);
 
     // Create non-list with itemType
     const nonListWithItemType = `name: NonListWithItemType
-type: ${blueIdA}
-itemType: ${blueIdA}`;
-    const parsedNonList = yamlBlueParse(nonListWithItemType);
-    const nodeNonList = NodeDeserializer.deserialize(parsedNonList!);
-    nodeProvider.addSingleNodes(nodeNonList);
+type: ${nodeProvider.getBlueIdByName('A')}
+itemType: ${nodeProvider.getBlueIdByName('A')}`;
+
+    nodeProvider.addSingleDocs(nonListWithItemType);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -367,8 +296,10 @@ itemType: ${blueIdA}`;
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const nonListBlueId = BlueIdCalculator.calculateBlueIdSync(nodeNonList);
-    const nonListNode = nodeProvider.fetchByBlueId(nonListBlueId)[0];
+    const nonListNode = nodeProvider.findNodeByName('NonListWithItemType');
+    if (!nonListNode) {
+      throw new Error('NonListWithItemType not found');
+    }
     new NodeExtender(nodeProvider).extend(nonListNode, NO_LIMITS);
 
     expect(() => merger.resolve(nonListNode, NO_LIMITS)).toThrow();
