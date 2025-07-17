@@ -1,3 +1,17 @@
+## 1.26.0 (2025-07-17)
+
+### 🚀 Features
+
+- add node extension and repository definitions support ([632774f](https://github.com/bluecontract/blue-js/commit/632774f))
+- implement repository definitions support in Blue class ([f529df1](https://github.com/bluecontract/blue-js/commit/f529df1))
+- implement node merging system with comprehensive processors ([b3fb721](https://github.com/bluecontract/blue-js/commit/b3fb721))
+- add preprocessing support for repository contents ([005c819](https://github.com/bluecontract/blue-js/commit/005c819))
+- enhance Blue class with merging processor integration ([9a0d7e2](https://github.com/bluecontract/blue-js/commit/9a0d7e2))
+
+### 🩹 Fixes
+
+- sanitize events from isolated-vm using deep clone ([5bf56ec](https://github.com/bluecontract/blue-js/commit/5bf56ec))
+
 ## 1.25.0 (2025-07-15)
 
 ### 🚀 Features
