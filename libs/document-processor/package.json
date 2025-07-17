@@ -33,7 +33,7 @@
     "name": "document-processor"
   },
   "peerDependencies": {
-    "@blue-repository/core-dev": "^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^0.14.0",
-    "@blue-repository/myos-dev": "^0.11.0 || ^0.12.0 || ^0.13.0 || ^0.14.0 || ^0.15.0"
+    "@blue-repository/core-dev": "^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^0.14.0 || ^0.15.0 || ^0.16.0",
+    "@blue-repository/myos-dev": "^0.11.0 || ^0.12.0 || ^0.13.0 || ^0.14.0 || ^0.15.0 || ^0.16.0 || ^0.17.0"
   }
 }
