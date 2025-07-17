@@ -24,6 +24,9 @@ import {
 import { Limits, NO_LIMITS } from './utils/limits';
 import { NodeExtender } from './utils/NodeExtender';
 import { BlueRepository } from './types/BlueRepository';
+import { Merger } from './merge/Merger';
+import { MergingProcessor } from './merge/MergingProcessor';
+import { createDefaultNodeProcessor } from './merge/createDefaultNodeProcessor';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -32,6 +35,7 @@ export interface BlueOptions {
   typeSchemaResolver?: TypeSchemaResolver;
   urlFetchStrategy?: UrlFetchStrategy;
   repositories?: BlueRepository[];
+  mergingProcessor?: MergingProcessor;
 }
 
 export class Blue {
@@ -41,6 +45,7 @@ export class Blue {
   private urlContentFetcher: UrlContentFetcher;
   private blueIdsMappingGenerator: BlueIdsMappingGenerator;
   private globalLimits = NO_LIMITS;
+  private mergingProcessor: MergingProcessor;
   private repositories?: BlueRepository[];
 
   constructor(options: BlueOptions = {}) {
@@ -49,6 +54,7 @@ export class Blue {
       typeSchemaResolver = null,
       urlFetchStrategy,
       repositories,
+      mergingProcessor,
     } = options;
 
     // Store repositories for later use in setNodeProvider
@@ -62,6 +68,7 @@ export class Blue {
     );
 
     this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
+    this.mergingProcessor = mergingProcessor ?? createDefaultNodeProcessor();
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
@@ -100,6 +107,12 @@ export class Blue {
   >(node: BlueNode, schema: ZodType<Output, Def, Input>): Output {
     const converter = new NodeToObjectConverter(this.typeSchemaResolver);
     return converter.convert(node, schema);
+  }
+
+  public resolve(node: BlueNode, limits: Limits = NO_LIMITS) {
+    const effectiveLimits = this.combineWithGlobalLimits(limits);
+    const merger = new Merger(this.mergingProcessor, this.nodeProvider);
+    return merger.resolve(node, effectiveLimits);
   }
 
   public extend(node: BlueNode, limits: Limits) {
