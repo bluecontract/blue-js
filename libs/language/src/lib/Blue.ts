@@ -9,7 +9,7 @@ import {
 } from './utils';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
-import { ZodTypeDef, ZodType, ZodTypeAny, AnyZodObject } from 'zod';
+import { ZodTypeDef, ZodType, AnyZodObject } from 'zod';
 import { yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
 import { BlueDirectivePreprocessor } from './preprocess/BlueDirectivePreprocessor';
@@ -21,17 +21,11 @@ import {
   BlueIdsMappingGenerator,
   BlueIdsRecord,
 } from './preprocess/utils/BlueIdsMappingGenerator';
-import { JsonValue } from '@blue-labs/shared-utils';
 import { Limits, NO_LIMITS } from './utils/limits';
 import { NodeExtender } from './utils/NodeExtender';
-import { InMemoryNodeProvider } from './provider/InMemoryNodeProvider';
-import { RepositoryNodeProviderFactory } from './provider/RepositoryNodeProviderFactory';
+import { BlueRepository } from './types/BlueRepository';
 
-export interface BlueRepository {
-  blueIds: BlueIdsRecord;
-  schemas: ZodTypeAny[];
-  definitions?: Record<string, JsonValue>;
-}
+export type { BlueRepository } from './types/BlueRepository';
 
 export interface BlueOptions {
   nodeProvider?: NodeProvider;
@@ -47,7 +41,7 @@ export class Blue {
   private urlContentFetcher: UrlContentFetcher;
   private blueIdsMappingGenerator: BlueIdsMappingGenerator;
   private globalLimits = NO_LIMITS;
-  private definitionsProvider?: InMemoryNodeProvider;
+  private repositories?: BlueRepository[];
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -57,15 +51,14 @@ export class Blue {
       repositories,
     } = options;
 
-    // Create definitions provider from repositories if available
-    this.definitionsProvider =
-      RepositoryNodeProviderFactory.createDefinitionsProvider(repositories);
+    // Store repositories for later use in setNodeProvider
+    this.repositories = repositories;
 
-    // Use NodeProviderWrapper to create the provider chain
+    // Use NodeProviderWrapper to create the provider chain with repositories
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider || defaultProvider,
-      this.definitionsProvider
+      repositories
     );
 
     this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
@@ -216,7 +209,7 @@ export class Blue {
   public setNodeProvider(nodeProvider: NodeProvider): Blue {
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider,
-      this.definitionsProvider
+      this.repositories
     );
     return this;
   }

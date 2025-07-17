@@ -47,9 +47,9 @@ export abstract class PreloadedNodeProvider extends AbstractNodeProvider {
    * @param blueId - The Blue ID of the node
    */
   protected addToNameMap(name: string, blueId: string): void {
-    if (!this.nameToBlueIdsMap.has(name)) {
-      this.nameToBlueIdsMap.set(name, []);
-    }
-    this.nameToBlueIdsMap.get(name)!.push(blueId);
+    this.nameToBlueIdsMap.set(name, [
+      ...(this.nameToBlueIdsMap.get(name) || []),
+      blueId,
+    ]);
   }
 }
