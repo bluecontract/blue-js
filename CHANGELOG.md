@@ -1,3 +1,9 @@
+## 1.26.1 (2025-07-17)
+
+### 🩹 Fixes
+
+- update dependencies to latest versions ([48106f8](https://github.com/bluecontract/blue-js/commit/48106f8))
+
 ## 1.26.0 (2025-07-17)
 
 ### 🚀 Features
