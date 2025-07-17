@@ -1,3 +1,4 @@
+import { isNonNullable } from '@blue-labs/shared-utils';
 import { NodeProvider } from '../NodeProvider';
 import { BlueNode } from '../model';
 import { NodeProviderWrapper } from './NodeProviderWrapper';
@@ -154,7 +155,10 @@ export class NodeExtender {
     target.setItemType(source.getItemType());
     target.setKeyType(source.getKeyType());
     target.setValueType(source.getValueType());
-    target.setValue(source.getValue() ?? null);
+    const sourceValue = source.getValue();
+    if (isNonNullable(sourceValue)) {
+      target.setValue(sourceValue);
+    }
     target.setItems(source.getItems());
     target.setProperties(source.getProperties());
     target.setContracts(source.getContracts());

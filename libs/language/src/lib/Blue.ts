@@ -9,7 +9,6 @@ import {
 } from './utils';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
-import { RepositoryNodeProviderFactory } from './utils/RepositoryNodeProviderFactory';
 import { ZodTypeDef, ZodType, ZodTypeAny, AnyZodObject } from 'zod';
 import { yamlBlueParse } from '../utils';
 import { Preprocessor } from './preprocess/Preprocessor';
@@ -26,6 +25,7 @@ import { JsonValue } from '@blue-labs/shared-utils';
 import { Limits, NO_LIMITS } from './utils/limits';
 import { NodeExtender } from './utils/NodeExtender';
 import { InMemoryNodeProvider } from './provider/InMemoryNodeProvider';
+import { RepositoryNodeProviderFactory } from './provider/RepositoryNodeProviderFactory';
 
 export interface BlueRepository {
   blueIds: BlueIdsRecord;

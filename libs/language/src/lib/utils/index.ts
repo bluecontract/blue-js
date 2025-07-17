@@ -9,4 +9,3 @@ export * from './NodeTransformer';
 export * from './NodePatch';
 export * from './TypeSchema';
 export * from './TypeSchemaResolver';
-export { RepositoryNodeProviderFactory } from './RepositoryNodeProviderFactory';

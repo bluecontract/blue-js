@@ -6,3 +6,4 @@ export * from './NodeProvider';
 export * from './provider/SequentialNodeProvider';
 export * from './provider/UrlContentFetcher';
 export * from './preprocess';
+export * from './merge';
