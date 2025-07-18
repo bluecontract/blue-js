@@ -80,6 +80,30 @@ describe('Merger', () => {
     expect(resolved.getProperties()?.prop2?.getValue()).toBe('value2');
   });
 
+  it('should merge contracts', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn((target: BlueNode, source: BlueNode) => {
+        // Copy value from source to target
+        if (source.getValue() !== undefined) {
+          target.setValue(source.getValue()!);
+        }
+      }),
+    };
+    const mockProvider = createNodeProvider(() => []);
+
+    const merger = new Merger(mockProcessor, mockProvider);
+    const sourceNode = new BlueNode('TestNode').setContracts({
+      contract1: new BlueNode().setValue('c-value1'),
+      contract2: new BlueNode().setValue('c-value2'),
+    });
+
+    const resolved = merger.resolve(sourceNode, NO_LIMITS);
+
+    expect(resolved.getContracts()).toBeDefined();
+    expect(resolved.getContracts()?.contract1?.getValue()).toBe('c-value1');
+    expect(resolved.getContracts()?.contract2?.getValue()).toBe('c-value2');
+  });
+
   it('should call postProcess if defined', () => {
     const postProcessFn = vi.fn();
     const mockProcessor: MergingProcessor = {
