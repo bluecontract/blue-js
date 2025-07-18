@@ -1,3 +1,13 @@
+## 1.27.0 (2025-07-18)
+
+### 🚀 Features
+
+- enhance Merger class to support contract merging ([4fc7762](https://github.com/bluecontract/blue-js/commit/4fc7762))
+
+### 🩹 Fixes
+
+- **document-processor:** Sanitize ExpressionEvaluator results ([f45c777](https://github.com/bluecontract/blue-js/commit/f45c777))
+
 ## 1.26.1 (2025-07-17)
 
 ### 🩹 Fixes
