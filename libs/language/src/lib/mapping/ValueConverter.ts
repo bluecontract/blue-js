@@ -15,13 +15,15 @@ import {
   BOOLEAN_TYPE_BLUE_ID,
 } from '../utils/Properties';
 import { isNullable } from '@blue-labs/shared-utils';
+import { isPrimitiveType } from '../../schema/utils';
+import { Nodes } from '../utils/Nodes';
 
 export class ValueConverter {
   static convertValue(node: BlueNode, targetSchema: ZodTypeAny) {
     const typeBlueId = node.getType()?.getBlueId();
     const value = node.getValue();
     if (isNullable(value)) {
-      if (this.isPrimitive(targetSchema)) {
+      if (isPrimitiveType(targetSchema) && Nodes.isValidValueNode(node)) {
         return this.getDefaultPrimitiveValue(targetSchema);
       }
       return value;
@@ -135,17 +137,6 @@ export class ValueConverter {
     }
 
     throw new Error(`Cannot convert Boolean to ${targetSchema._def.typeName}`);
-  }
-
-  private static isPrimitive(targetSchema: ZodTypeAny) {
-    if (!targetSchema) return false;
-
-    return (
-      targetSchema instanceof ZodString ||
-      targetSchema instanceof ZodNumber ||
-      targetSchema instanceof ZodBoolean ||
-      targetSchema instanceof ZodBigInt
-    );
   }
 
   static getDefaultPrimitiveValue(targetSchema: ZodTypeAny) {

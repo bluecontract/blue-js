@@ -85,17 +85,6 @@ export class Merger extends NodeResolver {
       });
     }
 
-    const contracts = source.getContracts();
-    if (isNonNullable(contracts)) {
-      Object.entries(contracts).forEach(([key, value]) => {
-        if (limits.shouldMergePathSegment(key, value)) {
-          limits.enterPathSegment(key, value);
-          this.mergeContract(target, key, value, limits);
-          limits.exitPathSegment();
-        }
-      });
-    }
-
     if (isNonNullable(source.getBlueId())) {
       target.setBlueId(source.getBlueId());
     }
@@ -192,34 +181,6 @@ export class Merger extends NodeResolver {
     if (targetValue === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       target.getProperties()![sourceKey] = node;
-    } else {
-      this.mergeObject(targetValue, node, limits);
-    }
-  }
-
-  /**
-   * Merges a contract from source into target
-   * @param target - The target node
-   * @param sourceKey - The contract key
-   * @param sourceValue - The contract value to merge
-   * @param limits - The limits to apply
-   */
-  private mergeContract(
-    target: BlueNode,
-    sourceKey: string,
-    sourceValue: BlueNode,
-    limits: Limits
-  ): void {
-    const node = this.resolve(sourceValue, limits);
-
-    if (isNullable(target.getContracts())) {
-      target.setContracts({});
-    }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const targetValue = target.getContracts()![sourceKey];
-    if (targetValue === undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      target.getContracts()![sourceKey] = node;
     } else {
       this.mergeObject(targetValue, node, limits);
     }
