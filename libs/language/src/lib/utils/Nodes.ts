@@ -1,5 +1,5 @@
 import { BlueNode } from '../model';
-import { isNonNullable } from '@blue-labs/shared-utils';
+import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import {
   TEXT_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
@@ -24,7 +24,6 @@ export const NODE_FIELDS = {
   PROPERTIES: 'properties',
   BLUE: 'blue',
   ITEMS: 'items',
-  CONTRACTS: 'contracts',
 } as const;
 
 export type NodeField = (typeof NODE_FIELDS)[keyof typeof NODE_FIELDS];
@@ -52,6 +51,18 @@ export class Nodes {
    */
   static hasItemsOnly(node: BlueNode): boolean {
     return this.hasFieldsAndMayHaveFields(node, new Set([NODE_FIELDS.ITEMS]));
+  }
+
+  /**
+   * Check if a node is a valid value node (has a value, no properties, no items)
+   * @param node - The node to check
+   * @returns true if the node is a valid value node
+   */
+  static isValidValueNode(node: BlueNode): boolean {
+    const value = node.getValue();
+    const properties = node.getProperties();
+    const items = node.getItems();
+    return isNonNullable(value) && isNullable(properties) && isNullable(items);
   }
 
   /**
@@ -143,8 +154,6 @@ export class Nodes {
         return node.getBlue();
       case NODE_FIELDS.ITEMS:
         return node.getItems();
-      case NODE_FIELDS.CONTRACTS:
-        return node.getContracts();
       case NODE_FIELDS.KEY_TYPE:
         return node.getKeyType();
       case NODE_FIELDS.VALUE_TYPE:

@@ -6,7 +6,6 @@ import {
   INTEGER_TYPE_BLUE_ID,
   LIST_TYPE_BLUE_ID,
   TEXT_TYPE_BLUE_ID,
-  OBJECT_CONTRACTS,
 } from '../../utils/Properties';
 import { BlueIdCalculator, Properties } from '../../utils';
 import { schemas, TestEnum } from './schema';
@@ -528,7 +527,6 @@ describe('blueNodeToObject', () => {
       // x1SetField validation
       expect(y.x1SetField).toBeDefined();
       expect(y.x1SetField?.size).toBe(2);
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const x1SetArray = Array.from(y.x1SetField!);
       expect(
         x1SetArray.some(
@@ -980,12 +978,11 @@ describe('blueNodeToObject', () => {
       expect(result).toBeInstanceOf(Map);
 
       // Test that contracts are properly stored (since z.any() can handle structured data)
-      expect(result.has(OBJECT_CONTRACTS)).toBeTruthy();
-      const contracts = result.get(OBJECT_CONTRACTS);
+      expect(result.has('contracts')).toBeTruthy();
+      const contracts = result.get('contracts');
       expect(contracts).toBeDefined();
       expect(typeof contracts).toBe('object');
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const contractsObj = contracts as Record<string, any>;
 
       expect(contractsObj.version.value.toString()).toBe('1');
@@ -1023,15 +1020,13 @@ describe('blueNodeToObject', () => {
         yamlBlueParse(mapWithContractsYaml) as JsonBlueValue
       );
 
-      // Use z.number() valueSchema - contracts should NOT be processed specially
       const mapSchema = z.map(z.string(), z.number());
       const result = converter.convert(node, mapSchema) as Map<string, unknown>;
 
       expect(result).toBeDefined();
       expect(result).toBeInstanceOf(Map);
 
-      // Contracts should NOT be processed specially with z.number() valueSchema
-      expect(result.has(OBJECT_CONTRACTS)).toBeFalsy();
+      expect(result.get('contracts')).toBeUndefined();
 
       // Test that regular map values are numbers
       expect(result.get('item1')).toBe(100);

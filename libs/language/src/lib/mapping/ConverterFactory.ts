@@ -4,21 +4,12 @@ import { ComplexObjectConverter } from './ComplexObjectConverter';
 import { ArrayConverter } from './ArrayConverter';
 import { SetConverter } from './SetConverter';
 import { MapConverter } from './MapConverter';
-import {
-  z,
-  ZodTypeAny,
-  ZodNullable,
-  ZodReadonly,
-  ZodBranded,
-  ZodLazy,
-  ZodEffects,
-  ZodOptional,
-  ZodType,
-} from 'zod';
+import { z, ZodTypeAny, ZodLazy, ZodEffects } from 'zod';
 import { NodeToObjectConverter } from './NodeToObjectConverter';
 import { UnknownConverter } from './UnknownConverter';
 import { AnyConverter } from './AnyConverter';
 import { TupleConverter } from './TupleConverter';
+import { isWrapperType } from '../../schema/utils';
 
 const zodSchemaTypeNamesSchema = z.union([
   z.literal('ZodString'),
@@ -91,19 +82,8 @@ export class ConverterFactory {
     );
   }
 
-  private isWrapperType(schema: ZodType) {
-    return (
-      schema instanceof ZodOptional ||
-      schema instanceof ZodNullable ||
-      schema instanceof ZodReadonly ||
-      schema instanceof ZodBranded ||
-      schema instanceof ZodEffects ||
-      schema instanceof ZodLazy
-    );
-  }
-
   private getSchemaTypeName(schema: ZodTypeAny): ZodSchemaTypeNames {
-    if (this.isWrapperType(schema)) {
+    if (isWrapperType(schema)) {
       if (schema instanceof ZodEffects) {
         return this.getSchemaTypeName(schema.innerType());
       }

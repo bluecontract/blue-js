@@ -12,7 +12,6 @@ import {
   OBJECT_KEY_TYPE,
   OBJECT_VALUE_TYPE,
   OBJECT_BLUE,
-  OBJECT_CONTRACTS,
   TEXT_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
   DOUBLE_TYPE_BLUE_ID,
@@ -119,15 +118,6 @@ export class NodeToMapListOrValue {
     const blue = node.getBlue();
     if (blue !== undefined) {
       result[OBJECT_BLUE] = blue as unknown as JsonValue;
-    }
-
-    const contracts = node.getContracts();
-    if (contracts !== undefined) {
-      const contractsMap: JsonObject = {};
-      Object.entries(contracts).forEach(([key, value]) => {
-        contractsMap[key] = NodeToMapListOrValue.get(value, strategy);
-      });
-      result[OBJECT_CONTRACTS] = contractsMap;
     }
 
     const properties = node.getProperties();
