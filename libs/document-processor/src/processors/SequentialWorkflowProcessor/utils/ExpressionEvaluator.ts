@@ -135,9 +135,10 @@ export class ExpressionEvaluator {
         ctx
       );
 
+      let result: unknown;
       if (!hasModuleSyntax(code)) {
         // Simple script evaluation (no imports/exports)
-        return await this.evaluateSimpleScript(
+        result = await this.evaluateSimpleScript(
           isolate,
           context,
           code,
@@ -146,7 +147,7 @@ export class ExpressionEvaluator {
         );
       } else {
         // ES Module evaluation
-        return await this.evaluateESModule(
+        result = await this.evaluateESModule(
           isolate,
           context,
           code,
@@ -154,6 +155,7 @@ export class ExpressionEvaluator {
           resolve
         );
       }
+      return this.deepClone(result);
     } catch (err) {
       if (options.isCodeBlock) {
         throw new CodeBlockEvaluationError(code, err);
@@ -318,5 +320,16 @@ export class ExpressionEvaluator {
       copy: true,
       release: true,
     });
+  }
+
+  /**
+   * Deep clones a value by serializing and deserializing it to/from JSON,
+   * which strips any isolate-specific object references.
+   */
+  private static deepClone<T = unknown>(value: T): T {
+    if (typeof value === 'undefined') {
+      return value;
+    }
+    return JSON.parse(JSON.stringify(value)) as T;
   }
 }

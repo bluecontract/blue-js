@@ -57,7 +57,7 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
       if (Array.isArray(resultWithEvents.events)) {
         for (const event of resultWithEvents.events) {
           ctx.emitEvent({
-            payload: blue.jsonValueToNode(deepClone(event)),
+            payload: blue.jsonValueToNode(event),
           });
         }
       }
@@ -65,10 +65,4 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
 
     return result;
   }
-}
-
-// JSON stringify/parse used to strip isolate-specific object references
-// because isolated-vm objects may have non-global constructors or hidden traps
-function deepClone<T = unknown>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
 }
