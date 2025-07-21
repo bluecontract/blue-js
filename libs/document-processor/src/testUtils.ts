@@ -10,8 +10,10 @@ export const prepareToProcess = async (
 ) => {
   const { blue, documentProcessor } = deps;
   const docNode = blue.jsonValueToNode(doc);
+  const resolvedDocNode = blue.resolve(docNode);
+
   const { state: initializedState } = await documentProcessor.initialize(
-    docNode
+    resolvedDocNode
   );
 
   return {
@@ -28,8 +30,10 @@ export const prepareToProcessYaml = async (
 ) => {
   const { blue, documentProcessor } = deps;
   const docNode = blue.yamlToNode(doc);
+  const resolvedDocNode = blue.resolve(docNode);
+
   const { state: initializedState } = await documentProcessor.initialize(
-    docNode
+    resolvedDocNode
   );
 
   return {
