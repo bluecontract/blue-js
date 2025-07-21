@@ -14,7 +14,7 @@ describe('BlueDocumentProcessor', () => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
 
-  it('creates dubscription to agent based on timeline event', async () => {
+  it('creates subscriptions to agents based on timeline event', async () => {
     const docyaml = `
 name: Agent Subscription Creator
 receivedEvent:
@@ -82,7 +82,10 @@ contracts:
           return { changes };
       - name: UpdateContracts
         type: Update Document
-        changeset: "\${steps.CreateSubscriptions.changes}"`;
+        changeset: 
+          type: List
+          itemType: Json Patch Entry
+          value: "\${steps.CreateSubscriptions.changes}"`;
 
     const { initializedState } = await prepareToProcessYaml(docyaml, {
       blue,

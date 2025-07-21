@@ -23,12 +23,10 @@ export class BasicTypesVerifier implements MergingProcessor {
     ) {
       const items = target.getItems();
       const properties = target.getProperties();
-      const contracts = target.getContracts();
 
       if (
         (items !== undefined && items.length > 0) ||
-        (properties !== undefined && Object.keys(properties).length > 0) ||
-        (contracts !== undefined && Object.keys(contracts).length > 0)
+        (properties !== undefined && Object.keys(properties).length > 0)
       ) {
         const basicTypeName = findBasicTypeName(targetType, nodeProvider);
         const typeName = targetType.getName() || 'unknown';
