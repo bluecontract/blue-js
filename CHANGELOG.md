@@ -1,3 +1,9 @@
+## 1.27.1 (2025-07-21)
+
+### 🩹 Fixes
+
+- fix issue with using default values in mapping to map format ([7fbab45](https://github.com/bluecontract/blue-js/commit/7fbab45))
+
 ## 1.27.0 (2025-07-18)
 
 ### 🚀 Features
