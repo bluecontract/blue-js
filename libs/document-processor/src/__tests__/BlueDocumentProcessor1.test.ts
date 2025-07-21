@@ -389,12 +389,46 @@ describe('BlueDocumentProcessor', () => {
                 type: 'Update Document',
                 changeset: [{ op: 'replace', path: '/x', val: 2 }],
               },
+
+              // FIXME: Merger copied type value inline
+              // RESULT:
+              // {
+              //   "description": "Event data",
+              //   "type": {
+              //     "type": {
+              //       "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP"
+              //     },
+              //     "value": "Payment Succeeded"
+              //   },
+              //   "value": "Payment Succeeded",
+              //   "amountUsd": {
+              //     "type": {
+              //       "blueId": "DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8"
+              //     },
+              //     "value": 120
+              //   }
+              // }
+              // ------------------------------------------------------------
+              // {
+              //   type: 'Trigger Event',
+              //   event: {
+              //     type: 'Payment Succeeded',
+              //     amountUsd: 120,
+              //   },
+              // },
+
               {
-                type: 'Trigger Event',
-                event: {
-                  type: 'Payment Succeeded',
-                  amountUsd: 120,
-                },
+                type: 'JavaScript Code',
+                code: `
+                  return {
+                    events: [
+                      {
+                        type: 'Payment Succeeded',
+                        amountUsd: 120,
+                      }
+                    ]
+                  }
+                `,
               },
             ],
           },

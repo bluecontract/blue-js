@@ -10,13 +10,24 @@ import {
 } from '@blue-labs/language';
 import { deepFreeze } from '@blue-labs/shared-utils';
 
-// Config flag for enabling immutability
-export const ENABLE_IMMUTABILITY = true; // This should be configurable
-
 /* ---------------------------------------------------------- */
 /* Helper: collect absolute embedded paths once per document  */
 /* ---------------------------------------------------------- */
 type EmbeddedSpec = { absPath: string; contractPath: string };
+
+/**
+ * Makes a document immutable during processing for safety
+ */
+export function freeze(doc: DocumentNode): DocumentNode {
+  return deepFreeze(doc);
+}
+
+/**
+ * Creates a mutable copy of a document for processing
+ */
+export function mutable(doc: DocumentNode): DocumentNode {
+  return doc.clone();
+}
 
 export function collectEmbeddedPaths(
   doc: DocumentNode,
@@ -71,7 +82,7 @@ export function applyPatches(
 ): DocumentNode {
   if (!patches.length) return document;
 
-  let mutableDoc = document.clone();
+  let mutableDoc = mutable(document);
 
   for (const patch of patches) {
     try {
@@ -81,12 +92,5 @@ export function applyPatches(
     }
   }
 
-  return ENABLE_IMMUTABILITY ? deepFreeze(mutableDoc) : mutableDoc;
-}
-
-/**
- * Create an immutable copy of a document if immutability is enabled
- */
-export function createImmutableDocument(document: DocumentNode): DocumentNode {
-  return ENABLE_IMMUTABILITY ? deepFreeze(document.clone()) : document.clone();
+  return freeze(mutableDoc);
 }

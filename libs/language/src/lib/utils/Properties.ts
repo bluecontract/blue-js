@@ -10,7 +10,6 @@ export const OBJECT_VALUE = 'value';
 export const OBJECT_ITEMS = 'items';
 export const OBJECT_BLUE_ID = 'blueId';
 export const OBJECT_BLUE = 'blue';
-export const OBJECT_CONTRACTS = 'contracts';
 
 export const OBJECT_SPECIFIC_KEYS = [
   OBJECT_NAME,
@@ -23,7 +22,6 @@ export const OBJECT_SPECIFIC_KEYS = [
   OBJECT_ITEMS,
   OBJECT_BLUE_ID,
   OBJECT_BLUE,
-  OBJECT_CONTRACTS,
 ] as const;
 
 export const TEXT_TYPE = 'Text';

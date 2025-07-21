@@ -6,7 +6,13 @@ import {
   ProcessingResult,
 } from './types';
 import { InternalContext } from './context';
-import { applyPatches, collectEmbeddedPaths, isInside } from './utils/document';
+import {
+  applyPatches,
+  collectEmbeddedPaths,
+  isInside,
+  freeze,
+  mutable,
+} from './utils/document';
 import { EmbeddedDocumentModificationError } from './utils/exceptions';
 import { isDocumentNode } from './utils/typeGuard';
 import { TaskQueue } from './queue/TaskQueue';
@@ -77,7 +83,8 @@ export class BlueDocumentProcessor {
    * @returns Processing result with final state and emitted events
    */
   async initialize(document: DocumentNode): Promise<ProcessingResult> {
-    let current = ensureCheckpointContracts(document, this.blue);
+    let current = ensureCheckpointContracts(freeze(document), this.blue);
+
     // Emit the Document Processing Initiated event
     const initEvent: EventNode = {
       payload: createDocumentProcessingInitiatedEvent(this.blue),
@@ -94,7 +101,8 @@ export class BlueDocumentProcessor {
     // Add initialized contract to mark the document as initialized
     current = ensureInitializedContract(current, this.blue);
 
-    return { state: current, emitted };
+    // Return a mutable copy for external use
+    return { state: mutable(current), emitted };
   }
 
   /**
@@ -108,7 +116,7 @@ export class BlueDocumentProcessor {
     document: DocumentNode,
     incoming: EventNodePayload[]
   ): Promise<ProcessingResult> {
-    let current = ensureCheckpointContracts(document, this.blue);
+    let current = ensureCheckpointContracts(freeze(document), this.blue);
     const emitted: EventNodePayload[] = [];
 
     if (!isInitialized(current, this.blue)) {
@@ -133,7 +141,8 @@ export class BlueDocumentProcessor {
       }
     }
 
-    return { state: current, emitted };
+    // Return a mutable copy for external use
+    return { state: mutable(current), emitted };
   }
 
   /**

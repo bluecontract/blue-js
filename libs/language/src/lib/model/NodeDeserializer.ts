@@ -11,11 +11,9 @@ import {
   OBJECT_KEY_TYPE,
   OBJECT_VALUE_TYPE,
   OBJECT_BLUE,
-  OBJECT_CONTRACTS,
 } from '../utils/Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
-import { isReadonlyArray } from '@blue-labs/shared-utils';
-import { isArray, isObject } from 'radash';
+import { isObject } from 'radash';
 import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';
 
@@ -32,7 +30,6 @@ export class NodeDeserializer {
     } else if (isJsonBlueObject(node)) {
       const obj = new BlueNode();
       const properties = {} as Record<string, BlueNode>;
-      const contracts = {} as Record<string, BlueNode>;
 
       Object.entries(node).forEach(([key, value]) => {
         switch (key) {
@@ -83,14 +80,6 @@ export class NodeDeserializer {
           case OBJECT_BLUE:
             obj.setBlue(NodeDeserializer.handleNode(value));
             break;
-          case OBJECT_CONTRACTS:
-            if (isObject(value) && !isArray(value) && !isReadonlyArray(value)) {
-              Object.entries(value).forEach(([contractKey, contractValue]) => {
-                contracts[contractKey] =
-                  NodeDeserializer.handleNode(contractValue);
-              });
-            }
-            break;
           default:
             properties[key] = NodeDeserializer.handleNode(value);
             break;
@@ -99,9 +88,6 @@ export class NodeDeserializer {
 
       if (Object.keys(properties).length > 0) {
         obj.setProperties(properties);
-      }
-      if (Object.keys(contracts).length > 0) {
-        obj.setContracts(contracts);
       }
       return obj;
     } else if (isJsonBlueArray(node)) {
