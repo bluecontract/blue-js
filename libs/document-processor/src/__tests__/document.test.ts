@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyPatches, ENABLE_IMMUTABILITY } from '../utils/document';
+import { applyPatches } from '../utils/document';
 import { PatchApplicationError } from '../utils/exceptions';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue, type BlueNodePatch } from '@blue-labs/language';
@@ -515,11 +515,6 @@ describe('Document Utilities', () => {
     });
 
     it('should create an immutable result when ENABLE_IMMUTABILITY is true', () => {
-      // This test assumes ENABLE_IMMUTABILITY is true in the actual code
-      if (!ENABLE_IMMUTABILITY) {
-        return; // Skip test if immutability is disabled
-      }
-
       // Arrange
       const document: JsonObject = {
         counter: 1,
@@ -546,95 +541,4 @@ describe('Document Utilities', () => {
       expect(counterNode?.getValue()?.toString()).toBe('2');
     });
   });
-
-  // describe('createImmutableDocument', () => {
-  //   it('should create a deep clone of the document', () => {
-  //     // Arrange
-  //     const document: DocumentNode = {
-  //       value: 1,
-  //       nested: { property: 'test' },
-  //     };
-
-  //     // Act
-  //     const result = createImmutableDocument(document);
-
-  //     // Assert
-  //     expect(result).toEqual(document);
-  //     expect(result).not.toBe(document);
-  //     expect(result.nested).not.toBe(document.nested);
-  //   });
-
-  //   it('should freeze the document when ENABLE_IMMUTABILITY is true', () => {
-  //     // This test assumes ENABLE_IMMUTABILITY is true in the actual code
-  //     if (!ENABLE_IMMUTABILITY) {
-  //       return; // Skip test if immutability is disabled
-  //     }
-
-  //     // Arrange
-  //     const document: DocumentNode = {
-  //       value: 1,
-  //       nested: { property: 'test' },
-  //     };
-
-  //     // Act
-  //     const result = createImmutableDocument(document);
-
-  //     // Assert
-  //     expect(Object.isFrozen(result)).toBe(true);
-  //     expect(Object.isFrozen(result.nested)).toBe(true);
-  //   });
-  // });
-
-  // describe('deepFreeze', () => {
-  //   it('should recursively freeze all nested objects', () => {
-  //     // Arrange
-  //     const obj = {
-  //       a: 1,
-  //       b: {
-  //         c: 2,
-  //         d: {
-  //           e: 3,
-  //         },
-  //       },
-  //       f: [1, 2, { g: 4 }],
-  //     };
-
-  //     // Act
-  //     const result = deepFreeze(obj);
-
-  //     // Assert
-  //     expect(Object.isFrozen(result)).toBe(true);
-  //     expect(Object.isFrozen(result.b)).toBe(true);
-  //     expect(Object.isFrozen(result.b.d)).toBe(true);
-  //     expect(Object.isFrozen(result.f)).toBe(true);
-  //     expect(Object.isFrozen(result.f[2])).toBe(true);
-  //   });
-  // });
-
-  // describe('deepClone', () => {
-  //   it('should create a deep copy of complex objects', () => {
-  //     // Arrange
-  //     const obj = {
-  //       a: 1,
-  //       b: {
-  //         c: 2,
-  //         d: {
-  //           e: 3,
-  //         },
-  //       },
-  //       f: [1, 2, { g: 4 }],
-  //     };
-
-  //     // Act
-  //     const result = deepClone(obj);
-
-  //     // Assert
-  //     expect(result).toEqual(obj);
-  //     expect(result).not.toBe(obj);
-  //     expect(result.b).not.toBe(obj.b);
-  //     expect(result.b.d).not.toBe(obj.b.d);
-  //     expect(result.f).not.toBe(obj.f);
-  //     expect(result.f[2]).not.toBe(obj.f[2]);
-  //   });
-  // });
 });

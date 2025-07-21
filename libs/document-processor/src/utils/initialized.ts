@@ -1,6 +1,5 @@
-import { deepFreeze } from '@blue-labs/shared-utils';
 import { DocumentNode } from '../types';
-import { ENABLE_IMMUTABILITY } from './document';
+import { freeze, mutable } from './document';
 import { isDocumentNode } from './typeGuard';
 import { Blue } from '@blue-labs/language';
 import { blueIds, InitializedMarkerSchema } from '@blue-repository/core-dev';
@@ -9,14 +8,15 @@ export function ensureInitializedContract(
   doc: DocumentNode,
   blue: Blue
 ): DocumentNode {
-  const cloned = doc.clone();
+  const mutableDoc = mutable(doc);
 
-  if (!isDocumentNode(cloned)) {
-    return ENABLE_IMMUTABILITY ? deepFreeze(cloned) : cloned;
+  if (!isDocumentNode(mutableDoc)) {
+    // Return frozen document
+    return freeze(mutableDoc);
   }
 
-  if (!isInitialized(cloned, blue)) {
-    cloned.addContract(
+  if (!isInitialized(mutableDoc, blue)) {
+    mutableDoc.addContract(
       'initialized',
       blue.jsonValueToNode({
         type: {
@@ -27,7 +27,8 @@ export function ensureInitializedContract(
     );
   }
 
-  return ENABLE_IMMUTABILITY ? deepFreeze(cloned) : cloned;
+  // Return frozen document
+  return freeze(mutableDoc);
 }
 
 export function isInitialized(doc: DocumentNode, blue: Blue): boolean {

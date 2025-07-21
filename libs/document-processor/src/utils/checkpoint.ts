@@ -1,6 +1,5 @@
-import { deepFreeze } from '@blue-labs/shared-utils';
 import { DocumentNode } from '../types';
-import { collectEmbeddedPaths, ENABLE_IMMUTABILITY } from './document';
+import { collectEmbeddedPaths, freeze, mutable } from './document';
 import { isDocumentNode } from './typeGuard';
 import { Blue, BlueNodeTypeSchema } from '@blue-labs/language';
 import {
@@ -9,7 +8,7 @@ import {
 } from '@blue-repository/core-dev';
 
 export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
-  const cloned = doc.clone();
+  const mutableDoc = mutable(doc);
 
   // helper that mutates a node in-place (clone already done)
   const ensureOnNode = (node: DocumentNode): void => {
@@ -38,15 +37,15 @@ export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
   };
 
   // 1️⃣ root
-  ensureOnNode(cloned);
+  ensureOnNode(mutableDoc);
 
   // 2️⃣ every embedded document referenced by Process Embedded
-  for (const { absPath } of collectEmbeddedPaths(cloned, blue)) {
-    const embedded = cloned.get(absPath);
+  for (const { absPath } of collectEmbeddedPaths(mutableDoc, blue)) {
+    const embedded = mutableDoc.get(absPath);
     if (isDocumentNode(embedded)) {
       ensureOnNode(embedded);
     }
   }
 
-  return ENABLE_IMMUTABILITY ? deepFreeze(cloned) : cloned;
+  return freeze(mutableDoc);
 }
