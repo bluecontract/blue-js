@@ -103,29 +103,25 @@ export class NodePathAccessor {
       switch (segment) {
         case 'name': {
           const name = node.getName();
-          resultNode = isNonNullable(name)
-            ? new BlueNode().setValue(name)
-            : new BlueNode();
+          resultNode = new BlueNode().setValue(name ?? null);
           break;
         }
         case 'description': {
           const description = node.getDescription();
-          resultNode = isNonNullable(description)
-            ? new BlueNode().setValue(description)
-            : new BlueNode();
+          resultNode = new BlueNode().setValue(description ?? null);
           break;
         }
         case 'type':
-          resultNode = node.getType() ?? new BlueNode();
+          resultNode = node.getType();
           break;
         case 'itemType':
-          resultNode = node.getItemType() ?? new BlueNode();
+          resultNode = node.getItemType();
           break;
         case 'keyType':
-          resultNode = node.getKeyType() ?? new BlueNode();
+          resultNode = node.getKeyType();
           break;
         case 'valueType':
-          resultNode = node.getValueType() ?? new BlueNode();
+          resultNode = node.getValueType();
           break;
         case 'value': {
           const val = node.getValue();
@@ -134,9 +130,7 @@ export class NodePathAccessor {
         }
         case 'blueId': {
           const blueId = node.getBlueId();
-          resultNode = isNonNullable(blueId)
-            ? new BlueNode().setValue(blueId)
-            : new BlueNode();
+          resultNode = new BlueNode().setValue(blueId ?? null);
           break;
         }
         case 'blue':
