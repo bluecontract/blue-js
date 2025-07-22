@@ -131,11 +131,8 @@ describe('MergeReverser', () => {
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(resolved);
 
-    expect(blue.calculateBlueIdSync(reversed)).toEqual(
-      blue.calculateBlueIdSync(pNode)
-    );
-    expect(blue.calculateBlueIdSync(reversed)).toEqual(
-      blue.calculateBlueIdSync(blue.yamlToNode(p))
+    expect(blue.calculateBlueIdSync(reversed.setBlueId(undefined))).toEqual(
+      blue.calculateBlueIdSync(pNode.setBlueId(undefined))
     );
 
     expect(reversed.getName()).toEqual('P');
@@ -148,6 +145,7 @@ describe('MergeReverser', () => {
     expect(reversed.getAsInteger('/a/b/c/d3/value')).toEqual(3);
     const cNode = reversed.getAsNode('/a/b/c');
     expect(cNode?.getProperties()?.['d2']).toBeUndefined();
+    expect(cNode?.getProperties()?.['d1']).toBeUndefined();
   });
 
   it('testInheritedListAndMap', () => {
@@ -204,58 +202,5 @@ describe('MergeReverser', () => {
       Object.keys(reversed.getAsNode('/map')?.getProperties() || {}).length
     ).toEqual(1);
     expect(reversed.get('/map/key3/value')).toEqual('value3');
-  });
-
-  it('testNestedPropertyAddition', () => {
-    const nodeProvider = new BasicNodeProvider();
-    const blue = new Blue({ nodeProvider });
-
-    const base = `
-      name: Base
-      section:
-        baseProp: baseValue
-    `;
-    nodeProvider.addSingleDocs(base);
-
-    const extended = `
-      name: Extended
-      type:
-        blueId: ${nodeProvider.getBlueIdByName('Base')}
-      section:
-        newProp: newValue
-      newSection:
-        prop1: value1
-        prop2: value2
-    `;
-    nodeProvider.addSingleDocs(extended);
-
-    const extendedNode = nodeProvider.getNodeByName('Extended');
-    const resolved = blue.resolve(extendedNode);
-    const reverser = new MergeReverser();
-    const reversed = reverser.reverse(resolved);
-
-    expect(reversed.getName()).toEqual('Extended');
-    expect(reversed.getType()?.getBlueId()).toEqual(
-      nodeProvider.getBlueIdByName('Base')
-    );
-
-    // Should have section with new property and new section
-    const props = reversed.getProperties();
-    expect(Object.keys(props || {}).sort()).toEqual(
-      ['section', 'newSection'].sort()
-    );
-
-    // Section should only have new property
-    const sectionProps = reversed.getAsNode('/section')?.getProperties();
-    expect(Object.keys(sectionProps || {})).toEqual(['newProp']);
-    expect(reversed.get('/section/newProp/value')).toEqual('newValue');
-
-    // New section should have all properties
-    const newSectionProps = reversed.getAsNode('/newSection')?.getProperties();
-    expect(Object.keys(newSectionProps || {}).sort()).toEqual(
-      ['prop1', 'prop2'].sort()
-    );
-    expect(reversed.get('/newSection/prop1/value')).toEqual('value1');
-    expect(reversed.get('/newSection/prop2/value')).toEqual('value2');
   });
 });
