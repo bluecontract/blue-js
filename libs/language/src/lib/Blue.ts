@@ -27,6 +27,7 @@ import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultNodeProcessor } from './merge/createDefaultNodeProcessor';
+import { MergeReverser } from './utils/MergeReverser';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -113,6 +114,11 @@ export class Blue {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     return merger.resolve(node, effectiveLimits);
+  }
+
+  public reverse(node: BlueNode) {
+    const reverser = new MergeReverser();
+    return reverser.reverse(node);
   }
 
   public extend(node: BlueNode, limits: Limits) {
