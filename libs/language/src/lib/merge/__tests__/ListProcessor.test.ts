@@ -111,16 +111,20 @@ items:
 
     // Create node B
     const b = `name: B
-type: ${nodeProvider.getBlueIdByName('A')}`;
+type:
+  blueId: ${nodeProvider.getBlueIdByName('A')}`;
     nodeProvider.addSingleDocs(b);
 
     // Create ListOfB with invalid item type
     const listOfB = `name: ListOfB
 type: List
-itemType: ${nodeProvider.getBlueIdByName('B')}
+itemType:
+  blueId: ${nodeProvider.getBlueIdByName('B')}
 items:
-  - type: ${nodeProvider.getBlueIdByName('B')}
-  - type: ${nodeProvider.getBlueIdByName('A')}`; // This should cause an error
+  - type:
+      blueId: ${nodeProvider.getBlueIdByName('B')}
+  - type:
+      blueId: ${nodeProvider.getBlueIdByName('A')}`; // This should cause an error
     nodeProvider.addSingleDocs(listOfB);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
@@ -285,8 +289,10 @@ items:
 
     // Create non-list with itemType
     const nonListWithItemType = `name: NonListWithItemType
-type: ${nodeProvider.getBlueIdByName('A')}
-itemType: ${nodeProvider.getBlueIdByName('A')}`;
+type:
+  blueId: ${nodeProvider.getBlueIdByName('A')}
+itemType:
+  blueId: ${nodeProvider.getBlueIdByName('A')}`;
 
     nodeProvider.addSingleDocs(nonListWithItemType);
 
