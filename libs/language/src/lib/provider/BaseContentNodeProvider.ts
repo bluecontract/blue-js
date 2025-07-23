@@ -7,12 +7,14 @@ import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
 import TransformationBlueYaml from '../resources/transformation/Transformation.yaml?raw';
 import InferBasicTypesForUntypedValuesYaml from '../resources/transformation/InferBasicTypesForUntypedValues.yaml?raw';
 import ReplaceInlineTypesWithBlueIdsYaml from '../resources/transformation/ReplaceInlineTypesWithBlueIds.yaml?raw';
+import ValidateInlineTypesReplacedYaml from '../resources/transformation/ValidateInlineTypesReplaced.yaml?raw';
 
 const contents = [
   DefaultBlueYaml,
   TransformationBlueYaml,
   InferBasicTypesForUntypedValuesYaml,
   ReplaceInlineTypesWithBlueIdsYaml,
+  ValidateInlineTypesReplacedYaml,
 ];
 
 export class BaseContentNodeProvider extends NodeProvider {
