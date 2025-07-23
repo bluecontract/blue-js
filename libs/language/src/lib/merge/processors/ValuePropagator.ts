@@ -10,19 +10,20 @@ import {
  * Propagates values from source to target nodes
  */
 export class ValuePropagator implements MergingProcessor {
-  process(target: BlueNode, source: BlueNode): void {
+  process(target: BlueNode, source: BlueNode): BlueNode {
     const sourceValue = source.getValue();
 
     if (isNonNullable(sourceValue)) {
       const targetValue = target.getValue();
       if (isNullable(targetValue)) {
-        target.setValue(sourceValue);
+        return target.clone().setValue(sourceValue);
       } else if (!isEqualValue(sourceValue, targetValue)) {
         throw new Error(
           `Node values conflict. Source node value: ${sourceValue}, target node value: ${targetValue}`
         );
       }
     }
+    return target;
   }
 }
 

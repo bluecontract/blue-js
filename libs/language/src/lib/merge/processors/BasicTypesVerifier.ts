@@ -7,15 +7,15 @@ import { isSubtypeOfBasicType, findBasicTypeName } from './Types';
  * Verifies that nodes with basic types don't have items or properties
  */
 export class BasicTypesVerifier implements MergingProcessor {
-  process(): void {
-    // Do nothing during process phase
+  process(target: BlueNode): BlueNode {
+    return target;
   }
 
   postProcess(
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     const targetType = target.getType();
     if (
       targetType !== undefined &&
@@ -35,5 +35,6 @@ export class BasicTypesVerifier implements MergingProcessor {
         );
       }
     }
+    return target;
   }
 }

@@ -25,9 +25,11 @@ export class SequentialMergingProcessor implements MergingProcessor {
     source: BlueNode,
     nodeProvider: NodeProvider,
     nodeResolver: NodeResolver
-  ): void {
-    this.mergingProcessors.forEach((processor) =>
-      processor.process(target, source, nodeProvider, nodeResolver)
+  ): BlueNode {
+    return this.mergingProcessors.reduce(
+      (currentTarget, processor) =>
+        processor.process(currentTarget, source, nodeProvider, nodeResolver),
+      target
     );
   }
 
@@ -39,11 +41,17 @@ export class SequentialMergingProcessor implements MergingProcessor {
     source: BlueNode,
     nodeProvider: NodeProvider,
     nodeResolver: NodeResolver
-  ): void {
-    this.mergingProcessors.forEach((processor) => {
+  ): BlueNode {
+    return this.mergingProcessors.reduce((currentPostTarget, processor) => {
       if (processor.postProcess) {
-        processor.postProcess(target, source, nodeProvider, nodeResolver);
+        return processor.postProcess(
+          currentPostTarget,
+          source,
+          nodeProvider,
+          nodeResolver
+        );
       }
-    });
+      return currentPostTarget;
+    }, target);
   }
 }

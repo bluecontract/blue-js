@@ -6,6 +6,14 @@ import { createNodeProvider } from '../../NodeProvider';
 import { NO_LIMITS } from '../../utils/limits';
 
 describe('Merger', () => {
+  const basicMergingProcessor = (target: BlueNode, source: BlueNode) => {
+    // Copy value from source to target
+    if (source.getValue() !== undefined) {
+      return target.clone().setValue(source.getValue()!);
+    }
+    return target;
+  };
+
   it('should create a Merger instance', () => {
     const mockProcessor: MergingProcessor = {
       process: vi.fn(),
@@ -17,12 +25,7 @@ describe('Merger', () => {
   });
 
   it('should resolve a simple node', () => {
-    const processFn = vi.fn((target: BlueNode, source: BlueNode) => {
-      // Copy value from source to target
-      if (source.getValue() !== undefined) {
-        target.setValue(source.getValue()!);
-      }
-    });
+    const processFn = vi.fn(basicMergingProcessor);
     const mockProcessor: MergingProcessor = {
       process: processFn,
     };
@@ -58,12 +61,7 @@ describe('Merger', () => {
 
   it('should merge properties', () => {
     const mockProcessor: MergingProcessor = {
-      process: vi.fn((target: BlueNode, source: BlueNode) => {
-        // Copy value from source to target
-        if (source.getValue() !== undefined) {
-          target.setValue(source.getValue()!);
-        }
-      }),
+      process: vi.fn(basicMergingProcessor),
     };
     const mockProvider = createNodeProvider(() => []);
 
@@ -82,12 +80,7 @@ describe('Merger', () => {
 
   it('should merge contracts', () => {
     const mockProcessor: MergingProcessor = {
-      process: vi.fn((target: BlueNode, source: BlueNode) => {
-        // Copy value from source to target
-        if (source.getValue() !== undefined) {
-          target.setValue(source.getValue()!);
-        }
-      }),
+      process: vi.fn(basicMergingProcessor),
     };
     const mockProvider = createNodeProvider(() => []);
 
@@ -105,9 +98,9 @@ describe('Merger', () => {
   });
 
   it('should call postProcess if defined', () => {
-    const postProcessFn = vi.fn();
+    const postProcessFn = vi.fn((target: BlueNode) => target);
     const mockProcessor: MergingProcessor = {
-      process: vi.fn(),
+      process: vi.fn((target: BlueNode) => target),
       postProcess: postProcessFn,
     };
     const mockProvider = createNodeProvider(() => []);
@@ -127,7 +120,7 @@ describe('Merger', () => {
      * Default MergingProcessor that copies basic node properties
      */
     const defaultMergingProcessor: MergingProcessor = {
-      process(target: BlueNode, source: BlueNode): void {
+      process(target: BlueNode, source: BlueNode): BlueNode {
         // Copy basic properties from source to target
         if (source.getValue() !== undefined) {
           target.setValue(source.getValue()!);
@@ -144,6 +137,7 @@ describe('Merger', () => {
         if (source.getValueType() !== undefined) {
           target.setValueType(source.getValueType());
         }
+        return target;
       },
     };
     const merger = new Merger(defaultMergingProcessor, mockProvider);

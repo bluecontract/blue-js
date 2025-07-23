@@ -12,12 +12,13 @@ export class TypeAssigner implements MergingProcessor {
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     const targetType = target.getType();
     const sourceType = source.getType();
+    let newTarget = target;
 
     if (targetType === undefined) {
-      target.setType(sourceType);
+      newTarget = target.clone().setType(sourceType);
     } else if (sourceType !== undefined) {
       const isSubtypeResult = isSubtype(sourceType, targetType, nodeProvider);
       if (!isSubtypeResult) {
@@ -31,7 +32,8 @@ export class TypeAssigner implements MergingProcessor {
           )}'.`
         );
       }
-      target.setType(sourceType);
+      newTarget = target.clone().setType(sourceType);
     }
+    return newTarget;
   }
 }

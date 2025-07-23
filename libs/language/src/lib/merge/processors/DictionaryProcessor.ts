@@ -20,7 +20,7 @@ export class DictionaryProcessor implements MergingProcessor {
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     if (
       (source.getKeyType() !== undefined ||
         source.getValueType() !== undefined) &&
@@ -31,12 +31,12 @@ export class DictionaryProcessor implements MergingProcessor {
       );
     }
 
-    this.processKeyType(target, source, nodeProvider);
-    this.processValueType(target, source, nodeProvider);
+    let newTarget = this.processKeyType(target, source, nodeProvider);
+    newTarget = this.processValueType(newTarget, source, nodeProvider);
 
     // Validate properties against keyType and valueType
-    const targetKeyType = target.getKeyType();
-    const targetValueType = target.getValueType();
+    const targetKeyType = newTarget.getKeyType();
+    const targetValueType = newTarget.getValueType();
     const sourceProperties = source.getProperties();
 
     if (
@@ -52,20 +52,21 @@ export class DictionaryProcessor implements MergingProcessor {
         }
       });
     }
+    return newTarget;
   }
 
   private processKeyType(
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     const targetKeyType = target.getKeyType();
     const sourceKeyType = source.getKeyType();
 
     if (targetKeyType === undefined) {
       if (sourceKeyType !== undefined) {
         this.validateBasicKeyType(sourceKeyType, nodeProvider);
-        target.setKeyType(sourceKeyType);
+        return target.clone().setKeyType(sourceKeyType);
       }
     } else if (sourceKeyType !== undefined) {
       this.validateBasicKeyType(sourceKeyType, nodeProvider);
@@ -85,21 +86,22 @@ export class DictionaryProcessor implements MergingProcessor {
           )}'.`
         );
       }
-      target.setKeyType(sourceKeyType);
+      return target.clone().setKeyType(sourceKeyType);
     }
+    return target;
   }
 
   private processValueType(
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     const targetValueType = target.getValueType();
     const sourceValueType = source.getValueType();
 
     if (targetValueType === undefined) {
       if (sourceValueType !== undefined) {
-        target.setValueType(sourceValueType);
+        return target.clone().setValueType(sourceValueType);
       }
     } else if (sourceValueType !== undefined) {
       const isSubtypeResult = isSubtype(
@@ -118,8 +120,9 @@ export class DictionaryProcessor implements MergingProcessor {
           )}'.`
         );
       }
-      target.setValueType(sourceValueType);
+      return target.clone().setValueType(sourceValueType);
     }
+    return target;
   }
 
   private validateBasicKeyType(

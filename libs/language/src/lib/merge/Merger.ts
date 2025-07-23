@@ -32,28 +32,33 @@ export class Merger extends NodeResolver {
    * @param target - The target node to merge into
    * @param source - The source node to merge from
    * @param limits - The limits to apply during merging
+   * @returns A new BlueNode with the merged content
    */
-  public merge(target: BlueNode, source: BlueNode, limits: Limits): void {
+  public merge(target: BlueNode, source: BlueNode, limits: Limits): BlueNode {
     if (isNonNullable(source.getBlue())) {
       throw new Error(
         'Document contains "blue" attribute. Preprocess document before merging.'
       );
     }
 
+    let newTarget = target;
     const typeNode = source.getType();
+
     if (isNonNullable(typeNode)) {
-      if (isNonNullable(typeNode.getBlueId())) {
+      const clonedTypeNode = typeNode.clone();
+      if (isNonNullable(clonedTypeNode.getBlueId())) {
         new NodeExtender(this.nodeProvider).extend(
-          typeNode,
+          clonedTypeNode,
           PathLimits.withSinglePath('/')
         );
       }
 
-      const resolvedType = this.resolve(typeNode, limits);
-      source.setType(resolvedType);
-      this.merge(target, typeNode, limits);
+      const resolvedType = this.resolve(clonedTypeNode, limits);
+      const sourceWithResolvedType = source.clone().setType(resolvedType);
+      newTarget = this.merge(newTarget, clonedTypeNode, limits);
+      return this.mergeObject(newTarget, sourceWithResolvedType, limits);
     }
-    this.mergeObject(target, source, limits);
+    return this.mergeObject(newTarget, source, limits);
   }
 
   /**
@@ -61,17 +66,23 @@ export class Merger extends NodeResolver {
    * @param target - The target node to merge into
    * @param source - The source node to merge from
    * @param limits - The limits to apply during merging
+   * @returns A new BlueNode with the merged content
    */
   private mergeObject(
     target: BlueNode,
     source: BlueNode,
     limits: Limits
-  ): void {
-    this.mergingProcessor.process(target, source, this.nodeProvider, this);
+  ): BlueNode {
+    let newTarget = this.mergingProcessor.process(
+      target,
+      source,
+      this.nodeProvider,
+      this
+    );
 
     const children = source.getItems();
     if (isNonNullable(children)) {
-      this.mergeChildren(target, children, limits);
+      newTarget = this.mergeChildren(newTarget, children, limits);
     }
 
     const properties = source.getProperties();
@@ -79,24 +90,25 @@ export class Merger extends NodeResolver {
       Object.entries(properties).forEach(([key, value]) => {
         if (limits.shouldMergePathSegment(key, value)) {
           limits.enterPathSegment(key, value);
-          this.mergeProperty(target, key, value, limits);
+          newTarget = this.mergeProperty(newTarget, key, value, limits);
           limits.exitPathSegment();
         }
       });
     }
 
     if (isNonNullable(source.getBlueId())) {
-      target.setBlueId(source.getBlueId());
+      newTarget = newTarget.clone().setBlueId(source.getBlueId());
     }
 
     if (this.mergingProcessor.postProcess) {
-      this.mergingProcessor.postProcess(
-        target,
+      newTarget = this.mergingProcessor.postProcess(
+        newTarget,
         source,
         this.nodeProvider,
         this
       );
     }
+    return newTarget;
   }
 
   /**
@@ -104,42 +116,40 @@ export class Merger extends NodeResolver {
    * @param target - The target node
    * @param sourceChildren - The source children to merge
    * @param limits - The limits to apply
+   * @returns A new BlueNode with the merged children
    */
   private mergeChildren(
     target: BlueNode,
     sourceChildren: BlueNode[],
     limits: Limits
-  ): void {
+  ): BlueNode {
     const targetChildren = target.getItems();
     if (isNullable(targetChildren)) {
       const filteredChildren = sourceChildren
         .filter((child, index) =>
-          limits.shouldMergePathSegment(String(index), target)
+          limits.shouldMergePathSegment(String(index), child)
         )
         .map((child) => {
-          limits.enterPathSegment(
-            String(sourceChildren.indexOf(child)),
-            target
-          );
+          limits.enterPathSegment(String(sourceChildren.indexOf(child)), child);
           const resolvedChild = this.resolve(child, limits);
           limits.exitPathSegment();
           return resolvedChild;
         });
-      target.setItems(filteredChildren);
-      return;
+      return target.clone().setItems(filteredChildren);
     } else if (sourceChildren.length < targetChildren.length) {
       throw new Error(
         `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`
       );
     }
 
+    const newTargetChildren = [...targetChildren];
     for (let i = 0; i < sourceChildren.length; i++) {
       if (!limits.shouldMergePathSegment(String(i), sourceChildren[i])) {
         continue;
       }
       limits.enterPathSegment(String(i), sourceChildren[i]);
-      if (i >= targetChildren.length) {
-        targetChildren.push(sourceChildren[i]);
+      if (i >= newTargetChildren.length) {
+        newTargetChildren.push(sourceChildren[i]);
         limits.exitPathSegment();
         continue;
       }
@@ -147,7 +157,7 @@ export class Merger extends NodeResolver {
         sourceChildren[i]
       );
       const targetBlueId = BlueIdCalculator.calculateBlueIdSync(
-        targetChildren[i]
+        newTargetChildren[i]
       );
       if (sourceBlueId !== targetBlueId) {
         throw new Error(
@@ -156,6 +166,7 @@ export class Merger extends NodeResolver {
       }
       limits.exitPathSegment();
     }
+    return target.clone().setItems(newTargetChildren);
   }
 
   /**
@@ -164,26 +175,34 @@ export class Merger extends NodeResolver {
    * @param sourceKey - The property key
    * @param sourceValue - The property value to merge
    * @param limits - The limits to apply
+   * @returns A new BlueNode with the merged property
    */
   private mergeProperty(
     target: BlueNode,
     sourceKey: string,
     sourceValue: BlueNode,
     limits: Limits
-  ): void {
+  ): BlueNode {
     const node = this.resolve(sourceValue, limits);
+    const newTarget = target.clone();
 
-    if (isNullable(target.getProperties())) {
-      target.setProperties({});
+    if (isNullable(newTarget.getProperties())) {
+      newTarget.setProperties({});
     }
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const targetValue = target.getProperties()![sourceKey];
+    const targetValue = newTarget.getProperties()![sourceKey];
     if (targetValue === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      target.getProperties()![sourceKey] = node;
+      newTarget.getProperties()![sourceKey] = node;
     } else {
-      this.mergeObject(targetValue, node, limits);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      newTarget.getProperties()![sourceKey] = this.mergeObject(
+        targetValue,
+        node,
+        limits
+      );
     }
+    return newTarget;
   }
 
   /**
@@ -194,10 +213,11 @@ export class Merger extends NodeResolver {
    */
   public resolve(node: BlueNode, limits: Limits): BlueNode {
     const resultNode = new BlueNode();
-    this.merge(resultNode, node, limits);
-    resultNode.setName(node.getName());
-    resultNode.setDescription(node.getDescription());
-    resultNode.setBlueId(node.getBlueId());
-    return resultNode;
+    const mergedNode = this.merge(resultNode, node, limits);
+    return mergedNode
+      .clone()
+      .setName(node.getName())
+      .setDescription(node.getDescription())
+      .setBlueId(node.getBlueId());
   }
 }
