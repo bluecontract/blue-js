@@ -86,20 +86,6 @@ export class ReplaceInlineValuesForTypeAttributesWithImports
             node.setValueType(newTypeNode);
           }
         }
-      } else {
-        // Throw error for unknown type
-        let fieldName = 'type';
-        if (typeNode === node.getItemType()) {
-          fieldName = 'itemType';
-        } else if (typeNode === node.getKeyType()) {
-          fieldName = 'keyType';
-        } else if (typeNode === node.getValueType()) {
-          fieldName = 'valueType';
-        }
-
-        throw new Error(
-          `Unknown type "${typeValue}" found in ${fieldName} field. No BlueId mapping exists for this type.`
-        );
       }
     }
   }

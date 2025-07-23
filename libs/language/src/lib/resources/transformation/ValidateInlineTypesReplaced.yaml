@@ -1,0 +1,4 @@
+name: Validate Inline Types Replaced
+type:
+  blueId: Ct1SGRGw1i47qjzm1ruiUdSZofeV6WevPTGuieVvbRS4
+description: This transformation validates that all inline type values have been replaced with BlueIds. It throws an error if any inline type values remain without a corresponding BlueId mapping.
