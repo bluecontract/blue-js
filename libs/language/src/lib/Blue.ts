@@ -28,6 +28,7 @@ import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultNodeProcessor } from './merge/createDefaultNodeProcessor';
 import { MergeReverser } from './utils/MergeReverser';
+import { CompositeLimits } from './utils/limits';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -392,6 +393,27 @@ export class Blue {
     });
   }
 
+  /**
+   * Sets the global limits for this Blue instance.
+   * These limits will be combined with method-specific limits when resolving or extending nodes.
+   *
+   * @param globalLimits - The global limits to set, or null to use NO_LIMITS
+   * @returns This instance for chaining
+   */
+  public setGlobalLimits(globalLimits: Limits | null): Blue {
+    this.globalLimits = globalLimits ?? NO_LIMITS;
+    return this;
+  }
+
+  /**
+   * Gets the current global limits for this Blue instance.
+   *
+   * @returns The current global limits
+   */
+  public getGlobalLimits(): Limits {
+    return this.globalLimits;
+  }
+
   private combineWithGlobalLimits(methodLimits: Limits) {
     if (this.globalLimits == NO_LIMITS) {
       return methodLimits;
@@ -401,8 +423,6 @@ export class Blue {
       return this.globalLimits;
     }
 
-    return NO_LIMITS;
-    // TODO: Implement this
-    // return new CompositeLimits(globalLimits, methodLimits);
+    return CompositeLimits.of(this.globalLimits, methodLimits);
   }
 }
