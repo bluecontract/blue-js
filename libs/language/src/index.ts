@@ -11,6 +11,8 @@ export {
   type BlueNodePatch,
   BlueNodeTypeSchema,
   type BlueRepository,
+  Limits,
+  Nodes,
 } from './lib';
 export * from './schema';
 export * from './schema/annotations';

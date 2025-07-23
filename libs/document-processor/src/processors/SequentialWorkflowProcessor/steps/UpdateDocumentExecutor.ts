@@ -13,6 +13,10 @@ import { BindingsFactory } from '../utils/BindingsFactory';
 import { isDocumentNode } from '../../../utils/typeGuard';
 import { isNonNullable } from '@blue-labs/shared-utils';
 import { createDocumentUpdateEvent } from '../../../utils/eventFactories';
+import {
+  isExpression,
+  extractExpressionContent,
+} from '../../../utils/expressionUtils';
 
 /**
  * Executor for "Update Document" workflow steps
@@ -107,12 +111,8 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     stepResults: Record<string, unknown>
   ) {
     const blue = ctx.getBlue();
-    if (
-      typeof changesetNodeGetResult === 'string' &&
-      changesetNodeGetResult.startsWith('${') &&
-      changesetNodeGetResult.endsWith('}')
-    ) {
-      const expr = changesetNodeGetResult.slice(2, -1);
+    if (isExpression(changesetNodeGetResult)) {
+      const expr = extractExpressionContent(changesetNodeGetResult);
       const evaluatedValue = await ExpressionEvaluator.evaluate({
         code: expr,
         ctx,
@@ -141,12 +141,8 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     const evaluatedValueString = changeValueNode.getValue();
     const blue = ctx.getBlue();
 
-    if (
-      typeof evaluatedValueString === 'string' &&
-      evaluatedValueString.startsWith('${') &&
-      evaluatedValueString.endsWith('}')
-    ) {
-      const expr = evaluatedValueString.slice(2, -1);
+    if (isExpression(evaluatedValueString)) {
+      const expr = extractExpressionContent(evaluatedValueString);
       const evaluatedValue = await ExpressionEvaluator.evaluate({
         code: expr,
         ctx,

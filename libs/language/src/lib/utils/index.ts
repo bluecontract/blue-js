@@ -10,3 +10,4 @@ export * from './NodePatch';
 export * from './TypeSchema';
 export * from './TypeSchemaResolver';
 export * from './Nodes';
+export * from './limits';
