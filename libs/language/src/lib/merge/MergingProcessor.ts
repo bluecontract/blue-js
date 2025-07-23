@@ -12,13 +12,14 @@ export interface MergingProcessor {
    * @param source - The source node to merge from
    * @param nodeProvider - The node provider for resolving references
    * @param nodeResolver - The node resolver for resolving nodes
+   * @returns A new BlueNode with the merged content
    */
   process(
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider,
     nodeResolver: NodeResolver
-  ): void;
+  ): BlueNode;
 
   /**
    * Post-processes the merge operation between target and source nodes
@@ -27,34 +28,12 @@ export interface MergingProcessor {
    * @param source - The source node that was merged from
    * @param nodeProvider - The node provider for resolving references
    * @param nodeResolver - The node resolver for resolving nodes
+   * @returns A new BlueNode with the post-processed content
    */
   postProcess?(
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider,
     nodeResolver: NodeResolver
-  ): void;
-}
-
-/**
- * Helper function to create a simple MergingProcessor with custom implementations
- */
-export function createMergingProcessor(
-  processFn: (
-    target: BlueNode,
-    source: BlueNode,
-    nodeProvider: NodeProvider,
-    nodeResolver: NodeResolver
-  ) => void,
-  postProcessFn?: (
-    target: BlueNode,
-    source: BlueNode,
-    nodeProvider: NodeProvider,
-    nodeResolver: NodeResolver
-  ) => void
-): MergingProcessor {
-  return {
-    process: processFn,
-    postProcess: postProcessFn,
-  };
+  ): BlueNode;
 }

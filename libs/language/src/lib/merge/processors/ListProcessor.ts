@@ -12,17 +12,18 @@ export class ListProcessor implements MergingProcessor {
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     if (source.getItemType() !== undefined && !isListType(source.getType())) {
       throw new Error('Source node with itemType must have a List type');
     }
 
     const targetItemType = target.getItemType();
     const sourceItemType = source.getItemType();
+    let newTarget = target;
 
     if (targetItemType === undefined) {
       if (sourceItemType !== undefined) {
-        target.setItemType(sourceItemType);
+        newTarget = target.clone().setItemType(sourceItemType);
       }
     } else if (sourceItemType !== undefined) {
       const isSubtypeResult = isSubtype(
@@ -41,11 +42,11 @@ export class ListProcessor implements MergingProcessor {
           )}'.`
         );
       }
-      target.setItemType(sourceItemType);
+      newTarget = target.clone().setItemType(sourceItemType);
     }
 
     // Validate items against itemType
-    const targetItemTypeForValidation = target.getItemType();
+    const targetItemTypeForValidation = newTarget.getItemType();
     const sourceItems = source.getItems();
     if (
       targetItemTypeForValidation !== undefined &&
@@ -71,5 +72,6 @@ export class ListProcessor implements MergingProcessor {
         }
       }
     }
+    return newTarget;
   }
 }
