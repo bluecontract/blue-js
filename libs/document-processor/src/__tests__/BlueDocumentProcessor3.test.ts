@@ -22,7 +22,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { type: 'Ping' }
+    message: unknown = { name: 'Ping' }
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };

@@ -84,7 +84,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
   });
 
   test('JS‑Code step can emit events that are routed synchronously', async () => {
-    const greetingEvt = { type: 'Greeting', text: 'hi!' };
+    const greetingEvt = { name: 'Greeting', text: 'hi!' };
 
     const steps: JsonObject[] = [
       {
@@ -109,7 +109,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     const found = emitted
       .map((e) => blue.nodeToJson(e, 'simple') as any)
-      .find((e) => e.type === 'Greeting');
+      .find((e) => e.name === 'Greeting');
 
     expect(found).toBeDefined();
     expect(found).toEqual(greetingEvt);

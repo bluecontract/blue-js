@@ -30,7 +30,7 @@ contracts:
     type: Sequential Workflow
     channel: ownerChannel
     event:
-      type: Agent Subscription Request
+      name: Agent Subscription Request
     steps:
       - name: CreateSubscriptions
         type: JavaScript Code
@@ -47,7 +47,7 @@ contracts:
               val: {
                 type: "MyOS Agent Channel",
                 agent: { agentId: sub.agentId },
-                event: { type: sub.eventType }
+                event: { name: sub.eventType }
               }
             });
 
@@ -72,7 +72,7 @@ contracts:
                   {
                     name: "EmitEvent",
                     type: "JavaScript Code",
-                    code: "return { events: [{ type: event.event.type + 'a'}] };"
+                    code: "return { events: [{ name: event.event.name + 'a'}] };"
                   }
                 ]
               }
@@ -93,7 +93,7 @@ contracts:
     });
 
     const event = timelineEntryEvent('test-timeline', {
-      type: 'Agent Subscription Request',
+      name: 'Agent Subscription Request',
       subscriptions: [
         {
           agentId: 'agent-1',
@@ -114,7 +114,7 @@ contracts:
     expect(data.contracts).toMatchObject({
       agent1Channel: {
         agent: { agentId: 'agent-1' },
-        event: { type: 'EventType1' },
+        event: { name: 'EventType1' },
       },
     });
   });
