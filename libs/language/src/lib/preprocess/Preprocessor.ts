@@ -28,7 +28,7 @@ export interface PreprocessorOptions {
  */
 export class Preprocessor {
   public static readonly DEFAULT_BLUE_BLUE_ID =
-    '44qdopt1zW5xuiM2GGLHcc4D8cEg4FonexfZrzQmBLN1';
+    'FREHAAGDZSzpnoTUoCQ86bBmxbVCULMjvx9JZM6fyqT1';
 
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;
@@ -116,6 +116,10 @@ export class Preprocessor {
 
         processedDocument.setBlue(undefined);
       }
+
+      processedDocument = new ValidateInlineTypesReplaced().process(
+        processedDocument
+      );
     }
 
     return processedDocument;
@@ -134,8 +138,6 @@ export class Preprocessor {
           '27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo';
         const INFER_BASIC_TYPES =
           'FGYuTXwaoSKfZmpTysLTLsb8WzSqf43384rKZDkXhxD4';
-        const VALIDATE_INLINE_TYPES_REPLACED =
-          '2PTPqxkzAvUnTaSKbPHPJAVwQoLpt1N5e5JNBt91vc26';
 
         const blueId = transformation.getType()?.getBlueId();
 
@@ -145,8 +147,6 @@ export class Preprocessor {
           );
         } else if (INFER_BASIC_TYPES === blueId) {
           return new InferBasicTypesForUntypedValues();
-        } else if (VALIDATE_INLINE_TYPES_REPLACED === blueId) {
-          return new ValidateInlineTypesReplaced();
         }
 
         return undefined;
@@ -163,8 +163,8 @@ export class Preprocessor {
     const dynamicMappings = this.blueIdsMappingGenerator.generateMappingsYaml();
 
     return `
-${dynamicMappings}
 ${defaultBlue}
+${dynamicMappings}
     `;
   }
 
