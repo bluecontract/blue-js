@@ -1,16 +1,13 @@
-import { Merger } from '../../Merger';
-import { SequentialMergingProcessor } from '../SequentialMergingProcessor';
-import { ValuePropagator } from '../ValuePropagator';
-import { TypeAssigner } from '../TypeAssigner';
-import { BasicNodeProvider } from '../../../provider/BasicNodeProvider';
-import { yamlBlueParse } from '../../../../utils';
-import { NodeDeserializer } from '../../../model';
-import { NO_LIMITS } from '../../../utils/limits';
 import { ExpressionPreserver } from '../ExpressionPreserver';
+import {
+  Blue,
+  BasicNodeProvider,
+  MergingProcessors,
+} from '@blue-labs/language';
 
 describe('ExpressionPreserver', () => {
   let nodeProvider: BasicNodeProvider;
-  let merger: Merger;
+  let blue: Blue;
 
   beforeEach(() => {
     nodeProvider = new BasicNodeProvider();
@@ -29,12 +26,13 @@ changeset:
     blueId: ${nodeProvider.getBlueIdByName('Json Patch Entry')}`);
 
     // Create merger with ExpressionPreserver
-    const mergingProcessor = new SequentialMergingProcessor([
-      new ValuePropagator(),
+    const mergingProcessor = new MergingProcessors.SequentialMergingProcessor([
+      new MergingProcessors.ValuePropagator(),
       new ExpressionPreserver(),
-      new TypeAssigner(),
+      new MergingProcessors.TypeAssigner(),
     ]);
-    merger = new Merger(mergingProcessor, nodeProvider);
+
+    blue = new Blue({ nodeProvider, mergingProcessor });
   });
 
   test('preserves expression values when type resolution would override them', () => {
@@ -43,8 +41,8 @@ type:
   blueId: ${nodeProvider.getBlueIdByName('Update Document')}
 changeset: "\${steps.CreateSubscriptions.changes}"`;
 
-    const source = NodeDeserializer.deserialize(yamlBlueParse(yaml)!);
-    const result = merger.resolve(source, NO_LIMITS);
+    const source = blue.yamlToNode(yaml);
+    const result = blue.resolve(source);
 
     // Expression should be preserved despite type saying changeset is a List
     expect(result.getProperties()?.['changeset']?.getValue()).toBe(
@@ -52,17 +50,15 @@ changeset: "\${steps.CreateSubscriptions.changes}"`;
     );
   });
 
-  test.skip('preserves nested property expressions', () => {
+  test('preserves nested property expressions', () => {
     nodeProvider.addSingleDocs(`
 name: Complex Type
 config:
   database:
-    host: 
+    host:
       type: Text
-      value: localhost
     port:
-      type: Integer
-      value: 5432`);
+      type: Integer`);
 
     const yaml = `
 type:
@@ -72,8 +68,8 @@ config:
     host: "\${env.DB_HOST}"
     port: "\${env.DB_PORT}"`;
 
-    const source = NodeDeserializer.deserialize(yamlBlueParse(yaml)!);
-    const result = merger.resolve(source, NO_LIMITS);
+    const source = blue.yamlToNode(yaml);
+    const result = blue.resolve(source);
 
     // Both expressions should be preserved
     const db = result.getProperties()?.['config']?.getProperties()?.[
@@ -90,8 +86,8 @@ type:
 changeset:
   - val: "regular value"`;
 
-    const source = NodeDeserializer.deserialize(yamlBlueParse(yaml)!);
-    const result = merger.resolve(source, NO_LIMITS);
+    const source = blue.yamlToNode(yaml);
+    const result = blue.resolve(source);
 
     // Regular values should be processed normally
     const changeset = result.getProperties()?.['changeset'];

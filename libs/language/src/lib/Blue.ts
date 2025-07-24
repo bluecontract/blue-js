@@ -26,7 +26,7 @@ import { NodeExtender } from './utils/NodeExtender';
 import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
-import { createDefaultNodeProcessor } from './merge/createDefaultNodeProcessor';
+import { createDefaultMergingProcessor } from './merge';
 import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 
@@ -70,7 +70,7 @@ export class Blue {
     );
 
     this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
-    this.mergingProcessor = mergingProcessor ?? createDefaultNodeProcessor();
+    this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
