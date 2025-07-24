@@ -8,6 +8,7 @@ import { Limits } from '../utils/limits/Limits';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { PathLimits } from '../utils/limits/PathLimits';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
+import { ResolvedBlueNode } from '../model/ResolvedBlueNode';
 
 /**
  * Merger class that implements NodeResolver for merging nodes
@@ -209,13 +210,16 @@ export class Merger extends NodeResolver {
    * @param limits - The limits to apply during resolution
    * @returns The resolved node
    */
-  public resolve(node: BlueNode, limits: Limits): BlueNode {
+  public resolve(node: BlueNode, limits: Limits): ResolvedBlueNode {
+    const originalNode =
+      node instanceof ResolvedBlueNode ? node.getOriginalNode() : node;
     const resultNode = new BlueNode();
     const mergedNode = this.merge(resultNode, node, limits);
-    return mergedNode
+    const finalNode = mergedNode
       .clone()
       .setName(node.getName())
       .setDescription(node.getDescription())
       .setBlueId(node.getBlueId());
+    return new ResolvedBlueNode(finalNode, originalNode);
   }
 }

@@ -29,6 +29,7 @@ import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultMergingProcessor } from './merge';
 import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
+import { ResolvedBlueNode } from './model/ResolvedBlueNode';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -111,7 +112,7 @@ export class Blue {
     return converter.convert(node, schema);
   }
 
-  public resolve(node: BlueNode, limits: Limits = NO_LIMITS) {
+  public resolve(node: BlueNode, limits: Limits = NO_LIMITS): ResolvedBlueNode {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     return merger.resolve(node, effectiveLimits);
