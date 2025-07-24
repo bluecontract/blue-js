@@ -1,3 +1,19 @@
+## 1.28.0 (2025-07-24)
+
+### 🚀 Features
+
+- **Blue:** add reverse method to Blue class using MergeReverser ([3cf35bf](https://github.com/bluecontract/blue-js/commit/3cf35bf))
+- **document-processor:** enhance expression handling and limits ([87b01ed](https://github.com/bluecontract/blue-js/commit/87b01ed))
+- **language:** add strict validation for unknown types in preprocessor ([4167865](https://github.com/bluecontract/blue-js/commit/4167865))
+- **language:** implement immutable merge operations ([49a828c](https://github.com/bluecontract/blue-js/commit/49a828c))
+- **language:** implement ExpressionPreserver for expression value preservation ([e4d4382](https://github.com/bluecontract/blue-js/commit/e4d4382))
+- **merge:** implement MergeReverser with nested type filtering ([03027f3](https://github.com/bluecontract/blue-js/commit/03027f3))
+- **preprocess:** separate inline type validation from replacement logic ([153766b](https://github.com/bluecontract/blue-js/commit/153766b))
+
+### 🩹 Fixes
+
+- **MergeReverser:** resolve multiple inheritance property exclusion bug ([5e3a269](https://github.com/bluecontract/blue-js/commit/5e3a269))
+
 ## 1.27.1 (2025-07-21)
 
 ### 🩹 Fixes

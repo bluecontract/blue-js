@@ -1,11 +1,11 @@
 {
   "name": "@blue-labs/contract",
-  "version": "1.27.1",
+  "version": "1.28.0",
   "dependencies": {
     "type-fest": "4.20.1",
     "zod": "3.23.8",
-    "@blue-labs/language": "1.27.1",
-    "@blue-labs/shared-utils": "1.27.1",
+    "@blue-labs/language": "1.28.0",
+    "@blue-labs/shared-utils": "1.28.0",
     "radash": "12.1.0"
   },
   "main": "./dist/index.js",
