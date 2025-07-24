@@ -2,9 +2,12 @@ import { SequentialWorkflowOperationProcessor } from '../SequentialWorkflowOpera
 import { SequentialWorkflowProcessor } from '../SequentialWorkflowProcessor';
 import { EventNode, ProcessingContext } from '../../types';
 import { Blue } from '@blue-labs/language';
+import { repository as coreRepository } from '@blue-repository/core-dev';
 
 describe('SequentialWorkflowOperationProcessor', () => {
-  const blue = new Blue();
+  const blue = new Blue({
+    repositories: [coreRepository],
+  });
   let processor: SequentialWorkflowOperationProcessor;
   let mockSequentialWorkflowProcessor: SequentialWorkflowProcessor;
   let mockContext: ProcessingContext;

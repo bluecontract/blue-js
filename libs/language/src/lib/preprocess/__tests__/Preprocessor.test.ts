@@ -261,6 +261,175 @@ v:
     expect(aTypeBlueId).toBe(bTypeBlueId);
   });
 
+  it('should throw error for unknown types in all type fields', () => {
+    // Test all type fields in one comprehensive test
+    const testCases = [
+      {
+        doc: 'a:\n  type: UnknownType',
+        field: 'type',
+        expectedError:
+          'Unknown type "UnknownType" found in type field. No BlueId mapping exists for this type.',
+      },
+      {
+        doc: 'myList:\n  itemType: UnknownItemType',
+        field: 'itemType',
+        expectedError:
+          'Unknown type "UnknownItemType" found in itemType field. No BlueId mapping exists for this type.',
+      },
+      {
+        doc: 'myMap:\n  keyType: UnknownKeyType',
+        field: 'keyType',
+        expectedError:
+          'Unknown type "UnknownKeyType" found in keyType field. No BlueId mapping exists for this type.',
+      },
+      {
+        doc: 'myMap:\n  valueType: UnknownValueType',
+        field: 'valueType',
+        expectedError:
+          'Unknown type "UnknownValueType" found in valueType field. No BlueId mapping exists for this type.',
+      },
+    ];
+
+    const blue = new Blue();
+
+    testCases.forEach(({ doc, field, expectedError }) => {
+      const parsedYaml = yamlBlueParse(doc);
+      const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+
+      expect(() => blue.preprocess(node)).toThrow(expectedError);
+    });
+  });
+
+  it('should process all known type fields without error', () => {
+    const doc = `
+    a:
+      type: Integer
+    b:
+      type: Text
+    c:
+      itemType: Boolean
+    d:
+      keyType: Text
+      valueType: Double
+    `;
+
+    const blue = new Blue();
+    const parsedYaml = yamlBlueParse(doc);
+    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+
+    // Should not throw any error
+    const preprocessedNode = blue.preprocess(node);
+
+    // Verify that types were properly converted to BlueIds
+    expect(
+      preprocessedNode.getProperties()?.['a']?.getType()?.getBlueId()
+    ).toBe(INTEGER_TYPE_BLUE_ID);
+    expect(
+      preprocessedNode.getProperties()?.['b']?.getType()?.getBlueId()
+    ).toBe(TEXT_TYPE_BLUE_ID);
+  });
+
+  it('should handle complex nested type structures without throwing errors', () => {
+    const doc = `
+    a:
+      type:
+        name: A
+        type: 
+          name: B
+          type: Integer
+    b:
+      type:
+        blueId: 84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH
+        someProperty:
+          type: Text
+    `;
+
+    const blue = new Blue();
+    const parsedYaml = yamlBlueParse(doc);
+    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+
+    // Should not throw any error because these are not inline values
+    const preprocessedNode = blue.preprocess(node);
+
+    // Verify structure is preserved
+    const aType = preprocessedNode.getProperties()?.['a']?.getType();
+    expect(aType?.getName()).toBe('A');
+    expect(aType?.getType()?.getName()).toBe('B');
+    expect(aType?.getType()?.getType()?.getBlueId()).toBe(INTEGER_TYPE_BLUE_ID);
+
+    const bType = preprocessedNode.getProperties()?.['b']?.getType();
+    expect(bType?.getBlueId()).toBe(
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+    );
+
+    expect(
+      bType?.getProperties()?.['someProperty']?.getType()?.getBlueId()
+    ).toBe(TEXT_TYPE_BLUE_ID);
+  });
+
+  it('should throw error for first unknown type encountered in complex structures', () => {
+    const doc = `
+    myNode:
+      type:
+        name: ComplexType
+        type: UnknownType
+        validProp:
+          type: Integer
+        invalidProp:
+          type: UnknownPropertyType
+    `;
+
+    const blue = new Blue();
+    const parsedYaml = yamlBlueParse(doc);
+    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+
+    // Should throw error for the first unknown inline type encountered
+    // The processor encounters "UnknownType" before "UnknownPropertyType"
+    expect(() => blue.preprocess(node)).toThrow(
+      'Unknown type "UnknownType" found in type field. No BlueId mapping exists for this type.'
+    );
+  });
+
+  it('should throw error for unknown types in nested properties', () => {
+    const doc = `
+    myNode:
+      type:
+        name: ComplexType
+        type: Integer
+        validProp:
+          type: Integer
+        invalidProp:
+          type: UnknownPropertyType
+    `;
+
+    const blue = new Blue();
+    const parsedYaml = yamlBlueParse(doc);
+    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+
+    expect(() => blue.preprocess(node)).toThrow(
+      'Unknown type "UnknownPropertyType" found in type field. No BlueId mapping exists for this type.'
+    );
+  });
+
+  it('should throw error for unknown types in lists with mixed type definitions', () => {
+    const doc = `
+    items:
+      - type: Integer
+      - type:
+          name: ComplexItem
+          type: Text
+      - type: UnknownListType
+    `;
+
+    const blue = new Blue();
+    const parsedYaml = yamlBlueParse(doc);
+    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+
+    expect(() => blue.preprocess(node)).toThrow(
+      'Unknown type "UnknownListType" found in type field. No BlueId mapping exists for this type.'
+    );
+  });
+
   // Helper function to assert nodes equality, similar to Java version
   function assertNodesEqual(expected: BlueNode, actual: BlueNode) {
     expect(actual.isInlineValue()).toBe(expected.isInlineValue());

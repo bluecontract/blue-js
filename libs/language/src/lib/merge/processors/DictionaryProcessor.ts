@@ -2,15 +2,7 @@ import { BlueNode } from '../../model';
 import { NodeProvider } from '../../NodeProvider';
 import { MergingProcessor } from '../MergingProcessor';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
-import {
-  isSubtype,
-  isDictionaryType,
-  isBasicType,
-  isTextType,
-  isIntegerType,
-  isNumberType,
-  isBooleanType,
-} from './Types';
+import { NodeTypes } from '../../utils';
 
 /**
  * Processes dictionary nodes, handling keyType and valueType
@@ -20,23 +12,23 @@ export class DictionaryProcessor implements MergingProcessor {
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     if (
       (source.getKeyType() !== undefined ||
         source.getValueType() !== undefined) &&
-      !isDictionaryType(source.getType())
+      !NodeTypes.isDictionaryType(source.getType())
     ) {
       throw new Error(
         'Source node with keyType or valueType must have a Dictionary type'
       );
     }
 
-    this.processKeyType(target, source, nodeProvider);
-    this.processValueType(target, source, nodeProvider);
+    let newTarget = this.processKeyType(target, source, nodeProvider);
+    newTarget = this.processValueType(newTarget, source, nodeProvider);
 
     // Validate properties against keyType and valueType
-    const targetKeyType = target.getKeyType();
-    const targetValueType = target.getValueType();
+    const targetKeyType = newTarget.getKeyType();
+    const targetValueType = newTarget.getValueType();
     const sourceProperties = source.getProperties();
 
     if (
@@ -52,24 +44,25 @@ export class DictionaryProcessor implements MergingProcessor {
         }
       });
     }
+    return newTarget;
   }
 
   private processKeyType(
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     const targetKeyType = target.getKeyType();
     const sourceKeyType = source.getKeyType();
 
     if (targetKeyType === undefined) {
       if (sourceKeyType !== undefined) {
         this.validateBasicKeyType(sourceKeyType, nodeProvider);
-        target.setKeyType(sourceKeyType);
+        return target.clone().setKeyType(sourceKeyType);
       }
     } else if (sourceKeyType !== undefined) {
       this.validateBasicKeyType(sourceKeyType, nodeProvider);
-      const isSubtypeResult = isSubtype(
+      const isSubtypeResult = NodeTypes.isSubtype(
         sourceKeyType,
         targetKeyType,
         nodeProvider
@@ -85,24 +78,25 @@ export class DictionaryProcessor implements MergingProcessor {
           )}'.`
         );
       }
-      target.setKeyType(sourceKeyType);
+      return target.clone().setKeyType(sourceKeyType);
     }
+    return target;
   }
 
   private processValueType(
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
+  ): BlueNode {
     const targetValueType = target.getValueType();
     const sourceValueType = source.getValueType();
 
     if (targetValueType === undefined) {
       if (sourceValueType !== undefined) {
-        target.setValueType(sourceValueType);
+        return target.clone().setValueType(sourceValueType);
       }
     } else if (sourceValueType !== undefined) {
-      const isSubtypeResult = isSubtype(
+      const isSubtypeResult = NodeTypes.isSubtype(
         sourceValueType,
         targetValueType,
         nodeProvider
@@ -118,15 +112,16 @@ export class DictionaryProcessor implements MergingProcessor {
           )}'.`
         );
       }
-      target.setValueType(sourceValueType);
+      return target.clone().setValueType(sourceValueType);
     }
+    return target;
   }
 
   private validateBasicKeyType(
     keyType: BlueNode,
     nodeProvider: NodeProvider
   ): void {
-    if (!isBasicType(keyType, nodeProvider)) {
+    if (!NodeTypes.isBasicType(keyType, nodeProvider)) {
       throw new Error('Dictionary key type must be a basic type');
     }
   }
@@ -136,21 +131,21 @@ export class DictionaryProcessor implements MergingProcessor {
     keyType: BlueNode,
     nodeProvider: NodeProvider
   ): void {
-    if (isTextType(keyType, nodeProvider)) {
+    if (NodeTypes.isTextType(keyType, nodeProvider)) {
       return;
     }
 
-    if (isIntegerType(keyType, nodeProvider)) {
+    if (NodeTypes.isIntegerType(keyType, nodeProvider)) {
       const parsed = Number.parseInt(key, 10);
       if (Number.isNaN(parsed) || parsed.toString() !== key) {
         throw new Error(`Key '${key}' is not a valid Integer.`);
       }
-    } else if (isNumberType(keyType, nodeProvider)) {
+    } else if (NodeTypes.isNumberType(keyType, nodeProvider)) {
       const parsed = Number.parseFloat(key);
       if (Number.isNaN(parsed)) {
         throw new Error(`Key '${key}' is not a valid Number.`);
       }
-    } else if (isBooleanType(keyType, nodeProvider)) {
+    } else if (NodeTypes.isBooleanType(keyType, nodeProvider)) {
       if (key.toLowerCase() !== 'true' && key.toLowerCase() !== 'false') {
         throw new Error(`Key '${key}' is not a valid Boolean.`);
       }
@@ -169,7 +164,7 @@ export class DictionaryProcessor implements MergingProcessor {
     const nodeValueType = value.getType();
     if (
       nodeValueType !== undefined &&
-      !isSubtype(nodeValueType, valueType, nodeProvider)
+      !NodeTypes.isSubtype(nodeValueType, valueType, nodeProvider)
     ) {
       const valueTypeStr = NodeToMapListOrValue.get(nodeValueType);
       const expectedValueTypeStr = NodeToMapListOrValue.get(valueType);

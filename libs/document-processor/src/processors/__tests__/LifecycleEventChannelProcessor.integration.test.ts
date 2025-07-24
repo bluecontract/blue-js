@@ -68,7 +68,7 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
                 {
                   op: 'replace',
                   path: '/lastTimelineEvent',
-                  val: '${event.message.type}',
+                  val: '${event.message.name}',
                 },
               ],
             },
@@ -121,7 +121,7 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
     const timelineEvent = createTimelineEntryEvent(
       'main-timeline',
       {
-        type: 'User Action',
+        name: 'User Action',
         action: 'click',
       },
       blue

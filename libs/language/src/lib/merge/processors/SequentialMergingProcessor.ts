@@ -1,7 +1,6 @@
 import { BlueNode } from '../../model';
 import { NodeProvider } from '../../NodeProvider';
 import { MergingProcessor } from '../MergingProcessor';
-import { NodeResolver } from '../NodeResolver';
 
 /**
  * A MergingProcessor that executes multiple processors in sequence
@@ -23,11 +22,12 @@ export class SequentialMergingProcessor implements MergingProcessor {
   process(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider,
-    nodeResolver: NodeResolver
-  ): void {
-    this.mergingProcessors.forEach((processor) =>
-      processor.process(target, source, nodeProvider, nodeResolver)
+    nodeProvider: NodeProvider
+  ): BlueNode {
+    return this.mergingProcessors.reduce(
+      (currentTarget, processor) =>
+        processor.process(currentTarget, source, nodeProvider),
+      target
     );
   }
 
@@ -37,13 +37,13 @@ export class SequentialMergingProcessor implements MergingProcessor {
   postProcess(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider,
-    nodeResolver: NodeResolver
-  ): void {
-    this.mergingProcessors.forEach((processor) => {
+    nodeProvider: NodeProvider
+  ): BlueNode {
+    return this.mergingProcessors.reduce((currentPostTarget, processor) => {
       if (processor.postProcess) {
-        processor.postProcess(target, source, nodeProvider, nodeResolver);
+        return processor.postProcess(currentPostTarget, source, nodeProvider);
       }
-    });
+      return currentPostTarget;
+    }, target);
   }
 }

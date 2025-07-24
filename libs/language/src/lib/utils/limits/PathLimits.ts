@@ -138,7 +138,13 @@ export class PathLimits extends Limits {
    * @returns The path limits
    */
   public static withMaxDepth(maxDepth: number): PathLimits {
-    return new PathLimitsBuilder().setMaxDepth(maxDepth).addPath('*').build();
+    const builder = new PathLimitsBuilder().setMaxDepth(maxDepth);
+    // Add wildcard patterns for each depth level
+    for (let i = 1; i <= maxDepth; i++) {
+      const pattern = '/' + Array(i).fill('*').join('/');
+      builder.addPath(pattern);
+    }
+    return builder.build();
   }
 
   /**

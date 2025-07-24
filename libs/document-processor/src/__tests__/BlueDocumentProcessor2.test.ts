@@ -13,7 +13,7 @@ describe('BlueDocumentProcessor', () => {
 
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { type: 'Ping' }
+    message: unknown = { name: 'Ping' }
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
@@ -28,7 +28,7 @@ describe('BlueDocumentProcessor', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [blue.jsonValueToNode({ type: 'SomeRandomEvent' })]
+      [blue.jsonValueToNode({ name: 'SomeRandomEvent' })]
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;

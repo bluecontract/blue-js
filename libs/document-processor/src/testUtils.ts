@@ -1,4 +1,4 @@
-import { type Blue } from '@blue-labs/language';
+import { Blue } from '@blue-labs/language';
 import { BlueDocumentProcessor } from './BlueDocumentProcessor';
 
 export const prepareToProcess = async (

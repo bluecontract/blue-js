@@ -12,7 +12,7 @@ export abstract class Limits {
    */
   public abstract shouldExtendPathSegment(
     pathSegment: string,
-    currentNode: BlueNode
+    currentNode?: BlueNode
   ): boolean;
 
   /**
@@ -23,7 +23,7 @@ export abstract class Limits {
    */
   public abstract shouldMergePathSegment(
     pathSegment: string,
-    currentNode: BlueNode
+    currentNode?: BlueNode
   ): boolean;
 
   /**

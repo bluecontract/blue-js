@@ -179,9 +179,7 @@ describe('OperationProcessor', () => {
 
       const event: EventNode = {
         payload: blue.jsonValueToNode({
-          type: 'Some Other Event',
-          operation: 'increment',
-          request: 5,
+          type: 'Timeline Entry',
         }),
         source: 'channel',
         channelName: 'ownerChannel',
@@ -230,10 +228,7 @@ describe('OperationProcessor', () => {
       });
 
       const event: EventNode = {
-        payload: timelineEntryEvent('owner-timeline', {
-          type: 'User Message', // Not an operation request
-          content: 'Hello world',
-        }),
+        payload: timelineEntryEvent('owner-timeline', null),
         source: 'channel',
         channelName: 'ownerChannel',
       };

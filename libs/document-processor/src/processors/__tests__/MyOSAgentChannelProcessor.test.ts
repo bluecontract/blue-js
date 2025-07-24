@@ -16,7 +16,7 @@ describe('MyOSAgentChannelProcessor', () => {
       agentId: 'test-1234',
     },
     event: {
-      type: 'SomeEventType',
+      name: 'SomeEventType',
       payload: { foo: 'bar' },
     },
   });
@@ -46,7 +46,7 @@ describe('MyOSAgentChannelProcessor', () => {
     it('should return true for matching MyOS Agent Event with correct agentId', () => {
       const event: EventNode = {
         payload: myOSAgentEvent('test-1234', {
-          type: 'SomeEventType',
+          name: 'SomeEventType',
           payload: { foo: 'bar' },
         }),
         source: 'external',
@@ -59,7 +59,7 @@ describe('MyOSAgentChannelProcessor', () => {
     it('should return false for non-matching agentId', () => {
       const event: EventNode = {
         payload: myOSAgentEvent('different-agent', {
-          type: 'SomeEventType',
+          name: 'SomeEventType',
           payload: { foo: 'bar' },
         }),
         source: 'external',
@@ -72,7 +72,7 @@ describe('MyOSAgentChannelProcessor', () => {
     it('should return false for channel events', () => {
       const event: EventNode = {
         payload: myOSAgentEvent('test-1234', {
-          type: 'SomeEventType',
+          name: 'SomeEventType',
           payload: { foo: 'bar' },
         }),
         source: 'channel',
@@ -88,14 +88,14 @@ describe('MyOSAgentChannelProcessor', () => {
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'click', target: 'button' },
           },
         });
 
         const event: EventNode = {
           payload: myOSAgentEvent('test-1234', {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'click', target: 'button' },
           }),
           source: 'external',
@@ -110,14 +110,14 @@ describe('MyOSAgentChannelProcessor', () => {
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'click' },
           },
         });
 
         const event: EventNode = {
           payload: myOSAgentEvent('test-1234', {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'click', target: 'button', timestamp: 123456 },
           }),
           source: 'external',
@@ -132,14 +132,14 @@ describe('MyOSAgentChannelProcessor', () => {
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'click', target: 'button' },
           },
         });
 
         const event: EventNode = {
           payload: myOSAgentEvent('test-1234', {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'hover' }, // Missing 'target' and different 'action'
           }),
           source: 'external',
@@ -154,14 +154,14 @@ describe('MyOSAgentChannelProcessor', () => {
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'click' },
           },
         });
 
         const event: EventNode = {
           payload: myOSAgentEvent('test-1234', {
-            type: 'SystemEvent', // Different event type
+            name: 'SystemEvent', // Different event type
             payload: { action: 'click' },
           }),
           source: 'external',
@@ -180,7 +180,7 @@ describe('MyOSAgentChannelProcessor', () => {
 
         const event: EventNode = {
           payload: myOSAgentEvent('test-1234', {
-            type: 'AnyEventType',
+            name: 'AnyEventType',
             payload: { some: 'data' },
           }),
           source: 'external',
@@ -211,7 +211,7 @@ describe('MyOSAgentChannelProcessor', () => {
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
-            type: 'ComplexEvent',
+            name: 'ComplexEvent',
             payload: {
               user: { id: 'user123' },
               metadata: { source: 'web' },
@@ -221,7 +221,7 @@ describe('MyOSAgentChannelProcessor', () => {
 
         const event: EventNode = {
           payload: myOSAgentEvent('test-1234', {
-            type: 'ComplexEvent',
+            name: 'ComplexEvent',
             payload: {
               user: { id: 'user123', name: 'John Doe' },
               metadata: { source: 'web', timestamp: 123456 },
@@ -240,7 +240,7 @@ describe('MyOSAgentChannelProcessor', () => {
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
-            type: 'ComplexEvent',
+            name: 'ComplexEvent',
             payload: {
               user: { id: 'user123' },
               metadata: { source: 'web' },
@@ -250,7 +250,7 @@ describe('MyOSAgentChannelProcessor', () => {
 
         const event: EventNode = {
           payload: myOSAgentEvent('test-1234', {
-            type: 'ComplexEvent',
+            name: 'ComplexEvent',
             payload: {
               user: { id: 'user456' }, // Different user ID
               metadata: { source: 'mobile' }, // Different source
@@ -268,7 +268,7 @@ describe('MyOSAgentChannelProcessor', () => {
           type: 'MyOS Agent Channel',
           agent: { agentId: 'test-1234' },
           event: {
-            type: 'UserAction',
+            name: 'UserAction',
             payload: { action: 'click', target: 'button' },
           },
         });
@@ -288,7 +288,7 @@ describe('MyOSAgentChannelProcessor', () => {
     it('should emit event with channel source and channelName', () => {
       const event: EventNode = {
         payload: myOSAgentEvent('test-1234', {
-          type: 'SomeEventType',
+          name: 'SomeEventType',
           payload: { foo: 'bar' },
         }),
         source: 'external',

@@ -179,7 +179,13 @@ export class ExpressionEvaluator {
     const logCb = new ivm.Callback((...args: unknown[]) =>
       console.log(...args)
     );
-    await global.set('log', logCb);
+
+    // Create a console object with log method
+    const consoleObj = new ivm.ExternalCopy({
+      log: logCb,
+    }).copyInto();
+
+    await global.set('console', consoleObj);
 
     for (const [key, value] of Object.entries(bindings)) {
       if (typeof value === 'function') {

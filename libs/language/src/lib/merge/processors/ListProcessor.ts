@@ -2,7 +2,7 @@ import { BlueNode } from '../../model';
 import { NodeProvider } from '../../NodeProvider';
 import { MergingProcessor } from '../MergingProcessor';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
-import { isSubtype, isListType } from './Types';
+import { NodeTypes } from '../../utils';
 
 /**
  * Processes list nodes, handling itemType and validating items
@@ -12,20 +12,24 @@ export class ListProcessor implements MergingProcessor {
     target: BlueNode,
     source: BlueNode,
     nodeProvider: NodeProvider
-  ): void {
-    if (source.getItemType() !== undefined && !isListType(source.getType())) {
+  ): BlueNode {
+    if (
+      source.getItemType() !== undefined &&
+      !NodeTypes.isListType(source.getType())
+    ) {
       throw new Error('Source node with itemType must have a List type');
     }
 
     const targetItemType = target.getItemType();
     const sourceItemType = source.getItemType();
+    let newTarget = target;
 
     if (targetItemType === undefined) {
       if (sourceItemType !== undefined) {
-        target.setItemType(sourceItemType);
+        newTarget = target.clone().setItemType(sourceItemType);
       }
     } else if (sourceItemType !== undefined) {
-      const isSubtypeResult = isSubtype(
+      const isSubtypeResult = NodeTypes.isSubtype(
         sourceItemType,
         targetItemType,
         nodeProvider
@@ -41,11 +45,11 @@ export class ListProcessor implements MergingProcessor {
           )}'.`
         );
       }
-      target.setItemType(sourceItemType);
+      newTarget = target.clone().setItemType(sourceItemType);
     }
 
     // Validate items against itemType
-    const targetItemTypeForValidation = target.getItemType();
+    const targetItemTypeForValidation = newTarget.getItemType();
     const sourceItems = source.getItems();
     if (
       targetItemTypeForValidation !== undefined &&
@@ -55,7 +59,11 @@ export class ListProcessor implements MergingProcessor {
         const itemType = item.getType();
         if (
           itemType !== undefined &&
-          !isSubtype(itemType, targetItemTypeForValidation, nodeProvider)
+          !NodeTypes.isSubtype(
+            itemType,
+            targetItemTypeForValidation,
+            nodeProvider
+          )
         ) {
           const itemTypeStr = NodeToMapListOrValue.get(itemType);
           const targetItemTypeStr = NodeToMapListOrValue.get(
@@ -71,5 +79,6 @@ export class ListProcessor implements MergingProcessor {
         }
       }
     }
+    return newTarget;
   }
 }
