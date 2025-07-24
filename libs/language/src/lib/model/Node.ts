@@ -270,6 +270,29 @@ export class BlueNode {
     return NodePathAccessor.get(this, path, linkingProvider);
   }
 
+  getAsNode(path: string): BlueNode | undefined {
+    const value = this.get(path);
+    if (value instanceof BlueNode) {
+      return value;
+    }
+
+    throw new Error(`Value at path ${path} is not a BlueNode: ${value}`);
+  }
+
+  getAsInteger(path: string): number | undefined {
+    const value = this.get(path);
+    if (
+      value instanceof BigIntegerNumber ||
+      value instanceof BigDecimalNumber
+    ) {
+      return value.toNumber();
+    }
+
+    throw new Error(
+      `Value at path ${path} is not a BigInteger or BigDecimal: ${value}`
+    );
+  }
+
   clone(): BlueNode {
     const cloned = new BlueNode(this.name);
     cloned.description = this.description;

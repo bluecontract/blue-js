@@ -75,7 +75,7 @@ describe('LifecycleEventChannelProcessor', () => {
 
     // Create a non-lifecycle event
     const nonLifecycleEvent = {
-      payload: blue.jsonValueToNode({ type: 'Some Other Event' }),
+      payload: blue.jsonValueToNode({ name: 'Some Other Event' }),
       source: 'external' as const,
     };
 

@@ -11,6 +11,15 @@ export {
   type BlueNodePatch,
   BlueNodeTypeSchema,
   type BlueRepository,
+  Limits,
+  Nodes,
+  BasicNodeProvider,
+
+  // merge
+  NodeResolver,
+  type MergingProcessor,
+  Merger,
+  MergingProcessors,
 } from './lib';
 export * from './schema';
 export * from './schema/annotations';

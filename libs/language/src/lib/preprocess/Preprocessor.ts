@@ -10,6 +10,7 @@ import {
 import {
   InferBasicTypesForUntypedValues,
   ReplaceInlineValuesForTypeAttributesWithImports,
+  ValidateInlineTypesReplaced,
 } from './processor';
 import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits';
@@ -115,6 +116,10 @@ export class Preprocessor {
 
         processedDocument.setBlue(undefined);
       }
+
+      processedDocument = new ValidateInlineTypesReplaced().process(
+        processedDocument
+      );
     }
 
     return processedDocument;

@@ -22,13 +22,13 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
   const documentProcessor = new BlueDocumentProcessor(blue);
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { type: 'Ping' }
+    message: unknown = { name: 'Ping' }
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
   const EVT1 = timelineEvent('t1');
-  const EVT2 = timelineEvent('t2', { type: 'Remove' });
-  const EVT3 = timelineEvent('t3', { type: 'ReAdd' });
+  const EVT2 = timelineEvent('t2', { name: 'Remove' });
+  const EVT3 = timelineEvent('t3', { name: 'ReAdd' });
 
   it('1) initial t1 is blocked', async () => {
     const { initializedState } = await prepareToProcess(doc, {

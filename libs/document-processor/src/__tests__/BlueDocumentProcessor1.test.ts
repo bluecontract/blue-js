@@ -16,7 +16,7 @@ describe('BlueDocumentProcessor', () => {
 
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { type: 'Ping' }
+    message: unknown = { name: 'Ping' }
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
@@ -389,46 +389,17 @@ describe('BlueDocumentProcessor', () => {
                 type: 'Update Document',
                 changeset: [{ op: 'replace', path: '/x', val: 2 }],
               },
-
-              // FIXME: Merger copied type value inline
-              // RESULT:
-              // {
-              //   "description": "Event data",
-              //   "type": {
-              //     "type": {
-              //       "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP"
-              //     },
-              //     "value": "Payment Succeeded"
-              //   },
-              //   "value": "Payment Succeeded",
-              //   "amountUsd": {
-              //     "type": {
-              //       "blueId": "DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8"
-              //     },
-              //     "value": 120
-              //   }
-              // }
-              // ------------------------------------------------------------
-              // {
-              //   type: 'Trigger Event',
-              //   event: {
-              //     type: 'Payment Succeeded',
-              //     amountUsd: 120,
-              //   },
-              // },
-
               {
-                type: 'JavaScript Code',
-                code: `
-                  return {
-                    events: [
-                      {
-                        type: 'Payment Succeeded',
-                        amountUsd: 120,
-                      }
-                    ]
-                  }
-                `,
+                type: 'Trigger Event',
+                event: {
+                  type: {
+                    name: 'Payment Succeeded',
+                    amountUsd: {
+                      type: 'Integer',
+                    },
+                  },
+                  amountUsd: 120,
+                },
               },
             ],
           },
@@ -507,7 +478,7 @@ describe('BlueDocumentProcessor', () => {
     // Check for emitted events
     const paymentSucceededEvent = result.emitted
       .map((e) => blue.nodeToJson(e, 'simple') as any)
-      .find((e) => e.type === 'Payment Succeeded' && e.amountUsd === 120);
+      .find((e) => e.type.name === 'Payment Succeeded' && e.amountUsd === 120);
 
     expect(paymentSucceededEvent).toBeDefined();
   });

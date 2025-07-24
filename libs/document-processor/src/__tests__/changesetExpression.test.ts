@@ -4,10 +4,12 @@ import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
 import { prepareToProcessYaml } from '../testUtils';
 import { createTimelineEntryEvent } from '../utils/eventFactories';
+import { createDefaultMergingProcessor } from '../merge';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository, myosRepository],
+    mergingProcessor: createDefaultMergingProcessor(),
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
   const timelineEntryEvent = (timelineId: string, message: unknown) => {
@@ -30,7 +32,7 @@ contracts:
     type: Sequential Workflow
     channel: ownerChannel
     event:
-      type: Agent Subscription Request
+      name: Agent Subscription Request
     steps:
       - name: CreateSubscriptions
         type: JavaScript Code
@@ -47,7 +49,7 @@ contracts:
               val: {
                 type: "MyOS Agent Channel",
                 agent: { agentId: sub.agentId },
-                event: { type: sub.eventType }
+                event: { name: sub.eventType }
               }
             });
 
@@ -72,7 +74,7 @@ contracts:
                   {
                     name: "EmitEvent",
                     type: "JavaScript Code",
-                    code: "return { events: [{ type: event.event.type + 'a'}] };"
+                    code: "return { events: [{ name: event.event.name + 'a'}] };"
                   }
                 ]
               }
@@ -82,10 +84,7 @@ contracts:
           return { changes };
       - name: UpdateContracts
         type: Update Document
-        changeset: 
-          type: List
-          itemType: Json Patch Entry
-          value: "\${steps.CreateSubscriptions.changes}"`;
+        changeset: "\${steps.CreateSubscriptions.changes}"`;
 
     const { initializedState } = await prepareToProcessYaml(docyaml, {
       blue,
@@ -93,7 +92,7 @@ contracts:
     });
 
     const event = timelineEntryEvent('test-timeline', {
-      type: 'Agent Subscription Request',
+      name: 'Agent Subscription Request',
       subscriptions: [
         {
           agentId: 'agent-1',
@@ -114,7 +113,7 @@ contracts:
     expect(data.contracts).toMatchObject({
       agent1Channel: {
         agent: { agentId: 'agent-1' },
-        event: { type: 'EventType1' },
+        event: { name: 'EventType1' },
       },
     });
   });

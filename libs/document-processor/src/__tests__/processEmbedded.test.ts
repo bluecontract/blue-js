@@ -20,7 +20,7 @@ describe('Process Embedded – cross-boundary guard', () => {
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
 
-  const TIMELINE_EVENT = createTimelineEntryEvent('t', { type: 'Ping' }, blue);
+  const TIMELINE_EVENT = createTimelineEntryEvent('t', { name: 'Ping' }, blue);
   it('allows workflows INSIDE the embedded subtree to mutate it', async () => {
     const doc = loadYamlFromResources('processEmbedded_happy.yaml');
 

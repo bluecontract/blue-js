@@ -5,5 +5,6 @@ export * from './Blue';
 export * from './NodeProvider';
 export * from './provider/SequentialNodeProvider';
 export * from './provider/UrlContentFetcher';
+export * from './provider/BasicNodeProvider';
 export * from './preprocess';
 export * from './merge';

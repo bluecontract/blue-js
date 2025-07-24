@@ -65,7 +65,7 @@ describe('OperationProcessor - Integration Tests', () => {
             channel: 'ownerChannel',
             request: {
               description: 'New status to set',
-              type: 'String',
+              type: 'Text',
             },
           },
 
@@ -358,7 +358,7 @@ describe('OperationProcessor - Integration Tests', () => {
             request: {
               description: 'User data to update',
               // Use a simpler type definition to avoid validation issues
-              type: 'String',
+              type: 'Text',
             },
           },
 
@@ -435,10 +435,7 @@ describe('OperationProcessor - Integration Tests', () => {
       // Send a regular timeline message that's not an operation request
       const regularEvent = createTimelineEntryEvent(
         'owner-timeline',
-        {
-          type: 'User Message',
-          content: 'Hello world',
-        },
+        null,
         blue
       );
 

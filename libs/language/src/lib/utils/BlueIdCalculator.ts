@@ -76,16 +76,6 @@ export class BlueIdCalculator {
     return BlueIdCalculator.INSTANCE.calculateSync(object);
   }
 
-  // public static calculateBlueIdForNodes(nodes: BlueNode[]) {
-  //   const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
-  //   return BlueIdCalculator.INSTANCE.calculate(objects);
-  // }
-
-  // public static calculateBlueIdSyncForNodes(nodes: BlueNode[]) {
-  //   const objects = nodes.map((node) => NodeToMapListOrValue.get(node));
-  //   return BlueIdCalculator.INSTANCE.calculateSync(objects);
-  // }
-
   public calculate(object: JsonBlueValue) {
     const cleanedObject = this.cleanStructure(object);
     if (cleanedObject === undefined) {

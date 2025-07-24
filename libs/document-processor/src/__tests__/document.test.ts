@@ -330,7 +330,7 @@ describe('Document Utilities', () => {
           history: [],
         },
         contracts: {
-          someContract: { type: 'test' },
+          someContract: { name: 'test' },
         },
       };
 
@@ -372,7 +372,7 @@ describe('Document Utilities', () => {
           winner: null,
         },
         contracts: {
-          someContract: { type: 'test' },
+          someContract: { name: 'test' },
         },
       });
     });
@@ -473,7 +473,7 @@ describe('Document Utilities', () => {
       const document: JsonObject = {
         contracts: {
           test: {
-            type: 'TestContract',
+            name: 'TestContract',
             list: [], // Initially empty
           },
         },

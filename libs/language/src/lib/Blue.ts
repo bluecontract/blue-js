@@ -26,7 +26,9 @@ import { NodeExtender } from './utils/NodeExtender';
 import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
-import { createDefaultNodeProcessor } from './merge/createDefaultNodeProcessor';
+import { createDefaultMergingProcessor } from './merge';
+import { MergeReverser } from './utils/MergeReverser';
+import { CompositeLimits } from './utils/limits';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -68,7 +70,7 @@ export class Blue {
     );
 
     this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
-    this.mergingProcessor = mergingProcessor ?? createDefaultNodeProcessor();
+    this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
@@ -113,6 +115,11 @@ export class Blue {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     return merger.resolve(node, effectiveLimits);
+  }
+
+  public reverse(node: BlueNode) {
+    const reverser = new MergeReverser();
+    return reverser.reverse(node);
   }
 
   public extend(node: BlueNode, limits: Limits) {
@@ -386,6 +393,27 @@ export class Blue {
     });
   }
 
+  /**
+   * Sets the global limits for this Blue instance.
+   * These limits will be combined with method-specific limits when resolving or extending nodes.
+   *
+   * @param globalLimits - The global limits to set, or null to use NO_LIMITS
+   * @returns This instance for chaining
+   */
+  public setGlobalLimits(globalLimits: Limits | null): Blue {
+    this.globalLimits = globalLimits ?? NO_LIMITS;
+    return this;
+  }
+
+  /**
+   * Gets the current global limits for this Blue instance.
+   *
+   * @returns The current global limits
+   */
+  public getGlobalLimits(): Limits {
+    return this.globalLimits;
+  }
+
   private combineWithGlobalLimits(methodLimits: Limits) {
     if (this.globalLimits == NO_LIMITS) {
       return methodLimits;
@@ -395,8 +423,6 @@ export class Blue {
       return this.globalLimits;
     }
 
-    return NO_LIMITS;
-    // TODO: Implement this
-    // return new CompositeLimits(globalLimits, methodLimits);
+    return CompositeLimits.of(this.globalLimits, methodLimits);
   }
 }

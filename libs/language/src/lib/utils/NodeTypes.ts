@@ -1,6 +1,6 @@
-import { BlueNode } from '../../model';
-import { NodeProvider } from '../../NodeProvider';
-import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
+import { BlueNode } from '../model';
+import { NodeProvider } from '../NodeProvider';
+import { BlueIdCalculator } from './BlueIdCalculator';
 import {
   TEXT_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
@@ -12,7 +12,7 @@ import {
   BASIC_TYPE_BLUE_IDS,
   CORE_TYPE_BLUE_IDS,
   CORE_TYPE_BLUE_ID_TO_NAME_MAP,
-} from '../../utils/Properties';
+} from './Properties';
 
 /**
  * Gets the type of a node, resolving it from the node provider if necessary

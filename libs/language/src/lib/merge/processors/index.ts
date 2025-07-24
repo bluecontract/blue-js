@@ -4,7 +4,3 @@ export * from './TypeAssigner';
 export * from './ListProcessor';
 export * from './DictionaryProcessor';
 export * from './BasicTypesVerifier';
-export * from './Types';
-
-// Note: ConstraintsPropagator and ConstraintsVerifier are not implemented
-// as constraints are not yet part of the BlueNode model
