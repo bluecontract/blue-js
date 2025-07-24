@@ -7,7 +7,6 @@ import { NO_LIMITS } from '../../utils/limits';
 
 describe('Merger', () => {
   const basicMergingProcessor = (target: BlueNode, source: BlueNode) => {
-    // Copy value from source to target
     if (source.getValue() !== undefined) {
       return target.clone().setValue(source.getValue()!);
     }

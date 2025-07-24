@@ -19,14 +19,6 @@ describe('Merger with Limits', () => {
         if (value !== undefined) {
           newTarget = newTarget.clone().setValue(value);
         }
-        const name = source.getName();
-        if (name) {
-          newTarget = newTarget.clone().setName(name);
-        }
-        const description = source.getDescription();
-        if (description) {
-          newTarget = newTarget.clone().setDescription(description);
-        }
         return newTarget;
       },
     };

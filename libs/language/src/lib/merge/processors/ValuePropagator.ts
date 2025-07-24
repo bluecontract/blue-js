@@ -7,7 +7,7 @@ import {
 } from '../../../utils/typeGuards';
 
 /**
- * Propagates values from source to target nodes
+ * Propagates values from source to target nodes and throws an error if there is a conflict
  */
 export class ValuePropagator implements MergingProcessor {
   process(target: BlueNode, source: BlueNode): BlueNode {

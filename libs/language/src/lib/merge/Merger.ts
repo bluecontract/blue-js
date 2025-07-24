@@ -76,8 +76,7 @@ export class Merger extends NodeResolver {
     let newTarget = this.mergingProcessor.process(
       target,
       source,
-      this.nodeProvider,
-      this
+      this.nodeProvider
     );
 
     const children = source.getItems();
@@ -104,8 +103,7 @@ export class Merger extends NodeResolver {
       newTarget = this.mergingProcessor.postProcess(
         newTarget,
         source,
-        this.nodeProvider,
-        this
+        this.nodeProvider
       );
     }
     return newTarget;

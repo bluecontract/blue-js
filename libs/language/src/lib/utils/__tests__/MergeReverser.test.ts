@@ -124,16 +124,16 @@ describe('MergeReverser', () => {
     `;
     nodeProvider.addSingleDocs(p);
 
-    const pNode = nodeProvider.getNodeByName('P');
     const blue = new Blue({ nodeProvider });
-    const resolved = blue.resolve(pNode);
+    const nodeP = blue.yamlToNode(p);
+    const blueIdP = blue.calculateBlueIdSync(nodeP);
+
+    const resolved = blue.resolve(nodeP);
 
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(resolved);
 
-    expect(blue.calculateBlueIdSync(reversed.setBlueId(undefined))).toEqual(
-      blue.calculateBlueIdSync(pNode.setBlueId(undefined))
-    );
+    expect(blue.calculateBlueIdSync(reversed)).toEqual(blueIdP);
 
     expect(reversed.getName()).toEqual('P');
     expect(reversed.getType()?.getBlueId()).toEqual(

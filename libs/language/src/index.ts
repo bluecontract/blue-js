@@ -13,6 +13,7 @@ export {
   type BlueRepository,
   Limits,
   Nodes,
+  BasicNodeProvider,
 } from './lib';
 export * from './schema';
 export * from './schema/annotations';
