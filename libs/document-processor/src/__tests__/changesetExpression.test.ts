@@ -4,10 +4,12 @@ import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
 import { prepareToProcessYaml } from '../testUtils';
 import { createTimelineEntryEvent } from '../utils/eventFactories';
+import { createDefaultMergingProcessor } from '../merge';
 
 describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository, myosRepository],
+    mergingProcessor: createDefaultMergingProcessor(),
   });
   const documentProcessor = new BlueDocumentProcessor(blue);
   const timelineEntryEvent = (timelineId: string, message: unknown) => {
@@ -82,10 +84,7 @@ contracts:
           return { changes };
       - name: UpdateContracts
         type: Update Document
-        changeset: 
-          type: List
-          itemType: Json Patch Entry
-          value: "\${steps.CreateSubscriptions.changes}"`;
+        changeset: "\${steps.CreateSubscriptions.changes}"`;
 
     const { initializedState } = await prepareToProcessYaml(docyaml, {
       blue,

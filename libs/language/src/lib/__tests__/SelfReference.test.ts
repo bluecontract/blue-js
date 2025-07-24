@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { BasicNodeProvider } from '../provider/BasicNodeProvider';
 import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits/PathLimits';
-import { isSubtype } from '../merge/processors/Types';
+import { NodeTypes } from '../utils';
 import { Blue } from '../Blue';
 import { BlueNode, NodeDeserializer } from '../model';
 import { yamlBlueParse } from '../../utils/yamlBlue';
@@ -25,16 +25,28 @@ x:
     );
 
     expect(
-      isSubtype(extended, extended.get('/x/type') as BlueNode, nodeProvider)
+      NodeTypes.isSubtype(
+        extended,
+        extended.get('/x/type') as BlueNode,
+        nodeProvider
+      )
     ).toBe(true);
     expect(
-      isSubtype(aNode, extended.get('/x/type') as BlueNode, nodeProvider)
+      NodeTypes.isSubtype(
+        aNode,
+        extended.get('/x/type') as BlueNode,
+        nodeProvider
+      )
     ).toBe(true);
     expect(
-      isSubtype(extended.get('/x/type') as BlueNode, aNode, nodeProvider)
+      NodeTypes.isSubtype(
+        extended.get('/x/type') as BlueNode,
+        aNode,
+        nodeProvider
+      )
     ).toBe(true);
     expect(
-      isSubtype(
+      NodeTypes.isSubtype(
         extended.get('/x/type/x/type/x/type/x/type') as BlueNode,
         aNode,
         nodeProvider
@@ -77,10 +89,14 @@ x:
     );
 
     expect(
-      isSubtype(extendedA, extendedB.get('/y/type') as BlueNode, nodeProvider)
+      NodeTypes.isSubtype(
+        extendedA,
+        extendedB.get('/y/type') as BlueNode,
+        nodeProvider
+      )
     ).toBe(true);
     expect(
-      isSubtype(
+      NodeTypes.isSubtype(
         extendedB,
         extendedA.get('/x/type/y/type/x/type') as BlueNode,
         nodeProvider

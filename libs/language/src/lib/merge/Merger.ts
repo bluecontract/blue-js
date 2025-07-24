@@ -79,6 +79,8 @@ export class Merger extends NodeResolver {
       this.nodeProvider
     );
 
+    // console.log('newTarget', newTarget);
+
     const children = source.getItems();
     if (isNonNullable(children)) {
       newTarget = this.mergeChildren(newTarget, children, limits);

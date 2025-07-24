@@ -2,7 +2,7 @@ import { BlueNode } from '../../model';
 import { NodeProvider } from '../../NodeProvider';
 import { MergingProcessor } from '../MergingProcessor';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
-import { isSubtype } from './Types';
+import { NodeTypes } from '../../utils';
 
 /**
  * Assigns types from source to target nodes with subtype validation
@@ -20,7 +20,11 @@ export class TypeAssigner implements MergingProcessor {
     if (targetType === undefined) {
       newTarget = target.clone().setType(sourceType);
     } else if (sourceType !== undefined) {
-      const isSubtypeResult = isSubtype(sourceType, targetType, nodeProvider);
+      const isSubtypeResult = NodeTypes.isSubtype(
+        sourceType,
+        targetType,
+        nodeProvider
+      );
       if (!isSubtypeResult) {
         const sourceTypeStr = NodeToMapListOrValue.get(sourceType);
         const targetTypeStr = NodeToMapListOrValue.get(targetType);
