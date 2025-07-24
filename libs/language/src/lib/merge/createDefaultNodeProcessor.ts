@@ -6,6 +6,7 @@ import {
   ListProcessor,
   DictionaryProcessor,
   BasicTypesVerifier,
+  ExpressionPreserver,
 } from './processors';
 
 /**
@@ -15,6 +16,7 @@ import {
 export function createDefaultNodeProcessor(): MergingProcessor {
   return new SequentialMergingProcessor([
     new ValuePropagator(),
+    new ExpressionPreserver(),
     new TypeAssigner(),
     new ListProcessor(),
     new DictionaryProcessor(),
