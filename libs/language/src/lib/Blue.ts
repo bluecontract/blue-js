@@ -1,6 +1,6 @@
 import { JsonBlueValue } from '../schema';
 import { NodeToObjectConverter } from './mapping';
-import { BlueNode, NodeDeserializer } from './model';
+import { BlueNode, NodeDeserializer, ResolvedNode } from './model';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
 import {
   BlueIdCalculator,
@@ -115,6 +115,22 @@ export class Blue {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     return merger.resolve(node, effectiveLimits);
+  }
+
+  /**
+   * Resolves a node and returns a ResolvedNode containing both original and resolved versions
+   * This allows access to the original node and its blueId after resolution
+   * @param node - The node to resolve
+   * @param limits - The limits to apply during resolution
+   * @returns A ResolvedNode containing both original and resolved nodes
+   */
+  public resolveToResolvedNode(
+    node: BlueNode,
+    limits: Limits = NO_LIMITS
+  ): ResolvedNode {
+    const effectiveLimits = this.combineWithGlobalLimits(limits);
+    const merger = new Merger(this.mergingProcessor, this.nodeProvider);
+    return merger.resolveToResolvedNode(node, effectiveLimits);
   }
 
   public reverse(node: BlueNode) {
