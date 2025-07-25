@@ -1,9 +1,8 @@
+import { MergeReverser } from '../utils/MergeReverser';
 import { BlueNode } from './Node';
 
 export class ResolvedBlueNode extends BlueNode {
-  private readonly _originalNode: BlueNode;
-
-  constructor(resolvedNode: BlueNode, originalNode: BlueNode) {
+  constructor(resolvedNode: BlueNode) {
     super(resolvedNode.getName());
 
     this.setDescription(resolvedNode.getDescription())
@@ -22,8 +21,6 @@ export class ResolvedBlueNode extends BlueNode {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.setValue(value as any);
     }
-
-    this._originalNode = originalNode;
   }
 
   public override isResolved(): boolean {
@@ -31,10 +28,10 @@ export class ResolvedBlueNode extends BlueNode {
   }
 
   public getOriginalNode(): BlueNode {
-    return this._originalNode;
+    return new MergeReverser().reverse(this);
   }
 
   public override clone(): ResolvedBlueNode {
-    return new ResolvedBlueNode(super.clone(), this._originalNode);
+    return new ResolvedBlueNode(super.clone());
   }
 }
