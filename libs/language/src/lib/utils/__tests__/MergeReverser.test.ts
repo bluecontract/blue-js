@@ -38,7 +38,7 @@ describe('MergeReverser', () => {
     const bNode = nodeProvider.getNodeByName('B');
 
     const blue = new Blue({ nodeProvider });
-    const resolved = blue.resolve(bNode);
+    const resolved = blue.resolve(bNode).toBlueNode();
 
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(resolved);
@@ -77,7 +77,7 @@ describe('MergeReverser', () => {
 
     const cNode = nodeProvider.getNodeByName('C');
     const blue = new Blue({ nodeProvider });
-    const resolved = blue.resolve(cNode);
+    const resolved = blue.resolve(cNode).toBlueNode();
 
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(resolved);
@@ -128,7 +128,7 @@ describe('MergeReverser', () => {
     const nodeP = blue.yamlToNode(p);
     const blueIdP = blue.calculateBlueIdSync(nodeP);
 
-    const resolved = blue.resolve(nodeP);
+    const resolved = blue.resolve(nodeP).toBlueNode();
 
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(resolved);
@@ -177,7 +177,7 @@ describe('MergeReverser', () => {
     nodeProvider.addSingleDocs(derived);
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
-    const resolved = blue.resolve(derivedNode);
+    const resolved = blue.resolve(derivedNode).toBlueNode();
 
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(resolved);

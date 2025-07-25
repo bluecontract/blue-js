@@ -111,26 +111,10 @@ export class Blue {
     return converter.convert(node, schema);
   }
 
-  public resolve(node: BlueNode, limits: Limits = NO_LIMITS) {
+  public resolve(node: BlueNode, limits: Limits = NO_LIMITS): ResolvedNode {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     return merger.resolve(node, effectiveLimits);
-  }
-
-  /**
-   * Resolves a node and returns a ResolvedNode containing both original and resolved versions
-   * This allows access to the original node and its blueId after resolution
-   * @param node - The node to resolve
-   * @param limits - The limits to apply during resolution
-   * @returns A ResolvedNode containing both original and resolved nodes
-   */
-  public resolveToResolvedNode(
-    node: BlueNode,
-    limits: Limits = NO_LIMITS
-  ): ResolvedNode {
-    const effectiveLimits = this.combineWithGlobalLimits(limits);
-    const merger = new Merger(this.mergingProcessor, this.nodeProvider);
-    return merger.resolveToResolvedNode(node, effectiveLimits);
   }
 
   public reverse(node: BlueNode) {

@@ -1,5 +1,6 @@
 export {
   BlueNode,
+  ResolvedNode,
   type UrlFetchStrategy,
   BlueIdCalculator,
   JsonCanonicalizer,

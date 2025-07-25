@@ -1,4 +1,4 @@
-import { BlueNode } from '../model';
+import { BlueNode, ResolvedNode } from '../model';
 import { Limits, NO_LIMITS } from '../utils/limits';
 
 /**
@@ -10,9 +10,9 @@ export abstract class NodeResolver {
    * Resolves a node with the given limits
    * @param node - The node to resolve
    * @param limits - The limits to apply during resolution
-   * @returns The resolved node
+   * @returns The resolved node wrapped in a ResolvedNode
    */
-  abstract resolve(node: BlueNode, limits: Limits): BlueNode;
+  abstract resolve(node: BlueNode, limits: Limits): ResolvedNode;
 
   /**
    * Resolves a node without limits
@@ -21,7 +21,7 @@ export abstract class NodeResolver {
    * @param node - The node to resolve
    * @returns The resolved node using NO_LIMITS
    */
-  resolveWithoutLimits(node: BlueNode): BlueNode {
+  resolveWithoutLimits(node: BlueNode): ResolvedNode {
     return this.resolve(node, NO_LIMITS);
   }
 }
@@ -30,10 +30,10 @@ export abstract class NodeResolver {
  * Helper function to create a simple NodeResolver with a custom resolve implementation
  */
 export function createNodeResolver(
-  resolveFn: (node: BlueNode, limits: Limits) => BlueNode
+  resolveFn: (node: BlueNode, limits: Limits) => ResolvedNode
 ): NodeResolver {
   return new (class extends NodeResolver {
-    resolve(node: BlueNode, limits: Limits): BlueNode {
+    resolve(node: BlueNode, limits: Limits): ResolvedNode {
       return resolveFn(node, limits);
     }
   })();

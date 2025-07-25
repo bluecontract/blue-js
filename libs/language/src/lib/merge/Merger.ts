@@ -207,9 +207,28 @@ export class Merger extends NodeResolver {
    * Resolves a node by creating a new node and merging the source into it
    * @param node - The node to resolve
    * @param limits - The limits to apply during resolution
+   * @returns The resolved node wrapped in a ResolvedNode
+   */
+  public resolve(node: BlueNode, limits: Limits): ResolvedNode {
+    const originalNode = node.clone(); // Clone to preserve the original
+    const resultNode = new BlueNode();
+    const mergedNode = this.merge(resultNode, node, limits);
+    const resolvedNode = mergedNode
+      .clone()
+      .setName(node.getName())
+      .setDescription(node.getDescription())
+      .setBlueId(node.getBlueId());
+
+    return ResolvedNode.from(originalNode, resolvedNode);
+  }
+
+  /**
+   * Internal resolve method that returns a BlueNode for internal use
+   * @param node - The node to resolve
+   * @param limits - The limits to apply during resolution
    * @returns The resolved node
    */
-  public resolve(node: BlueNode, limits: Limits): BlueNode {
+  private resolveToNode(node: BlueNode, limits: Limits): BlueNode {
     const resultNode = new BlueNode();
     const mergedNode = this.merge(resultNode, node, limits);
     return mergedNode
@@ -217,27 +236,5 @@ export class Merger extends NodeResolver {
       .setName(node.getName())
       .setDescription(node.getDescription())
       .setBlueId(node.getBlueId());
-  }
-
-  /**
-   * Resolves a node and returns a ResolvedNode containing both original and resolved versions
-   * @param node - The node to resolve
-   * @param limits - The limits to apply during resolution
-   * @returns The resolved node wrapped in a ResolvedNode
-   */
-  public resolveToResolvedNode(node: BlueNode, limits: Limits): ResolvedNode {
-    const originalNode = node.clone(); // Clone to preserve the original
-    const resolvedNode = this.resolve(node, limits);
-    return ResolvedNode.from(originalNode, resolvedNode);
-  }
-
-  /**
-   * Internal resolve method that returns a BlueNode for backward compatibility
-   * @param node - The node to resolve
-   * @param limits - The limits to apply during resolution
-   * @returns The resolved node
-   */
-  private resolveToNode(node: BlueNode, limits: Limits): BlueNode {
-    return this.resolve(node, limits);
   }
 }

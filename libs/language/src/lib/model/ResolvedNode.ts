@@ -70,7 +70,7 @@ export class ResolvedNode {
    * Checks if this node has been resolved (i.e., if the resolved node differs from the original)
    */
   isResolved(): boolean {
-    return this.originalNode !== this.resolvedNode;
+    return this.getOriginalBlueId() !== this.getResolvedBlueId();
   }
 
   /**
@@ -128,6 +128,10 @@ export class ResolvedNode {
 
   getBlue(): BlueNode | undefined {
     return this.resolvedNode.getBlue();
+  }
+
+  getContracts(): Record<string, BlueNode> | undefined {
+    return this.resolvedNode.getContracts();
   }
 
   get(

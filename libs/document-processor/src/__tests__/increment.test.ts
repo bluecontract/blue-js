@@ -57,7 +57,7 @@ describe('increment', () => {
 
     const { state: state1, emitted: emitted1 } =
       await documentProcessor.processEvents(initializedState, [
-        blue.resolve(eventToIgnore),
+        blue.resolve(eventToIgnore).toBlueNode(),
       ]);
 
     expect(emitted1.length).toEqual(0);
@@ -66,7 +66,7 @@ describe('increment', () => {
 
     const { state: state2, emitted: emitted2 } =
       await documentProcessor.processEvents(state1, [
-        blue.resolve(eventToIgnore),
+        blue.resolve(eventToIgnore).toBlueNode(),
       ]);
     expect(emitted2.length).toEqual(0);
 
@@ -81,7 +81,7 @@ describe('increment', () => {
 
     const { state: state3, emitted: emitted3 } =
       await documentProcessor.processEvents(state2, [
-        blue.resolve(eventTimeline),
+        blue.resolve(eventTimeline).toBlueNode(),
       ]);
     expect(emitted3.length).toEqual(1);
 

@@ -34,7 +34,7 @@ async function demonstrateResolvedNode() {
   // Output: ['name', 'age']
 
   // Resolve the node - this will merge in the email property from the type
-  const resolvedNode = blue.resolveToResolvedNode(johnNode);
+  const resolvedNode = blue.resolve(johnNode);
 
   console.log('Is resolved?', resolvedNode.isResolved());
   // Output: true
@@ -73,7 +73,7 @@ async function demonstrateUnresolvedNode() {
     .setName('SimpleNode')
     .setValue('Some value');
 
-  const resolvedNode = blue.resolveToResolvedNode(simpleNode);
+  const resolvedNode = blue.resolve(simpleNode);
 
   console.log('Is resolved?', resolvedNode.isResolved());
   // Output: false (no changes were made)

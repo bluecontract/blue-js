@@ -1,32 +1,31 @@
 import { Blue } from '../../Blue';
 import { BlueNode } from '../../model';
-import { createNodeProvider } from '../../NodeProvider';
+import { BasicNodeProvider } from '../../provider';
 
 describe('ResolvedNode', () => {
   let blue: Blue;
+  let provider: BasicNodeProvider;
 
   beforeEach(() => {
     const personType = new BlueNode()
-      .setBlueId('Person123')
-      .addProperty('name', new BlueNode().setType('Text'))
-      .addProperty('age', new BlueNode().setType('Integer'));
+      .setName('Person123')
+      .addProperty('age', new BlueNode().setType('Integer'))
+      .addProperty('extra', new BlueNode().setType('Text'));
 
-    const provider = createNodeProvider((blueId: string) => {
-      if (blueId === 'Person123') {
-        return [personType];
-      }
-      return [];
-    });
+    provider = new BasicNodeProvider();
+    provider.addSingleNodes(personType);
 
     blue = new Blue({ nodeProvider: provider });
   });
 
   it('should create a ResolvedNode with original and resolved nodes', () => {
     const node = new BlueNode()
-      .setType('Person123')
-      .addProperty('name', new BlueNode().setValue('John'));
+      .setType(new BlueNode().setBlueId(provider.getBlueIdByName('Person123')))
+      .setName('John')
+      .addProperty('age', new BlueNode().setValue(34).setType('Integer'));
 
-    const resolvedNode = blue.resolveToResolvedNode(node);
+    const preprocessedNode = blue.preprocess(node);
+    const resolvedNode = blue.resolve(preprocessedNode);
 
     // Check that we have both nodes
     expect(resolvedNode.getOriginalNode()).toBeDefined();
@@ -36,18 +35,20 @@ describe('ResolvedNode', () => {
     expect(resolvedNode.isResolved()).toBe(true);
 
     // Original should not have age property
-    expect(resolvedNode.getOriginalNode().getProperties()?.age).toBeUndefined();
+    expect(
+      resolvedNode.getOriginalNode().getProperties()?.extra
+    ).toBeUndefined();
 
     // Resolved should have age property from type
-    expect(resolvedNode.getResolvedNode().getProperties()?.age).toBeDefined();
+    expect(resolvedNode.getResolvedNode().getProperties()?.extra).toBeDefined();
   });
 
   it('should preserve original blueId', () => {
     const node = new BlueNode()
-      .setType('Person123')
-      .addProperty('name', new BlueNode().setValue('John'));
+      .setType(new BlueNode().setBlueId(provider.getBlueIdByName('Person123')))
+      .addProperty('additional', new BlueNode().setValue('John'));
 
-    const resolvedNode = blue.resolveToResolvedNode(node);
+    const resolvedNode = blue.resolve(node);
 
     const originalBlueId = resolvedNode.getOriginalBlueId();
     const resolvedBlueId = resolvedNode.getResolvedBlueId();
@@ -64,7 +65,7 @@ describe('ResolvedNode', () => {
       new BlueNode().setValue('John')
     );
 
-    const resolvedNode = blue.resolveToResolvedNode(node);
+    const resolvedNode = blue.resolve(node);
 
     // Without a type, the node shouldn't change during resolution
     expect(resolvedNode.isResolved()).toBe(false);
@@ -79,7 +80,7 @@ describe('ResolvedNode', () => {
       .setDescription('Test description')
       .setValue('test value');
 
-    const resolvedNode = blue.resolveToResolvedNode(node);
+    const resolvedNode = blue.resolve(node);
 
     // All delegated methods should return values from resolved node
     expect(resolvedNode.getName()).toBe('TestNode');
@@ -89,10 +90,10 @@ describe('ResolvedNode', () => {
 
   it('should convert back to BlueNode', () => {
     const node = new BlueNode()
-      .setType('Person123')
+      .setType(new BlueNode().setBlueId(provider.getBlueIdByName('Person123')))
       .addProperty('name', new BlueNode().setValue('John'));
 
-    const resolvedNode = blue.resolveToResolvedNode(node);
+    const resolvedNode = blue.resolve(node);
     const blueNode = resolvedNode.toBlueNode();
 
     // Should return the resolved version
