@@ -1,10 +1,10 @@
-import { BlueNode } from '../model';
+import { BlueNode } from '../model/Node';
 import { Nodes } from './Nodes';
 import { BlueIdCalculator } from './BlueIdCalculator';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 
 export class MergeReverser {
-  public reverse(mergedNode: BlueNode): BlueNode {
+  public reverse<T extends BlueNode>(mergedNode: T): BlueNode {
     const minimalNode = new BlueNode();
     this.reverseNode(minimalNode, mergedNode, mergedNode.getType());
     return minimalNode;

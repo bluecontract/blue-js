@@ -256,6 +256,14 @@ export class BlueNode {
     return this;
   }
 
+  /**
+   * Checks if this is a resolved node
+   * @returns false for regular BlueNode, true for ResolvedNode
+   */
+  isResolved(): boolean {
+    return false;
+  }
+
   get(
     path: string,
     linkingProvider?: (node: BlueNode) => BlueNode | null
