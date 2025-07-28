@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { BlueNode } from '../index';
-import { ResolvedNode } from '../ResolvedNode';
+import { ResolvedBlueNode } from '../ResolvedNode';
 import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { BasicNodeProvider } from '../../provider';
 import { Merger } from '../../merge/Merger';
 import { createDefaultMergingProcessor } from '../../merge';
 import { NO_LIMITS } from '../../utils/limits';
 
-describe('ResolvedNode Integration Tests', () => {
-  it('should create ResolvedNode through Merger and verify resolved state', () => {
+describe('ResolvedBlueNode Integration Tests', () => {
+  it('should create ResolvedBlueNode through Merger and verify resolved state', () => {
     // Setup provider with test data
     const nodeProvider = new BasicNodeProvider();
 
@@ -26,7 +26,7 @@ description: test description
     const resolvedNode = merger.resolve(originalNode, NO_LIMITS);
 
     // Verify it's a resolved node
-    expect(resolvedNode).toBeInstanceOf(ResolvedNode);
+    expect(resolvedNode).toBeInstanceOf(ResolvedBlueNode);
     expect(resolvedNode.isResolved()).toBe(true);
 
     // Verify state is preserved
@@ -52,7 +52,7 @@ value: test
 
     const cloned = resolvedNode.clone();
 
-    expect(cloned).toBeInstanceOf(ResolvedNode);
+    expect(cloned).toBeInstanceOf(ResolvedBlueNode);
     expect(cloned.isResolved()).toBe(true);
     expect(cloned.getValue()).toBe('test');
     expect(cloned).not.toBe(resolvedNode); // Different instances
@@ -192,16 +192,16 @@ value: test value
 
     // First resolution
     const resolved1 = merger.resolve(node, NO_LIMITS);
-    expect(resolved1).toBeInstanceOf(ResolvedNode);
+    expect(resolved1).toBeInstanceOf(ResolvedBlueNode);
 
     // Use fromNode on regular node
-    const resolved2 = ResolvedNode.fromNode(node);
-    expect(resolved2).toBeInstanceOf(ResolvedNode);
+    const resolved2 = ResolvedBlueNode.fromNode(node);
+    expect(resolved2).toBeInstanceOf(ResolvedBlueNode);
     expect(resolved2.getValue()).toBe('test value');
 
     // Use fromNode on already resolved node (should clone)
-    const resolved3 = ResolvedNode.fromNode(resolved1);
-    expect(resolved3).toBeInstanceOf(ResolvedNode);
+    const resolved3 = ResolvedBlueNode.fromNode(resolved1);
+    expect(resolved3).toBeInstanceOf(ResolvedBlueNode);
     expect(resolved3).not.toBe(resolved1); // Should be a different instance
     expect(resolved3.getValue()).toBe('test value');
   });

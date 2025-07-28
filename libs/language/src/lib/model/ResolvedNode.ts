@@ -7,9 +7,9 @@ import { BlueIdCalculator } from '../utils/BlueIdCalculator';
  * a node has been resolved through the merge process. The minimal/original
  * representation can be computed on demand using MergeReverser.
  */
-export class ResolvedNode extends BlueNode {
+export class ResolvedBlueNode extends BlueNode {
   /**
-   * Creates a new ResolvedNode from a resolved BlueNode
+   * Creates a new ResolvedBlueNode from a resolved BlueNode
    * @param resolvedNode - The fully resolved node after merge operations
    */
   constructor(resolvedNode: BlueNode) {
@@ -22,7 +22,7 @@ export class ResolvedNode extends BlueNode {
 
   /**
    * Checks if this is a resolved node
-   * @returns Always returns true for ResolvedNode instances
+   * @returns Always returns true for ResolvedBlueNode instances
    */
   override isResolved(): boolean {
     return true;
@@ -51,12 +51,12 @@ export class ResolvedNode extends BlueNode {
   }
 
   /**
-   * Creates a clone of this ResolvedNode
-   * @returns A new ResolvedNode with the same state
+   * Creates a clone of this ResolvedBlueNode
+   * @returns A new ResolvedBlueNode with the same state
    */
-  override clone(): ResolvedNode {
+  override clone(): ResolvedBlueNode {
     const clonedBase = super.clone();
-    return new ResolvedNode(clonedBase);
+    return new ResolvedBlueNode(clonedBase);
   }
 
   /**
@@ -97,16 +97,16 @@ export class ResolvedNode extends BlueNode {
   }
 
   /**
-   * Creates a ResolvedNode from a regular BlueNode
+   * Creates a ResolvedBlueNode from a regular BlueNode
    * @param node - The node to wrap as resolved
-   * @returns A new ResolvedNode
+   * @returns A new ResolvedBlueNode
    */
-  static fromNode(node: BlueNode): ResolvedNode {
-    // If it's already a ResolvedNode, clone it
-    if (node instanceof ResolvedNode) {
+  static fromNode(node: BlueNode): ResolvedBlueNode {
+    // If it's already a ResolvedBlueNode, clone it
+    if (node instanceof ResolvedBlueNode) {
       return node.clone();
     }
 
-    return new ResolvedNode(node);
+    return new ResolvedBlueNode(node);
   }
 }

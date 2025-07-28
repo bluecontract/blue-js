@@ -1,5 +1,5 @@
 import { BlueNode } from '../model';
-import { ResolvedNode } from '../model/ResolvedNode';
+import { ResolvedBlueNode } from '../model/ResolvedNode';
 import { NodeProvider } from '../NodeProvider';
 import { NodeResolver } from './NodeResolver';
 import { MergingProcessor } from './MergingProcessor';
@@ -208,9 +208,9 @@ export class Merger extends NodeResolver {
    * Resolves a node by creating a new node and merging the source into it
    * @param node - The node to resolve
    * @param limits - The limits to apply during resolution
-   * @returns A ResolvedNode containing the resolved content
+   * @returns A ResolvedBlueNode containing the resolved content
    */
-  public resolve(node: BlueNode, limits: Limits): ResolvedNode {
+  public resolve(node: BlueNode, limits: Limits): ResolvedBlueNode {
     const resultNode = new BlueNode();
     const mergedNode = this.merge(resultNode, node, limits);
     const finalNode = mergedNode
@@ -219,6 +219,6 @@ export class Merger extends NodeResolver {
       .setDescription(node.getDescription())
       .setBlueId(node.getBlueId());
 
-    return ResolvedNode.fromNode(finalNode);
+    return ResolvedBlueNode.fromNode(finalNode);
   }
 }

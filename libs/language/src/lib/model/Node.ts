@@ -258,7 +258,7 @@ export class BlueNode {
 
   /**
    * Checks if this is a resolved node
-   * @returns false for regular BlueNode, true for ResolvedNode
+   * @returns false for regular BlueNode, true for ResolvedBlueNode
    */
   isResolved(): boolean {
     return false;
