@@ -24,3 +24,5 @@ export {
 export * from './schema';
 export * from './schema/annotations';
 export * from './utils';
+
+export { ResolvedBlueNode } from './lib/model/ResolvedNode';

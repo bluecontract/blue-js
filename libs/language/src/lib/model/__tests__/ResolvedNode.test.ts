@@ -179,33 +179,6 @@ value: original
     );
   });
 
-  it('should handle fromNode static method with resolved nodes', () => {
-    const nodeProvider = new BasicNodeProvider();
-
-    nodeProvider.addSingleDocs(`
-name: Test
-value: test value
-`);
-
-    const merger = new Merger(createDefaultMergingProcessor(), nodeProvider);
-    const node = nodeProvider.getNodeByName('Test');
-
-    // First resolution
-    const resolved1 = merger.resolve(node, NO_LIMITS);
-    expect(resolved1).toBeInstanceOf(ResolvedBlueNode);
-
-    // Use fromNode on regular node
-    const resolved2 = ResolvedBlueNode.fromNode(node);
-    expect(resolved2).toBeInstanceOf(ResolvedBlueNode);
-    expect(resolved2.getValue()).toBe('test value');
-
-    // Use fromNode on already resolved node (should clone)
-    const resolved3 = ResolvedBlueNode.fromNode(resolved1);
-    expect(resolved3).toBeInstanceOf(ResolvedBlueNode);
-    expect(resolved3).not.toBe(resolved1); // Should be a different instance
-    expect(resolved3.getValue()).toBe('test value');
-  });
-
   it('should handle type inheritance without value conflicts', () => {
     const nodeProvider = new BasicNodeProvider();
 

@@ -13,18 +13,15 @@ export class ResolvedBlueNode extends BlueNode {
    * @param resolvedNode - The fully resolved node after merge operations
    */
   constructor(resolvedNode: BlueNode) {
-    // Initialize with the resolved node's name
     super(resolvedNode.getName());
-
-    // Copy all properties from the resolved node
-    this.copyFrom(resolvedNode);
+    this.createFrom(resolvedNode);
   }
 
   /**
    * Checks if this is a resolved node
    * @returns Always returns true for ResolvedBlueNode instances
    */
-  override isResolved(): boolean {
+  public override isResolved(): boolean {
     return true;
   }
 
@@ -34,18 +31,12 @@ export class ResolvedBlueNode extends BlueNode {
    *
    * @returns The minimal node representation
    */
-  getMinimalNode(): BlueNode {
+  public getMinimalNode(): BlueNode {
     const reverser = new MergeReverser();
     return reverser.reverse(this);
   }
 
-  /**
-   * Gets the blueId of the minimal representation.
-   * This is the blueId of the node without inherited properties.
-   *
-   * @returns The blueId of the minimal node
-   */
-  getMinimalBlueId(): string {
+  public getMinimalBlueId(): string {
     const minimalNode = this.getMinimalNode();
     return BlueIdCalculator.calculateBlueIdSync(minimalNode);
   }
@@ -54,7 +45,7 @@ export class ResolvedBlueNode extends BlueNode {
    * Creates a clone of this ResolvedBlueNode
    * @returns A new ResolvedBlueNode with the same state
    */
-  override clone(): ResolvedBlueNode {
+  public override clone(): ResolvedBlueNode {
     const clonedBase = super.clone();
     return new ResolvedBlueNode(clonedBase);
   }
@@ -63,50 +54,26 @@ export class ResolvedBlueNode extends BlueNode {
    * Copies all properties from another BlueNode
    * @param source - The node to copy properties from
    */
-  private copyFrom(source: BlueNode): void {
+  private createFrom(source: BlueNode): void {
     // Only copy if different from what was set in super()
     if (source.getName() !== this.getName()) {
       this.setName(source.getName());
     }
 
-    this.setDescription(source.getDescription());
-    this.setType(source.getType()?.clone());
-    this.setItemType(source.getItemType()?.clone());
-    this.setKeyType(source.getKeyType()?.clone());
-    this.setValueType(source.getValueType()?.clone());
+    this.setDescription(source.getDescription())
+      .setType(source.getType())
+      .setItemType(source.getItemType())
+      .setKeyType(source.getKeyType())
+      .setValueType(source.getValueType())
+      .setItems(source.getItems())
+      .setProperties(source.getProperties())
+      .setBlueId(source.getBlueId())
+      .setBlue(source.getBlue())
+      .setInlineValue(source.isInlineValue());
 
     const value = source.getValue();
     if (value !== undefined) {
       this.setValue(value);
     }
-
-    this.setItems(source.getItems()?.map((item) => item.clone()));
-
-    const sourceProperties = source.getProperties();
-    if (sourceProperties) {
-      this.setProperties(
-        Object.fromEntries(
-          Object.entries(sourceProperties).map(([k, v]) => [k, v.clone()])
-        )
-      );
-    }
-
-    this.setBlueId(source.getBlueId());
-    this.setBlue(source.getBlue()?.clone());
-    this.setInlineValue(source.isInlineValue());
-  }
-
-  /**
-   * Creates a ResolvedBlueNode from a regular BlueNode
-   * @param node - The node to wrap as resolved
-   * @returns A new ResolvedBlueNode
-   */
-  static fromNode(node: BlueNode): ResolvedBlueNode {
-    // If it's already a ResolvedBlueNode, clone it
-    if (node instanceof ResolvedBlueNode) {
-      return node.clone();
-    }
-
-    return new ResolvedBlueNode(node);
   }
 }

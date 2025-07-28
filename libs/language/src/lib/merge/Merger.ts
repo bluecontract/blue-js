@@ -219,6 +219,6 @@ export class Merger extends NodeResolver {
       .setDescription(node.getDescription())
       .setBlueId(node.getBlueId());
 
-    return ResolvedBlueNode.fromNode(finalNode);
+    return new ResolvedBlueNode(finalNode);
   }
 }
