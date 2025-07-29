@@ -1,3 +1,15 @@
+## 1.29.0 (2025-07-29)
+
+### 🚀 Features
+
+- **document-processor:** add ResolvedBlueNode support to checkpoint processor ([559ec13](https://github.com/bluecontract/blue-js/commit/559ec13))
+- **language:** introduce ResolvedNode for explicit merge results ([119cc64](https://github.com/bluecontract/blue-js/commit/119cc64))
+- **language:** add transform method to Blue class for node transformation ([7f35315](https://github.com/bluecontract/blue-js/commit/7f35315))
+
+### 🩹 Fixes
+
+- **model:** optimize ResolvedBlueNode creation by removing cloning ([1e1c406](https://github.com/bluecontract/blue-js/commit/1e1c406))
+
 ## 1.28.0 (2025-07-24)
 
 ### 🚀 Features
