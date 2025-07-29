@@ -6,6 +6,7 @@ import { NodeProvider, createNodeProvider } from './NodeProvider';
 import {
   BlueIdCalculator,
   NodeToMapListOrValue,
+  NodeTransformer,
   TypeSchemaResolver,
 } from './utils';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
@@ -221,6 +222,13 @@ export class Blue {
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
+  }
+
+  public transform(
+    node: BlueNode,
+    transformer: (node: BlueNode) => BlueNode
+  ): BlueNode {
+    return NodeTransformer.transform(node, transformer);
   }
 
   public getNodeProvider(): NodeProvider {
