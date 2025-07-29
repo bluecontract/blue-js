@@ -1,6 +1,7 @@
 // ────────────────────────────────
 // FILE: src/processors/ChannelEventCheckpointProcessor.ts
 // ────────────────────────────────
+import { ResolvedBlueNode } from '@blue-labs/language';
 import {
   ContractProcessor,
   DocumentNode,
@@ -28,13 +29,28 @@ export class ChannelEventCheckpointProcessor implements ContractProcessor {
     );
   }
 
+  private async getEventBlueId(event: EventNode, ctx: ProcessingContext) {
+    const eventPayload = event.rootEvent?.payload;
+    if (!eventPayload) {
+      throw new Error(
+        'Cannot calculate blueId for checkpoint: missing root event payload'
+      );
+    }
+
+    if (eventPayload instanceof ResolvedBlueNode) {
+      const minimalNode = eventPayload.getMinimalNode();
+      return await ctx.getBlue().calculateBlueId(minimalNode);
+    }
+
+    return await ctx.getBlue().calculateBlueId(eventPayload);
+  }
+
   async handle(event: EventNode, node: DocumentNode, ctx: ProcessingContext) {
     if (!event.channelName || !event.rootEvent?.seq) return;
 
-    const blueId = await ctx.getBlue().calculateBlueId(event.rootEvent.payload);
+    const blueId = await this.getEventBlueId(event, ctx);
 
     const docBase = ctx.getNodePath().replace(/\/contracts\/checkpoint$/, '');
-
     this.cache.record(docBase, event, blueId);
   }
 }
