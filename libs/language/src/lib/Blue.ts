@@ -1,6 +1,7 @@
 import { JsonBlueValue } from '../schema';
 import { NodeToObjectConverter } from './mapping';
 import { BlueNode, NodeDeserializer } from './model';
+import { ResolvedBlueNode } from './model/ResolvedNode';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
 import {
   BlueIdCalculator,
@@ -111,7 +112,7 @@ export class Blue {
     return converter.convert(node, schema);
   }
 
-  public resolve(node: BlueNode, limits: Limits = NO_LIMITS) {
+  public resolve(node: BlueNode, limits: Limits = NO_LIMITS): ResolvedBlueNode {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     return merger.resolve(node, effectiveLimits);

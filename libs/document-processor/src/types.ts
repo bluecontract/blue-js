@@ -1,4 +1,9 @@
-import { Blue, BlueNode, BlueNodePatch } from '@blue-labs/language';
+import {
+  Blue,
+  BlueNode,
+  BlueNodePatch,
+  ResolvedBlueNode,
+} from '@blue-labs/language';
 
 // ---------------------------------------------------------------------------
 // ⚙️  Core type definitions
@@ -8,7 +13,7 @@ export type BlueId = string;
 
 export type DocumentNode = BlueNode;
 
-export type EventNodePayload = BlueNode;
+export type EventNodePayload = BlueNode | ResolvedBlueNode;
 
 export interface EventNode<Payload = EventNodePayload> {
   payload: Payload;

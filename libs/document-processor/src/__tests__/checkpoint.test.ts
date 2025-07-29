@@ -8,7 +8,7 @@
  *   – rollback on handler failure
  */
 import { vi, describe, expect, beforeEach, test } from 'vitest';
-import { Blue } from '@blue-labs/language';
+import { Blue, ResolvedBlueNode } from '@blue-labs/language';
 import { ContractProcessor, ContractRole, EventNodePayload } from '../types';
 import { JsonObject } from 'type-fest';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
@@ -204,5 +204,54 @@ describe('Checkpoint', () => {
     expect(
       jsonState.contracts.checkpoint.lastEvents.nameUpdates
     ).toBeUndefined();
+  });
+});
+
+describe('Checkpoint - ResolvedBlueNode handling', () => {
+  const baseDoc: JsonObject = {
+    contracts: {
+      timelineChannel: { type: 'Timeline Channel', timelineId: 'Alice' },
+    },
+  };
+
+  const blue = new Blue({
+    repositories: [coreRepository],
+  });
+  const documentProcessor = new BlueDocumentProcessor(blue);
+  /* ------------------------------------------------------------------ */
+  /* 6 – ResolvedBlueNode handling                                      */
+  /* ------------------------------------------------------------------ */
+  test('checkpoint uses minimal node for ResolvedBlueNode event blueId calculation', async () => {
+    // Create a base node with merge to simulate inherited properties
+    const baseNode = blue.jsonValueToNode({
+      type: 'Timeline Entry',
+      message: {
+        type: 'Chat Message',
+        message: 'Hello, world!',
+      },
+      timeline: {
+        timelineId: 'Alice',
+      },
+    });
+
+    const resolvedPayload = blue.resolve(baseNode);
+    expect(resolvedPayload).toBeInstanceOf(ResolvedBlueNode);
+
+    const { initializedState } = await prepareToProcess(baseDoc, {
+      blue,
+      documentProcessor,
+    });
+
+    const { state } = await documentProcessor.processEvents(initializedState, [
+      resolvedPayload,
+    ]);
+
+    const jsonState = blue.nodeToJson(state, 'simple') as any;
+
+    const checkpointId =
+      jsonState.contracts.checkpoint.lastEvents.timelineChannel.blueId;
+
+    expect(checkpointId).not.toBe(blue.calculateBlueIdSync(resolvedPayload));
+    expect(checkpointId).toBe(blue.calculateBlueIdSync(baseNode));
   });
 });
