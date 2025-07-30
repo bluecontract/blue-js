@@ -1,5 +1,5 @@
 import { DocumentNode } from '../types';
-import { collectEmbeddedPaths, freeze, mutable } from './document';
+import { collectEmbeddedPathSpecs, freeze, mutable } from './document';
 import { isDocumentNode } from './typeGuard';
 import { Blue, BlueNodeTypeSchema } from '@blue-labs/language';
 import {
@@ -40,7 +40,7 @@ export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
   ensureOnNode(mutableDoc);
 
   // 2️⃣ every embedded document referenced by Process Embedded
-  for (const { absPath } of collectEmbeddedPaths(mutableDoc, blue)) {
+  for (const { absPath } of collectEmbeddedPathSpecs(mutableDoc, blue)) {
     const embedded = mutableDoc.get(absPath);
     if (isDocumentNode(embedded)) {
       ensureOnNode(embedded);
