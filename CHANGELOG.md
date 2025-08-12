@@ -1,3 +1,10 @@
+## 1.30.0 (2025-08-12)
+
+### 🚀 Features
+
+- **document-processor:** export collectEmbeddedPathSpecs functionality ([2f4ecdf](https://github.com/bluecontract/blue-js/commit/2f4ecdf))
+- **language/merge:** add MetadataPropagator and ensure type message.name precedence ([a436e75](https://github.com/bluecontract/blue-js/commit/a436e75))
+
 ## 1.29.0 (2025-07-29)
 
 ### 🚀 Features
