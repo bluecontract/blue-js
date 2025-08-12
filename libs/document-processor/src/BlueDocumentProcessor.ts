@@ -8,7 +8,7 @@ import {
 import { InternalContext } from './context';
 import {
   applyPatches,
-  collectEmbeddedPaths,
+  collectEmbeddedPathSpecs,
   isInside,
   freeze,
   mutable,
@@ -184,7 +184,10 @@ export class BlueDocumentProcessor {
               // ───────────────────────────────────────────────
               // Cross-boundary write protection
               // ───────────────────────────────────────────────
-              const embeddedPaths = collectEmbeddedPaths(current, this.blue);
+              const embeddedPaths = collectEmbeddedPathSpecs(
+                current,
+                this.blue
+              );
 
               for (const embeddedPath of embeddedPaths) {
                 const touchedPaths =

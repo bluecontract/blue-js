@@ -5,7 +5,6 @@ import { ProcessEmbeddedSchema } from '@blue-repository/core-dev';
 import {
   applyBlueNodePatch,
   type BlueNodePatch,
-  BlueNodeTypeSchema,
   Blue,
 } from '@blue-labs/language';
 import { deepFreeze } from '@blue-labs/shared-utils';
@@ -29,7 +28,14 @@ export function mutable(doc: DocumentNode): DocumentNode {
   return doc.clone();
 }
 
-export function collectEmbeddedPaths(
+/**
+ * Collects all paths to embedded documents
+ * @param doc - The document to collect embedded paths from
+ * @param blue - The Blue instance
+ * @param base - The base path
+ * @param out - The output array
+ */
+export function collectEmbeddedPathSpecs(
   doc: DocumentNode,
   blue: Blue,
   base = '/',
@@ -38,10 +44,7 @@ export function collectEmbeddedPaths(
   const contracts = (doc.getContracts() ?? {}) as Record<string, DocumentNode>;
 
   for (const [name, node] of Object.entries(contracts)) {
-    const isProcessEmbedded = BlueNodeTypeSchema.isTypeOf(
-      node,
-      ProcessEmbeddedSchema
-    );
+    const isProcessEmbedded = blue.isTypeOf(node, ProcessEmbeddedSchema);
     if (isProcessEmbedded) {
       const processEmbedded = blue.nodeToSchemaOutput(
         node,
@@ -59,7 +62,12 @@ export function collectEmbeddedPaths(
   }
 
   for (const [key, value] of Object.entries(doc.getProperties() ?? {})) {
-    collectEmbeddedPaths(value as DocumentNode, blue, makePath(base, key), out);
+    collectEmbeddedPathSpecs(
+      value as DocumentNode,
+      blue,
+      makePath(base, key),
+      out
+    );
   }
   return out;
 }

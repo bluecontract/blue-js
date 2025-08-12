@@ -6,6 +6,7 @@ import {
   ListProcessor,
   DictionaryProcessor,
   BasicTypesVerifier,
+  MetadataPropagator,
 } from '../processors';
 
 /**
@@ -18,6 +19,7 @@ export function createDefaultMergingProcessor(): MergingProcessor {
     new TypeAssigner(),
     new ListProcessor(),
     new DictionaryProcessor(),
+    new MetadataPropagator(),
     new BasicTypesVerifier(),
   ]);
 }
