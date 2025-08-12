@@ -4,6 +4,9 @@ import { MergingProcessor } from '../MergingProcessor';
 import { BlueNode } from '../../model';
 import { createNodeProvider } from '../../NodeProvider';
 import { NO_LIMITS } from '../../utils/limits';
+import { BasicNodeProvider } from '../../provider';
+import { createDefaultMergingProcessor } from '../utils/default';
+import { NodeToMapListOrValue } from '../../utils';
 
 describe('Merger', () => {
   const basicMergingProcessor = (target: BlueNode, source: BlueNode) => {
@@ -149,5 +152,71 @@ describe('Merger', () => {
 
     expect(resolved.getValue()).toBe('test value');
     expect(resolved.getType()?.getValue()).toBe('String');
+  });
+
+  describe('integration test', () => {
+    let nodeProvider: BasicNodeProvider;
+    const defaultMergingProcessor = createDefaultMergingProcessor();
+
+    beforeEach(() => {
+      nodeProvider = new BasicNodeProvider();
+    });
+
+    it('should propagate metadata from source to target', () => {
+      nodeProvider.addSingleDocs(`
+name: Timeline Entry
+message:
+  description: This is a message of Timeline Entry
+`);
+
+      nodeProvider.addSingleDocs(`
+name: My Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Timeline Entry')}
+message:
+  name: Start
+`);
+
+      const merger = new Merger(defaultMergingProcessor, nodeProvider);
+      const myEntry = nodeProvider.findNodeByName('My Entry');
+
+      if (!myEntry) {
+        throw new Error('My Entry not found');
+      }
+
+      const resolved = merger.resolve(myEntry, NO_LIMITS);
+
+      console.log(NodeToMapListOrValue.get(resolved, 'original'));
+
+      expect(resolved.getProperties()?.message?.getName()).toBe('Start');
+    });
+
+    it('should prefer type message name over source message name', () => {
+      nodeProvider.addSingleDocs(`
+name: Timeline Entry
+message:
+  name: Type Start
+  description: This is a message of Timeline Entry
+`);
+
+      nodeProvider.addSingleDocs(`
+name: My Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Timeline Entry')}
+message:
+  name: Start
+`);
+
+      const merger = new Merger(defaultMergingProcessor, nodeProvider);
+      const myEntry = nodeProvider.findNodeByName('My Entry');
+
+      if (!myEntry) {
+        throw new Error('My Entry not found');
+      }
+
+      const resolved = merger.resolve(myEntry, NO_LIMITS);
+
+      expect(resolved.getProperties()?.message?.getName()).toBe('Type Start');
+    });
   });
 });
