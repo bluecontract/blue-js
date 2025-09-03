@@ -45,19 +45,10 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
     const hasTimelineId =
       isNonNullable(myosTimelineChannel.timelineId) &&
       isNonNullable(timelineEntryTimelineId);
-    const hasAccount =
-      isNonNullable(myosTimelineChannel.account) &&
-      isNonNullable(myosTimelineEntry.account);
-    const hasEmail =
-      isNonNullable(myosTimelineChannel.email) &&
-      isNonNullable(myosTimelineEntry.email);
 
     return (
       (hasTimelineId &&
-        timelineEntryTimelineId === myosTimelineChannel.timelineId) ||
-      (hasAccount &&
-        myosTimelineEntry.account === myosTimelineChannel.account) ||
-      (hasEmail && myosTimelineEntry.email === myosTimelineChannel.email)
+        timelineEntryTimelineId === myosTimelineChannel.timelineId)
     );
   }
 
