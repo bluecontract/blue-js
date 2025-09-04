@@ -1,3 +1,9 @@
+## 1.31.0 (2025-09-04)
+
+### 🚀 Features
+
+- implement myos-dev 0.19.0 with breaking changes ([30edfce](https://github.com/bluecontract/blue-js/commit/30edfce))
+
 ## 1.30.0 (2025-08-12)
 
 ### 🚀 Features
