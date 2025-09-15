@@ -79,8 +79,19 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
 
     try {
       const blue = ctx.getBlue();
-      const eventPayloadJson = blue.nodeToJson(event.payload);
-      const channelEventJson = blue.nodeToJson(channelEvent);
+
+      const eventPayloadJson = blue.nodeToJson(blue.resolve(event.payload));
+
+      const channelEventWithoutMetadata = blue.transform(
+        channelEvent,
+        (node) => {
+          node.setName(undefined);
+          node.setDescription(undefined);
+          return node;
+        }
+      );
+
+      const channelEventJson = blue.nodeToJson(channelEventWithoutMetadata);
 
       // Simple containment check - channel event pattern should be contained in the actual event
       return deepContains(eventPayloadJson, channelEventJson);
