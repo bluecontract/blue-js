@@ -1,3 +1,9 @@
+## 1.32.1 (2025-09-17)
+
+### 🩹 Fixes
+
+- peer dependencies versions ([#70](https://github.com/bluecontract/blue-js/pull/70))
+
 ## 1.32.0 (2025-09-04)
 
 ### 🚀 Features
