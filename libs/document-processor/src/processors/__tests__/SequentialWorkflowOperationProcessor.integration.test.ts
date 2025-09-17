@@ -45,7 +45,6 @@ function makeCounterWithOperationsDoc(): JsonObject {
         channel: 'ownerChannel',
         request: {
           description: 'Optional value to reset counter to (defaults to 0)',
-          type: 'Integer',
         },
       },
 
