@@ -1,4 +1,6 @@
 import { Limits } from './Limits';
+import { BlueNode } from '../../model';
+import { NodeToPathLimitsConverter } from './NodeToPathLimitsConverter';
 
 function javaLikeSplit(input: string, delimiter: string | RegExp): string[] {
   const parts = input.split(delimiter);
@@ -154,6 +156,14 @@ export class PathLimits extends Limits {
    */
   public static withSinglePath(path: string): PathLimits {
     return new PathLimitsBuilder().addPath(path).build();
+  }
+
+  /**
+   * Creates path limits by analyzing the structure of a node.
+   * Leaf paths (no properties and no items) are added as allowed paths.
+   */
+  public static fromNode(node: BlueNode): PathLimits {
+    return NodeToPathLimitsConverter.convert(node);
   }
 }
 

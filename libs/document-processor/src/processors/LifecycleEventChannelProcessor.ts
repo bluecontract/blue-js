@@ -1,6 +1,5 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
-import { deepContains } from '@blue-labs/shared-utils';
 import { blueIds, LifecycleEventSchema } from '@blue-repository/core-dev';
 
 /**
@@ -79,22 +78,9 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
 
     try {
       const blue = ctx.getBlue();
+      const eventPayloadNode = blue.resolve(event.payload);
 
-      const eventPayloadJson = blue.nodeToJson(blue.resolve(event.payload));
-
-      const channelEventWithoutMetadata = blue.transform(
-        channelEvent,
-        (node) => {
-          node.setName(undefined);
-          node.setDescription(undefined);
-          return node;
-        }
-      );
-
-      const channelEventJson = blue.nodeToJson(channelEventWithoutMetadata);
-
-      // Simple containment check - channel event pattern should be contained in the actual event
-      return deepContains(eventPayloadJson, channelEventJson);
+      return blue.isTypeOfNode(eventPayloadNode, channelEvent);
     } catch (error) {
       console.warn('Error during lifecycle event pattern matching:', error);
       return false;
