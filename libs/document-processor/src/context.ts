@@ -41,6 +41,7 @@ export class InternalContext implements ProcessingContext {
 
     const enriched: EventNode = {
       ...event,
+      source: event.source ?? 'internal',
       originNodePath: event.originNodePath ?? this.taskInfo.nodePath,
       rootEvent: event.rootEvent ?? inputEvent.rootEvent ?? inputEvent,
       trace: [...inputEventTrace],

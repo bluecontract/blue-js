@@ -1,6 +1,6 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { isNonNullable } from '@blue-labs/shared-utils';
-import { BaseChannelProcessor } from './BaseChannelProcessor';
+import { InternalOnlyChannelProcessor } from './InternalEventsChannelProcessor';
 import {
   blueIds,
   DocumentUpdateChannelSchema,
@@ -9,25 +9,21 @@ import {
 /* ------------------------------------------------------------------------ */
 /* Document Update Channel – unwraps document updates                     */
 /* ------------------------------------------------------------------------ */
-export class DocumentUpdateChannelProcessor extends BaseChannelProcessor {
+export class DocumentUpdateChannelProcessor extends InternalOnlyChannelProcessor {
   readonly contractType = 'Document Update Channel';
   readonly contractBlueId = blueIds['Document Update Channel'];
 
-  supports(
+  protected override matches(
     event: EventNode,
     contractNode: DocumentNode,
-    ctx: ProcessingContext,
-    contractName: string
+    ctx: ProcessingContext
   ): boolean {
-    if (!this.baseSupports(event)) return false;
-
     const documentUpdateChannel = ctx
       .getBlue()
       .nodeToSchemaOutput(contractNode, DocumentUpdateChannelSchema);
 
     const payloadPath = event.payload.get('/path');
     if (!payloadPath) return false;
-    if (event.channelName === contractName) return false;
 
     const documentUpdatePath = documentUpdateChannel.path;
 
@@ -35,21 +31,5 @@ export class DocumentUpdateChannelProcessor extends BaseChannelProcessor {
       isNonNullable(documentUpdatePath) &&
       payloadPath === ctx.resolvePath(documentUpdatePath)
     );
-  }
-
-  handle(
-    event: EventNode,
-    contractNode: DocumentNode,
-    ctx: ProcessingContext,
-    contractName: string
-  ): void {
-    const payload = event.payload;
-    if (!payload) return;
-
-    ctx.emitEvent({
-      payload,
-      channelName: contractName,
-      source: 'channel',
-    });
   }
 }

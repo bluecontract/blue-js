@@ -32,7 +32,7 @@ describe('LifecycleEventChannelProcessor', () => {
     // Create a lifecycle event
     const lifecycleEvent = {
       payload: createDocumentProcessingInitiatedEvent(blue),
-      source: 'external' as const,
+      source: 'internal' as const,
     };
 
     // Create a mock document node for the channel config

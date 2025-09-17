@@ -17,7 +17,7 @@ export type EventNodePayload = BlueNode | ResolvedBlueNode;
 
 export interface EventNode<Payload = EventNodePayload> {
   payload: Payload;
-  source?: 'channel' | 'external';
+  source?: 'channel' | 'external' | 'internal';
   /** Absolute path of the document node that emitted this event */
   originNodePath?: string;
 
