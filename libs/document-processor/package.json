@@ -33,7 +33,7 @@
     "name": "document-processor"
   },
   "peerDependencies": {
-    "@blue-repository/core-dev": ">=0.16.0 <1.0.0",
-    "@blue-repository/myos-dev": ">=0.20.0 <1.0.0"
+    "@blue-repository/core-dev": ">=0.18.0 <1.0.0",
+    "@blue-repository/myos-dev": ">=0.22.0 <1.0.0"
   }
 }
