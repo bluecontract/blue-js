@@ -5,9 +5,11 @@ import { EventNode } from '../types';
  */
 export class EventTraceManager {
   private readonly isEnabled: boolean;
+  private static readonly MAX_TRACE_LENGTH = 128;
 
   constructor() {
-    this.isEnabled = process.env.TRACE_BLUE_ENABLED === 'true';
+    // Enable tracing by default; allow explicit opt-out via env flag
+    this.isEnabled = process.env.TRACE_BLUE_ENABLED !== 'false';
   }
 
   /**
@@ -40,10 +42,12 @@ export class EventTraceManager {
       return { ...event };
     }
 
-    const newTrace = [
-      ...(event.trace ?? []),
-      this.makeHop(nodePath, contractName),
-    ];
+    const prev = event.trace ?? [];
+    const base =
+      prev.length >= EventTraceManager.MAX_TRACE_LENGTH
+        ? prev.slice(prev.length - (EventTraceManager.MAX_TRACE_LENGTH - 1))
+        : prev;
+    const newTrace = [...base, this.makeHop(nodePath, contractName)];
     return {
       ...event,
       trace: newTrace,
