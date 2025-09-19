@@ -3,7 +3,8 @@ import {
   CodeBlockEvaluationError,
   ExpressionEvaluationError,
 } from '../../../utils/exceptions';
-import { createRequire } from 'module';
+// Avoid importing from 'node:module' to prevent bundlers (like Vite) from
+// injecting browser externals. We'll resolve 'require' dynamically at runtime.
 
 // Type alias for isolated-vm Module
 type Module = import('isolated-vm').Module;
@@ -19,13 +20,6 @@ export interface VMBindings {
 }
 
 let ivm: typeof import('isolated-vm') | null = null;
-try {
-  const req =
-    typeof require === 'function' ? require : createRequire(__filename);
-  ivm = req('isolated-vm');
-} catch {
-  ivm = null;
-}
 
 /**
  * Checks if a code string contains ES module syntax (import/export)
@@ -74,6 +68,35 @@ export class ExpressionEvaluator {
       '- Run this code on a supported Node.js runtime (not browser/edge workers).',
     ].join('\n');
   }
+
+  private static async ensureIvmLoaded(): Promise<void> {
+    if (ivm) return;
+    const isNode =
+      typeof process !== 'undefined' &&
+      !!(process as unknown as { versions?: { node?: string } }).versions?.node;
+    if (!isNode) return;
+    try {
+      if (typeof require === 'function') {
+        const moduleId = 'isolated' + '-vm';
+        ivm = require(moduleId) as typeof import('isolated-vm');
+        return;
+      }
+    } catch {
+      // fall through to dynamic import
+    }
+    try {
+      const moduleId = 'isolated' + '-vm';
+      // @vite-ignore prevents pre-bundling of a computed specifier
+      const mod: unknown = await import(
+        /* @vite-ignore */ moduleId as string
+      ).catch(() => null);
+      const anyMod = mod as { default?: unknown } | null;
+      ivm = (anyMod?.default ??
+        (anyMod as unknown)) as typeof import('isolated-vm');
+    } catch {
+      // leave ivm as null
+    }
+  }
   /**
    * Main evaluation method - evaluates code securely in an isolated VM
    */
@@ -88,6 +111,7 @@ export class ExpressionEvaluator {
     bindings?: VMBindings;
     options?: { isCodeBlock?: boolean; timeout?: number };
   }): Promise<unknown> {
+    await this.ensureIvmLoaded();
     if (!ivm) {
       throw new Error(this.getIvmUnavailableMessage());
     }
