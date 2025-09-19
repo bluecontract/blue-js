@@ -186,8 +186,6 @@ message:
 
       const resolved = merger.resolve(myEntry, NO_LIMITS);
 
-      console.log(NodeToMapListOrValue.get(resolved, 'original'));
-
       expect(resolved.getProperties()?.message?.getName()).toBe('Start');
     });
 
