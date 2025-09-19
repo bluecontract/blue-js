@@ -58,6 +58,7 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
         for (const event of resultWithEvents.events) {
           ctx.emitEvent({
             payload: blue.jsonValueToNode(event),
+            emissionType: 'triggered',
           });
         }
       }

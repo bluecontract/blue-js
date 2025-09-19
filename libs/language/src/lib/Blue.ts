@@ -7,6 +7,7 @@ import {
   BlueIdCalculator,
   NodeToMapListOrValue,
   NodeTransformer,
+  NodeTypeMatcher,
   TypeSchemaResolver,
 } from './utils';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
@@ -400,6 +401,17 @@ export class Blue {
       checkSchemaExtensions: options?.checkSchemaExtensions,
       typeSchemaResolver: this.typeSchemaResolver,
     });
+  }
+
+  /**
+   * Checks if a BlueNode matches a BlueNode type.
+   *
+   * @param node - The BlueNode to check.
+   * @param type - The BlueNode type to check against.
+   * @returns true if the node matches the type, false otherwise.
+   */
+  public isTypeOfNode(node: BlueNode, type: BlueNode) {
+    return new NodeTypeMatcher(this).matchesType(node, type, this.globalLimits);
   }
 
   /**

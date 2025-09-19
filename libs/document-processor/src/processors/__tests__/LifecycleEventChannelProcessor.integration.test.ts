@@ -82,7 +82,11 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
     const doc = makeDocumentWithLifecycleChannels();
     const docNode = blue.jsonValueToNode(doc);
 
-    const { state, emitted } = await documentProcessor.initialize(docNode);
+    const resolvedDocNode = blue.resolve(docNode);
+
+    const { state, emitted } = await documentProcessor.initialize(
+      resolvedDocNode
+    );
 
     // Verify the document was updated by the lifecycle handler
     const jsonState = blue.nodeToJson(state, 'simple') as any;

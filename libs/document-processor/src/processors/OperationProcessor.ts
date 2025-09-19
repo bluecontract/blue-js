@@ -6,11 +6,14 @@ import {
 } from '../types';
 import {
   blueIds,
+  Operation,
+  OperationRequest,
   OperationRequestSchema,
   OperationSchema,
   TimelineEntrySchema,
 } from '@blue-repository/core-dev';
 import { isNonNullable } from '../utils/typeGuard';
+import { isNullable } from '@blue-labs/shared-utils';
 
 export class OperationProcessor implements ContractProcessor {
   readonly contractType = 'Operation';
@@ -28,14 +31,23 @@ export class OperationProcessor implements ContractProcessor {
     const operationDefinition = blue.nodeToSchemaOutput(node, OperationSchema);
     const eventOperationRequest = this.parseEventPayload(event, ctx);
 
-    //TODO: Check event for operationDefinition.request pattern
-
-    return (
-      isNonNullable(eventOperationRequest?.operation) &&
-      eventOperationRequest.operation === contractName &&
-      event.source === 'channel' &&
-      event.channelName === operationDefinition.channel
+    const matchOperationName = this.isOperationNameMatch(
+      eventOperationRequest,
+      contractName
     );
+
+    const matchChannelName = this.isOperationChannelMatch(
+      event,
+      operationDefinition
+    );
+
+    const matchRequestPattern = this.isRequestPatternMatch(
+      eventOperationRequest,
+      operationDefinition,
+      ctx
+    );
+
+    return matchOperationName && matchChannelName && matchRequestPattern;
   }
 
   async handle(
@@ -73,5 +85,51 @@ export class OperationProcessor implements ContractProcessor {
     }
 
     return null;
+  }
+
+  private isOperationNameMatch(
+    eventOperationRequest: OperationRequest | null,
+    contractName: string
+  ) {
+    return (
+      isNonNullable(eventOperationRequest?.operation) &&
+      eventOperationRequest?.operation === contractName
+    );
+  }
+
+  private isOperationChannelMatch(
+    event: EventNode,
+    operationDefinition: Operation
+  ) {
+    const operationDefinitionChannelName = operationDefinition.channel;
+    if (isNullable(operationDefinitionChannelName)) {
+      return true;
+    }
+
+    return (
+      event.source === 'channel' &&
+      event.channelName === operationDefinitionChannelName
+    );
+  }
+
+  private isRequestPatternMatch(
+    eventOperationRequest: OperationRequest | null,
+    operationDefinition: Operation,
+    ctx: ProcessingContext
+  ) {
+    const requestNode = operationDefinition.request;
+    if (isNullable(requestNode)) {
+      return true;
+    }
+
+    const blue = ctx.getBlue();
+    const eventRequestNode = eventOperationRequest?.request;
+    if (isNullable(eventRequestNode)) {
+      return false;
+    }
+
+    const eventRequestNodeResolved = blue.resolve(eventRequestNode);
+
+    return blue.isTypeOfNode(eventRequestNodeResolved, requestNode);
   }
 }

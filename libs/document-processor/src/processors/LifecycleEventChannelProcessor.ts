@@ -1,6 +1,5 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
 import { BaseChannelProcessor } from './BaseChannelProcessor';
-import { deepContains } from '@blue-labs/shared-utils';
 import { blueIds, LifecycleEventSchema } from '@blue-repository/core-dev';
 
 /**
@@ -29,17 +28,14 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
     ctx: ProcessingContext
   ): boolean {
     if (!this.baseSupports(event)) return false;
-
-    // Check if this is a lifecycle event
+    if (event.emissionType !== 'lifecycle') return false;
     if (!this.isLifecycleEvent(event, ctx)) return false;
-
-    // Check if the event matches the channel's event pattern (if specified)
     return this.isEventPatternMatch(event, node, ctx);
   }
 
   handle(
     event: EventNode,
-    node: DocumentNode,
+    _node: DocumentNode,
     ctx: ProcessingContext,
     path: string
   ): void {
@@ -47,6 +43,7 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
       payload: event.payload,
       channelName: path,
       source: 'channel',
+      emissionType: event.emissionType,
     });
   }
 
@@ -79,11 +76,9 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
 
     try {
       const blue = ctx.getBlue();
-      const eventPayloadJson = blue.nodeToJson(event.payload);
-      const channelEventJson = blue.nodeToJson(channelEvent);
+      const eventPayloadNode = blue.resolve(event.payload);
 
-      // Simple containment check - channel event pattern should be contained in the actual event
-      return deepContains(eventPayloadJson, channelEventJson);
+      return blue.isTypeOfNode(eventPayloadNode, channelEvent);
     } catch (error) {
       console.warn('Error during lifecycle event pattern matching:', error);
       return false;

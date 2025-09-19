@@ -45,3 +45,5 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 .cursor
 .github/instructions/nx.instructions.md
+
+.yalc

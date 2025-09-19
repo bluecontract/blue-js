@@ -1,13 +1,18 @@
-import { EventNode, DocumentNode, ProcessingContext } from '../types';
-import { BaseChannelProcessor } from './BaseChannelProcessor';
+import {
+  EventNode,
+  DocumentNode,
+  ProcessingContext,
+  ContractProcessor,
+} from '../types';
 import {
   blueIds,
   CompositeTimelineChannelSchema,
 } from '@blue-repository/core-dev';
 
-export class CompositeTimelineChannelProcessor extends BaseChannelProcessor {
+export class CompositeTimelineChannelProcessor implements ContractProcessor {
   readonly contractType = 'Composite Timeline Channel';
   readonly contractBlueId = blueIds['Composite Timeline Channel'];
+  readonly role = 'adapter';
 
   supports(
     event: EventNode,

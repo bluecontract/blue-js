@@ -12,3 +12,4 @@ export * from './TypeSchemaResolver';
 export * from './Nodes';
 export * from './limits';
 export * as NodeTypes from './NodeTypes';
+export { NodeTypeMatcher } from './NodeTypeMatcher';

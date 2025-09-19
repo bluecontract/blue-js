@@ -14,7 +14,7 @@ import { JsonObject } from 'type-fest';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
-import { createDocumentUpdateEvent } from '../utils/eventFactories';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 let seq = 0;
 
@@ -25,19 +25,15 @@ const blue = new Blue({
   repositories: [coreRepository],
 });
 
-const updatePayload: EventNodePayload = createDocumentUpdateEvent(
-  {
-    op: 'replace',
-    path: '/profile/name',
-    val: 'Alice',
-  },
+const updatePayload: EventNodePayload = createTimelineEntryEvent(
+  'profile-timeline',
+  null,
   blue
 );
 
 const baseDoc: JsonObject = {
-  profile: { name: 'Bob' },
   contracts: {
-    nameUpdates: { type: 'Document Update Channel', path: '/profile/name' },
+    nameUpdates: { type: 'Timeline Channel', timelineId: 'profile-timeline' },
   },
 };
 
@@ -49,9 +45,8 @@ const embeddedDoc: JsonObject = {
   },
   child: {
     contracts: {
-      titleUpdates: { type: 'Document Update Channel', path: '/title' },
+      titleUpdates: { type: 'Timeline Channel', timelineId: 'child-timeline' },
     },
-    title: 'draft',
   },
 };
 
@@ -98,14 +93,7 @@ describe('Checkpoint', () => {
   /* 2 – root + embedded at once                                        */
   /* ------------------------------------------------------------------ */
   test('one external event updates in embedded docs', async () => {
-    const payload = createDocumentUpdateEvent(
-      {
-        op: 'replace',
-        path: '/child/title',
-        val: 'published',
-      },
-      blue
-    );
+    const payload = createTimelineEntryEvent('child-timeline', null, blue);
 
     const { initializedState } = await prepareToProcess(embeddedDoc, {
       blue,
@@ -129,21 +117,14 @@ describe('Checkpoint', () => {
   /* ------------------------------------------------------------------ */
   test('same blue-id is written for every channel touched by one payload', async () => {
     const complexDoc: JsonObject = {
-      data: { a: 1, b: 1 },
       contracts: {
-        chA: { type: 'Document Update Channel', path: '/data/a' },
-        chB: { type: 'Document Update Channel', path: '/data/b' },
+        chA: { type: 'Timeline Channel', timelineId: 'A' },
+        chB: { type: 'Timeline Channel', timelineId: 'B' },
       },
     };
 
-    const payloadA = createDocumentUpdateEvent(
-      { op: 'replace', path: '/data/a', val: 2 },
-      blue
-    );
-    const payloadB = createDocumentUpdateEvent(
-      { op: 'replace', path: '/data/b', val: 2 },
-      blue
-    );
+    const payloadA = createTimelineEntryEvent('A', null, blue);
+    const payloadB = createTimelineEntryEvent('B', null, blue);
 
     const { initializedState } = await prepareToProcess(complexDoc, {
       blue,
@@ -175,8 +156,8 @@ describe('Checkpoint', () => {
   /* 5 – if any handler throws, nothing is written                       */
   /* ------------------------------------------------------------------ */
   class FailingProc implements ContractProcessor {
-    contractType = 'Document Update Channel';
-    contractBlueId = coreRepository.blueIds['Document Update Channel'];
+    contractType = 'Timeline Channel';
+    contractBlueId = coreRepository.blueIds['Timeline Channel'];
     role: ContractRole = 'adapter';
     supports() {
       return true;

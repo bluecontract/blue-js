@@ -6,7 +6,6 @@ import {
   HandlerTask,
   BlueNodeGetResult,
 } from './types';
-import { fetchText } from './utils/fetchText';
 import { makePath } from './utils/path';
 import { Blue, BlueNodePatch } from '@blue-labs/language';
 
@@ -42,9 +41,11 @@ export class InternalContext implements ProcessingContext {
 
     const enriched: EventNode = {
       ...event,
+      source: event.source ?? 'internal',
       originNodePath: event.originNodePath ?? this.taskInfo.nodePath,
       rootEvent: event.rootEvent ?? inputEvent.rootEvent ?? inputEvent,
       trace: [...inputEventTrace],
+      emissionType: event.emissionType ?? inputEvent.emissionType,
     };
     this.actions.push({ kind: 'event', event: enriched });
   }
@@ -74,15 +75,16 @@ export class InternalContext implements ProcessingContext {
   }
 
   /* TODO: Move to a separate interface */
-
-  loadExternalModule(url: string): Promise<string> {
-    if (!/^https?:\/\//.test(url)) {
-      throw new Error('Only http/https URLs are allowed');
-    }
-    return fetchText(url);
+  loadExternalModule(): Promise<string> {
+    throw new Error('Not implemented');
   }
 
   loadBlueContent(blueId: string): Promise<string> {
-    throw new Error('Not implemented');
+    const blueNode = this.blue.getNodeProvider().fetchFirstByBlueId(blueId);
+    if (!blueNode) {
+      throw new Error(`Blue node not found for blueId: ${blueId}`);
+    }
+
+    return Promise.resolve(JSON.stringify(this.blue.nodeToJson(blueNode)));
   }
 }

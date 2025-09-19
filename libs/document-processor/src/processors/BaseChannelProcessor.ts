@@ -16,8 +16,7 @@ export abstract class BaseChannelProcessor implements ContractProcessor {
    * Derived classes should call this method first in their supports implementation
    */
   protected baseSupports(event: EventNode): boolean {
-    if (event.source === 'channel') return false;
-    return true;
+    return event.source !== 'channel';
   }
 
   /**

@@ -6,6 +6,7 @@ import {
 } from '../../../types';
 import { WorkflowStepExecutor } from '../types';
 import { ExpressionEvaluator } from '../utils/ExpressionEvaluator';
+import { ExpressionResolver } from '../utils/ExpressionResolver';
 import { applyBlueNodePatch, BlueNodeTypeSchema } from '@blue-labs/language';
 import { UpdateDocumentSchema } from '@blue-repository/core-dev';
 import type { BlueNode } from '@blue-labs/language';
@@ -16,6 +17,7 @@ import { createDocumentUpdateEvent } from '../../../utils/eventFactories';
 import {
   isExpression,
   extractExpressionContent,
+  containsExpression,
 } from '../../../utils/expressionUtils';
 
 /**
@@ -58,6 +60,13 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     for (const change of updateDocumentStep.changeset ?? []) {
       if (!change.path) continue;
 
+      const evaluatedPath = await this.evaluateChangePath(
+        change.path,
+        ctx,
+        event,
+        stepResults
+      );
+
       const changeValue = change.val;
       if (
         (change.op === 'replace' || change.op === 'add') &&
@@ -72,33 +81,35 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
 
         ctx.addPatch({
           op: change.op,
-          path: change.path,
+          path: evaluatedPath,
           val: changeValueNode,
         });
         ctx.emitEvent({
           payload: createDocumentUpdateEvent(
             {
               op: change.op,
-              path: ctx.resolvePath(change.path),
+              path: ctx.resolvePath(evaluatedPath),
               val: blue.nodeToJson(changeValueNode, 'original'),
             },
             blue
           ),
+          emissionType: 'update',
         });
       }
 
       if (change.op === 'remove') {
-        ctx.addPatch({ op: change.op, path: change.path });
+        ctx.addPatch({ op: change.op, path: evaluatedPath });
 
         ctx.emitEvent({
           payload: createDocumentUpdateEvent(
             {
               op: change.op,
-              path: ctx.resolvePath(change.path),
+              path: ctx.resolvePath(evaluatedPath),
               val: null,
             },
             blue
           ),
+          emissionType: 'update',
         });
       }
     }
@@ -141,20 +152,43 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     const evaluatedValueString = changeValueNode.getValue();
     const blue = ctx.getBlue();
 
-    if (isExpression(evaluatedValueString)) {
-      const expr = extractExpressionContent(evaluatedValueString);
-      const evaluatedValue = await ExpressionEvaluator.evaluate({
-        code: expr,
+    if (
+      isExpression(evaluatedValueString) ||
+      (typeof evaluatedValueString === 'string' &&
+        containsExpression(evaluatedValueString))
+    ) {
+      const bindings = ExpressionResolver.createBindings(
         ctx,
-        bindings: BindingsFactory.createStandardBindings(
-          ctx,
-          event,
-          stepResults
-        ),
-      });
-      return blue.jsonValueToNode(evaluatedValue ?? null);
+        event,
+        stepResults
+      );
+      const evaluated = await ExpressionResolver.evaluate(
+        String(evaluatedValueString),
+        ctx,
+        bindings,
+        { coerceToString: !isExpression(evaluatedValueString) }
+      );
+      return blue.jsonValueToNode(evaluated ?? null);
     }
 
     return changeValueNode;
+  }
+
+  private async evaluateChangePath(
+    path: string,
+    ctx: ProcessingContext,
+    event: EventNode,
+    stepResults: Record<string, unknown>
+  ): Promise<string> {
+    const bindings = ExpressionResolver.createBindings(ctx, event, stepResults);
+
+    if (isExpression(path) || containsExpression(path)) {
+      const evaluated = await ExpressionResolver.evaluate(path, ctx, bindings, {
+        coerceToString: true,
+      });
+      return String(evaluated ?? '');
+    }
+
+    return path;
   }
 }

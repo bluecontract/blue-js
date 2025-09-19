@@ -17,16 +17,11 @@ export interface VMBindings {
   steps?: Record<string, unknown>;
 }
 
-// Determine if isolated-vm should be used or not
-const useIsolatedVM = !process.env.SKIP_ISOLATED_VM;
 let ivm: typeof import('isolated-vm') | null = null;
-
-if (useIsolatedVM) {
-  try {
-    ivm = require('isolated-vm');
-  } catch {
-    console.warn('isolated-vm not available, using fallback evaluation method');
-  }
+try {
+  ivm = require('isolated-vm');
+} catch {
+  ivm = null;
 }
 
 /**
@@ -49,7 +44,7 @@ function hasModuleSyntax(code: string): boolean {
  */
 export class ExpressionEvaluator {
   /**
-   * Main evaluation method - chooses between secure and simple evaluation strategies
+   * Main evaluation method - evaluates code securely in an isolated VM
    */
   static async evaluate({
     code,
@@ -62,51 +57,10 @@ export class ExpressionEvaluator {
     bindings?: VMBindings;
     options?: { isCodeBlock?: boolean; timeout?: number };
   }): Promise<unknown> {
-    if (!ivm || !useIsolatedVM) {
-      return this.evaluateSimple(code, bindings, options);
+    if (!ivm) {
+      throw new Error('isolated-vm is required for expression evaluation');
     }
     return this.evaluateSecure(code, bindings, ctx, options);
-  }
-
-  /**
-   * Fallback evaluation using Node's Function constructor
-   * Used when isolated-vm is not available
-   */
-  private static async evaluateSimple(
-    code: string,
-    bindings: VMBindings,
-    options: { isCodeBlock?: boolean } = {}
-  ): Promise<unknown> {
-    if (hasModuleSyntax(code)) {
-      throw new Error(
-        'Static import/export syntax requires isolated-vm – start Node without SKIP_ISOLATED_VM.'
-      );
-    }
-
-    try {
-      if (options.isCodeBlock) {
-        const bindingKeys = Object.keys(bindings);
-        const evalFn = new Function(
-          ...bindingKeys,
-          `return async function codeBlock(${bindingKeys.join(
-            ', '
-          )}) { ${code} }`
-        );
-        const codeBlockFn = await evalFn(
-          ...bindingKeys.map((key) => bindings[key])
-        );
-        return await codeBlockFn(...bindingKeys.map((key) => bindings[key]));
-      } else {
-        const evalFn = new Function(
-          ...Object.keys(bindings),
-          `return ${code};`
-        );
-        return evalFn(...Object.values(bindings));
-      }
-    } catch (err) {
-      if (options.isCodeBlock) throw new CodeBlockEvaluationError(code, err);
-      throw new ExpressionEvaluationError(code, err);
-    }
   }
 
   /**
