@@ -8,7 +8,12 @@ import { WorkflowStepExecutor } from './types';
 import { UpdateDocumentExecutor } from './steps/UpdateDocumentExecutor';
 import { TriggerEventExecutor } from './steps/TriggerEventExecutor';
 import { JavaScriptCodeExecutor } from './steps/JavaScriptCodeExecutor';
-import { blueIds, SequentialWorkflowSchema } from '@blue-repository/core-dev';
+import {
+  blueIds,
+  SequentialWorkflow,
+  SequentialWorkflowSchema,
+} from '@blue-repository/core-dev';
+import { isNonNullable } from '@blue-labs/shared-utils';
 
 const defaultExecutors: WorkflowStepExecutor[] = [
   new UpdateDocumentExecutor(),
@@ -42,9 +47,11 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
       node,
       SequentialWorkflowSchema
     );
-    const channel = sequentialWorkflow.channel;
 
-    return event.source === 'channel' && event.channelName === channel;
+    const matchChannelName = this.isChannelNameMatch(event, sequentialWorkflow);
+    const matchEventPattern = this.isEventPatternMatch(event, node, context);
+
+    return matchChannelName && matchEventPattern;
   }
 
   async handle(
@@ -77,6 +84,45 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
       }
 
       await context.flush();
+    }
+  }
+
+  private isChannelNameMatch(
+    event: EventNode,
+    sequentialWorkflow: SequentialWorkflow
+  ) {
+    const channel = sequentialWorkflow.channel;
+
+    return (
+      isNonNullable(channel) &&
+      event.source === 'channel' &&
+      event.channelName === channel
+    );
+  }
+
+  /**
+   * Checks if the event matches the channel's event pattern (if specified)
+   */
+  private isEventPatternMatch(
+    event: EventNode,
+    node: DocumentNode,
+    ctx: ProcessingContext
+  ): boolean {
+    const channelEvent = node.getProperties()?.['event'];
+
+    // If no event pattern is specified in channel, match all events
+    if (!channelEvent) {
+      return true;
+    }
+
+    try {
+      const blue = ctx.getBlue();
+      const eventPayloadNode = blue.resolve(event.payload);
+
+      return blue.isTypeOfNode(eventPayloadNode, channelEvent);
+    } catch (error) {
+      console.warn('Error during event pattern matching:', error);
+      return false;
     }
   }
 }

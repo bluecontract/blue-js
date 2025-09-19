@@ -5,7 +5,7 @@ import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
-import { createDocumentUpdateEvent } from '../utils/eventFactories';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 describe('Checkpoint – embedded documents via Process Embedded', () => {
   const blue = new Blue({
@@ -20,27 +20,23 @@ describe('Checkpoint – embedded documents via Process Embedded', () => {
         paths: ['/order'],
       },
       orderUpdatesRoot: {
-        type: 'Document Update Channel',
-        path: '/order/total',
+        type: 'Timeline Channel',
+        timelineId: 'orders',
       },
     },
     order: {
       contracts: {
         orderUpdates: {
-          type: 'Document Update Channel',
-          path: '/total',
+          type: 'Timeline Channel',
+          timelineId: 'orders',
         },
       },
-      total: 10,
     },
   };
 
-  const payload: EventNodePayload = createDocumentUpdateEvent(
-    {
-      op: 'replace',
-      path: '/order/total',
-      val: 15,
-    },
+  const payload: EventNodePayload = createTimelineEntryEvent(
+    'orders',
+    null,
     blue
   );
 

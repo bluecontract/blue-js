@@ -28,17 +28,14 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
     ctx: ProcessingContext
   ): boolean {
     if (!this.baseSupports(event)) return false;
-
-    // Check if this is a lifecycle event
+    if (event.emissionType !== 'lifecycle') return false;
     if (!this.isLifecycleEvent(event, ctx)) return false;
-
-    // Check if the event matches the channel's event pattern (if specified)
     return this.isEventPatternMatch(event, node, ctx);
   }
 
   handle(
     event: EventNode,
-    node: DocumentNode,
+    _node: DocumentNode,
     ctx: ProcessingContext,
     path: string
   ): void {
@@ -46,6 +43,7 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
       payload: event.payload,
       channelName: path,
       source: 'channel',
+      emissionType: event.emissionType,
     });
   }
 

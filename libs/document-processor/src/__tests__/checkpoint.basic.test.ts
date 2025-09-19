@@ -5,7 +5,7 @@ import { JsonObject } from '@blue-labs/shared-utils';
 import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
-import { createDocumentUpdateEvent } from '../utils/eventFactories';
+import { createTimelineEntryEvent } from '../utils/eventFactories';
 
 let seq = 0;
 
@@ -26,19 +26,15 @@ describe('Checkpoint – basic root-channel scenario', () => {
   const doc: JsonObject = {
     contracts: {
       userUpdates: {
-        type: 'Document Update Channel',
-        path: '/profile/username',
+        type: 'Timeline Channel',
+        timelineId: 'user-123',
       },
     },
-    profile: { username: 'old' },
   };
 
-  const updateEvt: EventNodePayload = createDocumentUpdateEvent(
-    {
-      op: 'replace',
-      path: '/profile/username',
-      val: 'new',
-    },
+  const updateEvt: EventNodePayload = createTimelineEntryEvent(
+    'user-123',
+    null,
     blue
   );
 

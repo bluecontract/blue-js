@@ -1,4 +1,5 @@
-const EXPRESSION_REGEX = /^\$\{(.*)\}$/;
+const EXPRESSION_REGEX = /^\$\{([\s\S]*)\}$/;
+const EMBEDDED_EXPRESSION_REGEX = /\$\{([\s\S]*?)\}/;
 
 /**
  * Checks if a value is an expression (starts with "${" and ends with "}")
@@ -10,6 +11,16 @@ export const isExpression = (value: unknown): value is string => {
     return false;
   }
   return EXPRESSION_REGEX.test(value);
+};
+
+/**
+ * Checks if a string contains at least one ${...} expression anywhere inside
+ */
+export const containsExpression = (value: unknown): value is string => {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return EMBEDDED_EXPRESSION_REGEX.test(value);
 };
 
 /**

@@ -16,18 +16,16 @@ export class DocumentUpdateChannelProcessor extends BaseChannelProcessor {
   supports(
     event: EventNode,
     contractNode: DocumentNode,
-    ctx: ProcessingContext,
-    contractName: string
+    ctx: ProcessingContext
   ): boolean {
     if (!this.baseSupports(event)) return false;
-
+    if (event.emissionType !== 'update') return false;
     const documentUpdateChannel = ctx
       .getBlue()
       .nodeToSchemaOutput(contractNode, DocumentUpdateChannelSchema);
 
     const payloadPath = event.payload.get('/path');
     if (!payloadPath) return false;
-    if (event.channelName === contractName) return false;
 
     const documentUpdatePath = documentUpdateChannel.path;
 
@@ -39,17 +37,16 @@ export class DocumentUpdateChannelProcessor extends BaseChannelProcessor {
 
   handle(
     event: EventNode,
-    contractNode: DocumentNode,
+    _node: DocumentNode,
     ctx: ProcessingContext,
-    contractName: string
+    path: string
   ): void {
-    const payload = event.payload;
-    if (!payload) return;
-
     ctx.emitEvent({
-      payload,
-      channelName: contractName,
+      payload: event.payload,
+      channelName: path,
       source: 'channel',
     });
   }
 }
+
+// preserve re-emission behavior marker removed (not needed)

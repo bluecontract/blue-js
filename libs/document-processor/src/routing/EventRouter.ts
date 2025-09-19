@@ -12,6 +12,7 @@ import { TaskQueue } from '../queue/TaskQueue';
 import { ContractRegistry } from '../registry/ContractRegistry';
 import { EventTraceManager } from '../utils/EventTraceManager';
 import { Blue, isBigNumber } from '@blue-labs/language';
+import { buildContractEntries } from './buildContractEntries';
 
 /** Maximum recursion depth for inline adapter processing */
 const MAX_INLINE_ADAPTER_DEPTH = 64;
@@ -118,9 +119,7 @@ export class EventRouter {
     // Skip events originating from other channel nodes
     if (this.shouldSkipForChannel(event, nodePath)) return;
 
-    for (const [contractName, contractNode] of Object.entries(
-      node.getContracts() ?? {}
-    )) {
+    for (const [contractName, contractNode] of buildContractEntries(node)) {
       if (!contractNode.getType()) continue;
 
       const cp = this.registry.get(contractNode.getType());
@@ -252,14 +251,31 @@ export class EventRouter {
       : 0;
     const taskId = this.getNextTaskId() + afterTaskId;
 
+    const eventSeq = event.seq;
+    if (eventSeq === undefined) {
+      throw new Error('Event sequence missing');
+    }
+
     const key = makeTaskKey(
       depth,
-      event.seq!,
+      eventSeq,
       typePriority,
       contractOrder,
       contractName,
       taskId
     );
+
+    // Prevent re-entrancy loops (including cross-node ping-pong): if this hop
+    // already exists in the trace for a non-external event, abort early.
+    {
+      const currentHop = `${nodePath}#${contractName}`;
+      const trace = event.trace ?? [];
+      if (event.source !== 'external' && trace.includes(currentHop)) {
+        throw new Error(
+          `Loop detected: repeated hop ${currentHop} within the same event chain`
+        );
+      }
+    }
 
     const tracedEvent = this.traceManager.addHop(event, nodePath, contractName);
 

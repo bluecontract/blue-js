@@ -47,8 +47,8 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
       isNonNullable(timelineEntryTimelineId);
 
     return (
-      (hasTimelineId &&
-        timelineEntryTimelineId === myosTimelineChannel.timelineId)
+      hasTimelineId &&
+      timelineEntryTimelineId === myosTimelineChannel.timelineId
     );
   }
 

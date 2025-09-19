@@ -450,6 +450,34 @@ describe('OperationProcessor - Integration Tests', () => {
       expect(jsonState.counter).toBe(10);
       expect(jsonState.status).toBe('idle');
     });
+
+    test('should ignore operation request when request type mismatches definition', async () => {
+      const doc = makeDocumentWithOperations();
+      const { initializedState } = await prepareToProcess(doc, {
+        blue,
+        documentProcessor,
+      });
+
+      // "increment" expects Integer, but we send a Text
+      const badTypeEvent = createOperationRequestEvent('increment', '5');
+
+      const { state, emitted } = await documentProcessor.processEvents(
+        initializedState,
+        [badTypeEvent]
+      );
+
+      const jsonState = blue.nodeToJson(state, 'simple') as any;
+
+      // Document should remain unchanged
+      expect(jsonState.counter).toBe(10);
+      expect(jsonState.status).toBe('idle');
+
+      // Should not emit document update events
+      const docUpdateEvts = emitted.filter((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
+      expect(docUpdateEvts.length).toBe(0);
+    });
   });
 
   describe('MyOS Timeline Channel', () => {
@@ -538,6 +566,75 @@ describe('OperationProcessor - Integration Tests', () => {
       const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
       expect(docUpdateEvtJson.path).toBe('/counter');
       expect(docUpdateEvtJson.val).toBe(8);
+    });
+
+    test('should ignore MyOS operation request when request type mismatches definition', async () => {
+      const docWithMyOSTimeline: JsonObject = {
+        name: 'MyOS Timeline Bad Type Test',
+        counter: 5,
+        contracts: {
+          myosChannel: {
+            type: 'MyOS Timeline Channel',
+            timelineId: 'myos-timeline',
+          },
+          increment: {
+            type: 'Operation',
+            channel: 'myosChannel',
+            request: {
+              description: 'Value to increment counter by',
+              type: 'Integer',
+            },
+          },
+          incrementImpl: {
+            type: 'Sequential Workflow Operation',
+            operation: 'increment',
+            steps: [
+              {
+                type: 'Update Document',
+                changeset: [
+                  {
+                    op: 'replace',
+                    path: '/counter',
+                    val: '${document("/counter") + event.message.request}',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const { initializedState } = await prepareToProcess(docWithMyOSTimeline, {
+        blue,
+        documentProcessor,
+      });
+
+      // Send Text instead of Integer
+      const myosBadTypeEvent = blue.jsonValueToNode({
+        type: 'MyOS Timeline Entry',
+        timeline: { timelineId: 'myos-timeline' },
+        message: {
+          type: 'Operation Request',
+          operation: 'increment',
+          request: '3',
+        },
+      });
+
+      const { state, emitted } = await documentProcessor.processEvents(
+        initializedState,
+        [myosBadTypeEvent]
+      );
+
+      const jsonState = blue.nodeToJson(state, 'simple') as any;
+
+      // Counter should not change
+      expect(jsonState.counter).toBe(5);
+
+      // Should not emit document update events
+      const docUpdateEvts = emitted.filter((e) =>
+        blue.isTypeOf(e, DocumentUpdateSchema)
+      );
+      expect(docUpdateEvts.length).toBe(0);
     });
   });
 });
