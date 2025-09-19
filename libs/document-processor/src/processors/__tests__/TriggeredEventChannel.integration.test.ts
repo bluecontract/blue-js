@@ -20,9 +20,8 @@ describe('Triggered Event Channel — step-triggered Sequential Workflow', () =>
           event: { type: 'Document Processing Initiated' },
         },
 
-        internalEvents: {
-          // Using existing schema blueId; semantics treated as Triggered Event Channel
-          type: 'Internal Events Channel',
+        triggeredEventsChannel: {
+          type: 'Triggered Event Channel',
         },
 
         swWithLifecycleChannel: {
@@ -39,7 +38,7 @@ describe('Triggered Event Channel — step-triggered Sequential Workflow', () =>
         // Consumer reacts only to a triggered event
         triggeredConsumer: {
           type: 'Sequential Workflow',
-          channel: 'internalEvents',
+          channel: 'triggeredEventsChannel',
           event: { type: 'Status Completed' },
           steps: [
             {
@@ -94,7 +93,7 @@ describe('Triggered Event Channel — step-triggered Sequential Workflow', () =>
           type: 'Lifecycle Event Channel',
           event: { type: 'Document Processing Initiated' },
         },
-        internalEvents: { type: 'Internal Events Channel' },
+        triggeredEventsChannel: { type: 'Triggered Event Channel' },
         // Root emits a triggered event
         producer: {
           type: 'Sequential Workflow',
@@ -106,10 +105,10 @@ describe('Triggered Event Channel — step-triggered Sequential Workflow', () =>
       },
       embedded: {
         contracts: {
-          internalEvents: { type: 'Internal Events Channel' },
+          triggeredEventsChannel: { type: 'Triggered Event Channel' },
           consumer: {
             type: 'Sequential Workflow',
-            channel: 'internalEvents',
+            channel: 'triggeredEventsChannel',
             event: { name: 'Ping' },
             steps: [
               {
@@ -139,9 +138,8 @@ describe('Triggered Event Channel — step-triggered Sequential Workflow', () =>
           type: 'Lifecycle Event Channel',
           event: { type: 'Document Processing Initiated' },
         },
-        internalEvents: {
-          // Using existing schema blueId; semantics treated as Triggered Event Channel
-          type: 'Internal Events Channel',
+        triggeredEventsChannel: {
+          type: 'Triggered Event Channel',
         },
         // Producer: on lifecycle, emit custom event
         producer: {
@@ -158,7 +156,7 @@ describe('Triggered Event Channel — step-triggered Sequential Workflow', () =>
         // Consumer: on triggered events, react to that custom event and update document
         consumer: {
           type: 'Sequential Workflow',
-          channel: 'internalEvents',
+          channel: 'triggeredEventsChannel',
           event: { type: 'Status Completed' },
           steps: [
             {

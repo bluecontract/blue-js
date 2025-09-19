@@ -7,8 +7,8 @@ participantsState:
   valueType: Participant Activation State
 bootstrapStatus: { mode: pending }
 contracts:
-  internalEvents:
-    type: Internal Events Channel
+  triggeredEventsChannel:
+    type: Triggered Event Channel
   myOsAdminChannel:
     type: MyOS Timeline Channel
     timelineId: admin-timeline
@@ -28,7 +28,7 @@ contracts:
 
   handleParticipantResolved:
     type: Sequential Workflow
-    channel: internalEvents
+    channel: triggeredEventsChannel
     event:
       type: Participant Resolved
     steps:
@@ -55,7 +55,7 @@ contracts:
 
   handleTargetDocumentSessionStarted:
     type: Sequential Workflow
-    channel: internalEvents
+    channel: triggeredEventsChannel
     event:
       type: Target Document Session Started
     steps:
@@ -72,7 +72,7 @@ contracts:
 
   handleBootstrapFailed:
     type: Sequential Workflow
-    channel: internalEvents
+    channel: triggeredEventsChannel
     event:
       type: Bootstrap Failed
     steps:
@@ -89,7 +89,7 @@ contracts:
 
   handleStatusChange:
     type: Sequential Workflow
-    channel: internalEvents
+    channel: triggeredEventsChannel
     event:
       type: Status Change
     steps:

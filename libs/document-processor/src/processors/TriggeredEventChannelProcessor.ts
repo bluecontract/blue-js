@@ -7,8 +7,7 @@ import { blueIds } from '@blue-repository/core-dev';
  */
 export class TriggeredEventChannelProcessor extends BaseChannelProcessor {
   readonly contractType = 'Triggered Event Channel';
-  // Bind to existing schema until repository adds a dedicated "Triggered Event Channel"
-  readonly contractBlueId = blueIds['Internal Events Channel'];
+  readonly contractBlueId = blueIds['Triggered Event Channel'];
 
   supports(event: EventNode): boolean {
     if (!this.baseSupports(event)) return false;
