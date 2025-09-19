@@ -1,0 +1,101 @@
+name: Document Session Bootstrap
+description: MyOS-specific document for bootstrapping document sessions and tracking bootstrap progress
+participantsState:
+  type: Dictionary
+  description: Maps channel names to participant activation tracking
+  keyType: Text
+  valueType: Participant Activation State
+bootstrapStatus: { mode: pending }
+contracts:
+  internalEvents:
+    type: Internal Events Channel
+  myOsAdminChannel:
+    type: MyOS Timeline Channel
+    timelineId: admin-timeline
+  myOsAdminUpdate:
+    type: Operation
+    channel: myOsAdminChannel
+    request:
+      type: List
+  myOsAdminUpdateImpl:
+    type: Sequential Workflow Operation
+    operation: myOsAdminUpdate
+    steps:
+      - name: EmitAdminEvents
+        type: JavaScript Code
+        code: |
+          return { events: event.message.request };
+
+  handleParticipantResolved:
+    type: Sequential Workflow
+    channel: internalEvents
+    event:
+      type: Participant Resolved
+    steps:
+      - name: Prepare Participant State
+        type: JavaScript Code
+        code: |
+          const participantState = {
+            accountStatus: event.participant?.status?.accountStatus || 'Unknown',
+            errorMessage: ''
+          };
+          const currentStatus = document('/bootstrapStatus');
+          const shouldUpdateStatus = currentStatus && currentStatus.mode === 'pending';
+          return {
+            participantState,
+            channelName: event.channelName,
+            events: shouldUpdateStatus ? [ { type: 'Status Change', status: { type: 'Status In Progress' } } ] : []
+          };
+      - name: Update Participants State
+        type: Update Document
+        changeset:
+          - op: replace
+            path: "/participantsState/${steps['Prepare Participant State'].channelName}"
+            val: "${steps['Prepare Participant State'].participantState}"
+
+  handleTargetDocumentSessionStarted:
+    type: Sequential Workflow
+    channel: internalEvents
+    event:
+      type: Target Document Session Started
+    steps:
+      - name: Update Initiator Session
+        type: Update Document
+        changeset:
+          - op: replace
+            path: /initiatorSessionId
+            val: '${event.initiatorSessionId}'
+      - name: Emit Completion Event
+        type: JavaScript Code
+        code: |
+          return { events: [ { type: 'Status Change', status: { type: 'Status Completed' } } ] };
+
+  handleBootstrapFailed:
+    type: Sequential Workflow
+    channel: internalEvents
+    event:
+      type: Bootstrap Failed
+    steps:
+      - name: Update Error Message
+        type: Update Document
+        changeset:
+          - op: replace
+            path: /bootstrapError
+            val: '${event.reason}'
+      - name: Emit Failure Event
+        type: JavaScript Code
+        code: |
+          return { events: [ { type: 'Status Change', status: { type: 'Status Failed' } } ] };
+
+  handleStatusChange:
+    type: Sequential Workflow
+    channel: internalEvents
+    event:
+      type: Status Change
+    steps:
+      - name: Update Bootstrap Status
+        type: Update Document
+        changeset:
+          - op: replace
+            path: /bootstrapStatus
+            val: '${event.status}'

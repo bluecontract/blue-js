@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { BlueDocumentProcessor } from '../../BlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
-import { prepareToProcess } from '../testUtils';
+import { prepareToProcess } from '../../testUtils';
 
-describe('Internal Events Channel — channel-less Sequential Workflow', () => {
+describe('Triggered Event Channel — step-triggered Sequential Workflow', () => {
   const blue = new Blue({ repositories: [coreRepository] });
   const documentProcessor = new BlueDocumentProcessor(blue);
 
-  it('runs a Sequential Workflow only when an internal event is received', async () => {
+  it('runs a Sequential Workflow only when a triggered event is received', async () => {
     const doc = {
       markers: {
         explicit: false,
@@ -21,6 +21,7 @@ describe('Internal Events Channel — channel-less Sequential Workflow', () => {
         },
 
         internalEvents: {
+          // Using existing schema blueId; semantics treated as Triggered Event Channel
           type: 'Internal Events Channel',
         },
 
@@ -35,10 +36,11 @@ describe('Internal Events Channel — channel-less Sequential Workflow', () => {
             },
           ],
         },
-        swNoInternalEventsChannel: {
+        // Consumer reacts only to a triggered event
+        triggeredConsumer: {
           type: 'Sequential Workflow',
           channel: 'internalEvents',
-          event: { type: 'Document Processing Initiated' },
+          event: { type: 'Status Completed' },
           steps: [
             {
               name: 'MarkImplicit',
@@ -58,6 +60,18 @@ describe('Internal Events Channel — channel-less Sequential Workflow', () => {
             },
           ],
         },
+        // Producer emits a custom event via Trigger step
+        producer: {
+          type: 'Sequential Workflow',
+          channel: 'lifecycle',
+          steps: [
+            {
+              name: 'EmitCompleted',
+              type: 'Trigger Event',
+              event: { type: 'Status Completed' },
+            },
+          ],
+        },
       },
     } as const;
 
@@ -72,104 +86,36 @@ describe('Internal Events Channel — channel-less Sequential Workflow', () => {
     expect(json.shouldNotRun).toBeUndefined();
   });
 
-  it('workflow can react to internal Document Update events via the Internal Events Channel', async () => {
+  it('works with embedded documents via Process Embedded (triggered event routed to embedded)', async () => {
     const doc = {
       contracts: {
+        processEmbedded: { type: 'Process Embedded', paths: ['/embedded'] },
         lifecycle: {
           type: 'Lifecycle Event Channel',
           event: { type: 'Document Processing Initiated' },
         },
-
-        internalEvents: {
-          type: 'Internal Events Channel',
-        },
-        // Producer workflow: on init, update a field (emits internal Document Update event)
+        internalEvents: { type: 'Internal Events Channel' },
+        // Root emits a triggered event
         producer: {
           type: 'Sequential Workflow',
           channel: 'lifecycle',
           steps: [
-            {
-              name: 'UpdateFlag',
-              type: 'Update Document',
-              changeset: [{ op: 'add', path: '/flag', val: true }],
-            },
-          ],
-        },
-        // Consumer workflow reacts to Document Update, then updates the document again
-        // which would create a loop through Internal Events Channel. We now expect a loop error.
-        consumer: {
-          type: 'Sequential Workflow',
-          channel: 'internalEvents',
-          event: { type: 'Document Update' },
-          steps: [
-            {
-              name: 'MarkConsumed',
-              type: 'Update Document',
-              changeset: [{ op: 'add', path: '/consumed', val: true }],
-            },
+            { name: 'Emit', type: 'Trigger Event', event: { name: 'Ping' } },
           ],
         },
       },
-    } as const;
-
-    await expect(
-      prepareToProcess(doc, {
-        blue,
-        documentProcessor,
-      })
-    ).rejects.toThrow(/Loop detected/);
-  });
-
-  it('detects ping-pong loops between root and embedded workflows via Internal Events Channel', async () => {
-    const doc = {
-      // No Process Embedded here, so root can see internal events; add one if you want routing into embedded
-      contracts: {
-        lifecycle: {
-          type: 'Lifecycle Event Channel',
-          event: { type: 'Document Processing Initiated' },
-        },
-        internalEvents: {
-          type: 'Internal Events Channel',
-        },
-        // Root producer kicks things off
-        producer: {
-          type: 'Sequential Workflow',
-          channel: 'lifecycle',
-          steps: [
-            {
-              name: 'Kick',
-              type: 'Update Document',
-              changeset: [{ op: 'add', path: '/start', val: true }],
-            },
-          ],
-        },
-        // Root consumer reacts to any internal doc update and updates a root field
-        rootConsumer: {
-          type: 'Sequential Workflow',
-          channel: 'internalEvents',
-          event: { type: 'Document Update' },
-          steps: [
-            {
-              name: 'RootTouch',
-              type: 'Update Document',
-              changeset: [{ op: 'add', path: '/rootTouch', val: true }],
-            },
-          ],
-        },
-      },
-      // Embedded document with its own internal events channel + consumer
       embedded: {
         contracts: {
           internalEvents: { type: 'Internal Events Channel' },
-          embeddedConsumer: {
+          consumer: {
             type: 'Sequential Workflow',
             channel: 'internalEvents',
-            event: { type: 'Document Update' },
+            event: { name: 'Ping' },
             steps: [
               {
-                name: 'EmbeddedTouch',
+                name: 'Ack',
                 type: 'Update Document',
-                changeset: [{ op: 'add', path: '/embeddedTouch', val: true }],
+                changeset: [{ op: 'add', path: '/embeddedAck', val: true }],
               },
             ],
           },
@@ -177,15 +123,16 @@ describe('Internal Events Channel — channel-less Sequential Workflow', () => {
       },
     } as const;
 
-    await expect(
-      prepareToProcess(doc, {
-        blue,
-        documentProcessor,
-      })
-    ).rejects.toThrow(/Loop detected/);
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor,
+    });
+
+    const json = blue.nodeToJson(initializedState, 'simple') as any;
+    expect(json.embedded?.embeddedAck).toBe(true);
   });
 
-  it('lifecycle producer emits custom event handled by internal-events consumer', async () => {
+  it('lifecycle producer emits custom event handled by triggered-events consumer', async () => {
     const doc = {
       contracts: {
         lifecycle: {
@@ -193,6 +140,7 @@ describe('Internal Events Channel — channel-less Sequential Workflow', () => {
           event: { type: 'Document Processing Initiated' },
         },
         internalEvents: {
+          // Using existing schema blueId; semantics treated as Triggered Event Channel
           type: 'Internal Events Channel',
         },
         // Producer: on lifecycle, emit custom event
@@ -207,7 +155,7 @@ describe('Internal Events Channel — channel-less Sequential Workflow', () => {
             },
           ],
         },
-        // Consumer: on internal events, react to that custom event and update document
+        // Consumer: on triggered events, react to that custom event and update document
         consumer: {
           type: 'Sequential Workflow',
           channel: 'internalEvents',

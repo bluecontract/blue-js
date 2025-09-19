@@ -45,6 +45,7 @@ export class InternalContext implements ProcessingContext {
       originNodePath: event.originNodePath ?? this.taskInfo.nodePath,
       rootEvent: event.rootEvent ?? inputEvent.rootEvent ?? inputEvent,
       trace: [...inputEventTrace],
+      emissionType: event.emissionType ?? inputEvent.emissionType,
     };
     this.actions.push({ kind: 'event', event: enriched });
   }

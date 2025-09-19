@@ -11,4 +11,4 @@ export * from './ProcessEmbeddedProcessor';
 export * from './SequentialWorkflowOperationProcessor';
 export * from './TimelineChannelProcessor';
 export * from './SequentialWorkflowProcessor';
-export * from './InternalEventsChannelProcessor';
+export * from './TriggeredEventChannelProcessor';

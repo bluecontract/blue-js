@@ -35,6 +35,9 @@ export interface EventNode<Payload = EventNodePayload> {
 
   /** Linear path trace: each hop = "<absNodePath>#<contractName>" */
   trace?: string[];
+
+  /** Semantic producer of the event used for channel intent filtering */
+  emissionType?: 'lifecycle' | 'update' | 'triggered';
 }
 
 export interface ProcessingResult {

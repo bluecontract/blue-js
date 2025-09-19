@@ -25,6 +25,7 @@ export class TriggerEventExecutor implements WorkflowStepExecutor {
 
     ctx.emitEvent({
       payload: triggerEventStep.event,
+      emissionType: 'triggered',
     });
 
     return;

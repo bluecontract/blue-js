@@ -89,6 +89,7 @@ export class BlueDocumentProcessor {
     const initEvent: EventNode = {
       payload: createDocumentProcessingInitiatedEvent(this.blue),
       source: 'internal',
+      emissionType: 'lifecycle',
     };
 
     const emitted: EventNodePayload[] = [initEvent.payload];

@@ -1,5 +1,5 @@
 import { EventNode, DocumentNode, ProcessingContext } from '../types';
-import { InternalOnlyChannelProcessor } from './InternalEventsChannelProcessor';
+import { BaseChannelProcessor } from './BaseChannelProcessor';
 import { blueIds, LifecycleEventSchema } from '@blue-repository/core-dev';
 
 /**
@@ -18,20 +18,33 @@ import { blueIds, LifecycleEventSchema } from '@blue-repository/core-dev';
  *     type: Document Processing Initiated
  * ```
  */
-export class LifecycleEventChannelProcessor extends InternalOnlyChannelProcessor {
+export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
   readonly contractType = 'Lifecycle Event Channel';
   readonly contractBlueId = blueIds['Lifecycle Event Channel'];
 
-  protected override matches(
+  supports(
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext
   ): boolean {
-    // Check if this is a lifecycle event
+    if (!this.baseSupports(event)) return false;
+    if (event.emissionType !== 'lifecycle') return false;
     if (!this.isLifecycleEvent(event, ctx)) return false;
-
-    // Check if the event matches the channel's event pattern (if specified)
     return this.isEventPatternMatch(event, node, ctx);
+  }
+
+  handle(
+    event: EventNode,
+    _node: DocumentNode,
+    ctx: ProcessingContext,
+    path: string
+  ): void {
+    ctx.emitEvent({
+      payload: event.payload,
+      channelName: path,
+      source: 'channel',
+      emissionType: event.emissionType,
+    });
   }
 
   /**

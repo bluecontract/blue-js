@@ -11,7 +11,7 @@ import {
   SequentialWorkflowOperationProcessor,
   LifecycleEventChannelProcessor,
   InitializedMarkerProcessor,
-  InternalEventsChannelProcessor,
+  TriggeredEventChannelProcessor,
 } from './processors';
 import { ContractProcessor } from './types';
 
@@ -26,7 +26,7 @@ export const defaultProcessors: ContractProcessor[] = [
   new MyOSAgentChannelProcessor(),
   new CompositeTimelineChannelProcessor(),
   new LifecycleEventChannelProcessor(),
-  new InternalEventsChannelProcessor(),
+  new TriggeredEventChannelProcessor(),
   new OperationProcessor(),
 
   // sequential workflows
