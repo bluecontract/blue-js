@@ -1,3 +1,9 @@
+## 1.33.2 (2025-09-19)
+
+### 🩹 Fixes
+
+- **document-processor:** revert changes in ExpressionEvaluator ([0f8528e](https://github.com/bluecontract/blue-js/commit/0f8528e))
+
 ## 1.33.1 (2025-09-19)
 
 ### 🩹 Fixes
