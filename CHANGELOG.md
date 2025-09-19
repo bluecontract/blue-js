@@ -1,3 +1,18 @@
+## 1.33.0 (2025-09-19)
+
+### 🚀 Features
+
+- implement event source filtering with internal-only channel processors ([ee94f35](https://github.com/bluecontract/blue-js/commit/ee94f35))
+- use Triggered Event Channel ([c140ac9](https://github.com/bluecontract/blue-js/commit/c140ac9))
+- **document-processor:** implement event filtering with request pattern matching for OperationProcessor ([bccd3b9](https://github.com/bluecontract/blue-js/commit/bccd3b9))
+- **document-processor:** add Internal Events Channel and event-filtered Sequential Workflow; prevent routing loops ([fd55d66](https://github.com/bluecontract/blue-js/commit/fd55d66))
+- **document-processor:** add event emissionType, TriggeredEventChannel, and expression-aware UpdateDocument paths ([dff4ebf](https://github.com/bluecontract/blue-js/commit/dff4ebf))
+- **language:** add NodeTypeMatcher for type validation ([cc5b554](https://github.com/bluecontract/blue-js/commit/cc5b554))
+
+### 🩹 Fixes
+
+- **document-processor:** support resolved Lifecycle Event Channel in matching ([c268eca](https://github.com/bluecontract/blue-js/commit/c268eca))
+
 ## 1.32.1 (2025-09-17)
 
 ### 🩹 Fixes
