@@ -3,6 +3,8 @@ import {
   CodeBlockEvaluationError,
   ExpressionEvaluationError,
 } from '../../../utils/exceptions';
+// Avoid importing from 'node:module' to prevent bundlers (like Vite) from
+// injecting browser externals. We'll resolve 'require' dynamically at runtime.
 
 // Type alias for isolated-vm Module
 type Module = import('isolated-vm').Module;
@@ -18,11 +20,6 @@ export interface VMBindings {
 }
 
 let ivm: typeof import('isolated-vm') | null = null;
-try {
-  ivm = require('isolated-vm');
-} catch {
-  ivm = null;
-}
 
 /**
  * Checks if a code string contains ES module syntax (import/export)
@@ -43,6 +40,63 @@ function hasModuleSyntax(code: string): boolean {
  * - Support for HTTP/HTTPS URLs for external modules
  */
 export class ExpressionEvaluator {
+  private static getIvmUnavailableMessage(): string {
+    const nodeVersion =
+      typeof process !== 'undefined' && process.version
+        ? process.version
+        : 'unknown';
+    const platform =
+      typeof process !== 'undefined' && process.platform
+        ? process.platform
+        : 'unknown';
+    const arch =
+      typeof process !== 'undefined' && process.arch ? process.arch : 'unknown';
+    return [
+      'isolated-vm is required for expression evaluation but could not be loaded.',
+      'This feature only works in a Node.js environment with the native addon available.',
+      '',
+      `Detected environment: Node ${nodeVersion} on ${platform}/${arch}.`,
+      '',
+      'Common causes:',
+      '- Running in a non-Node environment (browser, edge/runtime without Node).',
+      "- 'isolated-vm' is not installed, or failed to build its native addon.",
+      '- The module was bundled/stripped by a build tool.',
+      '',
+      'How to fix:',
+      "- Ensure 'isolated-vm' is listed in dependencies (not devDependencies) of the executing package.",
+      '- Reinstall or rebuild: npm ci && npm rebuild isolated-vm (or equivalent with your package manager).',
+      '- Run this code on a supported Node.js runtime (not browser/edge workers).',
+    ].join('\n');
+  }
+
+  private static async ensureIvmLoaded(): Promise<void> {
+    if (ivm) return;
+    const isNode =
+      typeof process !== 'undefined' &&
+      !!(process as unknown as { versions?: { node?: string } }).versions?.node;
+    if (!isNode) return;
+    try {
+      if (typeof require === 'function') {
+        const moduleId = 'isolated' + '-vm';
+        ivm = require(moduleId) as typeof import('isolated-vm');
+        return;
+      }
+    } catch {
+      // fall through to dynamic import
+    }
+    try {
+      const moduleId = 'isolated' + '-vm';
+      // @vite-ignore prevents pre-bundling of a computed specifier
+      const mod: unknown = await import(
+        /* @vite-ignore */ moduleId as string
+      ).catch(() => null);
+      const anyMod = mod as { default?: unknown } | null;
+      ivm = (anyMod?.default ??
+        (anyMod as unknown)) as typeof import('isolated-vm');
+    } catch {
+      // leave ivm as null
+    }
+  }
   /**
    * Main evaluation method - evaluates code securely in an isolated VM
    */
@@ -57,8 +111,9 @@ export class ExpressionEvaluator {
     bindings?: VMBindings;
     options?: { isCodeBlock?: boolean; timeout?: number };
   }): Promise<unknown> {
+    await this.ensureIvmLoaded();
     if (!ivm) {
-      throw new Error('isolated-vm is required for expression evaluation');
+      throw new Error(this.getIvmUnavailableMessage());
     }
     return this.evaluateSecure(code, bindings, ctx, options);
   }
@@ -72,7 +127,7 @@ export class ExpressionEvaluator {
     ctx: ProcessingContext,
     options: { isCodeBlock?: boolean; timeout?: number } = {}
   ): Promise<unknown> {
-    if (!ivm) throw new Error('isolated-vm not available');
+    if (!ivm) throw new Error(this.getIvmUnavailableMessage());
 
     const isolate = new ivm.Isolate({ memoryLimit: 32 });
     const context = await isolate.createContext();
