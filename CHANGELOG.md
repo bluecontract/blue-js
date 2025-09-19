@@ -1,3 +1,9 @@
+## 1.33.1 (2025-09-19)
+
+### 🩹 Fixes
+
+- **ExpressionEvaluator:** improve error handling for isolated-vm loading ([8fc6936](https://github.com/bluecontract/blue-js/commit/8fc6936))
+
 ## 1.33.0 (2025-09-19)
 
 ### 🚀 Features
