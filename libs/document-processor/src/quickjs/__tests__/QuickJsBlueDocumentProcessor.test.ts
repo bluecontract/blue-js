@@ -25,7 +25,6 @@ const BASIC_ENTRY = `(() => {
     },
   };
   globalThis.__BLUE_ENTRY__ = entry;
-  globalThis.__BLUE_QUICKJS_ENTRY__ = entry;
   return entry;
 })()`;
 
@@ -36,7 +35,6 @@ const ERROR_ENTRY = `(() => {
     },
   };
   globalThis.__BLUE_ENTRY__ = entry;
-  globalThis.__BLUE_QUICKJS_ENTRY__ = entry;
   return entry;
 })()`;
 

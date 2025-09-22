@@ -61,10 +61,13 @@ async function loadEntrySource(): Promise<string> {
         path: path.resolve(args.resolveDir, args.path.replace('?raw', '')),
         namespace: 'raw-yaml',
       }));
-      buildPlugin.onLoad({ filter: /\.yaml$/, namespace: 'raw-yaml' }, async (args: any) => {
-        const contents = await fsPromises.readFile(args.path, 'utf8');
-        return { contents, loader: 'text' };
-      });
+      buildPlugin.onLoad(
+        { filter: /\.yaml$/, namespace: 'raw-yaml' },
+        async (args: any) => {
+          const contents = await fsPromises.readFile(args.path, 'utf8');
+          return { contents, loader: 'text' };
+        }
+      );
     },
   };
 
@@ -79,12 +82,15 @@ async function loadEntrySource(): Promise<string> {
 
     const result = await build({
       entryPoints: [
-        path.resolve(projectRoot, 'libs/document-processor/src/quickjs/entry.ts'),
+        path.resolve(
+          projectRoot,
+          'libs/document-processor/src/quickjs/entry.ts'
+        ),
       ],
       bundle: true,
       platform: 'neutral',
       format: 'iife',
-      globalName: '__BLUE_QUICKJS_ENTRY__',
+      globalName: '__BLUE_ENTRY__',
       target: ['es2020'],
       sourcemap: false,
       legalComments: 'none',
@@ -127,7 +133,7 @@ async function releaseLock(handle: any, lockPath: string) {
   try {
     await handle?.close();
   } finally {
-    await fsPromises.unlink(lockPath).catch(() => {});
+    await fsPromises.unlink(lockPath).catch(() => undefined);
   }
 }
 

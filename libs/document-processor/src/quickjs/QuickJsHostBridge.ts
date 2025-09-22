@@ -86,7 +86,11 @@ export class QuickJsHostBridge {
     this.injectHostApis(this.context);
     this.applyBootstrapGlobals(this.context, this.options.globals);
     this.installConsole(this.context);
-    this.context.setProp(this.context.global, '__BLUE_REQUEST__', this.context.undefined);
+    this.context.setProp(
+      this.context.global,
+      '__BLUE_REQUEST__',
+      this.context.undefined
+    );
     await this.evaluateEntrySource();
   }
 
@@ -115,15 +119,17 @@ export class QuickJsHostBridge {
     this.ensureEntryHandle();
 
     const requestPayload = this.buildRequestPayload(request);
-    const requestHandle = this.toQuickJSValueWithContext(context, requestPayload);
+    const requestHandle = this.toQuickJSValueWithContext(
+      context,
+      requestPayload
+    );
 
     context.setProp(context.global, '__BLUE_REQUEST__', requestHandle.handle);
     if (requestHandle.dispose && requestHandle.handle.alive) {
       requestHandle.handle.dispose();
     }
 
-    const timeoutMs =
-      _options.timeoutMs ?? this.options.defaultTimeoutMs ?? 0;
+    const timeoutMs = _options.timeoutMs ?? this.options.defaultTimeoutMs ?? 0;
     const deadline = timeoutMs > 0 ? Date.now() + timeoutMs : null;
     let didTimeout = false;
     if (deadline) {
@@ -170,10 +176,7 @@ export class QuickJsHostBridge {
     } catch (error) {
       return {
         ok: false,
-        error: this.refineResourceError(
-          this.normalizeError(error),
-          didTimeout
-        ),
+        error: this.refineResourceError(this.normalizeError(error), didTimeout),
       };
     } finally {
       if (deadline) {
@@ -197,12 +200,11 @@ export class QuickJsHostBridge {
       throw new Error('Processor entry source is required');
     }
 
-    const hasEntryMarker =
-      entrySource.includes('__BLUE_ENTRY__') || entrySource.includes('__BLUE_QUICKJS_ENTRY__');
+    const hasEntryMarker = entrySource.includes('__BLUE_ENTRY__');
 
     if (!hasEntryMarker) {
       throw new Error(
-        'Processor entry source missing __BLUE_ENTRY__ or __BLUE_QUICKJS_ENTRY__ export marker.'
+        'Processor entry source missing __BLUE_ENTRY__ export marker.'
       );
     }
 
@@ -223,19 +225,21 @@ export class QuickJsHostBridge {
       keysHandle.dispose();
     }
 
-    const exportedEval = context.evalCode(
-      `typeof __BLUE_ENTRY__ !== 'undefined' ? __BLUE_ENTRY__ : (typeof __BLUE_QUICKJS_ENTRY__ !== 'undefined' ? __BLUE_QUICKJS_ENTRY__ : globalThis.__BLUE_QUICKJS_ENTRY__)`
-    );
+    const exportedEval = context.evalCode(`globalThis.__BLUE_ENTRY__`);
     const exported = context.unwrapResult(exportedEval);
     if (!exported || !exported.alive) {
       throw new Error(
-        `Processor bundle evaluation did not expose __BLUE_QUICKJS_ENTRY__. Globals: ${JSON.stringify(globalKeys)} Eval result (${resultType}): ${JSON.stringify(resultDump)}`
+        `Processor bundle evaluation did not expose __BLUE_ENTRY__. Globals: ${JSON.stringify(
+          globalKeys
+        )} Eval result (${resultType}): ${JSON.stringify(resultDump)}`
       );
     }
 
     const type = context.typeof(exported);
     if (type !== 'object' && type !== 'function') {
-      const message = `Processor bundle must expose an object with callable methods. Received type ${type}. Globals: ${JSON.stringify(globalKeys)} Eval result type ${resultType} value ${JSON.stringify(resultDump)}`;
+      const message = `Processor bundle must expose an object with callable methods. Received type ${type}. Globals: ${JSON.stringify(
+        globalKeys
+      )} Eval result type ${resultType} value ${JSON.stringify(resultDump)}`;
       exported.dispose();
       throw new Error(message);
     }
@@ -270,7 +274,9 @@ export class QuickJsHostBridge {
     return this.runtime;
   }
 
-  private buildRequestPayload(request: ProcessorRequest): Record<string, unknown> {
+  private buildRequestPayload(
+    request: ProcessorRequest
+  ): Record<string, unknown> {
     const base: Record<string, unknown> = {
       method: request.method,
     };
@@ -303,7 +309,10 @@ export class QuickJsHostBridge {
 
     const hostObject = context.newObject();
 
-    const setFunction = (name: keyof HostDeterministicAPIs, handle: QuickJSHandle) => {
+    const setFunction = (
+      name: keyof HostDeterministicAPIs,
+      handle: QuickJSHandle
+    ) => {
       context.setProp(hostObject, name, handle);
       if (handle.alive) {
         handle.dispose();
@@ -314,11 +323,19 @@ export class QuickJsHostBridge {
     setFunction('now', this.createNowFunction(context, apis.now));
     setFunction(
       'loadBlueContent',
-      this.createAsyncStringFunction(context, 'loadBlueContent', apis.loadBlueContent)
+      this.createAsyncStringFunction(
+        context,
+        'loadBlueContent',
+        apis.loadBlueContent
+      )
     );
     setFunction(
       'loadExternalModule',
-      this.createAsyncStringFunction(context, 'loadExternalModule', apis.loadExternalModule)
+      this.createAsyncStringFunction(
+        context,
+        'loadExternalModule',
+        apis.loadExternalModule
+      )
     );
 
     context.setProp(context.global, '__BLUE_HOST__', hostObject);
@@ -351,7 +368,10 @@ export class QuickJsHostBridge {
   ): void {
     if (!globals) return;
     for (const [key, value] of Object.entries(globals)) {
-      const { handle, dispose } = this.toQuickJSValueWithContext(context, value);
+      const { handle, dispose } = this.toQuickJSValueWithContext(
+        context,
+        value
+      );
       context.setProp(context.global, key, handle);
       if (dispose && handle.alive) {
         handle.dispose();
@@ -379,7 +399,7 @@ export class QuickJsHostBridge {
 
     const hostLog = this.options.hostApis?.log;
 
-    const makeLogger = (level: typeof logLevels[number]) => {
+    const makeLogger = (level: (typeof logLevels)[number]) => {
       const fn = context.newFunction(`console_${level}`, (...args) => {
         const messageParts = args.map((handle) => {
           const dumped = context.dump(handle);
@@ -399,7 +419,9 @@ export class QuickJsHostBridge {
         try {
           if (hostLog) {
             const hostLevel =
-              level === 'warn' || level === 'error' || level === 'info' ? level : 'info';
+              level === 'warn' || level === 'error' || level === 'info'
+                ? level
+                : 'info';
             hostLog(hostLevel, message);
           }
         } catch (_) {
@@ -425,20 +447,31 @@ export class QuickJsHostBridge {
   ): QuickJSHandle {
     if (!log) {
       return context.newAsyncifiedFunction('log', async () => ({
-        error: this.toQuickJSErrorHandle(context, 'Host log API not implemented'),
+        error: this.toQuickJSErrorHandle(
+          context,
+          'Host log API not implemented'
+        ),
       }));
     }
 
     return context.newAsyncifiedFunction('log', async (...args) => {
       const [levelHandle, messageHandle] = args;
-      const level = (levelHandle ? context.dump(levelHandle) : 'info') as string;
-      const messageValue = messageHandle ? context.dump(messageHandle) : undefined;
+      const level = (
+        levelHandle ? context.dump(levelHandle) : 'info'
+      ) as string;
+      const messageValue = messageHandle
+        ? context.dump(messageHandle)
+        : undefined;
       const message =
-        typeof messageValue === 'string' ? messageValue : JSON.stringify(messageValue);
+        typeof messageValue === 'string'
+          ? messageValue
+          : JSON.stringify(messageValue);
 
       try {
         log(
-          level === 'debug' || level === 'warn' || level === 'error' ? level : 'info',
+          level === 'debug' || level === 'warn' || level === 'error'
+            ? level
+            : 'info',
           message ?? ''
         );
         return context.undefined;
@@ -473,7 +506,10 @@ export class QuickJsHostBridge {
   ): QuickJSHandle {
     if (!impl) {
       return context.newAsyncifiedFunction(name, async () => ({
-        error: this.toQuickJSErrorHandle(context, `Host API ${name} not implemented`),
+        error: this.toQuickJSErrorHandle(
+          context,
+          `Host API ${name} not implemented`
+        ),
       }));
     }
 
@@ -503,7 +539,8 @@ export class QuickJsHostBridge {
     }
     if (typeof error === 'object' && error !== null) {
       const maybeError = error as { name?: unknown; message?: unknown };
-      const name = typeof maybeError.name === 'string' ? maybeError.name : 'Error';
+      const name =
+        typeof maybeError.name === 'string' ? maybeError.name : 'Error';
       const message =
         typeof maybeError.message === 'string'
           ? maybeError.message
@@ -513,7 +550,9 @@ export class QuickJsHostBridge {
     return context.newError(String(error));
   }
 
-  private async settleQuickJSHandle(handle: QuickJSHandle): Promise<QuickJSHandle> {
+  private async settleQuickJSHandle(
+    handle: QuickJSHandle
+  ): Promise<QuickJSHandle> {
     const context = this.ensureContext();
     const runtime = this.ensureRuntime();
     let current = handle;
@@ -609,7 +648,9 @@ export class QuickJsHostBridge {
     })()`;
   }
 
-  private isErrorEnvelope(value: unknown): value is { __blueError: ProcessorResponse['error'] } {
+  private isErrorEnvelope(
+    value: unknown
+  ): value is { __blueError: ProcessorResponse['error'] } {
     return (
       typeof value === 'object' &&
       value !== null &&
@@ -640,14 +681,19 @@ export class QuickJsHostBridge {
     }
 
     if (typeof error === 'object' && error !== null) {
-      const maybeError = error as { message?: unknown; name?: unknown; stack?: unknown };
+      const maybeError = error as {
+        message?: unknown;
+        name?: unknown;
+        stack?: unknown;
+      };
       return {
         name: typeof maybeError.name === 'string' ? maybeError.name : 'Error',
         message:
           typeof maybeError.message === 'string'
             ? maybeError.message
             : JSON.stringify(maybeError),
-        stack: typeof maybeError.stack === 'string' ? maybeError.stack : undefined,
+        stack:
+          typeof maybeError.stack === 'string' ? maybeError.stack : undefined,
       };
     }
 
@@ -682,7 +728,8 @@ export class QuickJsHostBridge {
       return {
         ...error,
         name: 'QuickJsStackOverflowError',
-        message: 'QuickJS call stack limit exceeded while processing the request.',
+        message:
+          'QuickJS call stack limit exceeded while processing the request.',
       };
     }
 

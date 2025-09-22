@@ -7813,18 +7813,74 @@ var NodeTypeMatcher = class {
     this.blue = blue2;
   }
   matchesType(node, targetType, globalLimits = NO_LIMITS) {
+    const quickTargetType = targetType.getType();
+    if (this.matchesImplicitStructure(node, quickTargetType)) {
+      return true;
+    }
     const pathLimits = PathLimits2.fromNode(targetType);
     const compositeLimits = CompositeLimits.of(globalLimits, pathLimits);
     const resolvedNode = this.extendAndResolve(node, compositeLimits);
     const resolvedType = this.blue.resolve(targetType, compositeLimits);
     return this.verifyMatch(resolvedNode, targetType, compositeLimits) && this.recursiveValueComparison(resolvedNode, resolvedType);
   }
+  /**
+   * Resolves a node with the runtime while preserving any structure that could
+   * be dropped during resolution (items, properties, identifiers, values).
+   */
   extendAndResolve(node, limits) {
-    const extendedNode = node.clone();
-    this.blue.extend(extendedNode, limits);
-    return this.blue.resolve(extendedNode, limits);
+    const originalClone = node.clone();
+    const extendedClone = originalClone.clone();
+    this.blue.extend(extendedClone, limits);
+    const resolved = this.blue.resolve(extendedClone, limits);
+    this.restoreMissingStructure(resolved, originalClone);
+    return resolved;
+  }
+  /**
+   * Recursively copies structural information from the original node to the
+   * resolved node so comparisons can still see user-provided shape data.
+   */
+  restoreMissingStructure(target, source) {
+    const sourceItems = source.getItems();
+    const targetItems = target.getItems();
+    if (sourceItems && sourceItems.length > 0) {
+      if (!targetItems || targetItems.length === 0) {
+        target.setItems(sourceItems.map((item) => item.clone()));
+      } else {
+        for (let i2 = 0; i2 < Math.min(targetItems.length, sourceItems.length); i2++) {
+          this.restoreMissingStructure(targetItems[i2], sourceItems[i2]);
+        }
+      }
+    }
+    const sourceProps = source.getProperties();
+    if (sourceProps) {
+      let targetProps = target.getProperties();
+      if (!targetProps) {
+        targetProps = {};
+        target.setProperties(targetProps);
+      }
+      for (const [key2, value] of Object.entries(sourceProps)) {
+        const targetValue = targetProps[key2];
+        if (targetValue === void 0) {
+          targetProps[key2] = value.clone();
+        } else {
+          this.restoreMissingStructure(targetValue, value);
+        }
+      }
+    }
+    const sourceBlueId = source.getBlueId();
+    if (target.getBlueId() === void 0 && sourceBlueId !== void 0) {
+      target.setBlueId(sourceBlueId);
+    }
+    const sourceValue = source.getValue();
+    if (target.getValue() === void 0 && sourceValue !== void 0) {
+      target.setValue(sourceValue);
+    }
   }
   verifyMatch(resolvedNode, targetType, limits) {
+    const targetTypeType = targetType.getType();
+    if (this.matchesImplicitStructure(resolvedNode, targetTypeType)) {
+      return true;
+    }
     const testNode = resolvedNode.clone().setType(targetType.clone());
     try {
       this.blue.resolve(testNode, limits);
@@ -7835,9 +7891,16 @@ var NodeTypeMatcher = class {
   }
   recursiveValueComparison(node, targetType) {
     const targetTypeType = targetType.getType();
-    if (targetTypeType) {
+    const isImplicitStructureMatch = this.matchesImplicitStructure(
+      node,
+      targetTypeType
+    );
+    if (targetTypeType && !isImplicitStructureMatch) {
       const nodeType = node.getType();
-      if (!nodeType || !NodeTypes_exports.isSubtype(
+      if (!nodeType) {
+        return false;
+      }
+      if (!NodeTypes_exports.isSubtype(
         nodeType,
         targetTypeType,
         this.blue.getNodeProvider()
@@ -7846,8 +7909,23 @@ var NodeTypeMatcher = class {
       }
     }
     const targetBlueId = targetType.getBlueId();
-    if (targetBlueId !== void 0 && targetBlueId !== node.getBlueId()) {
-      return false;
+    if (!isImplicitStructureMatch) {
+      if (targetBlueId !== void 0) {
+        const nodeBlueId = node.getBlueId();
+        const nodeTypeBlueId = node.getType()?.getBlueId();
+        if (nodeBlueId !== void 0) {
+          if (targetBlueId !== nodeBlueId) {
+            return false;
+          }
+        } else {
+          if (nodeTypeBlueId === void 0) {
+            return false;
+          }
+          if (targetBlueId !== nodeTypeBlueId) {
+            return false;
+          }
+        }
+      }
     }
     const targetValue = targetType.getValue();
     if (targetValue !== void 0) {
@@ -7877,7 +7955,15 @@ var NodeTypeMatcher = class {
           }
         }
       }
-      return true;
+    }
+    const targetItemType = targetType.getItemType();
+    if (targetItemType !== void 0) {
+      const nodeItems = node.getItems() ?? [];
+      for (const item of nodeItems) {
+        if (!this.recursiveValueComparison(item, targetItemType)) {
+          return false;
+        }
+      }
     }
     const targetProps = targetType.getProperties();
     if (targetProps !== void 0) {
@@ -7893,7 +7979,15 @@ var NodeTypeMatcher = class {
           }
         }
       }
-      return true;
+    }
+    const targetValueType = targetType.getValueType();
+    if (targetValueType !== void 0) {
+      const nodeProps = Object.values(node.getProperties() ?? {});
+      for (const value of nodeProps) {
+        if (!this.recursiveValueComparison(value, targetValueType)) {
+          return false;
+        }
+      }
     }
     return true;
   }
@@ -7918,6 +8012,28 @@ var NodeTypeMatcher = class {
       }
     }
     return false;
+  }
+  /**
+   * Determines whether a node without an explicit type already satisfies the
+   * shape of the requested core list or dictionary type.
+   */
+  matchesImplicitStructure(node, targetTypeType) {
+    if (targetTypeType === void 0 || node.getType() !== void 0) {
+      return false;
+    }
+    if (NodeTypes_exports.isListType(targetTypeType)) {
+      return this.isImplicitListStructure(node);
+    }
+    if (NodeTypes_exports.isDictionaryType(targetTypeType)) {
+      return this.isImplicitDictionaryStructure(node);
+    }
+    return false;
+  }
+  isImplicitListStructure(node) {
+    return node.getItems() !== void 0 && node.getValue() === void 0;
+  }
+  isImplicitDictionaryStructure(node) {
+    return node.getProperties() !== void 0 && node.getValue() === void 0;
   }
 };
 
@@ -11033,16 +11149,16 @@ var yamlBlueParse = (value) => {
   return jsonBlueValue;
 };
 
-// raw-yaml:/Users/piotr/data/blue-js/libs/language/src/lib/resources/transformation/DefaultBlue.yaml
+// raw-yaml:/Users/mjonak/www-apps/work/Blue/blue-js-3/libs/language/src/lib/resources/transformation/DefaultBlue.yaml
 var DefaultBlue_default = "- type:\n    blueId: 27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo\n  mappings:\n    Text: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP\n    Double: 68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L\n    Integer: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8\n    Boolean: EL6AjrbJsxTWRTPzY8WR8Y2zAMXRbydQj83PcZwuAHbo\n    List: G8wmfjEqugPEEXByMYWJXiEdbLToPRWNQEekNxrxfQWB\n    Dictionary: 294NBTj2mFRL3RB4kDRUSckwGg7Kzj6T8CTAFeR1kcSA\n- type:\n    blueId: FGYuTXwaoSKfZmpTysLTLsb8WzSqf43384rKZDkXhxD4\n";
 
-// raw-yaml:/Users/piotr/data/blue-js/libs/language/src/lib/resources/transformation/Transformation.yaml
+// raw-yaml:/Users/mjonak/www-apps/work/Blue/blue-js-3/libs/language/src/lib/resources/transformation/Transformation.yaml
 var Transformation_default = "name: Transformation\ndescription: TODO";
 
-// raw-yaml:/Users/piotr/data/blue-js/libs/language/src/lib/resources/transformation/InferBasicTypesForUntypedValues.yaml
+// raw-yaml:/Users/mjonak/www-apps/work/Blue/blue-js-3/libs/language/src/lib/resources/transformation/InferBasicTypesForUntypedValues.yaml
 var InferBasicTypesForUntypedValues_default = "name: Infer Basic Types For Untyped Values\ntype:\n  blueId: Ct1SGRGw1i47qjzm1ruiUdSZofeV6WevPTGuieVvbRS4\ndescription: This transformation infers type details for Text, Integer, Number and Boolean.";
 
-// raw-yaml:/Users/piotr/data/blue-js/libs/language/src/lib/resources/transformation/ReplaceInlineTypesWithBlueIds.yaml
+// raw-yaml:/Users/mjonak/www-apps/work/Blue/blue-js-3/libs/language/src/lib/resources/transformation/ReplaceInlineTypesWithBlueIds.yaml
 var ReplaceInlineTypesWithBlueIds_default = "name: Replace Inline Types with BlueIds\ntype:\n  blueId: Ct1SGRGw1i47qjzm1ruiUdSZofeV6WevPTGuieVvbRS4\ndescription: This transformation replaces";
 
 // libs/language/src/lib/provider/BaseContentNodeProvider.ts
@@ -15338,6 +15454,13 @@ function buildContractEntries(node) {
   return entries;
 }
 
+// libs/document-processor/src/utils/gasCosts.ts
+var GAS_COST_ROUTE_TRAVERSAL = 5;
+var GAS_COST_ROUTE_MATCH = 10;
+var GAS_COST_HANDLER_INVOCATION = 25;
+var GAS_COST_PATCH_APPLICATION = 15;
+var GAS_COST_EMITTED_EVENT = 10;
+
 // libs/document-processor/src/routing/EventRouter.ts
 var MAX_INLINE_ADAPTER_DEPTH = 64;
 var EventRouter = class {
@@ -15368,6 +15491,10 @@ var EventRouter = class {
    * @param inlineDepth - Current adapter recursion depth
    */
   async route(doc, pathSegments, event, afterTaskId, inlineDepth = 0, gasMeter) {
+    gasMeter?.consume(
+      GAS_COST_ROUTE_TRAVERSAL,
+      `route:depth:${pathSegments.length}`
+    );
     if (event.seq === void 0) {
       event.seq = this.getNextEventSeq();
     }
@@ -15427,6 +15554,10 @@ var EventRouter = class {
       };
       const ctx = new InternalContext(() => doc, handlerTask, this.blue, void 0, gasMeter);
       if (!cp.supports(event, contractNode, ctx, contractName)) continue;
+      gasMeter?.consume(
+        GAS_COST_ROUTE_MATCH,
+        `route:match:${nodePath}#${contractName}`
+      );
       switch (cp.role) {
         case "adapter":
           await this.processAdapter({
@@ -15448,10 +15579,10 @@ var EventRouter = class {
             nodePath,
             event,
             depth: pathSegments.length,
-            afterTaskId
+            afterTaskId,
+            gasMeter
           });
           break;
-        // Validators are ignored at enqueue step – they run inside handlers
         case "validator":
           break;
         case "marker":
@@ -15482,6 +15613,10 @@ var EventRouter = class {
       ctx.getTaskInfo()?.nodePath ?? "",
       contractName
     );
+    gasMeter?.consume(
+      GAS_COST_HANDLER_INVOCATION,
+      `adapter:${contractName}`
+    );
     await cp.handle(tracedEvent, contractNode, ctx, contractName);
     const batch = await ctx.flush();
     const illegal = batch.find((a4) => a4.kind === "patch");
@@ -15492,6 +15627,10 @@ var EventRouter = class {
     }
     const emitted = batch.filter((a4) => a4.kind === "event");
     for (const a4 of emitted) {
+      gasMeter?.consume(
+        GAS_COST_EMITTED_EVENT,
+        `event:adapter:${contractName}`
+      );
       await this.route(doc, [], a4.event, afterTaskId, inlineDepth + 1, gasMeter);
     }
   }
@@ -15499,7 +15638,15 @@ var EventRouter = class {
    * Schedules a handler contract for future execution
    */
   scheduleHandler(args) {
-    const { contractNode, contractName, nodePath, event, depth, afterTaskId } = args;
+    const {
+      contractNode,
+      contractName,
+      nodePath,
+      event,
+      depth,
+      afterTaskId,
+      gasMeter
+    } = args;
     const contractNodeType = contractNode.getType();
     if (!contractNodeType) {
       console.warn(`Contract node type is not defined for: ${contractName}`);
@@ -16759,10 +16906,15 @@ var JavaScriptCodeExecutor = class {
     if (!javaScriptCodeStep.code) {
       throw new Error("JavaScript code is required");
     }
+    const bindings = BindingsFactory.createStandardBindings(
+      ctx,
+      event,
+      stepResults
+    );
     const result = await ExpressionEvaluator.evaluate({
       code: javaScriptCodeStep.code,
       ctx,
-      bindings: BindingsFactory.createStandardBindings(ctx, event, stepResults),
+      bindings,
       options: {
         isCodeBlock: true,
         timeout: 500
@@ -17116,6 +17268,10 @@ var NativeBlueDocumentProcessor = class {
                 }
               }
               try {
+                gasMeter?.consume(
+                  GAS_COST_PATCH_APPLICATION,
+                  `patch:${act.patch.op}`
+                );
                 current = applyPatches(current, [act.patch]);
               } catch (err) {
                 logPatchError(contractName, event, err);
@@ -17123,6 +17279,10 @@ var NativeBlueDocumentProcessor = class {
               }
             } else if (act.kind === "event") {
               emitted.push(act.event.payload);
+              gasMeter?.consume(
+                GAS_COST_EMITTED_EVENT,
+                `event:${contractName}`
+              );
               await this.router.route(
                 current,
                 [],
@@ -17135,6 +17295,10 @@ var NativeBlueDocumentProcessor = class {
           }
         },
         gasMeter
+      );
+      gasMeter?.consume(
+        GAS_COST_HANDLER_INVOCATION,
+        `handler:${contractName}`
       );
       await cp.handle(event, contractNode, ctx, contractName);
       await ctx.flush();
@@ -17216,5 +17380,4 @@ var quickJsEntry = {
   initialize,
   processEvents
 };
-globalThis.__BLUE_QUICKJS_ENTRY__ = quickJsEntry;
 globalThis.__BLUE_ENTRY__ = quickJsEntry;

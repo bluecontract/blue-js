@@ -13,7 +13,6 @@ const ENTRY_SOURCE = `(() => {
     },
   };
   globalThis.__BLUE_ENTRY__ = entry;
-  globalThis.__BLUE_QUICKJS_ENTRY__ = entry;
   return entry;
 })()`;
 

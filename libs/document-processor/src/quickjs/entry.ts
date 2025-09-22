@@ -22,7 +22,7 @@ declare global {
   // eslint-disable-next-line no-var
   var __BLUE_REPOSITORIES__: BlueRepository[] | undefined;
   // Exposed to the host runtime after bundling so the bridge can pick up the entry points.
-  var __BLUE_QUICKJS_ENTRY__: Record<string, unknown> | undefined;
+  // eslint-disable-next-line no-var
   var __BLUE_ENTRY__: Record<string, unknown> | undefined;
 }
 
@@ -36,11 +36,9 @@ envBag.SKIP_ISOLATED_VM = 'true';
 
 globalThis.__BLUE_ENV__ = envBag;
 
-const repositories =
-  coerceArray<BlueRepository>(globalThis.__BLUE_REPOSITORIES__) ?? [
-    coreRepository,
-    myosRepository,
-  ];
+const repositories = coerceArray<BlueRepository>(
+  globalThis.__BLUE_REPOSITORIES__
+) ?? [coreRepository, myosRepository];
 
 const blue = new Blue({ repositories });
 const processor = new NativeBlueDocumentProcessor(blue, defaultProcessors);
@@ -63,11 +61,19 @@ function deserializeEvents(json: unknown[] | undefined) {
   return json.map((evt) => blue.jsonValueToNode(evt));
 }
 
-async function safeCall<T>(label: string, fn: () => Promise<T> | T): Promise<T> {
+async function safeCall<T>(
+  label: string,
+  fn: () => Promise<T> | T
+): Promise<T> {
   try {
     return await fn();
   } catch (error) {
-    host?.log?.('error', `${label} failed: ${error instanceof Error ? error.message : String(error)}`);
+    host?.log?.(
+      'error',
+      `${label} failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
     throw error;
   }
 }
@@ -111,5 +117,4 @@ const quickJsEntry = {
   processEvents,
 };
 
-globalThis.__BLUE_QUICKJS_ENTRY__ = quickJsEntry;
 globalThis.__BLUE_ENTRY__ = quickJsEntry;
