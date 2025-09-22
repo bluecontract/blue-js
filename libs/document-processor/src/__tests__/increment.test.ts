@@ -2,7 +2,7 @@ import { describe, it } from 'vitest';
 import { Blue } from '@blue-labs/language';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { prepareToProcess } from '../testUtils';
 import { createMyOSTimelineEntryEvent } from '../utils/eventFactories';
 
@@ -10,7 +10,7 @@ describe('increment', () => {
   const blue = new Blue({
     repositories: [coreRepository, myosRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
   const doc = {
     name: 'Simple Counter',
     counter: 0,

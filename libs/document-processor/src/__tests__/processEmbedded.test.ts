@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { EmbeddedDocumentModificationError } from '../utils/exceptions';
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
 import { createTimelineEntryEvent } from '../utils/eventFactories';
@@ -18,7 +18,7 @@ describe('Process Embedded – cross-boundary guard', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
 
   const TIMELINE_EVENT = createTimelineEntryEvent('t', { name: 'Ping' }, blue);
   it('allows workflows INSIDE the embedded subtree to mutate it', async () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import {
   repository as coreRepository,
   DocumentUpdateSchema,
@@ -12,7 +12,7 @@ describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
 
   const timelineEvent = (
     timelineId: string,
@@ -69,6 +69,7 @@ describe('BlueDocumentProcessor', () => {
       [timelineEntry]
     );
     const stateMap = blue.nodeToJson(state, 'simple') as any;
+    console.log('stateMap', JSON.stringify(stateMap, null, 2));
     expect(stateMap?.counter).toBe(2);
     expect(emitted.some((e) => blue.isTypeOf(e, DocumentUpdateSchema))).toBe(
       true

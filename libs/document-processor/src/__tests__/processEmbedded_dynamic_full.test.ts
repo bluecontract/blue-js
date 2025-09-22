@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { EmbeddedDocumentModificationError } from '../utils/exceptions';
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
 import { createTimelineEntryEvent } from '../utils/eventFactories';
@@ -19,7 +19,7 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
   const timelineEvent = (
     timelineId: string,
     message: unknown = { name: 'Ping' }

@@ -13,6 +13,13 @@ import { ContractRegistry } from '../registry/ContractRegistry';
 import { EventTraceManager } from '../utils/EventTraceManager';
 import { Blue, isBigNumber } from '@blue-labs/language';
 import { buildContractEntries } from './buildContractEntries';
+import { GasMeter } from '../utils/GasMeter';
+import {
+  GAS_COST_EMITTED_EVENT,
+  GAS_COST_HANDLER_INVOCATION,
+  GAS_COST_ROUTE_MATCH,
+  GAS_COST_ROUTE_TRAVERSAL,
+} from '../utils/gasCosts';
 
 /** Maximum recursion depth for inline adapter processing */
 const MAX_INLINE_ADAPTER_DEPTH = 64;
@@ -55,8 +62,13 @@ export class EventRouter {
     pathSegments: string[],
     event: EventNode,
     afterTaskId: number,
-    inlineDepth = 0
+    inlineDepth = 0,
+    gasMeter?: GasMeter
   ): Promise<void> {
+    gasMeter?.consume(
+      GAS_COST_ROUTE_TRAVERSAL,
+      `route:depth:${pathSegments.length}`
+    );
     if (event.seq === undefined) {
       event.seq = this.getNextEventSeq();
     }
@@ -66,7 +78,7 @@ export class EventRouter {
         const segs = event.dispatchPath.split('/').filter(Boolean);
         const cloned = { ...event };
         delete cloned.dispatchPath;
-        return this.route(doc, segs, cloned, afterTaskId, inlineDepth);
+        return this.route(doc, segs, cloned, afterTaskId, inlineDepth, gasMeter);
       }
       if (
         event.source === 'channel' &&
@@ -74,7 +86,7 @@ export class EventRouter {
         event.originNodePath !== '/'
       ) {
         const segs = event.originNodePath?.split('/').filter(Boolean) ?? [];
-        return this.route(doc, segs, event, afterTaskId, inlineDepth);
+        return this.route(doc, segs, event, afterTaskId, inlineDepth, gasMeter);
       }
     }
 
@@ -91,6 +103,7 @@ export class EventRouter {
       afterTaskId,
       pathSegments,
       inlineDepth,
+      gasMeter,
     });
   }
 
@@ -105,6 +118,7 @@ export class EventRouter {
     afterTaskId: number;
     pathSegments: string[];
     inlineDepth: number;
+    gasMeter?: GasMeter;
   }): Promise<void> {
     const {
       doc,
@@ -114,6 +128,7 @@ export class EventRouter {
       afterTaskId,
       pathSegments,
       inlineDepth,
+      gasMeter,
     } = args;
 
     // Skip events originating from other channel nodes
@@ -135,8 +150,13 @@ export class EventRouter {
         event,
       };
 
-      const ctx = new InternalContext(() => doc, handlerTask, this.blue);
+      const ctx = new InternalContext(() => doc, handlerTask, this.blue, undefined, gasMeter);
       if (!cp.supports(event, contractNode, ctx, contractName)) continue;
+
+      gasMeter?.consume(
+        GAS_COST_ROUTE_MATCH,
+        `route:match:${nodePath}#${contractName}`
+      );
 
       // Dispatch based on processor role
       switch (cp.role) {
@@ -150,6 +170,7 @@ export class EventRouter {
             doc,
             afterTaskId,
             inlineDepth,
+            gasMeter,
           });
           break;
         case 'handler':
@@ -160,6 +181,7 @@ export class EventRouter {
             event,
             depth: pathSegments.length,
             afterTaskId,
+            gasMeter,
           });
           break;
         // Validators are ignored at enqueue step – they run inside handlers
@@ -183,6 +205,7 @@ export class EventRouter {
     doc: DocumentNode;
     afterTaskId: number;
     inlineDepth: number;
+    gasMeter?: GasMeter;
   }): Promise<void> {
     const {
       cp,
@@ -193,6 +216,7 @@ export class EventRouter {
       doc,
       afterTaskId,
       inlineDepth,
+      gasMeter,
     } = args;
 
     if (inlineDepth >= MAX_INLINE_ADAPTER_DEPTH) {
@@ -203,6 +227,11 @@ export class EventRouter {
       event,
       ctx.getTaskInfo()?.nodePath ?? '',
       contractName
+    );
+
+    gasMeter?.consume(
+      GAS_COST_HANDLER_INVOCATION,
+      `adapter:${contractName}`
     );
 
     await cp.handle(tracedEvent, contractNode, ctx, contractName);
@@ -220,7 +249,11 @@ export class EventRouter {
 
     // Re‑enqueue any events emitted by the adapter
     for (const a of emitted) {
-      await this.route(doc, [], a.event, afterTaskId, inlineDepth + 1);
+      gasMeter?.consume(
+        GAS_COST_EMITTED_EVENT,
+        `event:adapter:${contractName}`
+      );
+      await this.route(doc, [], a.event, afterTaskId, inlineDepth + 1, gasMeter);
     }
   }
 
@@ -234,9 +267,17 @@ export class EventRouter {
     event: EventNode;
     depth: number;
     afterTaskId: number;
+    gasMeter?: GasMeter;
   }): void {
-    const { contractNode, contractName, nodePath, event, depth, afterTaskId } =
-      args;
+    const {
+      contractNode,
+      contractName,
+      nodePath,
+      event,
+      depth,
+      afterTaskId,
+      gasMeter,
+    } = args;
 
     const contractNodeType = contractNode.getType();
     if (!contractNodeType) {

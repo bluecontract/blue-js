@@ -11,7 +11,7 @@ import { vi, describe, expect, beforeEach, test } from 'vitest';
 import { Blue, ResolvedBlueNode } from '@blue-labs/language';
 import { ContractProcessor, ContractRole, EventNodePayload } from '../types';
 import { JsonObject } from 'type-fest';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
 import { createTimelineEntryEvent } from '../utils/eventFactories';
@@ -54,7 +54,7 @@ describe('Checkpoint', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
 
   beforeEach(() => {
     seq = 0;
@@ -168,7 +168,7 @@ describe('Checkpoint', () => {
   }
 
   test('checkpoint write is rolled back when a handler errors', async () => {
-    const engine = new BlueDocumentProcessor(blue, [new FailingProc()]);
+    const engine = new NativeBlueDocumentProcessor(blue, [new FailingProc()]);
 
     const { initializedState } = await prepareToProcess(baseDoc, {
       blue,
@@ -198,7 +198,7 @@ describe('Checkpoint - ResolvedBlueNode handling', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
   /* ------------------------------------------------------------------ */
   /* 6 – ResolvedBlueNode handling                                      */
   /* ------------------------------------------------------------------ */

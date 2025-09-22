@@ -5,7 +5,7 @@ import {
 } from '../utils/exceptions';
 import { JsonObject } from '@blue-labs/shared-utils';
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import {
   repository as coreRepository,
   DocumentUpdateSchema,
@@ -33,7 +33,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
   const timelineEvent = (message: unknown) => {
     return createTimelineEntryEvent('t1', message, blue);
   };
@@ -208,7 +208,7 @@ describe('Sequential Workflow – Error Handling', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
   const timelineEvent = (message: unknown) => {
     return createTimelineEntryEvent('t1', message, blue);
   };

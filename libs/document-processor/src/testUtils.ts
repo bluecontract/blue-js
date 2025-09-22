@@ -1,11 +1,11 @@
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from './BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from './NativeBlueDocumentProcessor';
 
 export const prepareToProcess = async (
   doc: unknown,
   deps: {
     blue: Blue;
-    documentProcessor: BlueDocumentProcessor;
+    documentProcessor: NativeBlueDocumentProcessor;
   }
 ) => {
   const { blue, documentProcessor } = deps;
@@ -25,7 +25,7 @@ export const prepareToProcessYaml = async (
   doc: string,
   deps: {
     blue: Blue;
-    documentProcessor: BlueDocumentProcessor;
+    documentProcessor: NativeBlueDocumentProcessor;
   }
 ) => {
   const { blue, documentProcessor } = deps;

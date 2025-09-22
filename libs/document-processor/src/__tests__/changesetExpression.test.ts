@@ -1,5 +1,5 @@
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
 import { prepareToProcessYaml } from '../testUtils';
@@ -11,7 +11,7 @@ describe('BlueDocumentProcessor', () => {
     repositories: [coreRepository, myosRepository],
     mergingProcessor: createDefaultMergingProcessor(),
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
   const timelineEntryEvent = (timelineId: string, message: unknown) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };

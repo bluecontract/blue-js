@@ -44,3 +44,5 @@ export class CodeBlockEvaluationError extends Error {
     this.name = 'CodeBlockEvaluationError';
   }
 }
+
+export { GasBudgetExceededError } from './GasMeter';
