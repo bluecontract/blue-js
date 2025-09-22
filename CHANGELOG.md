@@ -1,3 +1,9 @@
+## 1.33.3 (2025-09-22)
+
+### 🩹 Fixes
+
+- remove non secure eval implementation ([606b279](https://github.com/bluecontract/blue-js/commit/606b279))
+
 ## 1.33.2 (2025-09-19)
 
 ### 🩹 Fixes
