@@ -38,16 +38,13 @@ describe('Document Session Bootstrap integration', () => {
       message: {
         type: 'Operation Request',
         operation: 'myOsAdminUpdate',
-        request: {
-          type: 'List',
-          items: [
-            {
-              type: 'Participant Resolved',
-              channelName: 'alice',
-              participant: { status: { accountStatus: 'Active' } },
-            },
-          ],
-        },
+        request: [
+          {
+            type: 'Participant Resolved',
+            channelName: 'alice',
+            participant: { status: { accountStatus: 'Active' } },
+          },
+        ],
       },
     });
 
@@ -76,15 +73,12 @@ describe('Document Session Bootstrap integration', () => {
       message: {
         type: 'Operation Request',
         operation: 'myOsAdminUpdate',
-        request: {
-          type: 'List',
-          items: [
-            {
-              type: 'Target Document Session Started',
-              initiatorSessionId: 'sess-123',
-            },
-          ],
-        },
+        request: [
+          {
+            type: 'Target Document Session Started',
+            initiatorSessionId: 'sess-123',
+          },
+        ],
       },
     });
 
@@ -112,10 +106,7 @@ describe('Document Session Bootstrap integration', () => {
       message: {
         type: 'Operation Request',
         operation: 'myOsAdminUpdate',
-        request: {
-          type: 'List',
-          items: [{ type: 'Bootstrap Failed', reason: 'Something went wrong' }],
-        },
+        request: [{ type: 'Bootstrap Failed', reason: 'Something went wrong' }],
       },
     });
 
