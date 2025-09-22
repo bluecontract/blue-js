@@ -1,3 +1,9 @@
+## 1.34.0 (2025-09-22)
+
+### 🚀 Features
+
+- **language:** support implicit List/Dictionary structure and enforce itemType/valueType ([39e871d](https://github.com/bluecontract/blue-js/commit/39e871d))
+
 ## 1.33.3 (2025-09-22)
 
 ### 🩹 Fixes
