@@ -3,7 +3,7 @@ import { repository as coreRepository } from '@blue-repository/core-dev';
 import { repository as myosRepository } from '@blue-repository/myos-dev';
 import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { defaultProcessors } from '../config';
-import { ProcessingOptions } from '../types';
+import { DocumentNode, EventNodePayload, ProcessingOptions } from '../types';
 
 function coerceArray<T>(value: unknown): T[] | undefined {
   if (!Array.isArray(value)) return undefined;
@@ -43,20 +43,20 @@ const repositories = coerceArray<BlueRepository>(
 const blue = new Blue({ repositories });
 const processor = new NativeBlueDocumentProcessor(blue, defaultProcessors);
 
-function serializeState(state: unknown) {
-  return blue.nodeToJson(state as any, 'original');
+function serializeState(state: DocumentNode) {
+  return blue.nodeToJson(state, 'original');
 }
 
-function serializeEmitted(emitted: unknown[] | undefined) {
+function serializeEmitted(emitted: EventNodePayload[] | undefined) {
   if (!emitted) return [];
-  return emitted.map((evt) => blue.nodeToJson(evt as any, 'original'));
+  return emitted.map((evt) => blue.nodeToJson(evt, 'original'));
 }
 
-function deserializeDocument(json: unknown) {
+function deserializeDocument(json: unknown): DocumentNode {
   return blue.jsonValueToNode(json);
 }
 
-function deserializeEvents(json: unknown[] | undefined) {
+function deserializeEvents(json: unknown[] | undefined): EventNodePayload[] {
   if (!json) return [];
   return json.map((evt) => blue.jsonValueToNode(evt));
 }
@@ -87,7 +87,7 @@ async function initialize(
     const result = await processor.initialize(document, options);
     return {
       state: serializeState(result.state),
-      emitted: serializeEmitted(result.emitted as unknown[] | undefined),
+      emitted: serializeEmitted(result.emitted),
       gasUsed: result.gasUsed,
       gasRemaining: result.gasRemaining,
     };
@@ -105,7 +105,7 @@ async function processEvents(
     const result = await processor.processEvents(document, events, options);
     return {
       state: serializeState(result.state),
-      emitted: serializeEmitted(result.emitted as unknown[] | undefined),
+      emitted: serializeEmitted(result.emitted),
       gasUsed: result.gasUsed,
       gasRemaining: result.gasRemaining,
     };

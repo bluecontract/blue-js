@@ -180,7 +180,7 @@ export class QuickJsHostBridge {
       };
     } finally {
       if (deadline) {
-        runtime.setInterruptHandler(undefined);
+        runtime.removeInterruptHandler();
       }
       context.setProp(context.global, '__BLUE_REQUEST__', context.undefined);
     }
@@ -406,7 +406,7 @@ export class QuickJsHostBridge {
           if (typeof dumped === 'string') return dumped;
           try {
             return JSON.stringify(dumped);
-          } catch (_) {
+          } catch {
             return String(dumped);
           }
         });
@@ -424,7 +424,7 @@ export class QuickJsHostBridge {
                 : 'info';
             hostLog(hostLevel, message);
           }
-        } catch (_) {
+        } catch {
           // Swallow host logging failures to keep QuickJS sandbox robust.
         }
         return context.undefined;
@@ -456,29 +456,36 @@ export class QuickJsHostBridge {
 
     return context.newAsyncifiedFunction('log', async (...args) => {
       const [levelHandle, messageHandle] = args;
-      const level = (
-        levelHandle ? context.dump(levelHandle) : 'info'
-      ) as string;
-      const messageValue = messageHandle
-        ? context.dump(messageHandle)
-        : undefined;
-      const message =
-        typeof messageValue === 'string'
-          ? messageValue
-          : JSON.stringify(messageValue);
-
       try {
-        log(
-          level === 'debug' || level === 'warn' || level === 'error'
-            ? level
-            : 'info',
-          message ?? ''
-        );
-        return context.undefined;
-      } catch (error) {
-        return {
-          error: this.toQuickJSErrorHandle(context, error),
-        };
+        const levelValue = levelHandle ? context.dump(levelHandle) : 'info';
+        const messageValue = messageHandle
+          ? context.dump(messageHandle)
+          : undefined;
+
+        const level =
+          levelValue === 'debug' ||
+          levelValue === 'warn' ||
+          levelValue === 'error' ||
+          levelValue === 'info'
+            ? (levelValue as 'debug' | 'info' | 'warn' | 'error')
+            : 'info';
+
+        const message = this.stringifyForLog(messageValue);
+
+        try {
+          log(level, message);
+          return context.undefined;
+        } catch (error) {
+          return {
+            error: this.toQuickJSErrorHandle(context, error),
+          };
+        }
+      } finally {
+        for (const handle of args) {
+          if (handle?.alive) {
+            handle.dispose();
+          }
+        }
       }
     });
   }
@@ -514,7 +521,15 @@ export class QuickJsHostBridge {
     }
 
     return context.newAsyncifiedFunction(name, async (inputHandle) => {
-      const input = String(context.dump(inputHandle));
+      let input = '';
+      try {
+        input = String(context.dump(inputHandle));
+      } finally {
+        if (inputHandle.alive) {
+          inputHandle.dispose();
+        }
+      }
+
       try {
         const result = await impl(input);
         if (typeof result === 'string') {
@@ -528,6 +543,22 @@ export class QuickJsHostBridge {
         };
       }
     });
+  }
+
+  private stringifyForLog(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (value === undefined) {
+      return '';
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
   }
 
   private toQuickJSErrorHandle(

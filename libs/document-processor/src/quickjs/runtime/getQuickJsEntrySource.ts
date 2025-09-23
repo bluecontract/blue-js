@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import type { FileHandle } from 'fs/promises';
+import type { OnLoadArgs, OnResolveArgs, Plugin, PluginBuild } from 'esbuild';
 
 let cachedEntrySource: Promise<string> | null = null;
 const fsPromises = fs.promises;
@@ -27,15 +29,15 @@ async function loadEntrySource(): Promise<string> {
 
   try {
     return await fsPromises.readFile(prebuiltPath, 'utf8');
-  } catch (_) {
+  } catch {
     // fall through to dynamic build
   }
 
   const { build } = await import('esbuild');
 
-  const aliasPlugin = {
+  const aliasPlugin: Plugin = {
     name: 'quickjs-bundle-alias',
-    setup(buildPlugin: any) {
+    setup(buildPlugin: PluginBuild) {
       buildPlugin.onResolve({ filter: /^@blue-labs\/language$/ }, () => ({
         path: path.resolve(projectRoot, 'libs/language/src/index.ts'),
       }));
@@ -57,13 +59,16 @@ async function loadEntrySource(): Promise<string> {
           'libs/document-processor/src/quickjs/stubs/buffer.js'
         ),
       }));
-      buildPlugin.onResolve({ filter: /\.yaml\?raw$/ }, (args: any) => ({
-        path: path.resolve(args.resolveDir, args.path.replace('?raw', '')),
-        namespace: 'raw-yaml',
-      }));
+      buildPlugin.onResolve(
+        { filter: /\.yaml\?raw$/ },
+        (args: OnResolveArgs) => ({
+          path: path.resolve(args.resolveDir, args.path.replace('?raw', '')),
+          namespace: 'raw-yaml',
+        })
+      );
       buildPlugin.onLoad(
         { filter: /\.yaml$/, namespace: 'raw-yaml' },
-        async (args: any) => {
+        async (args: OnLoadArgs) => {
           const contents = await fsPromises.readFile(args.path, 'utf8');
           return { contents, loader: 'text' };
         }
@@ -76,7 +81,7 @@ async function loadEntrySource(): Promise<string> {
   try {
     try {
       return await fsPromises.readFile(prebuiltPath, 'utf8');
-    } catch (_) {
+    } catch {
       // continue to build
     }
 
@@ -115,12 +120,12 @@ async function loadEntrySource(): Promise<string> {
   }
 }
 
-async function acquireLock(lockPath: string) {
+async function acquireLock(lockPath: string): Promise<FileHandle> {
   while (true) {
     try {
       return await fsPromises.open(lockPath, 'wx');
-    } catch (error: any) {
-      if (error && error.code === 'EEXIST') {
+    } catch (error: unknown) {
+      if (isErrnoException(error) && error.code === 'EEXIST') {
         await delay(50);
         continue;
       }
@@ -129,7 +134,10 @@ async function acquireLock(lockPath: string) {
   }
 }
 
-async function releaseLock(handle: any, lockPath: string) {
+async function releaseLock(
+  handle: FileHandle | null | undefined,
+  lockPath: string
+) {
   try {
     await handle?.close();
   } finally {
@@ -139,4 +147,13 @@ async function releaseLock(handle: any, lockPath: string) {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+  );
 }

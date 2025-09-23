@@ -30,10 +30,11 @@ export class BlueDocumentProcessor {
     if (!this.ready) {
       this.ready = (async () => {
         const entrySource = await getQuickJsEntrySource();
-        const { processor, bridge } = createQuickJsBlueDocumentProcessorWithDefaults({
-          entrySource,
-          blue: this.blue,
-        });
+        const { processor, bridge } =
+          createQuickJsBlueDocumentProcessorWithDefaults({
+            entrySource,
+            blue: this.blue,
+          });
         this.quickProcessor = processor;
         this.bridge = bridge;
       })();
@@ -46,7 +47,11 @@ export class BlueDocumentProcessor {
     options: ProcessingOptions = {}
   ): Promise<ProcessingResult> {
     await this.ensureReady();
-    return this.quickProcessor!.initialize(document, options);
+    const processor = this.quickProcessor;
+    if (!processor) {
+      throw new Error('QuickJS document processor failed to initialise');
+    }
+    return processor.initialize(document, options);
   }
 
   async processEvents(
@@ -55,7 +60,11 @@ export class BlueDocumentProcessor {
     options: ProcessingOptions = {}
   ): Promise<ProcessingResult> {
     await this.ensureReady();
-    return this.quickProcessor!.processEvents(document, events, options);
+    const processor = this.quickProcessor;
+    if (!processor) {
+      throw new Error('QuickJS document processor failed to process events');
+    }
+    return processor.processEvents(document, events, options);
   }
 
   async dispose(): Promise<void> {

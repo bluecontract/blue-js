@@ -65,7 +65,8 @@ function toDeterministicError(value: unknown): Error {
   }
   if (isObjectLike(value)) {
     const name = typeof value.name === 'string' ? value.name : 'Error';
-    const message = typeof value.message === 'string' ? value.message : JSON.stringify(value);
+    const message =
+      typeof value.message === 'string' ? value.message : JSON.stringify(value);
     const error = new Error(message);
     error.name = name;
     return error;
@@ -104,7 +105,12 @@ export class ExpressionEvaluator {
     ];
 
     if (error) {
-      message.push('', `Underlying error: ${error instanceof Error ? error.message : String(error)}`);
+      message.push(
+        '',
+        `Underlying error: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
 
     return message.join('\n');
@@ -131,7 +137,10 @@ export class ExpressionEvaluator {
     try {
       quickJsModule = await getQuickJsModule();
     } catch (error) {
-      throw new ExpressionEvaluationError(code, this.getQuickJSUnavailableMessage(error));
+      throw new ExpressionEvaluationError(
+        code,
+        this.getQuickJSUnavailableMessage(error)
+      );
     }
 
     try {
@@ -166,7 +175,9 @@ export class ExpressionEvaluator {
         const bindingKeys = Object.keys(bindings);
         const evalFn = new Function(
           ...bindingKeys,
-          `return async function codeBlock(${bindingKeys.join(', ')}) { ${code} }`
+          `return async function codeBlock(${bindingKeys.join(
+            ', '
+          )}) { ${code} }`
         );
         const codeBlockFn = await evalFn(
           ...bindingKeys.map((key) => bindings[key])
@@ -174,10 +185,7 @@ export class ExpressionEvaluator {
         return await codeBlockFn(...bindingKeys.map((key) => bindings[key]));
       }
 
-      const evalFn = new Function(
-        ...Object.keys(bindings),
-        `return ${code};`
-      );
+      const evalFn = new Function(...Object.keys(bindings), `return ${code};`);
       return evalFn(...Object.values(bindings));
     } catch (error) {
       if (options.isCodeBlock) throw new CodeBlockEvaluationError(code, error);
@@ -204,8 +212,9 @@ export class ExpressionEvaluator {
 
     const moduleCache = new Map<string, string>();
     runtime.setModuleLoader(async (specifier) => {
-      if (moduleCache.has(specifier)) {
-        return moduleCache.get(specifier)!;
+      const cached = moduleCache.get(specifier);
+      if (cached !== undefined) {
+        return cached;
       }
       const source = await this.loadModuleSource(specifier, ctx);
       moduleCache.set(specifier, source);
@@ -255,11 +264,14 @@ export class ExpressionEvaluator {
     bindings: VMBindings
   ): void {
     const consoleObject = context.newObject();
-    const logFunction = context.newAsyncifiedFunction('log', async (...args) => {
-      const values = args.map((arg) => context.dump(arg));
-      console.log(...values);
-      return context.undefined;
-    });
+    const logFunction = context.newAsyncifiedFunction(
+      'log',
+      async (...args) => {
+        const values = args.map((arg) => context.dump(arg));
+        console.log(...values);
+        return context.undefined;
+      }
+    );
     context.setProp(consoleObject, 'log', logFunction);
     logFunction.dispose();
     context.setProp(context.global, 'console', consoleObject);
@@ -267,21 +279,18 @@ export class ExpressionEvaluator {
 
     for (const [key, value] of Object.entries(bindings)) {
       if (typeof value === 'function') {
-        const fnHandle = context.newAsyncifiedFunction(
-          key,
-          async (...args) => {
-            const hostArgs = args.map((arg) => context.dump(arg));
-            try {
-              const hostResult = await (value as (...fnArgs: unknown[]) => unknown)(
-                ...hostArgs
-              );
-              const { handle } = this.toQuickJSValue(context, hostResult);
-              return handle;
-            } catch (error) {
-              return { error: this.toQuickJSErrorHandle(context, error) };
-            }
+        const fnHandle = context.newAsyncifiedFunction(key, async (...args) => {
+          const hostArgs = args.map((arg) => context.dump(arg));
+          try {
+            const hostResult = await (
+              value as (...fnArgs: unknown[]) => unknown
+            )(...hostArgs);
+            const { handle } = this.toQuickJSValue(context, hostResult);
+            return handle;
+          } catch (error) {
+            return { error: this.toQuickJSErrorHandle(context, error) };
           }
-        );
+        });
         context.setProp(context.global, key, fnHandle);
         fnHandle.dispose();
       } else {
@@ -324,7 +333,9 @@ export class ExpressionEvaluator {
     let moduleCode = code;
     if (options.isCodeBlock) {
       const importExportRegex = /^\s*(import\s.+?;|export\s.+?;)/gm;
-      const importExportLines = (code.match(importExportRegex) || []).join('\n');
+      const importExportLines = (code.match(importExportRegex) || []).join(
+        '\n'
+      );
       const codeWithoutImports = code.replace(importExportRegex, '').trim();
 
       moduleCode = `
@@ -336,9 +347,13 @@ export class ExpressionEvaluator {
       `;
     }
 
-    const evaluation = await context.evalCodeAsync(moduleCode, 'expression-evaluator-entry.mjs', {
-      type: 'module',
-    });
+    const evaluation = await context.evalCodeAsync(
+      moduleCode,
+      'expression-evaluator-entry.mjs',
+      {
+        type: 'module',
+      }
+    );
     const namespaceHandle = await this.resolveQuickJSHandle(
       context,
       runtime,
@@ -364,7 +379,9 @@ export class ExpressionEvaluator {
       if (state.type === 'pending') {
         if (deadline && Date.now() > deadline) {
           handle.dispose();
-          throw new Error('QuickJS evaluation timed out while waiting for a promise to settle.');
+          throw new Error(
+            'QuickJS evaluation timed out while waiting for a promise to settle.'
+          );
         }
 
         const executed = this.executePendingJobs(runtime);
@@ -440,7 +457,10 @@ export class ExpressionEvaluator {
       return { handle: context.newBigInt(value), dispose: true };
     }
     if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
-      const copy = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+      const copy = value.buffer.slice(
+        value.byteOffset,
+        value.byteOffset + value.byteLength
+      );
       return { handle: context.newArrayBuffer(copy), dispose: true };
     }
     if (value instanceof Date) {
@@ -469,7 +489,10 @@ export class ExpressionEvaluator {
     }
     if (isObjectLike(value)) {
       if (seen.has(value)) {
-        return { handle: seen.get(value)!, dispose: false };
+        const existingHandle = seen.get(value);
+        if (existingHandle) {
+          return { handle: existingHandle, dispose: false };
+        }
       }
 
       const objectHandle = context.newObject();
@@ -560,7 +583,8 @@ export class ExpressionEvaluator {
   ): void {
     const gasMeter = ctx.getGasMeter?.();
     if (!gasMeter) return;
-    const cost = MODULE_RESOLUTION_GAS_COST + specifier.length * GAS_PER_CHAR_COST;
+    const cost =
+      MODULE_RESOLUTION_GAS_COST + specifier.length * GAS_PER_CHAR_COST;
     gasMeter.consume(cost, `module:${specifier}`);
   }
 }

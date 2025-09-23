@@ -29,7 +29,9 @@ describe('QuickJsHostBridge', () => {
   it('invokes processor methods and bridges host APIs', async () => {
     const logSpy = vi.fn();
     const nowSpy = vi.fn(() => 42);
-    const loadBlueContent = vi.fn((blueId: string) => `content:${blueId}`);
+    const loadBlueContent = vi.fn((blueId: string) =>
+      Promise.resolve(`content:${blueId}`)
+    );
 
     bridge = new QuickJsHostBridge({
       entrySource: ENTRY_SOURCE,
