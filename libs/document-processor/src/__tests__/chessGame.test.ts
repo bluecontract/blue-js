@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import yaml from 'js-yaml';
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
 import { createTimelineEntryEvent } from '../utils/eventFactories';
@@ -24,7 +24,7 @@ describe('Chess Game with Two Timeline Channels', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
 
   /**
    * Creates a timeline event for a player's move

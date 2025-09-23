@@ -1,11 +1,22 @@
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from './BlueDocumentProcessor';
+import {
+  DocumentNode,
+  ProcessingOptions,
+  ProcessingResult,
+} from './types';
+
+type DocumentProcessorLike = {
+  initialize(
+    document: DocumentNode,
+    options?: ProcessingOptions
+  ): Promise<ProcessingResult>;
+};
 
 export const prepareToProcess = async (
   doc: unknown,
   deps: {
     blue: Blue;
-    documentProcessor: BlueDocumentProcessor;
+    documentProcessor: DocumentProcessorLike;
   }
 ) => {
   const { blue, documentProcessor } = deps;
@@ -25,7 +36,7 @@ export const prepareToProcessYaml = async (
   doc: string,
   deps: {
     blue: Blue;
-    documentProcessor: BlueDocumentProcessor;
+    documentProcessor: DocumentProcessorLike;
   }
 ) => {
   const { blue, documentProcessor } = deps;

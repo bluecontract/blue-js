@@ -4,6 +4,7 @@ import {
   BlueNodePatch,
   ResolvedBlueNode,
 } from '@blue-labs/language';
+import { GasMeter } from './utils/GasMeter';
 
 // ---------------------------------------------------------------------------
 // ⚙️  Core type definitions
@@ -46,6 +47,16 @@ export interface ProcessingResult {
 
   /** All emitted events */
   emitted: EventNodePayload[];
+
+  /** Total gas consumed during processing */
+  gasUsed?: number;
+
+  /** Remaining gas after processing (if budgeted) */
+  gasRemaining?: number;
+}
+
+export interface ProcessingOptions {
+  gasBudget?: number;
 }
 
 export type ContractRole = 'adapter' | 'validator' | 'handler' | 'marker';
@@ -116,6 +127,11 @@ export type ProcessingContext = {
    * @param blueId ID of the blue to load
    */
   loadBlueContent(blueId: string): Promise<string>;
+
+  /**
+   * Optional gas meter available for deterministic budgeting
+   */
+  getGasMeter?: () => GasMeter | undefined;
 };
 
 export interface HandlerTask {

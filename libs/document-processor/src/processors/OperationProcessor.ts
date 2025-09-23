@@ -128,8 +128,6 @@ export class OperationProcessor implements ContractProcessor {
       return false;
     }
 
-    const eventRequestNodeResolved = blue.resolve(eventRequestNode);
-
-    return blue.isTypeOfNode(eventRequestNodeResolved, requestNode);
+    return blue.isTypeOfNode(eventRequestNode, requestNode);
   }
 }

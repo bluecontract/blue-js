@@ -41,10 +41,16 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
       throw new Error('JavaScript code is required');
     }
 
+    const bindings = BindingsFactory.createStandardBindings(
+      ctx,
+      event,
+      stepResults
+    );
+
     const result = await ExpressionEvaluator.evaluate({
       code: javaScriptCodeStep.code,
       ctx,
-      bindings: BindingsFactory.createStandardBindings(ctx, event, stepResults),
+      bindings,
       options: {
         isCodeBlock: true,
         timeout: 500,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Blue } from '@blue-labs/language';
-import { BlueDocumentProcessor } from '../BlueDocumentProcessor';
+import { NativeBlueDocumentProcessor } from '../NativeBlueDocumentProcessor';
 import { repository as coreRepository } from '@blue-repository/core-dev';
 import { prepareToProcess } from '../testUtils';
 import { createTimelineEntryEvent } from '../utils/eventFactories';
@@ -9,7 +9,7 @@ describe('BlueDocumentProcessor', () => {
   const blue = new Blue({
     repositories: [coreRepository],
   });
-  const documentProcessor = new BlueDocumentProcessor(blue);
+  const documentProcessor = new NativeBlueDocumentProcessor(blue);
 
   const timelineEvent = (
     timelineId: string,

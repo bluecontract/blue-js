@@ -8,6 +8,7 @@ import {
 } from './types';
 import { makePath } from './utils/path';
 import { Blue, BlueNodePatch } from '@blue-labs/language';
+import { GasMeter } from './utils/GasMeter';
 
 export class InternalContext implements ProcessingContext {
   private readonly actions: ProcessingAction[] = [];
@@ -16,7 +17,8 @@ export class InternalContext implements ProcessingContext {
     private getDocument: () => DocumentNode,
     private taskInfo: HandlerTask,
     private blue: Blue,
-    private onFlush?: (actions: ProcessingAction[]) => Promise<void>
+    private onFlush?: (actions: ProcessingAction[]) => Promise<void>,
+    private readonly gasMeter?: GasMeter
   ) {}
 
   get(path: string): BlueNodeGetResult {
@@ -86,5 +88,9 @@ export class InternalContext implements ProcessingContext {
     }
 
     return Promise.resolve(JSON.stringify(this.blue.nodeToJson(blueNode)));
+  }
+
+  getGasMeter(): GasMeter | undefined {
+    return this.gasMeter;
   }
 }

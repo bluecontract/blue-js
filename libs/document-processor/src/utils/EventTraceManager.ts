@@ -1,4 +1,5 @@
 import { EventNode } from '../types';
+import { getEnvVar } from './runtimeEnv';
 
 /**
  * Manages event tracing functionality for the Blue Document Processor
@@ -7,9 +8,15 @@ export class EventTraceManager {
   private readonly isEnabled: boolean;
   private static readonly MAX_TRACE_LENGTH = 128;
 
-  constructor() {
+  constructor(isEnabled?: boolean) {
     // Enable tracing by default; allow explicit opt-out via env flag
-    this.isEnabled = process.env.TRACE_BLUE_ENABLED !== 'false';
+    if (typeof isEnabled === 'boolean') {
+      this.isEnabled = isEnabled;
+      return;
+    }
+
+    const envValue = getEnvVar('TRACE_BLUE_ENABLED');
+    this.isEnabled = envValue !== 'false';
   }
 
   /**
