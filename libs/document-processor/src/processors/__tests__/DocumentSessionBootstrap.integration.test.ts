@@ -25,6 +25,18 @@ describe('Document Session Bootstrap integration', () => {
   const blue = new Blue({ repositories: [coreRepository, myosRepository] });
   const processor = new BlueDocumentProcessor(blue);
 
+  it('handles Document Processing Initiated and initializes status', async () => {
+    const doc = loadYamlFromResources('document-session-bootstrap.yaml');
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor: processor,
+    });
+    const json = blue.nodeToJson(initializedState, 'simple') as any;
+    expect(json.bootstrapStatus.type.blueId).toEqual(
+      coreBlueIds['Status In Progress']
+    );
+  });
+
   it('handles Participant Resolved and updates state + status', async () => {
     const doc = loadYamlFromResources('document-session-bootstrap.yaml');
     const { initializedState } = await prepareToProcess(doc, {
