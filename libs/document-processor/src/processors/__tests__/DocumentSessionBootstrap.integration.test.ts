@@ -5,7 +5,10 @@ import {
   blueIds as coreBlueIds,
   repository as coreRepository,
 } from '@blue-repository/core-dev';
-import { repository as myosRepository } from '@blue-repository/myos-dev';
+import {
+  repository as myosRepository,
+  blueIds as myosBlueIds,
+} from '@blue-repository/myos-dev';
 import yaml from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
@@ -24,6 +27,21 @@ function loadYamlFromResources(filename: string): Record<string, any> {
 describe('Document Session Bootstrap integration', () => {
   const blue = new Blue({ repositories: [coreRepository, myosRepository] });
   const processor = new BlueDocumentProcessor(blue);
+
+  const toMinimalRequest = (event: Record<string, unknown>) => {
+    const eventNode = blue.jsonValueToNode(event);
+    const resolved = blue.resolve(eventNode);
+    const minimalJson = blue.nodeToJson(resolved.getMinimalNode());
+
+    if (!minimalJson || typeof minimalJson !== 'object') {
+      return { type: event.type } as Record<string, unknown>;
+    }
+
+    return {
+      ...(minimalJson as Record<string, unknown>),
+      type: event.type,
+    } as Record<string, unknown>;
+  };
 
   it('handles Participant Resolved and updates state + status', async () => {
     const doc = loadYamlFromResources('document-session-bootstrap.yaml');
@@ -114,6 +132,61 @@ describe('Document Session Bootstrap integration', () => {
     const json = blue.nodeToJson(state, 'simple') as any;
 
     expect(json.bootstrapError).toBe('Something went wrong');
+    expect(json.bootstrapStatus.type.blueId).toEqual(
+      coreBlueIds['Status Failed']
+    );
+  });
+
+  it('handles minimal myOsAdminUpdate events emitted by MyOS Admin', async () => {
+    const doc = loadYamlFromResources('document-session-bootstrap.yaml');
+    const { initializedState } = await prepareToProcess(doc, {
+      blue,
+      documentProcessor: processor,
+    });
+
+    const participantResolvedMinimal = toMinimalRequest({
+      type: 'Participant Resolved',
+      channelName: 'bob',
+      participant: { status: { accountStatus: 'Inactive' } },
+    });
+
+    const participantEntry = blue.jsonValueToNode({
+      type: 'MyOS Timeline Entry',
+      timeline: { timelineId: 'admin-timeline' },
+      message: {
+        type: 'Operation Request',
+        operation: 'myOsAdminUpdate',
+        request: [participantResolvedMinimal],
+      },
+    });
+
+    const afterParticipant = await processor.processEvents(initializedState, [
+      participantEntry,
+    ]);
+
+    const bootstrapFailedMinimal = toMinimalRequest({
+      type: 'Bootstrap Failed',
+      reason: 'participant lookup failed',
+    });
+
+    const failedEntry = blue.jsonValueToNode({
+      type: 'MyOS Timeline Entry',
+      timeline: { timelineId: 'admin-timeline' },
+      message: {
+        type: 'Operation Request',
+        operation: 'myOsAdminUpdate',
+        request: [bootstrapFailedMinimal],
+      },
+    });
+
+    const { state } = await processor.processEvents(afterParticipant.state, [
+      failedEntry,
+    ]);
+
+    const json = blue.nodeToJson(state, 'simple') as any;
+
+    expect(json.participantsState?.bob?.accountStatus).toBe('Inactive');
+    expect(json.bootstrapError).toBe('participant lookup failed');
     expect(json.bootstrapStatus.type.blueId).toEqual(
       coreBlueIds['Status Failed']
     );
