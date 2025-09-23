@@ -400,7 +400,7 @@ export class QuickJsHostBridge {
     const hostLog = this.options.hostApis?.log;
 
     const makeLogger = (level: (typeof logLevels)[number]) => {
-      const fn = context.newFunction(`console_${level}`, (...args) => {
+      const fn = context.newFunction(`console_${level}`, (...args: QuickJSHandle[]) => {
         const messageParts = args.map((handle) => {
           const dumped = context.dump(handle);
           if (typeof dumped === 'string') return dumped;
@@ -454,7 +454,7 @@ export class QuickJsHostBridge {
       }));
     }
 
-    return context.newAsyncifiedFunction('log', async (...args) => {
+    return context.newAsyncifiedFunction('log', async (...args: QuickJSHandle[]) => {
       const [levelHandle, messageHandle] = args;
       try {
         const levelValue = levelHandle ? context.dump(levelHandle) : 'info';
@@ -520,7 +520,7 @@ export class QuickJsHostBridge {
       }));
     }
 
-    return context.newAsyncifiedFunction(name, async (inputHandle) => {
+    return context.newAsyncifiedFunction(name, async (inputHandle: QuickJSHandle) => {
       let input = '';
       try {
         input = String(context.dump(inputHandle));
