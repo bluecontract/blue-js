@@ -117,9 +117,7 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
 
     try {
       const blue = ctx.getBlue();
-      const eventPayloadNode = blue.resolve(event.payload);
-
-      return blue.isTypeOfNode(eventPayloadNode, channelEvent);
+      return blue.isTypeOfNode(event.payload, channelEvent);
     } catch (error) {
       console.warn('Error during event pattern matching:', error);
       return false;

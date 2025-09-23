@@ -76,9 +76,7 @@ export class LifecycleEventChannelProcessor extends BaseChannelProcessor {
 
     try {
       const blue = ctx.getBlue();
-      const eventPayloadNode = blue.resolve(event.payload);
-
-      return blue.isTypeOfNode(eventPayloadNode, channelEvent);
+      return blue.isTypeOfNode(event.payload, channelEvent);
     } catch (error) {
       console.warn('Error during lifecycle event pattern matching:', error);
       return false;
