@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '../Blue';
-import { NodeDeserializer } from '../model/NodeDeserializer';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import type { BlueRepository } from '../types/BlueRepository';
 import { RepositoryBasedNodeProvider } from '../provider';

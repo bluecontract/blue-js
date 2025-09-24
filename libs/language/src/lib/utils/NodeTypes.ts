@@ -90,8 +90,20 @@ export function isSubtype(
     return false;
   }
 
-  // Walk up the type hierarchy from subtype to see if it extends supertype
-  let current: BlueNode | undefined = getType(subtype, nodeProvider);
+  // Resolve subtype by its own BlueId if it's a reference node (BlueId-only)
+  // This allows handling cases like value.getType() that return a BlueId reference,
+  // so we can walk the actual definition's type chain.
+  let resolvedSubtype: BlueNode = subtype;
+  const subtypeRefBlueId = subtype.getBlueId();
+  if (subtypeRefBlueId) {
+    const fetched = nodeProvider.fetchByBlueId(subtypeRefBlueId);
+    if (fetched && fetched.length === 1) {
+      resolvedSubtype = fetched[0];
+    }
+  }
+
+  // Walk up the type hierarchy from the resolved subtype to see if it extends supertype
+  let current: BlueNode | undefined = resolvedSubtype;
   while (current !== undefined) {
     const blueId = BlueIdCalculator.calculateBlueIdSync(current);
     if (blueId === supertypeBlueId) {
