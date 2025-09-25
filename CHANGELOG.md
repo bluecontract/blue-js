@@ -1,3 +1,13 @@
+## 1.35.0 (2025-09-25)
+
+### 🚀 Features
+
+- **document-processor:** enhance document session bootstrap with lifecycle events and status initialization ([510acf6](https://github.com/bluecontract/blue-js/commit/510acf6))
+
+### 🩹 Fixes
+
+- **language/node-types:** dereference BlueId-only subtype in isSubtype for correct dictionary value validation ([95703b8](https://github.com/bluecontract/blue-js/commit/95703b8))
+
 ## 1.34.0 (2025-09-22)
 
 ### 🚀 Features
