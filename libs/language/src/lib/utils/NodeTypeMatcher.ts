@@ -277,11 +277,13 @@ export class NodeTypeMatcher {
       return false;
     }
 
-    if (NodeTypes.isListType(targetTypeType)) {
+    if (NodeTypes.isListType(targetTypeType, this.blue.getNodeProvider())) {
       return this.isImplicitListStructure(node);
     }
 
-    if (NodeTypes.isDictionaryType(targetTypeType)) {
+    if (
+      NodeTypes.isDictionaryType(targetTypeType, this.blue.getNodeProvider())
+    ) {
       return this.isImplicitDictionaryStructure(node);
     }
 

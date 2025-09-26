@@ -174,15 +174,24 @@ export function isBooleanType(
 /**
  * Checks if a type is List type
  */
-export function isListType(type: BlueNode | undefined): boolean {
-  return type?.getBlueId() === LIST_TYPE_BLUE_ID;
+export function isListType(
+  type: BlueNode,
+  nodeProvider: NodeProvider
+): boolean {
+  const listTypeNode = new BlueNode().setBlueId(LIST_TYPE_BLUE_ID);
+  return isSubtype(type, listTypeNode, nodeProvider);
 }
 
 /**
  * Checks if a type is Dictionary type
  */
-export function isDictionaryType(type: BlueNode | undefined): boolean {
-  return type?.getBlueId() === DICTIONARY_TYPE_BLUE_ID;
+export function isDictionaryType(
+  type: BlueNode,
+  nodeProvider: NodeProvider
+): boolean {
+  const dictionaryTypeNode = new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID);
+  return isSubtype(type, dictionaryTypeNode, nodeProvider);
+  // return type?.getBlueId() === DICTIONARY_TYPE_BLUE_ID;
 }
 
 /**
