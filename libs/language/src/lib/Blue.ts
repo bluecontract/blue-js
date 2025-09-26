@@ -120,6 +120,10 @@ export class Blue {
     return merger.resolve(node, effectiveLimits);
   }
 
+  public createResolvedNode(resolvedNode: BlueNode): ResolvedBlueNode {
+    return new ResolvedBlueNode(resolvedNode);
+  }
+
   public reverse(node: BlueNode) {
     const reverser = new MergeReverser();
     return reverser.reverse(node);
