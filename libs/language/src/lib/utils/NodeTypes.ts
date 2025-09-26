@@ -191,7 +191,6 @@ export function isDictionaryType(
 ): boolean {
   const dictionaryTypeNode = new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID);
   return isSubtype(type, dictionaryTypeNode, nodeProvider);
-  // return type?.getBlueId() === DICTIONARY_TYPE_BLUE_ID;
 }
 
 /**
