@@ -6,7 +6,7 @@ import { createNodeProvider } from '../../NodeProvider';
 import { NO_LIMITS } from '../../utils/limits';
 import { BasicNodeProvider } from '../../provider';
 import { createDefaultMergingProcessor } from '../utils/default';
-import { NodeToMapListOrValue } from '../../utils';
+import { Blue } from '../../Blue';
 
 describe('Merger', () => {
   const basicMergingProcessor = (target: BlueNode, source: BlueNode) => {
@@ -215,6 +215,49 @@ message:
       const resolved = merger.resolve(myEntry, NO_LIMITS);
 
       expect(resolved.getProperties()?.message?.getName()).toBe('Type Start');
+    });
+
+    it('should be idempotent when resolving the same node twice', () => {
+      nodeProvider.addSingleDocs(`
+name: Document Anchor
+template:
+  description: Optional Blue document template.
+      `);
+
+      nodeProvider.addSingleDocs(`
+name: Document Anchors
+type: Dictionary
+keyType: Text
+valueType:
+  blueId: ${nodeProvider.getBlueIdByName('Document Anchor')}
+      `);
+
+      nodeProvider.addSingleDocs(`
+name: My Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Document Anchors')}
+anchor1:
+  type:
+    blueId: ${nodeProvider.getBlueIdByName('Document Anchor')}
+anchor2:
+  type:
+    blueId: ${nodeProvider.getBlueIdByName('Document Anchor')}
+      `);
+
+      const blue = new Blue({ nodeProvider });
+
+      const myEntry = nodeProvider.findNodeByName('My Entry');
+
+      if (!myEntry) {
+        throw new Error('My Entry not found');
+      }
+
+      const resolvedNode = blue.resolve(myEntry);
+      const resolvedNode2 = blue.resolve(resolvedNode);
+
+      expect(blue.nodeToJson(resolvedNode)).toEqual(
+        blue.nodeToJson(resolvedNode2)
+      );
     });
   });
 });

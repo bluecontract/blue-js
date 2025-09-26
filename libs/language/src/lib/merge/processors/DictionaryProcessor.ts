@@ -13,10 +13,13 @@ export class DictionaryProcessor implements MergingProcessor {
     source: BlueNode,
     nodeProvider: NodeProvider
   ): BlueNode {
+    const sourceKeyType = source.getKeyType();
+    const sourceValueType = source.getValueType();
+    const sourceType = source.getType();
     if (
-      (source.getKeyType() !== undefined ||
-        source.getValueType() !== undefined) &&
-      !NodeTypes.isDictionaryType(source.getType())
+      (sourceKeyType !== undefined || sourceValueType !== undefined) &&
+      sourceType !== undefined &&
+      !NodeTypes.isDictionaryType(sourceType, nodeProvider)
     ) {
       throw new Error(
         'Source node with keyType or valueType must have a Dictionary type'

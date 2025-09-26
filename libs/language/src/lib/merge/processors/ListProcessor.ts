@@ -13,15 +13,17 @@ export class ListProcessor implements MergingProcessor {
     source: BlueNode,
     nodeProvider: NodeProvider
   ): BlueNode {
+    const sourceItemType = source.getItemType();
+    const sourceType = source.getType();
     if (
-      source.getItemType() !== undefined &&
-      !NodeTypes.isListType(source.getType())
+      sourceItemType !== undefined &&
+      sourceType !== undefined &&
+      !NodeTypes.isListType(sourceType, nodeProvider)
     ) {
       throw new Error('Source node with itemType must have a List type');
     }
 
     const targetItemType = target.getItemType();
-    const sourceItemType = source.getItemType();
     let newTarget = target;
 
     if (targetItemType === undefined) {
