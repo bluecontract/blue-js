@@ -1,3 +1,10 @@
+## 1.35.1 (2025-09-29)
+
+### 🩹 Fixes
+
+- **language:** treat List/Dictionary as subtypes and add idempotent resolve test ([7b4b6a9](https://github.com/bluecontract/blue-js/commit/7b4b6a9))
+- **language:** add createResolvedNode method to Blue class ([b8f3b60](https://github.com/bluecontract/blue-js/commit/b8f3b60))
+
 ## 1.35.0 (2025-09-25)
 
 ### 🚀 Features
