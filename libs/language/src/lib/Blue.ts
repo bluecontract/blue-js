@@ -120,6 +120,21 @@ export class Blue {
     return merger.resolve(node, effectiveLimits);
   }
 
+  /**
+   * Wraps an already resolved (merged) BlueNode in a ResolvedBlueNode.
+   * Useful when you persist a resolved node (e.g., in a database) and later
+   * need a ResolvedBlueNode instance again.
+   * Note: This does not resolve the node; it assumes the input is already resolved.
+   * @param resolvedNode A BlueNode that has already been resolved (merged).
+   * @returns A new ResolvedBlueNode instance.
+   */
+  public createResolvedNode(resolvedNode: BlueNode): ResolvedBlueNode {
+    if (resolvedNode instanceof ResolvedBlueNode) {
+      return resolvedNode;
+    }
+    return new ResolvedBlueNode(resolvedNode);
+  }
+
   public reverse(node: BlueNode) {
     const reverser = new MergeReverser();
     return reverser.reverse(node);
