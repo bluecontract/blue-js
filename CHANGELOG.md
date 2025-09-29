@@ -1,3 +1,9 @@
+## 1.36.0 (2025-09-29)
+
+### 🚀 Features
+
+- **language:** add Blue.restoreInlineTypes to restore inline types ([e31751c](https://github.com/bluecontract/blue-js/commit/e31751c))
+
 ## 1.35.1 (2025-09-29)
 
 ### 🩹 Fixes
