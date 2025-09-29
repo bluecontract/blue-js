@@ -32,6 +32,7 @@ import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultMergingProcessor } from './merge';
 import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
+import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -138,6 +139,21 @@ export class Blue {
   public reverse(node: BlueNode) {
     const reverser = new MergeReverser();
     return reverser.reverse(node);
+  }
+
+  /**
+   * Returns a copy of the provided node with any referenced types converted back to their
+   * inline representations (e.g. `Text`, `Dictionary`).
+   *
+   * The original node remains unchanged; the transformation relies on registered BlueIds and
+   * repository-backed definitions currently known to this {@link Blue} instance.
+   */
+  public restoreInlineTypes(node: BlueNode): BlueNode {
+    const restorer = new InlineTypeRestorer({
+      nodeProvider: this.nodeProvider,
+      blueIdsMappingGenerator: this.blueIdsMappingGenerator,
+    });
+    return restorer.restore(node);
   }
 
   public extend(node: BlueNode, limits: Limits) {
