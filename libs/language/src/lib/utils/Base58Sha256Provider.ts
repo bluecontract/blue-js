@@ -49,7 +49,7 @@ export class Base58Sha256Provider {
 
   private async sha256Async(input: string): Promise<ArrayBuffer> {
     if (this.cryptoEnv.hasNodeCrypto()) {
-      return this.sha256Sync(input);
+      return await this.sha256Async(input);
     }
 
     const browserCrypto = this.cryptoEnv.getBrowserCrypto();

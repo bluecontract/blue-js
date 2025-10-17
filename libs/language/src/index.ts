@@ -14,6 +14,7 @@ export {
   Limits,
   Nodes,
   BasicNodeProvider,
+  NodeToMapListOrValue,
 
   // merge
   NodeResolver,
