@@ -3,6 +3,9 @@ import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
 
+// @ts-expect-error - This is a valid import.
+import packageJson from './package.json';
+
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/document-processor-next',
@@ -28,7 +31,7 @@ export default defineConfig(() => ({
     lib: {
       // Could also be a dictionary or array of multiple entry points.
       entry: 'src/index.ts',
-      name: '@blue-labs/document-processor-next',
+      name: 'document-processor-next',
       fileName: 'index',
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
@@ -36,11 +39,19 @@ export default defineConfig(() => ({
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: [],
+      external: (id: string) => {
+        const dependencies = Object.keys(packageJson.dependencies ?? {});
+        const peerDependencies = Object.keys(
+          packageJson.peerDependencies ?? {}
+        );
+        return (
+          dependencies.some((dependency) => id === dependency) ||
+          peerDependencies.some((dependency) => id === dependency)
+        );
+      },
     },
   },
   test: {
-    name: '@blue-labs/document-processor-next',
     watch: false,
     globals: true,
     environment: 'node',
@@ -50,5 +61,6 @@ export default defineConfig(() => ({
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8' as const,
     },
+    passWithNoTests: true,
   },
 }));

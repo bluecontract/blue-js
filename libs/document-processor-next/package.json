@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/document-processor-next",
-  "version": "0.0.1",
+  "version": "1.36.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -14,5 +14,13 @@
       "default": "./dist/index.js"
     }
   },
-  "dependencies": {}
+  "dependencies": {},
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  }
 }
