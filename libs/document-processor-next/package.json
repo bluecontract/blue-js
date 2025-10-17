@@ -14,7 +14,9 @@
       "default": "./dist/index.js"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "@blue-labs/language": "1.36.0"
+  },
   "license": "MIT",
   "publishConfig": {
     "access": "public"
