@@ -1,0 +1,82 @@
+import { describe, it, expect } from 'vitest';
+import { Blue, BlueNode } from '@blue-labs/language';
+
+import { SetPropertyContractProcessor } from './processors/index.js';
+import { buildProcessor, expectErr, expectOk, property } from './test-utils.js';
+
+const blue = new Blue();
+
+describe('DocumentProcessorCapabilityTest', () => {
+  it('initializeDocumentFailsWithCapabilityFailureWhenProcessorMissing', () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Doc
+contracts:
+  lifecycleChannel:
+    type:
+      blueId: LifecycleChannel
+  handler:
+    channel: lifecycleChannel
+    type:
+      blueId: SetProperty
+    propertyKey: /x
+    propertyValue: 1
+`;
+
+    const document = blue.yamlToNode(yaml);
+    const originalJson = JSON.stringify(blue.nodeToJson(document.clone()));
+
+    const result = processor.initializeDocument(document);
+    const error = expectErr(result);
+    expect(error.kind).toBe('CapabilityFailure');
+    expect(error.reason?.toLowerCase()).toContain('unsupported');
+
+    const afterJson = JSON.stringify(blue.nodeToJson(document.clone()));
+    expect(afterJson).toBe(originalJson);
+  });
+
+  it(
+    'processDocumentFailsWithCapabilityFailureWhenNewUnsupportedContractAppears',
+    () => {
+      const processor = buildProcessor(
+        blue,
+        new SetPropertyContractProcessor()
+      );
+
+      const baseYaml = `name: Base
+contracts:
+  lifecycleChannel:
+    type:
+      blueId: LifecycleChannel
+  handler:
+    channel: lifecycleChannel
+    type:
+      blueId: SetProperty
+    propertyKey: /x
+    propertyValue: 1
+`;
+
+      const initialized = expectOk(
+        processor.initializeDocument(blue.yamlToNode(baseYaml))
+      ).document.clone();
+      const contracts = property(initialized, 'contracts');
+      const unsupported = blue.jsonValueToNode({
+        type: { blueId: 'TerminateScope' },
+        channelKey: 'lifecycleChannel',
+        mode: 'fatal',
+        reason: 'test',
+      });
+      contracts.addProperty('unsupportedHandler', unsupported);
+
+      const event = new BlueNode().setValue('event');
+      const result = processor.processDocument(initialized, event);
+      const error = expectErr(result);
+      expect(error.kind).toBe('CapabilityFailure');
+      expect(error.reason?.toLowerCase()).toContain('unsupported');
+
+      const storedContracts = property(initialized, 'contracts');
+      expect(storedContracts.getProperties()).toHaveProperty(
+        'unsupportedHandler'
+      );
+    }
+  );
+});

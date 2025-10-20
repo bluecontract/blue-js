@@ -46,6 +46,9 @@ describe('CheckpointManager', () => {
 
     const marker = bundle.marker(KEY_CHECKPOINT)! as ChannelEventCheckpoint;
     const existingEvent = nodeFrom({ payload: { id: 'prior' } });
+    if (!marker.lastEvents) {
+      marker.lastEvents = {};
+    }
     marker.lastEvents.channelA = existingEvent;
 
     const record = manager.findCheckpoint(bundle, 'channelA');
@@ -64,7 +67,8 @@ describe('CheckpointManager', () => {
     expect(record.lastEventSignature).toBe('sig-1');
 
     const updatedMarker = bundle.marker(KEY_CHECKPOINT)! as ChannelEventCheckpoint;
-    expect(updatedMarker.lastSignatures.channelA).toBe('sig-1');
+    expect(updatedMarker.lastSignatures).toBeDefined();
+    expect(updatedMarker.lastSignatures?.channelA).toBe('sig-1');
   });
 
   it('detects duplicate events via signatures', () => {
@@ -78,6 +82,9 @@ describe('CheckpointManager', () => {
 
     const event = nodeFrom({ value: 'v1' });
     const checkpointMarker = bundle.marker(KEY_CHECKPOINT)! as ChannelEventCheckpoint;
+    if (!checkpointMarker.lastEvents) {
+      checkpointMarker.lastEvents = {};
+    }
     checkpointMarker.lastEvents.channelX = event;
     const existing = manager.findCheckpoint(bundle, 'channelX');
     if (!existing) throw new Error('expected record');
