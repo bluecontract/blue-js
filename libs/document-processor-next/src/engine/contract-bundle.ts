@@ -83,11 +83,27 @@ export class ContractBundle {
   private constructor(
     private readonly channels: Map<string, StoredChannel>,
     private readonly handlersByChannel: Map<string, StoredHandler[]>,
-    private readonly markers: Map<string, StoredMarker>,
+    private readonly markerStore: Map<string, StoredMarker>,
     private readonly embeddedPathsInternal: readonly string[],
     checkpointDeclared: boolean,
   ) {
     this.checkpointDeclared = checkpointDeclared;
+  }
+
+  static fromComponents(
+    channels: Map<string, StoredChannel>,
+    handlersByChannel: Map<string, StoredHandler[]>,
+    markerStore: Map<string, StoredMarker>,
+    embeddedPaths: readonly string[],
+    checkpointDeclared: boolean,
+  ): ContractBundle {
+    return new ContractBundle(
+      channels,
+      handlersByChannel,
+      markerStore,
+      embeddedPaths,
+      checkpointDeclared,
+    );
   }
 
   static builder(): ContractBundleBuilder {
@@ -100,16 +116,22 @@ export class ContractBundle {
 
   markers(): Map<string, MarkerContract> {
     return new Map(
-      Array.from(this.markers.entries(), ([key, entry]) => [key, entry.contract]),
+      Array.from(this.markerStore.entries(), ([key, entry]) => [
+        key,
+        entry.contract,
+      ]),
     );
   }
 
   marker(key: string): MarkerContract | undefined {
-    return this.markers.get(key)?.contract;
+    return this.markerStore.get(key)?.contract;
   }
 
   markerEntries(): Array<[string, MarkerContract]> {
-    return Array.from(this.markers.entries(), ([key, entry]) => [key, entry.contract]);
+    return Array.from(this.markerStore.entries(), ([key, entry]) => [
+      key,
+      entry.contract,
+    ]);
   }
 
   embeddedPaths(): readonly string[] {
@@ -124,7 +146,7 @@ export class ContractBundle {
     if (this.checkpointDeclared) {
       throw new Error('Duplicate Channel Event Checkpoint markers detected in same contracts map');
     }
-    this.markers.set(KEY_CHECKPOINT, {
+    this.markerStore.set(KEY_CHECKPOINT, {
       key: KEY_CHECKPOINT,
       contract: checkpoint,
       blueId: 'ChannelEventCheckpoint',
@@ -172,7 +194,7 @@ export class ContractBundle {
 export class ContractBundleBuilder {
   private readonly channels = new Map<string, StoredChannel>();
   private readonly handlersByChannel = new Map<string, StoredHandler[]>();
-  private readonly markers = new Map<string, StoredMarker>();
+  private readonly markerStore = new Map<string, StoredMarker>();
   private embeddedPaths: string[] = [];
   private embeddedDeclared = false;
   private checkpointDeclared = false;
@@ -217,17 +239,17 @@ export class ContractBundleBuilder {
       }
       this.checkpointDeclared = true;
     }
-    this.markers.set(key, { key, contract, blueId });
+    this.markerStore.set(key, { key, contract, blueId });
     return this;
   }
 
   build(): ContractBundle {
-    return new ContractBundle(
+    return ContractBundle.fromComponents(
       new Map(this.channels),
       new Map(
         Array.from(this.handlersByChannel.entries(), ([key, list]) => [key, [...list]]),
       ),
-      new Map(this.markers),
+      new Map(this.markerStore),
       [...this.embeddedPaths],
       this.checkpointDeclared,
     );

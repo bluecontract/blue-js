@@ -1,16 +1,10 @@
 import type { Node } from '../types/index.js';
-import type {
-  ContractBundle,
-  ChannelBinding,
-  HandlerBinding,
-} from './contract-bundle.js';
+import { ContractBundle } from './contract-bundle.js';
 import type { ChannelRunner } from './channel-runner.js';
 import type { ContractLoader } from './contract-loader.js';
 import type {
   DocumentUpdateChannel,
   EmbeddedNodeChannel,
-  LifecycleChannel,
-  TriggeredEventChannel,
 } from '../model/index.js';
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { DocumentUpdateData } from '../runtime/document-processing-runtime.js';
@@ -20,7 +14,6 @@ import {
   isProcessorManagedChannelBlueId,
 } from '../constants/processor-contract-constants.js';
 import {
-  RELATIVE_CHECKPOINT,
   RELATIVE_INITIALIZED,
   relativeContractsEntry,
 } from '../constants/processor-pointer-constants.js';
@@ -29,8 +22,9 @@ import {
   normalizePointer,
   resolvePointer,
 } from '../util/pointer-utils.js';
-import { canonicalSignature } from '../util/node-canonicalizer.js';
 import { BlueNode } from '@blue-labs/language';
+import { ProcessorFatalError } from './processor-fatal-error.js';
+import type { ProcessorError } from '../types/errors.js';
 
 export interface ProcessorContext {
   resolvePointer(relativePointer: string): string;
@@ -111,7 +105,7 @@ export class ScopeExecutor {
         preInitSnapshot = scopeNode.clone();
       }
 
-      bundle = this.contractLoader.load(scopeNode, normalizedScope);
+      bundle = this.loadBundle(scopeNode, normalizedScope);
       this.bundles.set(normalizedScope, bundle);
 
       const nextEmbedded = bundle.embeddedPaths().find((path) => !processedEmbedded.has(path)) ?? null;
@@ -156,7 +150,7 @@ export class ScopeExecutor {
     }
     const scopeNode = this.nodeAt(normalizedScope);
     const bundle = scopeNode
-      ? this.contractLoader.load(scopeNode, normalizedScope)
+      ? this.loadBundle(scopeNode, normalizedScope)
       : ContractBundle.empty();
     this.bundles.set(normalizedScope, bundle);
     for (const embeddedPointer of bundle.embeddedPaths()) {
@@ -309,7 +303,7 @@ export class ScopeExecutor {
       this.bundles.delete(normalizedScope);
       return null;
     }
-    const refreshed = this.contractLoader.load(scopeNode, normalizedScope);
+    const refreshed = this.loadBundle(scopeNode, normalizedScope);
     this.bundles.set(normalizedScope, refreshed);
     return refreshed;
   }
@@ -324,6 +318,38 @@ export class ScopeExecutor {
       }
     }
     return null;
+  }
+
+  private loadBundle(scopeNode: Node, scopePath: string): ContractBundle {
+    const result = this.contractLoader.load(scopeNode, scopePath);
+    if (result.ok) {
+      return result.value;
+    }
+    const message = this.describeProcessorError(result.error);
+    throw new ProcessorFatalError(message);
+  }
+
+  private describeProcessorError(error: ProcessorError): string {
+    switch (error.kind) {
+      case 'CapabilityFailure':
+        return `${error.kind}: ${error.reason}`;
+      case 'BoundaryViolation':
+        return `${error.kind} at ${error.pointer}: ${error.reason}`;
+      case 'RuntimeFatal':
+        return `${error.kind}: ${error.reason}`;
+      case 'InvalidContract': {
+        const pointer = error.pointer ? ` @ ${error.pointer}` : '';
+        return `${error.kind} (${error.contractId}${pointer}): ${error.reason}`;
+      }
+      case 'IllegalState':
+        return `${error.kind}: ${error.reason}`;
+      case 'UnsupportedOp': {
+        const suffix = error.reason ? `: ${error.reason}` : '';
+        return `${error.kind} ${error.operation}${suffix}`;
+      }
+    }
+
+    throw new ProcessorFatalError('Unhandled processor error kind');
   }
 
   private addInitializationMarker(context: ProcessorContext, documentId: string): void {
@@ -458,7 +484,7 @@ export class ScopeExecutor {
       if (changedPath !== childScope) {
         continue;
       }
-      if (data.op === 'REMOVE' || data.op === 'REPLACE') {
+      if (data.op === 'remove' || data.op === 'replace') {
         this.hooks.markCutOff(childScope);
       }
     }

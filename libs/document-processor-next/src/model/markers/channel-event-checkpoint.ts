@@ -1,21 +1,17 @@
 import { z } from 'zod';
-import { withTypeBlueId } from '@blue-labs/language';
+import { blueNodeField, withTypeBlueId } from '@blue-labs/language';
 
 import { markerContractBaseSchema } from '../shared/index.js';
 
+// TODO: Service based on that type like in JAVA version.
+
 export const channelEventCheckpointSchema = withTypeBlueId(
-  'ChannelEventCheckpoint',
+  'ChannelEventCheckpoint'
 )(
   markerContractBaseSchema.extend({
-    lastEvents: z
-      .record(z.unknown())
-      .optional()
-      .transform((events) => events ?? {}),
-    lastSignatures: z
-      .record(z.string())
-      .optional()
-      .transform((signatures) => signatures ?? {}),
-  }),
+    lastEvents: z.record(blueNodeField().nullable()).optional(),
+    lastSignatures: z.record(z.string()).optional(),
+  })
 );
 
 export type ChannelEventCheckpoint = z.infer<

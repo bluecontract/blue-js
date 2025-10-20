@@ -2,7 +2,6 @@ import {
   AnyContractProcessor,
   ChannelProcessor,
   ContractProcessor,
-  ContractProcessorKind,
   HandlerProcessor,
   MarkerProcessor,
 } from './types.js';
@@ -20,7 +19,7 @@ function assertBlueIds(processor: ContractProcessor<unknown>): void {
 
 function registerBlueIds<T extends ContractProcessor<unknown>>(
   source: T,
-  target: Map<string, T>,
+  target: Map<string, T>
 ): void {
   assertBlueIds(source);
   for (const blueId of source.blueIds) {
@@ -30,27 +29,36 @@ function registerBlueIds<T extends ContractProcessor<unknown>>(
 
 export class ContractProcessorRegistry {
   private readonly processorsByBlueId = new Map<string, AnyContractProcessor>();
-  private readonly handlerProcessors = new Map<string, HandlerProcessor<unknown>>();
-  private readonly channelProcessors = new Map<string, ChannelProcessor<unknown>>();
-  private readonly markerProcessors = new Map<string, MarkerProcessor<unknown>>();
+  private readonly handlerProcessors = new Map<
+    string,
+    HandlerProcessor<unknown>
+  >();
+  private readonly channelProcessors = new Map<
+    string,
+    ChannelProcessor<unknown>
+  >();
+  private readonly markerProcessors = new Map<
+    string,
+    MarkerProcessor<unknown>
+  >();
 
   registerHandler<T>(processor: HandlerProcessor<T>): void {
-    registerBlueIds(processor, this.handlerProcessors as Map<string, HandlerProcessor<unknown>>);
+    registerBlueIds(processor, this.handlerProcessors);
     this.registerProcessorMap(processor);
   }
 
   registerChannel<T>(processor: ChannelProcessor<T>): void {
-    registerBlueIds(processor, this.channelProcessors as Map<string, ChannelProcessor<unknown>>);
+    registerBlueIds(processor, this.channelProcessors);
     this.registerProcessorMap(processor);
   }
 
   registerMarker<T>(processor: MarkerProcessor<T>): void {
-    registerBlueIds(processor, this.markerProcessors as Map<string, MarkerProcessor<unknown>>);
+    registerBlueIds(processor, this.markerProcessors);
     this.registerProcessorMap(processor);
   }
 
   register(processor: AnyContractProcessor): void {
-    switch (processor.kind as ContractProcessorKind) {
+    switch (processor.kind) {
       case 'handler':
         this.registerHandler(processor);
         break;
@@ -61,7 +69,11 @@ export class ContractProcessorRegistry {
         this.registerMarker(processor);
         break;
       default:
-        throw new Error(`Unsupported processor kind: ${String((processor as ContractProcessor<unknown>).kind)}`);
+        throw new Error(
+          `Unsupported processor kind: ${String(
+            (processor as ContractProcessor<unknown>).kind
+          )}`
+        );
     }
   }
 
@@ -82,6 +94,6 @@ export class ContractProcessorRegistry {
   }
 
   private registerProcessorMap(processor: AnyContractProcessor): void {
-    registerBlueIds(processor, this.processorsByBlueId as Map<string, AnyContractProcessor>);
+    registerBlueIds(processor, this.processorsByBlueId);
   }
 }

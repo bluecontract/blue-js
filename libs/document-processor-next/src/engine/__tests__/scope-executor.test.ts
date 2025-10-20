@@ -9,6 +9,7 @@ import type { ChannelContract, LifecycleChannel } from '../../model/index.js';
 import type { JsonPatch } from '../../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import { resolvePointer } from '../../util/pointer-utils.js';
+import { ok } from '../../types/result.js';
 
 const blue = new Blue();
 
@@ -50,6 +51,10 @@ interface ExecutorFixture {
   bundles: Map<string, ContractBundle>;
   loader: ContractLoader;
   channelRunner: ChannelRunner;
+  channelRunnerMocks: {
+    runExternalChannel: ReturnType<typeof vi.fn>;
+    runHandlers: ReturnType<typeof vi.fn>;
+  };
   hooks: {
     isScopeInactive: ReturnType<typeof vi.fn>;
     createContext: ReturnType<typeof vi.fn>;
@@ -64,12 +69,14 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
   const runtime = new DocumentProcessingRuntime(new BlueNode());
   const bundles = new Map<string, ContractBundle>();
   const loader = {
-    load: vi.fn(() => bundle),
+    load: vi.fn(() => ok(bundle)),
   } as unknown as ContractLoader;
 
+  const runExternalChannel = vi.fn();
+  const runHandlers = vi.fn();
   const channelRunner = {
-    runExternalChannel: vi.fn(),
-    runHandlers: vi.fn(),
+    runExternalChannel,
+    runHandlers,
   } as unknown as ChannelRunner;
 
   const hooks = {
@@ -122,13 +129,17 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
     bundles,
     loader,
     channelRunner,
+    channelRunnerMocks: {
+      runExternalChannel,
+      runHandlers,
+    },
     hooks: hooks as ExecutorFixture['hooks'],
   };
 }
 
 describe('ScopeExecutor', () => {
   it('initializes scope and records lifecycle marker', () => {
-    const { executor, runtime, channelRunner, hooks } = createExecutor(
+    const { executor, runtime, channelRunnerMocks, hooks } = createExecutor(
       lifecycleBundle(),
     );
 
@@ -138,7 +149,7 @@ describe('ScopeExecutor', () => {
       '/',
       expect.any(BlueNode),
     );
-    expect(channelRunner.runHandlers).toHaveBeenCalledWith(
+    expect(channelRunnerMocks.runHandlers).toHaveBeenCalledWith(
       '/',
       expect.any(ContractBundle),
       'lifecycle',
@@ -150,17 +161,18 @@ describe('ScopeExecutor', () => {
   });
 
   it('processes external events via channel runner', () => {
-    const { executor, channelRunner } = createExecutor(externalBundle());
+    const { executor, channelRunnerMocks } = createExecutor(externalBundle());
     const event = nodeFrom({ eventType: 'Event' });
 
     executor.processExternalEvent('/', event);
 
-    expect(channelRunner.runExternalChannel).toHaveBeenCalledWith(
-      '/',
-      expect.any(ContractBundle),
-      expect.any(Object),
-      event,
-    );
+    expect(channelRunnerMocks.runExternalChannel).toHaveBeenCalled();
+    const [scopePath, bundleArg, channelBinding, passedEvent] =
+      channelRunnerMocks.runExternalChannel.mock.calls[0];
+    expect(scopePath).toBe('/');
+    expect(bundleArg).toBeInstanceOf(ContractBundle);
+    expect(channelBinding.key()).toBe('external');
+    expect(passedEvent).toBe(event);
   });
 
   it('enters fatal termination when patch violates boundary', () => {

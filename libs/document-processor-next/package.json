@@ -15,7 +15,9 @@
     }
   },
   "dependencies": {
-    "@blue-labs/language": "1.36.0"
+    "@blue-labs/language": "1.36.0",
+    "zod": "3.23.8",
+    "canonicalize": "2.0.0"
   },
   "license": "MIT",
   "publishConfig": {

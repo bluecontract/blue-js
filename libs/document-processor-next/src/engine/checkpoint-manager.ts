@@ -1,4 +1,4 @@
-import { Blue, BlueNode, type Node } from '@blue-labs/language';
+import { Blue, BlueNode } from '@blue-labs/language';
 
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
 import {
@@ -10,6 +10,7 @@ import { resolvePointer } from '../util/pointer-utils.js';
 import type { ContractBundle } from './contract-bundle.js';
 import type { ChannelEventCheckpoint, MarkerContract } from '../model/index.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
+import type { Node } from '../types/index.js';
 
 const blueHelper = new Blue();
 
@@ -87,10 +88,16 @@ export class CheckpointManager {
         continue;
       }
       const stored = marker.lastEvents?.[channelKey] ?? null;
-      const storedClone = stored ? stored.clone() : null;
+      const storedClone = (stored?.clone() as Node | null) ?? null;
       const storedSignature = marker.lastSignatures?.[channelKey] ?? null;
       const signature = storedSignature ?? this.signatureFn(storedClone);
-      return new CheckpointRecord(markerKey, marker, channelKey, storedClone, signature);
+      return new CheckpointRecord(
+        markerKey,
+        marker,
+        channelKey,
+        storedClone,
+        signature,
+      );
     }
     return null;
   }
@@ -113,7 +120,7 @@ export class CheckpointManager {
       scopePath,
       relativeCheckpointLastEvent(record.markerKey, record.channelKey),
     );
-    const stored = eventNode ? eventNode.clone() : null;
+    const stored = (eventNode?.clone() as Node | null) ?? null;
     this.runtime.chargeCheckpointUpdate();
     this.runtime.directWrite(eventPointer, stored);
 
@@ -121,19 +128,21 @@ export class CheckpointManager {
       record.checkpoint.lastEvents = {};
     }
     if (stored) {
-      record.checkpoint.lastEvents[record.channelKey] = stored.clone();
+      record.checkpoint.lastEvents[record.channelKey] =
+        (stored.clone() as Node) ?? null;
     } else {
       delete record.checkpoint.lastEvents[record.channelKey];
     }
-    record.lastEventNode = stored ? stored.clone() : null;
+    record.lastEventNode = (stored?.clone() as Node | null) ?? null;
 
     const signaturePointer = resolvePointer(
       scopePath,
       relativeCheckpointLastSignature(record.markerKey, record.channelKey),
     );
-    const signatureNode = eventSignature == null
-      ? null
-      : new BlueNode().setValue(eventSignature);
+    const signatureNode =
+      eventSignature == null
+        ? null
+        : new BlueNode().setValue(eventSignature);
     this.runtime.directWrite(signaturePointer, signatureNode);
 
     if (!record.checkpoint.lastSignatures) {

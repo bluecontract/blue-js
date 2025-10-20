@@ -19,40 +19,44 @@ export class ProcessorExecutionContext {
   constructor(
     private readonly execution: ExecutionAdapter,
     private readonly bundle: ContractBundle,
-    private readonly scopePath: string,
+    private readonly scopePathValue: string,
     private readonly eventNode: Node,
     private readonly allowTerminatedWork: boolean,
     private readonly allowReservedMutation: boolean,
   ) {}
+
+  get scopePath(): string {
+    return this.scopePathValue;
+  }
 
   event(): Node {
     return this.eventNode;
   }
 
   applyPatch(patch: JsonPatch): void {
-    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePath)) {
+    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePathValue)) {
       return;
     }
-    this.execution.handlePatch(this.scopePath, this.bundle, patch, this.allowReservedMutation);
+    this.execution.handlePatch(this.scopePathValue, this.bundle, patch, this.allowReservedMutation);
   }
 
   emitEvent(emission: Node): void {
-    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePath)) {
+    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePathValue)) {
       return;
     }
     const runtime = this.execution.runtime();
-    const scopeContext = runtime.scope(this.scopePath);
+    const scopeContext = runtime.scope(this.scopePathValue);
     runtime.chargeEmitEvent(emission);
     const queued = emission.clone();
     scopeContext.enqueueTriggered(queued);
     scopeContext.recordBridgeable(queued.clone());
-    if (this.scopePath === '/') {
+    if (this.scopePathValue === '/') {
       runtime.recordRootEmission(queued.clone());
     }
   }
 
   consumeGas(units: number): void {
-    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePath)) {
+    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePathValue)) {
       return;
     }
     this.execution.runtime().addGas(units);
@@ -63,7 +67,7 @@ export class ProcessorExecutionContext {
   }
 
   resolvePointer(relativePointer: string): string {
-    return this.execution.resolvePointer(this.scopePath, relativePointer);
+    return this.execution.resolvePointer(this.scopePathValue, relativePointer);
   }
 
   documentAt(absolutePointer: string): Node | null {
@@ -85,10 +89,10 @@ export class ProcessorExecutionContext {
   }
 
   terminateGracefully(reason: string | null): void {
-    this.execution.enterGracefulTermination(this.scopePath, this.bundle, reason ?? null);
+    this.execution.enterGracefulTermination(this.scopePathValue, this.bundle, reason ?? null);
   }
 
   terminateFatally(reason: string | null): void {
-    this.execution.enterFatalTermination(this.scopePath, this.bundle, reason ?? null);
+    this.execution.enterFatalTermination(this.scopePathValue, this.bundle, reason ?? null);
   }
 }

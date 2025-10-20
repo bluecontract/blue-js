@@ -1,4 +1,6 @@
-function isNullOrEmpty(value: string | null | undefined): value is null | '' | undefined {
+function isNullOrEmpty(
+  value: string | null | undefined
+): value is null | '' | undefined {
   return value == null || value.length === 0;
 }
 
@@ -6,14 +8,14 @@ export function normalizeScope(scopePath: string | null | undefined): string {
   if (isNullOrEmpty(scopePath)) {
     return '/';
   }
-  return scopePath!.startsWith('/') ? scopePath! : `/${scopePath}`;
+  return scopePath.startsWith('/') ? scopePath : `/${scopePath}`;
 }
 
 export function normalizePointer(pointer: string | null | undefined): string {
   if (isNullOrEmpty(pointer)) {
     return '/';
   }
-  return pointer!.startsWith('/') ? pointer! : `/${pointer}`;
+  return pointer.startsWith('/') ? pointer : `/${pointer}`;
 }
 
 export function stripSlashes(value: string | null | undefined): string {
@@ -35,7 +37,7 @@ export function stripSlashes(value: string | null | undefined): string {
 
 export function joinRelativePointers(
   base: string | null | undefined,
-  tail: string | null | undefined,
+  tail: string | null | undefined
 ): string {
   const basePart = stripSlashes(base);
   const tailPart = stripSlashes(tail);
@@ -53,7 +55,7 @@ export function joinRelativePointers(
 
 export function resolvePointer(
   scopePath: string | null | undefined,
-  relativePointer: string | null | undefined,
+  relativePointer: string | null | undefined
 ): string {
   const normalizedScope = normalizeScope(scopePath);
   const normalizedPointer = normalizePointer(relativePointer);
@@ -71,7 +73,7 @@ export function resolvePointer(
 
 export function relativizePointer(
   scopePath: string | null | undefined,
-  absolutePath: string | null | undefined,
+  absolutePath: string | null | undefined
 ): string {
   const normalizedScope = normalizeScope(scopePath);
   const normalizedAbsolute = normalizePointer(absolutePath);

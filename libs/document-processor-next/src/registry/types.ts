@@ -10,14 +10,14 @@ export interface ContractProcessor<TContract> {
   readonly schema: ZodType<TContract>;
 }
 
-export interface ProcessorExecutionContext {
+export interface ContractProcessorContext {
   // Placeholder for execution context to be ported from Java runtime.
   readonly scopePath: string;
 }
 
 export interface HandlerProcessor<TContract> extends ContractProcessor<TContract> {
   readonly kind: 'handler';
-  execute(contract: TContract, context: ProcessorExecutionContext): void | Promise<void>;
+  execute(contract: TContract, context: ContractProcessorContext): void | Promise<void>;
 }
 
 export interface ChannelEvaluationContext {

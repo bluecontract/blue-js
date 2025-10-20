@@ -58,9 +58,7 @@ describe('processor constants', () => {
   it('keeps legacy namespace compatibility object for ease of porting', () => {
     expect(ProcessorContractConstants.KEY_EMBEDDED).toBe(KEY_EMBEDDED);
     expect(
-      PROCESSOR_MANAGED_CHANNEL_BLUE_IDS.has(
-        ProcessorContractConstants.KEY_EMBEDDED,
-      ),
-    ).toBe(false);
+      Array.from(PROCESSOR_MANAGED_CHANNEL_BLUE_IDS),
+    ).not.toContain(ProcessorContractConstants.KEY_EMBEDDED);
   });
 });

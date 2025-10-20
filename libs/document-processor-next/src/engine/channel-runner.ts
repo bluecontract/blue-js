@@ -1,9 +1,13 @@
 import type { Node } from '../types/index.js';
-import type { ChannelContract, HandlerContract } from '../model/index.js';
 import { canonicalSignature } from '../util/node-canonicalizer.js';
-import type { ContractBundle, ChannelBinding } from './contract-bundle.js';
+import type {
+  ContractBundle,
+  ChannelBinding,
+  HandlerBinding,
+} from './contract-bundle.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import { CheckpointManager } from './checkpoint-manager.js';
+import type { ProcessorExecutionContext } from './processor-execution-context.js';
 
 export interface ChannelMatch {
   readonly matches: boolean;
@@ -13,7 +17,7 @@ export interface ChannelMatch {
 
 export interface ChannelRunnerDependencies {
   evaluateChannel(
-    contract: ChannelContract,
+    channel: ChannelBinding,
     bundle: ContractBundle,
     scopePath: string,
     event: Node,
@@ -24,8 +28,11 @@ export interface ChannelRunnerDependencies {
     bundle: ContractBundle,
     event: Node,
     allowTerminatedWork: boolean,
-  ): unknown;
-  executeHandler(handler: HandlerContract, context: unknown): void;
+  ): ProcessorExecutionContext;
+  executeHandler(
+    handler: HandlerBinding,
+    context: ProcessorExecutionContext,
+  ): void;
 }
 
 export class ChannelRunner {
@@ -47,7 +54,7 @@ export class ChannelRunner {
     this.runtime.chargeChannelMatchAttempt();
 
     const match = this.deps.evaluateChannel(
-      channel.contract(),
+      channel,
       bundle,
       scopePath,
       event,
@@ -101,7 +108,7 @@ export class ChannelRunner {
         event,
         allowTerminatedWork,
       );
-      this.deps.executeHandler(handler.contract(), context);
+      this.deps.executeHandler(handler, context);
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
         break;
       }

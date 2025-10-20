@@ -50,7 +50,7 @@ export class ContractLoader {
     private readonly blue: Blue,
   ) {}
 
-  load(scopeNode: Node, _scopePath: string): Result<ContractBundle, ProcessorError> {
+  load(scopeNode: Node, scopePath: string): Result<ContractBundle, ProcessorError> {
     try {
       const builder = ContractBundle.builder();
       const contractsNode = scopeNode.getProperties()?.contracts;
@@ -73,7 +73,7 @@ export class ContractLoader {
     } catch (error) {
       return err(
         ProcessorErrors.runtimeFatal(
-          'Failed to load contracts for scope',
+          `Failed to load contracts for scope ${scopePath}`,
           error,
         ),
       );

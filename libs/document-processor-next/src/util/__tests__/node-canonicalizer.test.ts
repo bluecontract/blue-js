@@ -48,7 +48,7 @@ describe('node-canonicalizer', () => {
     const signature = canonicalSignature(node);
     expect(signature).not.toBeNull();
     expect(canonicalSize(node)).toEqual(
-      Buffer.byteLength(signature ?? '', 'utf8'),
+      Buffer.byteLength(signature ?? '', 'utf8')
     );
   });
 

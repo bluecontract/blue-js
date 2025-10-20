@@ -5,7 +5,7 @@ import { EmissionRegistry } from './emission-registry.js';
 import { GasMeter } from './gas-meter.js';
 import { ScopeRuntimeContext } from './scope-runtime-context.js';
 
-export interface DocumentUpdateData extends PatchResult {}
+export type DocumentUpdateData = PatchResult
 
 export class DocumentProcessingRuntime {
   private readonly patchEngine: PatchEngine;
@@ -85,7 +85,8 @@ export class DocumentProcessingRuntime {
     this.gasMeter.chargeEmitEvent(event ?? null);
   }
 
-  chargeBridge(_event?: Node | null): void {
+  chargeBridge(event?: Node | null): void {
+    void event;
     this.gasMeter.chargeBridge();
   }
 

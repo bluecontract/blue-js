@@ -130,9 +130,9 @@ describe('contract model schemas', () => {
 
     const dto = blue.nodeToSchemaOutput(node, channelEventCheckpointSchema);
 
-    expect(dto.lastSignatures.channelA).toBe('sig-123');
-    const eventNode = blue.jsonValueToNode(dto.lastEvents.channelA);
+    expect(dto.lastSignatures?.channelA).toBe('sig-123');
+    const eventNode = dto.lastEvents?.channelA ?? null;
     expect(eventNode).toBeInstanceOf(BlueNode);
-    expect(eventNode.getProperties()?.payload?.getValue()).toBe('data');
+    expect(eventNode?.getProperties()?.payload?.getValue()).toBe('data');
   });
 });

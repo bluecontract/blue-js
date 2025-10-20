@@ -88,7 +88,10 @@ describe('ContractLoader', () => {
       kind: 'handler',
       blueIds: ['Custom.Handler'],
       schema: handlerSchema as z.ZodType<HandlerContract>,
-      execute: () => {},
+      execute: (contract, context) => {
+        void contract;
+        void context;
+      },
     };
     registry.registerHandler(handlerProcessor);
 
@@ -119,7 +122,10 @@ describe('ContractLoader', () => {
       kind: 'handler',
       blueIds: ['Custom.Handler'],
       schema: handlerSchema as z.ZodType<HandlerContract>,
-      execute: () => {},
+      execute: (contract, context) => {
+        void contract;
+        void context;
+      },
     };
     registry.register(handlerProcessor);
 
