@@ -4,16 +4,29 @@ import type { JsonPatch } from '../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import { normalizePointer } from '../util/pointer-utils.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
-import { BlueNode } from '@blue-labs/language';
+import { Blue, BlueNode } from '@blue-labs/language';
 import { ProcessorErrors } from '../types/errors.js';
 
 export interface ExecutionAdapter {
   runtime(): DocumentProcessingRuntime;
   isScopeInactive(scopePath: string): boolean;
-  handlePatch(scopePath: string, bundle: ContractBundle, patch: JsonPatch, allowReservedMutation: boolean): void;
+  handlePatch(
+    scopePath: string,
+    bundle: ContractBundle,
+    patch: JsonPatch,
+    allowReservedMutation: boolean
+  ): void;
   resolvePointer(scopePath: string, relativePointer: string): string;
-  enterGracefulTermination(scopePath: string, bundle: ContractBundle, reason: string | null): void;
-  enterFatalTermination(scopePath: string, bundle: ContractBundle, reason: string | null): void;
+  enterGracefulTermination(
+    scopePath: string,
+    bundle: ContractBundle,
+    reason: string | null
+  ): void;
+  enterFatalTermination(
+    scopePath: string,
+    bundle: ContractBundle,
+    reason: string | null
+  ): void;
 }
 
 export class ProcessorExecutionContext {
@@ -24,10 +37,15 @@ export class ProcessorExecutionContext {
     private readonly eventNode: Node,
     private readonly allowTerminatedWork: boolean,
     private readonly allowReservedMutation: boolean,
+    private readonly blueRef: Blue
   ) {}
 
   get scopePath(): string {
     return this.scopePathValue;
+  }
+
+  get blue(): Blue {
+    return this.blueRef;
   }
 
   event(): Node {
@@ -35,14 +53,25 @@ export class ProcessorExecutionContext {
   }
 
   applyPatch(patch: JsonPatch): void {
-    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePathValue)) {
+    if (
+      !this.allowTerminatedWork &&
+      this.execution.isScopeInactive(this.scopePathValue)
+    ) {
       return;
     }
-    this.execution.handlePatch(this.scopePathValue, this.bundle, patch, this.allowReservedMutation);
+    this.execution.handlePatch(
+      this.scopePathValue,
+      this.bundle,
+      patch,
+      this.allowReservedMutation
+    );
   }
 
   emitEvent(emission: Node): void {
-    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePathValue)) {
+    if (
+      !this.allowTerminatedWork &&
+      this.execution.isScopeInactive(this.scopePathValue)
+    ) {
       return;
     }
     const runtime = this.execution.runtime();
@@ -57,17 +86,17 @@ export class ProcessorExecutionContext {
   }
 
   consumeGas(units: number): void {
-    if (!this.allowTerminatedWork && this.execution.isScopeInactive(this.scopePathValue)) {
+    if (
+      !this.allowTerminatedWork &&
+      this.execution.isScopeInactive(this.scopePathValue)
+    ) {
       return;
     }
     this.execution.runtime().addGas(units);
   }
 
   throwFatal(reason: string): never {
-    throw new ProcessorFatalError(
-      reason,
-      ProcessorErrors.runtimeFatal(reason),
-    );
+    throw new ProcessorFatalError(reason, ProcessorErrors.runtimeFatal(reason));
   }
 
   resolvePointer(relativePointer: string): string {
@@ -101,10 +130,18 @@ export class ProcessorExecutionContext {
   }
 
   terminateGracefully(reason: string | null): void {
-    this.execution.enterGracefulTermination(this.scopePathValue, this.bundle, reason ?? null);
+    this.execution.enterGracefulTermination(
+      this.scopePathValue,
+      this.bundle,
+      reason ?? null
+    );
   }
 
   terminateFatally(reason: string | null): void {
-    this.execution.enterFatalTermination(this.scopePathValue, this.bundle, reason ?? null);
+    this.execution.enterFatalTermination(
+      this.scopePathValue,
+      this.bundle,
+      reason ?? null
+    );
   }
 }

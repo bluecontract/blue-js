@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Blue, BlueNode } from '@blue-labs/language';
 
-import { ProcessorExecutionContext, type ExecutionAdapter } from '../processor-execution-context.js';
+import {
+  ProcessorExecutionContext,
+  type ExecutionAdapter,
+} from '../processor-execution-context.js';
 import { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import { ContractBundle } from '../contract-bundle.js';
 import type { JsonPatch } from '../../model/shared/json-patch.js';
@@ -34,6 +37,7 @@ describe('ProcessorExecutionContext', () => {
       nodeFrom({ eventType: 'Event' }),
       false,
       false,
+      blue
     );
     return { context, adapter, runtime };
   }
@@ -45,7 +49,9 @@ describe('ProcessorExecutionContext', () => {
   });
 
   it('skips patch when scope inactive and not allowed', () => {
-    const { context, adapter } = createContext({ isScopeInactive: vi.fn().mockReturnValue(true) });
+    const { context, adapter } = createContext({
+      isScopeInactive: vi.fn().mockReturnValue(true),
+    });
     context.applyPatch(patch);
     expect(adapter.handlePatch).not.toHaveBeenCalled();
   });
@@ -81,13 +87,22 @@ describe('ProcessorExecutionContext', () => {
       nodeFrom({}),
       true,
       false,
+      blue
     );
 
     context.terminateGracefully('done');
-    expect(adapter.enterGracefulTermination).toHaveBeenCalledWith('/child', bundle, 'done');
+    expect(adapter.enterGracefulTermination).toHaveBeenCalledWith(
+      '/child',
+      bundle,
+      'done'
+    );
 
     context.terminateFatally('fatal');
-    expect(adapter.enterFatalTermination).toHaveBeenCalledWith('/child', bundle, 'fatal');
+    expect(adapter.enterFatalTermination).toHaveBeenCalledWith(
+      '/child',
+      bundle,
+      'fatal'
+    );
   });
 
   it('retrieves document data through pointers', () => {

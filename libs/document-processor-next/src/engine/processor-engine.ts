@@ -40,15 +40,13 @@ import type {
 import { RunTerminationError } from './run-termination-error.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 
-interface ExecutionHooks
-  extends ExecutionAdapter,
-    TerminationExecutionAdapter {
+interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   bundleForScope(scopePath: string): ContractBundle | undefined;
   deliverLifecycle(
     scopePath: string,
     bundle: ContractBundle | null,
     event: Node,
-    finalizeAfter: boolean,
+    finalizeAfter: boolean
   ): void;
 }
 
@@ -64,17 +62,19 @@ export class ProcessorExecution implements ExecutionHooks {
   private readonly terminationService: TerminationService;
   private readonly channelRunner: ChannelRunner;
   private readonly scopeExecutor: ScopeExecutor;
-  private readonly blue = new Blue();
+  private readonly blue: Blue;
 
   constructor(
     private readonly contractLoader: ContractLoader,
     private readonly registry: ContractProcessorRegistry,
-    document: Node,
+    blue: Blue,
+    document: Node
   ) {
     this.runtimeRef = new Runtime(document);
+    this.blue = blue;
     this.checkpointManager = new CheckpointManager(
       this.runtimeRef,
-      canonicalSignature,
+      canonicalSignature
     );
     this.terminationService = new TerminationService(this.runtimeRef);
     this.channelRunner = new ChannelRunner(
@@ -90,11 +90,11 @@ export class ProcessorExecution implements ExecutionHooks {
             bundle,
             event,
             allowTerminatedWork,
-            false,
+            false
           ),
         executeHandler: (handler, context) =>
           this.executeHandler(handler, context),
-      },
+      }
     );
     this.scopeExecutor = new ScopeExecutor({
       runtime: this.runtimeRef,
@@ -108,14 +108,14 @@ export class ProcessorExecution implements ExecutionHooks {
           bundle,
           event,
           allowTerminatedWork,
-          allowReserved,
+          allowReserved
         ) =>
           this.createContext(
             scopePath,
             bundle,
             event,
             allowTerminatedWork,
-            allowReserved ?? false,
+            allowReserved ?? false
           ),
         recordLifecycleForBridging: (scopePath, event) =>
           this.recordLifecycleForBridging(scopePath, event),
@@ -150,13 +150,13 @@ export class ProcessorExecution implements ExecutionHooks {
     scopePath: string,
     bundle: ContractBundle,
     patch: JsonPatch,
-    allowReservedMutation: boolean,
+    allowReservedMutation: boolean
   ): void {
     this.scopeExecutor.handlePatch(
       scopePath,
       bundle,
       patch,
-      allowReservedMutation,
+      allowReservedMutation
     );
   }
 
@@ -165,7 +165,7 @@ export class ProcessorExecution implements ExecutionHooks {
     bundle: ContractBundle,
     event: Node,
     allowTerminatedWork = false,
-    allowReservedMutation = false,
+    allowReservedMutation = false
   ): ProcessorExecutionContext {
     return new ProcessorExecutionContext(
       this,
@@ -174,6 +174,7 @@ export class ProcessorExecution implements ExecutionHooks {
       event.clone(),
       allowTerminatedWork,
       allowReservedMutation,
+      this.blue
     );
   }
 
@@ -183,7 +184,7 @@ export class ProcessorExecution implements ExecutionHooks {
       .rootEmissions()
       .map((event) => (event as BlueNode).clone());
     const terminatedScopes: ScopeTerminationSummary[] = Array.from(
-      this.runtimeRef.scopes().entries(),
+      this.runtimeRef.scopes().entries()
     )
       .filter(([, context]) => context.isTerminated())
       .map(([scopePath, context]) => ({
@@ -196,7 +197,7 @@ export class ProcessorExecution implements ExecutionHooks {
       triggeredEvents: Object.freeze(triggeredEvents) as readonly BlueNode[],
       totalGas: this.runtimeRef.totalGas(),
       terminatedScopes: Object.freeze(
-        terminatedScopes,
+        terminatedScopes
       ) as readonly ScopeTerminationSummary[],
       runTerminated: this.runtimeRef.isRunTerminated(),
     };
@@ -222,7 +223,7 @@ export class ProcessorExecution implements ExecutionHooks {
   enterGracefulTermination(
     scopePath: string,
     bundle: ContractBundle | null,
-    reason: string | null,
+    reason: string | null
   ): void {
     this.terminate(scopePath, bundle, 'GRACEFUL', reason);
   }
@@ -230,7 +231,7 @@ export class ProcessorExecution implements ExecutionHooks {
   enterFatalTermination(
     scopePath: string,
     bundle: ContractBundle | null,
-    reason: string | null,
+    reason: string | null
   ): void {
     this.terminate(scopePath, bundle, 'FATAL', reason);
   }
@@ -238,7 +239,7 @@ export class ProcessorExecution implements ExecutionHooks {
   recordPendingTermination(
     scopePath: string,
     kind: TerminationKind,
-    reason: string | null,
+    reason: string | null
   ): void {
     this.pendingTerminations.set(normalizeScope(scopePath), { kind, reason });
   }
@@ -259,9 +260,14 @@ export class ProcessorExecution implements ExecutionHooks {
     scopePath: string,
     bundle: ContractBundle | null,
     event: Node,
-    finalizeAfter: boolean,
+    finalizeAfter: boolean
   ): void {
-    this.scopeExecutor.deliverLifecycle(scopePath, bundle, event, finalizeAfter);
+    this.scopeExecutor.deliverLifecycle(
+      scopePath,
+      bundle,
+      event,
+      finalizeAfter
+    );
   }
 
   recordLifecycleForBridging(scopePath: string, event: Node): void {
@@ -284,7 +290,7 @@ export class ProcessorExecution implements ExecutionHooks {
     scopePath: string,
     bundle: ContractBundle | null,
     kind: TerminationKind,
-    reason: string | null,
+    reason: string | null
   ): void {
     const normalized = normalizeScope(scopePath);
     if (
@@ -299,7 +305,7 @@ export class ProcessorExecution implements ExecutionHooks {
       scopePath,
       bundle,
       kind,
-      reason,
+      reason
     );
   }
 
@@ -347,7 +353,7 @@ export class ProcessorExecution implements ExecutionHooks {
     channel: ChannelBinding,
     bundle: ContractBundle,
     scopePath: string,
-    event: Node,
+    event: Node
   ): ChannelMatch {
     const processor = this.registry.lookupChannel(channel.blueId());
     if (!processor) {
@@ -357,6 +363,7 @@ export class ProcessorExecution implements ExecutionHooks {
     const eventClone = event.clone();
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
+      blue: this.blue,
       event: eventClone,
       eventObject: this.blue.nodeToJson(eventClone, 'official'),
       markers: new Map(bundle.markerEntries()),
@@ -364,7 +371,7 @@ export class ProcessorExecution implements ExecutionHooks {
 
     const matchesResult = processor.matches(
       channel.contract() as ChannelContract,
-      evaluationContext,
+      evaluationContext
     );
     if (matchesResult instanceof Promise) {
       throw new Error('Async channel processors are not supported');
@@ -375,7 +382,7 @@ export class ProcessorExecution implements ExecutionHooks {
 
     const eventIdResult = processor.eventId?.(
       channel.contract() as ChannelContract,
-      evaluationContext,
+      evaluationContext
     );
     if (eventIdResult instanceof Promise) {
       throw new Error('Async channel processors are not supported');
@@ -390,14 +397,14 @@ export class ProcessorExecution implements ExecutionHooks {
 
   private executeHandler(
     handler: HandlerBinding,
-    context: ProcessorExecutionContext,
+    context: ProcessorExecutionContext
   ): void {
     const processor = this.registry.lookupHandler(handler.blueId());
     if (!processor) {
       const reason = `No processor registered for handler contract ${handler.blueId()}`;
       throw new ProcessorFatalError(
         reason,
-        ProcessorErrors.illegalState(reason),
+        ProcessorErrors.illegalState(reason)
       );
     }
     processor.execute(handler.contract(), context);
@@ -405,7 +412,7 @@ export class ProcessorExecution implements ExecutionHooks {
 
   private createDocumentUpdateEvent(
     data: DocumentUpdateData,
-    scopePath: string,
+    scopePath: string
   ): Node {
     const relativePath = relativizePointer(scopePath, data.path);
 
@@ -428,7 +435,7 @@ export class ProcessorExecution implements ExecutionHooks {
   private matchesDocumentUpdate(
     scopePath: string,
     watchPath: string | null | undefined,
-    changedPath: string,
+    changedPath: string
   ): boolean {
     if (!watchPath || watchPath.length === 0) {
       return false;
@@ -449,16 +456,17 @@ export class ProcessorEngine {
   constructor(
     private readonly contractLoader: ContractLoader,
     private readonly registry: ContractProcessorRegistry,
+    private readonly blue: Blue
   ) {}
 
   initializeDocument(
-    document: Node,
+    document: Node
   ): Result<DocumentProcessingResult, ProcessorError> {
     if (this.isInitialized(document)) {
       return err(
         ProcessorErrors.illegalState(
-          "Initialization Marker already present for scope '/'",
-        ),
+          "Initialization Marker already present for scope '/'"
+        )
       );
     }
     const execution = this.createExecution(document.clone());
@@ -469,13 +477,13 @@ export class ProcessorEngine {
 
   processDocument(
     document: Node,
-    event: Node,
+    event: Node
   ): Result<DocumentProcessingResult, ProcessorError> {
     if (!this.isInitialized(document)) {
       return err(
         ProcessorErrors.illegalState(
-          "Initialization Marker missing for scope '/'",
-        ),
+          "Initialization Marker missing for scope '/'"
+        )
       );
     }
     const execution = this.createExecution(document.clone());
@@ -491,12 +499,17 @@ export class ProcessorEngine {
   }
 
   createExecution(document: Node): ProcessorExecution {
-    return new ProcessorExecution(this.contractLoader, this.registry, document);
+    return new ProcessorExecution(
+      this.contractLoader,
+      this.registry,
+      this.blue,
+      document
+    );
   }
 
   private run(
     execution: ProcessorExecution,
-    action: () => void,
+    action: () => void
   ): Result<DocumentProcessingResult, ProcessorError> {
     try {
       action();
@@ -510,8 +523,8 @@ export class ProcessorEngine {
       return err(
         ProcessorErrors.runtimeFatal(
           (error as Error | undefined)?.message ?? 'Document processing failed',
-          error,
-        ),
+          error
+        )
       );
     }
     return ok(execution.result());
@@ -522,7 +535,7 @@ export class ProcessorEngine {
       error.processorError ??
       ProcessorErrors.runtimeFatal(
         error.message || 'Processor fatal error',
-        error,
+        error
       )
     );
   }
@@ -535,10 +548,8 @@ export class ProcessorEngine {
     }
     if (!(marker instanceof BlueNode)) {
       throw new ProcessorFatalError(
-        "Initialization Marker must be a BlueNode",
-        ProcessorErrors.illegalState(
-          "Initialization Marker must be a BlueNode",
-        ),
+        'Initialization Marker must be a BlueNode',
+        ProcessorErrors.illegalState('Initialization Marker must be a BlueNode')
       );
     }
     const typeBlueId = marker.getType()?.getBlueId();
@@ -546,8 +557,8 @@ export class ProcessorEngine {
       throw new ProcessorFatalError(
         "Initialization Marker must declare type 'InitializationMarker'",
         ProcessorErrors.illegalState(
-          "Initialization Marker must declare type 'InitializationMarker'",
-        ),
+          "Initialization Marker must declare type 'InitializationMarker'"
+        )
       );
     }
     return marker;

@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod';
+import type { Blue } from '@blue-labs/language';
 
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { Node } from '../types/index.js';
@@ -14,6 +15,7 @@ export interface ContractProcessor<TContract> {
 
 export interface ContractProcessorContext {
   readonly scopePath: string;
+  readonly blue: Blue;
   event(): Node | null;
   applyPatch(patch: JsonPatch): void;
   emitEvent(emission: Node): void;
@@ -26,13 +28,18 @@ export interface ContractProcessorContext {
   terminateFatally(reason: string | null): void;
 }
 
-export interface HandlerProcessor<TContract> extends ContractProcessor<TContract> {
+export interface HandlerProcessor<TContract>
+  extends ContractProcessor<TContract> {
   readonly kind: 'handler';
-  execute(contract: TContract, context: ContractProcessorContext): void | Promise<void>;
+  execute(
+    contract: TContract,
+    context: ContractProcessorContext
+  ): void | Promise<void>;
 }
 
 export interface ChannelEvaluationContext {
   readonly scopePath: string;
+  readonly blue: Blue;
   /**
    * Mutable clone of the inbound event. Channel processors may adapt it in-place.
    */
@@ -44,13 +51,21 @@ export interface ChannelEvaluationContext {
   readonly markers: ReadonlyMap<string, MarkerContract>;
 }
 
-export interface ChannelProcessor<TContract> extends ContractProcessor<TContract> {
+export interface ChannelProcessor<TContract>
+  extends ContractProcessor<TContract> {
   readonly kind: 'channel';
-  matches(contract: TContract, context: ChannelEvaluationContext): boolean | Promise<boolean>;
-  eventId?(contract: TContract, context: ChannelEvaluationContext): string | null | undefined | Promise<string | null | undefined>;
+  matches(
+    contract: TContract,
+    context: ChannelEvaluationContext
+  ): boolean | Promise<boolean>;
+  eventId?(
+    contract: TContract,
+    context: ChannelEvaluationContext
+  ): string | null | undefined | Promise<string | null | undefined>;
 }
 
-export interface MarkerProcessor<TContract> extends ContractProcessor<TContract> {
+export interface MarkerProcessor<TContract>
+  extends ContractProcessor<TContract> {
   readonly kind: 'marker';
 }
 

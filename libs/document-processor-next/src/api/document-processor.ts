@@ -28,7 +28,11 @@ export class DocumentProcessor {
       ContractProcessorRegistryBuilder.create().registerDefaults().build();
     this.blue = options?.blue ?? new Blue();
     this.contractLoaderRef = new ContractLoader(this.registryRef, this.blue);
-    this.engine = new ProcessorEngine(this.contractLoaderRef, this.registryRef);
+    this.engine = new ProcessorEngine(
+      this.contractLoaderRef,
+      this.registryRef,
+      this.blue
+    );
   }
 
   registerContractProcessor(processor: AnyContractProcessor): this {

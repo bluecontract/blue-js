@@ -5,7 +5,7 @@ import { DocumentProcessor } from '../document-processor.js';
 import {
   SetPropertyContractProcessor,
   TestEventChannelProcessor,
-} from '../../__tests__/legacy-test-fixtures.js';
+} from '../../__tests__/processors/index.js';
 import { default as Big } from 'big.js';
 
 const blue = new Blue();
