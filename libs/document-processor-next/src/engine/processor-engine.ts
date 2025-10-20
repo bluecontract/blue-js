@@ -31,6 +31,14 @@ import type { ContractProcessorRegistry } from '../registry/contract-processor-r
 import type { ChannelContract } from '../model/index.js';
 import type { ChannelEvaluationContext } from '../registry/types.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
+import { ProcessorErrors, type ProcessorError } from '../types/errors.js';
+import { err, ok, type Result } from '../types/result.js';
+import type {
+  DocumentProcessingResult,
+  ScopeTerminationSummary,
+} from '../types/document-processing-result.js';
+import { RunTerminationError } from './run-termination-error.js';
+import { ProcessorFatalError } from './processor-fatal-error.js';
 
 interface ExecutionHooks
   extends ExecutionAdapter,
@@ -167,6 +175,31 @@ export class ProcessorExecution implements ExecutionHooks {
       allowTerminatedWork,
       allowReservedMutation,
     );
+  }
+
+  result(): DocumentProcessingResult {
+    const document = (this.runtimeRef.document() as BlueNode).clone();
+    const triggeredEvents = this.runtimeRef
+      .rootEmissions()
+      .map((event) => (event as BlueNode).clone());
+    const terminatedScopes: ScopeTerminationSummary[] = Array.from(
+      this.runtimeRef.scopes().entries(),
+    )
+      .filter(([, context]) => context.isTerminated())
+      .map(([scopePath, context]) => ({
+        scopePath,
+        kind: context.terminationKind() ?? 'GRACEFUL',
+        reason: context.terminationReason(),
+      }));
+    return {
+      document,
+      triggeredEvents: Object.freeze(triggeredEvents) as readonly BlueNode[],
+      totalGas: this.runtimeRef.totalGas(),
+      terminatedScopes: Object.freeze(
+        terminatedScopes,
+      ) as readonly ScopeTerminationSummary[],
+      runTerminated: this.runtimeRef.isRunTerminated(),
+    };
   }
 
   runtime(): DocumentProcessingRuntime {
@@ -325,8 +358,8 @@ export class ProcessorExecution implements ExecutionHooks {
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       event: eventClone,
-      eventObject: undefined,
-      markers: new Map<string, unknown>(bundle.markerEntries()),
+      eventObject: this.blue.nodeToJson(eventClone, 'official'),
+      markers: new Map(bundle.markerEntries()),
     };
 
     const matchesResult = processor.matches(
@@ -360,7 +393,14 @@ export class ProcessorExecution implements ExecutionHooks {
     context: ProcessorExecutionContext,
   ): void {
     const processor = this.registry.lookupHandler(handler.blueId());
-    processor?.execute(handler.contract(), context);
+    if (!processor) {
+      const reason = `No processor registered for handler contract ${handler.blueId()}`;
+      throw new ProcessorFatalError(
+        reason,
+        ProcessorErrors.illegalState(reason),
+      );
+    }
+    processor.execute(handler.contract(), context);
   }
 
   private createDocumentUpdateEvent(
@@ -402,5 +442,114 @@ export class ProcessorExecution implements ExecutionHooks {
       return true;
     }
     return changed.startsWith(`${watch}/`);
+  }
+}
+
+export class ProcessorEngine {
+  constructor(
+    private readonly contractLoader: ContractLoader,
+    private readonly registry: ContractProcessorRegistry,
+  ) {}
+
+  initializeDocument(
+    document: Node,
+  ): Result<DocumentProcessingResult, ProcessorError> {
+    if (this.isInitialized(document)) {
+      return err(
+        ProcessorErrors.illegalState(
+          "Initialization Marker already present for scope '/'",
+        ),
+      );
+    }
+    const execution = this.createExecution(document.clone());
+    return this.run(execution, () => {
+      execution.initializeScope('/', true);
+    });
+  }
+
+  processDocument(
+    document: Node,
+    event: Node,
+  ): Result<DocumentProcessingResult, ProcessorError> {
+    if (!this.isInitialized(document)) {
+      return err(
+        ProcessorErrors.illegalState(
+          "Initialization Marker missing for scope '/'",
+        ),
+      );
+    }
+    const execution = this.createExecution(document.clone());
+    const eventClone = event.clone();
+    return this.run(execution, () => {
+      execution.loadBundles('/');
+      execution.processExternalEvent('/', eventClone);
+    });
+  }
+
+  isInitialized(document: Node): boolean {
+    return this.initializationMarker(document) != null;
+  }
+
+  createExecution(document: Node): ProcessorExecution {
+    return new ProcessorExecution(this.contractLoader, this.registry, document);
+  }
+
+  private run(
+    execution: ProcessorExecution,
+    action: () => void,
+  ): Result<DocumentProcessingResult, ProcessorError> {
+    try {
+      action();
+    } catch (error) {
+      if (error instanceof RunTerminationError) {
+        return ok(execution.result());
+      }
+      if (error instanceof ProcessorFatalError) {
+        return err(this.toProcessorError(error));
+      }
+      return err(
+        ProcessorErrors.runtimeFatal(
+          (error as Error | undefined)?.message ?? 'Document processing failed',
+          error,
+        ),
+      );
+    }
+    return ok(execution.result());
+  }
+
+  private toProcessorError(error: ProcessorFatalError): ProcessorError {
+    return (
+      error.processorError ??
+      ProcessorErrors.runtimeFatal(
+        error.message || 'Processor fatal error',
+        error,
+      )
+    );
+  }
+
+  private initializationMarker(document: Node): BlueNode | null {
+    const contracts = document.getProperties()?.contracts;
+    const marker = contracts?.getProperties()?.initialized ?? null;
+    if (!marker) {
+      return null;
+    }
+    if (!(marker instanceof BlueNode)) {
+      throw new ProcessorFatalError(
+        "Initialization Marker must be a BlueNode",
+        ProcessorErrors.illegalState(
+          "Initialization Marker must be a BlueNode",
+        ),
+      );
+    }
+    const typeBlueId = marker.getType()?.getBlueId();
+    if (typeBlueId !== 'InitializationMarker') {
+      throw new ProcessorFatalError(
+        "Initialization Marker must declare type 'InitializationMarker'",
+        ProcessorErrors.illegalState(
+          "Initialization Marker must declare type 'InitializationMarker'",
+        ),
+      );
+    }
+    return marker;
   }
 }

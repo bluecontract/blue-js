@@ -1,6 +1,8 @@
 import type { ZodType } from 'zod';
 
+import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { Node } from '../types/index.js';
+import type { MarkerContract } from '../model/index.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
 
@@ -11,8 +13,17 @@ export interface ContractProcessor<TContract> {
 }
 
 export interface ContractProcessorContext {
-  // Placeholder for execution context to be ported from Java runtime.
   readonly scopePath: string;
+  event(): Node | null;
+  applyPatch(patch: JsonPatch): void;
+  emitEvent(emission: Node): void;
+  consumeGas(units: number): void;
+  throwFatal(reason: string): never;
+  resolvePointer(relativePointer: string): string;
+  documentAt(absolutePointer: string): Node | null;
+  documentContains(absolutePointer: string): boolean;
+  terminateGracefully(reason: string | null): void;
+  terminateFatally(reason: string | null): void;
 }
 
 export interface HandlerProcessor<TContract> extends ContractProcessor<TContract> {
@@ -29,8 +40,8 @@ export interface ChannelEvaluationContext {
   /**
    * Lazily materialised object view of {@link event}. Optional for processors that require DTOs.
    */
-  readonly eventObject?: unknown;
-  readonly markers: ReadonlyMap<string, unknown>;
+  readonly eventObject: unknown;
+  readonly markers: ReadonlyMap<string, MarkerContract>;
 }
 
 export interface ChannelProcessor<TContract> extends ContractProcessor<TContract> {

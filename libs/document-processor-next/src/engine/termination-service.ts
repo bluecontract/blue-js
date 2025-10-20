@@ -75,20 +75,24 @@ function createTerminationLifecycleEvent(
   kind: TerminationKind,
   reason: string | null,
 ): BlueNode {
-  return nodeFrom({
-    eventType: 'Document Processing Terminated',
-    cause: kind === 'GRACEFUL' ? 'graceful' : 'fatal',
-    ...(reason ? { reason } : {}),
-  });
+  const event = new BlueNode();
+  event.addProperty('type', new BlueNode().setValue('Document Processing Terminated'));
+  event.addProperty('cause', new BlueNode().setValue(kind === 'GRACEFUL' ? 'graceful' : 'fatal'));
+  if (reason) {
+    event.addProperty('reason', new BlueNode().setValue(reason));
+  }
+  return event;
 }
 
 function createFatalOutboxEvent(scopePath: string, reason: string | null): BlueNode {
-  return nodeFrom({
-    eventType: 'Document Processing Fatal Error',
-    domain: scopePath,
-    code: 'RuntimeFatal',
-    ...(reason ? { reason } : {}),
-  });
+  const event = new BlueNode();
+  event.addProperty('type', new BlueNode().setValue('Document Processing Fatal Error'));
+  event.addProperty('domain', new BlueNode().setValue(scopePath));
+  event.addProperty('code', new BlueNode().setValue('RuntimeFatal'));
+  if (reason) {
+    event.addProperty('reason', new BlueNode().setValue(reason));
+  }
+  return event;
 }
 
 function nodeFrom(value: unknown): BlueNode {

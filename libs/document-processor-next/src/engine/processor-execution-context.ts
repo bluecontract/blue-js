@@ -5,6 +5,7 @@ import { DocumentProcessingRuntime } from '../runtime/document-processing-runtim
 import { normalizePointer } from '../util/pointer-utils.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { BlueNode } from '@blue-labs/language';
+import { ProcessorErrors } from '../types/errors.js';
 
 export interface ExecutionAdapter {
   runtime(): DocumentProcessingRuntime;
@@ -63,7 +64,10 @@ export class ProcessorExecutionContext {
   }
 
   throwFatal(reason: string): never {
-    throw new ProcessorFatalError(reason);
+    throw new ProcessorFatalError(
+      reason,
+      ProcessorErrors.runtimeFatal(reason),
+    );
   }
 
   resolvePointer(relativePointer: string): string {
@@ -76,7 +80,15 @@ export class ProcessorExecutionContext {
     }
     const normalized = normalizePointer(absolutePointer);
     const value = this.execution.runtime().document().get(normalized);
-    return value instanceof BlueNode ? (value.clone() as Node) : null;
+    if (value instanceof BlueNode) {
+      return value.clone() as Node;
+    }
+    if (value === undefined) {
+      return null;
+    }
+    const node = new BlueNode();
+    node.setValue(value as unknown as number | string | boolean | null);
+    return node;
   }
 
   documentContains(absolutePointer: string): boolean {

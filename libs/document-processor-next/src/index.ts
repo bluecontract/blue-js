@@ -7,3 +7,4 @@ export * from './model/index.js';
 export * from './registry/index.js';
 export * from './engine/index.js';
 export * from './runtime/index.js';
+export * from './api/document-processor.js';

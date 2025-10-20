@@ -7,3 +7,4 @@ export * from './processor-execution-context.js';
 export * from './termination-service.js';
 export * from './processor-fatal-error.js';
 export * from './run-termination-error.js';
+export * from './processor-engine.js';

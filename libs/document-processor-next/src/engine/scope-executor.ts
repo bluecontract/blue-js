@@ -24,7 +24,7 @@ import {
 } from '../util/pointer-utils.js';
 import { BlueNode } from '@blue-labs/language';
 import { ProcessorFatalError } from './processor-fatal-error.js';
-import type { ProcessorError } from '../types/errors.js';
+import { ProcessorErrors, type ProcessorError } from '../types/errors.js';
 
 export interface ProcessorContext {
   resolvePointer(relativePointer: string): string;
@@ -326,7 +326,7 @@ export class ScopeExecutor {
       return result.value;
     }
     const message = this.describeProcessorError(result.error);
-    throw new ProcessorFatalError(message);
+    throw new ProcessorFatalError(message, result.error);
   }
 
   private describeProcessorError(error: ProcessorError): string {
@@ -348,8 +348,7 @@ export class ScopeExecutor {
         return `${error.kind} ${error.operation}${suffix}`;
       }
     }
-
-    throw new ProcessorFatalError('Unhandled processor error kind');
+    return 'Unhandled processor error kind';
   }
 
   private addInitializationMarker(context: ProcessorContext, documentId: string): void {
@@ -493,7 +492,25 @@ export class ScopeExecutor {
   private hasInitializationMarker(scopePath: string): boolean {
     const markerPointer = resolvePointer(scopePath, RELATIVE_INITIALIZED);
     const node = this.nodeAt(markerPointer);
-    return node != null;
+    if (!node) {
+      return false;
+    }
+    if (!(node instanceof BlueNode)) {
+      const message = `Reserved key 'initialized' must contain an Initialization Marker at ${markerPointer}`;
+      throw new ProcessorFatalError(
+        message,
+        ProcessorErrors.illegalState(message),
+      );
+    }
+    const typeBlueId = node.getType()?.getBlueId();
+    if (typeBlueId !== 'InitializationMarker') {
+      const message = `Reserved key 'initialized' must contain an Initialization Marker at ${markerPointer}`;
+      throw new ProcessorFatalError(
+        message,
+        ProcessorErrors.illegalState(message),
+      );
+    }
+    return true;
   }
 
   private createLifecycleEvent(documentId: string): Node {

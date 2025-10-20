@@ -87,13 +87,7 @@ export class ContractLoader {
   ): Result<void, ProcessorError> {
     const blueId = node.getType()?.getBlueId();
     if (!blueId) {
-      return err(
-        ProcessorErrors.invalidContract(
-          'unknown',
-          'Contract node is missing a Type BlueId',
-          key,
-        ),
-      );
+      return ok(undefined);
     }
 
     if (blueId === 'ProcessEmbedded') {
