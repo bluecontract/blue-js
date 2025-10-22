@@ -1,6 +1,6 @@
 import { expect, it, describe } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { Blue } from '@blue-labs/language';
 
@@ -21,13 +21,12 @@ const blue = new Blue();
 
 describe('ContractMappingIntegrationTest', () => {
   it('loadsAllContractsFromBlueYaml', () => {
-    const filePath = fileURLToPath(
-      new URL(
-        '../../../../../blue-language-java/src/test/resources/processor/contracts/all-contracts.blue',
-        import.meta.url
-      )
+    const resourcePath = path.join(
+      __dirname,
+      'resources',
+      'all-contracts.blue'
     );
-    const yaml = readFileSync(filePath, 'utf-8');
+    const yaml = fs.readFileSync(resourcePath, 'utf8');
 
     const document = blue.yamlToNode(yaml);
     const contractsNode = property(document, 'contracts');
@@ -69,9 +68,7 @@ describe('ContractMappingIntegrationTest', () => {
     );
     const storedEvent = checkpoint.lastEvents?.external ?? null;
     expect(storedEvent).toBeDefined();
-    const storedId = storedEvent
-      ?.getProperties()
-      ?.eventId?.getValue();
+    const storedId = storedEvent?.getProperties()?.eventId?.getValue();
     expect(storedId).toBe('evt-001');
 
     const initialized = blue.nodeToSchemaOutput(
