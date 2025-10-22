@@ -247,4 +247,48 @@ contracts:
     const a = property(processed, 'a');
     expect(Number(property(a, 'x').getValue())).toBe(1);
   });
+
+  it('document update events preserve append pointer token', () => {
+    const processor = buildProcessor(
+      blue,
+      new SetPropertyContractProcessor(),
+      new AssertDocumentUpdateContractProcessor()
+    );
+    const yaml = `name: Append Doc
+list: []
+contracts:
+  lifecycle:
+    type:
+      blueId: LifecycleChannel
+  watchList:
+    type:
+      blueId: DocumentUpdateChannel
+    path: /list
+  appendItem:
+    channel: lifecycle
+    type:
+      blueId: SetProperty
+    event:
+      type:
+        blueId: DocumentProcessingInitiated
+    path: /list
+    propertyKey: "-"
+    propertyValue: 5
+  assertAppend:
+    channel: watchList
+    type:
+      blueId: AssertDocumentUpdate
+    expectedPath: /list/-
+    expectedOp: add
+    expectBeforeNull: true
+    expectedAfterValue: 5
+`;
+
+    const result = expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml))
+    );
+    const list = property(result.document, 'list');
+    expect(list.getItems()).toHaveLength(1);
+    expect(Number(list.getItems()?.[0]?.getValue())).toBe(5);
+  });
 });

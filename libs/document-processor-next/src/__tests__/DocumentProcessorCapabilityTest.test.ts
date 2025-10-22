@@ -26,9 +26,10 @@ contracts:
     const originalJson = JSON.stringify(blue.nodeToJson(document.clone()));
 
     const result = processor.initializeDocument(document);
-    const error = expectErr(result);
-    expect(error.kind).toBe('CapabilityFailure');
-    expect(error.reason?.toLowerCase()).toContain('unsupported');
+    const failure = expectErr(result);
+    expect(failure.failureReason?.toLowerCase()).toContain('unsupported');
+    expect(failure.totalGas).toBe(0);
+    expect(failure.triggeredEvents).toHaveLength(0);
 
     const afterJson = JSON.stringify(blue.nodeToJson(document.clone()));
     expect(afterJson).toBe(originalJson);
@@ -69,9 +70,10 @@ contracts:
 
       const event = new BlueNode().setValue('event');
       const result = processor.processDocument(initialized, event);
-      const error = expectErr(result);
-      expect(error.kind).toBe('CapabilityFailure');
-      expect(error.reason?.toLowerCase()).toContain('unsupported');
+      const failure = expectErr(result);
+      expect(failure.failureReason?.toLowerCase()).toContain('unsupported');
+      expect(failure.totalGas).toBe(0);
+      expect(failure.triggeredEvents).toHaveLength(0);
 
       const storedContracts = property(initialized, 'contracts');
       expect(storedContracts.getProperties()).toHaveProperty(

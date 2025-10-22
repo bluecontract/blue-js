@@ -8,8 +8,6 @@ import { ContractProcessorRegistryBuilder } from '../registry/contract-processor
 import type { AnyContractProcessor } from '../registry/types.js';
 import type { Node } from '../types/index.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
-import type { ProcessorError } from '../types/errors.js';
-import { err, ok, type Result } from '../types/result.js';
 
 export interface DocumentProcessorOptions {
   readonly blue?: Blue;
@@ -42,26 +40,23 @@ export class DocumentProcessor {
 
   initializeDocument(
     document: Node
-  ): Result<DocumentProcessingResult, ProcessorError> {
+  ): DocumentProcessingResult {
     return this.engine.initializeDocument(document);
   }
 
   processDocument(
     document: Node,
     event: Node
-  ): Result<DocumentProcessingResult, ProcessorError> {
+  ): DocumentProcessingResult {
     return this.engine.processDocument(document, event);
   }
 
   markersFor(
     scopeNode: Node,
     scopePath: string
-  ): Result<Map<string, MarkerContract>, ProcessorError> {
-    const bundleResult = this.contractLoaderRef.load(scopeNode, scopePath);
-    if (!bundleResult.ok) {
-      return err(bundleResult.error);
-    }
-    return ok(bundleResult.value.markers());
+  ): Map<string, MarkerContract> {
+    const bundle = this.contractLoaderRef.load(scopeNode, scopePath);
+    return bundle.markers();
   }
 
   isInitialized(document: Node): boolean {

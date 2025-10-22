@@ -31,14 +31,13 @@ import type { ContractProcessorRegistry } from '../registry/contract-processor-r
 import type { ChannelContract } from '../model/index.js';
 import type { ChannelEvaluationContext } from '../registry/types.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
-import { ProcessorErrors, type ProcessorError } from '../types/errors.js';
-import { err, ok, type Result } from '../types/result.js';
-import type {
-  DocumentProcessingResult,
-  ScopeTerminationSummary,
-} from '../types/document-processing-result.js';
+import { ProcessorErrors } from '../types/errors.js';
+import { DocumentProcessingResult } from '../types/document-processing-result.js';
 import { RunTerminationError } from './run-termination-error.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
+import { MustUnderstandFailure } from './must-understand-failure.js';
+import { IllegalStateException } from './illegal-state-exception.js';
+import { z } from 'zod';
 
 interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   bundleForScope(scopePath: string): ContractBundle | undefined;
@@ -183,24 +182,11 @@ export class ProcessorExecution implements ExecutionHooks {
     const triggeredEvents = this.runtimeRef
       .rootEmissions()
       .map((event) => (event as BlueNode).clone());
-    const terminatedScopes: ScopeTerminationSummary[] = Array.from(
-      this.runtimeRef.scopes().entries()
-    )
-      .filter(([, context]) => context.isTerminated())
-      .map(([scopePath, context]) => ({
-        scopePath,
-        kind: context.terminationKind() ?? 'GRACEFUL',
-        reason: context.terminationReason(),
-      }));
-    return {
+    return DocumentProcessingResult.of(
       document,
-      triggeredEvents: Object.freeze(triggeredEvents) as readonly BlueNode[],
-      totalGas: this.runtimeRef.totalGas(),
-      terminatedScopes: Object.freeze(
-        terminatedScopes
-      ) as readonly ScopeTerminationSummary[],
-      runTerminated: this.runtimeRef.isRunTerminated(),
-    };
+      triggeredEvents as readonly BlueNode[],
+      this.runtimeRef.totalGas()
+    );
   }
 
   runtime(): DocumentProcessingRuntime {
@@ -311,42 +297,7 @@ export class ProcessorExecution implements ExecutionHooks {
 
   private nodeAt(scopePath: string): Node | null {
     const normalized = normalizeScope(scopePath);
-    if (normalized === '/') {
-      return this.runtimeRef.document();
-    }
-
-    const segments = normalized.slice(1).split('/');
-    let current: Node | null = this.runtimeRef.document();
-
-    for (const segment of segments) {
-      if (!current) {
-        return null;
-      }
-      if (!segment) {
-        continue;
-      }
-
-      const items = current.getItems();
-      if (items && /^\d+$/.test(segment)) {
-        const index = Number.parseInt(segment, 10);
-        current = items[index] ?? null;
-        continue;
-      }
-
-      const properties = current.getProperties() as
-        | Record<string, Node>
-        | undefined;
-      if (!properties) {
-        return null;
-      }
-      const nextNode = properties[segment] as Node | undefined;
-      if (!(nextNode instanceof BlueNode)) {
-        return null;
-      }
-      current = nextNode;
-    }
-
-    return current;
+    return ProcessorEngine.nodeAt(this.runtimeRef.document(), normalized);
   }
 
   private evaluateChannel(
@@ -361,12 +312,18 @@ export class ProcessorExecution implements ExecutionHooks {
     }
 
     const eventClone = event.clone();
+    let eventObject: ChannelEvaluationContext['eventObject'] = null;
+    try {
+      eventObject = this.blue.nodeToSchemaOutput(eventClone, z.object({}));
+    } catch {
+      eventObject = null;
+    }
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       blue: this.blue,
       event: eventClone,
-      eventObject: this.blue.nodeToJson(eventClone, 'official'),
-      markers: new Map(bundle.markerEntries()),
+      eventObject,
+      markers: bundle.markers(),
     };
 
     const matchesResult = processor.matches(
@@ -459,36 +416,23 @@ export class ProcessorEngine {
     private readonly blue: Blue
   ) {}
 
-  initializeDocument(
-    document: Node
-  ): Result<DocumentProcessingResult, ProcessorError> {
+  initializeDocument(document: Node): DocumentProcessingResult {
     if (this.isInitialized(document)) {
-      return err(
-        ProcessorErrors.illegalState(
-          "Initialization Marker already present for scope '/'"
-        )
-      );
+      throw new IllegalStateException('Document already initialized');
     }
     const execution = this.createExecution(document.clone());
-    return this.run(execution, () => {
+    return this.run(document, execution, () => {
       execution.initializeScope('/', true);
     });
   }
 
-  processDocument(
-    document: Node,
-    event: Node
-  ): Result<DocumentProcessingResult, ProcessorError> {
+  processDocument(document: Node, event: Node): DocumentProcessingResult {
     if (!this.isInitialized(document)) {
-      return err(
-        ProcessorErrors.illegalState(
-          "Initialization Marker missing for scope '/'"
-        )
-      );
+      throw new IllegalStateException('Document not initialized');
     }
     const execution = this.createExecution(document.clone());
     const eventClone = event.clone();
-    return this.run(execution, () => {
+    return this.run(document, execution, () => {
       execution.loadBundles('/');
       execution.processExternalEvent('/', eventClone);
     });
@@ -508,36 +452,26 @@ export class ProcessorEngine {
   }
 
   private run(
+    originalDocument: Node,
     execution: ProcessorExecution,
     action: () => void
-  ): Result<DocumentProcessingResult, ProcessorError> {
+  ): DocumentProcessingResult {
     try {
       action();
     } catch (error) {
       if (error instanceof RunTerminationError) {
-        return ok(execution.result());
+        return execution.result();
       }
-      if (error instanceof ProcessorFatalError) {
-        return err(this.toProcessorError(error));
+      if (error instanceof MustUnderstandFailure) {
+        const failureDocument = originalDocument.clone() as BlueNode;
+        return DocumentProcessingResult.capabilityFailure(
+          failureDocument,
+          error.message ?? null
+        );
       }
-      return err(
-        ProcessorErrors.runtimeFatal(
-          (error as Error | undefined)?.message ?? 'Document processing failed',
-          error
-        )
-      );
+      throw error;
     }
-    return ok(execution.result());
-  }
-
-  private toProcessorError(error: ProcessorFatalError): ProcessorError {
-    return (
-      error.processorError ??
-      ProcessorErrors.runtimeFatal(
-        error.message || 'Processor fatal error',
-        error
-      )
-    );
+    return execution.result();
   }
 
   private initializationMarker(document: Node): BlueNode | null {
@@ -562,5 +496,47 @@ export class ProcessorEngine {
       );
     }
     return marker;
+  }
+
+  static nodeAt(root: Node, pointer: string): Node | null {
+    if (!(root instanceof BlueNode)) {
+      return null;
+    }
+    const normalized = normalizePointer(pointer);
+    if (normalized === '/') {
+      return root;
+    }
+    const segments = normalized.slice(1).split('/');
+    let current: Node | null = root;
+
+    for (const segment of segments) {
+      if (!current) {
+        return null;
+      }
+      if (!segment) {
+        continue;
+      }
+
+      const items = current.getItems();
+      if (items && /^\d+$/.test(segment)) {
+        const index = Number.parseInt(segment, 10);
+        current = items[index] ?? null;
+        continue;
+      }
+
+      const properties = current.getProperties() as
+        | Record<string, Node>
+        | undefined;
+      if (!properties) {
+        return null;
+      }
+      const nextNode = properties[segment] as Node | undefined;
+      if (!(nextNode instanceof BlueNode)) {
+        return null;
+      }
+      current = nextNode;
+    }
+
+    return current;
   }
 }

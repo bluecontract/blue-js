@@ -108,10 +108,12 @@ describe('ProcessorExecutionContext', () => {
   it('retrieves document data through pointers', () => {
     const { context, runtime } = createContext();
     runtime.directWrite('/foo', nodeFrom({ answer: 42 }));
+    runtime.directWrite('/items', new BlueNode().setItems([]));
 
     const documentNode = context.documentAt('/foo');
     expect(documentNode).toBeInstanceOf(BlueNode);
     expect(context.documentContains('/foo')).toBe(true);
     expect(context.documentContains('/missing')).toBe(false);
+    expect(context.documentContains('/items/-')).toBe(false);
   });
 });

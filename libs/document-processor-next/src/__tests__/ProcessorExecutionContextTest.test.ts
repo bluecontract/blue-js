@@ -15,9 +15,11 @@ function createEngine(): ProcessorEngine {
 
 describe('ProcessorExecutionContextTest', () => {
   it('documentHelpersExposeSnapshots', () => {
-    const document = blue.jsonValueToNode({
-      value: 1,
-      nested: { inner: 'x' },
+    const document = new BlueNode().setProperties({
+      value: new BlueNode().setValue(1),
+      nested: new BlueNode().setProperties({
+        inner: new BlueNode().setValue('x'),
+      }),
     });
     const engine = createEngine();
     const execution = engine.createExecution(document.clone());

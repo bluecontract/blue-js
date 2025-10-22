@@ -2,10 +2,10 @@ import type { Node } from '../types/index.js';
 import type { ContractBundle } from './contract-bundle.js';
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
-import { normalizePointer } from '../util/pointer-utils.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { Blue, BlueNode } from '@blue-labs/language';
 import { ProcessorErrors } from '../types/errors.js';
+import { ProcessorEngine } from './processor-engine.js';
 
 export interface ExecutionAdapter {
   runtime(): DocumentProcessingRuntime;
@@ -107,26 +107,34 @@ export class ProcessorExecutionContext {
     if (!absolutePointer) {
       return null;
     }
-    const normalized = normalizePointer(absolutePointer);
-    const value = this.execution.runtime().document().get(normalized);
-    if (value instanceof BlueNode) {
-      return value.clone() as Node;
-    }
-    if (value === undefined) {
+    try {
+      const node = this.documentNodeAt(absolutePointer);
+      return node ? (node.clone() as Node) : null;
+    } catch {
       return null;
     }
-    const node = new BlueNode();
-    node.setValue(value as unknown as number | string | boolean | null);
-    return node;
   }
 
   documentContains(absolutePointer: string): boolean {
     if (!absolutePointer) {
       return false;
     }
-    const normalized = normalizePointer(absolutePointer);
-    const value = this.execution.runtime().document().get(normalized);
-    return value != null;
+    try {
+      return ProcessorEngine.nodeAt(
+        this.execution.runtime().document(),
+        absolutePointer
+      ) != null;
+    } catch {
+      return false;
+    }
+  }
+
+  private documentNodeAt(absolutePointer: string): BlueNode | null {
+    const node = ProcessorEngine.nodeAt(
+      this.execution.runtime().document(),
+      absolutePointer
+    );
+    return node instanceof BlueNode ? node : null;
   }
 
   terminateGracefully(reason: string | null): void {

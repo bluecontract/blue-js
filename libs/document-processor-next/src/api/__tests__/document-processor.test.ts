@@ -47,17 +47,14 @@ describe('DocumentProcessor', () => {
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
     const init = processor.initializeDocument(original);
-    expect(init.ok).toBe(true);
-    if (!init.ok) {
-      return;
-    }
+    expect(init.capabilityFailure).toBe(false);
 
-    const initialized = init.value.document;
+    const initialized = init.document;
     expect(processor.isInitialized(initialized)).toBe(true);
     const properties = initialized.getProperties();
     expect(properties?.initialized?.getValue()).toEqual(new Big(1));
-    expect(init.value.triggeredEvents).toHaveLength(1);
-    const lifecycleEvent = init.value.triggeredEvents[0];
+    expect(init.triggeredEvents).toHaveLength(1);
+    const lifecycleEvent = init.triggeredEvents[0];
     expect(lifecycleEvent.getProperties()?.type?.getValue()).toBe(
       'Document Processing Initiated'
     );
@@ -68,59 +65,64 @@ describe('DocumentProcessor', () => {
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
     const init = processor.initializeDocument(original);
-    expect(init.ok).toBe(true);
-    if (!init.ok) {
-      return;
-    }
+    const initialized = init.document;
 
-    const initialized = init.value.document;
     const eventNode = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
     });
 
     const processed = processor.processDocument(initialized, eventNode);
-    expect(processed.ok).toBe(true);
-    if (!processed.ok) {
-      return;
-    }
+    expect(processed.capabilityFailure).toBe(false);
 
-    const processedDoc = processed.value.document;
+    const processedDoc = processed.document;
     const props = processedDoc.getProperties();
     expect(props?.processed?.getValue()).toEqual(new Big(5));
-    expect(processed.value.triggeredEvents).toHaveLength(0);
+    expect(processed.triggeredEvents).toHaveLength(0);
   });
 
-  it('returns typed errors for invalid lifecycle usage', () => {
+  it('throws when document already initialized', () => {
     const processor = createDocumentProcessor();
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
     const firstInit = processor.initializeDocument(original);
-    expect(firstInit.ok).toBe(true);
-    if (!firstInit.ok) {
-      return;
-    }
+    expect(firstInit.capabilityFailure).toBe(false);
 
-    const secondInit = processor.initializeDocument(firstInit.value.document);
-    expect(secondInit.ok).toBe(false);
-    if (secondInit.ok) {
-      return;
-    }
-    expect(secondInit.error.kind).toBe('IllegalState');
-    expect(secondInit.error.reason).toMatch(
-      /Initialization Marker already present/
+    expect(() => processor.initializeDocument(firstInit.document)).toThrowError(
+      /Document already initialized/
     );
+  });
 
+  it('throws when processing uninitialized document', () => {
+    const processor = createDocumentProcessor();
     const uninitializedDoc = blue.yamlToNode(
       documentWithLifecycleAndEventHandlers()
     );
     const eventNode = blue.jsonValueToNode({ type: { blueId: 'TestEvent' } });
-    const processed = processor.processDocument(uninitializedDoc, eventNode);
-    expect(processed.ok).toBe(false);
-    if (processed.ok) {
-      return;
-    }
-    expect(processed.error.kind).toBe('IllegalState');
-    expect(processed.error.reason).toMatch(/missing/i);
+
+    expect(() => processor.processDocument(uninitializedDoc, eventNode)).toThrowError(
+      /Document not initialized/
+    );
+  });
+
+  it('returns capability failure when contracts are not understood', () => {
+    const processor = createDocumentProcessor();
+    const original = blue.yamlToNode(
+      `name: Example
+contracts:
+  mysteryChannel:
+    type:
+      blueId: UnknownChannelType
+`
+    );
+
+    const result = processor.initializeDocument(original);
+    expect(result.capabilityFailure).toBe(true);
+    expect(result.failureReason).toMatch(/Unsupported contract type/);
+    expect(result.totalGas).toBe(0);
+    expect(result.triggeredEvents).toHaveLength(0);
+    expect(blue.nodeToJson(result.document)).toEqual(
+      blue.nodeToJson(original.clone())
+    );
   });
 
   it('loads markers for a scope', () => {
@@ -128,16 +130,8 @@ describe('DocumentProcessor', () => {
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
     const init = processor.initializeDocument(original);
-    expect(init.ok).toBe(true);
-    if (!init.ok) {
-      return;
-    }
 
-    const markers = processor.markersFor(init.value.document, '/');
-    expect(markers.ok).toBe(true);
-    if (!markers.ok) {
-      return;
-    }
-    expect(markers.value.has('initialized')).toBe(true);
+    const markers = processor.markersFor(init.document, '/');
+    expect(markers.has('initialized')).toBe(true);
   });
 });

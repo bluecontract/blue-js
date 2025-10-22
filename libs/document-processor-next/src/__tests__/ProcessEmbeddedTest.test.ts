@@ -11,7 +11,6 @@ import {
 } from './processors/index.js';
 import {
   buildProcessor,
-  expectErr,
   expectOk,
   numericProperty,
   property,
@@ -583,9 +582,8 @@ contracts:
       - /y
 `;
 
-    const result = processor.initializeDocument(blue.yamlToNode(yaml));
-    const error = expectErr(result);
-    expect(error.kind).toBe('IllegalState');
-    expect(error.reason).toContain('Process Embedded');
+    expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
+      /Process Embedded/
+    );
   });
 });

@@ -6,7 +6,7 @@ export class EmissionRegistry {
   private readonly rootEmissionList: Node[] = [];
 
   scopes(): Map<string, ScopeRuntimeContext> {
-    return new Map(this.scopesMap);
+    return this.scopesMap;
   }
 
   scope(scopePath: string): ScopeRuntimeContext {

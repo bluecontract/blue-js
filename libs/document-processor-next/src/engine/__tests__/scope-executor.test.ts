@@ -9,7 +9,6 @@ import type { ChannelContract, LifecycleChannel } from '../../model/index.js';
 import type { JsonPatch } from '../../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import { resolvePointer } from '../../util/pointer-utils.js';
-import { ok } from '../../types/result.js';
 
 const blue = new Blue();
 
@@ -69,7 +68,7 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
   const runtime = new DocumentProcessingRuntime(new BlueNode());
   const bundles = new Map<string, ContractBundle>();
   const loader = {
-    load: vi.fn(() => ok(bundle)),
+    load: vi.fn(() => bundle),
   } as unknown as ContractLoader;
 
   const runExternalChannel = vi.fn();

@@ -1,4 +1,4 @@
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { Node } from '../types/index.js';
 import { normalizePointer, normalizeScope } from '../util/pointer-utils.js';
@@ -22,22 +22,25 @@ export class PatchEngine {
   applyPatch(originScopePath: string, patch: JsonPatch): PatchResult {
     const normalizedScope = normalizeScope(originScopePath);
     const targetPath = normalizePointer(patch.path);
-    const before = cloneAtSafe(this.document, targetPath);
-    let effectivePath = targetPath;
+    const segments = splitPointer(targetPath);
+    const before = cloneAtSafe(this.document, segments, 'before', targetPath);
     switch (patch.op) {
       case 'ADD':
-        effectivePath = this.applyAdd(targetPath, patch.val ?? null);
+        this.applyAdd(segments, targetPath, patch.val ?? null);
         break;
       case 'REPLACE':
-        this.applyReplace(targetPath, patch.val ?? null);
+        this.applyReplace(segments, targetPath, patch.val ?? null);
         break;
       case 'REMOVE':
-        this.applyRemove(targetPath);
+        this.applyRemove(segments, targetPath);
         break;
     }
-    const after = patch.op === 'REMOVE' ? null : cloneAtSafe(this.document, effectivePath);
+    const after =
+      patch.op === 'REMOVE'
+        ? null
+        : cloneAtSafe(this.document, segments, 'after', targetPath);
     return {
-      path: effectivePath,
+      path: targetPath,
       before,
       after,
       op: patch.op.toLowerCase() as PatchOp,
@@ -146,11 +149,14 @@ export class PatchEngine {
     return child;
   }
 
-  private applyAdd(path: string, value: Node | null): string {
+  private applyAdd(
+    segments: string[],
+    path: string,
+    value: Node | null
+  ): void {
     if (path === '/' || path.length === 0) {
       throw new Error('ADD operation cannot target document root');
     }
-    const segments = splitPointer(path);
     const { parent, key, pointer, created } = this.resolveParentForPatch(segments, path, 'ADD');
     try {
       if (isArrayIndexSegment(key)) {
@@ -160,35 +166,36 @@ export class PatchEngine {
           throw new Error(isAppend ? `Append token '-' requires array at ${pointer}` : `Array index segment requires array at ${pointer}`);
         }
         if (isAppend) {
-          const index = items.length;
-          items.push(cloneValue(value));
-          parent.setItems(items);
-          return replaceAppendPointer(path, index);
+          const mutable = ensureMutableItems(parent, items);
+          mutable.push(cloneValue(value));
+          return;
         }
         const index = parseArrayIndex(key, path);
         if (index < 0 || index > items.length) {
           throw new Error(`Array index out of bounds in path: ${path}`);
         }
-        items.splice(index, 0, cloneValue(value));
-        parent.setItems(items);
-        return path;
+        const mutable = ensureMutableItems(parent, items);
+        mutable.splice(index, 0, cloneValue(value));
+        return;
       }
 
       const properties = ensureMutableProperties(parent);
       properties[key] = cloneValue(value);
       parent.setProperties(properties);
-      return path;
     } catch (error) {
       this.rollbackCreated(created);
       throw error;
     }
   }
 
-  private applyReplace(path: string, value: Node | null): void {
+  private applyReplace(
+    segments: string[],
+    path: string,
+    value: Node | null
+  ): void {
     if (path === '/' || path.length === 0) {
       throw new Error('REPLACE operation cannot target document root');
     }
-    const segments = splitPointer(path);
     const { parent, key, created } = this.resolveParentForPatch(segments, path, 'REPLACE');
     try {
       if (isArrayIndexSegment(key)) {
@@ -214,11 +221,10 @@ export class PatchEngine {
     }
   }
 
-  private applyRemove(path: string): void {
+  private applyRemove(segments: string[], path: string): void {
     if (path === '/' || path.length === 0) {
       throw new Error('REMOVE operation cannot target document root');
     }
-    const segments = splitPointer(path);
     const { parent, key } = this.resolveParentForPatch(segments, path, 'REMOVE');
 
     if (isArrayIndexSegment(key)) {
@@ -325,23 +331,82 @@ function computeCascadeScopes(scopePath: string): string[] {
   return scopes;
 }
 
-function cloneAtSafe(root: Node, pointer: string): Node | null {
-  if (pointer === '/' || pointer === '') {
-    return root.clone();
-  }
+function cloneAtSafe(
+  root: Node,
+  segments: readonly string[],
+  mode: 'before' | 'after',
+  path: string
+): Node | null {
   try {
-    const value = root.get(pointer);
-    if (value instanceof BlueNode) {
-      return value.clone();
+    if (segments.length === 0) {
+      return root.clone();
     }
-    if (value === undefined) {
-      return null;
-    }
-    const node = blueHelper.jsonValueToNode(value);
-    return node.clone();
+    const node = readNode(root, segments, mode, path);
+    return node ? node.clone() : null;
   } catch {
     return null;
   }
+}
+
+function readNode(
+  root: Node,
+  segments: readonly string[],
+  mode: 'before' | 'after',
+  path: string
+): Node | null {
+  let current: Node | null = root;
+  for (let i = 0; i < segments.length; i += 1) {
+    const segment = segments[i] ?? '';
+    const last = i === segments.length - 1;
+    current = descendForRead(current, segment, last, mode, path);
+    if (!current) {
+      return null;
+    }
+  }
+  return current;
+}
+
+function descendForRead(
+  current: Node | null,
+  segment: string,
+  isLast: boolean,
+  mode: 'before' | 'after',
+  path: string
+): Node | null {
+  if (!current) {
+    return null;
+  }
+
+  const items = current.getItems();
+  if (items) {
+    if (segment === ARRAY_APPEND_TOKEN) {
+      if (!isLast) {
+        throw new Error(`Append token '-' must be final segment: ${path}`);
+      }
+      if (mode === 'before') {
+        return null;
+      }
+      if (items.length === 0) {
+        return null;
+      }
+      return items[items.length - 1] ?? null;
+    }
+    const index = parseArrayIndex(segment, path);
+    if (index < 0 || index >= items.length) {
+      return null;
+    }
+    return items[index] ?? null;
+  }
+
+  const properties = current.getProperties() as Record<string, Node> | undefined;
+  if (!properties) {
+    return null;
+  }
+  const next = properties[segment];
+  if (!(next instanceof BlueNode)) {
+    return null;
+  }
+  return next;
 }
 
 function splitPointer(path: string): string[] {
@@ -407,13 +472,3 @@ function cloneValue(value: Node | null): BlueNode {
   const cloned = value.clone();
   return cloned as BlueNode;
 }
-
-function replaceAppendPointer(path: string, index: number): string {
-  if (!path.endsWith(`/${ARRAY_APPEND_TOKEN}`)) {
-    return path;
-  }
-  const base = path.slice(0, path.lastIndexOf('/'));
-  return `${base}/${index}`;
-}
-
-const blueHelper = new Blue();

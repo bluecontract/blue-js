@@ -7,6 +7,8 @@ import { ContractProcessorRegistry } from '../../registry/contract-processor-reg
 import type { Node } from '../../types/index.js';
 import type { HandlerContract } from '../../model/index.js';
 import type { HandlerProcessor } from '../../registry/index.js';
+import { MustUnderstandFailure } from '../must-understand-failure.js';
+import { ProcessorFatalError } from '../processor-fatal-error.js';
 
 const blueIdDocumentUpdate = 'DocumentUpdateChannel';
 const blueIdInitialization = 'InitializationMarker';
@@ -44,11 +46,7 @@ describe('ContractLoader', () => {
       },
     });
 
-    const result = loader.load(scopeNode, '/');
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return; // type guard for TS
-    const bundle = result.value;
+    const bundle = loader.load(scopeNode, '/');
 
     const channels = bundle.channelsOfType(blueIdDocumentUpdate);
     expect(channels).toHaveLength(1);
@@ -70,11 +68,9 @@ describe('ContractLoader', () => {
       },
     });
 
-    const result = loader.load(scopeNode, '/');
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error.kind).toBe('CapabilityFailure');
+    expect(() => loader.load(scopeNode, '/')).toThrowError(
+      MustUnderstandFailure
+    );
   });
 
   it('loads custom handler contracts using registry schema', () => {
@@ -103,11 +99,7 @@ describe('ContractLoader', () => {
       },
     });
 
-    const result = loader.load(scopeNode, '/');
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const bundle = result.value;
+    const bundle = loader.load(scopeNode, '/');
 
     const handlers = bundle.handlersFor('main');
     expect(handlers).toHaveLength(1);
@@ -136,11 +128,9 @@ describe('ContractLoader', () => {
       },
     });
 
-    const result = loader.load(scopeNode, '/');
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error.kind).toBe('IllegalState');
+    expect(() => loader.load(scopeNode, '/')).toThrowError(
+      ProcessorFatalError
+    );
   });
 
   it('rejects checkpoint markers that use incorrect keys', () => {
@@ -154,10 +144,8 @@ describe('ContractLoader', () => {
       },
     });
 
-    const result = loader.load(scopeNode, '/');
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error.kind).toBe('IllegalState');
+    expect(() => loader.load(scopeNode, '/')).toThrowError(
+      ProcessorFatalError
+    );
   });
 });

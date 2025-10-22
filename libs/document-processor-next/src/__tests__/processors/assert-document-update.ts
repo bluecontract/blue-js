@@ -50,10 +50,11 @@ export class AssertDocumentUpdateContractProcessor
   ): void {
     const event = context.event();
     const pathNode = getRequiredProperty(event as BlueNode, 'path');
-    if (contract.expectedPath !== toPrimitive(pathNode.getValue())) {
-      const message = `Expected path ${
-        contract.expectedPath
-      } but was ${toPrimitive(pathNode.getValue())}`;
+    const pathValue = toPrimitive(pathNode.getValue());
+    if (contract.expectedPath !== pathValue) {
+      const message = `Expected path ${contract.expectedPath} but was ${String(
+        pathValue
+      )}`;
       throw new ProcessorFatalError(
         message,
         ProcessorErrors.illegalState(message)
@@ -61,10 +62,25 @@ export class AssertDocumentUpdateContractProcessor
     }
 
     const opNode = getRequiredProperty(event as BlueNode, 'op');
-    if (contract.expectedOp !== toPrimitive(opNode.getValue())) {
-      const message = `Expected op ${contract.expectedOp} but was ${toPrimitive(
-        opNode.getValue()
+    const opValue = toPrimitive(opNode.getValue());
+    if (typeof opValue !== 'string') {
+      const message = `Document Update operation must be a string but was ${String(
+        opValue
       )}`;
+      throw new ProcessorFatalError(
+        message,
+        ProcessorErrors.illegalState(message)
+      );
+    }
+    if (opValue !== opValue.toLowerCase()) {
+      const message = `Document Update operation must be lowercase but was ${opValue}`;
+      throw new ProcessorFatalError(
+        message,
+        ProcessorErrors.illegalState(message)
+      );
+    }
+    if (contract.expectedOp !== opValue) {
+      const message = `Expected op ${contract.expectedOp} but was ${opValue}`;
       throw new ProcessorFatalError(
         message,
         ProcessorErrors.illegalState(message)

@@ -1,34 +1,26 @@
 import { expect } from 'vitest';
 import { BlueNode, Blue } from '@blue-labs/language';
 
-import type { Result } from '../types/result.js';
 import type { Node } from '../types/index.js';
 import { DocumentProcessor } from '../api/document-processor.js';
 import type { AnyContractProcessor } from '../registry/types.js';
 import { resolvePointer } from '../util/pointer-utils.js';
+import type { DocumentProcessingResult } from '../types/document-processing-result.js';
 
-export function expectOk<T, E>(
-  result: Result<T, E>,
-  message = 'Expected result to be ok'
-): T {
-  expect(result.ok, message).toBe(true);
-  if (!result.ok) {
-    throw new Error(
-      `${message}: ${JSON.stringify(result.error, null, 2) ?? 'unknown error'}`
-    );
-  }
-  return result.value;
+export function expectOk(
+  result: DocumentProcessingResult,
+  message = 'Expected successful document processing result'
+): DocumentProcessingResult {
+  expect(result.capabilityFailure, message).toBe(false);
+  return result;
 }
 
-export function expectErr<T, E>(
-  result: Result<T, E>,
-  message = 'Expected result to be err'
-): E {
-  expect(result.ok, message).toBe(false);
-  if (result.ok) {
-    throw new Error(`${message}: received ok(${String(result.value)})`);
-  }
-  return result.error;
+export function expectErr(
+  result: DocumentProcessingResult,
+  message = 'Expected capability failure'
+): DocumentProcessingResult {
+  expect(result.capabilityFailure, message).toBe(true);
+  return result;
 }
 
 export function property(node: Node, key: string): BlueNode {

@@ -24,7 +24,10 @@ import {
 } from '../util/pointer-utils.js';
 import { BlueNode } from '@blue-labs/language';
 import { ProcessorFatalError } from './processor-fatal-error.js';
-import { ProcessorErrors, type ProcessorError } from '../types/errors.js';
+import { ProcessorErrors } from '../types/errors.js';
+import { MustUnderstandFailure } from './must-understand-failure.js';
+import { IllegalStateException } from './illegal-state-exception.js';
+import { BoundaryViolationException } from './boundary-violation-exception.js';
 
 export interface ProcessorContext {
   resolvePointer(relativePointer: string): string;
@@ -126,7 +129,7 @@ export class ScopeExecutor {
 
     const initializedMarker = this.hasInitializationMarker(normalizedScope);
     if (!initializedMarker && bundle.hasCheckpoint()) {
-      throw new Error(
+      throw new IllegalStateException(
         `Reserved key 'checkpoint' must not appear before initialization at scope ${normalizedScope}`,
       );
     }
@@ -202,9 +205,12 @@ export class ScopeExecutor {
       this.validatePatchBoundary(scopePath, bundle, patch);
       this.enforceReservedKeyWriteProtection(scopePath, patch, allowReservedMutation);
     } catch (error) {
-      const reason = this.hooks.fatalReason(error, 'Boundary violation');
-      this.hooks.enterFatalTermination(scopePath, bundle, reason);
-      return;
+      if (error instanceof BoundaryViolationException) {
+        const reason = this.hooks.fatalReason(error, 'Boundary violation');
+        this.hooks.enterFatalTermination(scopePath, bundle, reason);
+        return;
+      }
+      throw error;
     }
 
     try {
@@ -248,8 +254,20 @@ export class ScopeExecutor {
         }
       }
     } catch (error) {
-      const reason = this.hooks.fatalReason(error, 'Runtime fatal');
-      this.hooks.enterFatalTermination(scopePath, bundle, reason);
+      if (error instanceof BoundaryViolationException) {
+        const reason = this.hooks.fatalReason(error, 'Boundary violation');
+        this.hooks.enterFatalTermination(scopePath, bundle, reason);
+        return;
+      }
+      if (
+        error instanceof IllegalStateException ||
+        (error instanceof Error && !(error instanceof ProcessorFatalError))
+      ) {
+        const reason = this.hooks.fatalReason(error, 'Runtime fatal');
+        this.hooks.enterFatalTermination(scopePath, bundle, reason);
+        return;
+      }
+      throw error;
     }
   }
 
@@ -321,34 +339,23 @@ export class ScopeExecutor {
   }
 
   private loadBundle(scopeNode: Node, scopePath: string): ContractBundle {
-    const result = this.contractLoader.load(scopeNode, scopePath);
-    if (result.ok) {
-      return result.value;
-    }
-    const message = this.describeProcessorError(result.error);
-    throw new ProcessorFatalError(message, result.error);
-  }
-
-  private describeProcessorError(error: ProcessorError): string {
-    switch (error.kind) {
-      case 'CapabilityFailure':
-        return `${error.kind}: ${error.reason}`;
-      case 'BoundaryViolation':
-        return `${error.kind} at ${error.pointer}: ${error.reason}`;
-      case 'RuntimeFatal':
-        return `${error.kind}: ${error.reason}`;
-      case 'InvalidContract': {
-        const pointer = error.pointer ? ` @ ${error.pointer}` : '';
-        return `${error.kind} (${error.contractId}${pointer}): ${error.reason}`;
+    try {
+      return this.contractLoader.load(scopeNode, scopePath);
+    } catch (error) {
+      if (error instanceof ProcessorFatalError || error instanceof MustUnderstandFailure) {
+        throw error;
       }
-      case 'IllegalState':
-        return `${error.kind}: ${error.reason}`;
-      case 'UnsupportedOp': {
-        const suffix = error.reason ? `: ${error.reason}` : '';
-        return `${error.kind} ${error.operation}${suffix}`;
-      }
+      const reason =
+        (error as Error | undefined)?.message ??
+        'Failed to load contracts';
+      throw new ProcessorFatalError(
+        reason,
+        ProcessorErrors.runtimeFatal(
+          `Failed to load contracts for scope ${scopePath}`,
+          error,
+        ),
+      );
     }
-    return 'Unhandled processor error kind';
   }
 
   private addInitializationMarker(context: ProcessorContext, documentId: string): void {
@@ -436,17 +443,19 @@ export class ScopeExecutor {
     const targetPath = normalizePointer(patch.path);
 
     if (targetPath === normalizedScope) {
-      throw new Error(`Self-root mutation is forbidden at scope ${normalizedScope}`);
+      throw new BoundaryViolationException(`Self-root mutation is forbidden at scope ${normalizedScope}`);
     }
 
     if (normalizedScope !== '/' && !targetPath.startsWith(`${normalizedScope}/`)) {
-      throw new Error(`Patch path ${targetPath} is outside scope ${normalizedScope}`);
+      throw new BoundaryViolationException(`Patch path ${targetPath} is outside scope ${normalizedScope}`);
     }
 
     for (const embeddedPointer of bundle.embeddedPaths()) {
       const embeddedScope = resolvePointer(normalizedScope, embeddedPointer);
       if (targetPath.startsWith(`${embeddedScope}/`)) {
-        throw new Error(`Boundary violation: patch ${targetPath} enters embedded scope ${embeddedScope}`);
+        throw new BoundaryViolationException(
+          `Boundary violation: patch ${targetPath} enters embedded scope ${embeddedScope}`,
+        );
       }
     }
   }
@@ -464,7 +473,7 @@ export class ScopeExecutor {
     for (const key of RESERVED_CONTRACT_KEYS) {
       const reservedPointer = resolvePointer(normalizedScope, relativeContractsEntry(key));
       if (targetPath === reservedPointer || targetPath.startsWith(`${reservedPointer}/`)) {
-        throw new Error(`Reserved key '${key}' is write-protected at ${reservedPointer}`);
+        throw new BoundaryViolationException(`Reserved key '${key}' is write-protected at ${reservedPointer}`);
       }
     }
   }
@@ -497,18 +506,12 @@ export class ScopeExecutor {
     }
     if (!(node instanceof BlueNode)) {
       const message = `Reserved key 'initialized' must contain an Initialization Marker at ${markerPointer}`;
-      throw new ProcessorFatalError(
-        message,
-        ProcessorErrors.illegalState(message),
-      );
+      throw new IllegalStateException(message);
     }
     const typeBlueId = node.getType()?.getBlueId();
     if (typeBlueId !== 'InitializationMarker') {
       const message = `Reserved key 'initialized' must contain an Initialization Marker at ${markerPointer}`;
-      throw new ProcessorFatalError(
-        message,
-        ProcessorErrors.illegalState(message),
-      );
+      throw new IllegalStateException(message);
     }
     return true;
   }

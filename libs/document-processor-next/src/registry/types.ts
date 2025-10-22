@@ -47,7 +47,7 @@ export interface ChannelEvaluationContext {
   /**
    * Lazily materialised object view of {@link event}. Optional for processors that require DTOs.
    */
-  readonly eventObject: unknown;
+  readonly eventObject: unknown | null;
   readonly markers: ReadonlyMap<string, MarkerContract>;
 }
 

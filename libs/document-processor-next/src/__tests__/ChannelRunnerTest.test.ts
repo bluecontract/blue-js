@@ -190,6 +190,9 @@ describe('ChannelRunnerTest', () => {
       processor.processDocument(current.clone(), firstEvent)
     ).document.clone();
 
+    const originalKind = firstEvent.getProperties()?.kind?.getValue();
+    expect(originalKind).toBe('original');
+
     const flagNode = property(current, 'flag');
     expect(Number(flagNode.getValue())).toBe(7);
 

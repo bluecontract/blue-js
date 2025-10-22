@@ -7,7 +7,6 @@ import {
 } from './processors/index.js';
 import {
   buildProcessor,
-  expectErr,
   expectOk,
   property,
   propertyOptional,
@@ -48,9 +47,7 @@ contracts:
     const original = blue.yamlToNode(yaml);
     const expectedDocumentId = blue.calculateBlueIdSync(original.clone());
 
-    const initResult = expectOk(
-      processor.initializeDocument(original.clone())
-    );
+    const initResult = expectOk(processor.initializeDocument(original.clone()));
     const initialized = initResult.document.clone();
 
     expect(processor.isInitialized(initialized.clone())).toBe(true);
@@ -68,7 +65,9 @@ contracts:
 
     const contracts = property(initialized, 'contracts');
     const initializedMarker = property(contracts, 'initialized');
-    expect(initializedMarker.getType()?.getBlueId()).toBe('InitializationMarker');
+    expect(initializedMarker.getType()?.getBlueId()).toBe(
+      'InitializationMarker'
+    );
     expect(stringProperty(initializedMarker, 'documentId')).toBe(
       expectedDocumentId
     );
@@ -76,9 +75,9 @@ contracts:
     const checkpoint = propertyOptional(contracts, 'checkpoint');
     expect(checkpoint).toBeUndefined();
 
-    const secondInit = processor.initializeDocument(initialized.clone());
-    const secondError = expectErr(secondInit);
-    expect(secondError.kind).toBe('IllegalState');
+    expect(() => processor.initializeDocument(initialized.clone())).toThrow(
+      /Document already initialized/
+    );
 
     const processResult = expectOk(
       processor.processDocument(
@@ -165,10 +164,14 @@ contracts:
     const document = blue.yamlToNode(yaml);
     const originalJson = JSON.stringify(blue.nodeToJson(document.clone()));
     const result = processor.initializeDocument(document);
-    const error = expectErr(result);
-    expect(error.kind).toBe('CapabilityFailure');
-    expect(error.reason?.toLowerCase()).toContain('unsupported');
-    expect(JSON.stringify(blue.nodeToJson(document.clone()))).toBe(originalJson);
+
+    expect(
+      result.capabilityFailure,
+      'Initialization should fail with must-understand'
+    ).toBe(true);
+    expect(result.totalGas).toBe(0);
+    expect(result.triggeredEvents.length).toBe(0);
+    expect(JSON.stringify(blue.nodeToJson(result.document))).toBe(originalJson);
   });
 
   it('processDocumentFailsWhenInitializationMarkerIncompatible', () => {
@@ -211,7 +214,9 @@ contracts:
 `;
 
     const document = blue.yamlToNode(yaml);
-    expect(() => processor.isInitialized(document)).toThrow(/Initialization Marker/);
+    expect(() => processor.isInitialized(document)).toThrow(
+      /Initialization Marker/
+    );
   });
 
   it('removePatchDeletesPropertyDuringInitialization', () => {
@@ -263,8 +268,7 @@ contracts:
 `;
 
     const document = blue.yamlToNode(yaml);
-    const error = expectErr(processor.initializeDocument(document));
-    expect(error.kind).toBe('RuntimeFatal');
+    expect(() => processor.initializeDocument(document)).toThrow();
   });
 
   it('initializationFailsWhenCheckpointHasWrongType', () => {
@@ -276,8 +280,9 @@ contracts:
       blueId: ProcessingFailureMarker
 `;
 
-    const error = expectErr(processor.initializeDocument(blue.yamlToNode(yaml)));
-    expect(error.reason).toContain('Channel Event Checkpoint');
+    expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
+      /Channel Event Checkpoint/
+    );
   });
 
   it('initializationFailsWhenMultipleCheckpointsPresent', () => {
@@ -292,8 +297,9 @@ contracts:
       blueId: ChannelEventCheckpoint
 `;
 
-    const error = expectErr(processor.initializeDocument(blue.yamlToNode(yaml)));
-    expect(error.reason).toContain('Channel Event Checkpoint');
+    expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
+      /Channel Event Checkpoint/
+    );
   });
 
   it('lifecycleEventsDoNotDriveTriggeredHandlers', () => {
