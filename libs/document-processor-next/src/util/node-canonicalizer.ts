@@ -1,5 +1,4 @@
 import { Blue } from '@blue-labs/language';
-import { Buffer } from 'node:buffer';
 import canonicalize from 'canonicalize';
 import type { Node } from '../types/index.js';
 
@@ -29,5 +28,6 @@ export function canonicalSize(node: Node | null | undefined): number {
   if (signature == null) {
     return 0;
   }
-  return Buffer.byteLength(signature, 'utf8');
+  // Use TextEncoder for browser-compatible UTF-8 byte length
+  return new TextEncoder().encode(signature).length;
 }
