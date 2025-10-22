@@ -1,0 +1,63 @@
+import type {
+  ChannelProcessor,
+  ChannelEvaluationContext,
+} from '../../registry/types.js';
+import type { Node } from '../../types/index.js';
+import { BlueNode } from '@blue-labs/language';
+import {
+  testEventChannelSchema,
+  type TestEventChannel,
+  testEventSchema,
+} from '../models/index.js';
+
+const DEFAULT_EVENT_TYPE = 'TestEvent';
+
+export class NormalizingTestEventChannelProcessor
+  implements ChannelProcessor<TestEventChannel>
+{
+  static readonly NORMALIZED_KIND = 'channelized';
+  readonly kind = 'channel' as const;
+  readonly blueIds = ['TestEventChannel'] as const;
+  readonly schema = testEventChannelSchema;
+
+  matches(
+    contract: TestEventChannel,
+    context: ChannelEvaluationContext
+  ): boolean {
+    const blue = context.blue;
+    if (!context.event || !blue.isTypeOf(context.event, testEventSchema))
+      return false;
+    const expectedType = contract.eventType ?? DEFAULT_EVENT_TYPE;
+    const ok = expectedType === this.resolveEventType(context.event ?? null);
+    if (!ok) return false;
+    const event = context.event;
+    if (event) {
+      const nextKind = new BlueNode().setValue(
+        NormalizingTestEventChannelProcessor.NORMALIZED_KIND
+      );
+      event.setProperties({ ...(event.getProperties() ?? {}), kind: nextKind });
+    }
+    return true;
+  }
+
+  eventId(
+    _contract: TestEventChannel,
+    context: ChannelEvaluationContext
+  ): string | null | undefined {
+    const node = context.event;
+    const value = node?.getProperties()?.eventId?.getValue();
+    return typeof value === 'string' ? value : null;
+  }
+
+  private resolveEventType(event: Node | null): string | null {
+    if (!event) return null;
+    const typeNode = event.getType?.();
+    if (!typeNode) return null;
+    const blueId = typeNode.getBlueId?.();
+    if (blueId) return blueId;
+    const props = typeNode.getProperties?.();
+    const blueIdNode = props?.blueId;
+    const value = blueIdNode?.getValue?.();
+    return typeof value === 'string' ? value : null;
+  }
+}
