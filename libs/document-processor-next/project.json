@@ -1,0 +1,29 @@
+{
+  "name": "document-processor-next",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/document-processor-next/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
+    }
+  },
+  "tags": [],
+  "targets": {
+    "yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["yalc push"]
+      }
+    },
+    "test": {
+      "options": {
+        "env": {
+          "NODE_OPTIONS": "--no-node-snapshot"
+        }
+      }
+    }
+  }
+}
