@@ -28,7 +28,7 @@ export interface PreprocessorOptions {
  */
 export class Preprocessor {
   public static readonly DEFAULT_BLUE_BLUE_ID =
-    'FREHAAGDZSzpnoTUoCQ86bBmxbVCULMjvx9JZM6fyqT1';
+    '6sqUywMoBRyj9hgQxSu2nDPnqcyiSM7xu9AB9sN98YJK';
 
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;
