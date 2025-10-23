@@ -714,19 +714,19 @@ describe('blueNodeToObject', () => {
           blueId: PersonValue-BlueId
         age1:
           type:
-            blueId: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8
+            blueId: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1
           name: Official Age
           description: Description for official age
           value: 25
         age2:
           type:
-            blueId: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8
+            blueId: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1
           name: Official Age
           description: Description for official age
           value: 25
         age3:
           type:
-            blueId: DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8
+            blueId: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1
           name: Official Age
           description: Description for official age
           value: 25`;
@@ -755,7 +755,7 @@ describe('blueNodeToObject', () => {
       );
       expect(result.age3Name).toBe('Official Age');
       expect(result.age3?.getType()?.getBlueId()).toBe(
-        'DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8'
+        '5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1'
       );
       expect(result.age3?.getValue()).toEqual(new BigIntegerNumber(25));
       expect(node.getType()?.getBlueId()).toBe('PersonValue-BlueId');

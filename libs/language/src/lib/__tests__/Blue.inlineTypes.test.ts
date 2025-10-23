@@ -37,7 +37,7 @@ describe('Blue.restoreInlineTypes', () => {
         "field": {
           "type": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Text",
           },
@@ -82,7 +82,7 @@ describe('Blue.restoreInlineTypes', () => {
         "reference": {
           "type": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Link",
           },
@@ -145,7 +145,7 @@ describe('Blue.restoreInlineTypes', () => {
           "label": {
             "type": {
               "type": {
-                "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
               },
               "value": "Text",
             },
@@ -155,7 +155,7 @@ describe('Blue.restoreInlineTypes', () => {
             "label": {
               "type": {
                 "type": {
-                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                 },
                 "value": "Text",
               },
@@ -163,7 +163,7 @@ describe('Blue.restoreInlineTypes', () => {
           },
           "type": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Base Type",
           },
@@ -281,14 +281,14 @@ describe('Blue.restoreInlineTypes', () => {
         "attributes": {
           "keyType": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Text",
           },
           "required": {
             "type": {
               "type": {
-                "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
               },
               "value": "Text",
             },
@@ -296,13 +296,13 @@ describe('Blue.restoreInlineTypes', () => {
           },
           "type": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Dictionary",
           },
           "valueType": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Text",
           },
@@ -311,7 +311,7 @@ describe('Blue.restoreInlineTypes', () => {
         "options": {
           "itemType": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Option",
           },
@@ -320,7 +320,7 @@ describe('Blue.restoreInlineTypes', () => {
               "code": {
                 "type": {
                   "type": {
-                    "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                   },
                   "value": "Text",
                 },
@@ -329,7 +329,7 @@ describe('Blue.restoreInlineTypes', () => {
               "label": {
                 "type": {
                   "type": {
-                    "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                   },
                   "value": "Text",
                 },
@@ -337,7 +337,7 @@ describe('Blue.restoreInlineTypes', () => {
               },
               "type": {
                 "type": {
-                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                 },
                 "value": "Option",
               },
@@ -345,7 +345,7 @@ describe('Blue.restoreInlineTypes', () => {
           ],
           "type": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "List",
           },
@@ -353,14 +353,14 @@ describe('Blue.restoreInlineTypes', () => {
         "title": {
           "type": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "Text",
           },
         },
         "type": {
           "type": {
-            "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+            "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
           },
           "value": "Form",
         },

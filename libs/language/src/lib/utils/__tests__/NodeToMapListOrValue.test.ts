@@ -275,7 +275,7 @@ describe('NodeToMapListOrValue', () => {
       expect(NodeToMapListOrValue.get(node1)).toMatchInlineSnapshot(`
         {
           "type": {
-            "blueId": "68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L",
+            "blueId": "7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y",
           },
           "value": 1.3245234523452473e+41,
         }
@@ -292,7 +292,7 @@ describe('NodeToMapListOrValue', () => {
         {
           "key": {
             "type": {
-              "blueId": "DHmxTkFbXePZHCHCYmQr2dSzcNLcryFVjXVHkdQrrZr8",
+              "blueId": "5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1",
             },
             "value": "132452345234524739582739458723948572934875",
           },
@@ -435,7 +435,7 @@ describe('NodeToMapListOrValue', () => {
             "childWf": {
               "channel": {
                 "type": {
-                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                 },
                 "value": "timelineCh",
               },
@@ -447,19 +447,19 @@ describe('NodeToMapListOrValue', () => {
                         {
                           "op": {
                             "type": {
-                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                             },
                             "value": "replace",
                           },
                           "path": {
                             "type": {
-                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                             },
                             "value": "/mainRegistrationNumber/value",
                           },
                           "val": {
                             "type": {
-                              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                             },
                             "value": "12345",
                           },
@@ -468,7 +468,7 @@ describe('NodeToMapListOrValue', () => {
                     },
                     "type": {
                       "type": {
-                        "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                        "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                       },
                       "value": "Update Document",
                     },
@@ -477,7 +477,7 @@ describe('NodeToMapListOrValue', () => {
               },
               "type": {
                 "type": {
-                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                 },
                 "value": "Sequential Workflow",
               },
@@ -485,13 +485,13 @@ describe('NodeToMapListOrValue', () => {
             "timelineCh": {
               "timelineId": {
                 "type": {
-                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                 },
                 "value": "user-123",
               },
               "type": {
                 "type": {
-                  "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
                 },
                 "value": "Timeline Channel",
               },
@@ -500,14 +500,14 @@ describe('NodeToMapListOrValue', () => {
           "description": "Main contract",
           "mainCountry": {
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "US",
           },
           "mainRegistrationNumber": {
             "description": "Address",
             "type": {
-              "blueId": "F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
             "value": "123 Main St, Anytown, USA",
           },
