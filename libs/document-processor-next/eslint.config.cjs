@@ -12,10 +12,7 @@ module.exports = [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
           ],
-          ignoredDependencies: [
-            'canonicalize',
-            'vitest',
-          ],
+          ignoredDependencies: ['canonicalize', 'vitest'],
         },
       ],
     },

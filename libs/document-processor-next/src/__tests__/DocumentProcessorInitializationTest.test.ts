@@ -277,7 +277,7 @@ contracts:
 contracts:
   checkpoint:
     type:
-      blueId: ProcessingFailureMarker
+      blueId: ProcessingTerminatedMarker
 `;
 
     expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(

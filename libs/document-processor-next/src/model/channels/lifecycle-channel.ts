@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { withTypeBlueId } from '@blue-labs/language';
 
 import { channelContractBaseSchema } from '../shared/index.js';
+import { LifecycleEventChannelSchema as CoreLifecycleEventChannelSchema } from '@blue-repository/core';
 
-export const lifecycleChannelSchema = withTypeBlueId('LifecycleChannel')(
+export const lifecycleChannelSchema = CoreLifecycleEventChannelSchema.merge(
   channelContractBaseSchema
 );
 

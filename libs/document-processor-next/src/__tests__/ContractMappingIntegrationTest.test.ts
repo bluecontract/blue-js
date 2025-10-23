@@ -11,7 +11,7 @@ import {
   initializationMarkerSchema,
   lifecycleChannelSchema,
   processEmbeddedMarkerSchema,
-  processingFailureMarkerSchema,
+  processingTerminatedMarkerSchema,
   triggeredEventChannelSchema,
 } from '../model/index.js';
 import { setPropertySchema } from './models/index.js';
@@ -79,9 +79,9 @@ describe('ContractMappingIntegrationTest', () => {
 
     const failure = blue.nodeToSchemaOutput(
       entries.failure,
-      processingFailureMarkerSchema
+      processingTerminatedMarkerSchema
     );
-    expect(failure.code).toBe('RuntimeFatal');
+    expect(failure.cause).toBe('RuntimeFatal');
     expect(failure.reason).toBe('boundary violation');
 
     const setProperty = blue.nodeToSchemaOutput(

@@ -1,10 +1,8 @@
 import { z } from 'zod';
-import { withTypeBlueId } from '@blue-labs/language';
-
 import { channelContractBaseSchema } from '../shared/index.js';
+import { TriggeredEventChannelSchema as CoreTriggeredEventChannelSchema } from '@blue-repository/core';
 
-export const triggeredEventChannelSchema = withTypeBlueId(
-  'TriggeredEventChannel'
-)(channelContractBaseSchema);
+export const triggeredEventChannelSchema =
+  CoreTriggeredEventChannelSchema.merge(channelContractBaseSchema);
 
 export type TriggeredEventChannel = z.infer<typeof triggeredEventChannelSchema>;

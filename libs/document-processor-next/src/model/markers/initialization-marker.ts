@@ -1,12 +1,9 @@
 import { z } from 'zod';
-import { withTypeBlueId } from '@blue-labs/language';
 
 import { markerContractBaseSchema } from '../shared/index.js';
+import { ProcessingInitializedMarkerSchema as CoreProcessingInitializedMarkerSchema } from '@blue-repository/core';
 
-export const initializationMarkerSchema = withTypeBlueId('InitializationMarker')(
-  markerContractBaseSchema.extend({
-    documentId: z.string().optional(),
-  }),
-);
+export const initializationMarkerSchema =
+  CoreProcessingInitializedMarkerSchema.merge(markerContractBaseSchema);
 
 export type InitializationMarker = z.infer<typeof initializationMarkerSchema>;
