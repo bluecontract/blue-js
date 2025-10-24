@@ -277,7 +277,7 @@ describe('BlueIdCalculator', () => {
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
-    const json = `{"text":{"type":{"blueId":"F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP"},"value":"abc\\ndef\\n"}}`;
+    const json = `{"text":{"type":{"blueId":"DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"},"value":"abc\\ndef\\n"}}`;
     const node2 = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
 
@@ -293,7 +293,7 @@ describe('BlueIdCalculator', () => {
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
-    const json = `{"text":{"type":{"blueId":"F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP"},"value":"abc def\\n"}}`;
+    const json = `{"text":{"type":{"blueId":"DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"},"value":"abc def\\n"}}`;
     const node2 = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
 
@@ -368,7 +368,7 @@ describe('BlueIdCalculator - additional tests', () => {
       const node = NodeDeserializer.deserialize(object);
       const result2 = await BlueIdCalculator.calculateBlueId(node);
       expect(result2).toMatchInlineSnapshot(
-        '"AfcbaDxwJwMMLD9xzjjPZuks4jvxPv2jvkjrJXh8EkiA"'
+        '"FuFBarhV7G7jed3Zi39CNEWscvJ2k6JcE1M41eA6Fwox"'
       );
     });
   });
@@ -434,7 +434,7 @@ abc:
     const result1 = await BlueIdCalculator.calculateBlueId(node);
 
     expect(result1).toMatchInlineSnapshot(
-      `"6MD6VFSkf4QqWHR3vwNhhsT9nM22NU1BBDrKitxH9fzD"`
+      `"AZp8hjSjSdZy3rgpit56EW8eU3miZAKV44GUhNHEj8gw"`
     );
   });
 
@@ -453,7 +453,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"AbzmfN3VhcFAmWTnvfHgLZCkqhLCEW1RbGqMVTdAE2fm"`
+      `"Gzq7ffwvERnxEvU1X41U66bJi9UhxFi4wzJ5ghx1tkVU"`
     );
   });
 
@@ -469,7 +469,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"9Avar4YLc5rtenpsqQppYYQuF3bSYEkq7iAougGPd1zv"`
+      `"9tERNTyVtcuQCvbTWui5Db8dbNhk7yvmcu8yAiJQFDb4"`
     );
   });
 
@@ -487,18 +487,18 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"8rchyLLTuDsCgawPy7usKsgVrt7h3EaVGCFBXrahMf7D"`
+      `"8wVTgTtD7GjMu8iecyRdG63tihkCqp44d7XFHrTwCHwG"`
     );
   });
 
   it('should calculate a blue id with less characters than 44', async () => {
-    const json = { value: '18e1ca8a8de189d9759057ab4251fd97' };
+    const json = { value: '74f516a81a920fc5b465f2c6fd31ff41' };
 
     const node = NodeDeserializer.deserialize(json);
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
     expect(blueId).toMatchInlineSnapshot(
-      `"1xqjcHGX3aF3um8LtfbMAZGdRT74j3k5GXT4yqSbp8"`
+      `"1yASa1bb5eu4KpWCQRnpi4Edbk67FzLjd8AcfyiaoT"`
     );
     expect(blueId).toHaveLength(42);
     expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
@@ -515,7 +515,7 @@ abc:
     const node = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"ToF7bZomuz2gbY3ZoARG9a2QhV2L39AtRRAaQADA1NR"`
+      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`
     );
   });
 
@@ -532,7 +532,7 @@ abc:
     const blueId2 = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId1).toEqual(blueId2);
     expect(blueId2).toMatchInlineSnapshot(
-      `"ToF7bZomuz2gbY3ZoARG9a2QhV2L39AtRRAaQADA1NR"`
+      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`
     );
   });
 });
