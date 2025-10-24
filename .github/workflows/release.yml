@@ -47,5 +47,5 @@ jobs:
         shell: bash
 
       - name: Release
-        run: npx nx release --skip-publish
+        run: npx nx release --skip-publish --groups=stable
         shell: bash
