@@ -13,7 +13,7 @@ export class Base58Sha256Provider {
       ? this.sha256Sync(canonized)
       : this.sha256SyncBrowser(canonized);
 
-    return bs58.encode(new Uint8Array(hash));
+    return bs58.encode(hash);
   }
 
   public async apply(object: JsonBlueValue): Promise<string> {
@@ -22,7 +22,7 @@ export class Base58Sha256Provider {
       ? this.sha256Sync(canonized)
       : await this.sha256Async(canonized);
 
-    return bs58.encode(new Uint8Array(hash));
+    return bs58.encode(hash);
   }
 
   private canonicalizeInput(object: JsonBlueValue): string {
@@ -33,23 +33,24 @@ export class Base58Sha256Provider {
     return canonized;
   }
 
-  private sha256Sync(input: string): Buffer {
+  private sha256Sync(input: string): Uint8Array {
     const nodeCrypto = this.cryptoEnv.getNodeCrypto();
     if (!nodeCrypto) {
       throw new Error(
         'Synchronous SHA-256 is not available in this environment'
       );
     }
-    return nodeCrypto.createHash('sha256').update(input).digest();
+    const buffer = nodeCrypto.createHash('sha256').update(input).digest();
+    return new Uint8Array(buffer);
   }
 
-  private sha256SyncBrowser(input: string): ArrayBuffer {
-    return sha256.arrayBuffer(input);
+  private sha256SyncBrowser(input: string): Uint8Array {
+    return new Uint8Array(sha256.arrayBuffer(input));
   }
 
-  private async sha256Async(input: string): Promise<ArrayBuffer> {
+  private async sha256Async(input: string): Promise<Uint8Array> {
     if (this.cryptoEnv.hasNodeCrypto()) {
-      return this.sha256Sync(input);
+      return Promise.resolve(this.sha256Sync(input));
     }
 
     const browserCrypto = this.cryptoEnv.getBrowserCrypto();
@@ -59,6 +60,7 @@ export class Base58Sha256Provider {
 
     const encoder = new TextEncoder();
     const data = encoder.encode(input);
-    return browserCrypto.subtle.digest('SHA-256', data);
+    const digest = await browserCrypto.subtle.digest('SHA-256', data);
+    return new Uint8Array(digest);
   }
 }

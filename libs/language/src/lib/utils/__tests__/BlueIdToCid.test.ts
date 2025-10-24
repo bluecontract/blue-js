@@ -43,7 +43,7 @@ describe('BlueIdToCid', () => {
 describe('BlueIdToCid - additional tests', async () => {
   const image = {
     type: {
-      blueId: 'F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP',
+      blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
     },
     value: '/images/bruschetta.webp',
   };
@@ -52,7 +52,7 @@ describe('BlueIdToCid - additional tests', async () => {
 
   const price = {
     type: {
-      blueId: '68ryJtnmui4j5rCZWUnkZ3DChtmEb7Z9F8atn1mBSM3L',
+      blueId: '7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y',
     },
     value: 7.5,
   };
@@ -109,19 +109,19 @@ describe('BlueIdToCid - additional tests', async () => {
     const ingredients = [
       {
         type: {
-          blueId: 'F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP',
+          blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
         },
         value: 'Bread',
       },
       {
         type: {
-          blueId: 'F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP',
+          blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
         },
         value: 'Tomatoes',
       },
       {
         type: {
-          blueId: 'F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP',
+          blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
         },
         value: 'Olive oil',
       },

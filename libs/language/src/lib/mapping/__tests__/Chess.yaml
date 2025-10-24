@@ -10,19 +10,19 @@ properties:
       "Indicates who won the game (e.g., 'White', 'Black', or 'None' if\
       \ the game is not over or ended in a draw)"
     type:
-      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
   draw:
     description: Indicates whether the game ended in a draw (true) or not (false)
     type:
-      blueId: EL6AjrbJsxTWRTPzY8WR8Y2zAMXRbydQj83PcZwuAHbo
+      blueId: 4EzhSubEimSQD3zrYHRtobfPPWntUuhEz8YcdxHsi12u
   chessboard:
     description: Chessboard state in FEN notation
     type:
-      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
   movesHistory:
     description: History of moves made
     type:
-      blueId: G8wmfjEqugPEEXByMYWJXiEdbLToPRWNQEekNxrxfQWB
+      blueId: 6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY
     itemType:
       blueId: MFGzp8CtRVLb9CF2xAc8kt3jwV99sag7jpdHemZmGz9
   gameOver:
@@ -30,7 +30,7 @@ properties:
       Indicates whether the game has ended (true) or is still in progress
       (false)
     type:
-      blueId: EL6AjrbJsxTWRTPzY8WR8Y2zAMXRbydQj83PcZwuAHbo
+      blueId: 4EzhSubEimSQD3zrYHRtobfPPWntUuhEz8YcdxHsi12u
 workflows:
   items:
     - steps:
@@ -41,27 +41,27 @@ workflows:
               items:
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: replace
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/chessboard
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: white
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: replace
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/playerToMove
           - type:
               blueId: 6sdEGwtrVJhdto5CsDzm81YrJtHTZrdsenZkyCWJLniU
@@ -85,7 +85,7 @@ workflows:
               blueId: CFKAD5Up8XpNyPHwRBEwiwSUdfFUoGqVVsW29k6te88p
             code:
               type:
-                blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
               value:
                 "let playerToMove = contract(\"/properties/playerToMove\");\nlet\
                 \ expectedTimeline = (playerToMove === 'white') ? \n    contract(\"/messaging/participants/Player\
@@ -98,7 +98,7 @@ workflows:
               blueId: CFKAD5Up8XpNyPHwRBEwiwSUdfFUoGqVVsW29k6te88p
             code:
               type:
-                blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
               value: |
                 const chessModule = importBlueESModule('blue:9uGqgr62FtodKDH1KqGb1syeqHfSRo7ySQ5KY8bTutNu');
                 const Chess = chessModule.Chess;
@@ -155,31 +155,31 @@ workflows:
                 blueId: EkEtUob9ZEKzd61Fk8u1KFDZVZAhCLmzxcvTLvYgp3iw
               playerMakingMove:
                 type:
-                  blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                  blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                 value: '${contract("/properties/playerToMove")}'
               winner:
                 type:
-                  blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                  blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                 value: '${steps.ProcessMove.result.winner}'
               chessboardAfterMove:
                 type:
-                  blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                  blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                 value: '${steps.ProcessMove.result.position}'
               from:
                 type:
-                  blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                  blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                 value: '${event.message.from}'
               draw:
                 type:
-                  blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                  blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                 value: '${steps.ProcessMove.result.draw}'
               to:
                 type:
-                  blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                  blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                 value: '${event.message.to}'
               gameOver:
                 type:
-                  blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                  blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                 value: '${steps.ProcessMove.result.gameOver}'
           - name: Apply Changes
             type:
@@ -188,77 +188,77 @@ workflows:
               items:
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: '${steps.ProcessMove.result.position}'
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: replace
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/chessboard
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: '${steps.ProcessMove.result.draw}'
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: replace
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/draw
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: '${steps.ProcessMove.result.winner}'
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: replace
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/winner
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: '${steps.ProcessMove.result.gameOver}'
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: replace
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/gameOver
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value:
                       "${(contract(\"/properties/playerToMove\") === \"white\") ? \"\
                       black\" : \"white\"}"
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: replace
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/playerToMove
                 - val:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: '${event.message}'
                   op:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: add
                   path:
                     type:
-                      blueId: F92yo19rCcbBoBSpUA5LRxpfDejJDAaP1PRxxbWAraVP
+                      blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
                     value: /properties/movesHistory/-
       trigger:
         name: TriggerStep
