@@ -10,10 +10,10 @@
       "path": "./libs/language"
     },
     {
-      "path": "./libs/contract"
+      "path": "./libs/document-processor"
     },
     {
-      "path": "./libs/document-processor"
+      "path": "./libs/document-processor-next"
     }
   ]
 }

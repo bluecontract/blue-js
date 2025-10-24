@@ -1,124 +1,123 @@
 # @blue-labs/language
 
-@blue-labs/language is a comprehensive library for working with the Blue language, a simple YAML-based language that supports inheritance. This library has been rewritten from the original Java version, which can be found [here](https://github.com/bluecontract/blue-language-java). The rewritten parts are located in the `src/lib` directory, while the rest of the code includes additional helper functions designed for TypeScript, enabling better manipulation and management of Blue objects.
+Small, fast TypeScript runtime for the Blue Language: parse YAML/JSON into BlueNode graphs, preprocess (directives & mappings), resolve/merge types and references, and compute stable Blue IDs (Base58-SHA256) with first-class Zod interop.
+
+## Features
+
+- **BlueNode graph**: single, list, map, typed values, metadata (name/description), `contracts`, and references by `blueId`.
+- **Preprocessing**: `blue:` directive (aliases, BlueId, or URL fetch with allow-list), inline-type mappings, implicit type inference for primitives.
+- **Resolution/Merge**: deterministic resolver with a pluggable MergingProcessor pipeline (value propagation, type checking, list/dict validators, metadata propagation, basic-type guard).
+- **BlueId**: canonical JSON → SHA-256 → Base58; sync/async, lists supported; CIDv1 conversion.
+- **Providers**: resolve by BlueId from memory, repositories or built-in bootstrap content; sequential composition.
+- **Zod mapping**: convert nodes to typed objects with schema extensions & Blue annotations; serialize objects back to Blue-shaped JSON.
+- **Limits & paths**: restrict extension/merge by path or depth; compose limits.
+- **Patching & transforms**: RFC-6902-style patch ops for BlueNode; recursive transform utilities.
+- **URL fetching**: pluggable strategy + caching + domain allow-list (opt-in).
 
 ## Installation
 
-To install the library, use npm or yarn:
-
 ```bash
-npm install @blue-labs/language
+npm i @blue-labs/language zod
 # or
-yarn add @blue-labs/language
+yarn add @blue-labs/language zod
 ```
 
-## Usage
+## Quick start
 
-Here are the key features and services provided by the @blue-labs/language library:
+```ts
+import { Blue, BasicNodeProvider, PathLimits } from '@blue-labs/language';
+import { z } from 'zod';
 
-### Services
+// 1) Construct runtime (uses bootstrap types + your provider chain)
+const blue = new Blue({
+  nodeProvider: new BasicNodeProvider(),
+});
 
-- **Base58Sha256Provider**
-  - A hash provider used in `BlueIdCalculator` for calculating blueId.
-- **BlueIdCalculator**
-  - Service for calculating blueId.
-- **BlueIdToCid**
-  - Service to calculate CIDv1 used as id in IPFS from the provided blueId.
-- **JsonCanonicalizer**
-  - Service for calculating the canonical form of a given value.
+// 2) Parse YAML (or JSON) into a BlueNode
+const yaml = `
+name: Greeting
+value: Hello, Blue!
+`;
+const node = blue.yamlToNode(yaml);
 
-### Schemas
+// 3) Resolve (merge types/references), optionally with limits
+const resolved = blue.resolve(node, PathLimits.withMaxDepth(10));
 
-- **blueIdSchema**
-  - A schema defined in Zod, describing blueId.
-- **blueObjectSchema**
-  - A schema defined in Zod, describing a BlueObject.
+// 4) Compute BlueId
+const blueId = blue.calculateBlueIdSync(resolved);
 
-### Functions
+// 5) Map to a Zod schema (with annotations supported)
+const Greeting = z.object({
+  name: z.string().optional(),
+  value: z.string(),
+});
+const asObject = blue.nodeToSchemaOutput(resolved, Greeting);
 
-- **calculateBlueId**
-  - Calculates blueId for a given JSON like value.
-- **enrichWithBlueId**
-  - Enriches a given BlueObject with calculated blueId.
-- **getBlueObjectProperties**
-  - Returns properties of a BlueObject that are not specific to this object.
-- **getBlueObjectTypeLabel**
-  - Retrieves the type label of a BlueObject based on its type, value, or items.
-- **isBlueObjectResolved**
-  - Checks if a BlueObject is fully resolved or if there is something apart from blueId.
-
-### Predicates
-
-- **hasBlueObjectBlueIdDefined**
-  - Predicate to check if blueId is defined.
-- **hasBlueObjectItemsDefined**
-  - Predicate to check if items are defined.
-- **hasBlueObjectNameDefined**
-  - Predicate to check if name is defined.
-- **hasBlueObjectTypeDefined**
-  - Predicate to check if type is defined.
-- **hasBlueObjectValueDefined**
-  - Predicate to check if value is defined.
-- **isBlueObject**
-  - Predicate to check if a value is of type BlueObject.
-
-### Normalization
-
-- **normalizeToBlueObject**
-  - Normalizes a given JSON value to a BlueObject.
-
-### Helpers
-
-- **resolveBlueObjectItems**
-  - Resolves BlueObject items in order from last to first.
-- **yamlBlueDump**
-  - Loads YAML.
-- **yamlBlueParse**
-  - Parses YAML.
-
-## Blue Language Overview
-
-Blue language is a simple YAML-based language that supports inheritance. Below are some key aspects:
-
-### Base Type
-
-Every node in Blue is of this type. If any node does not specify a `type`, it is considered to be of this base type by default.
-
-### Known Blue Types
-
-- **Text**: A basic text type.
-- **Integer**: A basic integer type.
-- **Number**: A basic number type.
-- **Boolean**: A basic boolean type. If value is not specified, it means false.
-- **Type**: A type that can reference other types. To be used only for `type` attribute definition.
-
-### Example
-
-```yaml
-name:
-  value: Pet
-  description: Name of the pet. Every pet must have a name.
-description: A base type for all pets.
-abstract: true
-age:
-  description: The age of the pet in years.
-  type: Integer
-
----
-name:
-  value: Dog
-  description: If we want to put more fields for Text, Integer, Number, Boolean, or Type elements, we can use `value` instead of inline approach like everywhere else here.
-abstract: true
-type: Pet
-breed:
-  description: The breed of the dog.
-  type: Text
-isTrained:
-  description: Indicates if the dog is trained.
-  type: Boolean
+// 6) Convert back to JSON (choose strategy)
+const official = blue.nodeToJson(resolved, 'official');
 ```
 
-For more detailed information, refer to the [Blue Language documentation](https://github.com/bluecontract/blue-language-java).
+## API Overview (essentials)
+
+### Core graph
+
+- `BlueNode` – node model (name, description, type, itemType, keyType, valueType, value, items, properties, blueId, blue directive).
+- `ResolvedBlueNode` – wrapper for resolved nodes; includes `getMinimalNode()` and `getMinimalBlueId()`.
+
+### Entry point
+
+- `class Blue`
+  - Parsing: `yamlToNode(_)/jsonValueToNode(_)` (+ async variants).
+  - Preprocess: blue directive (`BlueDirectivePreprocessor`) + default pipeline (`Preprocessor`).
+  - Resolve: `resolve(node, limits)` → `ResolvedBlueNode`.
+  - IDs: `calculateBlueId(_)/calculateBlueIdSync(_)`.
+  - Mapping: `nodeToJson(node, 'official'|'simple'|'original')`, `nodeToSchemaOutput(node, zod)`.
+  - Type checks: `isTypeOf(node, zod)`, `isTypeOfNode(node, typeNode)`.
+  - Helpers: `extend(node, limits)`, `transform(node, fn)`, `reverse(node)`, `restoreInlineTypes(node)`.
+  - Config: URL fetch allow-list (`enablePreprocessingDirectivesFetchForDomains([...])`), global limits, repositories.
+
+### Resolution & merge
+
+- `Merger` + `MergingProcessor` pipeline: value → types → lists/dicts → metadata → basic checks.
+- `createDefaultMergingProcessor()` exports the default pipeline.
+
+### Providers
+
+- `NodeProvider`, `SequentialNodeProvider`, `BootstrapProvider`, `InMemoryNodeProvider`, `BasicNodeProvider`, `RepositoryBasedNodeProvider`.
+- `NodeProviderWrapper.wrap(...)` composes bootstrap, repositories, and your provider.
+
+### Preprocessing
+
+- `BlueDirectivePreprocessor`: resolves `blue:` directive (alias, BlueId, or URL).
+- `Preprocessor`: runs transformations declared under `blue:` (replace inline type strings → BlueIds; infer basic types; validate inline types removed).
+- `BlueIdsMappingGenerator`: accumulate BlueId mappings (repositories, custom, core).
+
+### Mapping & Zod
+
+- `NodeToObjectConverter` + converters for primitives/arrays/tuples/sets/maps/objects; supports schema extension resolution via `TypeSchemaResolver`.
+- Schema annotations: `withTypeBlueId`, `withBlueId`, `withBlueName`, `withBlueDescription`, `blueIdField`, `blueNodeField`.
+
+### Blue IDs & CIDs
+
+- `BlueIdCalculator` (sync/async); `Base58Sha256Provider`.
+- `BlueIds` validator; `BlueIdToCid` and `CidToBlueId` converters.
+
+### Limits
+
+- `PathLimits`, `CompositeLimits`, and `NO_LIMITS`. Build from node shape or explicit patterns.
+
+### Utilities
+
+- `Nodes`, `NodeTransformer`, `NodePathAccessor` (`/path` getter), patching via `applyBlueNodePatch(es)` implementing RFC-6902.
+- URL fetching: `UrlContentFetcher` with pluggable `{ fetchUrl }` and domain allow-list.
+
+## Docs
+
+- `docs/resolve.md` – resolver & merging pipeline.
+- `docs/preprocessor.md` – blue directive, inference & mappings.
+- `docs/blue-id.md` – BlueId algorithm and APIs.
+- `docs/mapping.md` – Zod mapping and serialization.
+- `docs/architecture.md` – end-to-end architecture.
 
 ## Changelog
 

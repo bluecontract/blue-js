@@ -39,7 +39,7 @@ describe('BlueDocumentProcessor', () => {
           "checkpoint": {
             "lastEvents": {},
             "type": {
-              "blueId": "GWGpN9tAX5i3MUic8NhrfRtKDh9mz6dxBys8NXyPYXZf",
+              "blueId": "ApWRoLiwZBWL8bptjSqNxSAL5AFjARdg4w3GymKhqZYS",
               "name": "Channel Event Checkpoint",
             },
           },

@@ -35,6 +35,14 @@
           "authors": false
         }
       }
+    },
+    "groups": {
+      "stable": {
+        "projects": ["language", "shared-utils", "document-processor"]
+      },
+      "next": {
+        "projects": ["document-processor-next"]
+      }
     }
   },
   "plugins": [
