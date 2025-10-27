@@ -1,5 +1,6 @@
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it, vi } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import {
   ProcessorExecutionContext,
@@ -9,7 +10,7 @@ import { DocumentProcessingRuntime } from '../../runtime/document-processing-run
 import { ContractBundle } from '../contract-bundle.js';
 import type { JsonPatch } from '../../model/shared/json-patch.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
@@ -20,7 +21,7 @@ describe('ProcessorExecutionContext', () => {
   const patch: JsonPatch = { op: 'ADD', path: '/foo', val: nodeFrom('bar') };
 
   function createContext(overrides: Partial<ExecutionAdapter> = {}) {
-    const runtime = new DocumentProcessingRuntime(new BlueNode());
+    const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const adapter: ExecutionAdapter = {
       runtime: () => runtime,
       isScopeInactive: vi.fn().mockReturnValue(false),
@@ -36,8 +37,7 @@ describe('ProcessorExecutionContext', () => {
       '/',
       nodeFrom({ eventType: 'Event' }),
       false,
-      false,
-      blue
+      false
     );
     return { context, adapter, runtime };
   }
@@ -86,8 +86,7 @@ describe('ProcessorExecutionContext', () => {
       '/child',
       nodeFrom({}),
       true,
-      false,
-      blue
+      false
     );
 
     context.terminateGracefully('done');

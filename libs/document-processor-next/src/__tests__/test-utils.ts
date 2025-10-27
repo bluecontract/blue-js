@@ -1,7 +1,6 @@
 import { expect } from 'vitest';
 import { BlueNode, Blue } from '@blue-labs/language';
 
-import type { Node } from '../types/index.js';
 import { DocumentProcessor } from '../api/document-processor.js';
 import type { AnyContractProcessor } from '../registry/types.js';
 import { resolvePointer } from '../util/pointer-utils.js';
@@ -11,7 +10,11 @@ export function expectOk(
   result: DocumentProcessingResult,
   message = 'Expected successful document processing result'
 ): DocumentProcessingResult {
-  expect(result.capabilityFailure, message).toBe(false);
+  const failureDetails =
+    result.failureReason != null
+      ? ` Failure reason: ${result.failureReason}`
+      : '';
+  expect(result.capabilityFailure, `${message}.${failureDetails}`).toBe(false);
   return result;
 }
 
@@ -23,7 +26,7 @@ export function expectErr(
   return result;
 }
 
-export function property(node: Node, key: string): BlueNode {
+export function property(node: BlueNode, key: string): BlueNode {
   const props = node.getProperties();
   expect(props, `Expected properties to contain '${key}'`).toBeDefined();
   const child = props?.[key];
@@ -31,28 +34,36 @@ export function property(node: Node, key: string): BlueNode {
   return child as BlueNode;
 }
 
-export function propertyOptional(node: Node, key: string): BlueNode | undefined {
+export function propertyOptional(
+  node: BlueNode,
+  key: string
+): BlueNode | undefined {
   return node.getProperties()?.[key];
 }
 
-export function array(node: Node, key: string): readonly BlueNode[] {
+export function array(node: BlueNode, key: string): readonly BlueNode[] {
   const arrNode = property(node, key);
   const items = arrNode.getItems();
   expect(items, `Expected array for '${key}'`).toBeDefined();
   return items as readonly BlueNode[];
 }
 
-export function stringProperty(node: Node, key: string): string | null {
+export function stringProperty(node: BlueNode, key: string): string | null {
   const value = propertyOptional(node, key)?.getValue();
   return value != null ? String(value) : null;
 }
 
-export function numericProperty(node: Node, key: string): number {
+export function typeBlueId(node: BlueNode): string | null {
+  const value = node.getType?.()?.getBlueId?.();
+  return value != null ? String(value) : null;
+}
+
+export function numericProperty(node: BlueNode, key: string): number {
   const valueNode = property(node, key);
   return numericValue(valueNode);
 }
 
-export function numericValue(node: Node): number {
+export function numericValue(node: BlueNode): number {
   const raw = node.getValue();
   if (raw == null) {
     throw new Error('Expected numeric value but received null');
@@ -86,7 +97,7 @@ export function buildProcessor(
 }
 
 export function terminatedMarker(
-  document: Node,
+  document: BlueNode,
   scopePath: string
 ): BlueNode | null {
   try {

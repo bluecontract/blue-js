@@ -1,5 +1,6 @@
+import { createBlue } from '../test-support/blue.js';
 import { beforeEach, describe, it, expect } from 'vitest';
-import { Blue, BlueNode, JsonCanonicalizer } from '@blue-labs/language';
+import { BlueNode, JsonCanonicalizer } from '@blue-labs/language';
 
 import {
   EmitEventsContractProcessor,
@@ -12,7 +13,7 @@ import {
   property,
 } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function scopeDepth(scopePath: string): number {
   if (!scopePath || scopePath === '/') {
@@ -120,8 +121,7 @@ contracts:
           blueId: TestEvent
         kind: emitted
   triggered:
-    type:
-      blueId: TriggeredEventChannel
+    type: Triggered Event Channel
 `;
 
     const initialized = expectOk(

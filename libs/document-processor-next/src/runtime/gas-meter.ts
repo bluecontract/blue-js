@@ -1,4 +1,4 @@
-import type { Node } from '../types/index.js';
+import { Blue, BlueNode } from '@blue-labs/language';
 import { canonicalSize } from '../util/node-canonicalizer.js';
 import { normalizeScope } from '../util/pointer-utils.js';
 
@@ -33,6 +33,8 @@ function emitEventCharge(sizeCharge: number): number {
 export class GasMeter {
   private total = 0;
 
+  constructor(private readonly blue: Blue) {}
+
   totalGas(): number {
     return this.total;
   }
@@ -61,7 +63,7 @@ export class GasMeter {
     this.add(BOUNDARY_CHECK);
   }
 
-  chargePatchAddOrReplace(value: Node | null | undefined): void {
+  chargePatchAddOrReplace(value: BlueNode | null | undefined): void {
     this.add(patchAddOrReplaceCharge(this.payloadSizeCharge(value)));
   }
 
@@ -75,7 +77,7 @@ export class GasMeter {
     }
   }
 
-  chargeEmitEvent(event: Node | null | undefined): void {
+  chargeEmitEvent(event: BlueNode | null | undefined): void {
     this.add(emitEventCharge(this.payloadSizeCharge(event)));
   }
 
@@ -103,11 +105,11 @@ export class GasMeter {
     this.add(FATAL_TERMINATION_OVERHEAD);
   }
 
-  private payloadSizeCharge(node: Node | null | undefined): number {
+  private payloadSizeCharge(node: BlueNode | null | undefined): number {
     if (!node) {
       return 0;
     }
-    const bytes = canonicalSize(node);
+    const bytes = canonicalSize(this.blue, node);
     return Math.floor((bytes + 99) / 100);
   }
 

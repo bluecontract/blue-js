@@ -1,5 +1,5 @@
-import { Blue, BlueNode } from '@blue-labs/language';
-import { repository as coreRepository } from '@blue-repository/core';
+import { createBlue } from '../../test-support/blue.js';
+import { BlueNode } from '@blue-labs/language';
 import {
   documentUpdateChannelSchema,
   embeddedNodeChannelSchema,
@@ -14,7 +14,7 @@ import {
 } from '../markers/index.js';
 
 describe('contract model schemas', () => {
-  const blue = new Blue({ repositories: [coreRepository] });
+  const blue = createBlue();
 
   function deserialize(json: unknown): BlueNode {
     return blue.jsonValueToNode(json);

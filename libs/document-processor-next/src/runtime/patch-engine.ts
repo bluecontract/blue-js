@@ -1,6 +1,5 @@
 import { BlueNode } from '@blue-labs/language';
 import type { JsonPatch } from '../model/shared/json-patch.js';
-import type { Node } from '../types/index.js';
 import { normalizePointer, normalizeScope } from '../util/pointer-utils.js';
 
 const ARRAY_APPEND_TOKEN = '-';
@@ -9,15 +8,15 @@ type PatchOp = 'add' | 'replace' | 'remove';
 
 export interface PatchResult {
   readonly path: string;
-  readonly before: Node | null;
-  readonly after: Node | null;
+  readonly before: BlueNode | null;
+  readonly after: BlueNode | null;
   readonly op: PatchOp;
   readonly originScope: string;
   readonly cascadeScopes: readonly string[];
 }
 
 export class PatchEngine {
-  constructor(private document: Node) {}
+  constructor(private document: BlueNode) {}
 
   applyPatch(originScopePath: string, patch: JsonPatch): PatchResult {
     const normalizedScope = normalizeScope(originScopePath);
@@ -49,7 +48,7 @@ export class PatchEngine {
     };
   }
 
-  directWrite(path: string, value: Node | null): void {
+  directWrite(path: string, value: BlueNode | null): void {
     const normalized = normalizePointer(path);
     if (normalized === '/') {
       throw new Error('Direct write cannot target root document');
@@ -69,7 +68,7 @@ export class PatchEngine {
     this.directWriteObject(parent, leaf, value);
   }
 
-  private directWriteArray(parent: Node, items: Node[], leaf: string, value: Node | null, normalized: string): void {
+  private directWriteArray(parent: BlueNode, items: BlueNode[], leaf: string, value: BlueNode | null, normalized: string): void {
     const mutable = ensureMutableItems(parent, items);
     const index = parseArrayIndex(leaf, normalized);
     if (value == null) {
@@ -94,7 +93,7 @@ export class PatchEngine {
     throw new Error(`Array index out of bounds for direct write: ${normalized}`);
   }
 
-  private directWriteObject(parent: Node, leaf: string, value: Node | null): void {
+  private directWriteObject(parent: BlueNode, leaf: string, value: BlueNode | null): void {
     const properties = ensureMutableProperties(parent);
     if (value == null) {
       delete properties[leaf];
@@ -105,7 +104,7 @@ export class PatchEngine {
     parent.setProperties(properties);
   }
 
-  private resolveParent(segments: readonly string[]): { parent: Node; leaf: string } {
+  private resolveParent(segments: readonly string[]): { parent: BlueNode; leaf: string } {
     if (segments.length === 0) {
       throw new Error('Cannot apply direct write to root');
     }
@@ -118,11 +117,11 @@ export class PatchEngine {
   }
 
   private getOrCreateChild(
-    current: Node,
+    current: BlueNode,
     segment: string,
     segments: readonly string[],
     depth: number,
-  ): Node {
+  ): BlueNode {
     if (segment === ARRAY_APPEND_TOKEN) {
       throw new Error(`Append token '-' must be final segment: ${pointerPrefix(segments, depth)}`);
     }
@@ -152,7 +151,7 @@ export class PatchEngine {
   private applyAdd(
     segments: string[],
     path: string,
-    value: Node | null
+    value: BlueNode | null
   ): void {
     if (path === '/' || path.length === 0) {
       throw new Error('ADD operation cannot target document root');
@@ -191,7 +190,7 @@ export class PatchEngine {
   private applyReplace(
     segments: string[],
     path: string,
-    value: Node | null
+    value: BlueNode | null
   ): void {
     if (path === '/' || path.length === 0) {
       throw new Error('REPLACE operation cannot target document root');
@@ -332,11 +331,11 @@ function computeCascadeScopes(scopePath: string): string[] {
 }
 
 function cloneAtSafe(
-  root: Node,
+  root: BlueNode,
   segments: readonly string[],
   mode: 'before' | 'after',
   path: string
-): Node | null {
+): BlueNode | null {
   try {
     if (segments.length === 0) {
       return root.clone();
@@ -349,12 +348,12 @@ function cloneAtSafe(
 }
 
 function readNode(
-  root: Node,
+  root: BlueNode,
   segments: readonly string[],
   mode: 'before' | 'after',
   path: string
-): Node | null {
-  let current: Node | null = root;
+): BlueNode | null {
+  let current: BlueNode | null = root;
   for (let i = 0; i < segments.length; i += 1) {
     const segment = segments[i] ?? '';
     const last = i === segments.length - 1;
@@ -367,12 +366,12 @@ function readNode(
 }
 
 function descendForRead(
-  current: Node | null,
+  current: BlueNode | null,
   segment: string,
   isLast: boolean,
   mode: 'before' | 'after',
   path: string
-): Node | null {
+): BlueNode | null {
   if (!current) {
     return null;
   }
@@ -398,7 +397,7 @@ function descendForRead(
     return items[index] ?? null;
   }
 
-  const properties = current.getProperties() as Record<string, Node> | undefined;
+  const properties = current.getProperties() as Record<string, BlueNode> | undefined;
   if (!properties) {
     return null;
   }
@@ -443,20 +442,20 @@ function pointerPrefix(segments: readonly string[], length: number): string {
   return result === '' ? '/' : result;
 }
 
-function ensureMutableItems(node: Node, original: Node[]): Node[] {
+function ensureMutableItems(node: BlueNode, original: BlueNode[]): BlueNode[] {
   const mutable = [...original];
   node.setItems(mutable);
   return mutable;
 }
 
-function ensureMutableProperties(node: Node): Record<string, Node> {
+function ensureMutableProperties(node: BlueNode): Record<string, BlueNode> {
   const properties = node.getProperties();
   if (!properties) {
-    const fresh: Record<string, Node> = {};
+    const fresh: Record<string, BlueNode> = {};
     node.setProperties(fresh);
     return fresh;
   }
-  const clone: Record<string, Node> = { ...properties };
+  const clone: Record<string, BlueNode> = { ...properties };
   node.setProperties(clone);
   return clone;
 }
@@ -465,7 +464,7 @@ function isArrayIndexSegment(segment: string): boolean {
   return segment === ARRAY_APPEND_TOKEN || /^\d+$/.test(segment);
 }
 
-function cloneValue(value: Node | null): BlueNode {
+function cloneValue(value: BlueNode | null): BlueNode {
   if (value == null) {
     return new BlueNode().setValue(null);
   }

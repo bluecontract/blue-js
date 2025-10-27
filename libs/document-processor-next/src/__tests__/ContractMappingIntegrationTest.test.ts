@@ -2,8 +2,6 @@ import { expect, it, describe } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { Blue } from '@blue-labs/language';
-
 import {
   channelEventCheckpointSchema,
   documentUpdateChannelSchema,
@@ -16,8 +14,9 @@ import {
 } from '../model/index.js';
 import { setPropertySchema } from './models/index.js';
 import { property } from './test-utils.js';
+import { createBlue } from '../test-support/blue.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 describe('ContractMappingIntegrationTest', () => {
   it('loadsAllContractsFromBlueYaml', () => {

@@ -1,4 +1,5 @@
 import { Blue, BlueNode } from '@blue-labs/language';
+import { blueIds } from '@blue-repository/core';
 
 import type { ContractBundle } from './contract-bundle.js';
 import type { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
@@ -6,14 +7,25 @@ import { RELATIVE_TERMINATED } from '../constants/processor-pointer-constants.js
 import { resolvePointer } from '../util/pointer-utils.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
 import { RunTerminationError } from './run-termination-error.js';
-
-const blue = new Blue();
+const PROCESSING_TERMINATED_MARKER_BLUE_ID =
+  blueIds['Processing Terminated Marker'];
+const DOCUMENT_PROCESSING_TERMINATED_BLUE_ID =
+  blueIds['Document Processing Terminated'];
 
 export interface TerminationExecutionAdapter {
-  recordPendingTermination(scopePath: string, kind: TerminationKind, reason: string | null): void;
+  recordPendingTermination(
+    scopePath: string,
+    kind: TerminationKind,
+    reason: string | null
+  ): void;
   normalizeScope(scopePath: string): string;
   bundleForScope(scopePath: string): ContractBundle | undefined;
-  deliverLifecycle(scopePath: string, bundle: ContractBundle | null, event: BlueNode, finalizeAfter: boolean): void;
+  deliverLifecycle(
+    scopePath: string,
+    bundle: ContractBundle | null,
+    event: BlueNode,
+    finalizeAfter: boolean
+  ): void;
   clearPendingTermination(scopePath: string): void;
 }
 
@@ -25,13 +37,16 @@ export class TerminationService {
     scopePath: string,
     bundle: ContractBundle | null,
     kind: TerminationKind,
-    reason: string | null,
+    reason: string | null
   ): void {
     execution.recordPendingTermination(scopePath, kind, reason ?? null);
 
     const normalized = execution.normalizeScope(scopePath);
     const pointer = resolvePointer(normalized, RELATIVE_TERMINATED);
-    this.runtime.directWrite(pointer, createTerminationMarker(kind, reason));
+    this.runtime.directWrite(
+      pointer,
+      createTerminationMarker(this.runtime.blue(), kind, reason)
+    );
     this.runtime.chargeTerminationMarker();
 
     const bundleRef = bundle ?? execution.bundleForScope(normalized) ?? null;
@@ -47,7 +62,6 @@ export class TerminationService {
     }
 
     if (kind === 'FATAL' && normalized === '/') {
-      this.runtime.recordRootEmission(createFatalOutboxEvent(normalized, reason));
       this.runtime.markRunTerminated();
       throw new RunTerminationError(true);
     }
@@ -60,11 +74,12 @@ export class TerminationService {
 }
 
 function createTerminationMarker(
+  blue: Blue,
   kind: TerminationKind,
-  reason: string | null,
+  reason: string | null
 ): BlueNode {
-  const marker = nodeFrom({
-    type: { blueId: 'ProcessingTerminatedMarker' },
+  const marker = nodeFrom(blue, {
+    type: { blueId: PROCESSING_TERMINATED_MARKER_BLUE_ID },
     cause: kind === 'GRACEFUL' ? 'graceful' : 'fatal',
     ...(reason ? { reason } : {}),
   });
@@ -73,28 +88,21 @@ function createTerminationMarker(
 
 function createTerminationLifecycleEvent(
   kind: TerminationKind,
-  reason: string | null,
+  reason: string | null
 ): BlueNode {
-  const event = new BlueNode();
-  event.addProperty('type', new BlueNode().setValue('Document Processing Terminated'));
-  event.addProperty('cause', new BlueNode().setValue(kind === 'GRACEFUL' ? 'graceful' : 'fatal'));
+  const event = new BlueNode().setType(
+    new BlueNode().setBlueId(DOCUMENT_PROCESSING_TERMINATED_BLUE_ID)
+  );
+  event.addProperty(
+    'cause',
+    new BlueNode().setValue(kind === 'GRACEFUL' ? 'graceful' : 'fatal')
+  );
   if (reason) {
     event.addProperty('reason', new BlueNode().setValue(reason));
   }
   return event;
 }
 
-function createFatalOutboxEvent(scopePath: string, reason: string | null): BlueNode {
-  const event = new BlueNode();
-  event.addProperty('type', new BlueNode().setValue('Document Processing Fatal Error'));
-  event.addProperty('domain', new BlueNode().setValue(scopePath));
-  event.addProperty('code', new BlueNode().setValue('RuntimeFatal'));
-  if (reason) {
-    event.addProperty('reason', new BlueNode().setValue(reason));
-  }
-  return event;
-}
-
-function nodeFrom(value: unknown): BlueNode {
+function nodeFrom(blue: Blue, value: unknown): BlueNode {
   return blue.jsonValueToNode(value);
 }

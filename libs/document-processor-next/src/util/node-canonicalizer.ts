@@ -1,30 +1,30 @@
-import { Blue } from '@blue-labs/language';
+import { Blue, BlueNode } from '@blue-labs/language';
 import canonicalize from 'canonicalize';
-import type { Node } from '../types/index.js';
 
-// TODO: Replace with NodeToMapListOrValue.get or use blue from context
-const blueHelper = new Blue();
-
-function toCanonicalPayload(node: Node): unknown {
-  return blueHelper.nodeToJson(node, 'official');
+function toCanonicalPayload(blue: Blue, node: BlueNode): unknown {
+  return blue.nodeToJson(node, 'official');
 }
 
-function canonicalJson(node: Node): string {
-  const payload = toCanonicalPayload(node);
+function canonicalJson(blue: Blue, node: BlueNode): string {
+  const payload = toCanonicalPayload(blue, node);
   return canonicalize(payload);
 }
 
 export function canonicalSignature(
-  node: Node | null | undefined
+  blue: Blue,
+  node: BlueNode | null | undefined
 ): string | null {
   if (!node) {
     return null;
   }
-  return canonicalJson(node);
+  return canonicalJson(blue, node);
 }
 
-export function canonicalSize(node: Node | null | undefined): number {
-  const signature = canonicalSignature(node);
+export function canonicalSize(
+  blue: Blue,
+  node: BlueNode | null | undefined
+): number {
+  const signature = canonicalSignature(blue, node);
   if (signature == null) {
     return 0;
   }

@@ -1,5 +1,6 @@
+import { blueIds, createBlue } from '../../test-support/blue.js';
 import { describe, expect, it, vi } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import { ScopeExecutor } from '../scope-executor.js';
 import { ContractBundle } from '../contract-bundle.js';
@@ -10,7 +11,7 @@ import type { JsonPatch } from '../../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import { resolvePointer } from '../../util/pointer-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
@@ -29,7 +30,7 @@ function lifecycleBundle(): ContractBundle {
     .addChannel(
       'lifecycle',
       { key: 'lifecycle', order: 0 } as LifecycleChannel,
-      'LifecycleChannel',
+      blueIds['Lifecycle Event Channel'],
     )
     .build();
 }
@@ -65,7 +66,7 @@ interface ExecutorFixture {
 }
 
 function createExecutor(bundle: ContractBundle): ExecutorFixture {
-  const runtime = new DocumentProcessingRuntime(new BlueNode());
+  const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
   const bundles = new Map<string, ContractBundle>();
   const loader = {
     load: vi.fn(() => bundle),

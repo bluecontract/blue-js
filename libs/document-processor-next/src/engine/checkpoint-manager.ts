@@ -1,5 +1,5 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-
+import { blueIds } from '@blue-repository/core';
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
 import {
   relativeCheckpointLastEvent,
@@ -10,13 +10,11 @@ import { resolvePointer } from '../util/pointer-utils.js';
 import type { ContractBundle } from './contract-bundle.js';
 import type { ChannelEventCheckpoint, MarkerContract } from '../model/index.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
-import type { Node } from '../types/index.js';
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 
-const blueHelper = new Blue();
-
-function createEmptyCheckpointNode(): Node {
-  return blueHelper.jsonValueToNode({
-    type: { blueId: 'ChannelEventCheckpoint' },
+function createEmptyCheckpointNode(blue: Blue): BlueNode {
+  return blue.jsonValueToNode({
+    type: { blueId: CHANNEL_EVENT_CHECKPOINT_BLUE_ID },
     lastEvents: {},
     lastSignatures: {},
   });
@@ -31,7 +29,7 @@ function createEmptyCheckpointContract(): ChannelEventCheckpoint {
 }
 
 function isChannelEventCheckpoint(
-  marker: MarkerContract,
+  marker: MarkerContract
 ): marker is ChannelEventCheckpoint {
   return (
     marker != null &&
@@ -41,15 +39,15 @@ function isChannelEventCheckpoint(
 }
 
 export class CheckpointRecord {
-  lastEventNode: Node | null;
+  lastEventNode: BlueNode | null;
   lastEventSignature: string | null;
 
   constructor(
     readonly markerKey: string,
     readonly checkpoint: ChannelEventCheckpoint,
     readonly channelKey: string,
-    lastEventNode: Node | null,
-    lastEventSignature: string | null,
+    lastEventNode: BlueNode | null,
+    lastEventSignature: string | null
   ) {
     this.lastEventNode = lastEventNode;
     this.lastEventSignature = lastEventSignature;
@@ -63,32 +61,35 @@ export class CheckpointRecord {
 export class CheckpointManager {
   constructor(
     private readonly runtime: DocumentProcessingRuntime,
-    private readonly signatureFn: (node: Node | null) => string | null,
+    private readonly signatureFn: (node: BlueNode | null) => string | null
   ) {}
 
   ensureCheckpointMarker(scopePath: string, bundle: ContractBundle): void {
     const marker = bundle.marker(KEY_CHECKPOINT);
     const pointer = resolvePointer(scopePath, RELATIVE_CHECKPOINT);
     if (!marker) {
-      const markerNode = createEmptyCheckpointNode();
+      const markerNode = createEmptyCheckpointNode(this.runtime.blue());
       this.runtime.directWrite(pointer, markerNode);
       bundle.registerCheckpointMarker(createEmptyCheckpointContract());
       return;
     }
     if (!isChannelEventCheckpoint(marker)) {
       throw new Error(
-        `Reserved key 'checkpoint' must contain a Channel Event Checkpoint at ${pointer}`,
+        `Reserved key 'checkpoint' must contain a Channel Event Checkpoint at ${pointer}`
       );
     }
   }
 
-  findCheckpoint(bundle: ContractBundle, channelKey: string): CheckpointRecord | null {
+  findCheckpoint(
+    bundle: ContractBundle,
+    channelKey: string
+  ): CheckpointRecord | null {
     for (const [markerKey, marker] of bundle.markerEntries()) {
       if (!isChannelEventCheckpoint(marker)) {
         continue;
       }
       const stored = marker.lastEvents?.[channelKey] ?? null;
-      const storedClone = (stored?.clone() as Node | null) ?? null;
+      const storedClone = stored?.clone() ?? null;
       const storedSignature = marker.lastSignatures?.[channelKey] ?? null;
       const signature = storedSignature ?? this.signatureFn(storedClone);
       return new CheckpointRecord(
@@ -96,13 +97,16 @@ export class CheckpointManager {
         marker,
         channelKey,
         storedClone,
-        signature,
+        signature
       );
     }
     return null;
   }
 
-  isDuplicate(record: CheckpointRecord | null, signature: string | null | undefined): boolean {
+  isDuplicate(
+    record: CheckpointRecord | null,
+    signature: string | null | undefined
+  ): boolean {
     return record != null && record.matches(signature);
   }
 
@@ -111,16 +115,16 @@ export class CheckpointManager {
     bundle: ContractBundle,
     record: CheckpointRecord | null,
     eventSignature: string | null,
-    eventNode: Node | null,
+    eventNode: BlueNode | null
   ): void {
     if (!record) {
       return;
     }
     const eventPointer = resolvePointer(
       scopePath,
-      relativeCheckpointLastEvent(record.markerKey, record.channelKey),
+      relativeCheckpointLastEvent(record.markerKey, record.channelKey)
     );
-    const stored = (eventNode?.clone() as Node | null) ?? null;
+    const stored = eventNode?.clone() ?? null;
     this.runtime.chargeCheckpointUpdate();
     this.runtime.directWrite(eventPointer, stored);
 
@@ -128,21 +132,18 @@ export class CheckpointManager {
       record.checkpoint.lastEvents = {};
     }
     if (stored) {
-      record.checkpoint.lastEvents[record.channelKey] =
-        (stored.clone() as Node) ?? null;
+      record.checkpoint.lastEvents[record.channelKey] = stored.clone() ?? null;
     } else {
       delete record.checkpoint.lastEvents[record.channelKey];
     }
-    record.lastEventNode = (stored?.clone() as Node | null) ?? null;
+    record.lastEventNode = stored?.clone() ?? null;
 
     const signaturePointer = resolvePointer(
       scopePath,
-      relativeCheckpointLastSignature(record.markerKey, record.channelKey),
+      relativeCheckpointLastSignature(record.markerKey, record.channelKey)
     );
     const signatureNode =
-      eventSignature == null
-        ? null
-        : new BlueNode().setValue(eventSignature);
+      eventSignature == null ? null : new BlueNode().setValue(eventSignature);
     this.runtime.directWrite(signaturePointer, signatureNode);
 
     if (!record.checkpoint.lastSignatures) {

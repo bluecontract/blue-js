@@ -1,4 +1,5 @@
 import { Blue, BlueNode } from '@blue-labs/language';
+import { blueIds } from '@blue-repository/core';
 
 import { ChannelRunner, type ChannelMatch } from './channel-runner.js';
 import { CheckpointManager } from './checkpoint-manager.js';
@@ -26,7 +27,6 @@ import {
   relativizePointer,
   resolvePointer,
 } from '../util/pointer-utils.js';
-import type { Node } from '../types/index.js';
 import type { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
 import type { ChannelContract } from '../model/index.js';
 import type { ChannelEvaluationContext } from '../registry/types.js';
@@ -39,12 +39,16 @@ import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
 import { z } from 'zod';
 
+const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
+  blueIds['Processing Initialized Marker'];
+const DOCUMENT_UPDATE_BLUE_ID = blueIds['Document Update'];
+
 interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   bundleForScope(scopePath: string): ContractBundle | undefined;
   deliverLifecycle(
     scopePath: string,
     bundle: ContractBundle | null,
-    event: Node,
+    event: BlueNode,
     finalizeAfter: boolean
   ): void;
 }
@@ -61,19 +65,19 @@ export class ProcessorExecution implements ExecutionHooks {
   private readonly terminationService: TerminationService;
   private readonly channelRunner: ChannelRunner;
   private readonly scopeExecutor: ScopeExecutor;
-  private readonly blue: Blue;
 
   constructor(
     private readonly contractLoader: ContractLoader,
     private readonly registry: ContractProcessorRegistry,
     blue: Blue,
-    document: Node
+    document: BlueNode
   ) {
-    this.runtimeRef = new Runtime(document);
-    this.blue = blue;
+    this.runtimeRef = new Runtime(document, blue);
+    const signatureFn = (node: BlueNode | null): string | null =>
+      canonicalSignature(this.runtimeRef.blue(), node);
     this.checkpointManager = new CheckpointManager(
       this.runtimeRef,
-      canonicalSignature
+      signatureFn
     );
     this.terminationService = new TerminationService(this.runtimeRef);
     this.channelRunner = new ChannelRunner(
@@ -93,6 +97,7 @@ export class ProcessorExecution implements ExecutionHooks {
           ),
         executeHandler: (handler, context) =>
           this.executeHandler(handler, context),
+        canonicalSignature: signatureFn,
       }
     );
     this.scopeExecutor = new ScopeExecutor({
@@ -124,7 +129,7 @@ export class ProcessorExecution implements ExecutionHooks {
           (error instanceof Error && error.message) || label,
         markCutOff: (scopePath) => this.markCutOff(scopePath),
       },
-      blueId: (node) => this.blue.calculateBlueIdSync(node),
+      blueId: (node) => this.runtimeRef.blue().calculateBlueIdSync(node),
       nodeAt: (scopePath) => this.nodeAt(scopePath),
       createDocumentUpdateEvent: (data, scopePath) =>
         this.createDocumentUpdateEvent(data, scopePath),
@@ -141,7 +146,7 @@ export class ProcessorExecution implements ExecutionHooks {
     this.scopeExecutor.loadBundles(scopePath);
   }
 
-  processExternalEvent(scopePath: string, event: Node): void {
+  processExternalEvent(scopePath: string, event: BlueNode): void {
     this.scopeExecutor.processExternalEvent(scopePath, event);
   }
 
@@ -162,7 +167,7 @@ export class ProcessorExecution implements ExecutionHooks {
   createContext(
     scopePath: string,
     bundle: ContractBundle,
-    event: Node,
+    event: BlueNode,
     allowTerminatedWork = false,
     allowReservedMutation = false
   ): ProcessorExecutionContext {
@@ -172,8 +177,7 @@ export class ProcessorExecution implements ExecutionHooks {
       scopePath,
       event.clone(),
       allowTerminatedWork,
-      allowReservedMutation,
-      this.blue
+      allowReservedMutation
     );
   }
 
@@ -245,7 +249,7 @@ export class ProcessorExecution implements ExecutionHooks {
   deliverLifecycle(
     scopePath: string,
     bundle: ContractBundle | null,
-    event: Node,
+    event: BlueNode,
     finalizeAfter: boolean
   ): void {
     this.scopeExecutor.deliverLifecycle(
@@ -256,7 +260,7 @@ export class ProcessorExecution implements ExecutionHooks {
     );
   }
 
-  recordLifecycleForBridging(scopePath: string, event: Node): void {
+  recordLifecycleForBridging(scopePath: string, event: BlueNode): void {
     const context = this.runtimeRef.scope(scopePath);
     context.recordBridgeable(event.clone());
     if (scopePath === '/') {
@@ -295,7 +299,7 @@ export class ProcessorExecution implements ExecutionHooks {
     );
   }
 
-  private nodeAt(scopePath: string): Node | null {
+  private nodeAt(scopePath: string): BlueNode | null {
     const normalized = normalizeScope(scopePath);
     return ProcessorEngine.nodeAt(this.runtimeRef.document(), normalized);
   }
@@ -304,7 +308,7 @@ export class ProcessorExecution implements ExecutionHooks {
     channel: ChannelBinding,
     bundle: ContractBundle,
     scopePath: string,
-    event: Node
+    event: BlueNode
   ): ChannelMatch {
     const processor = this.registry.lookupChannel(channel.blueId());
     if (!processor) {
@@ -314,13 +318,15 @@ export class ProcessorExecution implements ExecutionHooks {
     const eventClone = event.clone();
     let eventObject: ChannelEvaluationContext['eventObject'] = null;
     try {
-      eventObject = this.blue.nodeToSchemaOutput(eventClone, z.object({}));
+      eventObject = this.runtimeRef
+        .blue()
+        .nodeToSchemaOutput(eventClone, z.object({}));
     } catch {
       eventObject = null;
     }
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
-      blue: this.blue,
+      blue: this.runtimeRef.blue(),
       event: eventClone,
       eventObject,
       markers: bundle.markers(),
@@ -370,7 +376,7 @@ export class ProcessorExecution implements ExecutionHooks {
   private createDocumentUpdateEvent(
     data: DocumentUpdateData,
     scopePath: string
-  ): Node {
+  ): BlueNode {
     const relativePath = relativizePointer(scopePath, data.path);
 
     const beforeNode =
@@ -378,9 +384,10 @@ export class ProcessorExecution implements ExecutionHooks {
     const afterNode =
       data.after != null ? data.after.clone() : new BlueNode().setValue(null);
 
-    const eventNode = new BlueNode();
+    const eventNode = new BlueNode().setType(
+      new BlueNode().setBlueId(DOCUMENT_UPDATE_BLUE_ID)
+    );
     eventNode.setProperties({
-      type: new BlueNode().setValue('Document Update'),
       op: new BlueNode().setValue(data.op),
       path: new BlueNode().setValue(relativePath),
       before: beforeNode,
@@ -416,7 +423,7 @@ export class ProcessorEngine {
     private readonly blue: Blue
   ) {}
 
-  initializeDocument(document: Node): DocumentProcessingResult {
+  initializeDocument(document: BlueNode): DocumentProcessingResult {
     if (this.isInitialized(document)) {
       throw new IllegalStateException('Document already initialized');
     }
@@ -426,7 +433,10 @@ export class ProcessorEngine {
     });
   }
 
-  processDocument(document: Node, event: Node): DocumentProcessingResult {
+  processDocument(
+    document: BlueNode,
+    event: BlueNode
+  ): DocumentProcessingResult {
     if (!this.isInitialized(document)) {
       throw new IllegalStateException('Document not initialized');
     }
@@ -438,11 +448,11 @@ export class ProcessorEngine {
     });
   }
 
-  isInitialized(document: Node): boolean {
+  isInitialized(document: BlueNode): boolean {
     return this.initializationMarker(document) != null;
   }
 
-  createExecution(document: Node): ProcessorExecution {
+  createExecution(document: BlueNode): ProcessorExecution {
     return new ProcessorExecution(
       this.contractLoader,
       this.registry,
@@ -452,7 +462,7 @@ export class ProcessorEngine {
   }
 
   private run(
-    originalDocument: Node,
+    originalDocument: BlueNode,
     execution: ProcessorExecution,
     action: () => void
   ): DocumentProcessingResult {
@@ -474,7 +484,7 @@ export class ProcessorEngine {
     return execution.result();
   }
 
-  private initializationMarker(document: Node): BlueNode | null {
+  private initializationMarker(document: BlueNode): BlueNode | null {
     const contracts = document.getProperties()?.contracts;
     const marker = contracts?.getProperties()?.initialized ?? null;
     if (!marker) {
@@ -487,18 +497,18 @@ export class ProcessorEngine {
       );
     }
     const typeBlueId = marker.getType()?.getBlueId();
-    if (typeBlueId !== 'InitializationMarker') {
+    if (typeBlueId !== PROCESSING_INITIALIZED_MARKER_BLUE_ID) {
       throw new ProcessorFatalError(
-        "Initialization Marker must declare type 'InitializationMarker'",
+        "Initialization Marker must declare type 'Processing Initialized Marker'",
         ProcessorErrors.illegalState(
-          "Initialization Marker must declare type 'InitializationMarker'"
+          "Initialization Marker must declare type 'Processing Initialized Marker'"
         )
       );
     }
     return marker;
   }
 
-  static nodeAt(root: Node, pointer: string): Node | null {
+  static nodeAt(root: BlueNode, pointer: string): BlueNode | null {
     if (!(root instanceof BlueNode)) {
       return null;
     }
@@ -507,7 +517,7 @@ export class ProcessorEngine {
       return root;
     }
     const segments = normalized.slice(1).split('/');
-    let current: Node | null = root;
+    let current: BlueNode | null = root;
 
     for (const segment of segments) {
       if (!current) {
@@ -525,12 +535,12 @@ export class ProcessorEngine {
       }
 
       const properties = current.getProperties() as
-        | Record<string, Node>
+        | Record<string, BlueNode>
         | undefined;
       if (!properties) {
         return null;
       }
-      const nextNode = properties[segment] as Node | undefined;
+      const nextNode = properties[segment] as BlueNode | undefined;
       if (!(nextNode instanceof BlueNode)) {
         return null;
       }

@@ -1,10 +1,11 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, it, expect } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import { SetPropertyContractProcessor } from './processors/index.js';
 import { buildProcessor, expectErr, expectOk, property } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 describe('DocumentProcessorCapabilityTest', () => {
   it('initializeDocumentFailsWithCapabilityFailureWhenProcessorMissing', () => {
@@ -12,8 +13,7 @@ describe('DocumentProcessorCapabilityTest', () => {
     const yaml = `name: Doc
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   handler:
     channel: lifecycleChannel
     type:
@@ -46,8 +46,7 @@ contracts:
       const baseYaml = `name: Base
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   handler:
     channel: lifecycleChannel
     type:

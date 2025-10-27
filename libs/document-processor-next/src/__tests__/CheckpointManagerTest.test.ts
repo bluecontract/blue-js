@@ -1,3 +1,4 @@
+import { createBlue } from '../test-support/blue.js';
 import { BlueNode } from '@blue-labs/language';
 import { describe, it, expect } from 'vitest';
 
@@ -6,9 +7,11 @@ import { ContractBundle } from '../engine/contract-bundle.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import { property } from './test-utils.js';
 
+const blue = createBlue();
+
 describe('CheckpointManagerTest', () => {
   it('ensureCheckpointCreatesMarkerWhenAbsent', () => {
-    const runtime = new DocumentProcessingRuntime(new BlueNode());
+    const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const manager = new CheckpointManager(runtime, () => null);
     const bundle = ContractBundle.builder().build();
 
@@ -21,7 +24,7 @@ describe('CheckpointManagerTest', () => {
   });
 
   it('persistUpdatesCheckpointAndChargesGas', () => {
-    const runtime = new DocumentProcessingRuntime(new BlueNode());
+    const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const manager = new CheckpointManager(runtime, (node) =>
       node != null ? 'sig' : null
     );

@@ -1,4 +1,5 @@
-import { Blue } from '@blue-labs/language';
+import { Blue, BlueNode } from '@blue-labs/language';
+import { blueIds } from '@blue-repository/core';
 import { ZodError, ZodType } from 'zod';
 
 import {
@@ -12,7 +13,6 @@ import {
   channelEventCheckpointSchema,
 } from '../model/index.js';
 import { isProcessorManagedChannelBlueId } from '../constants/processor-contract-constants.js';
-import type { Node } from '../types/index.js';
 import { ContractBundle, ContractBundleBuilder } from './contract-bundle.js';
 import { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
 import type {
@@ -25,21 +25,40 @@ import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 
+const DOCUMENT_UPDATE_CHANNEL_BLUE_ID =
+  blueIds['Document Update Channel'];
+const EMBEDDED_NODE_CHANNEL_BLUE_ID =
+  blueIds['Embedded Node Channel'];
+const LIFECYCLE_EVENT_CHANNEL_BLUE_ID =
+  blueIds['Lifecycle Event Channel'];
+const TRIGGERED_EVENT_CHANNEL_BLUE_ID =
+  blueIds['Triggered Event Channel'];
+const PROCESS_EMBEDDED_BLUE_ID = blueIds['Process Embedded'];
+const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
+  blueIds['Processing Initialized Marker'];
+const PROCESSING_TERMINATED_MARKER_BLUE_ID =
+  blueIds['Processing Terminated Marker'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
+  blueIds['Channel Event Checkpoint'];
+
 const BUILTIN_CHANNEL_SCHEMAS: ReadonlyMap<
   string,
   ZodType<ChannelContract>
 > = new Map([
   [
-    'DocumentUpdateChannel',
+    DOCUMENT_UPDATE_CHANNEL_BLUE_ID,
     documentUpdateChannelSchema as ZodType<ChannelContract>,
   ],
   [
-    'EmbeddedNodeChannel',
+    EMBEDDED_NODE_CHANNEL_BLUE_ID,
     embeddedNodeChannelSchema as ZodType<ChannelContract>,
   ],
-  ['LifecycleChannel', lifecycleChannelSchema as ZodType<ChannelContract>],
   [
-    'TriggeredEventChannel',
+    LIFECYCLE_EVENT_CHANNEL_BLUE_ID,
+    lifecycleChannelSchema as ZodType<ChannelContract>,
+  ],
+  [
+    TRIGGERED_EVENT_CHANNEL_BLUE_ID,
     triggeredEventChannelSchema as ZodType<ChannelContract>,
   ],
 ]);
@@ -49,15 +68,15 @@ const BUILTIN_MARKER_SCHEMAS: ReadonlyMap<
   ZodType<MarkerContract>
 > = new Map([
   [
-    'InitializationMarker',
+    PROCESSING_INITIALIZED_MARKER_BLUE_ID,
     initializationMarkerSchema as ZodType<MarkerContract>,
   ],
   [
-    'ProcessingTerminatedMarker',
+    PROCESSING_TERMINATED_MARKER_BLUE_ID,
     processingTerminatedMarkerSchema as ZodType<MarkerContract>,
   ],
   [
-    'ChannelEventCheckpoint',
+    CHANNEL_EVENT_CHECKPOINT_BLUE_ID,
     channelEventCheckpointSchema as ZodType<MarkerContract>,
   ],
 ]);
@@ -68,7 +87,7 @@ export class ContractLoader {
     private readonly blue: Blue
   ) {}
 
-  load(scopeNode: Node, scopePath: string): ContractBundle {
+  load(scopeNode: BlueNode, scopePath: string): ContractBundle {
     try {
       const builder = ContractBundle.builder();
       const contractsNode = scopeNode.getProperties()?.contracts;
@@ -107,14 +126,14 @@ export class ContractLoader {
   private processContract(
     builder: ContractBundleBuilder,
     key: string,
-    node: Node
+    node: BlueNode
   ): void {
     const blueId = node.getType()?.getBlueId();
     if (!blueId) {
       return;
     }
 
-    if (blueId === 'ProcessEmbedded') {
+    if (blueId === PROCESS_EMBEDDED_BLUE_ID) {
       this.handleProcessEmbedded(builder, key, node);
       return;
     }
@@ -184,7 +203,7 @@ export class ContractLoader {
   private handleProcessEmbedded(
     builder: ContractBundleBuilder,
     key: string,
-    node: Node
+    node: BlueNode
   ): void {
     try {
       const embedded = this.convert(
@@ -197,7 +216,7 @@ export class ContractLoader {
         throw new ProcessorFatalError(
           'Failed to parse ProcessEmbedded marker',
           ProcessorErrors.invalidContract(
-            'ProcessEmbedded',
+            PROCESS_EMBEDDED_BLUE_ID,
             'Failed to parse ProcessEmbedded marker',
             key,
             error
@@ -218,7 +237,7 @@ export class ContractLoader {
   private handleChannel(
     builder: ContractBundleBuilder,
     key: string,
-    node: Node,
+    node: BlueNode,
     schema: ZodType<ChannelContract>,
     blueId: string
   ): void {
@@ -250,7 +269,7 @@ export class ContractLoader {
   private handleHandler(
     builder: ContractBundleBuilder,
     key: string,
-    node: Node,
+    node: BlueNode,
     schema: ZodType<HandlerContract>,
     blueId: string
   ): void {
@@ -289,7 +308,7 @@ export class ContractLoader {
   private handleMarker(
     builder: ContractBundleBuilder,
     key: string,
-    node: Node,
+    node: BlueNode,
     schema: ZodType<MarkerContract>,
     blueId: string
   ): void {
@@ -318,7 +337,7 @@ export class ContractLoader {
     }
   }
 
-  private convert<T>(node: Node, schema: ZodType<T>): T {
+  private convert<T>(node: BlueNode, schema: ZodType<T>): T {
     return this.blue.nodeToSchemaOutput(node, schema);
   }
 }
