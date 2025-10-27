@@ -44,10 +44,6 @@ export interface ChannelEvaluationContext {
    * Mutable clone of the inbound event. Channel processors may adapt it in-place.
    */
   readonly event: BlueNode | null;
-  /**
-   * Lazily materialised object view of {@link event}. Optional for processors that require DTOs.
-   */
-  readonly eventObject: unknown | null;
   readonly markers: ReadonlyMap<string, MarkerContract>;
 }
 

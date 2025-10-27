@@ -37,7 +37,6 @@ import { RunTerminationError } from './run-termination-error.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
-import { z } from 'zod';
 
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
   blueIds['Processing Initialized Marker'];
@@ -316,19 +315,10 @@ export class ProcessorExecution implements ExecutionHooks {
     }
 
     const eventClone = event.clone();
-    let eventObject: ChannelEvaluationContext['eventObject'] = null;
-    try {
-      eventObject = this.runtimeRef
-        .blue()
-        .nodeToSchemaOutput(eventClone, z.object({}));
-    } catch {
-      eventObject = null;
-    }
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       blue: this.runtimeRef.blue(),
       event: eventClone,
-      eventObject,
       markers: bundle.markers(),
     };
 
