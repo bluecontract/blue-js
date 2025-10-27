@@ -1,27 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { Blue } from '@blue-labs/language';
 import { z } from 'zod';
+import { BlueNode } from '@blue-labs/language';
 
 import { ContractLoader } from '../contract-loader.js';
 import { ContractProcessorRegistry } from '../../registry/contract-processor-registry.js';
-import type { Node } from '../../types/index.js';
 import type { HandlerContract } from '../../model/index.js';
 import type { HandlerProcessor } from '../../registry/index.js';
 import { MustUnderstandFailure } from '../must-understand-failure.js';
 import { ProcessorFatalError } from '../processor-fatal-error.js';
+import { blueIds, createBlue } from '../../test-support/blue.js';
 
-const blueIdDocumentUpdate = 'DocumentUpdateChannel';
-const blueIdInitialization = 'InitializationMarker';
-const blueIdProcessEmbedded = 'ProcessEmbedded';
-const blueIdCheckpoint = 'ChannelEventCheckpoint';
+const blueIdDocumentUpdate = blueIds['Document Update Channel'];
+const blueIdInitialization = blueIds['Processing Initialized Marker'];
+const blueIdProcessEmbedded = blueIds['Process Embedded'];
+const blueIdCheckpoint = blueIds['Channel Event Checkpoint'];
 
-function buildScopeNode(blue: Blue, contracts: Record<string, unknown>): Node {
+function buildScopeNode(
+  blue: ReturnType<typeof createBlue>,
+  contracts: Record<string, unknown>
+): BlueNode {
   return blue.jsonValueToNode({ contracts });
 }
 
 describe('ContractLoader', () => {
   it('loads built-in contracts without registry processors', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const registry = new ContractProcessorRegistry();
     const loader = new ContractLoader(registry, blue);
     const scopeNode = buildScopeNode(blue, {
@@ -50,7 +53,10 @@ describe('ContractLoader', () => {
 
     const channels = bundle.channelsOfType(blueIdDocumentUpdate);
     expect(channels).toHaveLength(1);
-    expect(channels[0].contract()).toMatchObject({ path: '/document', key: 'update' });
+    expect(channels[0].contract()).toMatchObject({
+      path: '/document',
+      key: 'update',
+    });
 
     expect(bundle.embeddedPaths()).toEqual(['/children']);
 
@@ -60,7 +66,7 @@ describe('ContractLoader', () => {
   });
 
   it('returns capability failure when encountering unsupported contracts', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const loader = new ContractLoader(new ContractProcessorRegistry(), blue);
     const scopeNode = buildScopeNode(blue, {
       unsupported: {
@@ -74,7 +80,7 @@ describe('ContractLoader', () => {
   });
 
   it('loads custom handler contracts using registry schema', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const registry = new ContractProcessorRegistry();
     const handlerSchema = z.object({
       channelKey: z.string(),
@@ -107,7 +113,7 @@ describe('ContractLoader', () => {
   });
 
   it('surfaces illegal state when handler omits channel key', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const registry = new ContractProcessorRegistry();
     const handlerSchema = z.object({ order: z.number().optional() });
     const handlerProcessor: HandlerProcessor<HandlerContract> = {
@@ -128,13 +134,11 @@ describe('ContractLoader', () => {
       },
     });
 
-    expect(() => loader.load(scopeNode, '/')).toThrowError(
-      ProcessorFatalError
-    );
+    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
   });
 
   it('rejects checkpoint markers that use incorrect keys', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const loader = new ContractLoader(new ContractProcessorRegistry(), blue);
     const scopeNode = buildScopeNode(blue, {
       wrongCheckpoint: {
@@ -144,8 +148,6 @@ describe('ContractLoader', () => {
       },
     });
 
-    expect(() => loader.load(scopeNode, '/')).toThrowError(
-      ProcessorFatalError
-    );
+    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
   });
 });

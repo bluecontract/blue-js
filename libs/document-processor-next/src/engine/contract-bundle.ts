@@ -1,3 +1,5 @@
+import { blueIds } from '@blue-repository/core';
+
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
 import type {
   ChannelContract,
@@ -24,6 +26,9 @@ type StoredHandler = {
   readonly contract: HandlerContract;
   readonly blueId: string;
 };
+
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
+  blueIds['Channel Event Checkpoint'];
 
 function contractOrder(contract: { readonly order?: number | null }): number {
   return typeof contract.order === 'number' ? contract.order : 0;
@@ -149,7 +154,7 @@ export class ContractBundle {
     this.markerStore.set(KEY_CHECKPOINT, {
       key: KEY_CHECKPOINT,
       contract: checkpoint,
-      blueId: 'ChannelEventCheckpoint',
+      blueId: CHANNEL_EVENT_CHECKPOINT_BLUE_ID,
     });
     this.checkpointDeclared = true;
   }
@@ -225,10 +230,10 @@ export class ContractBundleBuilder {
   }
 
   addMarker(key: string, contract: MarkerContract, blueId: string): this {
-    if (key === KEY_CHECKPOINT && blueId !== 'ChannelEventCheckpoint') {
+    if (key === KEY_CHECKPOINT && blueId !== CHANNEL_EVENT_CHECKPOINT_BLUE_ID) {
       throw new Error("Reserved key 'checkpoint' must contain a Channel Event Checkpoint");
     }
-    if (blueId === 'ChannelEventCheckpoint') {
+    if (blueId === CHANNEL_EVENT_CHECKPOINT_BLUE_ID) {
       if (key !== KEY_CHECKPOINT) {
         throw new Error(
           `Channel Event Checkpoint must use reserved key 'checkpoint' at key '${key}'`,

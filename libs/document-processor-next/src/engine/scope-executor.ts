@@ -1,4 +1,6 @@
-import type { Node } from '../types/index.js';
+import { blueIds } from '@blue-repository/core';
+import { BlueNode } from '@blue-labs/language';
+
 import { ContractBundle } from './contract-bundle.js';
 import type { ChannelRunner } from './channel-runner.js';
 import type { ContractLoader } from './contract-loader.js';
@@ -22,12 +24,24 @@ import {
   normalizePointer,
   resolvePointer,
 } from '../util/pointer-utils.js';
-import { BlueNode } from '@blue-labs/language';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
 import { BoundaryViolationException } from './boundary-violation-exception.js';
+
+const DOCUMENT_UPDATE_CHANNEL_BLUE_ID =
+  blueIds['Document Update Channel'];
+const EMBEDDED_NODE_CHANNEL_BLUE_ID =
+  blueIds['Embedded Node Channel'];
+const TRIGGERED_EVENT_CHANNEL_BLUE_ID =
+  blueIds['Triggered Event Channel'];
+const LIFECYCLE_EVENT_CHANNEL_BLUE_ID =
+  blueIds['Lifecycle Event Channel'];
+const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
+  blueIds['Processing Initialized Marker'];
+const DOCUMENT_PROCESSING_INITIATED_BLUE_ID =
+  blueIds['Document Processing Initiated'];
 
 export interface ProcessorContext {
   resolvePointer(relativePointer: string): string;
@@ -39,11 +53,11 @@ export interface ScopeExecutionHooks {
   createContext(
     scopePath: string,
     bundle: ContractBundle,
-    event: Node,
+    event: BlueNode,
     allowTerminatedWork: boolean,
     lifecycle?: boolean,
   ): ProcessorContext;
-  recordLifecycleForBridging(scopePath: string, event: Node): void;
+  recordLifecycleForBridging(scopePath: string, event: BlueNode): void;
   enterFatalTermination(scopePath: string, bundle: ContractBundle | null, reason: string): void;
   fatalReason(error: unknown, label: string): string;
   markCutOff(scopePath: string): void;
@@ -55,9 +69,9 @@ export interface ScopeExecutorOptions {
   channelRunner: ChannelRunner;
   bundles: Map<string, ContractBundle>;
   hooks: ScopeExecutionHooks;
-  blueId: (node: Node) => string;
-  nodeAt(scopePath: string): Node | null;
-  createDocumentUpdateEvent(data: DocumentUpdateData, scopePath: string): Node;
+  blueId: (node: BlueNode) => string;
+  nodeAt(scopePath: string): BlueNode | null;
+  createDocumentUpdateEvent(data: DocumentUpdateData, scopePath: string): BlueNode;
   matchesDocumentUpdate(scopePath: string, watchPath: string | null | undefined, changedPath: string): boolean;
 }
 
@@ -67,9 +81,9 @@ export class ScopeExecutor {
   private readonly channelRunner: ChannelRunner;
   private readonly bundles: Map<string, ContractBundle>;
   private readonly hooks: ScopeExecutionHooks;
-  private readonly blueId: (node: Node) => string;
-  private readonly nodeAt: (scopePath: string) => Node | null;
-  private readonly createDocumentUpdateEvent: (data: DocumentUpdateData, scopePath: string) => Node;
+  private readonly blueId: (node: BlueNode) => string;
+  private readonly nodeAt: (scopePath: string) => BlueNode | null;
+  private readonly createDocumentUpdateEvent: (data: DocumentUpdateData, scopePath: string) => BlueNode;
   private readonly matchesDocumentUpdate: (
     scopePath: string,
     watchPath: string | null | undefined,
@@ -92,7 +106,7 @@ export class ScopeExecutor {
     const normalizedScope = normalizeScope(scopePath);
     const processedEmbedded = new Set<string>();
     let bundle: ContractBundle | null = null;
-    let preInitSnapshot: Node | null = null;
+    let preInitSnapshot: BlueNode | null = null;
 
     if (chargeScopeEntry) {
       this.runtime.chargeScopeEntry(normalizedScope);
@@ -162,7 +176,7 @@ export class ScopeExecutor {
     }
   }
 
-  processExternalEvent(scopePath: string, event: Node): void {
+  processExternalEvent(scopePath: string, event: BlueNode): void {
     const normalizedScope = normalizeScope(scopePath);
     if (this.hooks.isScopeInactive(normalizedScope)) {
       return;
@@ -241,7 +255,9 @@ export class ScopeExecutor {
         }
 
         const updateEvent = this.createDocumentUpdateEvent(data, cascadeScope);
-        const updateChannels = targetBundle.channelsOfType('DocumentUpdateChannel');
+        const updateChannels = targetBundle.channelsOfType(
+          DOCUMENT_UPDATE_CHANNEL_BLUE_ID,
+        );
         for (const channel of updateChannels) {
           const contract = channel.contract() as DocumentUpdateChannel;
           if (!this.matchesDocumentUpdate(cascadeScope, contract.path ?? null, data.path)) {
@@ -271,13 +287,15 @@ export class ScopeExecutor {
     }
   }
 
-  deliverLifecycle(scopePath: string, bundle: ContractBundle | null, event: Node, finalizeAfter: boolean): void {
+  deliverLifecycle(scopePath: string, bundle: ContractBundle | null, event: BlueNode, finalizeAfter: boolean): void {
     this.runtime.chargeLifecycleDelivery();
     this.hooks.recordLifecycleForBridging(scopePath, event);
     if (!bundle) {
       return;
     }
-    const lifecycleChannels = bundle.channelsOfType('LifecycleChannel');
+    const lifecycleChannels = bundle.channelsOfType(
+      LIFECYCLE_EVENT_CHANNEL_BLUE_ID,
+    );
     for (const channel of lifecycleChannels) {
       this.channelRunner.runHandlers(scopePath, bundle, channel.key(), event, true);
       if (this.hooks.isScopeInactive(scopePath)) {
@@ -289,7 +307,7 @@ export class ScopeExecutor {
     }
   }
 
-  private processEmbeddedChildren(scopePath: string, event: Node): ContractBundle | null {
+  private processEmbeddedChildren(scopePath: string, event: BlueNode): ContractBundle | null {
     const normalizedScope = normalizeScope(scopePath);
     const processed = new Set<string>();
     let bundle = this.refreshBundle(normalizedScope);
@@ -338,7 +356,7 @@ export class ScopeExecutor {
     return null;
   }
 
-  private loadBundle(scopeNode: Node, scopePath: string): ContractBundle {
+  private loadBundle(scopeNode: BlueNode, scopePath: string): ContractBundle {
     try {
       return this.contractLoader.load(scopeNode, scopePath);
     } catch (error) {
@@ -360,7 +378,7 @@ export class ScopeExecutor {
 
   private addInitializationMarker(context: ProcessorContext, documentId: string): void {
     const marker = new BlueNode()
-      .setType(new BlueNode().setBlueId('InitializationMarker'))
+      .setType(new BlueNode().setBlueId(PROCESSING_INITIALIZED_MARKER_BLUE_ID))
       .addProperty('documentId', new BlueNode().setValue(documentId));
     const pointer = context.resolvePointer(RELATIVE_INITIALIZED);
     context.applyPatch({ op: 'ADD', path: pointer, val: marker } satisfies JsonPatch);
@@ -378,7 +396,9 @@ export class ScopeExecutor {
     if (this.hooks.isScopeInactive(scopePath) || bundle.embeddedPaths().length === 0) {
       return;
     }
-    const embeddedChannels = bundle.channelsOfType('EmbeddedNodeChannel');
+    const embeddedChannels = bundle.channelsOfType(
+      EMBEDDED_NODE_CHANNEL_BLUE_ID,
+    );
     if (embeddedChannels.length === 0) {
       return;
     }
@@ -413,7 +433,9 @@ export class ScopeExecutor {
       return;
     }
     const context = this.runtime.scope(scopePath);
-    const triggeredChannels = bundle.channelsOfType('TriggeredEventChannel');
+    const triggeredChannels = bundle.channelsOfType(
+      TRIGGERED_EVENT_CHANNEL_BLUE_ID,
+    );
     if (triggeredChannels.length === 0) {
       context.clearTriggered();
       return;
@@ -505,19 +527,20 @@ export class ScopeExecutor {
       return false;
     }
     if (!(node instanceof BlueNode)) {
-      const message = `Reserved key 'initialized' must contain an Initialization Marker at ${markerPointer}`;
+      const message = `Reserved key 'initialized' must contain a Processing Initialized Marker at ${markerPointer}`;
       throw new IllegalStateException(message);
     }
     const typeBlueId = node.getType()?.getBlueId();
-    if (typeBlueId !== 'InitializationMarker') {
-      const message = `Reserved key 'initialized' must contain an Initialization Marker at ${markerPointer}`;
+    if (typeBlueId !== PROCESSING_INITIALIZED_MARKER_BLUE_ID) {
+      const message = `Reserved key 'initialized' must contain a Processing Initialized Marker at ${markerPointer}`;
       throw new IllegalStateException(message);
     }
     return true;
   }
 
-  private createLifecycleEvent(documentId: string): Node {
+  private createLifecycleEvent(documentId: string): BlueNode {
     return new BlueNode()
+      .setType(new BlueNode().setBlueId(DOCUMENT_PROCESSING_INITIATED_BLUE_ID))
       .setProperties({
         type: new BlueNode().setValue('Document Processing Initiated'),
         documentId: new BlueNode().setValue(documentId),

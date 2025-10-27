@@ -2,7 +2,7 @@ import type {
   ChannelProcessor,
   ChannelEvaluationContext,
 } from '../../registry/types.js';
-import type { Node } from '../../types/index.js';
+import { BlueNode } from '@blue-labs/language';
 import {
   testEventChannelSchema,
   type TestEventChannel,
@@ -39,7 +39,7 @@ export class TestEventChannelProcessor
     return typeof value === 'string' ? value : null;
   }
 
-  private resolveEventType(event: Node | null): string | null {
+  private resolveEventType(event: BlueNode | null): string | null {
     if (!event) return null;
     const typeNode = event.getType?.();
     if (!typeNode) return null;

@@ -15,7 +15,7 @@
     }
   },
   "dependencies": {
-    "@blue-labs/language": "1.36.0"
+    "@blue-labs/language": "1.37.0"
   },
   "license": "MIT",
   "publishConfig": {
@@ -26,6 +26,7 @@
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
   "peerDependencies": {
-    "zod": "^3.20.0"
+    "zod": "^3.20.0",
+    "@blue-repository/core": ">=0.1.0 <1.0.0"
   }
 }

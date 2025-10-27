@@ -1,5 +1,5 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, beforeEach, it, expect } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import {
   MutateEventContractProcessor,
@@ -8,7 +8,7 @@ import {
 } from './processors/index.js';
 import { buildProcessor, expectOk, property } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 describe('DocumentProcessorEventImmutabilityTest', () => {
   let processor = buildProcessor(blue);

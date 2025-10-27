@@ -1,8 +1,8 @@
 import type { ZodType } from 'zod';
+import { BlueNode } from '@blue-labs/language';
 import type { Blue } from '@blue-labs/language';
 
 import type { JsonPatch } from '../model/shared/json-patch.js';
-import type { Node } from '../types/index.js';
 import type { MarkerContract } from '../model/index.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
@@ -16,13 +16,13 @@ export interface ContractProcessor<TContract> {
 export interface ContractProcessorContext {
   readonly scopePath: string;
   readonly blue: Blue;
-  event(): Node | null;
+  event(): BlueNode | null;
   applyPatch(patch: JsonPatch): void;
-  emitEvent(emission: Node): void;
+  emitEvent(emission: BlueNode): void;
   consumeGas(units: number): void;
   throwFatal(reason: string): never;
   resolvePointer(relativePointer: string): string;
-  documentAt(absolutePointer: string): Node | null;
+  documentAt(absolutePointer: string): BlueNode | null;
   documentContains(absolutePointer: string): boolean;
   terminateGracefully(reason: string | null): void;
   terminateFatally(reason: string | null): void;
@@ -43,7 +43,7 @@ export interface ChannelEvaluationContext {
   /**
    * Mutable clone of the inbound event. Channel processors may adapt it in-place.
    */
-  readonly event: Node | null;
+  readonly event: BlueNode | null;
   /**
    * Lazily materialised object view of {@link event}. Optional for processors that require DTOs.
    */

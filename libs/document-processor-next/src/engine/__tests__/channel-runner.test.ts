@@ -1,5 +1,6 @@
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it, vi } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import {
   ChannelRunner,
@@ -22,14 +23,14 @@ import type {
 } from '../../model/index.js';
 import { KEY_CHECKPOINT } from '../../constants/processor-contract-constants.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
 }
 
 function signatureFn(node: BlueNode | null): string | null {
-  return node ? canonicalSignature(node) : null;
+  return canonicalSignature(blue, node);
 }
 
 describe('ChannelRunner', () => {
@@ -61,7 +62,7 @@ describe('ChannelRunner', () => {
       onExecute: (handler: HandlerBinding, event: BlueNode) => void;
     }> = {}
   ) {
-    const runtime = new DocumentProcessingRuntime(new BlueNode());
+    const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const bundle = createBundle();
     const checkpointManager = new CheckpointManager(runtime, signatureFn);
     const scopePath = '/';
@@ -100,6 +101,7 @@ describe('ChannelRunner', () => {
         const eventNode = context.event();
         onExecute(handler, eventNode as BlueNode);
       },
+      canonicalSignature: signatureFn,
     };
 
     const runner = new ChannelRunner(runtime, checkpointManager, deps);

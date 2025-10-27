@@ -1,5 +1,7 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import type { Blue } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import {
   CutOffProbeContractProcessor,
@@ -28,7 +30,7 @@ function testEventNode(blue: Blue, payload?: Record<string, unknown>) {
 
 describe('ProcessEmbeddedTest', () => {
   it('initializesEmbeddedChildDocument', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
 
     const yaml = `name: Sample Doc
@@ -36,21 +38,18 @@ x:
   name: Sample Sub Doc
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /a
       propertyValue: 1
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /x
 `;
@@ -82,7 +81,7 @@ contracts:
   });
 
   it('rootScopeCannotModifyEmbeddedInterior', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
 
     const allowedYaml = `name: Sample Doc
@@ -90,31 +89,26 @@ x:
   name: Sample Sub Doc
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /a
       propertyValue: 1
 contracts:
   rootLife:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /x
   setRootY:
     channel: rootLife
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     type:
       blueId: SetProperty
     propertyKey: /y
@@ -128,8 +122,7 @@ contracts:
     order: 1
     channel: rootLife
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     type:
       blueId: SetProperty
     propertyKey: /x/b
@@ -145,7 +138,7 @@ contracts:
   });
 
   it('nestedEmbeddedScopesEnforceBoundaries', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
 
     const nestedYaml = `name: Nested Doc
@@ -155,35 +148,29 @@ x:
     name: Y Doc
     contracts:
       life:
-        type:
-          blueId: LifecycleChannel
+        type: Lifecycle Event Channel
       setY:
         channel: life
         event:
-          type:
-            blueId: DocumentProcessingInitiated
+          type: Document Processing Initiated
         type:
           blueId: SetProperty
         propertyKey: /a
         propertyValue: 1
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     embedded:
-      type:
-        blueId: ProcessEmbedded
+      type: Process Embedded
       paths:
         - /y
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /x
   life:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
 `;
 
     const nested = expectOk(
@@ -206,8 +193,7 @@ contracts:
     const rootViolationYaml = `${nestedYaml}  setDeep:
     channel: life
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     type:
       blueId: SetProperty
     propertyKey: /x/y/a
@@ -228,45 +214,38 @@ x:
     name: Y Doc
     contracts:
       life:
-        type:
-          blueId: LifecycleChannel
+        type: Lifecycle Event Channel
       setY:
         channel: life
         event:
-          type:
-            blueId: DocumentProcessingInitiated
+          type: Document Processing Initiated
         type:
           blueId: SetProperty
         propertyKey: /a
         propertyValue: 1
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     embedded:
-      type:
-        blueId: ProcessEmbedded
+      type: Process Embedded
       paths:
         - /y
     setIllegalFromX:
       channel: life
       order: 1
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /y/a
       propertyValue: 2
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /x
   life:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
 `;
 
     const parentViolation = expectOk(
@@ -279,7 +258,7 @@ contracts:
   });
 
   it('embeddedListUpdatesProcessNewChildAfterCurrentScopeFinishes', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -291,13 +270,11 @@ a:
   name: Doc A
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /x
@@ -306,13 +283,11 @@ b:
   name: Doc B
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /x
@@ -321,35 +296,30 @@ c:
   name: Doc C
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /x
       propertyValue: 1
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /a
       - /b
   updateA:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /a/x
   handleA:
     channel: updateA
     type:
       blueId: MutateEmbeddedPaths
   updateB:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /b/x
   flagB:
     channel: updateB
@@ -358,8 +328,7 @@ contracts:
     propertyKey: /mustNotHappen
     propertyValue: 1
   updateC:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /c/x
   flagC:
     channel: updateC
@@ -378,7 +347,7 @@ contracts:
   });
 
   it('embeddedListUpdatesProcessNewChildDuringExternalEvent', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -425,22 +394,19 @@ c:
       propertyValue: 1
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /a
       - /b
   updateA:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /a/x
   mutatePaths:
     channel: updateA
     type:
       blueId: MutateEmbeddedPaths
   updateB:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /b/x
   flagB:
     channel: updateB
@@ -449,8 +415,7 @@ contracts:
     propertyKey: /mustNotHappen
     propertyValue: 1
   updateC:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /c/x
   flagC:
     channel: updateC
@@ -483,7 +448,7 @@ contracts:
   });
 
   it('removingEmbeddedChildCutsOffFurtherWorkWithinRun', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
@@ -511,13 +476,11 @@ contracts:
       postPatchValue: 1
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /child
   embeddedBridge:
-    type:
-      blueId: EmbeddedNodeChannel
+    type: Embedded Node Channel
     childPath: /child
   bridgePre:
     channel: embeddedBridge
@@ -534,8 +497,7 @@ contracts:
     propertyKey: /postSeen
     propertyValue: 1
   childUpdates:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /child
   cutChild:
     channel: childUpdates
@@ -561,7 +523,7 @@ contracts:
   });
 
   it('rejectsMultipleProcessEmbeddedMarkersWithinScope', () => {
-    const blue = new Blue();
+    const blue = createBlue();
     const processor = buildProcessor(blue);
 
     const yaml = `name: Multi Embedded Doc
@@ -571,13 +533,11 @@ y:
   name: Y Doc
 contracts:
   embeddedPrimary:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /x
   embeddedSecondary:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /y
 `;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { blueIds } from '../../test-support/blue.js';
 
 import { KEY_CHECKPOINT } from '../../constants/processor-contract-constants.js';
 import type {
@@ -76,13 +77,14 @@ describe('ContractBundle', () => {
 
   it('validates checkpoint markers for reserved key', () => {
     const builder = ContractBundle.builder();
+    const checkpointId = blueIds['Channel Event Checkpoint'];
     expect(() =>
-      builder.addMarker('custom', checkpointMarker(), 'ChannelEventCheckpoint'),
+      builder.addMarker('custom', checkpointMarker(), checkpointId),
     ).toThrow(/reserved key 'checkpoint'/i);
 
-    builder.addMarker(KEY_CHECKPOINT, checkpointMarker(), 'ChannelEventCheckpoint');
+    builder.addMarker(KEY_CHECKPOINT, checkpointMarker(), checkpointId);
     expect(() =>
-      builder.addMarker(KEY_CHECKPOINT, checkpointMarker(), 'ChannelEventCheckpoint'),
+      builder.addMarker(KEY_CHECKPOINT, checkpointMarker(), checkpointId),
     ).toThrow(/Duplicate Channel Event Checkpoint/);
 
     const bundle = builder.build();

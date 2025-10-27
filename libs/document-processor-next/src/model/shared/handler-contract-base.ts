@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 import { contractBaseSchema } from './contract-base.js';
-import { blueNodeField } from '@blue-labs/language';
+import { HandlerSchema as CoreHandlerSchema } from '@blue-repository/core';
 
-export const handlerContractBaseSchema = contractBaseSchema.extend({
-  channel: z.string().optional(),
+export const handlerContractBaseSchema = CoreHandlerSchema.merge(
+  contractBaseSchema
+).extend({
   channelKey: z.string().optional(),
-  event: blueNodeField().optional(),
 });
 
 export type HandlerContractBase = z.infer<typeof handlerContractBaseSchema>;

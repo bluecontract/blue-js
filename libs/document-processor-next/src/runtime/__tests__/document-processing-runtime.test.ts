@@ -1,10 +1,11 @@
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import { DocumentProcessingRuntime } from '../document-processing-runtime.js';
 import type { JsonPatch } from '../../model/shared/json-patch.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown) {
   return blue.jsonValueToNode(json);
@@ -15,7 +16,7 @@ describe('DocumentProcessingRuntime', () => {
     const document = new BlueNode().setProperties({
       status: nodeFrom('NEW'),
     });
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     runtime.chargeInitialization();
     runtime.chargeScopeEntry('/child');
@@ -38,7 +39,7 @@ describe('DocumentProcessingRuntime', () => {
     const document = new BlueNode().setProperties({
       list: new BlueNode().setItems([nodeFrom({ value: 'one' })]),
     });
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const scope = runtime.scope('/child');
     scope.enqueueTriggered(nodeFrom({ event: 1 }));

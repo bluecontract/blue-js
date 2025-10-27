@@ -1,5 +1,5 @@
+import { blueIds, createBlue } from '../test-support/blue.js';
 import { beforeEach, describe, it, expect } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import {
   SetPropertyContractProcessor,
@@ -12,9 +12,10 @@ import {
   property,
   propertyOptional,
   stringProperty,
+  typeBlueId,
 } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function testEvent(eventId: string) {
   return blue.jsonValueToNode({
@@ -55,7 +56,9 @@ contracts:
       processor.initializeDocument(blue.yamlToNode(yaml))
     ).document.clone();
 
-    const result = expectOk(processor.processDocument(initialized, testEvent('evt-1')));
+    const result = expectOk(
+      processor.processDocument(initialized, testEvent('evt-1'))
+    );
     const processed = result.document;
     const contracts = property(processed, 'contracts');
     const terminated = property(contracts, 'terminated');
@@ -64,13 +67,13 @@ contracts:
 
     expect(result.triggeredEvents.length).toBe(1);
     const terminationEvent = result.triggeredEvents[0];
-    expect(stringProperty(terminationEvent, 'type')).toBe(
-      'Document Processing Terminated'
+    expect(typeBlueId(terminationEvent)).toBe(
+      blueIds['Document Processing Terminated']
     );
     expect(stringProperty(terminationEvent, 'cause')).toBe('graceful');
   });
 
-  it('rootFatalTerminationRecordsFatalOutbox', () => {
+  it('rootFatalTerminationEmitsTerminationEvent', () => {
     const yaml = `name: Root Fatal
 contracts:
   testChannel:
@@ -88,20 +91,16 @@ contracts:
       processor.initializeDocument(blue.yamlToNode(yaml))
     ).document.clone();
 
-    const result = expectOk(processor.processDocument(initialized, testEvent('evt-2')));
-    expect(result.triggeredEvents.length).toBe(2);
-    const [terminatedEvent, fatalEvent] = result.triggeredEvents;
-    expect(stringProperty(terminatedEvent, 'type')).toBe(
-      'Document Processing Terminated'
+    const result = expectOk(
+      processor.processDocument(initialized, testEvent('evt-2'))
+    );
+    expect(result.triggeredEvents.length).toBe(1);
+    const terminatedEvent = result.triggeredEvents[0];
+    expect(typeBlueId(terminatedEvent)).toBe(
+      blueIds['Document Processing Terminated']
     );
     expect(stringProperty(terminatedEvent, 'cause')).toBe('fatal');
-
-    expect(stringProperty(fatalEvent, 'type')).toBe(
-      'Document Processing Fatal Error'
-    );
-    expect(stringProperty(fatalEvent, 'domain')).toBe('/');
-    expect(stringProperty(fatalEvent, 'code')).toBe('RuntimeFatal');
-    expect(stringProperty(fatalEvent, 'reason')).toBe('panic');
+    expect(stringProperty(terminatedEvent, 'reason')).toBe('panic');
   });
 
   it('childTerminationBridgesToParent', () => {
@@ -119,13 +118,11 @@ child:
       mode: graceful
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /child
   childBridge:
-    type:
-      blueId: EmbeddedNodeChannel
+    type: Embedded Node Channel
     childPath: /child
   captureChild:
     channel: childBridge
@@ -139,7 +136,9 @@ contracts:
       processor.initializeDocument(blue.yamlToNode(yaml))
     ).document.clone();
 
-    const result = expectOk(processor.processDocument(initialized, testEvent('evt-3')));
+    const result = expectOk(
+      processor.processDocument(initialized, testEvent('evt-3'))
+    );
     const processed = result.document;
     expect(Number(property(processed, 'fromChild').getValue())).toBe(7);
 

@@ -1,11 +1,12 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import { array, numericValue, property } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown): BlueNode {
   if (json instanceof BlueNode) {
@@ -35,7 +36,7 @@ function arrayDocument(key: string, ...entries: unknown[]): BlueNode {
 describe('DocumentProcessingRuntimeJsonPatchTest', () => {
   it('addNestedPropertyCreatesIntermediateObjects', () => {
     const document = new BlueNode();
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const result = runtime.applyPatch('/', add('/foo/bar/baz', 'qux'));
 
@@ -49,7 +50,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('replaceUpsertsObjectProperty', () => {
     const document = new BlueNode();
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const upsert = runtime.applyPatch('/', replace('/alpha/beta', 'v1'));
     expect(upsert.before).toBeNull();
@@ -65,7 +66,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('removeObjectProperty', () => {
     const document = nodeFrom({ key: 'value' });
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const data = runtime.applyPatch('/', remove('/key'));
     expect(data.before?.getValue()).toBe('value');
@@ -75,7 +76,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('removeMissingObjectPropertyFailsWithoutMutation', () => {
     const document = new BlueNode();
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     expect(() => runtime.applyPatch('/', remove('/missing'))).toThrowError(
       /missing/i
@@ -85,7 +86,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('addArrayElementAtIndexShiftsExisting', () => {
     const document = arrayDocument('items', 1, 2, 3);
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const data = runtime.applyPatch('/', add('/items/1', 99));
     expect(numericValue(data.before as BlueNode)).toBe(2);
@@ -101,7 +102,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('addArrayElementAppendToken', () => {
     const document = arrayDocument('values', 4, 5);
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const data = runtime.applyPatch('/', add('/values/-', 6));
     expect(data.before).toBeNull();
@@ -114,7 +115,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('replaceArrayElementRequiresExistingIndex', () => {
     const document = arrayDocument('nums', 7, 8);
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const data = runtime.applyPatch('/', replace('/nums/1', 80));
     expect(numericValue(data.before as BlueNode)).toBe(8);
@@ -129,7 +130,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('removeArrayElement', () => {
     const document = arrayDocument('letters', 'a', 'b', 'c');
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const data = runtime.applyPatch('/', remove('/letters/1'));
     expect(data.before?.getValue()).toBe('b');
@@ -143,7 +144,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('removeArrayOutOfBoundsFailsWithoutMutation', () => {
     const document = arrayDocument('letters', 'x');
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     expect(() => runtime.applyPatch('/', remove('/letters/5'))).toThrowError(
       /out of bounds/i
@@ -154,7 +155,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
   it('arrayElementSubpathRequiresExistingElement', () => {
     const arrayNode = new BlueNode().setItems([]);
     const document = new BlueNode().setProperties({ arr: arrayNode });
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     expect(() =>
       runtime.applyPatch('/', add('/arr/0/name', 'bad'))
@@ -165,7 +166,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('appendTokenOnObjectFailsAndRollsBack', () => {
     const document = new BlueNode();
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     expect(() =>
       runtime.applyPatch('/', add('/foo/-', 'nope'))
@@ -175,7 +176,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('addPropertyWithEmptySegmentsMaintainsLiteralPointer', () => {
     const document = new BlueNode();
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     runtime.applyPatch('/', add('/foo//bar/', 'lit'));
 
@@ -188,7 +189,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('removePropertyWithEmptySegmentsCleansUpLeaf', () => {
     const document = new BlueNode();
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     runtime.applyPatch('/', add('/foo//bar', 'lit'));
     runtime.applyPatch('/', remove('/foo//bar'));
@@ -200,7 +201,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('tildeSegmentsAreNotUnescaped', () => {
     const document = new BlueNode();
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     runtime.applyPatch('/', add('/tilde/~1key', 'value'));
 
@@ -211,7 +212,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('appendObjectAllowsNestedStructure', () => {
     const document = arrayDocument('rows', 1);
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const nested = new BlueNode().setProperties({ c: nodeFrom('v') });
     const appended = new BlueNode().setProperties({ b: nested });
@@ -226,7 +227,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
 
   it('snapshotsAreClones', () => {
     const document = arrayDocument('numbers', 1);
-    const runtime = new DocumentProcessingRuntime(document);
+    const runtime = new DocumentProcessingRuntime(document, blue);
 
     const data = runtime.applyPatch('/', replace('/numbers/0', 2));
 

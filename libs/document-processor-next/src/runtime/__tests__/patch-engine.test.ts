@@ -1,10 +1,11 @@
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import { PatchEngine } from '../patch-engine.js';
 import type { JsonPatch } from '../../model/shared/json-patch.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown) {
   return blue.jsonValueToNode(json);

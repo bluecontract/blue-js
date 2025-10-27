@@ -1,10 +1,10 @@
-import type { Node } from '../types/index.js';
+import { BlueNode } from '@blue-labs/language';
 
 export type TerminationKind = 'GRACEFUL' | 'FATAL';
 
 export class ScopeRuntimeContext {
-  private readonly triggeredQueue: Node[] = [];
-  private readonly bridgeableEvents: Node[] = [];
+  private readonly triggeredQueue: BlueNode[] = [];
+  private readonly bridgeableEvents: BlueNode[] = [];
   private terminated = false;
   private terminationKindValue: TerminationKind | null = null;
   private terminationReasonValue: string | null = null;
@@ -18,18 +18,18 @@ export class ScopeRuntimeContext {
     return this.path;
   }
 
-  enqueueTriggered(node: Node): void {
+  enqueueTriggered(node: BlueNode): void {
     if (this.cutOff && this.triggeredLimit >= 0 && this.triggeredQueue.length >= this.triggeredLimit) {
       return;
     }
     this.triggeredQueue.push(node);
   }
 
-  pollTriggered(): Node | undefined {
+  pollTriggered(): BlueNode | undefined {
     return this.triggeredQueue.shift();
   }
 
-  peekTriggered(): Node | undefined {
+  peekTriggered(): BlueNode | undefined {
     return this.triggeredQueue[0];
   }
 
@@ -45,19 +45,19 @@ export class ScopeRuntimeContext {
     return this.triggeredQueue.length === 0;
   }
 
-  triggeredSnapshot(): readonly Node[] {
+  triggeredSnapshot(): readonly BlueNode[] {
     return [...this.triggeredQueue];
   }
 
-  recordBridgeable(node: Node): void {
+  recordBridgeable(node: BlueNode): void {
     if (this.cutOff && this.bridgeableLimit >= 0 && this.bridgeableEvents.length >= this.bridgeableLimit) {
       return;
     }
     this.bridgeableEvents.push(node);
   }
 
-  drainBridgeableEvents(): Node[] {
-    let drained: Node[];
+  drainBridgeableEvents(): BlueNode[] {
+    let drained: BlueNode[];
     if (this.cutOff && this.bridgeableLimit >= 0 && this.bridgeableLimit < this.bridgeableEvents.length) {
       drained = this.bridgeableEvents.slice(0, this.bridgeableLimit);
     } else {

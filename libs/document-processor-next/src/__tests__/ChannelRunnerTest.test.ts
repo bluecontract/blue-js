@@ -1,5 +1,5 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, it, expect } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import {
   IncrementPropertyContractProcessor,
@@ -10,7 +10,7 @@ import {
 import { expectOk, property, propertyOptional, buildProcessor } from './test-utils.js';
 import type { DocumentProcessor } from '../api/document-processor.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function initialize(processor: DocumentProcessor, yaml: string) {
   const document = blue.yamlToNode(yaml);

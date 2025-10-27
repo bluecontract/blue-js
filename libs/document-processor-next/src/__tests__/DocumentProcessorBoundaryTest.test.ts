@@ -1,5 +1,6 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import { ContractProcessorRegistryBuilder } from '../registry/contract-processor-registry-builder.js';
 import { ContractLoader } from '../engine/contract-loader.js';
@@ -10,7 +11,7 @@ import { RunTerminationError } from '../engine/run-termination-error.js';
 import type { ProcessEmbeddedMarker } from '../model/index.js';
 import { property } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function createEngine(): ProcessorEngine {
   const registry = ContractProcessorRegistryBuilder.create().build();

@@ -47,6 +47,7 @@
     "libs/shared/*"
   ],
   "dependencies": {
+    "@blue-repository/core": "0.1.0",
     "@blue-repository/core-dev": "0.22.0",
     "@blue-repository/myos-dev": "0.30.0",
     "@types/big.js": "6.2.2",

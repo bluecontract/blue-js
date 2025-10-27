@@ -1,5 +1,5 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, it, expect } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import {
   AssertDocumentUpdateContractProcessor,
@@ -8,7 +8,7 @@ import {
 } from './processors/index.js';
 import { buildProcessor, expectOk, property, propertyOptional } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 describe('DocumentUpdateChannelTest', () => {
   it('initializationTriggersDocumentUpdateHandlers', () => {
@@ -19,23 +19,19 @@ describe('DocumentUpdateChannelTest', () => {
     const yaml = `name: Sample Doc
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   documentUpdateChannelX:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /x
   documentUpdateChannelY:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /y
   setX:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /x
     propertyValue: 1
   setY:
@@ -70,19 +66,16 @@ contracts:
     const yaml = `name: Nested Doc
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   documentUpdateA:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /a
   setAX:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /a/x
     propertyValue: 1
   setABX:
@@ -91,8 +84,7 @@ contracts:
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /a/b/x
     propertyValue: 1
   incrementYOnA:
@@ -125,26 +117,22 @@ x:
     name: Embedded Y
     contracts:
       life:
-        type:
-          blueId: LifecycleChannel
+        type: Lifecycle Event Channel
       setInner:
         channel: life
         event:
-          type:
-            blueId: DocumentProcessingInitiated
+          type: Document Processing Initiated
         type:
           blueId: SetProperty
         propertyKey: /a
         propertyValue: 1
   contracts:
     embedded:
-      type:
-        blueId: ProcessEmbedded
+      type: Process Embedded
       paths:
         - /y
     documentUpdateFromY:
-      type:
-        blueId: DocumentUpdateChannel
+      type: Document Update Channel
       path: /y/a
     setFromY:
       channel: documentUpdateFromY
@@ -154,13 +142,11 @@ x:
       propertyValue: 1
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /x
   documentUpdateFromChild:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /x/y/a
   setFromChild:
     channel: documentUpdateFromChild
@@ -198,20 +184,17 @@ contracts:
 a:
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       type:
         blueId: SetProperty
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       propertyKey: /x
       propertyValue: 1
     watchX:
-      type:
-        blueId: DocumentUpdateChannel
+      type: Document Update Channel
       path: /x
     assertA:
       channel: watchX
@@ -223,13 +206,11 @@ a:
       expectedAfterValue: 1
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /a
   watchRoot:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /a/x
   assertRoot:
     channel: watchRoot
@@ -258,19 +239,16 @@ contracts:
 list: []
 contracts:
   lifecycle:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   watchList:
-    type:
-      blueId: DocumentUpdateChannel
+    type: Document Update Channel
     path: /list
   appendItem:
     channel: lifecycle
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     path: /list
     propertyKey: "-"
     propertyValue: 5

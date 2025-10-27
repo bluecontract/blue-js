@@ -1,4 +1,3 @@
-import type { Node } from '../types/index.js';
 import type { ContractBundle } from './contract-bundle.js';
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
@@ -34,10 +33,9 @@ export class ProcessorExecutionContext {
     private readonly execution: ExecutionAdapter,
     private readonly bundle: ContractBundle,
     private readonly scopePathValue: string,
-    private readonly eventNode: Node,
+    private readonly eventNode: BlueNode,
     private readonly allowTerminatedWork: boolean,
-    private readonly allowReservedMutation: boolean,
-    private readonly blueRef: Blue
+    private readonly allowReservedMutation: boolean
   ) {}
 
   get scopePath(): string {
@@ -45,10 +43,10 @@ export class ProcessorExecutionContext {
   }
 
   get blue(): Blue {
-    return this.blueRef;
+    return this.execution.runtime().blue();
   }
 
-  event(): Node {
+  event(): BlueNode {
     return this.eventNode;
   }
 
@@ -67,7 +65,7 @@ export class ProcessorExecutionContext {
     );
   }
 
-  emitEvent(emission: Node): void {
+  emitEvent(emission: BlueNode): void {
     if (
       !this.allowTerminatedWork &&
       this.execution.isScopeInactive(this.scopePathValue)
@@ -103,13 +101,13 @@ export class ProcessorExecutionContext {
     return this.execution.resolvePointer(this.scopePathValue, relativePointer);
   }
 
-  documentAt(absolutePointer: string): Node | null {
+  documentAt(absolutePointer: string): BlueNode | null {
     if (!absolutePointer) {
       return null;
     }
     try {
       const node = this.documentNodeAt(absolutePointer);
-      return node ? (node.clone() as Node) : null;
+      return node ? node.clone() : null;
     } catch {
       return null;
     }

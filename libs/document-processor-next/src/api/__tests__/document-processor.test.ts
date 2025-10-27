@@ -1,4 +1,4 @@
-import { Blue } from '@blue-labs/language';
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
 
 import { DocumentProcessor } from '../document-processor.js';
@@ -8,7 +8,7 @@ import {
 } from '../../__tests__/processors/index.js';
 import { default as Big } from 'big.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function createDocumentProcessor(): DocumentProcessor {
   const processor = new DocumentProcessor({ blue });
@@ -21,8 +21,7 @@ function documentWithLifecycleAndEventHandlers(): string {
   return `name: Example
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   onLifecycle:
     channel: lifecycleChannel
     type:

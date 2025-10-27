@@ -1,5 +1,4 @@
-import type { Node } from '../types/index.js';
-import { canonicalSignature } from '../util/node-canonicalizer.js';
+import { BlueNode } from '@blue-labs/language';
 import type {
   ContractBundle,
   ChannelBinding,
@@ -12,7 +11,7 @@ import type { ProcessorExecutionContext } from './processor-execution-context.js
 export interface ChannelMatch {
   readonly matches: boolean;
   readonly eventId?: string | null;
-  readonly eventNode?: Node | null;
+  readonly eventNode?: BlueNode | null;
 }
 
 export interface ChannelRunnerDependencies {
@@ -20,19 +19,20 @@ export interface ChannelRunnerDependencies {
     channel: ChannelBinding,
     bundle: ContractBundle,
     scopePath: string,
-    event: Node,
+    event: BlueNode,
   ): ChannelMatch;
   isScopeInactive(scopePath: string): boolean;
   createContext(
     scopePath: string,
     bundle: ContractBundle,
-    event: Node,
+    event: BlueNode,
     allowTerminatedWork: boolean,
   ): ProcessorExecutionContext;
   executeHandler(
     handler: HandlerBinding,
     context: ProcessorExecutionContext,
   ): void;
+  canonicalSignature(node: BlueNode | null): string | null;
 }
 
 export class ChannelRunner {
@@ -46,7 +46,7 @@ export class ChannelRunner {
     scopePath: string,
     bundle: ContractBundle,
     channel: ChannelBinding,
-    event: Node,
+    event: BlueNode,
   ): void {
     if (this.deps.isScopeInactive(scopePath)) {
       return;
@@ -66,7 +66,8 @@ export class ChannelRunner {
     const eventForHandlers = match.eventNode ?? event;
     this.checkpointManager.ensureCheckpointMarker(scopePath, bundle);
     const checkpoint = this.checkpointManager.findCheckpoint(bundle, channel.key());
-    const eventSignature = match.eventId ?? canonicalSignature(eventForHandlers);
+    const eventSignature =
+      match.eventId ?? this.deps.canonicalSignature(eventForHandlers);
     if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
       return;
     }
@@ -89,7 +90,7 @@ export class ChannelRunner {
     scopePath: string,
     bundle: ContractBundle,
     channelKey: string,
-    event: Node,
+    event: BlueNode,
     allowTerminatedWork: boolean,
   ): void {
     const handlers = bundle.handlersFor(channelKey);

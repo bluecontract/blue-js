@@ -1,9 +1,10 @@
-import { Blue, BlueNode } from '@blue-labs/language';
+import { createBlue } from '../../test-support/blue.js';
+import { BlueNode } from '@blue-labs/language';
 import { Buffer } from 'node:buffer';
 
 import { canonicalSignature, canonicalSize } from '../node-canonicalizer.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function createSampleNode(order: 'normal' | 'reverse' = 'normal'): BlueNode {
   if (order === 'normal') {
@@ -28,16 +29,16 @@ function createSampleNode(order: 'normal' | 'reverse' = 'normal'): BlueNode {
 
 describe('node-canonicalizer', () => {
   it('returns null signature for null node', () => {
-    expect(canonicalSignature(null)).toBeNull();
+    expect(canonicalSignature(blue, null)).toBeNull();
   });
 
   it('returns zero size for null node', () => {
-    expect(canonicalSize(undefined)).toBe(0);
+    expect(canonicalSize(blue, undefined)).toBe(0);
   });
 
   it('produces identical signatures regardless of insertion order', () => {
-    const signatureA = canonicalSignature(createSampleNode('normal'));
-    const signatureB = canonicalSignature(createSampleNode('reverse'));
+    const signatureA = canonicalSignature(blue, createSampleNode('normal'));
+    const signatureB = canonicalSignature(blue, createSampleNode('reverse'));
 
     expect(signatureA).not.toBeNull();
     expect(signatureA).toEqual(signatureB);
@@ -45,9 +46,9 @@ describe('node-canonicalizer', () => {
 
   it('computes canonical size based on utf8 byte length', () => {
     const node = createSampleNode();
-    const signature = canonicalSignature(node);
+    const signature = canonicalSignature(blue, node);
     expect(signature).not.toBeNull();
-    expect(canonicalSize(node)).toEqual(
+    expect(canonicalSize(blue, node)).toEqual(
       Buffer.byteLength(signature ?? '', 'utf8')
     );
   });
@@ -59,7 +60,7 @@ describe('node-canonicalizer', () => {
       middle: 'mid',
     });
 
-    const signature = canonicalSignature(node);
+    const signature = canonicalSignature(blue, node);
     expect(signature).not.toBeNull();
     const alphaIndex = signature!.indexOf('"alpha"');
     const middleIndex = signature!.indexOf('"middle"');

@@ -1,5 +1,5 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, it, expect } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import {
   EmitEventsContractProcessor,
@@ -15,7 +15,7 @@ import {
   propertyOptional,
 } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function checkpointValue(document: ReturnType<typeof blue.yamlToNode>): string | null {
   const contracts = property(document, 'contracts');
@@ -100,16 +100,13 @@ a:
   name: Child Doc
   contracts:
     life:
-      type:
-        blueId: LifecycleChannel
+      type: Lifecycle Event Channel
     triggered:
-      type:
-        blueId: TriggeredEventChannel
+      type: Triggered Event Channel
     emitOnInit:
       channel: life
       event:
-        type:
-          blueId: DocumentProcessingInitiated
+        type: Document Processing Initiated
       type:
         blueId: EmitEvents
       events:
@@ -143,13 +140,11 @@ a:
       propertyValue: 1
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /a
   embeddedEvents:
-    type:
-      blueId: EmbeddedNodeChannel
+    type: Embedded Node Channel
     childPath: /a
   setRootFromChild:
     channel: embeddedEvents
