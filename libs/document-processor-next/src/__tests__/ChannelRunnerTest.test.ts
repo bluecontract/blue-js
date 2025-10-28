@@ -28,12 +28,16 @@ function eventNode(data: {
   readonly kind?: string;
   readonly value?: number;
 }) {
-  return blue.jsonValueToNode({
+  const node = blue.jsonValueToNode({
     type: { blueId: 'TestEvent' },
     ...(data.eventId ? { eventId: data.eventId } : {}),
     ...(data.kind ? { kind: data.kind } : {}),
     ...(data.value != null ? { value: data.value } : {}),
   });
+  if (data.eventId) {
+    node.setBlueId(data.eventId);
+  }
+  return node;
 }
 
 describe('ChannelRunnerTest', () => {

@@ -63,10 +63,6 @@ export interface ChannelProcessor<TContract>
     contract: TContract,
     context: ChannelEvaluationContext
   ): BlueNode | null | undefined;
-  eventId?(
-    contract: TContract,
-    context: ChannelEvaluationContext
-  ): string | null | undefined | Promise<string | null | undefined>;
 }
 
 export interface MarkerProcessor<TContract>

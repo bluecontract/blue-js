@@ -315,6 +315,7 @@ export class ProcessorExecution implements ExecutionHooks {
     }
 
     const eventClone = event.clone();
+    const eventCloneForId = event.clone();
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       blue: this.runtimeRef.blue(),
@@ -339,17 +340,13 @@ export class ProcessorExecution implements ExecutionHooks {
       ? channelizedFn.call(processor, channel.contract(), evaluationContext)
       : undefined;
 
-    const eventIdResult = processor.eventId?.(
-      channel.contract() as ChannelContract,
-      evaluationContext
-    );
-    if (eventIdResult instanceof Promise) {
-      throw new Error('Async channel processors are not supported');
-    }
+    const eventIdResult = this.runtimeRef
+      .blue()
+      .calculateBlueIdSync(eventCloneForId);
 
     return {
       matches: true,
-      eventId: eventIdResult ?? null,
+      eventId: eventIdResult,
       eventNode: channelizedResult ?? eventClone.clone(),
     };
   }

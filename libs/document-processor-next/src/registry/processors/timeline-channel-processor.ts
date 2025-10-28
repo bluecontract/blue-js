@@ -51,18 +51,6 @@ export class TimelineChannelProcessor
     return this.buildNormalizedEvent(messageNode, metadataNode, channelKey);
   }
 
-  eventId(
-    _contract: TimelineChannel,
-    context: ChannelEvaluationContext
-  ): string | null | undefined {
-    const node = context.event;
-    const id = node?.getBlueId?.();
-    if (typeof id === 'string' && id.length > 0) {
-      return id;
-    }
-    return undefined;
-  }
-
   private buildNormalizedEvent(
     message: BlueNode,
     metadata: BlueNode | null,

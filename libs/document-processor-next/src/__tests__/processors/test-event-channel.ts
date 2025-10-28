@@ -30,15 +30,6 @@ export class TestEventChannelProcessor
     return expectedType === this.resolveEventType(context.event ?? null);
   }
 
-  eventId(
-    _contract: TestEventChannel,
-    context: ChannelEvaluationContext
-  ): string | null | undefined {
-    const node = context.event;
-    const value = node?.getProperties()?.eventId?.getValue();
-    return typeof value === 'string' ? value : null;
-  }
-
   private resolveEventType(event: BlueNode | null): string | null {
     if (!event) return null;
     const typeNode = event.getType?.();
