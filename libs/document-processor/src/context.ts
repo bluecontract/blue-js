@@ -8,6 +8,7 @@ import {
 } from './types';
 import { makePath } from './utils/path';
 import { Blue, BlueNodePatch } from '@blue-labs/language';
+import { cloneAndFreezeEventPayload } from './utils/event';
 
 export class InternalContext implements ProcessingContext {
   private readonly actions: ProcessingAction[] = [];
@@ -41,6 +42,7 @@ export class InternalContext implements ProcessingContext {
 
     const enriched: EventNode = {
       ...event,
+      payload: cloneAndFreezeEventPayload(event.payload),
       source: event.source ?? 'internal',
       originNodePath: event.originNodePath ?? this.taskInfo.nodePath,
       rootEvent: event.rootEvent ?? inputEvent.rootEvent ?? inputEvent,

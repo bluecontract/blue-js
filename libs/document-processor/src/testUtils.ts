@@ -12,9 +12,14 @@ export const prepareToProcess = async (
   const docNode = blue.jsonValueToNode(doc);
   const resolvedDocNode = blue.resolve(docNode);
 
-  const { state: initializedState } = await documentProcessor.initialize(
-    resolvedDocNode
-  );
+  const initResult = await documentProcessor.initialize(resolvedDocNode);
+  if (initResult.capabilityFailure) {
+    throw new Error(
+      `Initialization failed: ${initResult.failureReason ?? 'unknown capability failure'}`
+    );
+  }
+
+  const { state: initializedState } = initResult;
 
   return {
     initializedState,
@@ -32,9 +37,14 @@ export const prepareToProcessYaml = async (
   const docNode = blue.yamlToNode(doc);
   const resolvedDocNode = blue.resolve(docNode);
 
-  const { state: initializedState } = await documentProcessor.initialize(
-    resolvedDocNode
-  );
+  const initResult = await documentProcessor.initialize(resolvedDocNode);
+  if (initResult.capabilityFailure) {
+    throw new Error(
+      `Initialization failed: ${initResult.failureReason ?? 'unknown capability failure'}`
+    );
+  }
+
+  const { state: initializedState } = initResult;
 
   return {
     initializedState,

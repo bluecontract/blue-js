@@ -64,6 +64,14 @@ export class ContractRegistry {
   }
 
   /**
+   * Checks whether a processor exists for the given contract blue id.
+   */
+  has(blueId: string | undefined | null): boolean {
+    if (!blueId) return false;
+    return this.processors.has(blueId);
+  }
+
+  /**
    * Gets all registered processors
    *
    * @returns Iterator of all registered processors

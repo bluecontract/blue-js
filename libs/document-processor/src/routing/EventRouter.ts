@@ -13,6 +13,7 @@ import { ContractRegistry } from '../registry/ContractRegistry';
 import { EventTraceManager } from '../utils/EventTraceManager';
 import { Blue, isBigNumber } from '@blue-labs/language';
 import { buildContractEntries } from './buildContractEntries';
+import { cloneAndFreezeEventPayload } from '../utils/event';
 
 /** Maximum recursion depth for inline adapter processing */
 const MAX_INLINE_ADAPTER_DEPTH = 64;
@@ -59,6 +60,10 @@ export class EventRouter {
   ): Promise<void> {
     if (event.seq === undefined) {
       event.seq = this.getNextEventSeq();
+    }
+
+    if (!Object.isFrozen(event.payload)) {
+      event.payload = cloneAndFreezeEventPayload(event.payload);
     }
 
     if (pathSegments.length === 0) {

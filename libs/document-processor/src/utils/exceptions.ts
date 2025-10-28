@@ -1,5 +1,21 @@
 import { type BlueNodePatch } from '@blue-labs/language';
 
+/** Thrown when the processor cannot understand a required capability */
+export class MustUnderstandFailure extends Error {
+  constructor(message?: string) {
+    super(message ?? 'MustUnderstand failure');
+    this.name = 'MustUnderstandFailure';
+  }
+}
+
+/** Thrown when the processor encounters a fatal, unrecoverable error */
+export class ProcessorFatalError extends Error {
+  constructor(message?: string, readonly cause?: unknown) {
+    super(message ?? 'Processor fatal error');
+    this.name = 'ProcessorFatalError';
+  }
+}
+
 /** Custom error gives you the offending patch for logging / alerting */
 export class PatchApplicationError extends Error {
   constructor(

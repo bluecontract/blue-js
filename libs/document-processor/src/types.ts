@@ -46,6 +46,12 @@ export interface ProcessingResult {
 
   /** All emitted events */
   emitted: EventNodePayload[];
+
+  /** Indicates the run failed due to missing capabilities */
+  capabilityFailure: boolean;
+
+  /** Optional reason describing the capability failure */
+  failureReason: string | null;
 }
 
 export type ContractRole = 'adapter' | 'validator' | 'handler' | 'marker';
