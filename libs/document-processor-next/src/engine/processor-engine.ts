@@ -333,6 +333,12 @@ export class ProcessorExecution implements ExecutionHooks {
       return { matches: false };
     }
 
+    // allow channel to provide a separate, channelized event for handlers
+    const channelizedFn = processor.channelize;
+    const channelizedResult = channelizedFn
+      ? channelizedFn.call(processor, channel.contract(), evaluationContext)
+      : undefined;
+
     const eventIdResult = processor.eventId?.(
       channel.contract() as ChannelContract,
       evaluationContext
@@ -344,7 +350,7 @@ export class ProcessorExecution implements ExecutionHooks {
     return {
       matches: true,
       eventId: eventIdResult ?? null,
-      eventNode: eventClone.clone(),
+      eventNode: channelizedResult ?? eventClone.clone(),
     };
   }
 

@@ -54,6 +54,15 @@ export interface ChannelProcessor<TContract>
     contract: TContract,
     context: ChannelEvaluationContext
   ): boolean | Promise<boolean>;
+  /**
+   * Optional: Provide a channelized event for handlers without mutating the inbound event.
+   * When provided, the engine will deliver this node to handlers while computing
+   * checkpoint signatures and storage from the original external event.
+   */
+  channelize?(
+    contract: TContract,
+    context: ChannelEvaluationContext
+  ): BlueNode | null | undefined;
   eventId?(
     contract: TContract,
     context: ChannelEvaluationContext

@@ -7,7 +7,12 @@ import {
   SetPropertyOnEventContractProcessor,
   TestEventChannelProcessor,
 } from './processors/index.js';
-import { expectOk, property, propertyOptional, buildProcessor } from './test-utils.js';
+import {
+  expectOk,
+  property,
+  propertyOptional,
+  buildProcessor,
+} from './test-utils.js';
 import type { DocumentProcessor } from '../api/document-processor.js';
 
 const blue = createBlue();
@@ -155,16 +160,13 @@ describe('ChannelRunnerTest', () => {
     ).document.clone();
 
     current = expectOk(
-      processor.processDocument(
-        current.clone(),
-        eventNode({ kind: 'other' })
-      )
+      processor.processDocument(current.clone(), eventNode({ kind: 'other' }))
     ).document.clone();
 
     expect(Number(property(current, 'counter').getValue())).toBe(2);
   });
 
-  it('deliversChannelizedEventToHandlersAndCheckpoint', () => {
+  it('deliversChannelizedEventToHandlersAndPersistsOriginalInCheckpoint', () => {
     const processor = buildProcessor(
       blue,
       new NormalizingTestEventChannelProcessor(),
@@ -200,8 +202,8 @@ describe('ChannelRunnerTest', () => {
     const lastEvents = property(checkpoint, 'lastEvents');
     const storedEvent = propertyOptional(lastEvents, 'testChannel');
     expect(storedEvent).toBeDefined();
-    expect(
-      storedEvent?.getProperties()?.kind?.getValue()
-    ).toBe(NormalizingTestEventChannelProcessor.NORMALIZED_KIND);
+    // Channel delivered channelized event to handlers (verified by flag above),
+    // but checkpoint should persist the original external event
+    expect(storedEvent?.getProperties()?.kind?.getValue()).toBe('original');
   });
 });
