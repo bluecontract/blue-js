@@ -18,7 +18,7 @@ function loadYamlFromResources(filename: string): Record<string, any> {
   const resourcePath = path.join(
     __dirname,
     '../../__tests__/resources',
-    filename
+    filename,
   );
   const yamlContent = fs.readFileSync(resourcePath, 'utf8');
   return yaml.load(yamlContent) as Record<string, any>;
@@ -42,7 +42,7 @@ describe('Document Session Bootstrap integration', () => {
       type: event.type,
     } as Record<string, unknown>;
   };
-  
+
   it('handles Document Processing Initiated and initializes status', async () => {
     const doc = loadYamlFromResources('document-session-bootstrap.yaml');
     const { initializedState } = await prepareToProcess(doc, {
@@ -51,7 +51,7 @@ describe('Document Session Bootstrap integration', () => {
     });
     const json = blue.nodeToJson(initializedState, 'simple') as any;
     expect(json.bootstrapStatus.type.blueId).toEqual(
-      coreBlueIds['Status In Progress']
+      coreBlueIds['Status In Progress'],
     );
   });
 
@@ -86,7 +86,7 @@ describe('Document Session Bootstrap integration', () => {
     expect(json.participantsState?.alice?.accountStatus).toBe('Active');
     // Status should be updated from pending to in-progress
     expect(json.bootstrapStatus.type.blueId).toEqual(
-      coreBlueIds['Status In Progress']
+      coreBlueIds['Status In Progress'],
     );
   });
 
@@ -119,7 +119,7 @@ describe('Document Session Bootstrap integration', () => {
 
     expect(json.initiatorSessionId).toBe('sess-123');
     expect(json.bootstrapStatus.type.blueId).toEqual(
-      coreBlueIds['Status Completed']
+      coreBlueIds['Status Completed'],
     );
   });
 
@@ -145,7 +145,7 @@ describe('Document Session Bootstrap integration', () => {
 
     expect(json.bootstrapError).toBe('Something went wrong');
     expect(json.bootstrapStatus.type.blueId).toEqual(
-      coreBlueIds['Status Failed']
+      coreBlueIds['Status Failed'],
     );
   });
 
@@ -200,7 +200,7 @@ describe('Document Session Bootstrap integration', () => {
     expect(json.participantsState?.bob?.accountStatus).toBe('Inactive');
     expect(json.bootstrapError).toBe('participant lookup failed');
     expect(json.bootstrapStatus.type.blueId).toEqual(
-      coreBlueIds['Status Failed']
+      coreBlueIds['Status Failed'],
     );
   });
 });

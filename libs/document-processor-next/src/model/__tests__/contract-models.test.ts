@@ -1,5 +1,5 @@
-import { Blue, BlueNode } from '@blue-labs/language';
-
+import { createBlue } from '../../test-support/blue.js';
+import { BlueNode } from '@blue-labs/language';
 import {
   documentUpdateChannelSchema,
   embeddedNodeChannelSchema,
@@ -10,12 +10,11 @@ import {
   channelEventCheckpointSchema,
   initializationMarkerSchema,
   processEmbeddedMarkerSchema,
-  processingFailureMarkerSchema,
   processingTerminatedMarkerSchema,
 } from '../markers/index.js';
 
 describe('contract model schemas', () => {
-  const blue = new Blue();
+  const blue = createBlue();
 
   function deserialize(json: unknown): BlueNode {
     return blue.jsonValueToNode(json);
@@ -23,10 +22,10 @@ describe('contract model schemas', () => {
 
   it('converts DocumentUpdateChannel contracts', () => {
     const node = deserialize({
-      type: { blueId: 'DocumentUpdateChannel' },
-      path: { value: '/documents/foo' },
-      key: { value: 'documentUpdate' },
-      order: { value: 7 },
+      type: 'Document Update Channel',
+      path: '/documents/foo',
+      key: 'documentUpdate',
+      order: 7,
     });
 
     const dto = blue.nodeToSchemaOutput(node, documentUpdateChannelSchema);
@@ -38,8 +37,8 @@ describe('contract model schemas', () => {
 
   it('converts EmbeddedNodeChannel contracts with child path', () => {
     const node = deserialize({
-      type: { blueId: 'EmbeddedNodeChannel' },
-      childPath: { value: '/child/alpha' },
+      type: 'Embedded Node Channel',
+      childPath: '/child/alpha',
     });
 
     const dto = blue.nodeToSchemaOutput(node, embeddedNodeChannelSchema);
@@ -49,11 +48,11 @@ describe('contract model schemas', () => {
 
   it('converts Lifecycle and Triggered channel contracts without extra fields', () => {
     const lifecycle = blue.nodeToSchemaOutput(
-      deserialize({ type: { blueId: 'LifecycleChannel' } }),
+      deserialize({ type: 'Lifecycle Event Channel' }),
       lifecycleChannelSchema,
     );
     const triggered = blue.nodeToSchemaOutput(
-      deserialize({ type: { blueId: 'TriggeredEventChannel' } }),
+      deserialize({ type: 'Triggered Event Channel' }),
       triggeredEventChannelSchema,
     );
 
@@ -63,13 +62,8 @@ describe('contract model schemas', () => {
 
   it('converts ProcessEmbedded markers with readonly paths', () => {
     const node = deserialize({
-      type: { blueId: 'ProcessEmbedded' },
-      paths: {
-        items: [
-          { value: '/child/a' },
-          { value: '/child/b' },
-        ],
-      },
+      type: 'Process Embedded',
+      paths: ['/child/a', '/child/b'],
     });
 
     const dto = blue.nodeToSchemaOutput(node, processEmbeddedMarkerSchema);
@@ -80,8 +74,8 @@ describe('contract model schemas', () => {
 
   it('converts Initialization markers', () => {
     const node = deserialize({
-      type: { blueId: 'InitializationMarker' },
-      documentId: { value: 'doc-123' },
+      type: 'Processing Initialized Marker',
+      documentId: 'doc-123',
     });
 
     const dto = blue.nodeToSchemaOutput(node, initializationMarkerSchema);
@@ -91,9 +85,9 @@ describe('contract model schemas', () => {
 
   it('converts ProcessingTerminated markers', () => {
     const node = deserialize({
-      type: { blueId: 'ProcessingTerminatedMarker' },
-      cause: { value: 'BoundaryViolation' },
-      reason: { value: 'Test' },
+      type: 'Processing Terminated Marker',
+      cause: 'BoundaryViolation',
+      reason: 'Test',
     });
 
     const dto = blue.nodeToSchemaOutput(node, processingTerminatedMarkerSchema);
@@ -102,29 +96,16 @@ describe('contract model schemas', () => {
     expect(dto.reason).toBe('Test');
   });
 
-  it('converts ProcessingFailure markers', () => {
-    const node = deserialize({
-      type: { blueId: 'ProcessingFailureMarker' },
-      code: { value: 'Fatal' },
-      reason: { value: 'Oops' },
-    });
-
-    const dto = blue.nodeToSchemaOutput(node, processingFailureMarkerSchema);
-
-    expect(dto.code).toBe('Fatal');
-    expect(dto.reason).toBe('Oops');
-  });
-
   it('converts ChannelEventCheckpoint markers preserving BlueNodes', () => {
     const node = deserialize({
-      type: { blueId: 'ChannelEventCheckpoint' },
+      type: 'Channel Event Checkpoint',
       lastEvents: {
         channelA: {
-          payload: { value: 'data' },
+          payload: 'data',
         },
       },
       lastSignatures: {
-        channelA: { value: 'sig-123' },
+        channelA: 'sig-123',
       },
     });
 

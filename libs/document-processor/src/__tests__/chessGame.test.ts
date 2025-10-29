@@ -13,7 +13,7 @@ import { createTimelineEntryEvent } from '../utils/eventFactories';
  * Loads a YAML document from the resources directory
  */
 async function loadYamlDocument(
-  filename: string
+  filename: string,
 ): Promise<Record<string, any>> {
   const resourcePath = path.join(__dirname, 'resources', filename);
   const yamlContent = await fs.readFile(resourcePath, 'utf8');
@@ -33,7 +33,7 @@ describe('Chess Game with Two Timeline Channels', () => {
     return createTimelineEntryEvent(
       timelineId,
       { move, player: timelineId },
-      blue
+      blue,
     );
   }
 
@@ -46,13 +46,13 @@ describe('Chess Game with Two Timeline Channels', () => {
           // Load chess.js from resources directory
           const chessJsPath = path.join(
             __dirname,
-            'resources/chessjs-1.2.0.js'
+            'resources/chessjs-1.2.0.js',
           );
           return fs.readFile(chessJsPath, 'utf8');
         }
         // For other blueIds, use the original implementation
         return originalLoad.call(this, blueId);
-      }
+      },
     );
   });
 
@@ -70,7 +70,7 @@ describe('Chess Game with Two Timeline Channels', () => {
     const whiteMove1 = timelineEvent('white-player', 'e4');
     const { state: state1 } = await documentProcessor.processEvents(
       initializedState,
-      [whiteMove1]
+      [whiteMove1],
     );
 
     // Verify game state after first move

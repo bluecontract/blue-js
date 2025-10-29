@@ -7,7 +7,7 @@ import {
 import { personSchema } from './person';
 
 export const personObjectExampleSchema = withTypeBlueId(
-  'PersonObjectExample-BlueId'
+  'PersonObjectExample-BlueId',
 )(
   z.object({
     alice1: blueIdField(),
@@ -15,5 +15,5 @@ export const personObjectExampleSchema = withTypeBlueId(
     alice3: z.record(z.string(), z.unknown()).optional(),
     alice4: personSchema.optional(),
     alice5: personSchema.optional(),
-  })
+  }),
 );

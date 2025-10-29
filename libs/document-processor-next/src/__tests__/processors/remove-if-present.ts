@@ -1,12 +1,20 @@
 import type { HandlerProcessor } from '../../registry/types.js';
-import { removeIfPresentSchema, type RemoveIfPresent } from '../models/index.js';
+import {
+  removeIfPresentSchema,
+  type RemoveIfPresent,
+} from '../models/index.js';
 
-export class RemoveIfPresentContractProcessor implements HandlerProcessor<RemoveIfPresent> {
+export class RemoveIfPresentContractProcessor
+  implements HandlerProcessor<RemoveIfPresent>
+{
   readonly kind = 'handler' as const;
   readonly blueIds = ['RemoveIfPresent'] as const;
   readonly schema = removeIfPresentSchema;
 
-  execute(contract: RemoveIfPresent, context: Parameters<HandlerProcessor<RemoveIfPresent>['execute']>[1]): void {
+  execute(
+    contract: RemoveIfPresent,
+    context: Parameters<HandlerProcessor<RemoveIfPresent>['execute']>[1],
+  ): void {
     const key = contract.propertyKey;
     if (!key) return;
     const trimmed = key.trim();
@@ -17,6 +25,3 @@ export class RemoveIfPresentContractProcessor implements HandlerProcessor<Remove
     context.applyPatch({ op: 'REMOVE', path: pointer });
   }
 }
-
-
-

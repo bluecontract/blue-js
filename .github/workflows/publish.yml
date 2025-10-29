@@ -30,7 +30,7 @@ jobs:
         shell: bash
 
       - name: Build
-        run: npx nx run-many -t build
+        run: npx nx run-many --exclude document-processor-next -t build
         shell: bash
 
       - name: Print Environment Info
@@ -38,7 +38,7 @@ jobs:
         shell: bash
 
       - name: Publish stable group packages
-        run: npx nx release publish --groups=stable
+        run: npx nx release publish --projects=language,shared-utils,document-processor
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}

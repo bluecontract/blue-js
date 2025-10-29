@@ -54,13 +54,13 @@ describe('Node Contract Methods', () => {
         partyA
           ?.getProperties()
           ?.['details']?.getProperties()
-          ?.['companyId']?.getValue()
+          ?.['companyId']?.getValue(),
       ).toEqual(new Big('12345'));
       expect(
         partyA
           ?.getProperties()
           ?.['details']?.getProperties()
-          ?.['department']?.getValue()
+          ?.['department']?.getValue(),
       ).toEqual('Sales');
     });
   });
@@ -142,7 +142,7 @@ describe('Node Contract Methods', () => {
       expect(contracts).toBeDefined();
       expect(contracts?.['partyA']?.getName()).toEqual('Alice');
       expect(
-        contracts?.['partyA']?.getProperties()?.['role']?.getValue()
+        contracts?.['partyA']?.getProperties()?.['role']?.getValue(),
       ).toEqual('Buyer');
     });
 
@@ -166,7 +166,7 @@ describe('Node Contract Methods', () => {
       expect(contracts?.['partyA']?.getName()).toEqual('Alice');
       expect(contracts?.['partyB']?.getName()).toEqual('Bob');
       expect(
-        contracts?.['partyB']?.getProperties()?.['role']?.getValue()
+        contracts?.['partyB']?.getProperties()?.['role']?.getValue(),
       ).toEqual('Seller');
     });
 
@@ -179,14 +179,14 @@ describe('Node Contract Methods', () => {
           'details',
           new BlueNode()
             .addProperty('companyId', new BlueNode().setValue(12345))
-            .addProperty('department', new BlueNode().setValue('Sales'))
+            .addProperty('department', new BlueNode().setValue('Sales')),
         )
         .addProperty(
           'items',
           new BlueNode().setItems([
             new BlueNode().setName('Item1'),
             new BlueNode().setName('Item2'),
-          ])
+          ]),
         );
 
       node.addContract('complex', contract);
@@ -199,22 +199,22 @@ describe('Node Contract Methods', () => {
         complexContract
           ?.getProperties()
           ?.['details']?.getProperties()
-          ?.['companyId']?.getValue()
+          ?.['companyId']?.getValue(),
       ).toEqual(new Big('12345'));
       expect(
         complexContract
           ?.getProperties()
           ?.['details']?.getProperties()
-          ?.['department']?.getValue()
+          ?.['department']?.getValue(),
       ).toEqual('Sales');
       expect(
-        complexContract?.getProperties()?.['items']?.getItems()
+        complexContract?.getProperties()?.['items']?.getItems(),
       ).toHaveLength(2);
       expect(
-        complexContract?.getProperties()?.['items']?.getItems()?.[0]?.getName()
+        complexContract?.getProperties()?.['items']?.getItems()?.[0]?.getName(),
       ).toEqual('Item1');
       expect(
-        complexContract?.getProperties()?.['items']?.getItems()?.[1]?.getName()
+        complexContract?.getProperties()?.['items']?.getItems()?.[1]?.getName(),
       ).toEqual('Item2');
     });
   });

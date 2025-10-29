@@ -16,7 +16,7 @@ describe('CompositeLimits', () => {
     compositeLimits.enterPathSegment('path');
 
     expect(
-      compositeLimits.shouldMergePathSegment('field', nodeWithBlockedValue)
+      compositeLimits.shouldMergePathSegment('field', nodeWithBlockedValue),
     ).toBe(false);
 
     compositeLimits.exitPathSegment();
@@ -29,7 +29,7 @@ describe('CompositeLimits', () => {
     compositeLimits.enterPathSegment('path');
 
     expect(compositeLimits.shouldMergePathSegment('field', normalNode)).toBe(
-      true
+      true,
     );
 
     compositeLimits.exitPathSegment();
@@ -40,7 +40,7 @@ describe('CompositeLimits', () => {
     compositeLimits.enterPathSegment('path');
 
     expect(compositeLimits.shouldMergePathSegment('field', normalNode)).toBe(
-      false
+      false,
     );
   });
 });

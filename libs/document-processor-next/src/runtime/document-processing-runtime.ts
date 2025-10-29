@@ -1,23 +1,27 @@
-import type { Node } from '../types/index.js';
+import { Blue, BlueNode } from '@blue-labs/language';
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import { PatchEngine, type PatchResult } from './patch-engine.js';
 import { EmissionRegistry } from './emission-registry.js';
 import { GasMeter } from './gas-meter.js';
 import { ScopeRuntimeContext } from './scope-runtime-context.js';
 
-export type DocumentUpdateData = PatchResult
+export type DocumentUpdateData = PatchResult;
 
 export class DocumentProcessingRuntime {
   private readonly patchEngine: PatchEngine;
   private readonly emissionRegistry = new EmissionRegistry();
-  private readonly gasMeter = new GasMeter();
+  private readonly gasMeter: GasMeter;
   private runTerminated = false;
 
-  constructor(private readonly documentRef: Node) {
+  constructor(
+    private readonly documentRef: BlueNode,
+    private readonly blueRef: Blue,
+  ) {
     this.patchEngine = new PatchEngine(this.documentRef);
+    this.gasMeter = new GasMeter(this.blueRef);
   }
 
-  document(): Node {
+  document(): BlueNode {
     return this.documentRef;
   }
 
@@ -33,16 +37,20 @@ export class DocumentProcessingRuntime {
     return this.emissionRegistry.existingScope(scopePath);
   }
 
-  rootEmissions(): readonly Node[] {
+  rootEmissions(): readonly BlueNode[] {
     return this.emissionRegistry.rootEmissions();
   }
 
-  recordRootEmission(emission: Node): void {
+  recordRootEmission(emission: BlueNode): void {
     this.emissionRegistry.recordRootEmission(emission);
   }
 
   addGas(amount: number): void {
     this.gasMeter.add(amount);
+  }
+
+  blue(): Blue {
+    return this.blueRef;
   }
 
   totalGas(): number {
@@ -69,7 +77,7 @@ export class DocumentProcessingRuntime {
     this.gasMeter.chargeBoundaryCheck();
   }
 
-  chargePatchAddOrReplace(value: Node | null | undefined): void {
+  chargePatchAddOrReplace(value: BlueNode | null | undefined): void {
     this.gasMeter.chargePatchAddOrReplace(value ?? null);
   }
 
@@ -81,11 +89,11 @@ export class DocumentProcessingRuntime {
     this.gasMeter.chargeCascadeRouting(scopeCount);
   }
 
-  chargeEmitEvent(event: Node | null | undefined): void {
+  chargeEmitEvent(event: BlueNode | null | undefined): void {
     this.gasMeter.chargeEmitEvent(event ?? null);
   }
 
-  chargeBridge(event?: Node | null): void {
+  chargeBridge(event?: BlueNode | null): void {
     void event;
     this.gasMeter.chargeBridge();
   }
@@ -122,7 +130,7 @@ export class DocumentProcessingRuntime {
     return this.emissionRegistry.isScopeTerminated(scopePath);
   }
 
-  directWrite(path: string, value: Node | null): void {
+  directWrite(path: string, value: BlueNode | null): void {
     this.patchEngine.directWrite(path, value);
   }
 

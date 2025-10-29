@@ -16,7 +16,7 @@ export const isBlueObject = (value: unknown): value is BlueObject => {
 };
 
 export const hasBlueObjectBlueIdDefined = (
-  value?: BlueObject
+  value?: BlueObject,
 ): value is BlueObjectWithId => {
   return (
     isNonNullable(value) && 'blueId' in value && isNonNullable(value.blueId)
@@ -24,25 +24,25 @@ export const hasBlueObjectBlueIdDefined = (
 };
 
 export const hasBlueObjectNameDefined = (
-  value?: BlueObject
+  value?: BlueObject,
 ): value is SetRequired<BlueObject, 'name'> => {
   return isNonNullable(value) && 'name' in value && isNonNullable(value.name);
 };
 
 export const hasBlueObjectItemsDefined = (
-  value?: BlueObject
+  value?: BlueObject,
 ): value is SetRequired<BlueObject, 'items'> => {
   return isNonNullable(value) && 'items' in value && isNonNullable(value.items);
 };
 
 export const hasBlueObjectTypeDefined = (
-  value?: BlueObject
+  value?: BlueObject,
 ): value is SetRequired<BlueObject, 'type'> => {
   return isNonNullable(value) && 'type' in value && isNonNullable(value.type);
 };
 
 export const hasBlueObjectValueDefined = (
-  value?: BlueObject
+  value?: BlueObject,
 ): value is SetRequired<BlueObject, 'value'> => {
   return isNonNullable(value) && 'value' in value && isNonNullable(value.value);
 };
@@ -52,10 +52,10 @@ export const isGivenBlueObjectTypeSchema = <
   UnknownKeys extends UnknownKeysParam = UnknownKeysParam,
   Catchall extends ZodTypeAny = ZodTypeAny,
   Output = objectOutputType<T, Catchall, UnknownKeys>,
-  Input = objectInputType<T, Catchall, UnknownKeys>
+  Input = objectInputType<T, Catchall, UnknownKeys>,
 >(
   schema: z.ZodObject<T, UnknownKeys, Catchall, Output, Input>,
-  value: unknown
+  value: unknown,
 ): value is Output => {
   return (schema as z.AnyZodObject).required({ type: true }).safeParse(value)
     .success;

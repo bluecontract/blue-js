@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { yamlBlueParse } from '../parse';
 import Big from 'big.js';
 
@@ -40,7 +39,7 @@ describe('yamlBlueParse - BigNumber Handling', () => {
     expect(result).toHaveProperty('big_int');
     expect(result.big_int).toBeInstanceOf(Big);
     expect(result.big_int.toString()).toBe(
-      '1234567890123456789012345678901234567890'
+      '1234567890123456789012345678901234567890',
     );
   });
 

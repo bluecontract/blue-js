@@ -15,7 +15,7 @@ export interface MergingProcessor {
   process(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode;
 
   /**
@@ -29,6 +29,6 @@ export interface MergingProcessor {
   postProcess?(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode;
 }

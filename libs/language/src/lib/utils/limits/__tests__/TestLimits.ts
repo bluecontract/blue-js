@@ -34,7 +34,7 @@ export class TestLimits extends Limits {
    */
   public shouldExtendPathSegment(
     pathSegment: string,
-    currentNode: BlueNode
+    currentNode: BlueNode,
   ): boolean {
     return !this.isValueBlocked(currentNode);
   }
@@ -47,7 +47,7 @@ export class TestLimits extends Limits {
    */
   public shouldMergePathSegment(
     pathSegment: string,
-    currentNode: BlueNode
+    currentNode: BlueNode,
   ): boolean {
     return !this.isValueBlocked(currentNode);
   }

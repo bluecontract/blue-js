@@ -1,9 +1,9 @@
-import type { Node } from '../types/index.js';
+import { BlueNode } from '@blue-labs/language';
 import { ScopeRuntimeContext } from './scope-runtime-context.js';
 
 export class EmissionRegistry {
   private readonly scopesMap = new Map<string, ScopeRuntimeContext>();
-  private readonly rootEmissionList: Node[] = [];
+  private readonly rootEmissionList: BlueNode[] = [];
 
   scopes(): Map<string, ScopeRuntimeContext> {
     return this.scopesMap;
@@ -22,11 +22,11 @@ export class EmissionRegistry {
     return this.scopesMap.get(scopePath);
   }
 
-  rootEmissions(): readonly Node[] {
+  rootEmissions(): readonly BlueNode[] {
     return [...this.rootEmissionList];
   }
 
-  recordRootEmission(emission: Node): void {
+  recordRootEmission(emission: BlueNode): void {
     this.rootEmissionList.push(emission);
   }
 

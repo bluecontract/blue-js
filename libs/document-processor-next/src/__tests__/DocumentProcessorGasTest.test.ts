@@ -1,18 +1,15 @@
+import { createBlue } from '../test-support/blue.js';
 import { beforeEach, describe, it, expect } from 'vitest';
-import { Blue, BlueNode, JsonCanonicalizer } from '@blue-labs/language';
+import { BlueNode, JsonCanonicalizer } from '@blue-labs/language';
 
 import {
   EmitEventsContractProcessor,
   SetPropertyContractProcessor,
   TestEventChannelProcessor,
 } from './processors/index.js';
-import {
-  buildProcessor,
-  expectOk,
-  property,
-} from './test-utils.js';
+import { buildProcessor, expectOk, property } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function scopeDepth(scopePath: string): number {
   if (!scopePath || scopePath === '/') {
@@ -49,14 +46,17 @@ describe('DocumentProcessorGasTest', () => {
       blue,
       new TestEventChannelProcessor(),
       new SetPropertyContractProcessor(),
-      new EmitEventsContractProcessor()
+      new EmitEventsContractProcessor(),
     );
   });
 
   it('initializationGasMatchesExpectedCharges', () => {
     const document = blue.yamlToNode('name: Doc\n');
     const result = expectOk(processor.initializeDocument(document.clone()));
-    const initializedMarker = property(property(result.document, 'contracts'), 'initialized');
+    const initializedMarker = property(
+      property(result.document, 'contracts'),
+      'initialized',
+    );
     const markerCharge = sizeCharge(initializedMarker);
 
     const expected =
@@ -85,9 +85,12 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document.clone();
-    const event = blue.jsonValueToNode({ type: { blueId: 'TestEvent' }, eventId: 'evt-1' });
+    const event = blue.jsonValueToNode({
+      type: { blueId: 'TestEvent' },
+      eventId: 'evt-1',
+    });
 
     const result = expectOk(processor.processDocument(initialized, event));
     const valueNode = property(result.document, 'x');
@@ -120,14 +123,16 @@ contracts:
           blueId: TestEvent
         kind: emitted
   triggered:
-    type:
-      blueId: TriggeredEventChannel
+    type: Triggered Event Channel
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document.clone();
-    const event = blue.jsonValueToNode({ type: { blueId: 'TestEvent' }, eventId: 'evt-emit' });
+    const event = blue.jsonValueToNode({
+      type: { blueId: 'TestEvent' },
+      eventId: 'evt-emit',
+    });
 
     const result = expectOk(processor.processDocument(initialized, event));
     const emitter = property(property(result.document, 'contracts'), 'emitter');

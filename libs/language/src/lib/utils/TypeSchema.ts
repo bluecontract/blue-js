@@ -25,7 +25,7 @@ export class BlueNodeTypeSchema {
     options?: {
       checkSchemaExtensions?: boolean;
       typeSchemaResolver?: TypeSchemaResolver | null;
-    }
+    },
   ): boolean {
     const schemaBlueId = BlueIdResolver.resolveBlueId(schema);
     const nodeTypeBlueId = node.getType()?.getBlueId();
@@ -56,7 +56,7 @@ export class BlueNodeTypeSchema {
    */
   static checkSchemaExtension(
     extendedSchema: ZodTypeAny | null | undefined,
-    baseSchema: ZodTypeAny
+    baseSchema: ZodTypeAny,
   ): boolean {
     if (!isNonNullable(extendedSchema)) {
       return false;

@@ -19,5 +19,5 @@ export const ySchema = withTypeBlueId('Y-BlueId')(
 
     wildcardXListField: z.array(xSchema).optional(),
     subscriptions: z.array(xSubscriptionSchema).optional(),
-  })
+  }),
 );

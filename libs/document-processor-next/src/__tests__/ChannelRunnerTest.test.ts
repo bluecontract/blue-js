@@ -1,5 +1,5 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, it, expect } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import {
   IncrementPropertyContractProcessor,
@@ -7,10 +7,15 @@ import {
   SetPropertyOnEventContractProcessor,
   TestEventChannelProcessor,
 } from './processors/index.js';
-import { expectOk, property, propertyOptional, buildProcessor } from './test-utils.js';
+import {
+  expectOk,
+  property,
+  propertyOptional,
+  buildProcessor,
+} from './test-utils.js';
 import type { DocumentProcessor } from '../api/document-processor.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function initialize(processor: DocumentProcessor, yaml: string) {
   const document = blue.yamlToNode(yaml);
@@ -23,12 +28,16 @@ function eventNode(data: {
   readonly kind?: string;
   readonly value?: number;
 }) {
-  return blue.jsonValueToNode({
+  const node = blue.jsonValueToNode({
     type: { blueId: 'TestEvent' },
     ...(data.eventId ? { eventId: data.eventId } : {}),
     ...(data.kind ? { kind: data.kind } : {}),
     ...(data.value != null ? { value: data.value } : {}),
   });
+  if (data.eventId) {
+    node.setBlueId(data.eventId);
+  }
+  return node;
 }
 
 describe('ChannelRunnerTest', () => {
@@ -36,7 +45,7 @@ describe('ChannelRunnerTest', () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
-      new IncrementPropertyContractProcessor()
+      new IncrementPropertyContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -53,7 +62,7 @@ describe('ChannelRunnerTest', () => {
 
     const firstEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
     const afterFirst = expectOk(
-      processor.processDocument(current.clone(), firstEvent)
+      processor.processDocument(current.clone(), firstEvent),
     );
     current = afterFirst.document.clone();
 
@@ -64,14 +73,14 @@ describe('ChannelRunnerTest', () => {
 
     const duplicateEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
     const afterDuplicate = expectOk(
-      processor.processDocument(current.clone(), duplicateEvent)
+      processor.processDocument(current.clone(), duplicateEvent),
     );
     current = afterDuplicate.document.clone();
     expect(Number(property(current, 'counter').getValue())).toBe(1);
 
     const secondEvent = eventNode({ eventId: 'evt-2', kind: 'original' });
     const afterSecond = expectOk(
-      processor.processDocument(current.clone(), secondEvent)
+      processor.processDocument(current.clone(), secondEvent),
     );
     current = afterSecond.document.clone();
     expect(Number(property(current, 'counter').getValue())).toBe(2);
@@ -81,7 +90,7 @@ describe('ChannelRunnerTest', () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
-      new IncrementPropertyContractProcessor()
+      new IncrementPropertyContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -98,7 +107,7 @@ describe('ChannelRunnerTest', () => {
 
     const first = eventNode({ eventId: 'evt-1', kind: 'original' });
     current = expectOk(
-      processor.processDocument(current.clone(), first)
+      processor.processDocument(current.clone(), first),
     ).document.clone();
 
     const sameIdDifferentPayload = eventNode({
@@ -106,16 +115,16 @@ describe('ChannelRunnerTest', () => {
       kind: 'mutated',
     });
     current = expectOk(
-      processor.processDocument(current.clone(), sameIdDifferentPayload)
+      processor.processDocument(current.clone(), sameIdDifferentPayload),
     ).document.clone();
 
     current = expectOk(
-      processor.processDocument(current.clone(), sameIdDifferentPayload)
+      processor.processDocument(current.clone(), sameIdDifferentPayload),
     ).document.clone();
 
     const newId = eventNode({ eventId: 'evt-2', kind: 'mutated' });
     current = expectOk(
-      processor.processDocument(current.clone(), newId)
+      processor.processDocument(current.clone(), newId),
     ).document.clone();
 
     expect(Number(property(current, 'counter').getValue())).toBe(2);
@@ -125,7 +134,7 @@ describe('ChannelRunnerTest', () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
-      new IncrementPropertyContractProcessor()
+      new IncrementPropertyContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -143,32 +152,29 @@ describe('ChannelRunnerTest', () => {
     current = expectOk(
       processor.processDocument(
         current.clone(),
-        eventNode({ kind: 'original' })
-      )
+        eventNode({ kind: 'original' }),
+      ),
     ).document.clone();
 
     current = expectOk(
       processor.processDocument(
         current.clone(),
-        eventNode({ kind: 'original' })
-      )
+        eventNode({ kind: 'original' }),
+      ),
     ).document.clone();
 
     current = expectOk(
-      processor.processDocument(
-        current.clone(),
-        eventNode({ kind: 'other' })
-      )
+      processor.processDocument(current.clone(), eventNode({ kind: 'other' })),
     ).document.clone();
 
     expect(Number(property(current, 'counter').getValue())).toBe(2);
   });
 
-  it('deliversChannelizedEventToHandlersAndCheckpoint', () => {
+  it('deliversChannelizedEventToHandlersAndPersistsOriginalInCheckpoint', () => {
     const processor = buildProcessor(
       blue,
       new NormalizingTestEventChannelProcessor(),
-      new SetPropertyOnEventContractProcessor()
+      new SetPropertyOnEventContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -187,7 +193,7 @@ describe('ChannelRunnerTest', () => {
     let current = initialize(processor, yaml);
     const firstEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
     current = expectOk(
-      processor.processDocument(current.clone(), firstEvent)
+      processor.processDocument(current.clone(), firstEvent),
     ).document.clone();
 
     const originalKind = firstEvent.getProperties()?.kind?.getValue();
@@ -200,8 +206,8 @@ describe('ChannelRunnerTest', () => {
     const lastEvents = property(checkpoint, 'lastEvents');
     const storedEvent = propertyOptional(lastEvents, 'testChannel');
     expect(storedEvent).toBeDefined();
-    expect(
-      storedEvent?.getProperties()?.kind?.getValue()
-    ).toBe(NormalizingTestEventChannelProcessor.NORMALIZED_KIND);
+    // Channel delivered channelized event to handlers (verified by flag above),
+    // but checkpoint should persist the original external event
+    expect(storedEvent?.getProperties()?.kind?.getValue()).toBe('original');
   });
 });

@@ -2,7 +2,6 @@ import type {
   ChannelProcessor,
   ChannelEvaluationContext,
 } from '../../registry/types.js';
-import type { Node } from '../../types/index.js';
 import { BlueNode } from '@blue-labs/language';
 import {
   testEventChannelSchema,
@@ -22,7 +21,7 @@ export class NormalizingTestEventChannelProcessor
 
   matches(
     contract: TestEventChannel,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): boolean {
     const blue = context.blue;
     if (!context.event || !blue.isTypeOf(context.event, testEventSchema))
@@ -33,23 +32,14 @@ export class NormalizingTestEventChannelProcessor
     const event = context.event;
     if (event) {
       const nextKind = new BlueNode().setValue(
-        NormalizingTestEventChannelProcessor.NORMALIZED_KIND
+        NormalizingTestEventChannelProcessor.NORMALIZED_KIND,
       );
       event.setProperties({ ...(event.getProperties() ?? {}), kind: nextKind });
     }
     return true;
   }
 
-  eventId(
-    _contract: TestEventChannel,
-    context: ChannelEvaluationContext
-  ): string | null | undefined {
-    const node = context.event;
-    const value = node?.getProperties()?.eventId?.getValue();
-    return typeof value === 'string' ? value : null;
-  }
-
-  private resolveEventType(event: Node | null): string | null {
+  private resolveEventType(event: BlueNode | null): string | null {
     if (!event) return null;
     const typeNode = event.getType?.();
     if (!typeNode) return null;

@@ -27,7 +27,7 @@ export abstract class BaseChannelProcessor implements ContractProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    contractName?: string
+    contractName?: string,
   ): boolean;
 
   /**
@@ -38,6 +38,6 @@ export abstract class BaseChannelProcessor implements ContractProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    contractName?: string
+    contractName?: string,
   ): void | Promise<void>;
 }

@@ -13,9 +13,9 @@ export const proxySchema = <
   UnknownKeys extends UnknownKeysParam = UnknownKeysParam,
   Catchall extends ZodTypeAny = ZodTypeAny,
   Output = objectOutputType<T, Catchall, UnknownKeys>,
-  Input = objectInputType<T, Catchall, UnknownKeys>
+  Input = objectInputType<T, Catchall, UnknownKeys>,
 >(
-  schema: ZodObject<T, UnknownKeys, Catchall, Output, Input>
+  schema: ZodObject<T, UnknownKeys, Catchall, Output, Input>,
 ) => {
   return new Proxy(schema, {
     get(target, prop, receiver) {

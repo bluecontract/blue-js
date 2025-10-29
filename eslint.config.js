@@ -1,6 +1,7 @@
 const nx = require('@nx/eslint-plugin');
 const typescriptParser = require('@typescript-eslint/parser');
 const typescript = require('@typescript-eslint/eslint-plugin');
+const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
 
 module.exports = [
   ...nx.configs['flat/base'],
@@ -20,7 +21,10 @@ module.exports = [
         'error',
         {
           enforceBuildableLibDependency: true,
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?js$'],
+          allow: [
+            '^.*/eslint(\\.base)?\\.config\\.[cm]?js$',
+            '@blue-repository/**',
+          ],
           depConstraints: [
             {
               sourceTag: '*',
@@ -36,6 +40,7 @@ module.exports = [
     // Override or add rules here
     rules: {},
   },
+  eslintPluginPrettierRecommended,
   // Config for  vitest test files
   {
     files: ['**/*.test.ts', '**/*.spec.ts', 'vitest.config.ts'],

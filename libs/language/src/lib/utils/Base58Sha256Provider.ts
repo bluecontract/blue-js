@@ -37,7 +37,7 @@ export class Base58Sha256Provider {
     const nodeCrypto = this.cryptoEnv.getNodeCrypto();
     if (!nodeCrypto) {
       throw new Error(
-        'Synchronous SHA-256 is not available in this environment'
+        'Synchronous SHA-256 is not available in this environment',
       );
     }
     const buffer = nodeCrypto.createHash('sha256').update(input).digest();

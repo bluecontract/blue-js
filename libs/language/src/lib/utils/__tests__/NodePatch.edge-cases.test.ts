@@ -73,10 +73,10 @@ describe('NodePatch Edge Cases and Array Access Patterns', () => {
 
       const result = applyBlueNodePatches(node, patchesArray);
       expect((result.get('/data/items') as BlueNode).getItems()?.length).toBe(
-        3
+        3,
       );
       expect((result.get('/list/0/items') as BlueNode).getItems()?.length).toBe(
-        3
+        3,
       );
       expect(result.get('/list/1/items/0/value')).toBe('Z');
     });
@@ -149,7 +149,7 @@ describe('NodePatch Edge Cases and Array Access Patterns', () => {
       expect(result.getValue()).toBe('new-value');
       expect(result.getProperties()?.myType.getValue()).toBe('NewUserType');
       expect(
-        (result.getProperties()?.myItems as BlueNode).getItems()?.length
+        (result.getProperties()?.myItems as BlueNode).getItems()?.length,
       ).toBe(3);
       expect(result.getProperties()?.myValue.getValue()).toBe('NewUserValue');
     });
@@ -183,7 +183,7 @@ describe('NodePatch Edge Cases and Array Access Patterns', () => {
           .getItems()?.[0]
           .getItems()?.[1]
           .getValue()
-          ?.toString()
+          ?.toString(),
       ).toBe('22');
       expect(matrix.getItems()?.[1].getItems()?.[1].getItems()?.length).toBe(3);
       expect(matrix.getItems()?.[0].getItems()?.length).toBe(3);
@@ -217,7 +217,7 @@ describe('NodePatch Edge Cases and Array Access Patterns', () => {
         val: 'x',
       }; // Single patch
       expect(() => applyBlueNodePatch(node, patch)).toThrow(
-        /Cannot resolve '\/list\/5'/
+        /Cannot resolve '\/list\/5'/,
       );
     });
   });
@@ -256,13 +256,13 @@ describe('NodePatch Edge Cases and Array Access Patterns', () => {
       ];
       const result = applyBlueNodePatches(node, patchesArray);
       expect(result.get('/bigIntCopy/value')?.toString()).toBe(
-        '99999999999999999999999999999'
+        '99999999999999999999999999999',
       );
       expect(result.get('/bigDecimalCopy/value')?.toString()).toContain(
-        '3.14159'
+        '3.14159',
       );
       expect(result.get('/bigIntMoved/value')?.toString()).toBe(
-        '99999999999999999999999999999'
+        '99999999999999999999999999999',
       );
       expect(result.get('/bigInt')).toBeUndefined();
     });
@@ -301,15 +301,15 @@ describe('NodePatch Edge Cases and Array Access Patterns', () => {
       const items = result.getItems();
       expect(items?.length).toBe(101);
       const item10 = items?.find(
-        (item) => item.get('/id/value')?.toString() === '10'
+        (item) => item.get('/id/value')?.toString() === '10',
       );
       expect(item10?.getValue()).toBe('updated10');
       const item25 = items?.find(
-        (item) => item.get('/id/value')?.toString() === '25'
+        (item) => item.get('/id/value')?.toString() === '25',
       );
       expect(item25).toBeUndefined();
       const newItem = items?.find(
-        (item) => item.get('/id/value')?.toString() === '100'
+        (item) => item.get('/id/value')?.toString() === '100',
       );
       expect(newItem?.getValue()).toBe('new0');
     });

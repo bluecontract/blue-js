@@ -127,7 +127,7 @@ export class ExpressionEvaluator {
     code: string,
     bindings: VMBindings,
     ctx: ProcessingContext,
-    options: { isCodeBlock?: boolean; timeout?: number } = {}
+    options: { isCodeBlock?: boolean; timeout?: number } = {},
   ): Promise<unknown> {
     if (!ivm) throw new Error(this.getIvmUnavailableMessage());
 
@@ -143,7 +143,7 @@ export class ExpressionEvaluator {
         isolate,
         context,
         moduleCache,
-        ctx
+        ctx,
       );
 
       let result: unknown;
@@ -154,7 +154,7 @@ export class ExpressionEvaluator {
           context,
           code,
           bindings,
-          options
+          options,
         );
       } else {
         // ES Module evaluation
@@ -163,7 +163,7 @@ export class ExpressionEvaluator {
           context,
           code,
           options,
-          resolve
+          resolve,
         );
       }
       return this.deepClone(result);
@@ -183,12 +183,12 @@ export class ExpressionEvaluator {
    */
   private static async setupIsolateEnvironment(
     global: import('isolated-vm').Context['global'],
-    bindings: VMBindings
+    bindings: VMBindings,
   ): Promise<void> {
     if (!ivm) throw new Error('isolated-vm not available');
 
     const logCb = new ivm.Callback((...args: unknown[]) =>
-      console.log(...args)
+      console.log(...args),
     );
 
     // Create a console object with log method
@@ -202,7 +202,7 @@ export class ExpressionEvaluator {
       if (typeof value === 'function') {
         await global.set(
           key,
-          new ivm.Callback(value as (...args: unknown[]) => unknown)
+          new ivm.Callback(value as (...args: unknown[]) => unknown),
         );
       } else {
         await global.set(key, new ivm.ExternalCopy(value).copyInto());
@@ -217,7 +217,7 @@ export class ExpressionEvaluator {
     isolate: import('isolated-vm').Isolate,
     context: import('isolated-vm').Context,
     moduleCache: Map<string, Module>,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): (specifier: string, referrer: Module) => Promise<Module> {
     return async (specifier: string) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -229,7 +229,7 @@ export class ExpressionEvaluator {
 
         if (typeof fetchFn !== 'function') {
           throw new Error(
-            `ProcessingContext is missing a loadBlueContent(blueId) implementation (needed for ${specifier})`
+            `ProcessingContext is missing a loadBlueContent(blueId) implementation (needed for ${specifier})`,
           );
         }
 
@@ -238,7 +238,7 @@ export class ExpressionEvaluator {
         moduleCache.set(specifier, mod);
         await mod.instantiate(
           context,
-          this.createModuleResolver(isolate, context, moduleCache, ctx)
+          this.createModuleResolver(isolate, context, moduleCache, ctx),
         );
         return mod;
       }
@@ -249,7 +249,7 @@ export class ExpressionEvaluator {
           src = await ctx.loadExternalModule(specifier);
         } else {
           throw new Error(
-            `ProcessingContext is missing a loadExternalModule(url) implementation (needed for ${specifier})`
+            `ProcessingContext is missing a loadExternalModule(url) implementation (needed for ${specifier})`,
           );
         }
 
@@ -257,7 +257,7 @@ export class ExpressionEvaluator {
         moduleCache.set(specifier, mod);
         await mod.instantiate(
           context,
-          this.createModuleResolver(isolate, context, moduleCache, ctx)
+          this.createModuleResolver(isolate, context, moduleCache, ctx),
         );
         return mod;
       }
@@ -274,7 +274,7 @@ export class ExpressionEvaluator {
     context: import('isolated-vm').Context,
     code: string,
     bindings: VMBindings,
-    options: { isCodeBlock?: boolean; timeout?: number }
+    options: { isCodeBlock?: boolean; timeout?: number },
   ): Promise<unknown> {
     const bindingNames = Object.keys(bindings).join(', ');
     const bindingValues = Object.keys(bindings).map((k) => k);
@@ -301,13 +301,13 @@ export class ExpressionEvaluator {
     context: import('isolated-vm').Context,
     code: string,
     options: { isCodeBlock?: boolean; timeout?: number },
-    resolve: (specifier: string, referrer: Module) => Promise<Module>
+    resolve: (specifier: string, referrer: Module) => Promise<Module>,
   ): Promise<unknown> {
     let moduleCode = code;
     if (options.isCodeBlock) {
       const importExportRegex = /^\s*(import\s.+?;|export\s.+?;)/gm;
       const importExportLines = (code.match(importExportRegex) || []).join(
-        '\n'
+        '\n',
       );
       const codeWithoutImports = code.replace(importExportRegex, '').trim();
 

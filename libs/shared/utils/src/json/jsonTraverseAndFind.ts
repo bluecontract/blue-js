@@ -3,7 +3,7 @@ import { JsonValue } from './schema';
 
 export const jsonTraverseAndFind = (
   obj: JsonValue,
-  predicate: (value: JsonValue, path: string[]) => boolean
+  predicate: (value: JsonValue, path: string[]) => boolean,
 ): { value: JsonValue; path: string[] }[] => {
   const results: { value: JsonValue; path: string[] }[] = [];
 

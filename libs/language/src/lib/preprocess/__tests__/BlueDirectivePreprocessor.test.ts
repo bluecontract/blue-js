@@ -17,7 +17,7 @@ class MockUrlFetchStrategy implements UrlFetchStrategy {
     mockResponse: { data: string; contentType: string } = {
       data: '{"value": "mock data"}',
       contentType: 'application/json',
-    }
+    },
   ) {
     this.mockResponse = mockResponse;
   }
@@ -80,11 +80,11 @@ describe('BlueDirectivePreprocessor', () => {
 
     it('should throw an error for URL values', () => {
       const node = new BlueNode().setBlue(
-        new BlueNode().setValue('https://example.com/data.json')
+        new BlueNode().setValue('https://example.com/data.json'),
       );
 
       expect(() => preprocessor.process(node)).toThrow(
-        "URL 'https://example.com/data.json' detected. Use the async version of this method to fetch the content."
+        "URL 'https://example.com/data.json' detected. Use the async version of this method to fetch the content.",
       );
     });
 
@@ -95,7 +95,7 @@ describe('BlueDirectivePreprocessor', () => {
       const node = new BlueNode().setBlue(new BlueNode().setValue('invalid'));
 
       expect(() => preprocessor.process(node)).toThrow(
-        'Invalid blue value: invalid'
+        'Invalid blue value: invalid',
       );
 
       spy.mockRestore();
@@ -144,7 +144,7 @@ describe('BlueDirectivePreprocessor', () => {
       const node = new BlueNode().setBlue(new BlueNode().setValue(url));
 
       await expect(preprocessor.processAsync(node)).rejects.toThrow(
-        'URL fetching is disabled. Enable it using the enableFetching method.'
+        'URL fetching is disabled. Enable it using the enableFetching method.',
       );
 
       expect(mockFetchStrategy.fetchCalled).toBe(false);
@@ -176,7 +176,7 @@ describe('BlueDirectivePreprocessor', () => {
       const node = new BlueNode().setBlue(new BlueNode().setValue(url));
 
       await expect(preprocessor.processAsync(node)).rejects.toThrow(
-        `UrlContentFetcher not provided for URL: ${url}`
+        `UrlContentFetcher not provided for URL: ${url}`,
       );
     });
 
@@ -187,7 +187,7 @@ describe('BlueDirectivePreprocessor', () => {
       const node = new BlueNode().setBlue(new BlueNode().setValue('invalid'));
 
       await expect(preprocessor.processAsync(node)).rejects.toThrow(
-        'Invalid blue value: invalid'
+        'Invalid blue value: invalid',
       );
 
       spy.mockRestore();

@@ -84,9 +84,8 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
 
     const resolvedDocNode = blue.resolve(docNode);
 
-    const { state, emitted } = await documentProcessor.initialize(
-      resolvedDocNode
-    );
+    const { state, emitted } =
+      await documentProcessor.initialize(resolvedDocNode);
 
     // Verify the document was updated by the lifecycle handler
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -94,18 +93,18 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
 
     // Should emit lifecycle events from channels
     const lifecycleEvents = emitted.filter((e) =>
-      blue.isTypeOf(e, DocumentProcessingInitiatedSchema)
+      blue.isTypeOf(e, DocumentProcessingInitiatedSchema),
     );
     expect(lifecycleEvents.length).toBe(1);
 
     // Should emit document update event from the sequential workflow
     const docUpdateEvents = emitted.filter((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvents.length).toBe(1);
 
     const statusUpdate = docUpdateEvents.find(
-      (e) => e.get('/path') === '/status'
+      (e) => e.get('/path') === '/status',
     );
     expect(statusUpdate).toBeDefined();
     expect(statusUpdate!.get('/val')).toBe('initialized');
@@ -118,7 +117,7 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
     // First initialize the document
     const initResult = await documentProcessor.initialize(docNode);
     expect((blue.nodeToJson(initResult.state, 'simple') as any).status).toBe(
-      'initialized'
+      'initialized',
     );
 
     // Then process a regular timeline event
@@ -128,12 +127,12 @@ describe('LifecycleEventChannelProcessor - Integration Tests', () => {
         name: 'User Action',
         action: 'click',
       },
-      blue
+      blue,
     );
 
     const { state: finalState } = await documentProcessor.processEvents(
       initResult.state,
-      [timelineEvent]
+      [timelineEvent],
     );
 
     const finalJsonState = blue.nodeToJson(finalState, 'simple') as any;

@@ -63,9 +63,9 @@ export const CORE_TYPE_BLUE_IDS = [
 ] as const;
 
 export const CORE_TYPE_NAME_TO_BLUE_ID_MAP = Object.fromEntries(
-  CORE_TYPES.map((type, index) => [type, CORE_TYPE_BLUE_IDS[index]])
+  CORE_TYPES.map((type, index) => [type, CORE_TYPE_BLUE_IDS[index]]),
 ) as Record<(typeof CORE_TYPES)[number], (typeof CORE_TYPE_BLUE_IDS)[number]>;
 
 export const CORE_TYPE_BLUE_ID_TO_NAME_MAP = Object.fromEntries(
-  CORE_TYPE_BLUE_IDS.map((blueId, index) => [blueId, CORE_TYPES[index]])
+  CORE_TYPE_BLUE_IDS.map((blueId, index) => [blueId, CORE_TYPES[index]]),
 ) as Record<(typeof CORE_TYPE_BLUE_IDS)[number], (typeof CORE_TYPES)[number]>;

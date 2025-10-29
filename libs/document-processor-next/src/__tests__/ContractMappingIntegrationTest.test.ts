@@ -2,8 +2,6 @@ import { expect, it, describe } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { Blue } from '@blue-labs/language';
-
 import {
   channelEventCheckpointSchema,
   documentUpdateChannelSchema,
@@ -11,20 +9,21 @@ import {
   initializationMarkerSchema,
   lifecycleChannelSchema,
   processEmbeddedMarkerSchema,
-  processingFailureMarkerSchema,
+  processingTerminatedMarkerSchema,
   triggeredEventChannelSchema,
 } from '../model/index.js';
 import { setPropertySchema } from './models/index.js';
 import { property } from './test-utils.js';
+import { createBlue } from '../test-support/blue.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 describe('ContractMappingIntegrationTest', () => {
   it('loadsAllContractsFromBlueYaml', () => {
     const resourcePath = path.join(
       __dirname,
       'resources',
-      'all-contracts.blue'
+      'all-contracts.blue',
     );
     const yaml = fs.readFileSync(resourcePath, 'utf8');
 
@@ -34,37 +33,37 @@ describe('ContractMappingIntegrationTest', () => {
 
     const embedded = blue.nodeToSchemaOutput(
       entries.embedded,
-      processEmbeddedMarkerSchema
+      processEmbeddedMarkerSchema,
     );
     expect(embedded.paths).toHaveLength(2);
 
     const updateContract = blue.nodeToSchemaOutput(
       entries.documentUpdate,
-      documentUpdateChannelSchema
+      documentUpdateChannelSchema,
     );
     expect(updateContract.path).toBe('/');
 
     const triggered = blue.nodeToSchemaOutput(
       entries.triggered,
-      triggeredEventChannelSchema
+      triggeredEventChannelSchema,
     );
     expect(triggered).toBeDefined();
 
     const lifecycle = blue.nodeToSchemaOutput(
       entries.lifecycleChannel,
-      lifecycleChannelSchema
+      lifecycleChannelSchema,
     );
     expect(lifecycle).toBeDefined();
 
     const embeddedNode = blue.nodeToSchemaOutput(
       entries.embeddedNode,
-      embeddedNodeChannelSchema
+      embeddedNodeChannelSchema,
     );
     expect(embeddedNode.childPath).toBe('/payment');
 
     const checkpoint = blue.nodeToSchemaOutput(
       entries.checkpoint,
-      channelEventCheckpointSchema
+      channelEventCheckpointSchema,
     );
     const storedEvent = checkpoint.lastEvents?.external ?? null;
     expect(storedEvent).toBeDefined();
@@ -73,24 +72,22 @@ describe('ContractMappingIntegrationTest', () => {
 
     const initialized = blue.nodeToSchemaOutput(
       entries.initialized,
-      initializationMarkerSchema
+      initializationMarkerSchema,
     );
     expect(initialized.documentId).toBe('doc-123');
 
     const failure = blue.nodeToSchemaOutput(
       entries.failure,
-      processingFailureMarkerSchema
+      processingTerminatedMarkerSchema,
     );
-    expect(failure.code).toBe('RuntimeFatal');
+    expect(failure.cause).toBe('RuntimeFatal');
     expect(failure.reason).toBe('boundary violation');
 
     const setProperty = blue.nodeToSchemaOutput(
       entries.setProperty,
-      setPropertySchema
+      setPropertySchema,
     );
-    expect(setProperty.channelKey ?? setProperty.channel).toBe(
-      'lifecycleChannel'
-    );
+    expect(setProperty.channel).toBe('lifecycleChannel');
     expect(setProperty.propertyKey).toBe('/x');
     expect(setProperty.propertyValue).toBe(7);
     expect(setProperty.path).toBe('/custom/path/');

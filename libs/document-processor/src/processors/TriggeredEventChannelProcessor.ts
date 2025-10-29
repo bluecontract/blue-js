@@ -18,7 +18,7 @@ export class TriggeredEventChannelProcessor extends BaseChannelProcessor {
     event: EventNode,
     _node: DocumentNode,
     ctx: ProcessingContext,
-    path: string
+    path: string,
   ): void {
     ctx.emitEvent({
       payload: event.payload,

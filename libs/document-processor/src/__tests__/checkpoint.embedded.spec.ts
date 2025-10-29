@@ -37,7 +37,7 @@ describe('Checkpoint – embedded documents via Process Embedded', () => {
   const payload: EventNodePayload = createTimelineEntryEvent(
     'orders',
     null,
-    blue
+    blue,
   );
 
   it('writes checkpoints in BOTH root and embedded docs', async () => {

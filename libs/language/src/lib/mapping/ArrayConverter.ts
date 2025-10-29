@@ -8,7 +8,7 @@ export class ArrayConverter implements Converter {
 
   convert<T extends ZodTypeAny, Cardinality extends ArrayCardinality = 'many'>(
     node: BlueNode,
-    targetType: ZodArray<T, Cardinality>
+    targetType: ZodArray<T, Cardinality>,
   ) {
     const items = node.getItems();
     if (!items) {
@@ -17,7 +17,7 @@ export class ArrayConverter implements Converter {
 
     const elementSchema = targetType.element;
     const result = items.map((item) =>
-      this.nodeToObjectConverter.convert(item, elementSchema)
+      this.nodeToObjectConverter.convert(item, elementSchema),
     );
     return result as arrayOutputType<T, Cardinality>;
   }

@@ -67,6 +67,6 @@ const json = JSON.stringify(testData, null, 2);
 
 writeFile(
   join(__dirname, 'data/testData.mjs'),
-  `export const testData = ${json}`
+  `export const testData = ${json}`,
 );
 writeFile(join(__dirname, 'data/testData.json'), json);

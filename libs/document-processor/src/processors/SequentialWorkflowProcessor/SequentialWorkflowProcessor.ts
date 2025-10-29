@@ -40,12 +40,12 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    context: ProcessingContext
+    context: ProcessingContext,
   ): boolean {
     const blue = context.getBlue();
     const sequentialWorkflow = blue.nodeToSchemaOutput(
       node,
-      SequentialWorkflowSchema
+      SequentialWorkflowSchema,
     );
 
     const matchChannelName = this.isChannelNameMatch(event, sequentialWorkflow);
@@ -58,7 +58,7 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
     event: EventNode,
     node: DocumentNode,
     context: ProcessingContext,
-    path: string
+    path: string,
   ): Promise<void> {
     const stepResults: Record<string, unknown> = {};
     const stepNodes = node.getProperties()?.['steps'].getItems();
@@ -74,7 +74,7 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
         event,
         context,
         path,
-        stepResults
+        stepResults,
       );
 
       if (result !== undefined) {
@@ -89,7 +89,7 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
 
   private isChannelNameMatch(
     event: EventNode,
-    sequentialWorkflow: SequentialWorkflow
+    sequentialWorkflow: SequentialWorkflow,
   ) {
     const channel = sequentialWorkflow.channel;
 
@@ -106,7 +106,7 @@ export class SequentialWorkflowProcessor implements ContractProcessor {
   private isEventPatternMatch(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     const channelEvent = node.getProperties()?.['event'];
 

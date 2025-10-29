@@ -15,7 +15,7 @@ export interface UrlFetchStrategy {
 const DefaultUrlFetchStrategy: UrlFetchStrategy = {
   fetchUrl: async (url: string) => {
     throw new Error(
-      `You must provide a custom UrlFetchStrategy to fetch content from URL: ${url}`
+      `You must provide a custom UrlFetchStrategy to fetch content from URL: ${url}`,
     );
   },
 };
@@ -47,7 +47,7 @@ export class UrlContentFetcher {
       const urlObj = new URL(url);
       return this.allowedDomains.some(
         (domain) =>
-          urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
+          urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`),
       );
     } catch {
       return false;
@@ -68,7 +68,7 @@ export class UrlContentFetcher {
 
     if (!this.enabled) {
       throw new Error(
-        `URL fetching is disabled. Enable it using the enableFetching method.`
+        `URL fetching is disabled. Enable it using the enableFetching method.`,
       );
     }
 

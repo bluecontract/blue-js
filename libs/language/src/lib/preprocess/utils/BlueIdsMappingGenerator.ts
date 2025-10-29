@@ -33,7 +33,7 @@ export class BlueIdsMappingGenerator {
    * @returns YAML string with mappings for all BlueIds
    */
   generateMappingsYaml(
-    transformationBlueId = '27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo'
+    transformationBlueId = '27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo',
   ): string {
     const allMappings: Record<string, string> = {};
 

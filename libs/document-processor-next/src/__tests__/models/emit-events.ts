@@ -7,7 +7,7 @@ export const emitEventsSchema = withTypeBlueId('EmitEvents')(
   handlerContractBaseSchema.extend({
     events: z.array(blueNodeField()).optional(),
     expectedKind: z.string().optional(),
-  })
+  }),
 );
 
 export type EmitEvents = z.infer<typeof emitEventsSchema>;

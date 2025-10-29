@@ -57,7 +57,7 @@ const fakeHashValueProvider = () => {
 };
 
 const fakeBlueIdCalculator = new BlueIdCalculator(
-  fakeHashValueProvider() as Base58Sha256Provider
+  fakeHashValueProvider() as Base58Sha256Provider,
 );
 
 describe('BlueIdCalculator', () => {
@@ -167,7 +167,7 @@ describe('BlueIdCalculator', () => {
 </script>: Browser Challenge
 `;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -182,7 +182,7 @@ describe('BlueIdCalculator', () => {
   it('testInteger', async () => {
     const yaml = `num: 36`;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -196,7 +196,7 @@ describe('BlueIdCalculator', () => {
   it('testDecimal', async () => {
     const yaml = `num: 36.55`;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -210,7 +210,7 @@ describe('BlueIdCalculator', () => {
   it('testBigIntegerV1', async () => {
     const yaml = `num: 36928735469874359687345908673940586739458679548679034857690345876905238476903485769`;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -227,7 +227,7 @@ describe('BlueIdCalculator', () => {
   type:
     blueId: ${INTEGER_TYPE_BLUE_ID}`;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -242,7 +242,7 @@ describe('BlueIdCalculator', () => {
     const yaml = `num:
   value: '36928735469874359687345908673940586739458679548679034857690345876905238476903485769'`;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -256,7 +256,7 @@ describe('BlueIdCalculator', () => {
   it('testBigDecimal', async () => {
     const yaml = `num: 36928735469874359687345908673940586739458679548679034857690345876905238476903485769.36928735469874359687345908673940586739458679548679034857690345876905238476903485769`;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -273,7 +273,7 @@ describe('BlueIdCalculator', () => {
   def`;
 
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -289,7 +289,7 @@ describe('BlueIdCalculator', () => {
   abc
   def`;
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
@@ -319,19 +319,19 @@ a: 1
 d: {}`;
 
     const node1 = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml1) as JsonBlueValue
+      yamlBlueParse(yaml1) as JsonBlueValue,
     );
     const node2 = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml2) as JsonBlueValue
+      yamlBlueParse(yaml2) as JsonBlueValue,
     );
     const node3 = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml3) as JsonBlueValue
+      yamlBlueParse(yaml3) as JsonBlueValue,
     );
     const node4 = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml4) as JsonBlueValue
+      yamlBlueParse(yaml4) as JsonBlueValue,
     );
     const node5 = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml5) as JsonBlueValue
+      yamlBlueParse(yaml5) as JsonBlueValue,
     );
 
     const result1 = await BlueIdCalculator.calculateBlueId(node1);
@@ -362,13 +362,13 @@ describe('BlueIdCalculator - additional tests', () => {
 
       const result1 = await fakeBlueIdCalculator.calculate(object);
       expect(result1).toBe(
-        'hash({abc={blueId=hash({def={blueId=hash({value=132452345234524739582739458723948572934875})}, ghi={blueId=hash({jkl={blueId=hash({value=132452345234524739582739458723948572934875.132452345234524739582739458723948572934875})}})}})}})'
+        'hash({abc={blueId=hash({def={blueId=hash({value=132452345234524739582739458723948572934875})}, ghi={blueId=hash({jkl={blueId=hash({value=132452345234524739582739458723948572934875.132452345234524739582739458723948572934875})}})}})}})',
       );
 
       const node = NodeDeserializer.deserialize(object);
       const result2 = await BlueIdCalculator.calculateBlueId(node);
       expect(result2).toMatchInlineSnapshot(
-        '"FuFBarhV7G7jed3Zi39CNEWscvJ2k6JcE1M41eA6Fwox"'
+        '"FuFBarhV7G7jed3Zi39CNEWscvJ2k6JcE1M41eA6Fwox"',
       );
     });
   });
@@ -434,7 +434,7 @@ abc:
     const result1 = await BlueIdCalculator.calculateBlueId(node);
 
     expect(result1).toMatchInlineSnapshot(
-      `"AZp8hjSjSdZy3rgpit56EW8eU3miZAKV44GUhNHEj8gw"`
+      `"AZp8hjSjSdZy3rgpit56EW8eU3miZAKV44GUhNHEj8gw"`,
     );
   });
 
@@ -453,7 +453,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"Gzq7ffwvERnxEvU1X41U66bJi9UhxFi4wzJ5ghx1tkVU"`
+      `"Gzq7ffwvERnxEvU1X41U66bJi9UhxFi4wzJ5ghx1tkVU"`,
     );
   });
 
@@ -469,7 +469,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"9tERNTyVtcuQCvbTWui5Db8dbNhk7yvmcu8yAiJQFDb4"`
+      `"9tERNTyVtcuQCvbTWui5Db8dbNhk7yvmcu8yAiJQFDb4"`,
     );
   });
 
@@ -487,7 +487,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"8wVTgTtD7GjMu8iecyRdG63tihkCqp44d7XFHrTwCHwG"`
+      `"8wVTgTtD7GjMu8iecyRdG63tihkCqp44d7XFHrTwCHwG"`,
     );
   });
 
@@ -498,7 +498,7 @@ abc:
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
     expect(blueId).toMatchInlineSnapshot(
-      `"1yASa1bb5eu4KpWCQRnpi4Edbk67FzLjd8AcfyiaoT"`
+      `"1yASa1bb5eu4KpWCQRnpi4Edbk67FzLjd8AcfyiaoT"`,
     );
     expect(blueId).toHaveLength(42);
     expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
@@ -515,7 +515,7 @@ abc:
     const node = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`
+      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`,
     );
   });
 
@@ -532,7 +532,7 @@ abc:
     const blueId2 = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId1).toEqual(blueId2);
     expect(blueId2).toMatchInlineSnapshot(
-      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`
+      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`,
     );
   });
 });

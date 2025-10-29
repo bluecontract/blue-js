@@ -7,7 +7,7 @@ export class NodePathAccessor {
     node: BlueNode,
     path: string,
     linkingProvider?: (node: BlueNode) => BlueNode | null,
-    resolveFinalLink = true
+    resolveFinalLink = true,
   ):
     | BlueNode
     | string
@@ -31,7 +31,7 @@ export class NodePathAccessor {
       segments,
       0,
       linkingProvider,
-      resolveFinalLink
+      resolveFinalLink,
     );
   }
 
@@ -40,7 +40,7 @@ export class NodePathAccessor {
     segments: string[],
     index: number,
     linkingProvider?: (node: BlueNode) => BlueNode | null,
-    resolveFinalLink?: boolean
+    resolveFinalLink?: boolean,
   ):
     | BlueNode
     | string
@@ -54,7 +54,7 @@ export class NodePathAccessor {
         node,
         segments[index],
         linkingProvider,
-        false
+        false,
       );
     }
 
@@ -72,7 +72,7 @@ export class NodePathAccessor {
       node,
       segment,
       linkingProvider,
-      true
+      true,
     );
     if (!nextNode) {
       return undefined;
@@ -82,7 +82,7 @@ export class NodePathAccessor {
       segments,
       index + 1,
       linkingProvider,
-      resolveFinalLink
+      resolveFinalLink,
     );
   }
 
@@ -90,7 +90,7 @@ export class NodePathAccessor {
     node: BlueNode,
     segment: string,
     linkingProvider?: (node: BlueNode) => BlueNode | null,
-    resolveLink?: boolean
+    resolveLink?: boolean,
   ): BlueNode | undefined {
     let resultNode: BlueNode | undefined;
 
@@ -182,7 +182,7 @@ export class NodePathAccessor {
 
   private static link(
     node: BlueNode,
-    linkingProvider: (node: BlueNode) => BlueNode | null
+    linkingProvider: (node: BlueNode) => BlueNode | null,
   ) {
     const linked = linkingProvider(node);
     return isNonNullable(linked) ? linked : node;

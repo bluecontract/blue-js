@@ -38,7 +38,7 @@ async function runProfile() {
     performance.measure(
       `Iteration ${i}`,
       `iteration-${i}-start`,
-      `iteration-${i}-end`
+      `iteration-${i}-end`,
     );
   }
 

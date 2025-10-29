@@ -21,7 +21,7 @@ export class PrimitiveConverter implements Converter {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       | ZodEnum<any>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      | ZodNativeEnum<any>
+      | ZodNativeEnum<any>,
   ) {
     return ValueConverter.convertValue(node, targetType);
   }

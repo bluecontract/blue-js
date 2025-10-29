@@ -25,7 +25,7 @@ export class NodeDeserializer {
   private static handleNode(node: unknown): BlueNode {
     if (node === undefined) {
       throw new Error(
-        "This is not a valid JSON-like value. Found 'undefined' as a value."
+        "This is not a valid JSON-like value. Found 'undefined' as a value.",
       );
     } else if (isJsonBlueObject(node)) {
       const obj = new BlueNode();
@@ -47,7 +47,7 @@ export class NodeDeserializer {
               obj.setDescription(undefined);
             } else if (typeof value !== 'string') {
               throw new Error(
-                `The ${OBJECT_DESCRIPTION} field must be a string.`
+                `The ${OBJECT_DESCRIPTION} field must be a string.`,
               );
             } else {
               obj.setDescription(value);

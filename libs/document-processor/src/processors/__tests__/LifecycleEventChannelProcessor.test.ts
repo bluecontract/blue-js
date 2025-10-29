@@ -52,7 +52,7 @@ describe('LifecycleEventChannelProcessor', () => {
     const supports = processor.supports(
       lifecycleEvent,
       mockChannelNode,
-      mockContext
+      mockContext,
     );
     expect(supports).toBe(true);
 
@@ -61,7 +61,7 @@ describe('LifecycleEventChannelProcessor', () => {
       lifecycleEvent,
       mockChannelNode,
       mockContext,
-      'testChannel'
+      'testChannel',
     );
     expect(mockContext.emitEvent).toHaveBeenCalledWith({
       payload: lifecycleEvent.payload,
@@ -87,7 +87,7 @@ describe('LifecycleEventChannelProcessor', () => {
     const supports = processor.supports(
       nonLifecycleEvent,
       mockChannelNode,
-      mockContext
+      mockContext,
     );
     expect(supports).toBe(false);
   });
@@ -108,7 +108,7 @@ describe('LifecycleEventChannelProcessor', () => {
     const supports = processor.supports(
       channelEvent,
       mockChannelNode,
-      mockContext
+      mockContext,
     );
     expect(supports).toBe(false);
   });

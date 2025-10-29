@@ -48,14 +48,14 @@ describe('DictionaryProcessor', () => {
         result
           .getKeyType()!
           .getBlueId() as keyof typeof CORE_TYPE_BLUE_ID_TO_NAME_MAP
-      ]
+      ],
     ).toBe('Text');
     expect(
       CORE_TYPE_BLUE_ID_TO_NAME_MAP[
         result
           .getValueType()!
           .getBlueId() as keyof typeof CORE_TYPE_BLUE_ID_TO_NAME_MAP
-      ]
+      ],
     ).toBe('Integer');
   });
 
@@ -102,7 +102,7 @@ key2:
         result
           .getKeyType()!
           .getBlueId() as keyof typeof CORE_TYPE_BLUE_ID_TO_NAME_MAP
-      ]
+      ],
     ).toBe('Text');
     expect(result.getValueType()?.getName()).toBe('A');
     expect(Object.keys(result.getProperties() || {}).length).toBe(2);

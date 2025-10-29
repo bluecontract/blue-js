@@ -33,7 +33,7 @@ export class ChannelEventCheckpointProcessor implements ContractProcessor {
     const eventPayload = event.rootEvent?.payload;
     if (!eventPayload) {
       throw new Error(
-        'Cannot calculate blueId for checkpoint: missing root event payload'
+        'Cannot calculate blueId for checkpoint: missing root event payload',
       );
     }
 

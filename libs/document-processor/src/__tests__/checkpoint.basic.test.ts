@@ -35,7 +35,7 @@ describe('Checkpoint – basic root-channel scenario', () => {
   const updateEvt: EventNodePayload = createTimelineEntryEvent(
     'user-123',
     null,
-    blue
+    blue,
   );
 
   it('writes exactly one blueId for the channel after the batch', async () => {
@@ -50,7 +50,7 @@ describe('Checkpoint – basic root-channel scenario', () => {
     const jsonState = blue.nodeToJson(state, 'simple') as any;
 
     expect(jsonState.contracts.checkpoint.lastEvents.userUpdates.blueId).toBe(
-      'blue-1'
+      'blue-1',
     );
   });
 
@@ -64,13 +64,13 @@ describe('Checkpoint – basic root-channel scenario', () => {
     ]);
     const secondBatch = await documentProcessor.processEvents(
       firstBatch.state,
-      [updateEvt]
+      [updateEvt],
     ); // second batch
 
     const jsonState = blue.nodeToJson(secondBatch.state, 'simple') as any;
 
     expect(jsonState.contracts.checkpoint.lastEvents.userUpdates.blueId).toBe(
-      'blue-2'
+      'blue-2',
     ); // incremented stub
   });
 });

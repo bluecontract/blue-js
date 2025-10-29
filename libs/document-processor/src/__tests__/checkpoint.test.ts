@@ -28,7 +28,7 @@ const blue = new Blue({
 const updatePayload: EventNodePayload = createTimelineEntryEvent(
   'profile-timeline',
   null,
-  blue
+  blue,
 );
 
 const baseDoc: JsonObject = {
@@ -176,14 +176,14 @@ describe('Checkpoint', () => {
     });
 
     await expect(
-      engine.processEvents(initializedState, [updatePayload])
+      engine.processEvents(initializedState, [updatePayload]),
     ).rejects.toThrow('boom');
 
     // second run with no events – state should still contain *no* blueId
     const { state } = await engine.processEvents(initializedState, []);
     const jsonState = blue.nodeToJson(state, 'simple') as any;
     expect(
-      jsonState.contracts.checkpoint.lastEvents.nameUpdates
+      jsonState.contracts.checkpoint.lastEvents.nameUpdates,
     ).toBeUndefined();
   });
 });

@@ -13,7 +13,7 @@ export class MergeReverser {
   private reverseNode(
     minimal: BlueNode,
     merged: BlueNode,
-    fromType: BlueNode | undefined
+    fromType: BlueNode | undefined,
   ): void {
     if (this.isIdenticalToType(merged, fromType)) {
       return;
@@ -27,7 +27,7 @@ export class MergeReverser {
 
   private isIdenticalToType(
     merged: BlueNode,
-    fromType: BlueNode | undefined
+    fromType: BlueNode | undefined,
   ): boolean {
     return (
       isNonNullable(merged.getBlueId()) &&
@@ -39,7 +39,7 @@ export class MergeReverser {
   private reverseBasicProperties(
     minimal: BlueNode,
     merged: BlueNode,
-    fromType: BlueNode | undefined
+    fromType: BlueNode | undefined,
   ): void {
     const mergedValue = merged.getValue();
     if (
@@ -75,11 +75,11 @@ export class MergeReverser {
   private reverseTypeReferences(
     minimal: BlueNode,
     merged: BlueNode,
-    fromType: BlueNode | undefined
+    fromType: BlueNode | undefined,
   ): void {
     const setIfDifferent = (
       getter: (node: BlueNode) => BlueNode | undefined,
-      setter: (node: BlueNode, value: BlueNode) => void
+      setter: (node: BlueNode, value: BlueNode) => void,
     ) => {
       const mergedTypeRef = getter(merged);
       const fromTypeRef = fromType ? getter(fromType) : undefined;
@@ -96,26 +96,26 @@ export class MergeReverser {
 
     setIfDifferent(
       (n) => n.getType(),
-      (n, v) => n.setType(v)
+      (n, v) => n.setType(v),
     );
     setIfDifferent(
       (n) => n.getItemType(),
-      (n, v) => n.setItemType(v)
+      (n, v) => n.setItemType(v),
     );
     setIfDifferent(
       (n) => n.getKeyType(),
-      (n, v) => n.setKeyType(v)
+      (n, v) => n.setKeyType(v),
     );
     setIfDifferent(
       (n) => n.getValueType(),
-      (n, v) => n.setValueType(v)
+      (n, v) => n.setValueType(v),
     );
   }
 
   private reverseItems(
     minimal: BlueNode,
     merged: BlueNode,
-    fromType: BlueNode | undefined
+    fromType: BlueNode | undefined,
   ): void {
     const mergedItems = merged.getItems();
     if (isNullable(mergedItems)) {
@@ -145,7 +145,7 @@ export class MergeReverser {
   private reverseProperties(
     minimal: BlueNode,
     merged: BlueNode,
-    fromType: BlueNode | undefined
+    fromType: BlueNode | undefined,
   ): void {
     const mergedProperties = merged.getProperties();
     if (isNullable(mergedProperties)) {
@@ -158,7 +158,7 @@ export class MergeReverser {
       const inheritedProperty = this.getInheritedProperty(
         key,
         merged,
-        fromType
+        fromType,
       );
 
       const minimalProperty = new BlueNode();
@@ -181,7 +181,7 @@ export class MergeReverser {
   private getInheritedProperty(
     key: string,
     merged: BlueNode,
-    fromType: BlueNode | undefined
+    fromType: BlueNode | undefined,
   ): BlueNode | undefined {
     const fromParentType = fromType?.getProperties()?.[key];
     const fromOwnType = merged.getType()?.getProperties()?.[key];

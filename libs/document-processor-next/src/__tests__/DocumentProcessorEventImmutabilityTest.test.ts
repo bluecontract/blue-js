@@ -1,5 +1,5 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, beforeEach, it, expect } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import {
   MutateEventContractProcessor,
@@ -8,7 +8,7 @@ import {
 } from './processors/index.js';
 import { buildProcessor, expectOk, property } from './test-utils.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 describe('DocumentProcessorEventImmutabilityTest', () => {
   let processor = buildProcessor(blue);
@@ -18,7 +18,7 @@ describe('DocumentProcessorEventImmutabilityTest', () => {
       blue,
       new TestEventChannelProcessor(),
       new MutateEventContractProcessor(),
-      new SetPropertyOnEventContractProcessor()
+      new SetPropertyOnEventContractProcessor(),
     );
   });
 
@@ -43,7 +43,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(documentYaml))
+      processor.initializeDocument(blue.yamlToNode(documentYaml)),
     ).document.clone();
 
     const eventYaml = `type:
@@ -53,7 +53,7 @@ kind: original
 `;
     const event = blue.yamlToNode(eventYaml);
     const processed = expectOk(
-      processor.processDocument(initialized, event)
+      processor.processDocument(initialized, event),
     ).document;
 
     const resultNode = property(processed, 'result');

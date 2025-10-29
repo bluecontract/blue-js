@@ -17,7 +17,7 @@ export class CompositeTimelineChannelProcessor implements ContractProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     const compositeTimelineChannel = ctx
       .getBlue()
@@ -33,7 +33,7 @@ export class CompositeTimelineChannelProcessor implements ContractProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    path: string
+    path: string,
   ): void {
     ctx.emitEvent({
       payload: event.payload,

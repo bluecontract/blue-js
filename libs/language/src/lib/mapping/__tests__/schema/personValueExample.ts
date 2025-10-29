@@ -14,7 +14,7 @@ export const personValueExampleSchema = withTypeBlueId('PersonValue-BlueId')(
     age2: z.number().optional(),
     age3Name: blueNameField('age3'),
     age3: blueNodeField().optional(),
-  })
+  }),
 );
 
 export type PersonValueExample = z.infer<typeof personValueExampleSchema>;

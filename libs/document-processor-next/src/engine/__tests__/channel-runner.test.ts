@@ -1,5 +1,6 @@
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it, vi } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import {
   ChannelRunner,
@@ -22,14 +23,14 @@ import type {
 } from '../../model/index.js';
 import { KEY_CHECKPOINT } from '../../constants/processor-contract-constants.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
 }
 
 function signatureFn(node: BlueNode | null): string | null {
-  return node ? canonicalSignature(node) : null;
+  return canonicalSignature(blue, node);
 }
 
 describe('ChannelRunner', () => {
@@ -42,9 +43,9 @@ describe('ChannelRunner', () => {
   const handlerContract = (key: string): HandlerContract =>
     ({
       key,
-      channelKey: 'external',
+      channel: 'external',
       order: key === 'h1' ? 0 : 1,
-    } as HandlerContract);
+    }) as HandlerContract;
 
   function createBundle(): ContractBundle {
     return ContractBundle.builder()
@@ -59,9 +60,9 @@ describe('ChannelRunner', () => {
       evaluateChannel: (event: BlueNode) => ChannelMatch;
       isScopeInactive: () => boolean;
       onExecute: (handler: HandlerBinding, event: BlueNode) => void;
-    }> = {}
+    }> = {},
   ) {
-    const runtime = new DocumentProcessingRuntime(new BlueNode());
+    const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const bundle = createBundle();
     const checkpointManager = new CheckpointManager(runtime, signatureFn);
     const scopePath = '/';
@@ -81,25 +82,26 @@ describe('ChannelRunner', () => {
         _channel: ChannelBinding,
         currentBundle: ContractBundle,
         currentScope: string,
-        event: BlueNode
+        event: BlueNode,
       ): ChannelMatch => evaluate(event),
       isScopeInactive: () => isInactive(),
       createContext: (
         currentScope: string,
         currentBundle: ContractBundle,
         event: BlueNode,
-        allowTerminatedWork: boolean
+        allowTerminatedWork: boolean,
       ) =>
         ({
           event: () => event,
-        } as unknown as ProcessorExecutionContext),
+        }) as unknown as ProcessorExecutionContext,
       executeHandler: (
         handler: HandlerBinding,
-        context: ProcessorExecutionContext
+        context: ProcessorExecutionContext,
       ) => {
         const eventNode = context.event();
         onExecute(handler, eventNode as BlueNode);
       },
+      canonicalSignature: signatureFn,
     };
 
     const runner = new ChannelRunner(runtime, checkpointManager, deps);
@@ -155,11 +157,11 @@ describe('ChannelRunner', () => {
 
     expect(handlerSpy).toHaveBeenCalledTimes(2);
     expect(
-      runtime.document().get('/contracts/checkpoint/lastEvents/external')
+      runtime.document().get('/contracts/checkpoint/lastEvents/external'),
     ).toBeInstanceOf(BlueNode);
     expect(
       (bundle.marker(KEY_CHECKPOINT) as ChannelEventCheckpoint)?.lastSignatures
-        ?.external
+        ?.external,
     ).toBe('event-1');
   });
 

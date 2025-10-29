@@ -11,5 +11,5 @@ export const x3Schema = withTypeBlueId('X3-BlueId')(
     atomicIntegerField: z.number().optional(),
     atomicLongField: z.number().optional(),
     concurrentMapField: z.map(z.string(), z.number()).optional(),
-  })
+  }),
 );

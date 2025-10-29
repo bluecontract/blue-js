@@ -14,7 +14,7 @@ export class EmbeddedNodeChannelProcessor extends BaseChannelProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     if (!this.baseSupports(event)) return false;
     const embeddedNodeChannel = ctx
@@ -32,7 +32,7 @@ export class EmbeddedNodeChannelProcessor extends BaseChannelProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    path: string
+    path: string,
   ): void {
     const embeddedNodeChannel = ctx
       .getBlue()

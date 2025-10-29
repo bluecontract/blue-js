@@ -11,7 +11,7 @@ export class ExpressionResolver {
   static createBindings(
     ctx: ProcessingContext,
     event: EventNode,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ): Record<string, unknown> {
     return BindingsFactory.createStandardBindings(ctx, event, stepResults);
   }
@@ -20,7 +20,7 @@ export class ExpressionResolver {
     input: string,
     ctx: ProcessingContext,
     bindings: Record<string, unknown>,
-    options: { coerceToString: boolean }
+    options: { coerceToString: boolean },
   ): Promise<unknown> {
     const { coerceToString } = options;
     if (isExpression(input)) {

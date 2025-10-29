@@ -40,7 +40,7 @@ export class NodeExtender {
     currentNode: BlueNode,
     currentLimits: Limits,
     currentSegment: string,
-    skipLimitCheck = false
+    skipLimitCheck = false,
   ): void {
     if (!skipLimitCheck) {
       if (!currentLimits.shouldExtendPathSegment(currentSegment, currentNode)) {
@@ -55,7 +55,7 @@ export class NodeExtender {
       if (
         blueId &&
         !CORE_TYPE_BLUE_IDS.includes(
-          blueId as (typeof CORE_TYPE_BLUE_IDS)[number]
+          blueId as (typeof CORE_TYPE_BLUE_IDS)[number],
         )
       ) {
         const resolvedNodes = this.fetchNode(currentNode);

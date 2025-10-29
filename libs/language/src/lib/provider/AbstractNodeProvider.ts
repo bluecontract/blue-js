@@ -10,7 +10,7 @@ export abstract class AbstractNodeProvider extends NodeProvider {
    * @returns The raw content as JSON-like object, or null if not found
    */
   protected abstract fetchContentByBlueId(
-    baseBlueId: string
+    baseBlueId: string,
   ): JsonBlueValue | null;
 
   override fetchByBlueId(blueId: string): BlueNode[] | null {
@@ -25,7 +25,7 @@ export abstract class AbstractNodeProvider extends NodeProvider {
     const resolvedContent = NodeContentHandler.resolveThisReferences(
       content,
       baseBlueId,
-      isMultipleDocuments
+      isMultipleDocuments,
     );
 
     if (blueId.includes('#')) {

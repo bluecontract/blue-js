@@ -11,11 +11,11 @@ describe('isPreciseNumberString', () => {
 
   test('should return false for numbers that lose precision', () => {
     expect(isPreciseNumberString('12345678901234567890.1234567890')).toBe(
-      false
+      false,
     );
     expect(isPreciseNumberString('0.12345678901234567890')).toBe(false);
     expect(
-      isPreciseNumberString('1234567890123456789012345678901234567890')
+      isPreciseNumberString('1234567890123456789012345678901234567890'),
     ).toBe(false);
   });
 

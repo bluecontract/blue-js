@@ -1,9 +1,9 @@
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
-import { Blue } from '@blue-labs/language';
 
 import { ScopeRuntimeContext } from '../scope-runtime-context.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 function nodeFrom(json: unknown) {
   return blue.jsonValueToNode(json);

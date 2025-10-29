@@ -13,7 +13,7 @@ describe('BlueDocumentProcessor', () => {
 
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { name: 'Ping' }
+    message: unknown = { name: 'Ping' },
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
@@ -28,7 +28,7 @@ describe('BlueDocumentProcessor', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [blue.jsonValueToNode({ name: 'SomeRandomEvent' })]
+      [blue.jsonValueToNode({ name: 'SomeRandomEvent' })],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -167,7 +167,7 @@ describe('BlueDocumentProcessor', () => {
       });
 
       await expect(
-        documentProcessor.processEvents(initializedState, [timelineEvent('e')])
+        documentProcessor.processEvents(initializedState, [timelineEvent('e')]),
       ).rejects.toThrow();
 
       // Verify that console.error was called (optional)
@@ -263,7 +263,7 @@ describe('BlueDocumentProcessor', () => {
 
     // Processing events without initialization should throw
     await expect(
-      documentProcessor.processEvents(docNode, [timelineEvent('t1')])
+      documentProcessor.processEvents(docNode, [timelineEvent('t1')]),
     ).rejects.toThrow('Document is not initialized');
   });
 
@@ -288,9 +288,8 @@ describe('BlueDocumentProcessor', () => {
     const docNode = blue.jsonValueToNode(doc);
 
     // First initialize the document
-    const { state: initializedState } = await documentProcessor.initialize(
-      docNode
-    );
+    const { state: initializedState } =
+      await documentProcessor.initialize(docNode);
 
     // Now processing events should work
     const { state } = await documentProcessor.processEvents(initializedState, [

@@ -7,5 +7,5 @@ export const x1Schema = withTypeBlueId('X1-BlueId')(
     intArrayField: z.array(z.number()).optional(),
     stringListField: z.array(z.string()).optional(),
     integerSetField: z.set(z.number()).optional(),
-  })
+  }),
 );

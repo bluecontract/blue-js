@@ -39,7 +39,7 @@ export function asIndex(t: string | number): number {
   }
   if (!Number.isFinite(n)) {
     throw new Error(
-      `Invalid array index '${t}' results in non-finite number ${n}`
+      `Invalid array index '${t}' results in non-finite number ${n}`,
     );
   }
   return n;
@@ -56,13 +56,13 @@ function _getBlueNodeSpecialProperty(
   node: BlueNode,
   key: string,
   forStepContext: boolean,
-  allowStepIntoBlueNodeValue = true
+  allowStepIntoBlueNodeValue = true,
 ): RValue | BlueNode[] | Dict | BlueNode | undefined {
   switch (key) {
     case 'name':
       return forStepContext
         ? allowStepIntoBlueNodeValue
-          ? node.getName() ?? null
+          ? (node.getName() ?? null)
           : node
         : node.getName();
     case 'description':
@@ -82,13 +82,13 @@ function _getBlueNodeSpecialProperty(
     case 'value':
       return forStepContext
         ? allowStepIntoBlueNodeValue
-          ? node.getValue() ?? null
+          ? (node.getValue() ?? null)
           : node
         : node.getValue();
     case 'blueId':
       return forStepContext
         ? allowStepIntoBlueNodeValue
-          ? node.getBlueId() ?? null
+          ? (node.getBlueId() ?? null)
           : node
         : node.getBlueId();
     case 'blue':
@@ -107,14 +107,14 @@ function _getBlueNodeSpecialProperty(
 export function step(
   container: Container,
   tok: string,
-  allowStepIntoBlueNodeValue = true
+  allowStepIntoBlueNodeValue = true,
 ): Container {
   if (container instanceof BlueNode) {
     const specialProp = _getBlueNodeSpecialProperty(
       container,
       tok,
       true,
-      allowStepIntoBlueNodeValue
+      allowStepIntoBlueNodeValue,
     );
     if (
       specialProp !== undefined ||
@@ -269,7 +269,7 @@ function cleanUndefinedValues(obj: unknown): unknown {
 export function write(
   parent: Container,
   key: string | number,
-  raw: RValue
+  raw: RValue,
 ): void {
   if (parent instanceof BlueNode) {
     const k = key as string;
@@ -286,7 +286,7 @@ export function write(
             typeof raw === 'string' ||
             raw === undefined
             ? raw
-            : nodeify(raw)
+            : nodeify(raw),
         );
         return;
       case 'itemType':
@@ -295,7 +295,7 @@ export function write(
             typeof raw === 'string' ||
             raw === undefined
             ? raw
-            : nodeify(raw)
+            : nodeify(raw),
         );
         return;
       case 'keyType':
@@ -304,7 +304,7 @@ export function write(
             typeof raw === 'string' ||
             raw === undefined
             ? raw
-            : nodeify(raw)
+            : nodeify(raw),
         );
         return;
       case 'valueType':
@@ -313,7 +313,7 @@ export function write(
             typeof raw === 'string' ||
             raw === undefined
             ? raw
-            : nodeify(raw)
+            : nodeify(raw),
         );
         return;
       case 'value': {
@@ -326,7 +326,7 @@ export function write(
         return;
       case 'blue':
         parent.setBlue(
-          raw instanceof BlueNode || raw === undefined ? raw : nodeify(raw)
+          raw instanceof BlueNode || raw === undefined ? raw : nodeify(raw),
         );
         return;
       case 'items':
@@ -364,14 +364,14 @@ function _insertOrReplaceBlueNodeItem(
   blueNodeParent: BlueNode,
   key: string | number,
   valueNode: BlueNode,
-  overwrite: boolean
+  overwrite: boolean,
 ): void {
   let numKey = -1;
   if (key !== '-') {
     numKey = typeof key === 'number' ? key : parseInt(key as string, 10);
     if (isNaN(numKey))
       throw new Error(
-        `Invalid numeric key for BlueNode item operation: ${key}`
+        `Invalid numeric key for BlueNode item operation: ${key}`,
       );
   }
   if (numKey < -1)
@@ -383,7 +383,7 @@ function _insertOrReplaceBlueNodeItem(
   }
   if (!overwrite && numKey !== -1 && numKey > items.length) {
     throw new Error(
-      `ADD operation failed: Target array index '${numKey}' is greater than array length ${items.length}.`
+      `ADD operation failed: Target array index '${numKey}' is greater than array length ${items.length}.`,
     );
   }
   if (key === '-') {
@@ -406,13 +406,13 @@ export function insert(
   parent: Container,
   key: string | number,
   rawVal: unknown,
-  overwrite: boolean
+  overwrite: boolean,
 ): void {
   if (Array.isArray(parent)) {
     const idx = key === '-' ? parent.length : asIndex(key);
     if (!overwrite && idx > parent.length) {
       throw new Error(
-        `ADD operation failed: Target array index '${idx}' is greater than array length ${parent.length}. Path involving key '${key}'.`
+        `ADD operation failed: Target array index '${idx}' is greater than array length ${parent.length}. Path involving key '${key}'.`,
       );
     }
     if (idx < 0 && key !== '-')

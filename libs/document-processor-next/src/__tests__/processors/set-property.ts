@@ -2,12 +2,17 @@ import type { HandlerProcessor } from '../../registry/types.js';
 import { BlueNode } from '@blue-labs/language';
 import { setPropertySchema, type SetProperty } from '../models/index.js';
 
-export class SetPropertyContractProcessor implements HandlerProcessor<SetProperty> {
+export class SetPropertyContractProcessor
+  implements HandlerProcessor<SetProperty>
+{
   readonly kind = 'handler' as const;
   readonly blueIds = ['SetProperty'] as const;
   readonly schema = setPropertySchema;
 
-  execute(contract: SetProperty, context: Parameters<HandlerProcessor<SetProperty>['execute']>[1]): void {
+  execute(
+    contract: SetProperty,
+    context: Parameters<HandlerProcessor<SetProperty>['execute']>[1],
+  ): void {
     const propertyKey = contract.propertyKey ?? 'x';
     const valueNode = new BlueNode().setValue(contract.propertyValue);
     const relativePointer = this.buildPointer(contract.path, propertyKey);
@@ -30,10 +35,8 @@ export class SetPropertyContractProcessor implements HandlerProcessor<SetPropert
     if (!value || value.trim().length === 0) return '';
     let result = value.trim().replace(/\/+/, '/');
     while (result.startsWith('/')) result = result.substring(1);
-    while (result.endsWith('/')) result = result.substring(0, result.length - 1);
+    while (result.endsWith('/'))
+      result = result.substring(0, result.length - 1);
     return result;
   }
 }
-
-
-

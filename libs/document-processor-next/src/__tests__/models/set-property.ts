@@ -8,7 +8,7 @@ export const setPropertySchema = withTypeBlueId('SetProperty')(
     propertyKey: z.string(),
     propertyValue: z.number().int(),
     path: z.string().optional(),
-  })
+  }),
 );
 
 export type SetProperty = z.infer<typeof setPropertySchema>;

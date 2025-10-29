@@ -1,3 +1,4 @@
+import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it, vi } from 'vitest';
 import { BlueNode } from '@blue-labs/language';
 
@@ -6,10 +7,13 @@ import { DocumentProcessingRuntime } from '../../runtime/document-processing-run
 import { ContractBundle } from '../contract-bundle.js';
 import { RunTerminationError } from '../run-termination-error.js';
 import type { TerminationExecutionAdapter } from '../termination-service.js';
+import { typeBlueId } from '../../__tests__/test-utils.js';
+import { blueIds } from '@blue-repository/core';
 
 describe('TerminationService', () => {
   function createFixture() {
-    const runtime = new DocumentProcessingRuntime(new BlueNode());
+    const blue = createBlue();
+    const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const service = new TerminationService(runtime);
     const adapter: TerminationExecutionAdapter = {
       recordPendingTermination: vi.fn(),
@@ -33,7 +37,22 @@ describe('TerminationService', () => {
 
   it('throws RunTerminationError on root fatal', () => {
     const { runtime, service, adapter } = createFixture();
-    expect(() => service.terminateScope(adapter, '/', null, 'FATAL', 'bad')).toThrow(RunTerminationError);
-    expect(runtime.rootEmissions()).not.toHaveLength(0);
+    expect(() =>
+      service.terminateScope(adapter, '/', null, 'FATAL', 'bad'),
+    ).toThrow(RunTerminationError);
+    expect(adapter.deliverLifecycle).toHaveBeenCalled();
+    const deliverLifecycleMock = adapter.deliverLifecycle as ReturnType<
+      typeof vi.fn
+    >;
+    const lifecycleEvent = deliverLifecycleMock.mock.calls[0]?.[2] as BlueNode;
+    expect(lifecycleEvent).toBeInstanceOf(BlueNode);
+    expect(typeBlueId(lifecycleEvent)).toBe(
+      blueIds['Document Processing Terminated'],
+    );
+    const props = lifecycleEvent.getProperties() ?? {};
+
+    expect(props.cause?.getValue()).toBe('fatal');
+    expect(props.reason?.getValue()).toBe('bad');
+    expect(runtime.rootEmissions()).toHaveLength(0);
   });
 });

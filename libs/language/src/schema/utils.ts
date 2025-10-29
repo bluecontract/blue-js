@@ -13,7 +13,7 @@ import {
 } from 'zod';
 
 export const isWrapperType = (
-  schema: ZodTypeAny
+  schema: ZodTypeAny,
 ): schema is
   | ZodOptional<ZodTypeAny>
   | ZodNullable<ZodTypeAny>
@@ -32,7 +32,7 @@ export const isWrapperType = (
 };
 
 export const isPrimitiveType = (
-  schema: ZodTypeAny
+  schema: ZodTypeAny,
 ): schema is ZodString | ZodNumber | ZodBoolean | ZodBigInt => {
   return (
     schema instanceof ZodString ||

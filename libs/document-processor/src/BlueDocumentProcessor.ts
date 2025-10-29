@@ -48,7 +48,7 @@ export class BlueDocumentProcessor {
    */
   constructor(
     private readonly blue: Blue,
-    processors: ContractProcessor[] = defaultProcessors
+    processors: ContractProcessor[] = defaultProcessors,
   ) {
     this.registry = new ContractRegistry(processors);
     this.queue = new TaskQueue();
@@ -57,12 +57,12 @@ export class BlueDocumentProcessor {
       this.registry,
       this.queue,
       () => ++this.taskCounter,
-      () => ++this.eventCounter
+      () => ++this.eventCounter,
     );
 
     this.register(
       new ChannelEventCheckpointProcessor(this.checkpointCache),
-      9999
+      9999,
     );
   }
 
@@ -116,7 +116,7 @@ export class BlueDocumentProcessor {
    */
   async processEvents(
     document: DocumentNode,
-    incoming: EventNodePayload[]
+    incoming: EventNodePayload[],
   ): Promise<ProcessingResult> {
     let current = ensureCheckpointContracts(freeze(document), this.blue);
     const emitted: EventNodePayload[] = [];
@@ -188,7 +188,7 @@ export class BlueDocumentProcessor {
               // ───────────────────────────────────────────────
               const embeddedPaths = collectEmbeddedPathSpecs(
                 current,
-                this.blue
+                this.blue,
               );
 
               for (const embeddedPath of embeddedPaths) {
@@ -199,11 +199,11 @@ export class BlueDocumentProcessor {
 
                 const writerNodePath = ctx.getNodePath();
                 const isEmbeddedTouching = touchedPaths.some((touchedPath) =>
-                  isInside(touchedPath, embeddedPath.absPath)
+                  isInside(touchedPath, embeddedPath.absPath),
                 );
                 const isWriterInside = isInside(
                   writerNodePath,
-                  embeddedPath.absPath
+                  embeddedPath.absPath,
                 );
                 const crossesBoundary = isEmbeddedTouching && !isWriterInside;
 
@@ -211,7 +211,7 @@ export class BlueDocumentProcessor {
                   throw new EmbeddedDocumentModificationError(
                     act.patch,
                     embeddedPath.absPath,
-                    writerNodePath
+                    writerNodePath,
                   );
                 }
               }
@@ -227,7 +227,7 @@ export class BlueDocumentProcessor {
               await this.router.route(current, [], act.event, task.key[5]);
             }
           }
-        }
+        },
       );
 
       await cp.handle(event, contractNode, ctx, contractName);

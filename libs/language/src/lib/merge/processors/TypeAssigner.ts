@@ -11,7 +11,7 @@ export class TypeAssigner implements MergingProcessor {
   process(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     const targetType = target.getType();
     const sourceType = source.getType();
@@ -23,17 +23,17 @@ export class TypeAssigner implements MergingProcessor {
       const isSubtypeResult = NodeTypes.isSubtype(
         sourceType,
         targetType,
-        nodeProvider
+        nodeProvider,
       );
       if (!isSubtypeResult) {
         const sourceTypeStr = NodeToMapListOrValue.get(sourceType);
         const targetTypeStr = NodeToMapListOrValue.get(targetType);
         throw new Error(
           `The source type '${JSON.stringify(
-            sourceTypeStr
+            sourceTypeStr,
           )}' is not a subtype of the target type '${JSON.stringify(
-            targetTypeStr
-          )}'.`
+            targetTypeStr,
+          )}'.`,
         );
       }
       newTarget = target.clone().setType(sourceType);

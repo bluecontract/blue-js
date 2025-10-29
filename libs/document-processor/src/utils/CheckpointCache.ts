@@ -28,7 +28,7 @@ export class CheckpointCache {
       const chanBase = makePath(
         docBase,
         'contracts/checkpoint/lastEvents',
-        event.channelName
+        event.channelName,
       );
       const blueIdPath = `${chanBase}/blueId`;
 

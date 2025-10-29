@@ -18,7 +18,7 @@ describe('Event Factories', () => {
     it('creates document update events correctly', () => {
       const eventNode = createDocumentUpdateEvent(
         { op: 'replace', path: '/counter', val: 42 },
-        blue
+        blue,
       );
 
       const expectedType = {
@@ -34,7 +34,7 @@ describe('Event Factories', () => {
 
       const eventNode2 = createDocumentUpdateEvent(
         { op: 'remove', path: '/old' },
-        blue
+        blue,
       );
       expect(blue.nodeToJson(eventNode2, 'original')).toMatchObject({
         type: expectedType,
@@ -44,7 +44,7 @@ describe('Event Factories', () => {
 
       const eventNode3 = createDocumentUpdateEvent(
         { op: 'move', from: '/src', path: '/dest' },
-        blue
+        blue,
       );
       expect(blue.nodeToJson(eventNode3, 'original')).toMatchObject({
         type: expectedType,
@@ -56,11 +56,11 @@ describe('Event Factories', () => {
 
     it('validates required fields', () => {
       expect(() =>
-        createDocumentUpdateEvent({ op: 'move', path: '/dest' } as any, blue)
+        createDocumentUpdateEvent({ op: 'move', path: '/dest' } as any, blue),
       ).toThrow("move operation requires 'from' path");
 
       expect(() =>
-        createDocumentUpdateEvent({ op: 'add', path: '/new' } as any, blue)
+        createDocumentUpdateEvent({ op: 'add', path: '/new' } as any, blue),
       ).toThrow("add operation requires 'val' property");
     });
   });
@@ -70,7 +70,7 @@ describe('Event Factories', () => {
       const event = createTimelineEntryEvent(
         'user-123',
         { action: 'login' },
-        blue
+        blue,
       );
 
       expect(blue.nodeToJson(event, 'original')).toEqual({

@@ -7,7 +7,7 @@ export class ParsedContent {
   constructor(
     public readonly blueId: string,
     public readonly content: JsonBlueValue,
-    public readonly isMultipleDocuments: boolean
+    public readonly isMultipleDocuments: boolean,
   ) {}
 }
 
@@ -16,7 +16,7 @@ export class NodeContentHandler {
 
   public static parseAndCalculateBlueId(
     content: string,
-    preprocessor: (node: BlueNode) => BlueNode
+    preprocessor: (node: BlueNode) => BlueNode,
   ): ParsedContent {
     let jsonNode: JsonBlueValue;
 
@@ -53,7 +53,7 @@ export class NodeContentHandler {
 
   public static parseAndCalculateBlueIdForNode(
     node: BlueNode,
-    preprocessor: (node: BlueNode) => BlueNode
+    preprocessor: (node: BlueNode) => BlueNode,
   ): ParsedContent {
     const preprocessedNode = preprocessor(node);
     const blueId = BlueIdCalculator.calculateBlueIdSync(preprocessedNode);
@@ -64,7 +64,7 @@ export class NodeContentHandler {
 
   public static parseAndCalculateBlueIdForNodeList(
     nodes: BlueNode[],
-    preprocessor: (node: BlueNode) => BlueNode
+    preprocessor: (node: BlueNode) => BlueNode,
   ): ParsedContent {
     if (!nodes || nodes.length === 0) {
       throw new Error('List of nodes cannot be null or empty');
@@ -73,7 +73,7 @@ export class NodeContentHandler {
     const preprocessedNodes = nodes.map(preprocessor);
     const blueId = BlueIdCalculator.calculateBlueIdSync(preprocessedNodes);
     const jsonNodes = preprocessedNodes.map((node) =>
-      NodeToMapListOrValue.get(node)
+      NodeToMapListOrValue.get(node),
     );
     const isMultipleDocuments = nodes.length > 1;
 
@@ -83,19 +83,19 @@ export class NodeContentHandler {
   public static resolveThisReferences(
     content: JsonBlueValue,
     currentBlueId: string,
-    isMultipleDocuments: boolean
+    isMultipleDocuments: boolean,
   ): JsonBlueValue {
     return this.resolveThisReferencesRecursive(
       content,
       currentBlueId,
-      isMultipleDocuments
+      isMultipleDocuments,
     );
   }
 
   private static resolveThisReferencesRecursive(
     content: JsonBlueValue,
     currentBlueId: string,
-    isMultipleDocuments: boolean
+    isMultipleDocuments: boolean,
   ): JsonBlueValue {
     if (content && typeof content === 'object' && !Array.isArray(content)) {
       // Handle objects
@@ -106,7 +106,7 @@ export class NodeContentHandler {
             result[key] = this.resolveThisReference(
               value,
               currentBlueId,
-              isMultipleDocuments
+              isMultipleDocuments,
             );
           } else {
             result[key] = value;
@@ -115,7 +115,7 @@ export class NodeContentHandler {
           result[key] = this.resolveThisReferencesRecursive(
             value,
             currentBlueId,
-            isMultipleDocuments
+            isMultipleDocuments,
           );
         } else {
           result[key] = value;
@@ -130,7 +130,7 @@ export class NodeContentHandler {
             return this.resolveThisReference(
               element,
               currentBlueId,
-              isMultipleDocuments
+              isMultipleDocuments,
             );
           }
           return element;
@@ -138,7 +138,7 @@ export class NodeContentHandler {
           return this.resolveThisReferencesRecursive(
             element,
             currentBlueId,
-            isMultipleDocuments
+            isMultipleDocuments,
           );
         }
         return element;
@@ -150,12 +150,12 @@ export class NodeContentHandler {
   private static resolveThisReference(
     textValue: string,
     currentBlueId: string,
-    isMultipleDocuments: boolean
+    isMultipleDocuments: boolean,
   ): string {
     if (isMultipleDocuments) {
       if (!textValue.startsWith('this#')) {
         throw new Error(
-          "For multiple documents, 'this' references must include an index (e.g., 'this#0')"
+          "For multiple documents, 'this' references must include an index (e.g., 'this#0')",
         );
       }
       return currentBlueId + textValue.substring(4);
@@ -164,7 +164,7 @@ export class NodeContentHandler {
         return currentBlueId;
       } else {
         throw new Error(
-          "For a single document, only 'this' is allowed as a reference, not 'this#<id>'"
+          "For a single document, only 'this' is allowed as a reference, not 'this#<id>'",
         );
       }
     }

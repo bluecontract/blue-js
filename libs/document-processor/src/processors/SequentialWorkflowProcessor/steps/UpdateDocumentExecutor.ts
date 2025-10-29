@@ -35,7 +35,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     event: EventNode,
     ctx: ProcessingContext,
     documentPath: string,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ): Promise<void> {
     const blue = ctx.getBlue();
     if (!BlueNodeTypeSchema.isTypeOf(step, UpdateDocumentSchema)) return;
@@ -44,7 +44,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
       step.get('/changeset'),
       ctx,
       event,
-      stepResults
+      stepResults,
     );
 
     const newStep = applyBlueNodePatch(step, {
@@ -64,7 +64,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
         change.path,
         ctx,
         event,
-        stepResults
+        stepResults,
       );
 
       const changeValue = change.val;
@@ -76,7 +76,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
           changeValue,
           ctx,
           event,
-          stepResults
+          stepResults,
         );
 
         ctx.addPatch({
@@ -91,7 +91,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
               path: ctx.resolvePath(evaluatedPath),
               val: blue.nodeToJson(changeValueNode, 'original'),
             },
-            blue
+            blue,
           ),
           emissionType: 'update',
         });
@@ -107,7 +107,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
               path: ctx.resolvePath(evaluatedPath),
               val: null,
             },
-            blue
+            blue,
           ),
           emissionType: 'update',
         });
@@ -119,7 +119,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     changesetNodeGetResult: BlueNodeGetResult,
     ctx: ProcessingContext,
     event: EventNode,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ) {
     const blue = ctx.getBlue();
     if (isExpression(changesetNodeGetResult)) {
@@ -130,7 +130,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
         bindings: BindingsFactory.createStandardBindings(
           ctx,
           event,
-          stepResults
+          stepResults,
         ),
       });
       return blue.jsonValueToNode(evaluatedValue ?? null);
@@ -147,7 +147,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     changeValueNode: BlueNode,
     ctx: ProcessingContext,
     event: EventNode,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ) {
     const evaluatedValueString = changeValueNode.getValue();
     const blue = ctx.getBlue();
@@ -160,13 +160,13 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
       const bindings = ExpressionResolver.createBindings(
         ctx,
         event,
-        stepResults
+        stepResults,
       );
       const evaluated = await ExpressionResolver.evaluate(
         String(evaluatedValueString),
         ctx,
         bindings,
-        { coerceToString: !isExpression(evaluatedValueString) }
+        { coerceToString: !isExpression(evaluatedValueString) },
       );
       return blue.jsonValueToNode(evaluated ?? null);
     }
@@ -178,7 +178,7 @@ export class UpdateDocumentExecutor implements WorkflowStepExecutor {
     path: string,
     ctx: ProcessingContext,
     event: EventNode,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ): Promise<string> {
     const bindings = ExpressionResolver.createBindings(ctx, event, stepResults);
 

@@ -6,7 +6,7 @@ import { isNullable } from '@blue-labs/shared-utils';
 type ObjectSpecificKeys = ArrayValues<typeof Properties.OBJECT_SPECIFIC_KEYS>;
 
 export const getBlueObjectProperties = <T extends Record<string, unknown>>(
-  blueObject?: T
+  blueObject?: T,
 ): Omit<T, ObjectSpecificKeys> =>
   isNullable(blueObject)
     ? ({} as Omit<T, ObjectSpecificKeys>)
@@ -14,5 +14,5 @@ export const getBlueObjectProperties = <T extends Record<string, unknown>>(
         blueObject,
         Properties.OBJECT_SPECIFIC_KEYS as Writable<
           typeof Properties.OBJECT_SPECIFIC_KEYS
-        >
+        >,
       );

@@ -14,7 +14,7 @@ export type ResolveBlueObjectItemsOptions = {
    */
   resolveFunction: (
     blueObject: BlueObjectWithId,
-    context: { signal: AbortSignal }
+    context: { signal: AbortSignal },
   ) => Promise<BlueObject[] | BlueObject>;
   signal?: AbortSignal;
   /**
@@ -27,7 +27,7 @@ export type ResolveBlueObjectItemsOptions = {
  * @returns The resolved and flattened items of a BlueObject
  */
 export const resolveBlueObjectItems = async (
-  options: ResolveBlueObjectItemsOptions
+  options: ResolveBlueObjectItemsOptions,
 ): Promise<BlueObjectWithId[]> => {
   const {
     resolveFunction,

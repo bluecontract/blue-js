@@ -38,7 +38,7 @@ export class ConverterFactory {
     this.registerConverters();
 
     this.complexObjectConverter = new ComplexObjectConverter(
-      this.nodeToObjectConverter
+      this.nodeToObjectConverter,
     );
   }
 

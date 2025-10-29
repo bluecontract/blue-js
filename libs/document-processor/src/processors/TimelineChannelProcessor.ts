@@ -24,7 +24,7 @@ export class TimelineChannelProcessor extends BaseChannelProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     if (!this.baseSupports(event)) return false;
     if (!isTimelineEntryEvent(event)) return false;
@@ -32,7 +32,7 @@ export class TimelineChannelProcessor extends BaseChannelProcessor {
     const blue = ctx.getBlue();
     const timelineEntry = blue.nodeToSchemaOutput(
       event.payload,
-      TimelineEntrySchema
+      TimelineEntrySchema,
     );
     const timelineChannel = ctx
       .getBlue()
@@ -53,7 +53,7 @@ export class TimelineChannelProcessor extends BaseChannelProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    path: string
+    path: string,
   ): void {
     if (!isTimelineEntryEvent(event)) return;
 

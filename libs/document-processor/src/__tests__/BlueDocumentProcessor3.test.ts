@@ -22,7 +22,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { name: 'Ping' }
+    message: unknown = { name: 'Ping' },
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
@@ -38,7 +38,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('t')]
+        [timelineEvent('t')],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -60,7 +60,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('t')]
+        [timelineEvent('t')],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -83,7 +83,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('t')]
+        [timelineEvent('t')],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -104,7 +104,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('t')]
+        [timelineEvent('t')],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -125,7 +125,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('t')]
+        [timelineEvent('t')],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -148,7 +148,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state: state1 } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('sub1T')]
+        [timelineEvent('sub1T')],
       );
 
       const jsonState = blue.nodeToJson(state1, 'simple') as any;
@@ -167,7 +167,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state: state2 } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('aT')]
+        [timelineEvent('aT')],
       );
 
       const jsonState = blue.nodeToJson(state2, 'simple') as any;
@@ -185,7 +185,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
       });
       const { state: state3 } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('nestedB1T')]
+        [timelineEvent('nestedB1T')],
       );
 
       const jsonState = blue.nodeToJson(state3, 'simple') as any;
@@ -207,7 +207,7 @@ describe('BlueDocumentProcessor - Advanced Contract Testing', () => {
 
       const { state: state4 } = await documentProcessor.processEvents(
         initializedState,
-        [timelineEvent('bT')]
+        [timelineEvent('bT')],
       );
 
       const jsonState = blue.nodeToJson(state4, 'simple') as any;

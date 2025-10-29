@@ -25,14 +25,14 @@ export type JsonBlueValue =
   | Big;
 
 const jsonBlueObjectSchema: z.ZodType<JsonBlueObject> = z.lazy(() =>
-  z.record(jsonBlueValueSchema)
+  z.record(jsonBlueValueSchema),
 );
 
 const jsonBlueArraySchema: z.ZodType<JsonBlueArray> = z.lazy(() =>
   z.union([
     z.array(jsonBlueValueSchema),
     z.array(jsonBlueValueSchema).readonly(),
-  ])
+  ]),
 );
 
 export const jsonBlueValueSchema: z.ZodType<JsonBlueValue> = z.lazy(() =>
@@ -41,7 +41,7 @@ export const jsonBlueValueSchema: z.ZodType<JsonBlueValue> = z.lazy(() =>
     jsonBlueObjectSchema,
     jsonBlueArraySchema,
     z.instanceof(Big),
-  ])
+  ]),
 );
 
 export const isJsonBlueObject = (value: unknown): value is JsonBlueObject => {

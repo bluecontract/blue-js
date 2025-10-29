@@ -36,9 +36,9 @@ export const withTypeBlueId =
     UnknownKeys extends UnknownKeysParam = UnknownKeysParam,
     Catchall extends ZodTypeAny = ZodTypeAny,
     Output = objectOutputType<T, Catchall, UnknownKeys>,
-    Input = objectInputType<T, Catchall, UnknownKeys>
+    Input = objectInputType<T, Catchall, UnknownKeys>,
   >(
-    schema: ZodObject<T, UnknownKeys, Catchall, Output, Input>
+    schema: ZodObject<T, UnknownKeys, Catchall, Output, Input>,
   ) => {
     const annotations = getAnnotations(schema);
     const typeBlueIdAnnotation = (

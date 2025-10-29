@@ -21,36 +21,36 @@ x:
     const extended = aNode.clone();
     new NodeExtender(nodeProvider).extend(
       extended,
-      PathLimits.withSinglePath('/x/x/x/x')
+      PathLimits.withSinglePath('/x/x/x/x'),
     );
 
     expect(
       NodeTypes.isSubtype(
         extended,
         extended.get('/x/type') as BlueNode,
-        nodeProvider
-      )
+        nodeProvider,
+      ),
     ).toBe(true);
     expect(
       NodeTypes.isSubtype(
         aNode,
         extended.get('/x/type') as BlueNode,
-        nodeProvider
-      )
+        nodeProvider,
+      ),
     ).toBe(true);
     expect(
       NodeTypes.isSubtype(
         extended.get('/x/type') as BlueNode,
         aNode,
-        nodeProvider
-      )
+        nodeProvider,
+      ),
     ).toBe(true);
     expect(
       NodeTypes.isSubtype(
         extended.get('/x/type/x/type/x/type/x/type') as BlueNode,
         aNode,
-        nodeProvider
-      )
+        nodeProvider,
+      ),
     ).toBe(true);
   });
 
@@ -81,26 +81,26 @@ x:
     const extendedB = bNode.clone();
     new NodeExtender(nodeProvider).extend(
       extendedA,
-      PathLimits.withSinglePath('/x/y/x/y')
+      PathLimits.withSinglePath('/x/y/x/y'),
     );
     new NodeExtender(nodeProvider).extend(
       extendedB,
-      PathLimits.withSinglePath('/y/x/y/x')
+      PathLimits.withSinglePath('/y/x/y/x'),
     );
 
     expect(
       NodeTypes.isSubtype(
         extendedA,
         extendedB.get('/y/type') as BlueNode,
-        nodeProvider
-      )
+        nodeProvider,
+      ),
     ).toBe(true);
     expect(
       NodeTypes.isSubtype(
         extendedB,
         extendedA.get('/x/type/y/type/x/type') as BlueNode,
-        nodeProvider
-      )
+        nodeProvider,
+      ),
     ).toBe(true);
 
     const instance = `name: Some
@@ -116,7 +116,7 @@ a:
     const preprocessedNode = await blue.preprocess(instanceNode);
     const result = await blue.resolve(
       preprocessedNode,
-      PathLimits.withSinglePath('/*/*/*')
+      PathLimits.withSinglePath('/*/*/*'),
     );
 
     expect(result.get('/a/x/bConst')).toBe('xyz');
@@ -140,7 +140,7 @@ a:
     try {
       await blue.resolve(
         preprocessedErrorNode,
-        PathLimits.withSinglePath('/*/*/*/*')
+        PathLimits.withSinglePath('/*/*/*/*'),
       );
     } catch (e) {
       errorThrown = true;

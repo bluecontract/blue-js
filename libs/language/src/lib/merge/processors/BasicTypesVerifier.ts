@@ -14,7 +14,7 @@ export class BasicTypesVerifier implements MergingProcessor {
   postProcess(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     const targetType = target.getType();
     if (
@@ -30,11 +30,11 @@ export class BasicTypesVerifier implements MergingProcessor {
       ) {
         const basicTypeName = NodeTypes.findBasicTypeName(
           targetType,
-          nodeProvider
+          nodeProvider,
         );
         const typeName = targetType.getName() || 'unknown';
         throw new Error(
-          `Node of type "${typeName}" (which extends basic type "${basicTypeName}") must not have items, properties or contracts.`
+          `Node of type "${typeName}" (which extends basic type "${basicTypeName}") must not have items, properties or contracts.`,
         );
       }
     }

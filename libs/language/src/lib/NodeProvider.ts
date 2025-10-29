@@ -32,7 +32,7 @@ export abstract class NodeProvider {
  * Helper function to create a simple NodeProvider with a custom fetchByBlueId implementation
  */
 export function createNodeProvider(
-  fetchByBlueIdFn: (blueId: string) => BlueNode[]
+  fetchByBlueIdFn: (blueId: string) => BlueNode[],
 ): NodeProvider {
   return new (class extends NodeProvider {
     fetchByBlueId(blueId: string): BlueNode[] {

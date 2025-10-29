@@ -16,7 +16,7 @@ describe('BlueDocumentProcessor', () => {
 
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { name: 'Ping' }
+    message: unknown = { name: 'Ping' },
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
@@ -66,12 +66,12 @@ describe('BlueDocumentProcessor', () => {
     });
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [timelineEntry]
+      [timelineEntry],
     );
     const stateMap = blue.nodeToJson(state, 'simple') as any;
     expect(stateMap?.counter).toBe(2);
     expect(emitted.some((e) => blue.isTypeOf(e, DocumentUpdateSchema))).toBe(
-      true
+      true,
     );
   });
 
@@ -363,7 +363,7 @@ describe('BlueDocumentProcessor', () => {
 
     // Verify event propagation path
     const documentUpdates = emitted.filter((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
 
     expect(documentUpdates.length).toBe(4); // One update per level

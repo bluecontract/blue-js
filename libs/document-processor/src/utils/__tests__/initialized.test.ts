@@ -30,7 +30,7 @@ describe('ensureInitializedContract', () => {
 
     expect(jsonResult.contracts.initialized).toBeDefined();
     expect(jsonResult.contracts.initialized.type.name).toBe(
-      'Initialized Marker'
+      'Initialized Marker',
     );
   });
 
@@ -53,7 +53,7 @@ describe('ensureInitializedContract', () => {
     const jsonResult = blue.nodeToJson(result, 'simple') as any;
 
     expect(jsonResult.contracts.initialized.type.name).toBe(
-      'Initialized Marker'
+      'Initialized Marker',
     );
     expect(jsonResult.contracts.initialized.type.blueId).not.toBe('custom-id');
     expect(jsonResult.contracts.initialized.customField).toBeUndefined();
@@ -73,7 +73,7 @@ describe('ensureInitializedContract', () => {
     expect(jsonResult.contracts).toBeDefined();
     expect(jsonResult.contracts.initialized).toBeDefined();
     expect(jsonResult.contracts.initialized.type.name).toBe(
-      'Initialized Marker'
+      'Initialized Marker',
     );
   });
 

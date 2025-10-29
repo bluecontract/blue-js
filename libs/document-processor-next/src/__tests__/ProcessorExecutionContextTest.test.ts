@@ -1,11 +1,12 @@
+import { createBlue } from '../test-support/blue.js';
 import { describe, it, expect } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import { ContractProcessorRegistryBuilder } from '../registry/contract-processor-registry-builder.js';
 import { ContractLoader } from '../engine/contract-loader.js';
 import { ProcessorEngine } from '../engine/processor-engine.js';
 import { ContractBundle } from '../engine/contract-bundle.js';
-const blue = new Blue();
+const blue = createBlue();
 
 function createEngine(): ProcessorEngine {
   const registry = ContractProcessorRegistryBuilder.create().build();
@@ -31,7 +32,7 @@ describe('ProcessorExecutionContextTest', () => {
       bundle,
       new BlueNode(),
       false,
-      false
+      false,
     );
 
     const snapshot = context.documentAt('/nested/inner');
@@ -59,7 +60,7 @@ describe('ProcessorExecutionContextTest', () => {
       bundle,
       new BlueNode(),
       false,
-      false
+      false,
     );
 
     context.emitEvent(new BlueNode().setValue('payload'));

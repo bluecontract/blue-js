@@ -22,12 +22,12 @@ export class SequentialMergingProcessor implements MergingProcessor {
   process(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     return this.mergingProcessors.reduce(
       (currentTarget, processor) =>
         processor.process(currentTarget, source, nodeProvider),
-      target
+      target,
     );
   }
 
@@ -37,7 +37,7 @@ export class SequentialMergingProcessor implements MergingProcessor {
   postProcess(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     return this.mergingProcessors.reduce((currentPostTarget, processor) => {
       if (processor.postProcess) {

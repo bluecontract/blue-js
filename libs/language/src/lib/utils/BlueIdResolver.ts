@@ -28,7 +28,7 @@ export class BlueIdResolver {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     annotation: TypeBlueIdAnnotation,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    schema: ZodTypeAny
+    schema: ZodTypeAny,
   ) {
     throw new Error('Not implemented');
     return null;

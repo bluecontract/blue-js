@@ -24,7 +24,7 @@ export class OperationProcessor implements ContractProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    contractName: string
+    contractName: string,
   ): boolean {
     const blue = ctx.getBlue();
 
@@ -33,18 +33,18 @@ export class OperationProcessor implements ContractProcessor {
 
     const matchOperationName = this.isOperationNameMatch(
       eventOperationRequest,
-      contractName
+      contractName,
     );
 
     const matchChannelName = this.isOperationChannelMatch(
       event,
-      operationDefinition
+      operationDefinition,
     );
 
     const matchRequestPattern = this.isRequestPatternMatch(
       eventOperationRequest,
       operationDefinition,
-      ctx
+      ctx,
     );
 
     return matchOperationName && matchChannelName && matchRequestPattern;
@@ -54,7 +54,7 @@ export class OperationProcessor implements ContractProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    contractName?: string
+    contractName?: string,
   ): Promise<void> {
     ctx.emitEvent({
       payload: event.payload,
@@ -73,12 +73,12 @@ export class OperationProcessor implements ContractProcessor {
     ) {
       const timelineEntry = blue.nodeToSchemaOutput(
         event.payload,
-        TimelineEntrySchema
+        TimelineEntrySchema,
       );
       if (timelineEntry.message) {
         const operationRequest = blue.nodeToSchemaOutput(
           timelineEntry.message,
-          OperationRequestSchema
+          OperationRequestSchema,
         );
         return operationRequest;
       }
@@ -89,7 +89,7 @@ export class OperationProcessor implements ContractProcessor {
 
   private isOperationNameMatch(
     eventOperationRequest: OperationRequest | null,
-    contractName: string
+    contractName: string,
   ) {
     return (
       isNonNullable(eventOperationRequest?.operation) &&
@@ -99,7 +99,7 @@ export class OperationProcessor implements ContractProcessor {
 
   private isOperationChannelMatch(
     event: EventNode,
-    operationDefinition: Operation
+    operationDefinition: Operation,
   ) {
     const operationDefinitionChannelName = operationDefinition.channel;
     if (isNullable(operationDefinitionChannelName)) {
@@ -115,7 +115,7 @@ export class OperationProcessor implements ContractProcessor {
   private isRequestPatternMatch(
     eventOperationRequest: OperationRequest | null,
     operationDefinition: Operation,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ) {
     const requestNode = operationDefinition.request;
     if (isNullable(requestNode)) {

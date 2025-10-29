@@ -28,7 +28,7 @@ describe('BasicNodeProvider', () => {
 
     // Should throw when finding single node by name
     expect(() => provider.findNodeByName('DuplicateName')).toThrow(
-      'Multiple nodes found with name: DuplicateName'
+      'Multiple nodes found with name: DuplicateName',
     );
 
     // But should return all when finding all by name
@@ -121,11 +121,11 @@ value: this`;
     const provider = new BasicNodeProvider();
 
     expect(() => provider.getNodeByName('NonExistent')).toThrow(
-      'No node with name "NonExistent"'
+      'No node with name "NonExistent"',
     );
 
     expect(() => provider.getBlueIdByName('NonExistent')).toThrow(
-      'No node with name "NonExistent"'
+      'No node with name "NonExistent"',
     );
   });
 });

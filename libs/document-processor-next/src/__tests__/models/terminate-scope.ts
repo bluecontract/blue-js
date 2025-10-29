@@ -9,7 +9,7 @@ export const terminateScopeSchema = withTypeBlueId('TerminateScope')(
     reason: z.string().optional(),
     emitAfter: z.boolean().optional(),
     patchAfter: z.boolean().optional(),
-  })
+  }),
 );
 
 export type TerminateScope = z.infer<typeof terminateScopeSchema>;

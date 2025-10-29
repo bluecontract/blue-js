@@ -28,7 +28,7 @@ export class ValidateInlineTypesReplaced implements TransformationProcessor {
   private validateTypeField(
     node: BlueNode,
     typeNode: BlueNode | undefined,
-    fieldName: string
+    fieldName: string,
   ): void {
     if (
       typeNode &&
@@ -37,7 +37,7 @@ export class ValidateInlineTypesReplaced implements TransformationProcessor {
     ) {
       const typeValue = String(typeNode.getValue());
       throw new Error(
-        `Unknown type "${typeValue}" found in ${fieldName} field. No BlueId mapping exists for this type.`
+        `Unknown type "${typeValue}" found in ${fieldName} field. No BlueId mapping exists for this type.`,
       );
     }
   }

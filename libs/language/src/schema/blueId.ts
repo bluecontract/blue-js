@@ -21,7 +21,7 @@ export const blueIdSchema = z
     },
     {
       message: 'Blue Id must be a valid Base58 string',
-    }
+    },
   );
 
 export type BlueId = z.infer<typeof blueIdSchema>;

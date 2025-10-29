@@ -1,8 +1,8 @@
 import type { ZodType } from 'zod';
+import { BlueNode } from '@blue-labs/language';
 import type { Blue } from '@blue-labs/language';
 
 import type { JsonPatch } from '../model/shared/json-patch.js';
-import type { Node } from '../types/index.js';
 import type { MarkerContract } from '../model/index.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
@@ -16,13 +16,13 @@ export interface ContractProcessor<TContract> {
 export interface ContractProcessorContext {
   readonly scopePath: string;
   readonly blue: Blue;
-  event(): Node | null;
+  event(): BlueNode | null;
   applyPatch(patch: JsonPatch): void;
-  emitEvent(emission: Node): void;
+  emitEvent(emission: BlueNode): void;
   consumeGas(units: number): void;
   throwFatal(reason: string): never;
   resolvePointer(relativePointer: string): string;
-  documentAt(absolutePointer: string): Node | null;
+  documentAt(absolutePointer: string): BlueNode | null;
   documentContains(absolutePointer: string): boolean;
   terminateGracefully(reason: string | null): void;
   terminateFatally(reason: string | null): void;
@@ -33,7 +33,7 @@ export interface HandlerProcessor<TContract>
   readonly kind: 'handler';
   execute(
     contract: TContract,
-    context: ContractProcessorContext
+    context: ContractProcessorContext,
   ): void | Promise<void>;
 }
 
@@ -43,11 +43,7 @@ export interface ChannelEvaluationContext {
   /**
    * Mutable clone of the inbound event. Channel processors may adapt it in-place.
    */
-  readonly event: Node | null;
-  /**
-   * Lazily materialised object view of {@link event}. Optional for processors that require DTOs.
-   */
-  readonly eventObject: unknown | null;
+  readonly event: BlueNode | null;
   readonly markers: ReadonlyMap<string, MarkerContract>;
 }
 
@@ -56,12 +52,17 @@ export interface ChannelProcessor<TContract>
   readonly kind: 'channel';
   matches(
     contract: TContract,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): boolean | Promise<boolean>;
-  eventId?(
+  /**
+   * Optional: Provide a channelized event for handlers without mutating the inbound event.
+   * When provided, the engine will deliver this node to handlers while computing
+   * checkpoint signatures and storage from the original external event.
+   */
+  channelize?(
     contract: TContract,
-    context: ChannelEvaluationContext
-  ): string | null | undefined | Promise<string | null | undefined>;
+    context: ChannelEvaluationContext,
+  ): BlueNode | null | undefined;
 }
 
 export interface MarkerProcessor<TContract>

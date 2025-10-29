@@ -20,7 +20,7 @@ export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
       !contracts?.checkpoint ||
       !BlueNodeTypeSchema.isTypeOf(
         contracts.checkpoint,
-        ChannelEventCheckpointSchema
+        ChannelEventCheckpointSchema,
       )
     ) {
       node.addContract(
@@ -31,7 +31,7 @@ export function ensureCheckpointContracts(doc: DocumentNode, blue: Blue) {
             blueId: blueIds['Channel Event Checkpoint'],
           },
           lastEvents: {},
-        })
+        }),
       );
     }
   };

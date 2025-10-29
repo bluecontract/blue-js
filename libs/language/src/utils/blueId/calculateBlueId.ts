@@ -9,7 +9,7 @@ import { BlueNode } from '../../lib/model/Node';
  * @returns Value ready for BlueId calculation
  */
 const prepareForBlueIdCalculation = (
-  value: JsonBlueValue | BlueNode | BlueNode[]
+  value: JsonBlueValue | BlueNode | BlueNode[],
 ): BlueNode | BlueNode[] => {
   if (value instanceof BlueNode) {
     return value;
@@ -32,7 +32,7 @@ const prepareForBlueIdCalculation = (
  * @throws {Error} Invalid input value
  */
 export const calculateBlueId = async (
-  value: JsonBlueValue | BlueNode | BlueNode[]
+  value: JsonBlueValue | BlueNode | BlueNode[],
 ) => {
   const prepared = prepareForBlueIdCalculation(value);
   return BlueIdCalculator.calculateBlueId(prepared);
@@ -44,7 +44,7 @@ export const calculateBlueId = async (
  * @throws {Error} Invalid input value
  */
 export const calculateBlueIdSync = (
-  value: JsonBlueValue | BlueNode | BlueNode[]
+  value: JsonBlueValue | BlueNode | BlueNode[],
 ) => {
   const prepared = prepareForBlueIdCalculation(value);
   return BlueIdCalculator.calculateBlueIdSync(prepared);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
 
 import {
   RemovePropertyContractProcessor,
@@ -12,8 +12,9 @@ import {
   propertyOptional,
   stringProperty,
 } from './test-utils.js';
+import { blueIds, createBlue } from '../test-support/blue.js';
 
-const blue = new Blue();
+const blue = createBlue();
 
 describe('DocumentProcessorInitializationTest', () => {
   it('initializesDocumentAndExecutesHandlersInOrder', () => {
@@ -21,15 +22,13 @@ describe('DocumentProcessorInitializationTest', () => {
     const yaml = `name: Sample Doc
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   setX:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /x
     propertyValue: 5
   setXLater:
@@ -38,8 +37,7 @@ contracts:
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /x
     propertyValue: 10
 `;
@@ -55,10 +53,10 @@ contracts:
     expect(initResult.triggeredEvents.length).toBe(1);
     const lifecycleEvent = initResult.triggeredEvents[0];
     expect(stringProperty(lifecycleEvent, 'type')).toBe(
-      'Document Processing Initiated'
+      'Document Processing Initiated',
     );
     expect(stringProperty(lifecycleEvent, 'documentId')).toBe(
-      expectedDocumentId
+      expectedDocumentId,
     );
 
     expect(Number(property(initialized, 'x').getValue())).toBe(10);
@@ -66,24 +64,24 @@ contracts:
     const contracts = property(initialized, 'contracts');
     const initializedMarker = property(contracts, 'initialized');
     expect(initializedMarker.getType()?.getBlueId()).toBe(
-      'InitializationMarker'
+      blueIds['Processing Initialized Marker'],
     );
     expect(stringProperty(initializedMarker, 'documentId')).toBe(
-      expectedDocumentId
+      expectedDocumentId,
     );
 
     const checkpoint = propertyOptional(contracts, 'checkpoint');
     expect(checkpoint).toBeUndefined();
 
     expect(() => processor.initializeDocument(initialized.clone())).toThrow(
-      /Document already initialized/
+      /Document already initialized/,
     );
 
     const processResult = expectOk(
       processor.processDocument(
         initialized.clone(),
-        new BlueNode().setValue('external')
-      )
+        new BlueNode().setValue('external'),
+      ),
     );
     expect(Number(property(processResult.document, 'x').getValue())).toBe(10);
     expect(processResult.triggeredEvents.length).toBe(0);
@@ -96,15 +94,13 @@ contracts:
     const yaml = `name: Custom Path Doc
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   setRoot:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /x
     propertyValue: 3
   setNested:
@@ -114,8 +110,7 @@ contracts:
       blueId: SetProperty
     path: /nested/branch/
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: x
     propertyValue: 7
   setExplicit:
@@ -125,14 +120,13 @@ contracts:
       blueId: SetProperty
     path: a/x
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: x
     propertyValue: 11
 `;
 
     const result = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     );
     const processed = result.document;
 
@@ -151,8 +145,7 @@ contracts:
     const yaml = `name: Sample Doc
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   setX:
     channel: lifecycleChannel
     type:
@@ -167,7 +160,7 @@ contracts:
 
     expect(
       result.capabilityFailure,
-      'Initialization should fail with must-understand'
+      'Initialization should fail with must-understand',
     ).toBe(true);
     expect(result.totalGas).toBe(0);
     expect(result.triggeredEvents.length).toBe(0);
@@ -185,7 +178,7 @@ contracts:
 
     const document = blue.yamlToNode(yaml);
     expect(() =>
-      processor.processDocument(document, new BlueNode().setValue('event'))
+      processor.processDocument(document, new BlueNode().setValue('event')),
     ).toThrow(/Initialization Marker/);
   });
 
@@ -200,7 +193,7 @@ contracts:
 
     const document = blue.yamlToNode(yaml);
     expect(() => processor.initializeDocument(document)).toThrow(
-      /Initialization Marker/
+      /Initialization Marker/,
     );
   });
 
@@ -215,14 +208,14 @@ contracts:
 
     const document = blue.yamlToNode(yaml);
     expect(() => processor.isInitialized(document)).toThrow(
-      /Initialization Marker/
+      /Initialization Marker/,
     );
   });
 
   it('removePatchDeletesPropertyDuringInitialization', () => {
     const processor = buildProcessor(
       blue,
-      new RemovePropertyContractProcessor()
+      new RemovePropertyContractProcessor(),
     );
     const yaml = `name: Remove Doc
 x:
@@ -230,15 +223,13 @@ x:
     blueId: Text
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   removeX:
     channel: lifecycleChannel
     type:
       blueId: RemoveProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /x
 `;
 
@@ -251,7 +242,7 @@ contracts:
 
     const hasLifecycle = result.triggeredEvents.some(
       (eventNode: BlueNode) =>
-        stringProperty(eventNode, 'type') === 'Document Processing Initiated'
+        stringProperty(eventNode, 'type') === 'Document Processing Initiated',
     );
     expect(hasLifecycle).toBe(true);
 
@@ -263,8 +254,7 @@ contracts:
     const yaml = `name: Invalid Doc
 contracts:
   checkpoint:
-    type:
-      blueId: ChannelEventCheckpoint
+    type: Channel Event Checkpoint
 `;
 
     const document = blue.yamlToNode(yaml);
@@ -276,12 +266,11 @@ contracts:
     const yaml = `name: Wrong Checkpoint Doc
 contracts:
   checkpoint:
-    type:
-      blueId: ProcessingFailureMarker
+    type: Processing Terminated Marker
 `;
 
     expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
-      /Channel Event Checkpoint/
+      /Channel Event Checkpoint/,
     );
   });
 
@@ -290,15 +279,13 @@ contracts:
     const yaml = `name: Duplicate Checkpoint Doc
 contracts:
   checkpoint:
-    type:
-      blueId: ChannelEventCheckpoint
+    type: Channel Event Checkpoint
   extraCheckpoint:
-    type:
-      blueId: ChannelEventCheckpoint
+    type: Channel Event Checkpoint
 `;
 
     expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
-      /Channel Event Checkpoint/
+      /Channel Event Checkpoint/,
     );
   });
 
@@ -307,18 +294,15 @@ contracts:
     const yaml = `name: Lifecycle Trigger Isolation
 contracts:
   lifecycleChannel:
-    type:
-      blueId: LifecycleChannel
+    type: Lifecycle Event Channel
   triggeredChannel:
-    type:
-      blueId: TriggeredEventChannel
+    type: Triggered Event Channel
   handleLifecycle:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type:
-        blueId: DocumentProcessingInitiated
+      type: Document Processing Initiated
     propertyKey: /lifecycle
     propertyValue: 1
   triggeredHandler:
@@ -330,7 +314,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     expect(propertyOptional(initialized, 'lifecycle')).toBeDefined();
@@ -345,13 +329,11 @@ child:
   contracts: {}
 contracts:
   embedded:
-    type:
-      blueId: ProcessEmbedded
+    type: Process Embedded
     paths:
       - /child
   childBridge:
-    type:
-      blueId: EmbeddedNodeChannel
+    type: Embedded Node Channel
     childPath: /child
   captureChildLifecycle:
     channel: childBridge
@@ -362,7 +344,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     const childLifecycle = propertyOptional(initialized, 'childLifecycle');

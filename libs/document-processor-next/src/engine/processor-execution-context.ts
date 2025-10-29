@@ -1,4 +1,3 @@
-import type { Node } from '../types/index.js';
 import type { ContractBundle } from './contract-bundle.js';
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
@@ -14,18 +13,18 @@ export interface ExecutionAdapter {
     scopePath: string,
     bundle: ContractBundle,
     patch: JsonPatch,
-    allowReservedMutation: boolean
+    allowReservedMutation: boolean,
   ): void;
   resolvePointer(scopePath: string, relativePointer: string): string;
   enterGracefulTermination(
     scopePath: string,
     bundle: ContractBundle,
-    reason: string | null
+    reason: string | null,
   ): void;
   enterFatalTermination(
     scopePath: string,
     bundle: ContractBundle,
-    reason: string | null
+    reason: string | null,
   ): void;
 }
 
@@ -34,10 +33,9 @@ export class ProcessorExecutionContext {
     private readonly execution: ExecutionAdapter,
     private readonly bundle: ContractBundle,
     private readonly scopePathValue: string,
-    private readonly eventNode: Node,
+    private readonly eventNode: BlueNode,
     private readonly allowTerminatedWork: boolean,
     private readonly allowReservedMutation: boolean,
-    private readonly blueRef: Blue
   ) {}
 
   get scopePath(): string {
@@ -45,10 +43,10 @@ export class ProcessorExecutionContext {
   }
 
   get blue(): Blue {
-    return this.blueRef;
+    return this.execution.runtime().blue();
   }
 
-  event(): Node {
+  event(): BlueNode {
     return this.eventNode;
   }
 
@@ -63,11 +61,11 @@ export class ProcessorExecutionContext {
       this.scopePathValue,
       this.bundle,
       patch,
-      this.allowReservedMutation
+      this.allowReservedMutation,
     );
   }
 
-  emitEvent(emission: Node): void {
+  emitEvent(emission: BlueNode): void {
     if (
       !this.allowTerminatedWork &&
       this.execution.isScopeInactive(this.scopePathValue)
@@ -103,13 +101,13 @@ export class ProcessorExecutionContext {
     return this.execution.resolvePointer(this.scopePathValue, relativePointer);
   }
 
-  documentAt(absolutePointer: string): Node | null {
+  documentAt(absolutePointer: string): BlueNode | null {
     if (!absolutePointer) {
       return null;
     }
     try {
       const node = this.documentNodeAt(absolutePointer);
-      return node ? (node.clone() as Node) : null;
+      return node ? node.clone() : null;
     } catch {
       return null;
     }
@@ -120,10 +118,12 @@ export class ProcessorExecutionContext {
       return false;
     }
     try {
-      return ProcessorEngine.nodeAt(
-        this.execution.runtime().document(),
-        absolutePointer
-      ) != null;
+      return (
+        ProcessorEngine.nodeAt(
+          this.execution.runtime().document(),
+          absolutePointer,
+        ) != null
+      );
     } catch {
       return false;
     }
@@ -132,7 +132,7 @@ export class ProcessorExecutionContext {
   private documentNodeAt(absolutePointer: string): BlueNode | null {
     const node = ProcessorEngine.nodeAt(
       this.execution.runtime().document(),
-      absolutePointer
+      absolutePointer,
     );
     return node instanceof BlueNode ? node : null;
   }
@@ -141,7 +141,7 @@ export class ProcessorExecutionContext {
     this.execution.enterGracefulTermination(
       this.scopePathValue,
       this.bundle,
-      reason ?? null
+      reason ?? null,
     );
   }
 
@@ -149,7 +149,7 @@ export class ProcessorExecutionContext {
     this.execution.enterFatalTermination(
       this.scopePathValue,
       this.bundle,
-      reason ?? null
+      reason ?? null,
     );
   }
 }

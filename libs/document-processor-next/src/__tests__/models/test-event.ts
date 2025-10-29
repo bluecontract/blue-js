@@ -7,7 +7,7 @@ export const testEventSchema = withTypeBlueId('TestEvent')(
     x: z.number().int().optional(),
     y: z.number().int().optional(),
     kind: z.string().optional(),
-  })
+  }),
 );
 
 export type TestEvent = z.infer<typeof testEventSchema>;

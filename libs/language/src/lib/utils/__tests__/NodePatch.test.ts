@@ -64,7 +64,7 @@ describe('applyBluePatch → BlueNode', () => {
     expect(result.get('/personName')).toBeUndefined();
     const contracts = result.getContracts();
     expect(Object.keys(contracts ?? {}).some((c) => c === 'contract1')).toBe(
-      false
+      false,
     );
     const list = result.get('/list') as BlueNode;
     expect(list.getItems()).toHaveLength(1);

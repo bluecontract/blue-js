@@ -47,7 +47,7 @@ describe('ListProcessor', () => {
         result
           .getItemType()!
           .getBlueId() as keyof typeof CORE_TYPE_BLUE_ID_TO_NAME_MAP
-      ]
+      ],
     ).toBe('Integer');
   });
 

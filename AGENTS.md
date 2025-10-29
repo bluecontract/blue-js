@@ -11,3 +11,11 @@ Example commands (adjust to your workspace):
 
 - `tsc` (or your workspace type-check command)
 - `eslint .` (or your workspace lint command)
+
+### Blue JS Workspace Commands
+
+- **Type check**: `npx tsc -p tsconfig.json --noEmit`
+- **ESLint**: `npx eslint libs/document-processor-next` (use `npx eslint .` when runtime allows)
+- **Tests (preferred)**: `nx test document-processor-next --skip-nx-cache`
+  - If the Nx daemon or plugin worker fails, run `nx reset` and retry with `NX_DAEMON=false nx test document-processor-next --skip-nx-cache`.
+  - As a fallback, execute the Vitest suite directly with `npx vitest run --config libs/document-processor-next/vite.config.ts`.

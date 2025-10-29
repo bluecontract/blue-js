@@ -75,7 +75,7 @@ type:
 
     // Assert that error is thrown for conflicting values
     expect(() => merger.resolve(fetchedNodeB!, NO_LIMITS)).toThrow(
-      'Node values conflict. Source node value: abc, target node value: xyz'
+      'Node values conflict. Source node value: abc, target node value: xyz',
     );
   });
 });

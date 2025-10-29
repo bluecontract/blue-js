@@ -6,7 +6,7 @@ import { blueIds, InitializedMarkerSchema } from '@blue-repository/core-dev';
 
 export function ensureInitializedContract(
   doc: DocumentNode,
-  blue: Blue
+  blue: Blue,
 ): DocumentNode {
   const mutableDoc = mutable(doc);
 
@@ -23,7 +23,7 @@ export function ensureInitializedContract(
           name: 'Initialized Marker',
           blueId: blueIds['Initialized Marker'],
         },
-      })
+      }),
     );
   }
 
@@ -36,6 +36,6 @@ export function isInitialized(doc: DocumentNode, blue: Blue): boolean {
   return Object.values(contracts ?? {}).some((contract) =>
     blue.isTypeOf(contract, InitializedMarkerSchema, {
       checkSchemaExtensions: true,
-    })
+    }),
   );
 }

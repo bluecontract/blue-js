@@ -11,7 +11,7 @@ describe('serializeBlueAnnotated Tests', () => {
   const TypeBlueIdExampleSchema = withTypeBlueId('Example-BlueId')(
     z.object({
       field: z.string().optional(),
-    })
+    }),
   );
 
   it('testTypeBlueIdSerialization', () => {
@@ -27,7 +27,7 @@ describe('serializeBlueAnnotated Tests', () => {
   const BlueIdExampleSchema = withTypeBlueId('BlueId-Example')(
     z.object({
       id: blueIdField('id'),
-    })
+    }),
   );
 
   it('testBlueIdSerialization', () => {
@@ -49,7 +49,7 @@ describe('serializeBlueAnnotated Tests', () => {
       teamName: blueNameField('team'),
       teamDescription: blueDescriptionField('team'),
       team: z.array(z.string()).optional(),
-    })
+    }),
   );
 
   it('testBlueNameAndDescriptionForCollection', () => {
@@ -76,7 +76,7 @@ describe('serializeBlueAnnotated Tests', () => {
       fieldName: blueNameField('field'),
       fieldDescription: blueDescriptionField('field'),
       field: z.string().optional(),
-    })
+    }),
   );
 
   it('testBlueNameAndDescriptionForNonCollection', () => {

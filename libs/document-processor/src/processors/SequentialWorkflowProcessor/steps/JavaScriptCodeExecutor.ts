@@ -27,14 +27,14 @@ export class JavaScriptCodeExecutor implements WorkflowStepExecutor {
     event: EventNode,
     ctx: ProcessingContext,
     documentPath: string,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ): Promise<unknown> {
     if (!BlueNodeTypeSchema.isTypeOf(step, JavaScriptCodeSchema)) return;
     const blue = ctx.getBlue();
 
     const javaScriptCodeStep = blue.nodeToSchemaOutput(
       step,
-      JavaScriptCodeSchema
+      JavaScriptCodeSchema,
     );
 
     if (!javaScriptCodeStep.code) {

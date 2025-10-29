@@ -4,7 +4,7 @@ import { withTypeBlueId } from '@blue-labs/language';
 import { handlerContractBaseSchema } from '../../model/shared/index.js';
 
 export const assertDocumentUpdateSchema = withTypeBlueId(
-  'AssertDocumentUpdate'
+  'AssertDocumentUpdate',
 )(
   handlerContractBaseSchema.extend({
     expectedPath: z.string().optional(),
@@ -13,7 +13,7 @@ export const assertDocumentUpdateSchema = withTypeBlueId(
     expectBeforeNull: z.boolean().optional(),
     expectedAfterValue: z.number().int().optional(),
     expectAfterNull: z.boolean().optional(),
-  })
+  }),
 );
 
 export type AssertDocumentUpdate = z.infer<typeof assertDocumentUpdateSchema>;

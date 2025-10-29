@@ -17,7 +17,7 @@ export class NodeToObjectConverter {
   convert<
     Output = unknown,
     Def extends ZodTypeDef = ZodTypeDef,
-    Input = Output
+    Input = Output,
   >(node: BlueNode, targetType: ZodType<Output, Def, Input>): Output {
     const resolvedSchema = this.typeSchemaResolver?.resolveSchema(node);
     const unwrappedTargetType = BlueNodeTypeSchema.unwrapSchema(targetType);
@@ -31,7 +31,7 @@ export class NodeToObjectConverter {
     if (
       BlueNodeTypeSchema.checkSchemaExtension(
         resolvedSchema,
-        unwrappedTargetType
+        unwrappedTargetType,
       ) &&
       isNonNullable(resolvedSchema)
     ) {
@@ -44,7 +44,7 @@ export class NodeToObjectConverter {
   private convertWithType<
     Output = unknown,
     Def extends ZodTypeDef = ZodTypeDef,
-    Input = Output
+    Input = Output,
   >(node: BlueNode, targetType: ZodType<Output, Def, Input>): Output {
     const converter = this.converterFactory.getConverter(targetType);
     return converter.convert(node, targetType) as Output;

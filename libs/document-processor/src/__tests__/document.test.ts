@@ -68,7 +68,7 @@ describe('Document Utilities', () => {
 
       // Act & Assert
       expect(() => applyPatches(docNode, [invalidPatch])).toThrow(
-        PatchApplicationError
+        PatchApplicationError,
       );
     });
 
@@ -111,7 +111,7 @@ describe('Document Utilities', () => {
 
       // Act & Assert - Use direct assertion for simplicity
       expect(() => applyPatches(docNode, patches)).toThrow(
-        PatchApplicationError
+        PatchApplicationError,
       );
 
       // Also check that the error has the correct patch
