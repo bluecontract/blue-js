@@ -28,7 +28,6 @@
   },
   "peerDependencies": {
     "zod": "^3.20.0",
-    "@blue-repository/core": ">=0.1.0 <1.0.0",
-    "@blue-repository/conversation": ">=0.1.0 <1.0.0"
+    "@blue-repository/core": ">=0.1.0 <1.0.0"
   }
 }
