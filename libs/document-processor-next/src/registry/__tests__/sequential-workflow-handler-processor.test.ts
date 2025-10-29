@@ -113,4 +113,26 @@ describe('SequentialWorkflowHandlerProcessor', () => {
 
     expect(nonMatching.triggeredEvents).toHaveLength(0);
   });
+
+  it('runs for all channel-matched events when no event filter is provided', () => {
+    const { processor, initialized } = initializeDocument();
+
+    // Chat Message matches the Timeline Channel and should trigger the workflow
+    const chatResult = expectOk(
+      processor.processDocument(
+        initialized.clone(),
+        timelineEntryEvent('alice', 'Chat Message', { message: 'eligible' })
+      )
+    );
+    expect(chatResult.triggeredEvents).toHaveLength(1);
+
+    // Request also matches the same channel and should trigger as well when no event filter is set
+    const requestResult = expectOk(
+      processor.processDocument(
+        chatResult.document.clone(),
+        timelineEntryEvent('alice', 'Request', { requestId: 'accept-me' })
+      )
+    );
+    expect(requestResult.triggeredEvents).toHaveLength(1);
+  });
 });
