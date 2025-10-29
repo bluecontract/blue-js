@@ -41,11 +41,11 @@ contracts:
 }
 
 describe('DocumentProcessor', () => {
-  it('initializes documents and returns processing result', () => {
+  it('initializes documents and returns processing result', async () => {
     const processor = createDocumentProcessor();
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
-    const init = processor.initializeDocument(original);
+    const init = await processor.initializeDocument(original);
     expect(init.capabilityFailure).toBe(false);
 
     const initialized = init.document;
@@ -59,18 +59,18 @@ describe('DocumentProcessor', () => {
     );
   });
 
-  it('processes external events and updates document state', () => {
+  it('processes external events and updates document state', async () => {
     const processor = createDocumentProcessor();
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
-    const init = processor.initializeDocument(original);
+    const init = await processor.initializeDocument(original);
     const initialized = init.document;
 
     const eventNode = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
     });
 
-    const processed = processor.processDocument(initialized, eventNode);
+    const processed = await processor.processDocument(initialized, eventNode);
     expect(processed.capabilityFailure).toBe(false);
 
     const processedDoc = processed.document;
@@ -79,31 +79,31 @@ describe('DocumentProcessor', () => {
     expect(processed.triggeredEvents).toHaveLength(0);
   });
 
-  it('throws when document already initialized', () => {
+  it('throws when document already initialized', async () => {
     const processor = createDocumentProcessor();
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
-    const firstInit = processor.initializeDocument(original);
+    const firstInit = await processor.initializeDocument(original);
     expect(firstInit.capabilityFailure).toBe(false);
 
-    expect(() => processor.initializeDocument(firstInit.document)).toThrowError(
-      /Document already initialized/,
-    );
+    await expect(
+      processor.initializeDocument(firstInit.document),
+    ).rejects.toThrowError(/Document already initialized/);
   });
 
-  it('throws when processing uninitialized document', () => {
+  it('throws when processing uninitialized document', async () => {
     const processor = createDocumentProcessor();
     const uninitializedDoc = blue.yamlToNode(
       documentWithLifecycleAndEventHandlers(),
     );
     const eventNode = blue.jsonValueToNode({ type: { blueId: 'TestEvent' } });
 
-    expect(() =>
+    await expect(
       processor.processDocument(uninitializedDoc, eventNode),
-    ).toThrowError(/Document not initialized/);
+    ).rejects.toThrowError(/Document not initialized/);
   });
 
-  it('returns capability failure when contracts are not understood', () => {
+  it('returns capability failure when contracts are not understood', async () => {
     const processor = createDocumentProcessor();
     const original = blue.yamlToNode(
       `name: Example
@@ -114,7 +114,7 @@ contracts:
 `,
     );
 
-    const result = processor.initializeDocument(original);
+    const result = await processor.initializeDocument(original);
     expect(result.capabilityFailure).toBe(true);
     expect(result.failureReason).toMatch(/Unsupported contract type/);
     expect(result.totalGas).toBe(0);
@@ -124,11 +124,11 @@ contracts:
     );
   });
 
-  it('loads markers for a scope', () => {
+  it('loads markers for a scope', async () => {
     const processor = createDocumentProcessor();
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
 
-    const init = processor.initializeDocument(original);
+    const init = await processor.initializeDocument(original);
 
     const markers = processor.markersFor(init.document, '/');
     expect(markers.has('initialized')).toBe(true);

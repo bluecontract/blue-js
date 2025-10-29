@@ -44,7 +44,7 @@ function checkpointStoredEvent(document: ReturnType<typeof blue.yamlToNode>) {
 }
 
 describe('TestEventChannelTest', () => {
-  it('testEventChannelMatchesOnlyTestEvents', () => {
+  it('testEventChannelMatchesOnlyTestEvents', async () => {
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -64,16 +64,18 @@ contracts:
     propertyValue: 1
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
     expect(propertyOptional(initialized, 'x')).toBeUndefined();
 
     const randomEvent = blue.yamlToNode(`type:
   blueId: RandomEvent
 `);
-    const afterRandom = expectOk(
-      processor.processDocument(initialized.clone(), randomEvent),
+    const afterRandom = (
+      await expectOk(
+        processor.processDocument(initialized.clone(), randomEvent),
+      )
     ).document.clone();
     expect(propertyOptional(afterRandom, 'x')).toBeUndefined();
 
@@ -82,13 +84,13 @@ contracts:
       x: 5,
       y: 10,
     });
-    const afterTest = expectOk(
-      processor.processDocument(afterRandom.clone(), testEvent),
+    const afterTest = (
+      await expectOk(processor.processDocument(afterRandom.clone(), testEvent))
     ).document;
     expect(Number(property(afterTest, 'x').getValue())).toBe(1);
   });
 
-  it('triggeredAndEmbeddedChannelsPropagateChildEvents', () => {
+  it('triggeredAndEmbeddedChannelsPropagateChildEvents', async () => {
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -157,8 +159,8 @@ contracts:
     propertyValue: 1
 `;
 
-    const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const processed = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document;
 
     const child = property(processed, 'a');
@@ -167,7 +169,7 @@ contracts:
     expect(Number(property(processed, 'fromChild').getValue())).toBe(1);
   });
 
-  it('checkpointSkipsStaleEvents', () => {
+  it('checkpointSkipsStaleEvents', async () => {
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -187,8 +189,8 @@ contracts:
     propertyKey: /x
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
     expect(checkpointValue(initialized)).toBeNull();
 
@@ -197,8 +199,8 @@ contracts:
       eventId: 'evt-1',
     });
     event1.setBlueId('evt-1');
-    const afterFirst = expectOk(
-      processor.processDocument(initialized.clone(), event1),
+    const afterFirst = (
+      await expectOk(processor.processDocument(initialized.clone(), event1))
     ).document.clone();
     expect(Number(property(afterFirst, 'x').getValue())).toBe(1);
     expect(checkpointValue(afterFirst)).toBe('evt-1');
@@ -208,8 +210,8 @@ contracts:
       eventId: 'evt-1',
     });
     stale.setBlueId('evt-1');
-    const afterStale = expectOk(
-      processor.processDocument(afterFirst.clone(), stale),
+    const afterStale = (
+      await expectOk(processor.processDocument(afterFirst.clone(), stale))
     ).document.clone();
     expect(Number(property(afterStale, 'x').getValue())).toBe(1);
     expect(checkpointValue(afterStale)).toBe('evt-1');
@@ -219,14 +221,14 @@ contracts:
       eventId: 'evt-2',
     });
     fresh.setBlueId('evt-2');
-    const afterFresh = expectOk(
-      processor.processDocument(afterStale.clone(), fresh),
+    const afterFresh = (
+      await expectOk(processor.processDocument(afterStale.clone(), fresh))
     ).document;
     expect(Number(property(afterFresh, 'x').getValue())).toBe(2);
     expect(checkpointValue(afterFresh)).toBe('evt-2');
   });
 
-  it('checkpointStoresFullEventAndComparesPayload', () => {
+  it('checkpointStoresFullEventAndComparesPayload', async () => {
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -246,16 +248,16 @@ contracts:
     propertyKey: /x
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
 
     const firstEvent = blue.yamlToNode(`type:
   blueId: TestEvent
 kind: alpha
 `);
-    const afterFirst = expectOk(
-      processor.processDocument(initialized.clone(), firstEvent),
+    const afterFirst = (
+      await expectOk(processor.processDocument(initialized.clone(), firstEvent))
     ).document.clone();
     expect(Number(property(afterFirst, 'x').getValue())).toBe(1);
     const storedEvent = checkpointStoredEvent(afterFirst);
@@ -265,8 +267,10 @@ kind: alpha
   blueId: TestEvent
 kind: alpha
 `);
-    const afterSecond = expectOk(
-      processor.processDocument(afterFirst.clone(), identicalEvent),
+    const afterSecond = (
+      await expectOk(
+        processor.processDocument(afterFirst.clone(), identicalEvent),
+      )
     ).document.clone();
     expect(Number(property(afterSecond, 'x').getValue())).toBe(1);
 
@@ -274,8 +278,10 @@ kind: alpha
   blueId: TestEvent
 kind: beta
 `);
-    const afterThird = expectOk(
-      processor.processDocument(afterSecond.clone(), changedEvent),
+    const afterThird = (
+      await expectOk(
+        processor.processDocument(afterSecond.clone(), changedEvent),
+      )
     ).document;
     expect(Number(property(afterThird, 'x').getValue())).toBe(2);
     const updatedEvent = checkpointStoredEvent(afterThird);

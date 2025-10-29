@@ -39,7 +39,7 @@ describe('DocumentProcessorTerminationTest', () => {
     );
   });
 
-  it('rootGracefulTerminationStopsFurtherWork', () => {
+  it('rootGracefulTerminationStopsFurtherWork', async () => {
     const yaml = `name: Root Doc
 contracts:
   testChannel:
@@ -54,11 +54,11 @@ contracts:
     patchAfter: true
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
 
-    const result = expectOk(
+    const result = await expectOk(
       processor.processDocument(initialized, testEvent('evt-1')),
     );
     const processed = result.document;
@@ -75,7 +75,7 @@ contracts:
     expect(stringProperty(terminationEvent, 'cause')).toBe('graceful');
   });
 
-  it('rootFatalTerminationEmitsTerminationEvent', () => {
+  it('rootFatalTerminationEmitsTerminationEvent', async () => {
     const yaml = `name: Root Fatal
 contracts:
   testChannel:
@@ -89,11 +89,11 @@ contracts:
     reason: panic
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
 
-    const result = expectOk(
+    const result = await expectOk(
       processor.processDocument(initialized, testEvent('evt-2')),
     );
     expect(result.triggeredEvents.length).toBe(1);
@@ -105,7 +105,7 @@ contracts:
     expect(stringProperty(terminatedEvent, 'reason')).toBe('panic');
   });
 
-  it('childTerminationBridgesToParent', () => {
+  it('childTerminationBridgesToParent', async () => {
     const yaml = `name: Parent
 child:
   name: Child
@@ -134,11 +134,11 @@ contracts:
     propertyValue: 7
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
 
-    const result = expectOk(
+    const result = await expectOk(
       processor.processDocument(initialized, testEvent('evt-3')),
     );
     const processed = result.document;

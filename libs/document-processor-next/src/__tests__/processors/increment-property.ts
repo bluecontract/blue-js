@@ -12,10 +12,10 @@ export class IncrementPropertyContractProcessor
   readonly blueIds = ['IncrementProperty'] as const;
   readonly schema = incrementPropertySchema;
 
-  execute(
+  async execute(
     contract: IncrementProperty,
     context: Parameters<HandlerProcessor<IncrementProperty>['execute']>[1],
-  ): void {
+  ): Promise<void> {
     const pointer = this.buildPointer(contract.propertyKey);
     const absolute = context.resolvePointer(pointer);
     const existing = context.documentAt(absolute);
@@ -25,7 +25,7 @@ export class IncrementPropertyContractProcessor
     const valueNode = new BlueNode().setValue(next);
     const exists = context.documentContains(absolute);
     const op = exists ? 'REPLACE' : 'ADD';
-    context.applyPatch({ op, path: absolute, val: valueNode });
+    await context.applyPatch({ op, path: absolute, val: valueNode });
   }
 
   private buildPointer(key: string): string {

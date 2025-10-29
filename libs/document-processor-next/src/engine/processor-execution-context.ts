@@ -14,18 +14,18 @@ export interface ExecutionAdapter {
     bundle: ContractBundle,
     patch: JsonPatch,
     allowReservedMutation: boolean,
-  ): void;
+  ): Promise<void>;
   resolvePointer(scopePath: string, relativePointer: string): string;
   enterGracefulTermination(
     scopePath: string,
     bundle: ContractBundle,
     reason: string | null,
-  ): void;
+  ): Promise<void>;
   enterFatalTermination(
     scopePath: string,
     bundle: ContractBundle,
     reason: string | null,
-  ): void;
+  ): Promise<void>;
 }
 
 export class ProcessorExecutionContext {
@@ -50,14 +50,14 @@ export class ProcessorExecutionContext {
     return this.eventNode;
   }
 
-  applyPatch(patch: JsonPatch): void {
+  async applyPatch(patch: JsonPatch): Promise<void> {
     if (
       !this.allowTerminatedWork &&
       this.execution.isScopeInactive(this.scopePathValue)
     ) {
       return;
     }
-    this.execution.handlePatch(
+    await this.execution.handlePatch(
       this.scopePathValue,
       this.bundle,
       patch,
@@ -137,16 +137,16 @@ export class ProcessorExecutionContext {
     return node instanceof BlueNode ? node : null;
   }
 
-  terminateGracefully(reason: string | null): void {
-    this.execution.enterGracefulTermination(
+  async terminateGracefully(reason: string | null): Promise<void> {
+    await this.execution.enterGracefulTermination(
       this.scopePathValue,
       this.bundle,
       reason ?? null,
     );
   }
 
-  terminateFatally(reason: string | null): void {
-    this.execution.enterFatalTermination(
+  async terminateFatally(reason: string | null): Promise<void> {
+    await this.execution.enterFatalTermination(
       this.scopePathValue,
       this.bundle,
       reason ?? null,

@@ -6,24 +6,28 @@ import type { AnyContractProcessor } from '../registry/types.js';
 import { resolvePointer } from '../util/pointer-utils.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
 
-export function expectOk(
-  result: DocumentProcessingResult,
+export async function expectOk(
+  result: DocumentProcessingResult | Promise<DocumentProcessingResult>,
   message = 'Expected successful document processing result',
-): DocumentProcessingResult {
+): Promise<DocumentProcessingResult> {
+  const resolved = await result;
   const failureDetails =
-    result.failureReason != null
-      ? ` Failure reason: ${result.failureReason}`
+    resolved.failureReason != null
+      ? ` Failure reason: ${resolved.failureReason}`
       : '';
-  expect(result.capabilityFailure, `${message}.${failureDetails}`).toBe(false);
-  return result;
+  expect(resolved.capabilityFailure, `${message}.${failureDetails}`).toBe(
+    false,
+  );
+  return resolved;
 }
 
-export function expectErr(
-  result: DocumentProcessingResult,
+export async function expectErr(
+  result: DocumentProcessingResult | Promise<DocumentProcessingResult>,
   message = 'Expected capability failure',
-): DocumentProcessingResult {
-  expect(result.capabilityFailure, message).toBe(true);
-  return result;
+): Promise<DocumentProcessingResult> {
+  const resolved = await result;
+  expect(resolved.capabilityFailure, message).toBe(true);
+  return resolved;
 }
 
 export function property(node: BlueNode, key: string): BlueNode {

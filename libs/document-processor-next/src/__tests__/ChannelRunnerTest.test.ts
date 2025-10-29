@@ -17,9 +17,9 @@ import type { DocumentProcessor } from '../api/document-processor.js';
 
 const blue = createBlue();
 
-function initialize(processor: DocumentProcessor, yaml: string) {
+async function initialize(processor: DocumentProcessor, yaml: string) {
   const document = blue.yamlToNode(yaml);
-  const init = expectOk(processor.initializeDocument(document));
+  const init = await expectOk(processor.initializeDocument(document));
   return init.document.clone();
 }
 
@@ -41,7 +41,7 @@ function eventNode(data: {
 }
 
 describe('ChannelRunnerTest', () => {
-  it('skipsDuplicateEventsUsingCheckpoint', () => {
+  it('skipsDuplicateEventsUsingCheckpoint', async () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
@@ -58,10 +58,10 @@ describe('ChannelRunnerTest', () => {
       blueId: IncrementProperty
     propertyKey: /counter
 `;
-    let current = initialize(processor, yaml);
+    let current = await initialize(processor, yaml);
 
     const firstEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
-    const afterFirst = expectOk(
+    const afterFirst = await expectOk(
       processor.processDocument(current.clone(), firstEvent),
     );
     current = afterFirst.document.clone();
@@ -72,21 +72,21 @@ describe('ChannelRunnerTest', () => {
     expect(checkpoint).toBeDefined();
 
     const duplicateEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
-    const afterDuplicate = expectOk(
+    const afterDuplicate = await expectOk(
       processor.processDocument(current.clone(), duplicateEvent),
     );
     current = afterDuplicate.document.clone();
     expect(Number(property(current, 'counter').getValue())).toBe(1);
 
     const secondEvent = eventNode({ eventId: 'evt-2', kind: 'original' });
-    const afterSecond = expectOk(
+    const afterSecond = await expectOk(
       processor.processDocument(current.clone(), secondEvent),
     );
     current = afterSecond.document.clone();
     expect(Number(property(current, 'counter').getValue())).toBe(2);
   });
 
-  it('skipsDuplicateEventsByEventIdEvenIfPayloadChanges', () => {
+  it('skipsDuplicateEventsByEventIdEvenIfPayloadChanges', async () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
@@ -103,34 +103,38 @@ describe('ChannelRunnerTest', () => {
       blueId: IncrementProperty
     propertyKey: /counter
 `;
-    let current = initialize(processor, yaml);
+    let current = await initialize(processor, yaml);
 
     const first = eventNode({ eventId: 'evt-1', kind: 'original' });
-    current = expectOk(
-      processor.processDocument(current.clone(), first),
+    current = (
+      await expectOk(processor.processDocument(current.clone(), first))
     ).document.clone();
 
     const sameIdDifferentPayload = eventNode({
       eventId: 'evt-1',
       kind: 'mutated',
     });
-    current = expectOk(
-      processor.processDocument(current.clone(), sameIdDifferentPayload),
+    current = (
+      await expectOk(
+        processor.processDocument(current.clone(), sameIdDifferentPayload),
+      )
     ).document.clone();
 
-    current = expectOk(
-      processor.processDocument(current.clone(), sameIdDifferentPayload),
+    current = (
+      await expectOk(
+        processor.processDocument(current.clone(), sameIdDifferentPayload),
+      )
     ).document.clone();
 
     const newId = eventNode({ eventId: 'evt-2', kind: 'mutated' });
-    current = expectOk(
-      processor.processDocument(current.clone(), newId),
+    current = (
+      await expectOk(processor.processDocument(current.clone(), newId))
     ).document.clone();
 
     expect(Number(property(current, 'counter').getValue())).toBe(2);
   });
 
-  it('skipsDuplicateEventsByCanonicalPayloadWhenNoEventIdPresent', () => {
+  it('skipsDuplicateEventsByCanonicalPayloadWhenNoEventIdPresent', async () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
@@ -147,30 +151,39 @@ describe('ChannelRunnerTest', () => {
       blueId: IncrementProperty
     propertyKey: /counter
 `;
-    let current = initialize(processor, yaml);
+    let current = await initialize(processor, yaml);
 
-    current = expectOk(
-      processor.processDocument(
-        current.clone(),
-        eventNode({ kind: 'original' }),
-      ),
+    current = (
+      await expectOk(
+        processor.processDocument(
+          current.clone(),
+          eventNode({ kind: 'original' }),
+        ),
+      )
     ).document.clone();
 
-    current = expectOk(
-      processor.processDocument(
-        current.clone(),
-        eventNode({ kind: 'original' }),
-      ),
+    current = (
+      await expectOk(
+        processor.processDocument(
+          current.clone(),
+          eventNode({ kind: 'original' }),
+        ),
+      )
     ).document.clone();
 
-    current = expectOk(
-      processor.processDocument(current.clone(), eventNode({ kind: 'other' })),
+    current = (
+      await expectOk(
+        processor.processDocument(
+          current.clone(),
+          eventNode({ kind: 'other' }),
+        ),
+      )
     ).document.clone();
 
     expect(Number(property(current, 'counter').getValue())).toBe(2);
   });
 
-  it('deliversChannelizedEventToHandlersAndPersistsOriginalInCheckpoint', () => {
+  it('deliversChannelizedEventToHandlersAndPersistsOriginalInCheckpoint', async () => {
     const processor = buildProcessor(
       blue,
       new NormalizingTestEventChannelProcessor(),
@@ -190,10 +203,10 @@ describe('ChannelRunnerTest', () => {
     propertyValue: 7
 `;
 
-    let current = initialize(processor, yaml);
+    let current = await initialize(processor, yaml);
     const firstEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
-    current = expectOk(
-      processor.processDocument(current.clone(), firstEvent),
+    current = (
+      await expectOk(processor.processDocument(current.clone(), firstEvent))
     ).document.clone();
 
     const originalKind = firstEvent.getProperties()?.kind?.getValue();

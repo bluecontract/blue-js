@@ -43,14 +43,16 @@ export class DocumentProcessor {
     return this;
   }
 
-  initializeDocument(document: BlueNode): DocumentProcessingResult {
+  async initializeDocument(
+    document: BlueNode,
+  ): Promise<DocumentProcessingResult> {
     return this.engine.initializeDocument(document);
   }
 
-  processDocument(
+  async processDocument(
     document: BlueNode,
     event: BlueNode,
-  ): DocumentProcessingResult {
+  ): Promise<DocumentProcessingResult> {
     return this.engine.processDocument(document, event);
   }
 

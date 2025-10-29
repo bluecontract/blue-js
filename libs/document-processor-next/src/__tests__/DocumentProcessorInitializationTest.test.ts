@@ -17,7 +17,7 @@ import { blueIds, createBlue } from '../test-support/blue.js';
 const blue = createBlue();
 
 describe('DocumentProcessorInitializationTest', () => {
-  it('initializesDocumentAndExecutesHandlersInOrder', () => {
+  it('initializesDocumentAndExecutesHandlersInOrder', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Sample Doc
 contracts:
@@ -45,7 +45,9 @@ contracts:
     const original = blue.yamlToNode(yaml);
     const expectedDocumentId = blue.calculateBlueIdSync(original.clone());
 
-    const initResult = expectOk(processor.initializeDocument(original.clone()));
+    const initResult = await expectOk(
+      processor.initializeDocument(original.clone()),
+    );
     const initialized = initResult.document.clone();
 
     expect(processor.isInitialized(initialized.clone())).toBe(true);
@@ -73,11 +75,11 @@ contracts:
     const checkpoint = propertyOptional(contracts, 'checkpoint');
     expect(checkpoint).toBeUndefined();
 
-    expect(() => processor.initializeDocument(initialized.clone())).toThrow(
-      /Document already initialized/,
-    );
+    await expect(
+      processor.initializeDocument(initialized.clone()),
+    ).rejects.toThrow(/Document already initialized/);
 
-    const processResult = expectOk(
+    const processResult = await expectOk(
       processor.processDocument(
         initialized.clone(),
         new BlueNode().setValue('external'),
@@ -89,7 +91,7 @@ contracts:
     expect(propertyOptional(original, 'x')).toBeUndefined();
   });
 
-  it('initializationHandlesCustomPaths', () => {
+  it('initializationHandlesCustomPaths', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Custom Path Doc
 contracts:
@@ -125,7 +127,7 @@ contracts:
     propertyValue: 11
 `;
 
-    const result = expectOk(
+    const result = await expectOk(
       processor.initializeDocument(blue.yamlToNode(yaml)),
     );
     const processed = result.document;
@@ -140,7 +142,7 @@ contracts:
     expect(Number(explicit.getValue())).toBe(11);
   });
 
-  it('capabilityFailureWhenContractProcessorMissing', () => {
+  it('capabilityFailureWhenContractProcessorMissing', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Sample Doc
 contracts:
@@ -156,7 +158,7 @@ contracts:
 
     const document = blue.yamlToNode(yaml);
     const originalJson = JSON.stringify(blue.nodeToJson(document.clone()));
-    const result = processor.initializeDocument(document);
+    const result = await processor.initializeDocument(document);
 
     expect(
       result.capabilityFailure,
@@ -167,7 +169,7 @@ contracts:
     expect(JSON.stringify(blue.nodeToJson(result.document))).toBe(originalJson);
   });
 
-  it('processDocumentFailsWhenInitializationMarkerIncompatible', () => {
+  it('processDocumentFailsWhenInitializationMarkerIncompatible', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Bad Doc
 contracts:
@@ -177,12 +179,12 @@ contracts:
 `;
 
     const document = blue.yamlToNode(yaml);
-    expect(() =>
+    await expect(
       processor.processDocument(document, new BlueNode().setValue('event')),
-    ).toThrow(/Initialization Marker/);
+    ).rejects.toThrow(/Initialization Marker/);
   });
 
-  it('initializeDocumentFailsWhenInitializationKeyOccupiedIncorrectly', () => {
+  it('initializeDocumentFailsWhenInitializationKeyOccupiedIncorrectly', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Bad Init Doc
 contracts:
@@ -192,7 +194,7 @@ contracts:
 `;
 
     const document = blue.yamlToNode(yaml);
-    expect(() => processor.initializeDocument(document)).toThrow(
+    await expect(processor.initializeDocument(document)).rejects.toThrow(
       /Initialization Marker/,
     );
   });
@@ -212,7 +214,7 @@ contracts:
     );
   });
 
-  it('removePatchDeletesPropertyDuringInitialization', () => {
+  it('removePatchDeletesPropertyDuringInitialization', async () => {
     const processor = buildProcessor(
       blue,
       new RemovePropertyContractProcessor(),
@@ -236,7 +238,9 @@ contracts:
     const original = blue.yamlToNode(yaml);
     expect(property(original, 'x')).toBeInstanceOf(BlueNode);
 
-    const result = expectOk(processor.initializeDocument(original.clone()));
+    const result = await expectOk(
+      processor.initializeDocument(original.clone()),
+    );
     const processed = result.document;
     expect(propertyOptional(processed, 'x')).toBeUndefined();
 
@@ -249,7 +253,7 @@ contracts:
     expect(property(original, 'x')).toBeInstanceOf(BlueNode);
   });
 
-  it('checkpointBeforeInitializationCausesFatal', () => {
+  it('checkpointBeforeInitializationCausesFatal', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Invalid Doc
 contracts:
@@ -258,10 +262,10 @@ contracts:
 `;
 
     const document = blue.yamlToNode(yaml);
-    expect(() => processor.initializeDocument(document)).toThrow();
+    await expect(processor.initializeDocument(document)).rejects.toThrow();
   });
 
-  it('initializationFailsWhenCheckpointHasWrongType', () => {
+  it('initializationFailsWhenCheckpointHasWrongType', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Wrong Checkpoint Doc
 contracts:
@@ -269,12 +273,12 @@ contracts:
     type: Processing Terminated Marker
 `;
 
-    expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
-      /Channel Event Checkpoint/,
-    );
+    await expect(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    ).rejects.toThrow(/Channel Event Checkpoint/);
   });
 
-  it('initializationFailsWhenMultipleCheckpointsPresent', () => {
+  it('initializationFailsWhenMultipleCheckpointsPresent', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Duplicate Checkpoint Doc
 contracts:
@@ -284,12 +288,12 @@ contracts:
     type: Channel Event Checkpoint
 `;
 
-    expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
-      /Channel Event Checkpoint/,
-    );
+    await expect(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    ).rejects.toThrow(/Channel Event Checkpoint/);
   });
 
-  it('lifecycleEventsDoNotDriveTriggeredHandlers', () => {
+  it('lifecycleEventsDoNotDriveTriggeredHandlers', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Lifecycle Trigger Isolation
 contracts:
@@ -313,15 +317,15 @@ contracts:
     propertyValue: 1
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document;
 
     expect(propertyOptional(initialized, 'lifecycle')).toBeDefined();
     expect(propertyOptional(initialized, 'triggered')).toBeUndefined();
   });
 
-  it('childLifecycleIsBridgedToParent', () => {
+  it('childLifecycleIsBridgedToParent', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Embedded Lifecycle
 child:
@@ -343,8 +347,8 @@ contracts:
     propertyValue: 1
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document;
 
     const childLifecycle = propertyOptional(initialized, 'childLifecycle');

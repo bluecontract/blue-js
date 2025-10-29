@@ -8,17 +8,17 @@ export class RemovePropertyContractProcessor
   readonly blueIds = ['RemoveProperty'] as const;
   readonly schema = removePropertySchema;
 
-  execute(
+  async execute(
     contract: RemoveProperty,
     context: Parameters<HandlerProcessor<RemoveProperty>['execute']>[1],
-  ): void {
+  ): Promise<void> {
     const propertyKey = contract.propertyKey;
     if (!propertyKey || propertyKey.trim().length === 0) {
       throw new Error('propertyKey must not be empty for RemoveProperty');
     }
     const normalized = this.normalize(propertyKey);
     const pointer = context.resolvePointer(normalized);
-    context.applyPatch({ op: 'REMOVE', path: pointer });
+    await context.applyPatch({ op: 'REMOVE', path: pointer });
   }
 
   private normalize(key: string): string {
