@@ -87,9 +87,7 @@ describe('ContractMappingIntegrationTest', () => {
       entries.setProperty,
       setPropertySchema
     );
-    expect(setProperty.channelKey ?? setProperty.channel).toBe(
-      'lifecycleChannel'
-    );
+    expect(setProperty.channel).toBe('lifecycleChannel');
     expect(setProperty.propertyKey).toBe('/x');
     expect(setProperty.propertyValue).toBe(7);
     expect(setProperty.path).toBe('/custom/path/');

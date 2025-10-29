@@ -83,7 +83,7 @@ describe('ContractLoader', () => {
     const blue = createBlue();
     const registry = new ContractProcessorRegistry();
     const handlerSchema = z.object({
-      channelKey: z.string(),
+      channel: z.string(),
       config: z.string().optional(),
     });
     const handlerProcessor: HandlerProcessor<HandlerContract> = {
@@ -101,7 +101,7 @@ describe('ContractLoader', () => {
     const scopeNode = buildScopeNode(blue, {
       handler: {
         type: { blueId: 'Custom.Handler' },
-        channelKey: { value: 'main' },
+        channel: { value: 'main' },
       },
     });
 

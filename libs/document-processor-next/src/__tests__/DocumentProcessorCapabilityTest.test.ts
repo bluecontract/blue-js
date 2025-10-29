@@ -35,15 +35,10 @@ contracts:
     expect(afterJson).toBe(originalJson);
   });
 
-  it(
-    'processDocumentFailsWithCapabilityFailureWhenNewUnsupportedContractAppears',
-    () => {
-      const processor = buildProcessor(
-        blue,
-        new SetPropertyContractProcessor()
-      );
+  it('processDocumentFailsWithCapabilityFailureWhenNewUnsupportedContractAppears', () => {
+    const processor = buildProcessor(blue, new SetPropertyContractProcessor());
 
-      const baseYaml = `name: Base
+    const baseYaml = `name: Base
 contracts:
   lifecycleChannel:
     type: Lifecycle Event Channel
@@ -55,29 +50,28 @@ contracts:
     propertyValue: 1
 `;
 
-      const initialized = expectOk(
-        processor.initializeDocument(blue.yamlToNode(baseYaml))
-      ).document.clone();
-      const contracts = property(initialized, 'contracts');
-      const unsupported = blue.jsonValueToNode({
-        type: { blueId: 'TerminateScope' },
-        channelKey: 'lifecycleChannel',
-        mode: 'fatal',
-        reason: 'test',
-      });
-      contracts.addProperty('unsupportedHandler', unsupported);
+    const initialized = expectOk(
+      processor.initializeDocument(blue.yamlToNode(baseYaml))
+    ).document.clone();
+    const contracts = property(initialized, 'contracts');
+    const unsupported = blue.jsonValueToNode({
+      type: { blueId: 'TerminateScope' },
+      channel: 'lifecycleChannel',
+      mode: 'fatal',
+      reason: 'test',
+    });
+    contracts.addProperty('unsupportedHandler', unsupported);
 
-      const event = new BlueNode().setValue('event');
-      const result = processor.processDocument(initialized, event);
-      const failure = expectErr(result);
-      expect(failure.failureReason?.toLowerCase()).toContain('unsupported');
-      expect(failure.totalGas).toBe(0);
-      expect(failure.triggeredEvents).toHaveLength(0);
+    const event = new BlueNode().setValue('event');
+    const result = processor.processDocument(initialized, event);
+    const failure = expectErr(result);
+    expect(failure.failureReason?.toLowerCase()).toContain('unsupported');
+    expect(failure.totalGas).toBe(0);
+    expect(failure.triggeredEvents).toHaveLength(0);
 
-      const storedContracts = property(initialized, 'contracts');
-      expect(storedContracts.getProperties()).toHaveProperty(
-        'unsupportedHandler'
-      );
-    }
-  );
+    const storedContracts = property(initialized, 'contracts');
+    expect(storedContracts.getProperties()).toHaveProperty(
+      'unsupportedHandler'
+    );
+  });
 });

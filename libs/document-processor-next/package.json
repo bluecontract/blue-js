@@ -15,7 +15,8 @@
     }
   },
   "dependencies": {
-    "@blue-labs/language": "1.37.0"
+    "@blue-labs/language": "1.37.0",
+    "@blue-labs/shared-utils": "1.37.0"
   },
   "license": "MIT",
   "publishConfig": {
@@ -27,6 +28,7 @@
   },
   "peerDependencies": {
     "zod": "^3.20.0",
-    "@blue-repository/core": ">=0.1.0 <1.0.0"
+    "@blue-repository/core": ">=0.1.0 <1.0.0",
+    "@blue-repository/conversation": ">=0.1.0 <1.0.0"
   }
 }
