@@ -81,4 +81,64 @@ contracts:
       CodeBlockEvaluationError,
     );
   });
+
+  it('delivers JS-emitted events to Triggered Event Channel consumers', async () => {
+    const processor = buildProcessor(blue);
+
+    const yaml = `name: JS Code Triggers Triggered Channel
+contracts:
+  life:
+    type: Lifecycle Event Channel
+  trig:
+    type: Triggered Event Channel
+  producer:
+    type: Sequential Workflow
+    channel: life
+    event:
+      type: Document Processing Initiated
+    steps:
+      - name: EmitStatus
+        type: JavaScript Code
+        code: |
+          return {
+            events: [
+              { type: "Status Completed" }
+            ]
+          };
+  consumer:
+    type: Sequential Workflow
+    channel: trig
+    event:
+      type: Status Completed
+    steps:
+      - name: EmitChat
+        type: JavaScript Code
+        code: |
+          return {
+            events: [
+              {
+                type: "Chat Message",
+                message: "Triggered via Triggered Event Channel"
+              }
+            ]
+          };
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const emissions = result.triggeredEvents;
+
+    const completedEvents = emissions.filter(
+      (e) => typeBlueId(e) === conversationBlueIds['Status Completed'],
+    );
+    expect(completedEvents.length).toBe(1);
+
+    const chatEvents = emissions.filter(
+      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+    );
+    expect(chatEvents.length).toBe(1);
+    const message = property(chatEvents[0], 'message').getValue();
+    expect(message).toBe('Triggered via Triggered Event Channel');
+  });
 });
