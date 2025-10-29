@@ -11,10 +11,10 @@ export class RemoveIfPresentContractProcessor
   readonly blueIds = ['RemoveIfPresent'] as const;
   readonly schema = removeIfPresentSchema;
 
-  execute(
+  async execute(
     contract: RemoveIfPresent,
     context: Parameters<HandlerProcessor<RemoveIfPresent>['execute']>[1],
-  ): void {
+  ): Promise<void> {
     const key = contract.propertyKey;
     if (!key) return;
     const trimmed = key.trim();
@@ -22,6 +22,6 @@ export class RemoveIfPresentContractProcessor
     const normalized = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
     const pointer = context.resolvePointer(normalized);
     if (!context.documentContains(pointer)) return;
-    context.applyPatch({ op: 'REMOVE', path: pointer });
+    await context.applyPatch({ op: 'REMOVE', path: pointer });
   }
 }

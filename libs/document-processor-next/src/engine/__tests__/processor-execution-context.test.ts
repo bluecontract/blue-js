@@ -25,10 +25,10 @@ describe('ProcessorExecutionContext', () => {
     const adapter: ExecutionAdapter = {
       runtime: () => runtime,
       isScopeInactive: vi.fn().mockReturnValue(false),
-      handlePatch: vi.fn(),
+      handlePatch: vi.fn().mockResolvedValue(undefined),
       resolvePointer: vi.fn((_scope, pointer) => pointer),
-      enterGracefulTermination: vi.fn(),
-      enterFatalTermination: vi.fn(),
+      enterGracefulTermination: vi.fn().mockResolvedValue(undefined),
+      enterFatalTermination: vi.fn().mockResolvedValue(undefined),
       ...overrides,
     };
     const context = new ProcessorExecutionContext(
@@ -42,17 +42,17 @@ describe('ProcessorExecutionContext', () => {
     return { context, adapter, runtime };
   }
 
-  it('applies patch through execution adapter when active', () => {
+  it('applies patch through execution adapter when active', async () => {
     const { context, adapter } = createContext();
-    context.applyPatch(patch);
+    await context.applyPatch(patch);
     expect(adapter.handlePatch).toHaveBeenCalledWith('/', bundle, patch, false);
   });
 
-  it('skips patch when scope inactive and not allowed', () => {
+  it('skips patch when scope inactive and not allowed', async () => {
     const { context, adapter } = createContext({
       isScopeInactive: vi.fn().mockReturnValue(true),
     });
-    context.applyPatch(patch);
+    await context.applyPatch(patch);
     expect(adapter.handlePatch).not.toHaveBeenCalled();
   });
 
@@ -71,14 +71,14 @@ describe('ProcessorExecutionContext', () => {
     expect(runtime.totalGas()).toBe(42);
   });
 
-  it('delegates termination requests', () => {
+  it('delegates termination requests', async () => {
     const adapter = {
       runtime: vi.fn(),
       isScopeInactive: vi.fn().mockReturnValue(false),
-      handlePatch: vi.fn(),
+      handlePatch: vi.fn().mockResolvedValue(undefined),
       resolvePointer: vi.fn((_scope, pointer) => pointer),
-      enterGracefulTermination: vi.fn(),
-      enterFatalTermination: vi.fn(),
+      enterGracefulTermination: vi.fn().mockResolvedValue(undefined),
+      enterFatalTermination: vi.fn().mockResolvedValue(undefined),
     } satisfies ExecutionAdapter;
     const context = new ProcessorExecutionContext(
       adapter,
@@ -89,14 +89,14 @@ describe('ProcessorExecutionContext', () => {
       false,
     );
 
-    context.terminateGracefully('done');
+    await context.terminateGracefully('done');
     expect(adapter.enterGracefulTermination).toHaveBeenCalledWith(
       '/child',
       bundle,
       'done',
     );
 
-    context.terminateFatally('fatal');
+    await context.terminateFatally('fatal');
     expect(adapter.enterFatalTermination).toHaveBeenCalledWith(
       '/child',
       bundle,

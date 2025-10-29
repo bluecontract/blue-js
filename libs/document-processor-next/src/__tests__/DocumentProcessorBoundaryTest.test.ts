@@ -36,13 +36,13 @@ function removePatch(path: string): JsonPatch {
 }
 
 describe('DocumentProcessorBoundaryTest', () => {
-  it('allowsPatchingWithinScopeUsingLiteralSegments', () => {
+  it('allowsPatchingWithinScopeUsingLiteralSegments', async () => {
     const engine = createEngine();
     const document = new BlueNode();
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    execution.handlePatch(
+    await execution.handlePatch(
       '/foo',
       bundle,
       addPatch('/foo//bar', valueNode('ok')),
@@ -55,13 +55,13 @@ describe('DocumentProcessorBoundaryTest', () => {
     expect(bar.getValue()).toBe('ok');
   });
 
-  it('deniesPatchingOutsideScope', () => {
+  it('deniesPatchingOutsideScope', async () => {
     const engine = createEngine();
     const document = new BlueNode();
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    execution.handlePatch(
+    await execution.handlePatch(
       '/foo',
       bundle,
       addPatch('/bar', valueNode('oops')),
@@ -78,7 +78,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     expect(fooProps?.bar).toBeUndefined();
   });
 
-  it('parentCannotModifyEmbeddedChildInterior', () => {
+  it('parentCannotModifyEmbeddedChildInterior', async () => {
     const engine = createEngine();
     const document = new BlueNode();
     const execution = engine.createExecution(document);
@@ -89,7 +89,7 @@ describe('DocumentProcessorBoundaryTest', () => {
       } satisfies ProcessEmbeddedMarker)
       .build();
 
-    execution.handlePatch(
+    await execution.handlePatch(
       '/foo',
       bundle,
       addPatch('/foo/child/value', valueNode('nope')),
@@ -106,7 +106,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     expect(fooProps?.child).toBeUndefined();
   });
 
-  it('parentMayReplaceEntireEmbeddedChild', () => {
+  it('parentMayReplaceEntireEmbeddedChild', async () => {
     const engine = createEngine();
     const child = new BlueNode().setProperties({
       value: valueNode('old'),
@@ -121,7 +121,7 @@ describe('DocumentProcessorBoundaryTest', () => {
       } satisfies ProcessEmbeddedMarker)
       .build();
 
-    execution.handlePatch(
+    await execution.handlePatch(
       '/foo',
       bundle,
       replacePatch('/foo/child', valueNode({ next: 'fresh' })),
@@ -134,7 +134,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     expect(next.getValue()).toBe('fresh');
   });
 
-  it('parentMayRemoveEntireEmbeddedChild', () => {
+  it('parentMayRemoveEntireEmbeddedChild', async () => {
     const engine = createEngine();
     const child = new BlueNode().setProperties({
       value: valueNode('old'),
@@ -149,14 +149,19 @@ describe('DocumentProcessorBoundaryTest', () => {
       } satisfies ProcessEmbeddedMarker)
       .build();
 
-    execution.handlePatch('/foo', bundle, removePatch('/foo/child'), false);
+    await execution.handlePatch(
+      '/foo',
+      bundle,
+      removePatch('/foo/child'),
+      false,
+    );
 
     const foo = property(document, 'foo');
     const props = foo.getProperties();
     expect(props?.child).toBeUndefined();
   });
 
-  it('scopeCannotMutateItsOwnRoot', () => {
+  it('scopeCannotMutateItsOwnRoot', async () => {
     const engine = createEngine();
     const document = new BlueNode().setProperties({
       foo: new BlueNode().setProperties({
@@ -166,7 +171,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    execution.handlePatch(
+    await execution.handlePatch(
       '/foo',
       bundle,
       replacePatch('/foo', valueNode('new')),
@@ -183,7 +188,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     expect(value.getValue()).toBe('existing');
   });
 
-  it('rootPatchTargetIsFatal', () => {
+  it('rootPatchTargetIsFatal', async () => {
     const engine = createEngine();
     const document = new BlueNode().setProperties({
       foo: valueNode('ok'),
@@ -191,9 +196,9 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    expect(() =>
+    await expect(
       execution.handlePatch('/', bundle, removePatch('/'), false),
-    ).toThrow(RunTerminationError);
+    ).rejects.toThrow(RunTerminationError);
 
     const resultDoc = execution.result().document;
     const contracts = property(resultDoc, 'contracts');
@@ -204,20 +209,20 @@ describe('DocumentProcessorBoundaryTest', () => {
     expect(foo.getValue()).toBe('ok');
   });
 
-  it('reservedRootContractsAreWriteProtected', () => {
+  it('reservedRootContractsAreWriteProtected', async () => {
     const engine = createEngine();
     const document = new BlueNode();
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    expect(() =>
+    await expect(
       execution.handlePatch(
         '/',
         bundle,
         addPatch('/contracts/checkpoint', valueNode('forbidden')),
         false,
       ),
-    ).toThrow(RunTerminationError);
+    ).rejects.toThrow(RunTerminationError);
 
     const resultDoc = execution.result().document;
     const contracts = property(resultDoc, 'contracts');
@@ -225,7 +230,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     expect(terminated.getProperties()?.cause?.getValue()).toBe('fatal');
   });
 
-  it('reservedContractsWithinScopeAreWriteProtected', () => {
+  it('reservedContractsWithinScopeAreWriteProtected', async () => {
     const engine = createEngine();
     const document = new BlueNode().setProperties({
       foo: new BlueNode(),
@@ -233,7 +238,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    execution.handlePatch(
+    await execution.handlePatch(
       '/foo',
       bundle,
       addPatch('/foo/contracts/initialized', valueNode('bad')),

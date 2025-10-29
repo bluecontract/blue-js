@@ -39,9 +39,12 @@ timestamp: 1700000000
   return blue.yamlToNode(yaml);
 }
 
-function initializeDocument(options?: {
+async function initializeDocument(options?: {
   eventType?: 'Chat Message' | 'Request';
-}): { processor: ReturnType<typeof buildProcessor>; initialized: BlueNode } {
+}): Promise<{
+  processor: ReturnType<typeof buildProcessor>;
+  initialized: BlueNode;
+}> {
   const processor = buildProcessor(blue);
   const eventSnippet = options?.eventType
     ? `    event:
@@ -65,18 +68,18 @@ ${eventSnippet}    steps:
           message: Workflow says hi
 `;
 
-  const initialized = expectOk(
+  const initializedResult = await expectOk(
     processor.initializeDocument(blue.yamlToNode(yaml)),
-  ).document;
+  );
 
-  return { processor, initialized };
+  return { processor, initialized: initializedResult.document };
 }
 
 describe('SequentialWorkflowHandlerProcessor', () => {
-  it('emits events defined by Trigger Event steps', () => {
-    const { processor, initialized } = initializeDocument();
+  it('emits events defined by Trigger Event steps', async () => {
+    const { processor, initialized } = await initializeDocument();
 
-    const result = expectOk(
+    const result = await expectOk(
       processor.processDocument(
         initialized.clone(),
         timelineEntryEvent('alice', 'Chat Message', { message: 'hello' }),
@@ -90,12 +93,12 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     expect(emittedMessage).toBe('Workflow says hi');
   });
 
-  it('respects event filters when provided', () => {
-    const { processor, initialized } = initializeDocument({
+  it('respects event filters when provided', async () => {
+    const { processor, initialized } = await initializeDocument({
       eventType: 'Chat Message',
     });
 
-    const matching = expectOk(
+    const matching = await expectOk(
       processor.processDocument(
         initialized.clone(),
         timelineEntryEvent('alice', 'Chat Message', { message: 'eligible' }),
@@ -104,7 +107,7 @@ describe('SequentialWorkflowHandlerProcessor', () => {
 
     expect(matching.triggeredEvents).toHaveLength(1);
 
-    const nonMatching = expectOk(
+    const nonMatching = await expectOk(
       processor.processDocument(
         matching.document.clone(),
         timelineEntryEvent('alice', 'Request', { requestId: 'ignore-me' }),
@@ -114,11 +117,11 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     expect(nonMatching.triggeredEvents).toHaveLength(0);
   });
 
-  it('runs for all channel-matched events when no event filter is provided', () => {
-    const { processor, initialized } = initializeDocument();
+  it('runs for all channel-matched events when no event filter is provided', async () => {
+    const { processor, initialized } = await initializeDocument();
 
     // Chat Message matches the Timeline Channel and should trigger the workflow
-    const chatResult = expectOk(
+    const chatResult = await expectOk(
       processor.processDocument(
         initialized.clone(),
         timelineEntryEvent('alice', 'Chat Message', { message: 'eligible' }),
@@ -127,7 +130,7 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     expect(chatResult.triggeredEvents).toHaveLength(1);
 
     // Request also matches the same channel and should trigger as well when no event filter is set
-    const requestResult = expectOk(
+    const requestResult = await expectOk(
       processor.processDocument(
         chatResult.document.clone(),
         timelineEntryEvent('alice', 'Request', { requestId: 'accept-me' }),

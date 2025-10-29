@@ -50,9 +50,11 @@ describe('DocumentProcessorGasTest', () => {
     );
   });
 
-  it('initializationGasMatchesExpectedCharges', () => {
+  it('initializationGasMatchesExpectedCharges', async () => {
     const document = blue.yamlToNode('name: Doc\n');
-    const result = expectOk(processor.initializeDocument(document.clone()));
+    const result = await expectOk(
+      processor.initializeDocument(document.clone()),
+    );
     const initializedMarker = property(
       property(result.document, 'contracts'),
       'initialized',
@@ -70,7 +72,7 @@ describe('DocumentProcessorGasTest', () => {
     expect(result.totalGas).toBe(expected);
   });
 
-  it('processDocumentPatchGasMatchesExpectedCharges', () => {
+  it('processDocumentPatchGasMatchesExpectedCharges', async () => {
     const yaml = `name: Base
 contracts:
   testChannel:
@@ -84,15 +86,17 @@ contracts:
     propertyValue: 1
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
     const event = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
       eventId: 'evt-1',
     });
 
-    const result = expectOk(processor.processDocument(initialized, event));
+    const result = await expectOk(
+      processor.processDocument(initialized, event),
+    );
     const valueNode = property(result.document, 'x');
     const valueCharge = sizeCharge(valueNode);
 
@@ -108,7 +112,7 @@ contracts:
     expect(result.totalGas).toBe(expected);
   });
 
-  it('processDocumentEmitsTriggeredEventChargesEmitAndDrain', () => {
+  it('processDocumentEmitsTriggeredEventChargesEmitAndDrain', async () => {
     const yaml = `name: Emit
 contracts:
   testChannel:
@@ -126,15 +130,17 @@ contracts:
     type: Triggered Event Channel
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document.clone();
     const event = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
       eventId: 'evt-emit',
     });
 
-    const result = expectOk(processor.processDocument(initialized, event));
+    const result = await expectOk(
+      processor.processDocument(initialized, event),
+    );
     const emitter = property(property(result.document, 'contracts'), 'emitter');
     const template = property(emitter, 'events').getItems()?.[0];
     if (!template) {

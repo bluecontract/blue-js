@@ -41,7 +41,7 @@ const DOCUMENT_PROCESSING_INITIATED_BLUE_ID =
 
 export interface ProcessorContext {
   resolvePointer(relativePointer: string): string;
-  applyPatch(patch: JsonPatch): void;
+  applyPatch(patch: JsonPatch): Promise<void>;
 }
 
 export interface ScopeExecutionHooks {
@@ -53,14 +53,14 @@ export interface ScopeExecutionHooks {
     allowTerminatedWork: boolean,
     lifecycle?: boolean,
   ): ProcessorContext;
-  recordLifecycleForBridging(scopePath: string, event: BlueNode): void;
+  recordLifecycleForBridging(scopePath: string, event: BlueNode): Promise<void>;
   enterFatalTermination(
     scopePath: string,
     bundle: ContractBundle | null,
     reason: string,
-  ): void;
+  ): Promise<void>;
   fatalReason(error: unknown, label: string): string;
-  markCutOff(scopePath: string): void;
+  markCutOff(scopePath: string): Promise<void>;
 }
 
 export interface ScopeExecutorOptions {
@@ -112,7 +112,10 @@ export class ScopeExecutor {
     this.matchesDocumentUpdate = options.matchesDocumentUpdate;
   }
 
-  initializeScope(scopePath: string, chargeScopeEntry: boolean): void {
+  async initializeScope(
+    scopePath: string,
+    chargeScopeEntry: boolean,
+  ): Promise<void> {
     const normalizedScope = normalizeScope(scopePath);
     const processedEmbedded = new Set<string>();
     let bundle: ContractBundle | null = null;
@@ -145,7 +148,7 @@ export class ScopeExecutor {
       const childScope = resolvePointer(normalizedScope, nextEmbedded);
       const childNode = this.nodeAt(childScope);
       if (childNode) {
-        this.initializeScope(childScope, true);
+        await this.initializeScope(childScope, true);
       }
     }
 
@@ -174,8 +177,8 @@ export class ScopeExecutor {
       false,
       true,
     );
-    this.deliverLifecycle(normalizedScope, bundle, lifecycleEvent, true);
-    this.addInitializationMarker(context, documentId);
+    await this.deliverLifecycle(normalizedScope, bundle, lifecycleEvent, true);
+    await this.addInitializationMarker(context, documentId);
   }
 
   loadBundles(scopePath: string): void {
@@ -194,13 +197,16 @@ export class ScopeExecutor {
     }
   }
 
-  processExternalEvent(scopePath: string, event: BlueNode): void {
+  async processExternalEvent(
+    scopePath: string,
+    event: BlueNode,
+  ): Promise<void> {
     const normalizedScope = normalizeScope(scopePath);
     if (this.hooks.isScopeInactive(normalizedScope)) {
       return;
     }
     this.runtime.chargeScopeEntry(normalizedScope);
-    const bundle = this.processEmbeddedChildren(normalizedScope, event);
+    const bundle = await this.processEmbeddedChildren(normalizedScope, event);
     if (!bundle) {
       return;
     }
@@ -218,22 +224,22 @@ export class ScopeExecutor {
       if (isProcessorManagedChannelBlueId(channel.blueId())) {
         continue;
       }
-      this.channelRunner.runExternalChannel(
+      await this.channelRunner.runExternalChannel(
         normalizedScope,
         bundle,
         channel,
         event,
       );
     }
-    this.finalizeScope(normalizedScope, bundle);
+    await this.finalizeScope(normalizedScope, bundle);
   }
 
-  handlePatch(
+  async handlePatch(
     scopePath: string,
     bundle: ContractBundle,
     patch: JsonPatch,
     allowReservedMutation: boolean,
-  ): void {
+  ): Promise<void> {
     if (this.hooks.isScopeInactive(scopePath)) {
       return;
     }
@@ -248,7 +254,7 @@ export class ScopeExecutor {
     } catch (error) {
       if (error instanceof BoundaryViolationException) {
         const reason = this.hooks.fatalReason(error, 'Boundary violation');
-        this.hooks.enterFatalTermination(scopePath, bundle, reason);
+        await this.hooks.enterFatalTermination(scopePath, bundle, reason);
         return;
       }
       throw error;
@@ -272,7 +278,7 @@ export class ScopeExecutor {
         return;
       }
 
-      this.markCutOffChildrenIfNeeded(scopePath, bundle, data);
+      await this.markCutOffChildrenIfNeeded(scopePath, bundle, data);
       this.runtime.chargeCascadeRouting(data.cascadeScopes.length);
 
       for (const cascadeScope of data.cascadeScopes) {
@@ -296,7 +302,7 @@ export class ScopeExecutor {
           ) {
             continue;
           }
-          this.channelRunner.runHandlers(
+          await this.channelRunner.runHandlers(
             cascadeScope,
             targetBundle,
             channel.key(),
@@ -311,7 +317,7 @@ export class ScopeExecutor {
     } catch (error) {
       if (error instanceof BoundaryViolationException) {
         const reason = this.hooks.fatalReason(error, 'Boundary violation');
-        this.hooks.enterFatalTermination(scopePath, bundle, reason);
+        await this.hooks.enterFatalTermination(scopePath, bundle, reason);
         return;
       }
       if (
@@ -319,21 +325,21 @@ export class ScopeExecutor {
         (error instanceof Error && !(error instanceof ProcessorFatalError))
       ) {
         const reason = this.hooks.fatalReason(error, 'Runtime fatal');
-        this.hooks.enterFatalTermination(scopePath, bundle, reason);
+        await this.hooks.enterFatalTermination(scopePath, bundle, reason);
         return;
       }
       throw error;
     }
   }
 
-  deliverLifecycle(
+  async deliverLifecycle(
     scopePath: string,
     bundle: ContractBundle | null,
     event: BlueNode,
     finalizeAfter: boolean,
-  ): void {
+  ): Promise<void> {
     this.runtime.chargeLifecycleDelivery();
-    this.hooks.recordLifecycleForBridging(scopePath, event);
+    await this.hooks.recordLifecycleForBridging(scopePath, event);
     if (!bundle) {
       return;
     }
@@ -341,7 +347,7 @@ export class ScopeExecutor {
       LIFECYCLE_EVENT_CHANNEL_BLUE_ID,
     );
     for (const channel of lifecycleChannels) {
-      this.channelRunner.runHandlers(
+      await this.channelRunner.runHandlers(
         scopePath,
         bundle,
         channel.key(),
@@ -353,14 +359,14 @@ export class ScopeExecutor {
       }
     }
     if (finalizeAfter) {
-      this.finalizeScope(scopePath, bundle);
+      await this.finalizeScope(scopePath, bundle);
     }
   }
 
-  private processEmbeddedChildren(
+  private async processEmbeddedChildren(
     scopePath: string,
     event: BlueNode,
-  ): ContractBundle | null {
+  ): Promise<ContractBundle | null> {
     const normalizedScope = normalizeScope(scopePath);
     const processed = new Set<string>();
     let bundle = this.refreshBundle(normalizedScope);
@@ -380,8 +386,8 @@ export class ScopeExecutor {
       }
       const childNode = this.nodeAt(childScope);
       if (childNode) {
-        this.initializeScope(childScope, false);
-        this.processExternalEvent(childScope, event);
+        await this.initializeScope(childScope, false);
+        await this.processExternalEvent(childScope, event);
       }
       bundle = this.refreshBundle(normalizedScope);
     }
@@ -437,33 +443,36 @@ export class ScopeExecutor {
     }
   }
 
-  private addInitializationMarker(
+  private async addInitializationMarker(
     context: ProcessorContext,
     documentId: string,
-  ): void {
+  ): Promise<void> {
     const marker = new BlueNode()
       .setType(new BlueNode().setBlueId(PROCESSING_INITIALIZED_MARKER_BLUE_ID))
       .addProperty('documentId', new BlueNode().setValue(documentId));
     const pointer = context.resolvePointer(RELATIVE_INITIALIZED);
-    context.applyPatch({
+    await context.applyPatch({
       op: 'ADD',
       path: pointer,
       val: marker,
     } satisfies JsonPatch);
   }
 
-  private finalizeScope(scopePath: string, bundle: ContractBundle): void {
+  private async finalizeScope(
+    scopePath: string,
+    bundle: ContractBundle,
+  ): Promise<void> {
     if (this.hooks.isScopeInactive(scopePath)) {
       return;
     }
-    this.bridgeEmbeddedEmissions(scopePath, bundle);
-    this.drainTriggeredQueue(scopePath, bundle);
+    await this.bridgeEmbeddedEmissions(scopePath, bundle);
+    await this.drainTriggeredQueue(scopePath, bundle);
   }
 
-  private bridgeEmbeddedEmissions(
+  private async bridgeEmbeddedEmissions(
     scopePath: string,
     bundle: ContractBundle,
-  ): void {
+  ): Promise<void> {
     if (
       this.hooks.isScopeInactive(scopePath) ||
       bundle.embeddedPaths().length === 0
@@ -496,7 +505,7 @@ export class ScopeExecutor {
             this.runtime.chargeBridge(emission);
             charged = true;
           }
-          this.channelRunner.runHandlers(
+          await this.channelRunner.runHandlers(
             scopePath,
             bundle,
             channel.key(),
@@ -508,7 +517,10 @@ export class ScopeExecutor {
     }
   }
 
-  private drainTriggeredQueue(scopePath: string, bundle: ContractBundle): void {
+  private async drainTriggeredQueue(
+    scopePath: string,
+    bundle: ContractBundle,
+  ): Promise<void> {
     if (this.hooks.isScopeInactive(scopePath)) {
       return;
     }
@@ -531,7 +543,7 @@ export class ScopeExecutor {
           context.clearTriggered();
           return;
         }
-        this.channelRunner.runHandlers(
+        await this.channelRunner.runHandlers(
           scopePath,
           bundle,
           channel.key(),
@@ -605,11 +617,11 @@ export class ScopeExecutor {
     }
   }
 
-  private markCutOffChildrenIfNeeded(
+  private async markCutOffChildrenIfNeeded(
     scopePath: string,
     bundle: ContractBundle,
     data: DocumentUpdateData,
-  ): void {
+  ): Promise<void> {
     if (bundle.embeddedPaths().length === 0) {
       return;
     }
@@ -620,7 +632,7 @@ export class ScopeExecutor {
         continue;
       }
       if (data.op === 'remove' || data.op === 'replace') {
-        this.hooks.markCutOff(childScope);
+        await this.hooks.markCutOff(childScope);
       }
     }
   }

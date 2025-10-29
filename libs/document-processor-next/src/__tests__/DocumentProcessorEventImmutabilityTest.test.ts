@@ -22,7 +22,7 @@ describe('DocumentProcessorEventImmutabilityTest', () => {
     );
   });
 
-  it('handlersSeeImmutableEventSnapshots', () => {
+  it('handlersSeeImmutableEventSnapshots', async () => {
     const documentYaml = `name: Immutable
 contracts:
   testChannel:
@@ -42,8 +42,10 @@ contracts:
     propertyValue: 42
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(documentYaml)),
+    const initialized = (
+      await expectOk(
+        processor.initializeDocument(blue.yamlToNode(documentYaml)),
+      )
     ).document.clone();
 
     const eventYaml = `type:
@@ -52,8 +54,8 @@ eventId: evt-immutable
 kind: original
 `;
     const event = blue.yamlToNode(eventYaml);
-    const processed = expectOk(
-      processor.processDocument(initialized, event),
+    const processed = (
+      await expectOk(processor.processDocument(initialized, event))
     ).document;
 
     const resultNode = property(processed, 'result');

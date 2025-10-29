@@ -25,14 +25,14 @@ export class SetPropertyOnEventContractProcessor
   readonly blueIds = ['SetPropertyOnEvent'] as const;
   readonly schema = setPropertyOnEventSchema;
 
-  execute(
+  async execute(
     contract: SetPropertyOnEvent,
     context: Parameters<HandlerProcessor<SetPropertyOnEvent>['execute']>[1],
-  ): void {
+  ): Promise<void> {
     const event = context.event();
     if (!matchesEvent(contract, event)) return;
     const valueNode = new BlueNode().setValue(contract.propertyValue);
     const pointer = context.resolvePointer(contract.propertyKey);
-    context.applyPatch({ op: 'ADD', path: pointer, val: valueNode });
+    await context.applyPatch({ op: 'ADD', path: pointer, val: valueNode });
   }
 }

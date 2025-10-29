@@ -17,15 +17,15 @@ export interface ContractProcessorContext {
   readonly scopePath: string;
   readonly blue: Blue;
   event(): BlueNode | null;
-  applyPatch(patch: JsonPatch): void;
+  applyPatch(patch: JsonPatch): Promise<void>;
   emitEvent(emission: BlueNode): void;
   consumeGas(units: number): void;
   throwFatal(reason: string): never;
   resolvePointer(relativePointer: string): string;
   documentAt(absolutePointer: string): BlueNode | null;
   documentContains(absolutePointer: string): boolean;
-  terminateGracefully(reason: string | null): void;
-  terminateFatally(reason: string | null): void;
+  terminateGracefully(reason: string | null): Promise<void>;
+  terminateFatally(reason: string | null): Promise<void>;
 }
 
 export interface HandlerProcessor<TContract>

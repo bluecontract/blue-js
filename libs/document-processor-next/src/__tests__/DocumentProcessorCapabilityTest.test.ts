@@ -8,7 +8,7 @@ import { buildProcessor, expectErr, expectOk, property } from './test-utils.js';
 const blue = createBlue();
 
 describe('DocumentProcessorCapabilityTest', () => {
-  it('initializeDocumentFailsWithCapabilityFailureWhenProcessorMissing', () => {
+  it('initializeDocumentFailsWithCapabilityFailureWhenProcessorMissing', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Doc
 contracts:
@@ -25,8 +25,8 @@ contracts:
     const document = blue.yamlToNode(yaml);
     const originalJson = JSON.stringify(blue.nodeToJson(document.clone()));
 
-    const result = processor.initializeDocument(document);
-    const failure = expectErr(result);
+    const result = await processor.initializeDocument(document);
+    const failure = await expectErr(result);
     expect(failure.failureReason?.toLowerCase()).toContain('unsupported');
     expect(failure.totalGas).toBe(0);
     expect(failure.triggeredEvents).toHaveLength(0);
@@ -35,7 +35,7 @@ contracts:
     expect(afterJson).toBe(originalJson);
   });
 
-  it('processDocumentFailsWithCapabilityFailureWhenNewUnsupportedContractAppears', () => {
+  it('processDocumentFailsWithCapabilityFailureWhenNewUnsupportedContractAppears', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
 
     const baseYaml = `name: Base
@@ -50,8 +50,8 @@ contracts:
     propertyValue: 1
 `;
 
-    const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(baseYaml)),
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(baseYaml)))
     ).document.clone();
     const contracts = property(initialized, 'contracts');
     const unsupported = blue.jsonValueToNode({
@@ -63,8 +63,8 @@ contracts:
     contracts.addProperty('unsupportedHandler', unsupported);
 
     const event = new BlueNode().setValue('event');
-    const result = processor.processDocument(initialized, event);
-    const failure = expectErr(result);
+    const result = await processor.processDocument(initialized, event);
+    const failure = await expectErr(result);
     expect(failure.failureReason?.toLowerCase()).toContain('unsupported');
     expect(failure.totalGas).toBe(0);
     expect(failure.triggeredEvents).toHaveLength(0);
