@@ -23,7 +23,6 @@ const channel: ChannelProcessor<{ readonly name: string }> = {
   blueIds: ['Channel.Contracts.Test'],
   schema: channelSchema,
   matches: vi.fn().mockReturnValue(true),
-  eventId: vi.fn().mockReturnValue('event-1'),
 };
 
 const markerSchema = z.object({ name: z.string() });

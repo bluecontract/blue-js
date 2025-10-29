@@ -27,8 +27,7 @@ type StoredHandler = {
   readonly blueId: string;
 };
 
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
-  blueIds['Channel Event Checkpoint'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 
 function contractOrder(contract: { readonly order?: number | null }): number {
   return typeof contract.order === 'number' ? contract.order : 0;
@@ -38,7 +37,7 @@ export class ChannelBinding {
   constructor(
     private readonly bindingKey: string,
     private readonly bindingContract: ChannelContract,
-    private readonly bindingBlueId: string,
+    private readonly bindingBlueId: string
   ) {}
 
   key(): string {
@@ -62,7 +61,7 @@ export class HandlerBinding {
   constructor(
     private readonly bindingKey: string,
     private readonly bindingContract: HandlerContract,
-    private readonly bindingBlueId: string,
+    private readonly bindingBlueId: string
   ) {}
 
   key(): string {
@@ -90,7 +89,7 @@ export class ContractBundle {
     private readonly handlersByChannel: Map<string, StoredHandler[]>,
     private readonly markerStore: Map<string, StoredMarker>,
     private readonly embeddedPathsInternal: readonly string[],
-    checkpointDeclared: boolean,
+    checkpointDeclared: boolean
   ) {
     this.checkpointDeclared = checkpointDeclared;
   }
@@ -100,14 +99,14 @@ export class ContractBundle {
     handlersByChannel: Map<string, StoredHandler[]>,
     markerStore: Map<string, StoredMarker>,
     embeddedPaths: readonly string[],
-    checkpointDeclared: boolean,
+    checkpointDeclared: boolean
   ): ContractBundle {
     return new ContractBundle(
       channels,
       handlersByChannel,
       markerStore,
       embeddedPaths,
-      checkpointDeclared,
+      checkpointDeclared
     );
   }
 
@@ -124,7 +123,7 @@ export class ContractBundle {
       Array.from(this.markerStore.entries(), ([key, entry]) => [
         key,
         entry.contract,
-      ]),
+      ])
     );
   }
 
@@ -149,7 +148,9 @@ export class ContractBundle {
 
   registerCheckpointMarker(checkpoint: ChannelEventCheckpoint): void {
     if (this.checkpointDeclared) {
-      throw new Error('Duplicate Channel Event Checkpoint markers detected in same contracts map');
+      throw new Error(
+        'Duplicate Channel Event Checkpoint markers detected in same contracts map'
+      );
     }
     this.markerStore.set(KEY_CHECKPOINT, {
       key: KEY_CHECKPOINT,
@@ -166,8 +167,7 @@ export class ContractBundle {
     }
     return [...handlers]
       .map(
-        (entry) =>
-          new HandlerBinding(entry.key, entry.contract, entry.blueId),
+        (entry) => new HandlerBinding(entry.key, entry.contract, entry.blueId)
       )
       .sort((a, b) => {
         const orderDiff = a.order() - b.order();
@@ -183,7 +183,7 @@ export class ContractBundle {
     const bindings = Array.from(this.channels.values())
       .filter((entry) => !filter || filter.has(entry.blueId))
       .map(
-        (entry) => new ChannelBinding(entry.key, entry.contract, entry.blueId),
+        (entry) => new ChannelBinding(entry.key, entry.contract, entry.blueId)
       );
     bindings.sort((a, b) => {
       const orderDiff = a.order() - b.order();
@@ -210,7 +210,7 @@ export class ContractBundleBuilder {
   }
 
   addHandler(key: string, contract: HandlerContract, blueId: string): this {
-    const channelKey = contract.channelKey ?? contract.channel;
+    const channelKey = contract.channel;
     if (!channelKey) {
       throw new Error(`Handler ${key} must declare channel`);
     }
@@ -222,7 +222,9 @@ export class ContractBundleBuilder {
 
   setEmbedded(embedded: ProcessEmbeddedMarker): this {
     if (this.embeddedDeclared) {
-      throw new Error('Multiple Process Embedded markers detected in same contracts map');
+      throw new Error(
+        'Multiple Process Embedded markers detected in same contracts map'
+      );
     }
     this.embeddedDeclared = true;
     this.embeddedPaths = embedded.paths ? [...embedded.paths] : [];
@@ -231,16 +233,20 @@ export class ContractBundleBuilder {
 
   addMarker(key: string, contract: MarkerContract, blueId: string): this {
     if (key === KEY_CHECKPOINT && blueId !== CHANNEL_EVENT_CHECKPOINT_BLUE_ID) {
-      throw new Error("Reserved key 'checkpoint' must contain a Channel Event Checkpoint");
+      throw new Error(
+        "Reserved key 'checkpoint' must contain a Channel Event Checkpoint"
+      );
     }
     if (blueId === CHANNEL_EVENT_CHECKPOINT_BLUE_ID) {
       if (key !== KEY_CHECKPOINT) {
         throw new Error(
-          `Channel Event Checkpoint must use reserved key 'checkpoint' at key '${key}'`,
+          `Channel Event Checkpoint must use reserved key 'checkpoint' at key '${key}'`
         );
       }
       if (this.checkpointDeclared) {
-        throw new Error('Duplicate Channel Event Checkpoint markers detected in same contracts map');
+        throw new Error(
+          'Duplicate Channel Event Checkpoint markers detected in same contracts map'
+        );
       }
       this.checkpointDeclared = true;
     }
@@ -252,11 +258,14 @@ export class ContractBundleBuilder {
     return ContractBundle.fromComponents(
       new Map(this.channels),
       new Map(
-        Array.from(this.handlersByChannel.entries(), ([key, list]) => [key, [...list]]),
+        Array.from(this.handlersByChannel.entries(), ([key, list]) => [
+          key,
+          [...list],
+        ])
       ),
       new Map(this.markerStore),
       [...this.embeddedPaths],
-      this.checkpointDeclared,
+      this.checkpointDeclared
     );
   }
 }

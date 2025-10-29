@@ -43,7 +43,7 @@ describe('ChannelRunner', () => {
   const handlerContract = (key: string): HandlerContract =>
     ({
       key,
-      channelKey: 'external',
+      channel: 'external',
       order: key === 'h1' ? 0 : 1,
     } as HandlerContract);
 

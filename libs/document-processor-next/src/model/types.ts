@@ -13,6 +13,7 @@ import type {
   LifecycleChannel,
   TriggeredEventChannel,
 } from './channels/index.js';
+import type { SequentialWorkflow } from './handlers/index.js';
 
 export type GenericHandlerContract = HandlerContractBase &
   Record<string, unknown>;
@@ -37,4 +38,4 @@ export type ChannelContract =
   | TriggeredEventChannel
   | GenericChannelContract;
 
-export type HandlerContract = GenericHandlerContract;
+export type HandlerContract = SequentialWorkflow | GenericHandlerContract;

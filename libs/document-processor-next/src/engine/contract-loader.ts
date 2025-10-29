@@ -25,21 +25,16 @@ import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 
-const DOCUMENT_UPDATE_CHANNEL_BLUE_ID =
-  blueIds['Document Update Channel'];
-const EMBEDDED_NODE_CHANNEL_BLUE_ID =
-  blueIds['Embedded Node Channel'];
-const LIFECYCLE_EVENT_CHANNEL_BLUE_ID =
-  blueIds['Lifecycle Event Channel'];
-const TRIGGERED_EVENT_CHANNEL_BLUE_ID =
-  blueIds['Triggered Event Channel'];
+const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Document Update Channel'];
+const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Embedded Node Channel'];
+const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Lifecycle Event Channel'];
+const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Triggered Event Channel'];
 const PROCESS_EMBEDDED_BLUE_ID = blueIds['Process Embedded'];
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
   blueIds['Processing Initialized Marker'];
 const PROCESSING_TERMINATED_MARKER_BLUE_ID =
   blueIds['Processing Terminated Marker'];
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
-  blueIds['Channel Event Checkpoint'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 
 const BUILTIN_CHANNEL_SCHEMAS: ReadonlyMap<
   string,
@@ -275,7 +270,7 @@ export class ContractLoader {
   ): void {
     try {
       const contract = this.convert(node, schema) as HandlerContract;
-      const channelKey = contract.channelKey ?? contract.channel;
+      const channelKey = contract.channel;
       if (!channelKey) {
         throw new ProcessorFatalError(
           `Handler ${key} must declare channel`,

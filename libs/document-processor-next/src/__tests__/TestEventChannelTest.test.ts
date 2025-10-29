@@ -17,7 +17,9 @@ import {
 
 const blue = createBlue();
 
-function checkpointValue(document: ReturnType<typeof blue.yamlToNode>): string | null {
+function checkpointValue(
+  document: ReturnType<typeof blue.yamlToNode>
+): string | null {
   const contracts = property(document, 'contracts');
   const checkpoint = propertyOptional(contracts, 'checkpoint');
   if (!checkpoint) return null;
@@ -194,6 +196,7 @@ contracts:
       type: { blueId: 'TestEvent' },
       eventId: 'evt-1',
     });
+    event1.setBlueId('evt-1');
     const afterFirst = expectOk(
       processor.processDocument(initialized.clone(), event1)
     ).document.clone();
@@ -204,6 +207,7 @@ contracts:
       type: { blueId: 'TestEvent' },
       eventId: 'evt-1',
     });
+    stale.setBlueId('evt-1');
     const afterStale = expectOk(
       processor.processDocument(afterFirst.clone(), stale)
     ).document.clone();
@@ -214,6 +218,7 @@ contracts:
       type: { blueId: 'TestEvent' },
       eventId: 'evt-2',
     });
+    fresh.setBlueId('evt-2');
     const afterFresh = expectOk(
       processor.processDocument(afterStale.clone(), fresh)
     ).document;

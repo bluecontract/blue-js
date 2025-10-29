@@ -18,11 +18,13 @@ import {
 const blue = createBlue();
 
 function testEvent(eventId: string) {
-  return blue.jsonValueToNode({
+  const node = blue.jsonValueToNode({
     type: { blueId: 'TestEvent' },
     eventId,
     x: 1,
   });
+  node.setBlueId(eventId);
+  return node;
 }
 
 describe('DocumentProcessorTerminationTest', () => {
