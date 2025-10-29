@@ -1,3 +1,12 @@
+## 1.37.1 (2025-10-29)
+
+### 🚀 Features
+
+- timeline channel processor ([f449ffa](https://github.com/bluecontract/blue-js/commit/f449ffa))
+- sequential workflow ([53f780d](https://github.com/bluecontract/blue-js/commit/53f780d))
+- **document-processor-next:** adopt core schemas; remove ProcessingFailureMarker; add project config ([3738cd8](https://github.com/bluecontract/blue-js/commit/3738cd8))
+- **document-processor-next:** adopt @blue-repository/core schemas and upgrade to language 1.37.0 ([e814572](https://github.com/bluecontract/blue-js/commit/e814572))
+
 ## 1.36.0 (2025-09-29)
 
 ### 🚀 Features
