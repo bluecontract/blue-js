@@ -35,9 +35,7 @@ describe('processor constants', () => {
 
   it('checks processor-managed channel blue ids', () => {
     expect(
-      isProcessorManagedChannelBlueId(
-        blueIds['Lifecycle Event Channel'],
-      ),
+      isProcessorManagedChannelBlueId(blueIds['Lifecycle Event Channel']),
     ).toBe(true);
     expect(isProcessorManagedChannelBlueId('CustomChannel')).toBe(false);
   });
@@ -62,8 +60,8 @@ describe('processor constants', () => {
 
   it('keeps legacy namespace compatibility object for ease of porting', () => {
     expect(ProcessorContractConstants.KEY_EMBEDDED).toBe(KEY_EMBEDDED);
-    expect(
-      Array.from(PROCESSOR_MANAGED_CHANNEL_BLUE_IDS),
-    ).not.toContain(ProcessorContractConstants.KEY_EMBEDDED);
+    expect(Array.from(PROCESSOR_MANAGED_CHANNEL_BLUE_IDS)).not.toContain(
+      ProcessorContractConstants.KEY_EMBEDDED,
+    );
   });
 });

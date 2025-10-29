@@ -15,7 +15,7 @@ const blue = createBlue();
 function timelineEntryEvent(
   timelineId: string,
   messageType: 'Chat Message' | 'Request',
-  overrides?: { message?: string; requestId?: string }
+  overrides?: { message?: string; requestId?: string },
 ): BlueNode {
   const message =
     overrides?.message ??
@@ -66,7 +66,7 @@ ${eventSnippet}    steps:
 `;
 
   const initialized = expectOk(
-    processor.initializeDocument(blue.yamlToNode(yaml))
+    processor.initializeDocument(blue.yamlToNode(yaml)),
   ).document;
 
   return { processor, initialized };
@@ -79,8 +79,8 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     const result = expectOk(
       processor.processDocument(
         initialized.clone(),
-        timelineEntryEvent('alice', 'Chat Message', { message: 'hello' })
-      )
+        timelineEntryEvent('alice', 'Chat Message', { message: 'hello' }),
+      ),
     );
 
     expect(result.triggeredEvents).toHaveLength(1);
@@ -98,8 +98,8 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     const matching = expectOk(
       processor.processDocument(
         initialized.clone(),
-        timelineEntryEvent('alice', 'Chat Message', { message: 'eligible' })
-      )
+        timelineEntryEvent('alice', 'Chat Message', { message: 'eligible' }),
+      ),
     );
 
     expect(matching.triggeredEvents).toHaveLength(1);
@@ -107,8 +107,8 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     const nonMatching = expectOk(
       processor.processDocument(
         matching.document.clone(),
-        timelineEntryEvent('alice', 'Request', { requestId: 'ignore-me' })
-      )
+        timelineEntryEvent('alice', 'Request', { requestId: 'ignore-me' }),
+      ),
     );
 
     expect(nonMatching.triggeredEvents).toHaveLength(0);
@@ -121,8 +121,8 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     const chatResult = expectOk(
       processor.processDocument(
         initialized.clone(),
-        timelineEntryEvent('alice', 'Chat Message', { message: 'eligible' })
-      )
+        timelineEntryEvent('alice', 'Chat Message', { message: 'eligible' }),
+      ),
     );
     expect(chatResult.triggeredEvents).toHaveLength(1);
 
@@ -130,8 +130,8 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     const requestResult = expectOk(
       processor.processDocument(
         chatResult.document.clone(),
-        timelineEntryEvent('alice', 'Request', { requestId: 'accept-me' })
-      )
+        timelineEntryEvent('alice', 'Request', { requestId: 'accept-me' }),
+      ),
     );
     expect(requestResult.triggeredEvents).toHaveLength(1);
   });

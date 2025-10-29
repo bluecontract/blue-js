@@ -29,7 +29,7 @@ export interface DocumentUpdateEventOptions {
  */
 export function createDocumentUpdateEvent(
   options: DocumentUpdateEventOptions,
-  blue: Blue
+  blue: Blue,
 ): EventNodePayload {
   const { op, path, val, from } = options;
 
@@ -59,7 +59,7 @@ export function createDocumentUpdateEvent(
 export function createTimelineEntryEvent(
   timelineId: string,
   message: unknown,
-  blue: Blue
+  blue: Blue,
 ): EventNodePayload {
   return blue.jsonValueToNode({
     type: 'Timeline Entry',
@@ -71,7 +71,7 @@ export function createTimelineEntryEvent(
 export function createMyOSTimelineEntryEvent(
   timelineId: string,
   message: unknown,
-  blue: Blue
+  blue: Blue,
 ): EventNodePayload {
   return blue.jsonValueToNode({
     type: 'MyOS Timeline Entry',

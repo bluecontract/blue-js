@@ -51,7 +51,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment'
+        'increment',
       );
       expect(result).toBe(true);
     });
@@ -79,7 +79,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment'
+        'increment',
       );
       expect(result).toBe(false);
     });
@@ -107,7 +107,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment'
+        'increment',
       );
       expect(result).toBe(false);
     });
@@ -135,7 +135,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment' // Contract name doesn't match
+        'increment', // Contract name doesn't match
       );
       expect(result).toBe(false);
     });
@@ -163,7 +163,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment'
+        'increment',
       );
       expect(result).toBe(false);
     });
@@ -189,7 +189,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment'
+        'increment',
       );
       expect(result).toBe(false);
     });
@@ -213,7 +213,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment'
+        'increment',
       );
       expect(result).toBe(false);
     });
@@ -237,7 +237,7 @@ describe('OperationProcessor', () => {
         event,
         operationNode,
         mockContext,
-        'increment'
+        'increment',
       );
       expect(result).toBe(false);
     });

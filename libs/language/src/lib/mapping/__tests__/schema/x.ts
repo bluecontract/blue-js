@@ -31,5 +31,5 @@ export const xSchema = withTypeBlueId('X-BlueId')(
     // bigIntegerField: z.string().optional(),
     // bigDecimalField: z.string().optional(),
     enumField: z.nativeEnum(TestEnum).optional(),
-  })
+  }),
 );

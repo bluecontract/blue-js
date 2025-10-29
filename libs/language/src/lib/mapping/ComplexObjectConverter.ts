@@ -32,10 +32,10 @@ export class ComplexObjectConverter implements Converter {
     UnknownKeys extends UnknownKeysParam = UnknownKeysParam,
     Catchall extends ZodTypeAny = ZodTypeAny,
     Output = objectOutputType<T, Catchall, UnknownKeys>,
-    Input = objectInputType<T, Catchall, UnknownKeys>
+    Input = objectInputType<T, Catchall, UnknownKeys>,
   >(
     node: BlueNode,
-    targetType: ZodType<Output, ZodObjectDef<T, UnknownKeys, Catchall>, Input>
+    targetType: ZodType<Output, ZodObjectDef<T, UnknownKeys, Catchall>, Input>,
   ) {
     return this.convertFields(node, targetType) as Output;
   }
@@ -56,69 +56,72 @@ export class ComplexObjectConverter implements Converter {
     }
 
     if (schema instanceof ZodObject) {
-      const result = Object.keys(schema.shape).reduce((acc, propertyName) => {
-        const properties = node.getProperties();
-        const schemaProperty = schema.shape[propertyName];
+      const result = Object.keys(schema.shape).reduce(
+        (acc, propertyName) => {
+          const properties = node.getProperties();
+          const schemaProperty = schema.shape[propertyName];
 
-        const blueIdAnnotation = getBlueIdAnnotation(schemaProperty);
-        if (isNonNullable(blueIdAnnotation)) {
-          const propertyNameWithAnnotation = isString(blueIdAnnotation)
-            ? blueIdAnnotation
-            : propertyName;
+          const blueIdAnnotation = getBlueIdAnnotation(schemaProperty);
+          if (isNonNullable(blueIdAnnotation)) {
+            const propertyNameWithAnnotation = isString(blueIdAnnotation)
+              ? blueIdAnnotation
+              : propertyName;
 
-          const propertyNode = properties?.[propertyNameWithAnnotation];
-          const blueId = propertyNode
-            ? BlueIdCalculator.calculateBlueIdSync(propertyNode)
-            : undefined;
+            const propertyNode = properties?.[propertyNameWithAnnotation];
+            const blueId = propertyNode
+              ? BlueIdCalculator.calculateBlueIdSync(propertyNode)
+              : undefined;
 
-          acc[propertyName] = blueId;
+            acc[propertyName] = blueId;
+
+            return acc;
+          }
+
+          const blueNameAnnotation = getBlueNameAnnotation(schemaProperty);
+          if (isNonNullable(blueNameAnnotation)) {
+            const propertyNode = properties?.[blueNameAnnotation];
+            acc[propertyName] = propertyNode?.getName();
+            return acc;
+          }
+
+          const blueDescriptionAnnotation =
+            getBlueDescriptionAnnotation(schemaProperty);
+          if (isNonNullable(blueDescriptionAnnotation)) {
+            const propertyNode = properties?.[blueDescriptionAnnotation];
+            acc[propertyName] = propertyNode?.getDescription();
+            return acc;
+          }
+
+          if (propertyName === 'name') {
+            const name = node.getName();
+            acc[propertyName] = name;
+
+            return acc;
+          }
+
+          if (propertyName === 'description') {
+            const description = node.getDescription();
+            acc[propertyName] = description;
+
+            return acc;
+          }
+
+          const propertyNode = properties?.[propertyName];
+
+          if (isNullable(propertyNode)) {
+            return acc;
+          }
+
+          const converted = this.nodeToObjectConverter.convert(
+            propertyNode,
+            schemaProperty,
+          );
+          acc[propertyName] = converted;
 
           return acc;
-        }
-
-        const blueNameAnnotation = getBlueNameAnnotation(schemaProperty);
-        if (isNonNullable(blueNameAnnotation)) {
-          const propertyNode = properties?.[blueNameAnnotation];
-          acc[propertyName] = propertyNode?.getName();
-          return acc;
-        }
-
-        const blueDescriptionAnnotation =
-          getBlueDescriptionAnnotation(schemaProperty);
-        if (isNonNullable(blueDescriptionAnnotation)) {
-          const propertyNode = properties?.[blueDescriptionAnnotation];
-          acc[propertyName] = propertyNode?.getDescription();
-          return acc;
-        }
-
-        if (propertyName === 'name') {
-          const name = node.getName();
-          acc[propertyName] = name;
-
-          return acc;
-        }
-
-        if (propertyName === 'description') {
-          const description = node.getDescription();
-          acc[propertyName] = description;
-
-          return acc;
-        }
-
-        const propertyNode = properties?.[propertyName];
-
-        if (isNullable(propertyNode)) {
-          return acc;
-        }
-
-        const converted = this.nodeToObjectConverter.convert(
-          propertyNode,
-          schemaProperty
-        );
-        acc[propertyName] = converted;
-
-        return acc;
-      }, {} as Record<string, unknown>);
+        },
+        {} as Record<string, unknown>,
+      );
 
       return result;
     }

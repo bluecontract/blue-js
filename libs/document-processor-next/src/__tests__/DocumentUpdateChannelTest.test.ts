@@ -6,16 +6,18 @@ import {
   IncrementPropertyContractProcessor,
   SetPropertyContractProcessor,
 } from './processors/index.js';
-import { buildProcessor, expectOk, property, propertyOptional } from './test-utils.js';
+import {
+  buildProcessor,
+  expectOk,
+  property,
+  propertyOptional,
+} from './test-utils.js';
 
 const blue = createBlue();
 
 describe('DocumentUpdateChannelTest', () => {
   it('initializationTriggersDocumentUpdateHandlers', () => {
-    const processor = buildProcessor(
-      blue,
-      new SetPropertyContractProcessor()
-    );
+    const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Sample Doc
 contracts:
   lifecycleChannel:
@@ -49,7 +51,7 @@ contracts:
 `;
 
     const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     expect(Number(property(processed, 'x').getValue())).toBe(1);
@@ -61,7 +63,7 @@ contracts:
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
-      new IncrementPropertyContractProcessor()
+      new IncrementPropertyContractProcessor(),
     );
     const yaml = `name: Nested Doc
 contracts:
@@ -95,7 +97,7 @@ contracts:
 `;
 
     const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     const a = property(processed, 'a');
@@ -106,10 +108,7 @@ contracts:
   });
 
   it('cascadedUpdatesPropagateThroughEmbeddedScopes', () => {
-    const processor = buildProcessor(
-      blue,
-      new SetPropertyContractProcessor()
-    );
+    const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Cascading Doc
 x:
   name: Embedded X
@@ -157,7 +156,7 @@ contracts:
 `;
 
     const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     expect(Number(property(processed, 'a').getValue())).toBe(1);
@@ -178,7 +177,7 @@ contracts:
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
-      new AssertDocumentUpdateContractProcessor()
+      new AssertDocumentUpdateContractProcessor(),
     );
     const yaml = `name: Update Doc
 a:
@@ -223,7 +222,7 @@ contracts:
 `;
 
     const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
     const a = property(processed, 'a');
     expect(Number(property(a, 'x').getValue())).toBe(1);
@@ -233,7 +232,7 @@ contracts:
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
-      new AssertDocumentUpdateContractProcessor()
+      new AssertDocumentUpdateContractProcessor(),
     );
     const yaml = `name: Append Doc
 list: []
@@ -263,7 +262,7 @@ contracts:
 `;
 
     const result = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     );
     const list = property(result.document, 'list');
     expect(list.getItems()).toHaveLength(1);

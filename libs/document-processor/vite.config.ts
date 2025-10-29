@@ -41,7 +41,7 @@ export default {
       external: (id: string) => {
         const dependencies = Object.keys(packageJson.dependencies ?? {});
         const peerDependencies = Object.keys(
-          packageJson.peerDependencies ?? {}
+          packageJson.peerDependencies ?? {},
         );
         return (
           dependencies.some((dependency) => id === dependency) ||

@@ -10,19 +10,19 @@ const WorkflowStepSchema = withTypeBlueId('WorkflowStep-BlueId')(
     name: z.string().optional(),
     description: z.string().optional(),
     condition: blueNodeField().optional(),
-  })
+  }),
 );
 
 export const TriggerEventStepSchema = withTypeBlueId(
-  '6sdEGwtrVJhdto5CsDzm81YrJtHTZrdsenZkyCWJLniU'
+  '6sdEGwtrVJhdto5CsDzm81YrJtHTZrdsenZkyCWJLniU',
 )(
   WorkflowStepSchema.extend({
     event: blueNodeField().optional(),
-  })
+  }),
 );
 
 export const UpdateStepSchema = withTypeBlueId(
-  'DpdjTNXQdgWGxDyB1LLUNFvxSNNM9L9qGMoKZxzYMDoB'
+  'DpdjTNXQdgWGxDyB1LLUNFvxSNNM9L9qGMoKZxzYMDoB',
 )(
   WorkflowStepSchema.extend({
     changeset: z
@@ -31,18 +31,18 @@ export const UpdateStepSchema = withTypeBlueId(
           op: z.enum(['replace', 'add', 'remove']).optional(),
           path: z.string().optional(),
           val: blueNodeField().optional(),
-        })
+        }),
       )
       .optional(),
-  })
+  }),
 );
 
 export const JavaScriptCodeStepSchema = withTypeBlueId(
-  'CFKAD5Up8XpNyPHwRBEwiwSUdfFUoGqVVsW29k6te88p'
+  'CFKAD5Up8XpNyPHwRBEwiwSUdfFUoGqVVsW29k6te88p',
 )(
   WorkflowStepSchema.extend({
     code: z.string().optional(),
-  })
+  }),
 );
 
 const WorkflowSchema = z.object({

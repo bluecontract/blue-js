@@ -21,7 +21,7 @@ export class NormalizingTestEventChannelProcessor
 
   matches(
     contract: TestEventChannel,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): boolean {
     const blue = context.blue;
     if (!context.event || !blue.isTypeOf(context.event, testEventSchema))
@@ -32,7 +32,7 @@ export class NormalizingTestEventChannelProcessor
     const event = context.event;
     if (event) {
       const nextKind = new BlueNode().setValue(
-        NormalizingTestEventChannelProcessor.NORMALIZED_KIND
+        NormalizingTestEventChannelProcessor.NORMALIZED_KIND,
       );
       event.setProperties({ ...(event.getProperties() ?? {}), kind: nextKind });
     }

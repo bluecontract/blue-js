@@ -16,7 +16,7 @@ export class TimelineChannelProcessor
 
   matches(
     contract: TimelineChannel,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): boolean {
     const { event, blue } = context;
     if (!event || !blue.isTypeOf(event, TimelineEntrySchema)) {
@@ -37,7 +37,7 @@ export class TimelineChannelProcessor
 
   channelize(
     contract: TimelineChannel,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): BlueNode | null | undefined {
     const { event, blue } = context;
     if (!event || !blue.isTypeOf(event, TimelineEntrySchema)) {
@@ -54,7 +54,7 @@ export class TimelineChannelProcessor
   private buildNormalizedEvent(
     message: BlueNode,
     metadata: BlueNode | null,
-    channelKey?: string
+    channelKey?: string,
   ): BlueNode {
     const normalized = message.clone();
     const props = normalized.getProperties() ?? {};

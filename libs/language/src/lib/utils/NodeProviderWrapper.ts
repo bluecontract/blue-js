@@ -16,7 +16,7 @@ export class NodeProviderWrapper {
    */
   public static wrap(
     originalProvider: NodeProvider,
-    repositories?: BlueRepository[]
+    repositories?: BlueRepository[],
   ): NodeProvider {
     const providers: NodeProvider[] = [BootstrapProvider.INSTANCE];
 

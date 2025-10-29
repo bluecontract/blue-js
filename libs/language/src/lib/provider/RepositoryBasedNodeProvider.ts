@@ -31,7 +31,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     for (const repository of repositories) {
       if (repository.contents) {
         for (const [providedBlueId, content] of Object.entries(
-          repository.contents
+          repository.contents,
         )) {
           this.processContent(content, providedBlueId);
         }
@@ -41,7 +41,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
 
   private processContent(
     content: JsonBlueValue,
-    providedBlueId?: string
+    providedBlueId?: string,
   ): void {
     // Check if content is an array (multiple documents)
     if (Array.isArray(content)) {
@@ -53,12 +53,12 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
 
   private processSingleDocument(
     content: JsonBlueValue,
-    providedBlueId?: string
+    providedBlueId?: string,
   ): void {
     const node = NodeDeserializer.deserialize(content);
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNode(
       node,
-      this.preprocessor
+      this.preprocessor,
     );
 
     // Use provided blueId if available, otherwise use calculated one
@@ -76,7 +76,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
 
   private processMultipleDocuments(
     contents: JsonBlueValue[],
-    providedBlueId?: string
+    providedBlueId?: string,
   ): void {
     const nodes = contents.map((item) => {
       const node = NodeDeserializer.deserialize(item);
@@ -85,7 +85,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
 
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
       nodes,
-      (node) => node // Already preprocessed above
+      (node) => node, // Already preprocessed above
     );
 
     // Use provided blueId if available, otherwise use calculated one
@@ -114,7 +114,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   }
 
   protected override fetchContentByBlueId(
-    baseBlueId: string
+    baseBlueId: string,
   ): JsonBlueValue | null {
     const content = this.blueIdToContentMap.get(baseBlueId);
     const isMultipleDocuments =
@@ -124,7 +124,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       return NodeContentHandler.resolveThisReferences(
         content,
         baseBlueId,
-        isMultipleDocuments
+        isMultipleDocuments,
       );
     }
 

@@ -8,7 +8,7 @@ export class SetConverter implements Converter {
 
   convert<Value extends ZodTypeAny = ZodTypeAny>(
     node: BlueNode,
-    targetType: ZodSet<Value>
+    targetType: ZodSet<Value>,
   ) {
     const items = node.getItems();
     if (!items) {
@@ -16,7 +16,7 @@ export class SetConverter implements Converter {
     }
     const elementSchema = targetType._def.valueType;
     const result = items.map((item) =>
-      this.nodeToObjectConverter.convert(item, elementSchema)
+      this.nodeToObjectConverter.convert(item, elementSchema),
     );
     return new Set(result) as Set<Value['_output']>;
   }

@@ -34,12 +34,12 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
   private processSingleNode(node: BlueNode): void {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNode(
       node,
-      this.preprocessor
+      this.preprocessor,
     );
     this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(
       parsedContent.blueId,
-      parsedContent.isMultipleDocuments
+      parsedContent.isMultipleDocuments,
     );
     const nodeName = node.getName();
     if (nodeName) {
@@ -55,7 +55,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
 
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
       items,
-      this.preprocessor
+      this.preprocessor,
     );
     this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);
@@ -77,7 +77,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
   }
 
   protected override fetchContentByBlueId(
-    baseBlueId: string
+    baseBlueId: string,
   ): JsonBlueValue | null {
     const content = this.blueIdToContentMap.get(baseBlueId);
     const isMultipleDocuments =
@@ -87,7 +87,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
       return NodeContentHandler.resolveThisReferences(
         content,
         baseBlueId,
-        isMultipleDocuments
+        isMultipleDocuments,
       );
     }
     return null;

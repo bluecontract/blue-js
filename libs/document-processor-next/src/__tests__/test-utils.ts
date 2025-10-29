@@ -8,7 +8,7 @@ import type { DocumentProcessingResult } from '../types/document-processing-resu
 
 export function expectOk(
   result: DocumentProcessingResult,
-  message = 'Expected successful document processing result'
+  message = 'Expected successful document processing result',
 ): DocumentProcessingResult {
   const failureDetails =
     result.failureReason != null
@@ -20,7 +20,7 @@ export function expectOk(
 
 export function expectErr(
   result: DocumentProcessingResult,
-  message = 'Expected capability failure'
+  message = 'Expected capability failure',
 ): DocumentProcessingResult {
   expect(result.capabilityFailure, message).toBe(true);
   return result;
@@ -36,7 +36,7 @@ export function property(node: BlueNode, key: string): BlueNode {
 
 export function propertyOptional(
   node: BlueNode,
-  key: string
+  key: string,
 ): BlueNode | undefined {
   return node.getProperties()?.[key];
 }
@@ -98,7 +98,7 @@ export function buildProcessor(
 
 export function terminatedMarker(
   document: BlueNode,
-  scopePath: string
+  scopePath: string,
 ): BlueNode | null {
   try {
     const pointer = resolvePointer(scopePath, '/contracts/terminated');

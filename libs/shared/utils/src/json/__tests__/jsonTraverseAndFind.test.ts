@@ -16,7 +16,7 @@ describe('jsonTraverseAndFind', () => {
   it('should find all numbers greater than 3', () => {
     const result = jsonTraverseAndFind(
       testObject,
-      (value) => typeof value === 'number' && value > 3
+      (value) => typeof value === 'number' && value > 3,
     );
     expect(result).toEqual([
       { value: 4, path: ['b', 'd', '1'] },
@@ -29,7 +29,7 @@ describe('jsonTraverseAndFind', () => {
 
   it('should find all arrays', () => {
     const result = jsonTraverseAndFind(testObject, (value) =>
-      Array.isArray(value)
+      Array.isArray(value),
     );
     expect(result).toEqual([
       { value: [3, 4, { e: 5 }], path: ['b', 'd'] },
@@ -40,7 +40,7 @@ describe('jsonTraverseAndFind', () => {
   it('should find all string values', () => {
     const result = jsonTraverseAndFind(
       testObject,
-      (value) => typeof value === 'string'
+      (value) => typeof value === 'string',
     );
     expect(result).toEqual([{ value: 'test', path: ['h'] }]);
   });
@@ -52,7 +52,7 @@ describe('jsonTraverseAndFind', () => {
 
   it('should find values based on path', () => {
     const result = jsonTraverseAndFind(testObject, (_, path) =>
-      path.includes('d')
+      path.includes('d'),
     );
     expect(result).toEqual([
       { value: [3, 4, { e: 5 }], path: ['b', 'd'] },
@@ -76,7 +76,7 @@ describe('jsonTraverseAndFind', () => {
   it('should handle a simple value', () => {
     const result = jsonTraverseAndFind(
       42,
-      (value) => typeof value === 'number'
+      (value) => typeof value === 'number',
     );
     expect(result).toEqual([{ value: 42, path: [] }]);
   });

@@ -31,7 +31,7 @@ describe('MyOS Timeline Channel + JavaScript Code step — merger resolve and ex
     };
 
     const initial = await documentProcessor.initialize(
-      blue.jsonValueToNode(doc)
+      blue.jsonValueToNode(doc),
     );
 
     const event = blue.resolve(
@@ -42,7 +42,7 @@ describe('MyOS Timeline Channel + JavaScript Code step — merger resolve and ex
         },
         message: { name: 'Start' },
         timestamp: 1749540750150,
-      })
+      }),
     );
 
     const { emitted } = await documentProcessor.processEvents(initial.state, [
@@ -73,7 +73,7 @@ describe('MyOS Timeline Channel + JavaScript Code step — merger resolve and ex
     };
 
     const initial = await documentProcessor.initialize(
-      blue.jsonValueToNode(doc)
+      blue.jsonValueToNode(doc),
     );
 
     const event = blue.jsonValueToNode({

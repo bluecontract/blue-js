@@ -39,7 +39,7 @@ export function collectEmbeddedPathSpecs(
   doc: DocumentNode,
   blue: Blue,
   base = '/',
-  out: EmbeddedSpec[] = []
+  out: EmbeddedSpec[] = [],
 ): EmbeddedSpec[] {
   const contracts = (doc.getContracts() ?? {}) as Record<string, DocumentNode>;
 
@@ -48,7 +48,7 @@ export function collectEmbeddedPathSpecs(
     if (isProcessEmbedded) {
       const processEmbedded = blue.nodeToSchemaOutput(
         node,
-        ProcessEmbeddedSchema
+        ProcessEmbeddedSchema,
       );
       const paths = processEmbedded.paths ?? [];
 
@@ -66,7 +66,7 @@ export function collectEmbeddedPathSpecs(
       value as DocumentNode,
       blue,
       makePath(base, key),
-      out
+      out,
     );
   }
   return out;
@@ -86,7 +86,7 @@ export function isInside(target: string, root: string): boolean {
  */
 export function applyPatches(
   document: DocumentNode,
-  patches: BlueNodePatch[]
+  patches: BlueNodePatch[],
 ): DocumentNode {
   if (!patches.length) return document;
 

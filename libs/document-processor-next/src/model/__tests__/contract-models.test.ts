@@ -49,11 +49,11 @@ describe('contract model schemas', () => {
   it('converts Lifecycle and Triggered channel contracts without extra fields', () => {
     const lifecycle = blue.nodeToSchemaOutput(
       deserialize({ type: 'Lifecycle Event Channel' }),
-      lifecycleChannelSchema
+      lifecycleChannelSchema,
     );
     const triggered = blue.nodeToSchemaOutput(
       deserialize({ type: 'Triggered Event Channel' }),
-      triggeredEventChannelSchema
+      triggeredEventChannelSchema,
     );
 
     expect(lifecycle).toEqual({});

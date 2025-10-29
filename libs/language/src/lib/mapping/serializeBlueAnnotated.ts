@@ -10,7 +10,7 @@ type BlueSerialized = Record<string, unknown>;
 
 export function serializeBlueAnnotated<T extends Record<string, unknown>>(
   value: T,
-  schema: AnyZodObject | ZodType<T, ZodTypeDef, T>
+  schema: AnyZodObject | ZodType<T, ZodTypeDef, T>,
 ): Record<string, unknown> {
   const typeBlueId = getTypeBlueIdAnnotation(schema);
   const result: BlueSerialized = {};
@@ -99,8 +99,8 @@ export function serializeBlueAnnotated<T extends Record<string, unknown>>(
       ...(mergeObj.items !== undefined
         ? { items: mergeObj.items }
         : mergeObj.value !== undefined
-        ? { value: mergeObj.value }
-        : {}),
+          ? { value: mergeObj.value }
+          : {}),
     };
   }
 

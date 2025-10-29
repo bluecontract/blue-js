@@ -13,7 +13,7 @@ export const cutOffProbeSchema = withTypeBlueId('CutOffProbe')(
     postEmitKind: z.string().optional(),
     postPatchPointer: z.string().optional(),
     postPatchValue: z.number().int().optional(),
-  })
+  }),
 );
 
 export type CutOffProbe = z.infer<typeof cutOffProbeSchema>;

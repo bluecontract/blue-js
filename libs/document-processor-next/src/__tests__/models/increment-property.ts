@@ -6,7 +6,7 @@ import { handlerContractBaseSchema } from '../../model/shared/index.js';
 export const incrementPropertySchema = withTypeBlueId('IncrementProperty')(
   handlerContractBaseSchema.extend({
     propertyKey: z.string(),
-  })
+  }),
 );
 
 export type IncrementProperty = z.infer<typeof incrementPropertySchema>;

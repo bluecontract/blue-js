@@ -84,7 +84,7 @@ describe('MergeReverser', () => {
 
     expect(reversed.getName()).toEqual('C');
     expect(reversed.getType()?.getBlueId()).toEqual(
-      nodeProvider.getBlueIdByName('B')
+      nodeProvider.getBlueIdByName('B'),
     );
     expect(reversed.getAsInteger('/w')).toEqual(20);
     expect(reversed.getProperties()?.['x']).toBeUndefined();
@@ -137,10 +137,10 @@ describe('MergeReverser', () => {
 
     expect(reversed.getName()).toEqual('P');
     expect(reversed.getType()?.getBlueId()).toEqual(
-      nodeProvider.getBlueIdByName('M')
+      nodeProvider.getBlueIdByName('M'),
     );
     expect((reversed.get('/a/b/type') as BlueNode)?.getBlueId()).toEqual(
-      nodeProvider.getBlueIdByName('N')
+      nodeProvider.getBlueIdByName('N'),
     );
     expect(reversed.getAsInteger('/a/b/c/d3/value')).toEqual(3);
     const cNode = reversed.getAsNode('/a/b/c');
@@ -184,7 +184,7 @@ describe('MergeReverser', () => {
 
     expect(reversed.getName()).toEqual('Derived');
     expect(reversed.getType()?.getBlueId()).toEqual(
-      nodeProvider.getBlueIdByName('Base')
+      nodeProvider.getBlueIdByName('Base'),
     );
     expect(reversed.getAsNode('/list')?.getItems()?.length).toEqual(2);
 
@@ -193,13 +193,13 @@ describe('MergeReverser', () => {
       blue.yamlToNode('value: B\ntype: Text'),
     ]);
     expect(reversed.getAsNode('/list')?.getItems()?.[0].getBlueId()).toEqual(
-      listBlueId
+      listBlueId,
     );
     expect(reversed.getAsNode('/list')?.getItems()?.[1].getValue()).toEqual(
-      'C'
+      'C',
     );
     expect(
-      Object.keys(reversed.getAsNode('/map')?.getProperties() || {}).length
+      Object.keys(reversed.getAsNode('/map')?.getProperties() || {}).length,
     ).toEqual(1);
     expect(reversed.get('/map/key3/value')).toEqual('value3');
   });

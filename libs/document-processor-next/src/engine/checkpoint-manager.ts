@@ -29,7 +29,7 @@ function createEmptyCheckpointContract(): ChannelEventCheckpoint {
 }
 
 function isChannelEventCheckpoint(
-  marker: MarkerContract
+  marker: MarkerContract,
 ): marker is ChannelEventCheckpoint {
   return (
     marker != null &&
@@ -47,7 +47,7 @@ export class CheckpointRecord {
     readonly checkpoint: ChannelEventCheckpoint,
     readonly channelKey: string,
     lastEventNode: BlueNode | null,
-    lastEventSignature: string | null
+    lastEventSignature: string | null,
   ) {
     this.lastEventNode = lastEventNode;
     this.lastEventSignature = lastEventSignature;
@@ -61,7 +61,7 @@ export class CheckpointRecord {
 export class CheckpointManager {
   constructor(
     private readonly runtime: DocumentProcessingRuntime,
-    private readonly signatureFn: (node: BlueNode | null) => string | null
+    private readonly signatureFn: (node: BlueNode | null) => string | null,
   ) {}
 
   ensureCheckpointMarker(scopePath: string, bundle: ContractBundle): void {
@@ -75,14 +75,14 @@ export class CheckpointManager {
     }
     if (!isChannelEventCheckpoint(marker)) {
       throw new Error(
-        `Reserved key 'checkpoint' must contain a Channel Event Checkpoint at ${pointer}`
+        `Reserved key 'checkpoint' must contain a Channel Event Checkpoint at ${pointer}`,
       );
     }
   }
 
   findCheckpoint(
     bundle: ContractBundle,
-    channelKey: string
+    channelKey: string,
   ): CheckpointRecord | null {
     for (const [markerKey, marker] of bundle.markerEntries()) {
       if (!isChannelEventCheckpoint(marker)) {
@@ -97,7 +97,7 @@ export class CheckpointManager {
         marker,
         channelKey,
         storedClone,
-        signature
+        signature,
       );
     }
     return null;
@@ -105,7 +105,7 @@ export class CheckpointManager {
 
   isDuplicate(
     record: CheckpointRecord | null,
-    signature: string | null | undefined
+    signature: string | null | undefined,
   ): boolean {
     return record != null && record.matches(signature);
   }
@@ -115,14 +115,14 @@ export class CheckpointManager {
     bundle: ContractBundle,
     record: CheckpointRecord | null,
     eventSignature: string | null,
-    eventNode: BlueNode | null
+    eventNode: BlueNode | null,
   ): void {
     if (!record) {
       return;
     }
     const eventPointer = resolvePointer(
       scopePath,
-      relativeCheckpointLastEvent(record.markerKey, record.channelKey)
+      relativeCheckpointLastEvent(record.markerKey, record.channelKey),
     );
     const stored = eventNode?.clone() ?? null;
     this.runtime.chargeCheckpointUpdate();
@@ -140,7 +140,7 @@ export class CheckpointManager {
 
     const signaturePointer = resolvePointer(
       scopePath,
-      relativeCheckpointLastSignature(record.markerKey, record.channelKey)
+      relativeCheckpointLastSignature(record.markerKey, record.channelKey),
     );
     const signatureNode =
       eventSignature == null ? null : new BlueNode().setValue(eventSignature);

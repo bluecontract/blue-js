@@ -31,7 +31,7 @@ type NonNullableJsonValue =
 
 // Type guard to check for non-nullable JSON primitives
 const isNonNullableJsonPrimitive = (
-  value: JsonBlueValue
+  value: JsonBlueValue,
 ): value is NonNullableJsonPrimitive => {
   return isJsonPrimitive(value) && isNonNullable(value);
 };
@@ -95,7 +95,7 @@ export class BlueIdCalculator {
   // Internal method to calculate BlueId recursively
   private internalCalculate(
     cleanedObject: NonNullableJsonValue,
-    isSync: boolean
+    isSync: boolean,
   ): SyncOrAsync<string> {
     if (
       isNonNullableJsonPrimitive(cleanedObject) ||
@@ -114,7 +114,7 @@ export class BlueIdCalculator {
 
   private calculateMap(
     map: NonNullableJsonObject,
-    isSync: boolean
+    isSync: boolean,
   ): SyncOrAsync<string> {
     // If the object already has a BlueId, return it
     if (map[OBJECT_BLUE_ID] !== undefined) {
@@ -163,7 +163,7 @@ export class BlueIdCalculator {
 
   private calculateList(
     list: NonNullableJsonArray,
-    isSync: boolean
+    isSync: boolean,
   ): SyncOrAsync<string> {
     if (list.length === 0) {
       throw new Error('Cannot calculate BlueId for an empty list.');
@@ -172,22 +172,22 @@ export class BlueIdCalculator {
     // Start with the hash of the first element
     let accumulatedHash: SyncOrAsync<string> = this.internalCalculate(
       list[0],
-      isSync
+      isSync,
     );
 
     // Function to combine two hashes
     const combineTwoHashes = (
       hash1: SyncOrAsync<string>,
-      hash2: SyncOrAsync<string>
+      hash2: SyncOrAsync<string>,
     ): SyncOrAsync<string> => {
       if (isSync) {
         return this.applyHash(
           [{ blueId: hash1 as string }, { blueId: hash2 as string }],
-          true
+          true,
         ) as string;
       } else {
         return Promise.all([hash1, hash2]).then(([h1, h2]) =>
-          this.applyHash([{ blueId: h1 }, { blueId: h2 }], false)
+          this.applyHash([{ blueId: h1 }, { blueId: h2 }], false),
         );
       }
     };

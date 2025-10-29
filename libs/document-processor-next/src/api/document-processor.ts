@@ -34,7 +34,7 @@ export class DocumentProcessor {
     this.engine = new ProcessorEngine(
       this.contractLoaderRef,
       this.registryRef,
-      this.blue
+      this.blue,
     );
   }
 
@@ -49,14 +49,14 @@ export class DocumentProcessor {
 
   processDocument(
     document: BlueNode,
-    event: BlueNode
+    event: BlueNode,
   ): DocumentProcessingResult {
     return this.engine.processDocument(document, event);
   }
 
   markersFor(
     scopeNode: BlueNode,
-    scopePath: string
+    scopePath: string,
   ): Map<string, MarkerContract> {
     const bundle = this.contractLoaderRef.load(scopeNode, scopePath);
     return bundle.markers();

@@ -12,7 +12,7 @@ function canonicalJson(blue: Blue, node: BlueNode): string {
 
 export function canonicalSignature(
   blue: Blue,
-  node: BlueNode | null | undefined
+  node: BlueNode | null | undefined,
 ): string | null {
   if (!node) {
     return null;
@@ -22,7 +22,7 @@ export function canonicalSignature(
 
 export function canonicalSize(
   blue: Blue,
-  node: BlueNode | null | undefined
+  node: BlueNode | null | undefined,
 ): number {
   const signature = canonicalSignature(blue, node);
   if (signature == null) {

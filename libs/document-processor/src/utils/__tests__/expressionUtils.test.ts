@@ -26,24 +26,24 @@ describe('expressionUtils', () => {
   describe('extractExpressionContent', () => {
     it('should extract content from valid expressions', () => {
       expect(extractExpressionContent('${some.expression}')).toBe(
-        'some.expression'
+        'some.expression',
       );
       expect(extractExpressionContent('${steps.result}')).toBe('steps.result');
       expect(extractExpressionContent('${event.data}')).toBe('event.data');
       expect(extractExpressionContent('${document("/path")}')).toBe(
-        'document("/path")'
+        'document("/path")',
       );
     });
 
     it('should throw error for invalid expressions', () => {
       expect(() => extractExpressionContent('regular string')).toThrow(
-        'Invalid expression: regular string'
+        'Invalid expression: regular string',
       );
       expect(() => extractExpressionContent('${incomplete')).toThrow(
-        'Invalid expression: ${incomplete'
+        'Invalid expression: ${incomplete',
       );
       expect(() => extractExpressionContent('incomplete}')).toThrow(
-        'Invalid expression: incomplete}'
+        'Invalid expression: incomplete}',
       );
     });
   });

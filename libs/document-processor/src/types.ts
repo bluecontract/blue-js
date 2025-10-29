@@ -61,13 +61,13 @@ export interface ContractProcessor {
     evt: EventNode,
     contractNode: DocumentNode,
     ctx: ProcessingContext,
-    contractName: string
+    contractName: string,
   ): boolean;
   handle(
     evt: EventNode,
     contractNode: DocumentNode,
     ctx: ProcessingContext,
-    contractName: string
+    contractName: string,
   ): void;
 }
 

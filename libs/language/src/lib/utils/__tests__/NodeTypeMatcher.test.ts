@@ -58,13 +58,13 @@ y: d`;
     expect(matcher.matchesType(bInstNode, blue.yamlToNode(typeOK1))).toBe(true);
     expect(matcher.matchesType(bInstNode, blue.yamlToNode(typeOK2))).toBe(true);
     expect(
-      matcher.matchesType(bInstNode, blue.yamlToNode(typeFailWrongType))
+      matcher.matchesType(bInstNode, blue.yamlToNode(typeFailWrongType)),
     ).toBe(false);
     expect(
-      matcher.matchesType(bInstNode, blue.yamlToNode(typeFailWrongBlue))
+      matcher.matchesType(bInstNode, blue.yamlToNode(typeFailWrongBlue)),
     ).toBe(false);
     expect(
-      matcher.matchesType(bInstNode, blue.yamlToNode(typeFailExtraProp))
+      matcher.matchesType(bInstNode, blue.yamlToNode(typeFailExtraProp)),
     ).toBe(false);
   });
 
@@ -105,7 +105,7 @@ list:
   items:
     - blueId: ${itemId}`;
     expect(
-      matcher.matchesType(containerInst, blue.yamlToNode(okNestedShape))
+      matcher.matchesType(containerInst, blue.yamlToNode(okNestedShape)),
     ).toBe(true);
 
     // Negative: wrong referenced item
@@ -113,7 +113,7 @@ list:
   items:
     - blueId: ${item2Id}`;
     expect(
-      matcher.matchesType(containerInst, blue.yamlToNode(failNestedValue))
+      matcher.matchesType(containerInst, blue.yamlToNode(failNestedValue)),
     ).toBe(false);
 
     // Negative: require extra property that does not exist
@@ -122,7 +122,7 @@ list:
     - value: 1
       extra: something`;
     expect(matcher.matchesType(containerInst, blue.yamlToNode(failExtra))).toBe(
-      false
+      false,
     );
   });
 
@@ -196,15 +196,15 @@ itemsList:
     expect(
       matcher.matchesType(
         nodeProvider.getNodeByName('Allowed Container'),
-        targetType
-      )
+        targetType,
+      ),
     ).toBe(true);
 
     expect(
       matcher.matchesType(
         nodeProvider.getNodeByName('Forbidden Container'),
-        targetType
-      )
+        targetType,
+      ),
     ).toBe(false);
   });
 
@@ -238,18 +238,18 @@ b:
 
     // Positive cases: implicit structures should satisfy corresponding core types
     expect(
-      matcher.matchesType(implicitListNode, blue.yamlToNode(listTypeOnly))
+      matcher.matchesType(implicitListNode, blue.yamlToNode(listTypeOnly)),
     ).toBe(true);
     expect(
-      matcher.matchesType(implicitDictNode, blue.yamlToNode(dictTypeOnly))
+      matcher.matchesType(implicitDictNode, blue.yamlToNode(dictTypeOnly)),
     ).toBe(true);
 
     // Negative cross-cases
     expect(
-      matcher.matchesType(implicitListNode, blue.yamlToNode(dictTypeOnly))
+      matcher.matchesType(implicitListNode, blue.yamlToNode(dictTypeOnly)),
     ).toBe(false);
     expect(
-      matcher.matchesType(implicitDictNode, blue.yamlToNode(listTypeOnly))
+      matcher.matchesType(implicitDictNode, blue.yamlToNode(listTypeOnly)),
     ).toBe(false);
 
     // Explicit wrong type should not match, even if structure resembles a list
@@ -259,8 +259,8 @@ items:
     expect(
       matcher.matchesType(
         implicitListNode,
-        blue.yamlToNode(explicitTextButHasItems)
-      )
+        blue.yamlToNode(explicitTextButHasItems),
+      ),
     ).toBe(false);
   });
 

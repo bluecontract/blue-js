@@ -79,7 +79,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
     const runtime = new DocumentProcessingRuntime(document, blue);
 
     expect(() => runtime.applyPatch('/', remove('/missing'))).toThrowError(
-      /missing/i
+      /missing/i,
     );
     expect(document.getProperties()).toBeUndefined();
   });
@@ -122,9 +122,9 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
     expect(numericValue(data.after as BlueNode)).toBe(80);
     expect(numericValue(array(document, 'nums')[1]!)).toBe(80);
 
-    expect(() =>
-      runtime.applyPatch('/', replace('/nums/5', 123))
-    ).toThrowError(/out of bounds/i);
+    expect(() => runtime.applyPatch('/', replace('/nums/5', 123))).toThrowError(
+      /out of bounds/i,
+    );
     expect(array(document, 'nums')).toHaveLength(2);
   });
 
@@ -147,7 +147,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
     const runtime = new DocumentProcessingRuntime(document, blue);
 
     expect(() => runtime.applyPatch('/', remove('/letters/5'))).toThrowError(
-      /out of bounds/i
+      /out of bounds/i,
     );
     expect(array(document, 'letters')).toHaveLength(1);
   });
@@ -158,7 +158,7 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
     const runtime = new DocumentProcessingRuntime(document, blue);
 
     expect(() =>
-      runtime.applyPatch('/', add('/arr/0/name', 'bad'))
+      runtime.applyPatch('/', add('/arr/0/name', 'bad')),
     ).toThrowError(/array index/i);
     expect(arrayNode.getItems()).toHaveLength(0);
     expect(property(document, 'arr').getProperties()).toBeUndefined();
@@ -168,9 +168,9 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
     const document = new BlueNode();
     const runtime = new DocumentProcessingRuntime(document, blue);
 
-    expect(() =>
-      runtime.applyPatch('/', add('/foo/-', 'nope'))
-    ).toThrowError(/append token/i);
+    expect(() => runtime.applyPatch('/', add('/foo/-', 'nope'))).toThrowError(
+      /append token/i,
+    );
     expect(document.getProperties()).toBeUndefined();
   });
 

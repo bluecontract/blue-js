@@ -23,7 +23,7 @@ describe('CidToBlueId', () => {
 
   test('should throw an error for invalid CID', () => {
     expect(() => CidToBlueId.convert('invalidCid')).toThrow(
-      'Unsupported CID version'
+      'Unsupported CID version',
     );
   });
 });

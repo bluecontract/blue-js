@@ -24,7 +24,7 @@ describe('Blue.restoreInlineTypes', () => {
 
     // Original node should remain unchanged
     expect(node.getProperties()?.field?.getType()?.getBlueId()).toBe(
-      TEXT_TYPE_BLUE_ID
+      TEXT_TYPE_BLUE_ID,
     );
 
     const restoredType = restored.getProperties()?.field?.getType();
@@ -68,7 +68,7 @@ describe('Blue.restoreInlineTypes', () => {
     });
 
     expect(document.getProperties()?.reference?.getType()?.getBlueId()).toBe(
-      linkBlueId
+      linkBlueId,
     );
 
     const restored = blue.restoreInlineTypes(document);

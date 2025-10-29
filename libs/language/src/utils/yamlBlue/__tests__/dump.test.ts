@@ -51,7 +51,7 @@ describe('yamlBlueDump', () => {
 
   it("didn't throws an error when attempting to serialize a Big.js number beyond JavaScript number limits", () => {
     const bigNum = new BigIntegerNumber(
-      '1234567890123456789012345678901234567890'
+      '1234567890123456789012345678901234567890',
     );
     expect(yamlBlueDump({ bigNum })).toMatchInlineSnapshot(`
       "bigNum: '1234567890123456789012345678901234567890'

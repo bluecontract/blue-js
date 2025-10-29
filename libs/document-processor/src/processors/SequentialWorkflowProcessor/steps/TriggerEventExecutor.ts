@@ -14,7 +14,7 @@ export class TriggerEventExecutor implements WorkflowStepExecutor {
   async execute(
     step: DocumentNode,
     event: EventNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): Promise<void> {
     const blue = ctx.getBlue();
     if (!BlueNodeTypeSchema.isTypeOf(step, TriggerEventSchema)) return;

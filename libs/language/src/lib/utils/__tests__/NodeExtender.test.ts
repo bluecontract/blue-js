@@ -189,17 +189,17 @@ items:
 
     expect(await listNode.get('/0/name')).toBe('A');
     expect(await listNode.get('/0/value')).toStrictEqual(
-      new BigIntegerNumber(1)
+      new BigIntegerNumber(1),
     );
 
     expect(await listNode.get('/1/name')).toBe('B');
     expect(await listNode.get('/1/value')).toStrictEqual(
-      new BigIntegerNumber(2)
+      new BigIntegerNumber(2),
     );
 
     expect(await listNode.get('/2/name')).toBe('C');
     expect(await listNode.get('/2/value')).toStrictEqual(
-      new BigIntegerNumber(3)
+      new BigIntegerNumber(3),
     );
   });
 
@@ -267,17 +267,17 @@ value: 3`;
 
     expect(await nodeABC.get('/0/name')).toBe('A');
     expect(await nodeABC.get('/0/value')).toStrictEqual(
-      new BigIntegerNumber(1)
+      new BigIntegerNumber(1),
     );
 
     expect(await nodeABC.get('/1/name')).toBe('B');
     expect(await nodeABC.get('/1/value')).toStrictEqual(
-      new BigIntegerNumber(2)
+      new BigIntegerNumber(2),
     );
 
     expect(await nodeABC.get('/2/name')).toBe('C');
     expect(await nodeABC.get('/2/value')).toStrictEqual(
-      new BigIntegerNumber(3)
+      new BigIntegerNumber(3),
     );
   });
 });

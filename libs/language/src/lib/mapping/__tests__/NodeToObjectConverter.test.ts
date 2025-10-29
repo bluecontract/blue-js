@@ -41,7 +41,7 @@ describe('blueNodeToObject', () => {
 
   it('should convert a string value to a string', () => {
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse('Hello') as JsonBlueValue
+      yamlBlueParse('Hello') as JsonBlueValue,
     );
 
     const result = converter.convert(node, z.string());
@@ -64,7 +64,7 @@ describe('blueNodeToObject', () => {
       '    duration: 30';
 
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
 
     const hobbySchema = z.object({
@@ -120,7 +120,7 @@ describe('blueNodeToObject', () => {
     `;
 
     const node = NodeDeserializer.deserialize(
-      yamlBlueParse(yaml) as JsonBlueValue
+      yamlBlueParse(yaml) as JsonBlueValue,
     );
 
     const baseCategorySchema = z.object({
@@ -165,7 +165,7 @@ describe('blueNodeToObject', () => {
         tuple:
           - Hello
           - 1
-      `) as JsonBlueValue
+      `) as JsonBlueValue,
     );
     const result = converter.convert(node, tupleSchema);
     expect(result).toEqual({ tuple: ['Hello', 1] });
@@ -204,7 +204,7 @@ describe('blueNodeToObject', () => {
       enumField: SOME_ENUM_VALUE`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(xYaml) as JsonBlueValue
+        yamlBlueParse(xYaml) as JsonBlueValue,
       );
 
       const x = converter.convert(node, xSchema);
@@ -291,7 +291,7 @@ describe('blueNodeToObject', () => {
           key3: 300`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(x2Yaml) as JsonBlueValue
+        yamlBlueParse(x2Yaml) as JsonBlueValue,
       );
       const x2 = converter.convert(node, x2Schema);
 
@@ -304,7 +304,7 @@ describe('blueNodeToObject', () => {
           ['key1', 100],
           ['key2', 200],
           ['key3', 300],
-        ])
+        ]),
       );
     });
 
@@ -325,7 +325,7 @@ describe('blueNodeToObject', () => {
           key3: 333`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(x3Yaml) as JsonBlueValue
+        yamlBlueParse(x3Yaml) as JsonBlueValue,
       );
       const x3 = converter.convert(node, x3Schema);
 
@@ -357,7 +357,7 @@ describe('blueNodeToObject', () => {
           key2: [4, 5, 6]`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(x11Yaml) as JsonBlueValue
+        yamlBlueParse(x11Yaml) as JsonBlueValue,
       );
       const x11 = converter.convert(node, x11Schema);
 
@@ -397,7 +397,7 @@ describe('blueNodeToObject', () => {
         integerDequeField: [1000, 2000, 3000]`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(x12Yaml) as JsonBlueValue
+        yamlBlueParse(x12Yaml) as JsonBlueValue,
       );
       const x12 = converter.convert(node, x12Schema);
 
@@ -489,7 +489,7 @@ describe('blueNodeToObject', () => {
               wildcardKey: 70`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(yYaml) as JsonBlueValue
+        yamlBlueParse(yYaml) as JsonBlueValue,
       );
 
       const y = converter.convert(node, y1Schema);
@@ -530,29 +530,31 @@ describe('blueNodeToObject', () => {
       const x1SetArray = Array.from(y.x1SetField!);
       expect(
         x1SetArray.some(
-          (x1) => JSON.stringify(x1.intArrayField) === JSON.stringify([4, 5, 6])
-        )
+          (x1) =>
+            JSON.stringify(x1.intArrayField) === JSON.stringify([4, 5, 6]),
+        ),
       ).toBe(true);
       expect(
         x1SetArray.some(
-          (x1) => JSON.stringify(x1.intArrayField) === JSON.stringify([7, 8, 9])
-        )
+          (x1) =>
+            JSON.stringify(x1.intArrayField) === JSON.stringify([7, 8, 9]),
+        ),
       ).toBe(true);
 
       // x2MapField validation
       expect(y.x2MapField).toBeDefined();
       expect(y.x2MapField?.size).toBe(2);
       expect(
-        y.x2MapField?.get('mapKey1')?.stringIntMapField?.get('innerKey1')
+        y.x2MapField?.get('mapKey1')?.stringIntMapField?.get('innerKey1'),
       ).toBe(30);
       expect(
-        y.x2MapField?.get('mapKey1')?.stringIntMapField?.get('innerKey2')
+        y.x2MapField?.get('mapKey1')?.stringIntMapField?.get('innerKey2'),
       ).toBe(40);
       expect(
-        y.x2MapField?.get('mapKey2')?.stringIntMapField?.get('innerKey3')
+        y.x2MapField?.get('mapKey2')?.stringIntMapField?.get('innerKey3'),
       ).toBe(50);
       expect(
-        y.x2MapField?.get('mapKey2')?.stringIntMapField?.get('innerKey4')
+        y.x2MapField?.get('mapKey2')?.stringIntMapField?.get('innerKey4'),
       ).toBe(60);
 
       // xArrayField validation
@@ -607,7 +609,7 @@ describe('blueNodeToObject', () => {
               key2: [4, 5, 6]`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(y1Yaml) as JsonBlueValue
+        yamlBlueParse(y1Yaml) as JsonBlueValue,
       );
 
       const result = converter.convert(node, y1Schema);
@@ -661,7 +663,7 @@ describe('blueNodeToObject', () => {
           yearsOfExperience: 4`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(personTestDataYaml) as JsonBlueValue
+        yamlBlueParse(personTestDataYaml) as JsonBlueValue,
       );
 
       const result = converter.convert(node, personObjectExampleSchema);
@@ -671,7 +673,7 @@ describe('blueNodeToObject', () => {
       // Test alice1
       expect(result.alice1).toBeDefined();
       expect(result.alice1).toBe(
-        BlueIdCalculator.calculateBlueIdSync(result?.alice2)
+        BlueIdCalculator.calculateBlueIdSync(result?.alice2),
       );
 
       // Test alice2
@@ -680,7 +682,7 @@ describe('blueNodeToObject', () => {
       expect(alice2?.getName()).toBe('Alice');
       expect(alice2?.getProperties()?.['surname'].getValue()).toBe('Smith');
       expect(alice2?.getProperties()?.['age'].getValue()).toEqual(
-        new BigIntegerNumber(25)
+        new BigIntegerNumber(25),
       );
 
       // Test alice3
@@ -751,11 +753,11 @@ describe('blueNodeToObject', () => {
       expect(result.age3).toBeDefined();
       expect(result.age3?.getName()).toBe('Official Age');
       expect(result.age3?.getDescription()).toBe(
-        'Description for official age'
+        'Description for official age',
       );
       expect(result.age3Name).toBe('Official Age');
       expect(result.age3?.getType()?.getBlueId()).toBe(
-        '5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1'
+        '5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1',
       );
       expect(result.age3?.getValue()).toEqual(new BigIntegerNumber(25));
       expect(node.getType()?.getBlueId()).toBe('PersonValue-BlueId');
@@ -797,7 +799,7 @@ describe('blueNodeToObject', () => {
             yearsOfExperience: 12`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(personTestDataYaml) as JsonBlueValue
+        yamlBlueParse(personTestDataYaml) as JsonBlueValue,
       );
 
       const result = converter.convert(node, personListExampleSchema);
@@ -846,13 +848,13 @@ describe('blueNodeToObject', () => {
       expect(doctorNode?.getName()).toBe('Adam');
       expect(doctorNode?.getType()?.getBlueId()).toBe('Doctor-BlueId');
       expect(doctorNode?.getProperties()?.['specialization'].getValue()).toBe(
-        'surgeon'
+        'surgeon',
       );
 
       expect(nurseNode?.getName()).toBe('Betty');
       expect(nurseNode?.getType()?.getBlueId()).toBe('Nurse-BlueId');
       expect(
-        nurseNode?.getProperties()?.['yearsOfExperience'].getValue()
+        nurseNode?.getProperties()?.['yearsOfExperience'].getValue(),
       ).toEqual(new BigIntegerNumber(12));
 
       // Test node type
@@ -896,7 +898,7 @@ describe('blueNodeToObject', () => {
               yearsOfExperience: 12`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(personTestDataYaml) as JsonBlueValue
+        yamlBlueParse(personTestDataYaml) as JsonBlueValue,
       );
 
       const result = converter.convert(node, personDictionaryExampleSchema);
@@ -968,7 +970,7 @@ describe('blueNodeToObject', () => {
           yearsOfExperience: 8`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue
+        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue,
       );
 
       const mapSchema = z.map(z.string(), z.unknown());
@@ -989,10 +991,10 @@ describe('blueNodeToObject', () => {
       expect(contractsObj.author.value).toBe('Medical Department');
       expect(contractsObj.requirements.items).toHaveLength(2);
       expect(contractsObj.requirements.items[0].value).toBe(
-        'Certified professionals only'
+        'Certified professionals only',
       );
       expect(contractsObj.requirements.items[1].value).toBe(
-        'Active licenses required'
+        'Active licenses required',
       );
 
       // Test that name and description are stored
@@ -1017,7 +1019,7 @@ describe('blueNodeToObject', () => {
         item2: 200`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue
+        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue,
       );
 
       const mapSchema = z.map(z.string(), z.number());
@@ -1050,7 +1052,7 @@ describe('blueNodeToObject', () => {
         `;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue
+        yamlBlueParse(mapWithContractsYaml) as JsonBlueValue,
       );
 
       const mapSchema = z.object({
@@ -1083,7 +1085,7 @@ describe('blueNodeToObject', () => {
         yearsOfExperience: 4`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(personTestDataYaml) as JsonBlueValue
+        yamlBlueParse(personTestDataYaml) as JsonBlueValue,
       );
 
       const result = converter.convert(node, personSchema);
@@ -1110,7 +1112,7 @@ describe('blueNodeToObject', () => {
           - C`;
 
       const node = NodeDeserializer.deserialize(
-        yamlBlueParse(personTestDataYaml) as JsonBlueValue
+        yamlBlueParse(personTestDataYaml) as JsonBlueValue,
       );
       const result = converter.convert(node, xSchema);
 

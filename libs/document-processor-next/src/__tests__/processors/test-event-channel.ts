@@ -20,7 +20,7 @@ export class TestEventChannelProcessor
 
   matches(
     contract: TestEventChannel,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): boolean {
     const blue = context.blue;
     if (!context.event || !blue.isTypeOf(context.event, testEventSchema)) {

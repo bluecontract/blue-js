@@ -4,7 +4,7 @@ import { withTypeBlueId } from '@blue-labs/language';
 import { handlerContractBaseSchema } from '../../model/shared/index.js';
 
 export const mutateEmbeddedPathsSchema = withTypeBlueId('MutateEmbeddedPaths')(
-  handlerContractBaseSchema
+  handlerContractBaseSchema,
 );
 
 export type MutateEmbeddedPaths = z.infer<typeof mutateEmbeddedPathsSchema>;

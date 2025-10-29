@@ -5,7 +5,7 @@ import { EmissionRegistry } from './emission-registry.js';
 import { GasMeter } from './gas-meter.js';
 import { ScopeRuntimeContext } from './scope-runtime-context.js';
 
-export type DocumentUpdateData = PatchResult
+export type DocumentUpdateData = PatchResult;
 
 export class DocumentProcessingRuntime {
   private readonly patchEngine: PatchEngine;
@@ -15,7 +15,7 @@ export class DocumentProcessingRuntime {
 
   constructor(
     private readonly documentRef: BlueNode,
-    private readonly blueRef: Blue
+    private readonly blueRef: Blue,
   ) {
     this.patchEngine = new PatchEngine(this.documentRef);
     this.gasMeter = new GasMeter(this.blueRef);

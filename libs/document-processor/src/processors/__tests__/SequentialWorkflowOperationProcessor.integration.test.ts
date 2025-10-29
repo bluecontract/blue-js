@@ -130,7 +130,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [incrementEvent]
+      [incrementEvent],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -140,7 +140,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     // Should emit a Document Update event
     const docUpdateEvt = emitted.find((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvt).toBeDefined();
     const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -159,7 +159,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [decrementEvent]
+      [decrementEvent],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -169,7 +169,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     // Should emit a Document Update event
     const docUpdateEvt = emitted.find((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvt).toBeDefined();
     const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -188,7 +188,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [resetEvent]
+      [resetEvent],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -198,7 +198,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     // Should emit a Document Update event
     const docUpdateEvt = emitted.find((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvt).toBeDefined();
     const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -226,7 +226,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [resetEvent]
+      [resetEvent],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -236,7 +236,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     // Should emit a Document Update event
     const docUpdateEvt = emitted.find((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvt).toBeDefined();
     const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -255,7 +255,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [nonMatchingEvent]
+      [nonMatchingEvent],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -265,7 +265,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     // Should not emit any Document Update events
     const docUpdateEvts = emitted.filter((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvts).toHaveLength(0);
   });
@@ -351,14 +351,14 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
       {
         blue,
         documentProcessor,
-      }
+      },
     );
 
     const complexEvent = operationRequestEvent('doubleAndAdd', 3);
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [complexEvent]
+      [complexEvent],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -368,7 +368,7 @@ describe('SequentialWorkflowOperationProcessor - Integration Tests', () => {
 
     // Should emit a Document Update event
     const docUpdateEvt = emitted.find((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvt).toBeDefined();
     const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;

@@ -30,7 +30,7 @@ function timelineEntryEvent(
     amount: number;
     timestamp: number;
     actorName: string;
-  }>
+  }>,
 ): BlueNode {
   const kind = overrides?.kind ?? 'set-price';
   const amount = overrides?.amount ?? 1500;
@@ -58,7 +58,7 @@ function initializeDocument() {
   const processor = buildProcessor(
     blue,
     new SetPropertyContractProcessor(),
-    new IncrementPropertyContractProcessor()
+    new IncrementPropertyContractProcessor(),
   );
 
   const documentYaml = `name: Timeline Test
@@ -80,7 +80,7 @@ contracts:
 `;
 
   const initialized = expectOk(
-    processor.initializeDocument(blue.yamlToNode(documentYaml))
+    processor.initializeDocument(blue.yamlToNode(documentYaml)),
   ).document;
 
   return { processor, initialized };
@@ -92,21 +92,21 @@ describe('TimelineChannelProcessor', () => {
     expect(
       processor
         .registry()
-        .lookupChannel(conversationBlueIds['Timeline Channel'])
+        .lookupChannel(conversationBlueIds['Timeline Channel']),
     ).toBeDefined();
 
     const randomEvent = blue.yamlToNode(`type:
   blueId: RandomEvent
 `);
     const afterRandom = expectOk(
-      processor.processDocument(initialized.clone(), randomEvent)
+      processor.processDocument(initialized.clone(), randomEvent),
     ).document;
     expect(propertyOptional(afterRandom, 'price')).toBeUndefined();
     expect(propertyOptional(afterRandom, 'count')).toBeUndefined();
 
     const mismatchedEntry = timelineEntryEvent('bob-timeline');
     const afterMismatched = expectOk(
-      processor.processDocument(afterRandom.clone(), mismatchedEntry)
+      processor.processDocument(afterRandom.clone(), mismatchedEntry),
     ).document;
     expect(propertyOptional(afterMismatched, 'price')).toBeUndefined();
     expect(propertyOptional(afterMismatched, 'count')).toBeUndefined();
@@ -117,12 +117,12 @@ describe('TimelineChannelProcessor', () => {
     expect(
       processor
         .registry()
-        .lookupChannel(conversationBlueIds['Timeline Channel'])
+        .lookupChannel(conversationBlueIds['Timeline Channel']),
     ).toBeDefined();
 
     const bundle = processor.contractLoader().load(initialized.clone(), '/');
     const timelineBinding = bundle.channelsOfType(
-      conversationBlueIds['Timeline Channel']
+      conversationBlueIds['Timeline Channel'],
     )[0];
     expect(timelineBinding).toBeDefined();
     const bindingContract = timelineBinding.contract() as TimelineChannel;
@@ -144,12 +144,12 @@ describe('TimelineChannelProcessor', () => {
     expect(blue.isTypeOf(matchingEntry, TimelineEntrySchema)).toBe(true);
     const doesMatch = await timelineProcessor!.matches(
       bindingContract,
-      context
+      context,
     );
     expect(doesMatch).toBe(true);
 
     const afterMatching = expectOk(
-      processor.processDocument(initialized.clone(), matchingEntry)
+      processor.processDocument(initialized.clone(), matchingEntry),
     ).document;
 
     expect(numericProperty(afterMatching, 'price')).toBe(1500);
@@ -176,17 +176,17 @@ describe('TimelineChannelProcessor', () => {
     expect(
       processor
         .registry()
-        .lookupChannel(conversationBlueIds['Timeline Channel'])
+        .lookupChannel(conversationBlueIds['Timeline Channel']),
     ).toBeDefined();
 
     const firstEntry = timelineEntryEvent('alice-timeline');
     const afterFirst = expectOk(
-      processor.processDocument(initialized.clone(), firstEntry)
+      processor.processDocument(initialized.clone(), firstEntry),
     ).document;
     expect(numericProperty(afterFirst, 'count')).toBe(1);
 
     const afterDuplicate = expectOk(
-      processor.processDocument(afterFirst.clone(), firstEntry)
+      processor.processDocument(afterFirst.clone(), firstEntry),
     ).document;
     expect(numericProperty(afterDuplicate, 'count')).toBe(1);
   });

@@ -7,41 +7,41 @@ describe('ValidateInlineTypesReplaced', () => {
 
   it('should throw error for inline types in type field', () => {
     const node = new BlueNode().setType(
-      new BlueNode().setValue('UnknownType').setInlineValue(true)
+      new BlueNode().setValue('UnknownType').setInlineValue(true),
     );
 
     expect(() => processor.process(node)).toThrow(
-      'Unknown type "UnknownType" found in type field. No BlueId mapping exists for this type.'
+      'Unknown type "UnknownType" found in type field. No BlueId mapping exists for this type.',
     );
   });
 
   it('should throw error for inline types in itemType field', () => {
     const node = new BlueNode().setItemType(
-      new BlueNode().setValue('UnknownItemType').setInlineValue(true)
+      new BlueNode().setValue('UnknownItemType').setInlineValue(true),
     );
 
     expect(() => processor.process(node)).toThrow(
-      'Unknown type "UnknownItemType" found in itemType field. No BlueId mapping exists for this type.'
+      'Unknown type "UnknownItemType" found in itemType field. No BlueId mapping exists for this type.',
     );
   });
 
   it('should throw error for inline types in keyType field', () => {
     const node = new BlueNode().setKeyType(
-      new BlueNode().setValue('UnknownKeyType').setInlineValue(true)
+      new BlueNode().setValue('UnknownKeyType').setInlineValue(true),
     );
 
     expect(() => processor.process(node)).toThrow(
-      'Unknown type "UnknownKeyType" found in keyType field. No BlueId mapping exists for this type.'
+      'Unknown type "UnknownKeyType" found in keyType field. No BlueId mapping exists for this type.',
     );
   });
 
   it('should throw error for inline types in valueType field', () => {
     const node = new BlueNode().setValueType(
-      new BlueNode().setValue('UnknownValueType').setInlineValue(true)
+      new BlueNode().setValue('UnknownValueType').setInlineValue(true),
     );
 
     expect(() => processor.process(node)).toThrow(
-      'Unknown type "UnknownValueType" found in valueType field. No BlueId mapping exists for this type.'
+      'Unknown type "UnknownValueType" found in valueType field. No BlueId mapping exists for this type.',
     );
   });
 
@@ -72,12 +72,12 @@ describe('ValidateInlineTypesReplaced', () => {
     const node = new BlueNode().setProperties({
       valid: new BlueNode().setType(new BlueNode().setBlueId('VALID_TYPE_ID')),
       invalid: new BlueNode().setType(
-        new BlueNode().setValue('InvalidType').setInlineValue(true)
+        new BlueNode().setValue('InvalidType').setInlineValue(true),
       ),
     });
 
     expect(() => processor.process(node)).toThrow(
-      'Unknown type "InvalidType" found in type field. No BlueId mapping exists for this type.'
+      'Unknown type "InvalidType" found in type field. No BlueId mapping exists for this type.',
     );
   });
 
@@ -86,14 +86,14 @@ describe('ValidateInlineTypesReplaced', () => {
       new BlueNode().setProperties({
         deep: new BlueNode().setProperties({
           nested: new BlueNode().setValueType(
-            new BlueNode().setValue('DeepType').setInlineValue(true)
+            new BlueNode().setValue('DeepType').setInlineValue(true),
           ),
         }),
       }),
     ]);
 
     expect(() => processor.process(node)).toThrow(
-      'Unknown type "DeepType" found in valueType field. No BlueId mapping exists for this type.'
+      'Unknown type "DeepType" found in valueType field. No BlueId mapping exists for this type.',
     );
   });
 

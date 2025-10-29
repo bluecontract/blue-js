@@ -8,7 +8,7 @@ export const setPropertyOnEventSchema = withTypeBlueId('SetPropertyOnEvent')(
     expectedKind: z.string().optional(),
     propertyKey: z.string(),
     propertyValue: z.number().int(),
-  })
+  }),
 );
 
 export type SetPropertyOnEvent = z.infer<typeof setPropertyOnEventSchema>;

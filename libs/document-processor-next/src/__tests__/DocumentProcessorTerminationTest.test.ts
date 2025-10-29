@@ -35,7 +35,7 @@ describe('DocumentProcessorTerminationTest', () => {
       blue,
       new TestEventChannelProcessor(),
       new TerminateScopeContractProcessor(),
-      new SetPropertyContractProcessor()
+      new SetPropertyContractProcessor(),
     );
   });
 
@@ -55,11 +55,11 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document.clone();
 
     const result = expectOk(
-      processor.processDocument(initialized, testEvent('evt-1'))
+      processor.processDocument(initialized, testEvent('evt-1')),
     );
     const processed = result.document;
     const contracts = property(processed, 'contracts');
@@ -70,7 +70,7 @@ contracts:
     expect(result.triggeredEvents.length).toBe(1);
     const terminationEvent = result.triggeredEvents[0];
     expect(typeBlueId(terminationEvent)).toBe(
-      blueIds['Document Processing Terminated']
+      blueIds['Document Processing Terminated'],
     );
     expect(stringProperty(terminationEvent, 'cause')).toBe('graceful');
   });
@@ -90,16 +90,16 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document.clone();
 
     const result = expectOk(
-      processor.processDocument(initialized, testEvent('evt-2'))
+      processor.processDocument(initialized, testEvent('evt-2')),
     );
     expect(result.triggeredEvents.length).toBe(1);
     const terminatedEvent = result.triggeredEvents[0];
     expect(typeBlueId(terminatedEvent)).toBe(
-      blueIds['Document Processing Terminated']
+      blueIds['Document Processing Terminated'],
     );
     expect(stringProperty(terminatedEvent, 'cause')).toBe('fatal');
     expect(stringProperty(terminatedEvent, 'reason')).toBe('panic');
@@ -135,11 +135,11 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document.clone();
 
     const result = expectOk(
-      processor.processDocument(initialized, testEvent('evt-3'))
+      processor.processDocument(initialized, testEvent('evt-3')),
     );
     const processed = result.document;
     expect(Number(property(processed, 'fromChild').getValue())).toBe(7);

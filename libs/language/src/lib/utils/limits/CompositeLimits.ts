@@ -26,10 +26,10 @@ export class CompositeLimits extends Limits {
    */
   public shouldExtendPathSegment(
     pathSegment: string,
-    currentNode: BlueNode
+    currentNode: BlueNode,
   ): boolean {
     return this.limits.every((limit) =>
-      limit.shouldExtendPathSegment(pathSegment, currentNode)
+      limit.shouldExtendPathSegment(pathSegment, currentNode),
     );
   }
 
@@ -42,10 +42,10 @@ export class CompositeLimits extends Limits {
    */
   public shouldMergePathSegment(
     pathSegment: string,
-    currentNode: BlueNode
+    currentNode: BlueNode,
   ): boolean {
     return this.limits.every((limit) =>
-      limit.shouldMergePathSegment(pathSegment, currentNode)
+      limit.shouldMergePathSegment(pathSegment, currentNode),
     );
   }
 

@@ -14,7 +14,7 @@ export class NodeTypeMatcher {
   public matchesType(
     node: BlueNode,
     targetType: BlueNode,
-    globalLimits: Limits = NO_LIMITS
+    globalLimits: Limits = NO_LIMITS,
   ): boolean {
     // Quick structural match for implicit core types (List/Dictionary)
     const quickTargetType = targetType.getType();
@@ -105,7 +105,7 @@ export class NodeTypeMatcher {
   private verifyMatch(
     resolvedNode: BlueNode,
     targetType: BlueNode,
-    limits: Limits
+    limits: Limits,
   ): boolean {
     // Fast-path: allow implicit structural match for core List/Dictionary when node lacks explicit type
     const targetTypeType = targetType.getType();
@@ -124,12 +124,12 @@ export class NodeTypeMatcher {
 
   private recursiveValueComparison(
     node: BlueNode,
-    targetType: BlueNode
+    targetType: BlueNode,
   ): boolean {
     const targetTypeType = targetType.getType();
     const isImplicitStructureMatch = this.matchesImplicitStructure(
       node,
-      targetTypeType
+      targetTypeType,
     );
     if (targetTypeType && !isImplicitStructureMatch) {
       const nodeType = node.getType();
@@ -140,7 +140,7 @@ export class NodeTypeMatcher {
         !NodeTypes.isSubtype(
           nodeType,
           targetTypeType,
-          this.blue.getNodeProvider()
+          this.blue.getNodeProvider(),
         )
       ) {
         return false;
@@ -271,7 +271,7 @@ export class NodeTypeMatcher {
    */
   private matchesImplicitStructure(
     node: BlueNode,
-    targetTypeType: BlueNode | undefined
+    targetTypeType: BlueNode | undefined,
   ): boolean {
     if (targetTypeType === undefined || node.getType() !== undefined) {
       return false;

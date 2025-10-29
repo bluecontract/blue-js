@@ -119,7 +119,7 @@ export class Nodes {
   static hasFieldsAndMayHaveFields(
     node: BlueNode,
     mustHaveFields: Set<NodeField> = new Set(),
-    mayHaveFields: Set<NodeField> = new Set()
+    mayHaveFields: Set<NodeField> = new Set(),
   ): boolean {
     for (const field of Object.values(NODE_FIELDS)) {
       const fieldIsPresent = isNonNullable(this.getFieldValue(node, field));

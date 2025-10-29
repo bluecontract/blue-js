@@ -75,7 +75,7 @@ contracts:
     expect(result.triggeredEvents).toHaveLength(1);
     const lifecycleEvent = result.triggeredEvents[0]!;
     expect(stringProperty(lifecycleEvent, 'type')).toBe(
-      'Document Processing Initiated'
+      'Document Processing Initiated',
     );
     expect(stringProperty(lifecycleEvent, 'documentId')).toBe(rootId);
   });
@@ -115,7 +115,9 @@ contracts:
     propertyValue: 1
 `;
 
-    const allowed = expectOk(processor.initializeDocument(blue.yamlToNode(allowedYaml)));
+    const allowed = expectOk(
+      processor.initializeDocument(blue.yamlToNode(allowedYaml)),
+    );
     expect(numericProperty(allowed.document, 'y')).toBe(1);
 
     const forbiddenYaml = `${allowedYaml}  setChildInterior:
@@ -130,7 +132,7 @@ contracts:
 `;
 
     const forbidden = expectOk(
-      processor.initializeDocument(blue.yamlToNode(forbiddenYaml))
+      processor.initializeDocument(blue.yamlToNode(forbiddenYaml)),
     );
     const terminated = terminatedMarker(forbidden.document, '/');
     expect(terminated).not.toBeNull();
@@ -174,7 +176,7 @@ contracts:
 `;
 
     const nested = expectOk(
-      processor.initializeDocument(blue.yamlToNode(nestedYaml))
+      processor.initializeDocument(blue.yamlToNode(nestedYaml)),
     );
     const initialized = nested.document;
 
@@ -201,7 +203,7 @@ contracts:
 `;
 
     const rootViolation = expectOk(
-      processor.initializeDocument(blue.yamlToNode(rootViolationYaml))
+      processor.initializeDocument(blue.yamlToNode(rootViolationYaml)),
     );
     const rootTerminated = terminatedMarker(rootViolation.document, '/');
     expect(rootTerminated).not.toBeNull();
@@ -249,7 +251,7 @@ contracts:
 `;
 
     const parentViolation = expectOk(
-      processor.initializeDocument(blue.yamlToNode(parentScopeViolationYaml))
+      processor.initializeDocument(blue.yamlToNode(parentScopeViolationYaml)),
     );
     const childTerminated = terminatedMarker(parentViolation.document, '/x');
     expect(childTerminated).not.toBeNull();
@@ -262,7 +264,7 @@ contracts:
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
-      new MutateEmbeddedPathsContractProcessor()
+      new MutateEmbeddedPathsContractProcessor(),
     );
 
     const yaml = `name: Sample Doc
@@ -339,7 +341,7 @@ contracts:
 `;
 
     const result = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     );
     const terminated = terminatedMarker(result.document, '/');
     expect(terminated).not.toBeNull();
@@ -352,7 +354,7 @@ contracts:
       blue,
       new SetPropertyContractProcessor(),
       new MutateEmbeddedPathsContractProcessor(),
-      new TestEventChannelProcessor()
+      new TestEventChannelProcessor(),
     );
 
     const yaml = `name: Sample Doc
@@ -425,7 +427,9 @@ contracts:
     propertyValue: 1
 `;
 
-    const initResult = expectOk(processor.initializeDocument(blue.yamlToNode(yaml)));
+    const initResult = expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
     const initialized = initResult.document;
     const embedded = property(property(initialized, 'contracts'), 'embedded');
     const paths = property(embedded, 'paths');
@@ -437,7 +441,9 @@ contracts:
     expect(propertyOptional(initialized, 'mustNotHappen')).toBeUndefined();
 
     const event = testEventNode(blue);
-    const processResult = expectOk(processor.processDocument(initialized, event));
+    const processResult = expectOk(
+      processor.processDocument(initialized, event),
+    );
     const processed = processResult.document;
 
     const terminated = terminatedMarker(processed, '/');
@@ -454,7 +460,7 @@ contracts:
       new TestEventChannelProcessor(),
       new CutOffProbeContractProcessor(),
       new RemoveIfPresentContractProcessor(),
-      new SetPropertyOnEventContractProcessor()
+      new SetPropertyOnEventContractProcessor(),
     );
 
     const yaml = `child:
@@ -507,7 +513,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     const event = testEventNode(blue, { eventId: 'evt-1' });
@@ -517,7 +523,7 @@ contracts:
     expect(propertyOptional(processed, 'child')).toBeUndefined();
     expect(propertyOptional(processed, 'postSeen')).toBeUndefined();
     const postEmission = result.triggeredEvents.some(
-      (eventNode: BlueNode) => stringProperty(eventNode, 'kind') === 'post'
+      (eventNode: BlueNode) => stringProperty(eventNode, 'kind') === 'post',
     );
     expect(postEmission).toBe(false);
   });
@@ -543,7 +549,7 @@ contracts:
 `;
 
     expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
-      /Process Embedded/
+      /Process Embedded/,
     );
   });
 });

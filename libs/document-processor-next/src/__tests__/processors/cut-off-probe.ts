@@ -4,7 +4,7 @@ import { cutOffProbeSchema, type CutOffProbe } from '../models/index.js';
 
 function emitIfKind(
   context: Parameters<HandlerProcessor<CutOffProbe>['execute']>[1],
-  kind?: string | null
+  kind?: string | null,
 ): void {
   if (!kind) return;
   const event = new BlueNode().setProperties({
@@ -22,7 +22,7 @@ export class CutOffProbeContractProcessor
 
   execute(
     contract: CutOffProbe,
-    context: Parameters<HandlerProcessor<CutOffProbe>['execute']>[1]
+    context: Parameters<HandlerProcessor<CutOffProbe>['execute']>[1],
   ): void {
     if (contract.emitBefore) {
       emitIfKind(context, contract.preEmitKind ?? null);

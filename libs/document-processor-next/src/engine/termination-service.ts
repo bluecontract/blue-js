@@ -16,7 +16,7 @@ export interface TerminationExecutionAdapter {
   recordPendingTermination(
     scopePath: string,
     kind: TerminationKind,
-    reason: string | null
+    reason: string | null,
   ): void;
   normalizeScope(scopePath: string): string;
   bundleForScope(scopePath: string): ContractBundle | undefined;
@@ -24,7 +24,7 @@ export interface TerminationExecutionAdapter {
     scopePath: string,
     bundle: ContractBundle | null,
     event: BlueNode,
-    finalizeAfter: boolean
+    finalizeAfter: boolean,
   ): void;
   clearPendingTermination(scopePath: string): void;
 }
@@ -37,7 +37,7 @@ export class TerminationService {
     scopePath: string,
     bundle: ContractBundle | null,
     kind: TerminationKind,
-    reason: string | null
+    reason: string | null,
   ): void {
     execution.recordPendingTermination(scopePath, kind, reason ?? null);
 
@@ -45,7 +45,7 @@ export class TerminationService {
     const pointer = resolvePointer(normalized, RELATIVE_TERMINATED);
     this.runtime.directWrite(
       pointer,
-      createTerminationMarker(this.runtime.blue(), kind, reason)
+      createTerminationMarker(this.runtime.blue(), kind, reason),
     );
     this.runtime.chargeTerminationMarker();
 
@@ -76,7 +76,7 @@ export class TerminationService {
 function createTerminationMarker(
   blue: Blue,
   kind: TerminationKind,
-  reason: string | null
+  reason: string | null,
 ): BlueNode {
   const marker = nodeFrom(blue, {
     type: { blueId: PROCESSING_TERMINATED_MARKER_BLUE_ID },
@@ -88,14 +88,14 @@ function createTerminationMarker(
 
 function createTerminationLifecycleEvent(
   kind: TerminationKind,
-  reason: string | null
+  reason: string | null,
 ): BlueNode {
   const event = new BlueNode().setType(
-    new BlueNode().setBlueId(DOCUMENT_PROCESSING_TERMINATED_BLUE_ID)
+    new BlueNode().setBlueId(DOCUMENT_PROCESSING_TERMINATED_BLUE_ID),
   );
   event.addProperty(
     'cause',
-    new BlueNode().setValue(kind === 'GRACEFUL' ? 'graceful' : 'fatal')
+    new BlueNode().setValue(kind === 'GRACEFUL' ? 'graceful' : 'fatal'),
   );
   if (reason) {
     event.addProperty('reason', new BlueNode().setValue(reason));

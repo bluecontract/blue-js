@@ -18,7 +18,7 @@ describe('DocumentProcessorEventImmutabilityTest', () => {
       blue,
       new TestEventChannelProcessor(),
       new MutateEventContractProcessor(),
-      new SetPropertyOnEventContractProcessor()
+      new SetPropertyOnEventContractProcessor(),
     );
   });
 
@@ -43,7 +43,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(documentYaml))
+      processor.initializeDocument(blue.yamlToNode(documentYaml)),
     ).document.clone();
 
     const eventYaml = `type:
@@ -53,7 +53,7 @@ kind: original
 `;
     const event = blue.yamlToNode(eventYaml);
     const processed = expectOk(
-      processor.processDocument(initialized, event)
+      processor.processDocument(initialized, event),
     ).document;
 
     const resultNode = property(processed, 'result');

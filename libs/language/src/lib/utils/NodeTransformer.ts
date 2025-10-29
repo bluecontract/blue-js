@@ -12,7 +12,7 @@ export class NodeTransformer {
    */
   static transform(
     node: BlueNode,
-    transformer: (node: BlueNode) => BlueNode
+    transformer: (node: BlueNode) => BlueNode,
   ): BlueNode {
     // First apply the transformer to this node
     const transformedNode = transformer(node.clone());
@@ -25,28 +25,28 @@ export class NodeTransformer {
     const itemType = transformedNode.getItemType();
     if (itemType !== undefined) {
       transformedNode.setItemType(
-        NodeTransformer.transform(itemType, transformer)
+        NodeTransformer.transform(itemType, transformer),
       );
     }
 
     const keyType = transformedNode.getKeyType();
     if (keyType !== undefined) {
       transformedNode.setKeyType(
-        NodeTransformer.transform(keyType, transformer)
+        NodeTransformer.transform(keyType, transformer),
       );
     }
 
     const valueType = transformedNode.getValueType();
     if (valueType !== undefined) {
       transformedNode.setValueType(
-        NodeTransformer.transform(valueType, transformer)
+        NodeTransformer.transform(valueType, transformer),
       );
     }
 
     const items = transformedNode.getItems();
     if (items !== undefined) {
       const transformedItems = items.map((item) =>
-        NodeTransformer.transform(item, transformer)
+        NodeTransformer.transform(item, transformer),
       );
       transformedNode.setItems(transformedItems);
     }
@@ -58,7 +58,7 @@ export class NodeTransformer {
           acc[key] = NodeTransformer.transform(properties[key], transformer);
           return acc;
         },
-        {} as Record<string, BlueNode>
+        {} as Record<string, BlueNode>,
       );
       transformedNode.setProperties(transformedProperties);
     }

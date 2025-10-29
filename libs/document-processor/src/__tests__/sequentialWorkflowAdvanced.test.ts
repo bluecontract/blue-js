@@ -68,7 +68,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
 
     const { state, emitted } = await documentProcessor.processEvents(
       initializedState,
-      [evt]
+      [evt],
     );
 
     const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -76,7 +76,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
     expect(jsonState.total).toBe(123);
 
     const docUpdateEvt = emitted.find((e) =>
-      blue.isTypeOf(e, DocumentUpdateSchema)
+      blue.isTypeOf(e, DocumentUpdateSchema),
     );
     expect(docUpdateEvt).toBeDefined();
     const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -104,7 +104,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
     const evt = timelineEvent({ foo: 1 });
     const { emitted } = await documentProcessor.processEvents(
       initializedState,
-      [evt]
+      [evt],
     );
 
     const found = emitted
@@ -163,7 +163,7 @@ describe('Sequential Workflow – JavaScript Code step', () => {
     const evt = timelineEvent({});
     const { emitted } = await documentProcessor.processEvents(
       initializedState,
-      [evt]
+      [evt],
     );
 
     expect(emitted.length).toBe(0);
@@ -235,7 +235,7 @@ describe('Sequential Workflow – Error Handling', () => {
     const evt = timelineEvent({});
 
     await expect(
-      documentProcessor.processEvents(initializedState, [evt])
+      documentProcessor.processEvents(initializedState, [evt]),
     ).rejects.toThrow(ExpressionEvaluationError);
   });
 
@@ -257,7 +257,7 @@ describe('Sequential Workflow – Error Handling', () => {
     const evt = timelineEvent({});
 
     await expect(
-      documentProcessor.processEvents(initializedState, [evt])
+      documentProcessor.processEvents(initializedState, [evt]),
     ).rejects.toThrow(CodeBlockEvaluationError);
   });
 
@@ -279,7 +279,7 @@ describe('Sequential Workflow – Error Handling', () => {
     const evt = timelineEvent({});
 
     await expect(
-      documentProcessor.processEvents(initializedState, [evt])
+      documentProcessor.processEvents(initializedState, [evt]),
     ).rejects.toThrow(CodeBlockEvaluationError);
   });
 });

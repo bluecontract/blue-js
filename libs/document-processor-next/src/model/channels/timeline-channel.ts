@@ -5,7 +5,7 @@ import { TimelineChannelSchema as ConversationTimelineChannelSchema } from '@blu
 import { channelContractBaseSchema } from '../shared/index.js';
 
 export const timelineChannelSchema = ConversationTimelineChannelSchema.merge(
-  channelContractBaseSchema
+  channelContractBaseSchema,
 );
 
 export type TimelineChannel = z.infer<typeof timelineChannelSchema>;

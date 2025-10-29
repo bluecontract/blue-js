@@ -11,7 +11,7 @@ export class NodeToPathLimitsConverter {
   private static traverseNode(
     node: BlueNode | undefined,
     currentPath: string,
-    builder: PathLimitsBuilder
+    builder: PathLimitsBuilder,
   ): void {
     if (!node) {
       return;

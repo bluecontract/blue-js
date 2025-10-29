@@ -19,7 +19,7 @@ function assertBlueIds(processor: ContractProcessor<unknown>): void {
 
 function registerBlueIds<T extends ContractProcessor<unknown>>(
   source: T,
-  target: Map<string, T>
+  target: Map<string, T>,
 ): void {
   assertBlueIds(source);
   for (const blueId of source.blueIds) {
@@ -71,8 +71,8 @@ export class ContractProcessorRegistry {
       default:
         throw new Error(
           `Unsupported processor kind: ${String(
-            (processor as ContractProcessor<unknown>).kind
-          )}`
+            (processor as ContractProcessor<unknown>).kind,
+          )}`,
         );
     }
   }

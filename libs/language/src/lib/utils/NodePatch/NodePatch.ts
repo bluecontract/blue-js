@@ -43,7 +43,7 @@ function applySingle(root: BlueNode, p: BlueNodePatch): boolean {
 export function applyBlueNodePatches(
   root: BlueNode,
   patches: readonly BlueNodePatch[],
-  mutateOriginal = false
+  mutateOriginal = false,
 ): BlueNode {
   let mutableBase = mutateOriginal ? root : root.clone();
   for (const patch of patches) {
@@ -55,7 +55,7 @@ export function applyBlueNodePatches(
 export function applyBlueNodePatch(
   root: BlueNode,
   patch: BlueNodePatch,
-  mutateOriginal = false
+  mutateOriginal = false,
 ): BlueNode {
   const base = mutateOriginal ? root : root.clone();
   applySingle(base, patch);

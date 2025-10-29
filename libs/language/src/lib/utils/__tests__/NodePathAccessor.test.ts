@@ -38,7 +38,7 @@ b:
     expect(await rootNode.get('/value')).toBe('RootValue');
     expect(await rootNode.get('/type')).toBeInstanceOf(BlueNode);
     expect(((await rootNode.get('/type')) as BlueNode).getName()).toBe(
-      'RootType'
+      'RootType',
     );
   });
 
@@ -72,7 +72,7 @@ b:
     expect(await NodePathAccessor.get(nodeWithValue, '/name')).toBe('Test');
 
     expect(await NodePathAccessor.get(nodeWithoutValue, '/')).toBeInstanceOf(
-      BlueNode
+      BlueNode,
     );
     expect(await NodePathAccessor.get(nodeWithoutValue, '/name')).toBe('Test');
   });

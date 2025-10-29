@@ -7,7 +7,9 @@ export class ContractProcessorRegistryBuilder {
   private constructor(private readonly registry: ContractProcessorRegistry) {}
 
   static create(): ContractProcessorRegistryBuilder {
-    return new ContractProcessorRegistryBuilder(new ContractProcessorRegistry());
+    return new ContractProcessorRegistryBuilder(
+      new ContractProcessorRegistry(),
+    );
   }
 
   registerDefaults(): ContractProcessorRegistryBuilder {

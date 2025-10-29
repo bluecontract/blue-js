@@ -45,7 +45,7 @@ export class MyOSAgentChannelProcessor extends BaseChannelProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     if (!this.baseSupports(event)) return false;
 
@@ -53,7 +53,7 @@ export class MyOSAgentChannelProcessor extends BaseChannelProcessor {
       const { myosAgentEvent, myosAgentChannel } = this.parseEventAndChannel(
         event,
         node,
-        ctx
+        ctx,
       );
 
       return (
@@ -71,7 +71,7 @@ export class MyOSAgentChannelProcessor extends BaseChannelProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    path: string
+    path: string,
   ): void {
     ctx.emitEvent({
       payload: event.payload,
@@ -87,18 +87,18 @@ export class MyOSAgentChannelProcessor extends BaseChannelProcessor {
   private parseEventAndChannel(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ) {
     const blue = ctx.getBlue();
 
     const myosAgentEvent = blue.nodeToSchemaOutput(
       event.payload,
-      MyOSAgentEventSchema
+      MyOSAgentEventSchema,
     );
 
     const myosAgentChannel = blue.nodeToSchemaOutput(
       node,
-      MyOSAgentChannelSchema
+      MyOSAgentChannelSchema,
     );
 
     return { myosAgentEvent, myosAgentChannel };
@@ -112,7 +112,7 @@ export class MyOSAgentChannelProcessor extends BaseChannelProcessor {
    */
   private isAgentMatch(
     myosAgentEvent: MyOSAgentEvent,
-    myosAgentChannel: MyOSAgentChannel
+    myosAgentChannel: MyOSAgentChannel,
   ): boolean {
     const eventAgentId = myosAgentEvent.agentId;
     const channelAgentId = myosAgentChannel.agent?.agentId;
@@ -140,7 +140,7 @@ export class MyOSAgentChannelProcessor extends BaseChannelProcessor {
   private isEventPatternMatch(
     myosAgentEvent: MyOSAgentEvent,
     myosAgentChannel: MyOSAgentChannel,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     const channelEvent = myosAgentChannel.event;
 

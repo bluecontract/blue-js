@@ -42,7 +42,7 @@ export class PathLimits extends Limits {
     }
 
     const potentialPath = this.normalizePath(
-      this.getCurrentFullPath() + '/' + pathSegment
+      this.getCurrentFullPath() + '/' + pathSegment,
     );
 
     return this.isAllowedPath(potentialPath);

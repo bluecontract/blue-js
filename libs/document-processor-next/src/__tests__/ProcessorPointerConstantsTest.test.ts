@@ -19,7 +19,7 @@ describe('ProcessorPointerConstantsTest', () => {
     expect(RELATIVE_EMBEDDED).toBe('/contracts/embedded');
     expect(RELATIVE_CHECKPOINT).toBe('/contracts/checkpoint');
     expect(ProcessorPointerConstants.RELATIVE_CONTRACTS).toBe(
-      RELATIVE_CONTRACTS
+      RELATIVE_CONTRACTS,
     );
   });
 

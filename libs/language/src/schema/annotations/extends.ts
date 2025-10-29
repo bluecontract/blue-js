@@ -6,7 +6,7 @@ const key = 'extendedFrom';
 
 export const withExtendedFromSchema = <
   Schema extends AnyZodObject = AnyZodObject,
-  BaseSchema extends ZodTypeAny = ZodTypeAny
+  BaseSchema extends ZodTypeAny = ZodTypeAny,
 >({
   schema,
   baseSchema,
@@ -33,7 +33,7 @@ export const getExtendedFromSchemaAnnotation = (schema: ZodTypeAny) => {
 
 export const isSchemaExtendedFrom = (
   schema: ZodType,
-  baseSchema: ZodType
+  baseSchema: ZodType,
 ): boolean => {
   const extendedFrom = getExtendedFromSchemaAnnotation(schema);
 

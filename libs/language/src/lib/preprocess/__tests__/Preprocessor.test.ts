@@ -41,12 +41,12 @@ c:
 
     // Check that the type has been replaced with BlueId without inline value
     expect(node.getProperties()?.['a']?.getType()?.getBlueId()).toBe(
-      CORE_TYPE_NAME_TO_BLUE_ID_MAP['Integer']
+      CORE_TYPE_NAME_TO_BLUE_ID_MAP['Integer'],
     );
 
     expect(node.getProperties()?.['b']?.getType()?.getValue()).toBe('Integer');
     expect(node.getProperties()?.['c']?.getType()?.getBlueId()).toBe(
-      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
 
     // Check that none are inline values
@@ -67,7 +67,7 @@ items:
     const processedNode = blue.preprocess(node);
 
     expect(processedNode.getItems()?.[0].getBlueId()).toBe(
-      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
   });
 
@@ -167,25 +167,33 @@ v:
       .setProperties({
         x: new BlueNode()
           .setType(
-            new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID).setInlineValue(false)
+            new BlueNode()
+              .setBlueId(INTEGER_TYPE_BLUE_ID)
+              .setInlineValue(false),
           )
           .setValue(new BigIntegerNumber('1'))
           .setInlineValue(true),
         y: new BlueNode()
           .setType(
-            new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID).setInlineValue(false)
+            new BlueNode()
+              .setBlueId(INTEGER_TYPE_BLUE_ID)
+              .setInlineValue(false),
           )
           .setValue(new BigIntegerNumber('1'))
           .setInlineValue(false),
         z: new BlueNode()
           .setType(
-            new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID).setInlineValue(false)
+            new BlueNode()
+              .setBlueId(INTEGER_TYPE_BLUE_ID)
+              .setInlineValue(false),
           )
           .setValue(new BigIntegerNumber('1'))
           .setInlineValue(false),
         v: new BlueNode()
           .setType(
-            new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID).setInlineValue(false)
+            new BlueNode()
+              .setBlueId(INTEGER_TYPE_BLUE_ID)
+              .setInlineValue(false),
           )
           .setValue(new BigIntegerNumber('1'))
           .setInlineValue(false),
@@ -211,7 +219,9 @@ v:
           .setInlineValue(false),
         v: new BlueNode()
           .setType(
-            new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID).setInlineValue(false)
+            new BlueNode()
+              .setBlueId(INTEGER_TYPE_BLUE_ID)
+              .setInlineValue(false),
           )
           .setValue(new BigIntegerNumber('1'))
           .setInlineValue(false),
@@ -322,10 +332,10 @@ v:
 
     // Verify that types were properly converted to BlueIds
     expect(
-      preprocessedNode.getProperties()?.['a']?.getType()?.getBlueId()
+      preprocessedNode.getProperties()?.['a']?.getType()?.getBlueId(),
     ).toBe(INTEGER_TYPE_BLUE_ID);
     expect(
-      preprocessedNode.getProperties()?.['b']?.getType()?.getBlueId()
+      preprocessedNode.getProperties()?.['b']?.getType()?.getBlueId(),
     ).toBe(TEXT_TYPE_BLUE_ID);
   });
 
@@ -359,11 +369,11 @@ v:
 
     const bType = preprocessedNode.getProperties()?.['b']?.getType();
     expect(bType?.getBlueId()).toBe(
-      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
 
     expect(
-      bType?.getProperties()?.['someProperty']?.getType()?.getBlueId()
+      bType?.getProperties()?.['someProperty']?.getType()?.getBlueId(),
     ).toBe(TEXT_TYPE_BLUE_ID);
   });
 
@@ -386,7 +396,7 @@ v:
     // Should throw error for the first unknown inline type encountered
     // The processor encounters "UnknownType" before "UnknownPropertyType"
     expect(() => blue.preprocess(node)).toThrow(
-      'Unknown type "UnknownType" found in type field. No BlueId mapping exists for this type.'
+      'Unknown type "UnknownType" found in type field. No BlueId mapping exists for this type.',
     );
   });
 
@@ -407,7 +417,7 @@ v:
     const node = NodeDeserializer.deserialize(parsedYaml ?? '');
 
     expect(() => blue.preprocess(node)).toThrow(
-      'Unknown type "UnknownPropertyType" found in type field. No BlueId mapping exists for this type.'
+      'Unknown type "UnknownPropertyType" found in type field. No BlueId mapping exists for this type.',
     );
   });
 
@@ -426,7 +436,7 @@ v:
     const node = NodeDeserializer.deserialize(parsedYaml ?? '');
 
     expect(() => blue.preprocess(node)).toThrow(
-      'Unknown type "UnknownListType" found in type field. No BlueId mapping exists for this type.'
+      'Unknown type "UnknownListType" found in type field. No BlueId mapping exists for this type.',
     );
   });
 
@@ -454,7 +464,7 @@ v:
 
       if (expectedProps && actualProps) {
         expect(Object.keys(actualProps).length).toBe(
-          Object.keys(expectedProps).length
+          Object.keys(expectedProps).length,
         );
 
         for (const key in expectedProps) {

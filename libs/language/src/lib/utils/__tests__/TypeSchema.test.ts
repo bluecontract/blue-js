@@ -30,7 +30,7 @@ describe('BlueNodeTypeSchema', () => {
         z.object({
           name: z.string(),
           age: z.number(),
-        })
+        }),
       );
 
       const nodeType = new BlueNode().setBlueId(testBlueId);
@@ -53,7 +53,7 @@ describe('BlueNodeTypeSchema', () => {
       const schema = withTypeBlueId(schemaBlueId)(
         z.object({
           name: z.string(),
-        })
+        }),
       );
 
       const nodeType = new BlueNode().setBlueId(nodeBlueId);
@@ -75,7 +75,7 @@ describe('BlueNodeTypeSchema', () => {
       const schema = withTypeBlueId(schemaBlueId)(
         z.object({
           name: z.string(),
-        })
+        }),
       );
 
       const node = new BlueNode(); // No type set
@@ -95,22 +95,22 @@ describe('BlueNodeTypeSchema', () => {
       const schema = withTypeBlueId('schema-blue-id-123')(
         z.object({
           name: z.string(),
-        })
+        }),
       );
 
       const extendedSchema = withTypeBlueId('extended-schema-blue-id-123')(
         schema.extend({
           age: z.number(),
-        })
+        }),
       );
 
       const node = new BlueNode().setType(
-        new BlueNode().setBlueId('extended-schema-blue-id-123')
+        new BlueNode().setBlueId('extended-schema-blue-id-123'),
       );
 
       const typeSchemaResolver = new TypeSchemaResolver([schema]);
       mockBlueIdResolver.resolveBlueId.mockReturnValue(
-        'extended-schema-blue-id-123'
+        'extended-schema-blue-id-123',
       );
 
       // Act

@@ -36,7 +36,7 @@ export class EventRouter {
     private readonly registry: ContractRegistry,
     private readonly queue: TaskQueue,
     private readonly getNextTaskId: () => number,
-    private readonly getNextEventSeq: () => number
+    private readonly getNextEventSeq: () => number,
   ) {
     this.traceManager = new EventTraceManager();
   }
@@ -55,7 +55,7 @@ export class EventRouter {
     pathSegments: string[],
     event: EventNode,
     afterTaskId: number,
-    inlineDepth = 0
+    inlineDepth = 0,
   ): Promise<void> {
     if (event.seq === undefined) {
       event.seq = this.getNextEventSeq();
@@ -202,7 +202,7 @@ export class EventRouter {
     const tracedEvent = this.traceManager.addHop(
       event,
       ctx.getTaskInfo()?.nodePath ?? '',
-      contractName
+      contractName,
     );
 
     await cp.handle(tracedEvent, contractNode, ctx, contractName);
@@ -212,7 +212,7 @@ export class EventRouter {
     const illegal = batch.find((a) => a.kind === 'patch');
     if (illegal) {
       throw new Error(
-        `Contract "${contractName}" (adapter) attempted to patch the document`
+        `Contract "${contractName}" (adapter) attempted to patch the document`,
       );
     }
 
@@ -262,7 +262,7 @@ export class EventRouter {
       typePriority,
       contractOrder,
       contractName,
-      taskId
+      taskId,
     );
 
     // Prevent re-entrancy loops (including cross-node ping-pong): if this hop
@@ -272,7 +272,7 @@ export class EventRouter {
       const trace = event.trace ?? [];
       if (event.source !== 'external' && trace.includes(currentHop)) {
         throw new Error(
-          `Loop detected: repeated hop ${currentHop} within the same event chain`
+          `Loop detected: repeated hop ${currentHop} within the same event chain`,
         );
       }
     }

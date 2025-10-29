@@ -56,7 +56,9 @@ describe('PatchEngine', () => {
     engine.directWrite('/items/0', null);
 
     const dataValue = document.get('/status');
-    expect(dataValue instanceof BlueNode ? dataValue.getValue() : dataValue).toBe('updated');
+    expect(
+      dataValue instanceof BlueNode ? dataValue.getValue() : dataValue,
+    ).toBe('updated');
     expect(document.get('/items/0/value')).toBe('two');
   });
 });

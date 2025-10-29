@@ -63,19 +63,19 @@ describe('NodeDeserializer', () => {
     const node = NodeDeserializer.deserialize(map1);
 
     expect(node.getProperties()?.['int1'].getValue()).toEqual(
-      new Big('9007199254740991')
+      new Big('9007199254740991'),
     );
     expect(node.getProperties()?.['int2'].getValue()).toEqual(
-      new Big('9007199254740991')
+      new Big('9007199254740991'),
     );
     expect(node.getProperties()?.['int3'].getValue()).toEqual(
-      new Big('132452345234524739582739458723948572934875')
+      new Big('132452345234524739582739458723948572934875'),
     );
     expect(node.getProperties()?.['dec1'].getValue()).toEqual(
-      new Big('1.3245234523452473E+41')
+      new Big('1.3245234523452473E+41'),
     );
     expect(node.getProperties()?.['dec2'].getValue()).toEqual(
-      new Big('1.3245234523452473E+41')
+      new Big('1.3245234523452473E+41'),
     );
   });
 
@@ -100,10 +100,10 @@ describe('NodeDeserializer', () => {
     expect('Integer').toEqual(node.getProperties()?.['a'].getType()?.getName());
     expect('Integer').toEqual(node.getProperties()?.['b'].getType()?.getName());
     expect('84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH').toEqual(
-      node.getProperties()?.['c'].getType()?.getBlueId()
+      node.getProperties()?.['c'].getType()?.getBlueId(),
     );
     expect('84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH').toEqual(
-      node.getProperties()?.['d'].getType()?.getBlueId()
+      node.getProperties()?.['d'].getType()?.getBlueId(),
     );
   });
 
@@ -119,16 +119,16 @@ describe('NodeDeserializer', () => {
     const node = NodeDeserializer.deserialize(map1);
 
     expect(node.getName()).toEqual(
-      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
     expect(node.getDescription()).toEqual(
-      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
     expect(node.getProperties()?.['x'].getValue()).toEqual(
-      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
     expect(node.getProperties()?.['y'].getValue()).toEqual(
-      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH'
+      '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
   });
 
@@ -195,7 +195,7 @@ describe('NodeDeserializer', () => {
       partyB
         ?.getProperties()
         ?.['details'].getProperties()
-        ?.['companyId'].getValue()
+        ?.['companyId'].getValue(),
     ).toEqual(new Big('12345'));
 
     // Test terms contract with items
@@ -228,7 +228,7 @@ describe('NodeDeserializer', () => {
     const doc = '';
     const map1 = yamlBlueParse(doc) as JsonBlueValue;
     expect(() => NodeDeserializer.deserialize(map1)).toThrowError(
-      `This is not a valid JSON-like value. Found 'undefined' as a value.`
+      `This is not a valid JSON-like value. Found 'undefined' as a value.`,
     );
   });
 });

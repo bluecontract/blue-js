@@ -57,7 +57,7 @@ describe('Merger', () => {
     const source = new BlueNode().setBlue(new BlueNode());
 
     expect(() => merger.merge(target, source, NO_LIMITS)).toThrow(
-      'Document contains "blue" attribute. Preprocess document before merging.'
+      'Document contains "blue" attribute. Preprocess document before merging.',
     );
   });
 
@@ -256,7 +256,7 @@ anchor2:
       const resolvedNode2 = blue.resolve(resolvedNode);
 
       expect(blue.nodeToJson(resolvedNode)).toEqual(
-        blue.nodeToJson(resolvedNode2)
+        blue.nodeToJson(resolvedNode2),
       );
     });
   });

@@ -37,14 +37,14 @@ describe('UrlContentFetcher', () => {
 
   test('should validate URL strings', () => {
     expect(() =>
-      fetcher.validateUrl('https://example.com/blue.json')
+      fetcher.validateUrl('https://example.com/blue.json'),
     ).not.toThrow();
     expect(() =>
-      fetcher.validateUrl('http://localhost:8080/data.yaml')
+      fetcher.validateUrl('http://localhost:8080/data.yaml'),
     ).not.toThrow();
     expect(() => fetcher.validateUrl('not-a-url')).toThrow('Invalid URL');
     expect(() => fetcher.validateUrl('file:///path/to/file.json')).toThrow(
-      'Invalid URL'
+      'Invalid URL',
     ); // file protocol is not supported
   });
 
@@ -81,7 +81,7 @@ describe('UrlContentFetcher', () => {
 
     // Cache should be populated
     expect(fetcher.getFromCache('https://example.com/data.json')).toHaveLength(
-      1
+      1,
     );
 
     // Clear cache
@@ -136,7 +136,7 @@ describe('UrlContentFetcher', () => {
     const url = 'https://example.com/test.json';
 
     await expect(fetcher.fetchAndCache(url)).rejects.toThrow(
-      'URL fetching is disabled'
+      'URL fetching is disabled',
     );
 
     // Verify the strategy was not called
@@ -146,7 +146,7 @@ describe('UrlContentFetcher', () => {
   test('should throw error for invalid URLs in fetchAndCache', async () => {
     fetcher.enableFetching();
     await expect(fetcher.fetchAndCache('not-a-url')).rejects.toThrow(
-      'Invalid URL'
+      'Invalid URL',
     );
     expect(mockStrategy.fetchCalled).toBe(false);
   });
@@ -160,10 +160,10 @@ describe('UrlContentFetcher', () => {
     test('should allow all domains by default when fetching is enabled', async () => {
       expect(fetcher.getAllowedDomains()).toEqual([]);
       expect(fetcher.isDomainAllowed('https://example.com/test.json')).toBe(
-        true
+        true,
       );
       expect(
-        fetcher.isDomainAllowed('https://random-domain.com/test.json')
+        fetcher.isDomainAllowed('https://random-domain.com/test.json'),
       ).toBe(true);
     });
 
@@ -171,16 +171,16 @@ describe('UrlContentFetcher', () => {
       fetcher.enableFetchingForDomains(['example.com', 'api.github.com']);
 
       expect(fetcher.isDomainAllowed('https://example.com/test.json')).toBe(
-        true
+        true,
       );
       expect(fetcher.isDomainAllowed('https://api.github.com/data.json')).toBe(
-        true
+        true,
       );
       expect(
-        fetcher.isDomainAllowed('https://subdomain.example.com/test.json')
+        fetcher.isDomainAllowed('https://subdomain.example.com/test.json'),
       ).toBe(true);
       expect(
-        fetcher.isDomainAllowed('https://random-domain.com/test.json')
+        fetcher.isDomainAllowed('https://random-domain.com/test.json'),
       ).toBe(false);
     });
 
@@ -215,23 +215,23 @@ describe('UrlContentFetcher', () => {
 
       // Main domain should be allowed
       expect(fetcher.isDomainAllowed('https://example.com/test.json')).toBe(
-        true
+        true,
       );
 
       // Subdomains should be allowed
       expect(fetcher.isDomainAllowed('https://api.example.com/test.json')).toBe(
-        true
+        true,
       );
       expect(
-        fetcher.isDomainAllowed('https://subdomain.example.com/test.json')
+        fetcher.isDomainAllowed('https://subdomain.example.com/test.json'),
       ).toBe(true);
 
       // Other domains should not be allowed
       expect(fetcher.isDomainAllowed('https://example.org/test.json')).toBe(
-        false
+        false,
       );
       expect(fetcher.isDomainAllowed('https://examplefake.com/test.json')).toBe(
-        false
+        false,
       );
     });
 
@@ -246,7 +246,7 @@ describe('UrlContentFetcher', () => {
       // This should fail
       const restrictedUrl = 'https://restricted.com/test.json';
       await expect(fetcher.fetchAndCache(restrictedUrl)).rejects.toThrow(
-        `Domain not allowed for URL: ${restrictedUrl}`
+        `Domain not allowed for URL: ${restrictedUrl}`,
       );
       expect(mockStrategy.fetchCalled).toBe(false);
     });
@@ -260,7 +260,7 @@ describe('UrlContentFetcher', () => {
       fetcher.enableFetching();
       expect(fetcher.getAllowedDomains()).toEqual([]);
       expect(
-        fetcher.isDomainAllowed('https://random-domain.com/test.json')
+        fetcher.isDomainAllowed('https://random-domain.com/test.json'),
       ).toBe(true);
     });
 

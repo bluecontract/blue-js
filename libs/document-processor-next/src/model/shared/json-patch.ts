@@ -8,7 +8,7 @@ const jsonPatchBaseSchema = z.object({
 });
 
 export const jsonPatchSchema = withTypeBlueId('JsonPatch')(
-  jsonPatchBaseSchema
+  jsonPatchBaseSchema,
 ).superRefine((value, ctx) => {
   if (value.op === 'REMOVE' && value.val !== undefined) {
     ctx.addIssue({

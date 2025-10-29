@@ -69,7 +69,7 @@ describe('resolveBlueObjectItems - simple', () => {
         items,
         count: 1,
         resolveFunction,
-      })
+      }),
     ).rejects.toThrow();
   });
 

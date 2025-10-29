@@ -26,10 +26,7 @@ function signatureFn(node: BlueNode | null): string | null {
 
 describe('CheckpointManager', () => {
   it('ensures checkpoint marker exists in bundle and document', () => {
-    const runtime = new DocumentProcessingRuntime(
-      createRootDocument(),
-      blue
-    );
+    const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
     const manager = new CheckpointManager(runtime, signatureFn);
 
@@ -42,10 +39,7 @@ describe('CheckpointManager', () => {
   });
 
   it('finds checkpoint records and persists updates', () => {
-    const runtime = new DocumentProcessingRuntime(
-      createRootDocument(),
-      blue
-    );
+    const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
     const manager = new CheckpointManager(runtime, signatureFn);
     manager.ensureCheckpointMarker('/', bundle);
@@ -73,22 +67,19 @@ describe('CheckpointManager', () => {
       (storedEvent as BlueNode)
         .getProperties()
         ?.payload?.getProperties()
-        ?.id?.getValue()
+        ?.id?.getValue(),
     ).toBe('current');
     expect(record.lastEventSignature).toBe('sig-1');
 
     const updatedMarker = bundle.marker(
-      KEY_CHECKPOINT
+      KEY_CHECKPOINT,
     )! as ChannelEventCheckpoint;
     expect(updatedMarker.lastSignatures).toBeDefined();
     expect(updatedMarker.lastSignatures?.channelA).toBe('sig-1');
   });
 
   it('detects duplicate events via signatures', () => {
-    const runtime = new DocumentProcessingRuntime(
-      createRootDocument(),
-      blue
-    );
+    const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
     const manager = new CheckpointManager(runtime, signatureFn);
     manager.ensureCheckpointMarker('/', bundle);
@@ -98,7 +89,7 @@ describe('CheckpointManager', () => {
 
     const event = nodeFrom({ value: 'v1' });
     const checkpointMarker = bundle.marker(
-      KEY_CHECKPOINT
+      KEY_CHECKPOINT,
     )! as ChannelEventCheckpoint;
     if (!checkpointMarker.lastEvents) {
       checkpointMarker.lastEvents = {};
@@ -111,15 +102,12 @@ describe('CheckpointManager', () => {
   });
 
   it('ignores persistence when record is null', () => {
-    const runtime = new DocumentProcessingRuntime(
-      createRootDocument(),
-      blue
-    );
+    const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
     const manager = new CheckpointManager(runtime, signatureFn);
 
     expect(() =>
-      manager.persist('/', bundle, null, 'sig', nodeFrom({ value: 1 }))
+      manager.persist('/', bundle, null, 'sig', nodeFrom({ value: 1 })),
     ).not.toThrow();
   });
 });

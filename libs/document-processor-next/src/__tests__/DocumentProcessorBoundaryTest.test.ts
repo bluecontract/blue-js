@@ -46,7 +46,7 @@ describe('DocumentProcessorBoundaryTest', () => {
       '/foo',
       bundle,
       addPatch('/foo//bar', valueNode('ok')),
-      false
+      false,
     );
 
     const foo = property(document, 'foo');
@@ -61,7 +61,12 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    execution.handlePatch('/foo', bundle, addPatch('/bar', valueNode('oops')), false);
+    execution.handlePatch(
+      '/foo',
+      bundle,
+      addPatch('/bar', valueNode('oops')),
+      false,
+    );
     const result = execution.result();
     const resultDoc = result.document;
     const foo = property(resultDoc, 'foo');
@@ -88,7 +93,7 @@ describe('DocumentProcessorBoundaryTest', () => {
       '/foo',
       bundle,
       addPatch('/foo/child/value', valueNode('nope')),
-      false
+      false,
     );
 
     const resultDoc = execution.result().document;
@@ -120,7 +125,7 @@ describe('DocumentProcessorBoundaryTest', () => {
       '/foo',
       bundle,
       replacePatch('/foo/child', valueNode({ next: 'fresh' })),
-      false
+      false,
     );
 
     const foo = property(document, 'foo');
@@ -161,7 +166,12 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder().build();
 
-    execution.handlePatch('/foo', bundle, replacePatch('/foo', valueNode('new')), false);
+    execution.handlePatch(
+      '/foo',
+      bundle,
+      replacePatch('/foo', valueNode('new')),
+      false,
+    );
 
     const resultDoc = execution.result().document;
     const foo = property(resultDoc, 'foo');
@@ -182,7 +192,7 @@ describe('DocumentProcessorBoundaryTest', () => {
     const bundle = ContractBundle.builder().build();
 
     expect(() =>
-      execution.handlePatch('/', bundle, removePatch('/'), false)
+      execution.handlePatch('/', bundle, removePatch('/'), false),
     ).toThrow(RunTerminationError);
 
     const resultDoc = execution.result().document;
@@ -205,8 +215,8 @@ describe('DocumentProcessorBoundaryTest', () => {
         '/',
         bundle,
         addPatch('/contracts/checkpoint', valueNode('forbidden')),
-        false
-      )
+        false,
+      ),
     ).toThrow(RunTerminationError);
 
     const resultDoc = execution.result().document;
@@ -227,7 +237,7 @@ describe('DocumentProcessorBoundaryTest', () => {
       '/foo',
       bundle,
       addPatch('/foo/contracts/initialized', valueNode('bad')),
-      false
+      false,
     );
 
     const resultDoc = execution.result().document;

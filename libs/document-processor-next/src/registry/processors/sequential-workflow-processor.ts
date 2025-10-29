@@ -38,7 +38,7 @@ class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor {
 
     const triggerEvent = context.blue.nodeToSchemaOutput(
       stepNode,
-      TriggerEventSchema
+      TriggerEventSchema,
     );
     const emission = triggerEvent.event;
 
@@ -69,7 +69,7 @@ export class SequentialWorkflowHandlerProcessor
   >;
 
   constructor(
-    executors: readonly SequentialWorkflowStepExecutor[] = DEFAULT_STEP_EXECUTORS
+    executors: readonly SequentialWorkflowStepExecutor[] = DEFAULT_STEP_EXECUTORS,
   ) {
     const byId = new Map<string, SequentialWorkflowStepExecutor>();
     for (const executor of executors) {
@@ -82,7 +82,7 @@ export class SequentialWorkflowHandlerProcessor
 
   execute(
     contract: SequentialWorkflow,
-    context: ContractProcessorContext
+    context: ContractProcessorContext,
   ): void {
     const eventNode = context.event();
     if (!eventNode) {
@@ -117,14 +117,14 @@ export class SequentialWorkflowHandlerProcessor
   private matchesEventPattern(
     matcher: BlueNode,
     eventNode: BlueNode,
-    context: ContractProcessorContext
+    context: ContractProcessorContext,
   ): boolean {
     try {
       return context.blue.isTypeOfNode(eventNode, matcher);
     } catch (error) {
       console.warn(
         'SequentialWorkflowHandlerProcessor event match failed',
-        error
+        error,
       );
       return false;
     }
@@ -135,7 +135,7 @@ export class SequentialWorkflowHandlerProcessor
     const blueId = stepNode.getType?.()?.getBlueId();
     if (isNullable(blueId)) {
       return context.throwFatal(
-        'Sequential workflow step is missing type metadata'
+        'Sequential workflow step is missing type metadata',
       );
     }
 

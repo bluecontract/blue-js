@@ -53,10 +53,10 @@ contracts:
     expect(initResult.triggeredEvents.length).toBe(1);
     const lifecycleEvent = initResult.triggeredEvents[0];
     expect(stringProperty(lifecycleEvent, 'type')).toBe(
-      'Document Processing Initiated'
+      'Document Processing Initiated',
     );
     expect(stringProperty(lifecycleEvent, 'documentId')).toBe(
-      expectedDocumentId
+      expectedDocumentId,
     );
 
     expect(Number(property(initialized, 'x').getValue())).toBe(10);
@@ -64,24 +64,24 @@ contracts:
     const contracts = property(initialized, 'contracts');
     const initializedMarker = property(contracts, 'initialized');
     expect(initializedMarker.getType()?.getBlueId()).toBe(
-      blueIds['Processing Initialized Marker']
+      blueIds['Processing Initialized Marker'],
     );
     expect(stringProperty(initializedMarker, 'documentId')).toBe(
-      expectedDocumentId
+      expectedDocumentId,
     );
 
     const checkpoint = propertyOptional(contracts, 'checkpoint');
     expect(checkpoint).toBeUndefined();
 
     expect(() => processor.initializeDocument(initialized.clone())).toThrow(
-      /Document already initialized/
+      /Document already initialized/,
     );
 
     const processResult = expectOk(
       processor.processDocument(
         initialized.clone(),
-        new BlueNode().setValue('external')
-      )
+        new BlueNode().setValue('external'),
+      ),
     );
     expect(Number(property(processResult.document, 'x').getValue())).toBe(10);
     expect(processResult.triggeredEvents.length).toBe(0);
@@ -126,7 +126,7 @@ contracts:
 `;
 
     const result = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     );
     const processed = result.document;
 
@@ -160,7 +160,7 @@ contracts:
 
     expect(
       result.capabilityFailure,
-      'Initialization should fail with must-understand'
+      'Initialization should fail with must-understand',
     ).toBe(true);
     expect(result.totalGas).toBe(0);
     expect(result.triggeredEvents.length).toBe(0);
@@ -178,7 +178,7 @@ contracts:
 
     const document = blue.yamlToNode(yaml);
     expect(() =>
-      processor.processDocument(document, new BlueNode().setValue('event'))
+      processor.processDocument(document, new BlueNode().setValue('event')),
     ).toThrow(/Initialization Marker/);
   });
 
@@ -193,7 +193,7 @@ contracts:
 
     const document = blue.yamlToNode(yaml);
     expect(() => processor.initializeDocument(document)).toThrow(
-      /Initialization Marker/
+      /Initialization Marker/,
     );
   });
 
@@ -208,14 +208,14 @@ contracts:
 
     const document = blue.yamlToNode(yaml);
     expect(() => processor.isInitialized(document)).toThrow(
-      /Initialization Marker/
+      /Initialization Marker/,
     );
   });
 
   it('removePatchDeletesPropertyDuringInitialization', () => {
     const processor = buildProcessor(
       blue,
-      new RemovePropertyContractProcessor()
+      new RemovePropertyContractProcessor(),
     );
     const yaml = `name: Remove Doc
 x:
@@ -242,7 +242,7 @@ contracts:
 
     const hasLifecycle = result.triggeredEvents.some(
       (eventNode: BlueNode) =>
-        stringProperty(eventNode, 'type') === 'Document Processing Initiated'
+        stringProperty(eventNode, 'type') === 'Document Processing Initiated',
     );
     expect(hasLifecycle).toBe(true);
 
@@ -270,7 +270,7 @@ contracts:
 `;
 
     expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
-      /Channel Event Checkpoint/
+      /Channel Event Checkpoint/,
     );
   });
 
@@ -285,7 +285,7 @@ contracts:
 `;
 
     expect(() => processor.initializeDocument(blue.yamlToNode(yaml))).toThrow(
-      /Channel Event Checkpoint/
+      /Channel Event Checkpoint/,
     );
   });
 
@@ -314,7 +314,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     expect(propertyOptional(initialized, 'lifecycle')).toBeDefined();
@@ -344,7 +344,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document;
 
     const childLifecycle = propertyOptional(initialized, 'childLifecycle');

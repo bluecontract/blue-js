@@ -46,7 +46,7 @@ export function deepContains<T = unknown>(source: T, subset: unknown): boolean {
   if (Array.isArray(subset)) {
     if (!Array.isArray(source)) return false;
     return subset.every((p) =>
-      (source as unknown[]).some((o) => deepContains(o, p))
+      (source as unknown[]).some((o) => deepContains(o, p)),
     );
   }
 
@@ -59,6 +59,6 @@ export function deepContains<T = unknown>(source: T, subset: unknown): boolean {
 
   const s = source as Record<PropertyKey, unknown>;
   return Object.entries(subset as Record<PropertyKey, unknown>).every(
-    ([k, v]) => k in s && deepContains(s[k], v)
+    ([k, v]) => k in s && deepContains(s[k], v),
   );
 }

@@ -9,9 +9,9 @@ export class TupleConverter implements Converter {
   convert<
     T extends [ZodTypeAny, ...ZodTypeAny[]] | [] = [
       ZodTypeAny,
-      ...ZodTypeAny[]
+      ...ZodTypeAny[],
     ],
-    Rest extends ZodTypeAny | null = null
+    Rest extends ZodTypeAny | null = null,
   >(node: BlueNode, targetType: ZodTuple<T, Rest>) {
     const items = node.getItems();
     if (!items) {
@@ -20,7 +20,7 @@ export class TupleConverter implements Converter {
 
     const targetTypeItems = targetType.items;
     const result = items.map((item, index) =>
-      this.nodeToObjectConverter.convert(item, targetTypeItems[index])
+      this.nodeToObjectConverter.convert(item, targetTypeItems[index]),
     );
 
     return result as OutputTypeOfTupleWithRest<T, Rest>;

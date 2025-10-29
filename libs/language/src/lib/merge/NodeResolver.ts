@@ -30,7 +30,7 @@ export abstract class NodeResolver {
  * Helper function to create a simple NodeResolver with a custom resolve implementation
  */
 export function createNodeResolver(
-  resolveFn: (node: BlueNode, limits: Limits) => BlueNode
+  resolveFn: (node: BlueNode, limits: Limits) => BlueNode,
 ): NodeResolver {
   return new (class extends NodeResolver {
     resolve(node: BlueNode, limits: Limits): BlueNode {

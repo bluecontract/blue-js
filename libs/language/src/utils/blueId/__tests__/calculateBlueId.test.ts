@@ -48,7 +48,7 @@ describe('calculateBlueId functions', () => {
       const result = await calculateBlueId(mockNodeArray);
 
       expect(BlueIdCalculator.calculateBlueId).toHaveBeenCalledWith(
-        mockNodeArray
+        mockNodeArray,
       );
       expect(NodeDeserializer.deserialize).not.toHaveBeenCalled();
       expect(result).toBe('mock-blue-id');
@@ -77,7 +77,7 @@ describe('calculateBlueId functions', () => {
       const result = calculateBlueIdSync(mockNode);
 
       expect(BlueIdCalculator.calculateBlueIdSync).toHaveBeenCalledWith(
-        mockNode
+        mockNode,
       );
       expect(NodeDeserializer.deserialize).not.toHaveBeenCalled();
       expect(result).toBe('mock-blue-id-sync');
@@ -87,7 +87,7 @@ describe('calculateBlueId functions', () => {
       const result = calculateBlueIdSync(mockNodeArray);
 
       expect(BlueIdCalculator.calculateBlueIdSync).toHaveBeenCalledWith(
-        mockNodeArray
+        mockNodeArray,
       );
       expect(NodeDeserializer.deserialize).not.toHaveBeenCalled();
       expect(result).toBe('mock-blue-id-sync');

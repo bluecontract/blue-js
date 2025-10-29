@@ -46,7 +46,7 @@ changeset: "\${steps.CreateSubscriptions.changes}"`;
 
     // Expression should be preserved despite type saying changeset is a List
     expect(result.getProperties()?.['changeset']?.getValue()).toBe(
-      '${steps.CreateSubscriptions.changes}'
+      '${steps.CreateSubscriptions.changes}',
     );
   });
 
@@ -93,7 +93,7 @@ changeset:
     const changeset = result.getProperties()?.['changeset'];
     expect(changeset?.getItems()).toBeDefined();
     expect(
-      changeset?.getItems()?.[0]?.getProperties()?.['val']?.getValue()
+      changeset?.getItems()?.[0]?.getProperties()?.['val']?.getValue(),
     ).toBe('regular value');
   });
 });

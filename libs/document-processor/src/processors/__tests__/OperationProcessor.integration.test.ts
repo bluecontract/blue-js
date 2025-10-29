@@ -25,7 +25,7 @@ describe('OperationProcessor - Integration Tests', () => {
           operation,
           request,
         },
-        blue
+        blue,
       );
     }
 
@@ -135,7 +135,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [incrementEvent]
+        [incrementEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -145,7 +145,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should emit document update event
       const docUpdateEvt = emitted.find((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvt).toBeDefined();
       const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -164,7 +164,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [decrementEvent]
+        [decrementEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -174,7 +174,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should emit document update event
       const docUpdateEvt = emitted.find((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvt).toBeDefined();
       const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -193,7 +193,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [statusEvent]
+        [statusEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -203,7 +203,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should emit document update event
       const docUpdateEvt = emitted.find((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvt).toBeDefined();
       const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -222,7 +222,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [nonExistentEvent]
+        [nonExistentEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -233,7 +233,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should not emit document update events
       const docUpdateEvts = emitted.filter((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvts.length).toBe(0);
     });
@@ -289,12 +289,12 @@ describe('OperationProcessor - Integration Tests', () => {
           operation: 'increment',
           request: 5,
         },
-        blue
+        blue,
       );
 
       const { state } = await documentProcessor.processEvents(
         initializedState,
-        [wrongTimelineEvent]
+        [wrongTimelineEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -396,7 +396,7 @@ describe('OperationProcessor - Integration Tests', () => {
         {
           blue,
           documentProcessor,
-        }
+        },
       );
 
       const complexEvent = createOperationRequestEvent(
@@ -404,12 +404,12 @@ describe('OperationProcessor - Integration Tests', () => {
         JSON.stringify({
           name: 'John Doe',
           age: 30,
-        })
+        }),
       );
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [complexEvent]
+        [complexEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -420,7 +420,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should emit document update events
       const docUpdateEvts = emitted.filter((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvts.length).toBe(2); // One for name, one for age
     });
@@ -436,12 +436,12 @@ describe('OperationProcessor - Integration Tests', () => {
       const regularEvent = createTimelineEntryEvent(
         'owner-timeline',
         null,
-        blue
+        blue,
       );
 
       const { state } = await documentProcessor.processEvents(
         initializedState,
-        [regularEvent]
+        [regularEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -463,7 +463,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [badTypeEvent]
+        [badTypeEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -474,7 +474,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should not emit document update events
       const docUpdateEvts = emitted.filter((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvts.length).toBe(0);
     });
@@ -550,7 +550,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [myosTimelineEvent]
+        [myosTimelineEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -560,7 +560,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should emit document update event
       const docUpdateEvt = emitted.find((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvt).toBeDefined();
       const docUpdateEvtJson = blue.nodeToJson(docUpdateEvt!, 'simple') as any;
@@ -622,7 +622,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       const { state, emitted } = await documentProcessor.processEvents(
         initializedState,
-        [myosBadTypeEvent]
+        [myosBadTypeEvent],
       );
 
       const jsonState = blue.nodeToJson(state, 'simple') as any;
@@ -632,7 +632,7 @@ describe('OperationProcessor - Integration Tests', () => {
 
       // Should not emit document update events
       const docUpdateEvts = emitted.filter((e) =>
-        blue.isTypeOf(e, DocumentUpdateSchema)
+        blue.isTypeOf(e, DocumentUpdateSchema),
       );
       expect(docUpdateEvts.length).toBe(0);
     });

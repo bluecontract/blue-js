@@ -17,7 +17,7 @@ const blueIdCheckpoint = blueIds['Channel Event Checkpoint'];
 
 function buildScopeNode(
   blue: ReturnType<typeof createBlue>,
-  contracts: Record<string, unknown>
+  contracts: Record<string, unknown>,
 ): BlueNode {
   return blue.jsonValueToNode({ contracts });
 }
@@ -75,7 +75,7 @@ describe('ContractLoader', () => {
     });
 
     expect(() => loader.load(scopeNode, '/')).toThrowError(
-      MustUnderstandFailure
+      MustUnderstandFailure,
     );
   });
 

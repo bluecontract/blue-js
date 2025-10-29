@@ -19,7 +19,7 @@ export class ValuePropagator implements MergingProcessor {
         return target.clone().setValue(sourceValue);
       } else if (!isEqualValue(sourceValue, targetValue)) {
         throw new Error(
-          `Node values conflict. Source node value: ${sourceValue}, target node value: ${targetValue}`
+          `Node values conflict. Source node value: ${sourceValue}, target node value: ${targetValue}`,
         );
       }
     }

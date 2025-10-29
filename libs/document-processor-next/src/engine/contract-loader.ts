@@ -79,7 +79,7 @@ const BUILTIN_MARKER_SCHEMAS: ReadonlyMap<
 export class ContractLoader {
   constructor(
     private readonly registry: ContractProcessorRegistry,
-    private readonly blue: Blue
+    private readonly blue: Blue,
   ) {}
 
   load(scopeNode: BlueNode, scopePath: string): ContractBundle {
@@ -112,8 +112,8 @@ export class ContractLoader {
         `Failed to load contracts for scope ${scopePath}: ${reason}`,
         ProcessorErrors.runtimeFatal(
           `Failed to load contracts for scope ${scopePath}`,
-          error
-        )
+          error,
+        ),
       );
     }
   }
@@ -121,7 +121,7 @@ export class ContractLoader {
   private processContract(
     builder: ContractBundleBuilder,
     key: string,
-    node: BlueNode
+    node: BlueNode,
   ): void {
     const blueId = node.getType()?.getBlueId();
     if (!blueId) {
@@ -152,7 +152,7 @@ export class ContractLoader {
         key,
         node,
         channelProcessor.schema as ZodType<ChannelContract>,
-        blueId
+        blueId,
       );
       return;
     }
@@ -164,7 +164,7 @@ export class ContractLoader {
         key,
         node,
         handlerProcessor.schema as ZodType<HandlerContract>,
-        blueId
+        blueId,
       );
       return;
     }
@@ -176,7 +176,7 @@ export class ContractLoader {
         key,
         node,
         markerProcessor.schema as ZodType<MarkerContract>,
-        blueId
+        blueId,
       );
       return;
     }
@@ -187,8 +187,8 @@ export class ContractLoader {
         ProcessorErrors.invalidContract(
           blueId,
           'Built-in processor-managed channel is missing schema registration',
-          key
-        )
+          key,
+        ),
       );
     }
 
@@ -198,12 +198,12 @@ export class ContractLoader {
   private handleProcessEmbedded(
     builder: ContractBundleBuilder,
     key: string,
-    node: BlueNode
+    node: BlueNode,
   ): void {
     try {
       const embedded = this.convert(
         node,
-        processEmbeddedMarkerSchema
+        processEmbeddedMarkerSchema,
       ) as ProcessEmbeddedMarker;
       builder.setEmbedded({ ...embedded, key });
     } catch (error) {
@@ -214,8 +214,8 @@ export class ContractLoader {
             PROCESS_EMBEDDED_BLUE_ID,
             'Failed to parse ProcessEmbedded marker',
             key,
-            error
-          )
+            error,
+          ),
         );
       }
       throw new ProcessorFatalError(
@@ -223,8 +223,8 @@ export class ContractLoader {
           'Failed to register ProcessEmbedded marker',
         ProcessorErrors.illegalState(
           (error as Error | undefined)?.message ??
-            'Failed to register ProcessEmbedded marker'
-        )
+            'Failed to register ProcessEmbedded marker',
+        ),
       );
     }
   }
@@ -234,7 +234,7 @@ export class ContractLoader {
     key: string,
     node: BlueNode,
     schema: ZodType<ChannelContract>,
-    blueId: string
+    blueId: string,
   ): void {
     try {
       const contract = this.convert(node, schema) as ChannelContract;
@@ -247,8 +247,8 @@ export class ContractLoader {
             blueId,
             'Failed to parse channel contract',
             key,
-            error
-          )
+            error,
+          ),
         );
       }
       const reason =
@@ -256,7 +256,7 @@ export class ContractLoader {
         'Failed to register channel contract';
       throw new ProcessorFatalError(
         reason,
-        ProcessorErrors.illegalState(reason)
+        ProcessorErrors.illegalState(reason),
       );
     }
   }
@@ -266,7 +266,7 @@ export class ContractLoader {
     key: string,
     node: BlueNode,
     schema: ZodType<HandlerContract>,
-    blueId: string
+    blueId: string,
   ): void {
     try {
       const contract = this.convert(node, schema) as HandlerContract;
@@ -274,7 +274,7 @@ export class ContractLoader {
       if (!channelKey) {
         throw new ProcessorFatalError(
           `Handler ${key} must declare channel`,
-          ProcessorErrors.illegalState(`Handler ${key} must declare channel`)
+          ProcessorErrors.illegalState(`Handler ${key} must declare channel`),
         );
       }
       builder.addHandler(key, { ...contract, key }, blueId);
@@ -286,8 +286,8 @@ export class ContractLoader {
             blueId,
             'Failed to parse handler contract',
             key,
-            error
-          )
+            error,
+          ),
         );
       }
       const reason =
@@ -295,7 +295,7 @@ export class ContractLoader {
         'Failed to register handler contract';
       throw new ProcessorFatalError(
         reason,
-        ProcessorErrors.illegalState(reason)
+        ProcessorErrors.illegalState(reason),
       );
     }
   }
@@ -305,7 +305,7 @@ export class ContractLoader {
     key: string,
     node: BlueNode,
     schema: ZodType<MarkerContract>,
-    blueId: string
+    blueId: string,
   ): void {
     try {
       const marker = this.convert(node, schema) as MarkerContract;
@@ -318,8 +318,8 @@ export class ContractLoader {
             blueId,
             'Failed to parse marker contract',
             key,
-            error
-          )
+            error,
+          ),
         );
       }
       const reason =
@@ -327,7 +327,7 @@ export class ContractLoader {
         'Failed to register marker contract';
       throw new ProcessorFatalError(
         reason,
-        ProcessorErrors.illegalState(reason)
+        ProcessorErrors.illegalState(reason),
       );
     }
   }

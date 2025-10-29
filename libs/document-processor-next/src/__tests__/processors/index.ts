@@ -11,6 +11,3 @@ export * from './set-property-on-event.js';
 export * from './set-property.js';
 export * from './terminate-scope.js';
 export * from './test-event-channel.js';
-
-
-

@@ -27,7 +27,7 @@ describe('BlueIdToCid', () => {
 
   test('should throw an error for invalid blueId', () => {
     expect(() => BlueIdToCid.convert('invalidBlueId')).toThrow(
-      'Non-base58 character'
+      'Non-base58 character',
     );
   });
 
@@ -84,7 +84,7 @@ describe('BlueIdToCid - additional tests', async () => {
       const cid = await calculateCidFromObject(value);
 
       expect(cidFromBlueId).toBe(cid);
-    }
+    },
   );
 
   test('should produce identical CIDs from BlueId and content for dish object', async () => {
@@ -128,9 +128,8 @@ describe('BlueIdToCid - additional tests', async () => {
     ];
 
     const ingredientsNode = NodeDeserializer.deserialize(ingredients);
-    const ingredientsBlueId = await BlueIdCalculator.calculateBlueId(
-      ingredientsNode
-    );
+    const ingredientsBlueId =
+      await BlueIdCalculator.calculateBlueId(ingredientsNode);
 
     const dishWithIngredients = {
       ...dish,
@@ -139,14 +138,14 @@ describe('BlueIdToCid - additional tests', async () => {
     const dishWithIngredientsNode =
       NodeDeserializer.deserialize(dishWithIngredients);
     const dishWithIngredientsBlueId = await BlueIdCalculator.calculateBlueId(
-      dishWithIngredientsNode
+      dishWithIngredientsNode,
     );
 
     const twoIngredients = ingredients.slice(0, 2);
 
     test('should generate identical CIDs for array of ingredients using different methods', async () => {
       const ingredientsNodes = twoIngredients.map((ingredient) =>
-        NodeDeserializer.deserialize(ingredient)
+        NodeDeserializer.deserialize(ingredient),
       );
       const blueId = await BlueIdCalculator.calculateBlueId(ingredientsNodes);
       const cidFromBlueId = BlueIdToCid.convert(blueId);
@@ -156,7 +155,7 @@ describe('BlueIdToCid - additional tests', async () => {
           const ingredientNode = NodeDeserializer.deserialize(ingredient);
           const blueId = await BlueIdCalculator.calculateBlueId(ingredientNode);
           return { blueId };
-        })
+        }),
       );
 
       const cid = await calculateCidFromObject(ingredientsBlueIds);

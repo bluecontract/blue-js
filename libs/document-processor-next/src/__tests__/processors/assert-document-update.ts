@@ -31,7 +31,7 @@ function getRequiredProperty(event: BlueNode | null, key: string): BlueNode {
     const message = `Document Update event missing property '${key}'`;
     throw new ProcessorFatalError(
       message,
-      ProcessorErrors.illegalState(message)
+      ProcessorErrors.illegalState(message),
     );
   }
   return node;
@@ -46,18 +46,18 @@ export class AssertDocumentUpdateContractProcessor
 
   execute(
     contract: AssertDocumentUpdate,
-    context: Parameters<HandlerProcessor<AssertDocumentUpdate>['execute']>[1]
+    context: Parameters<HandlerProcessor<AssertDocumentUpdate>['execute']>[1],
   ): void {
     const event = context.event();
     const pathNode = getRequiredProperty(event as BlueNode, 'path');
     const pathValue = toPrimitive(pathNode.getValue());
     if (contract.expectedPath !== pathValue) {
       const message = `Expected path ${contract.expectedPath} but was ${String(
-        pathValue
+        pathValue,
       )}`;
       throw new ProcessorFatalError(
         message,
-        ProcessorErrors.illegalState(message)
+        ProcessorErrors.illegalState(message),
       );
     }
 
@@ -65,25 +65,25 @@ export class AssertDocumentUpdateContractProcessor
     const opValue = toPrimitive(opNode.getValue());
     if (typeof opValue !== 'string') {
       const message = `Document Update operation must be a string but was ${String(
-        opValue
+        opValue,
       )}`;
       throw new ProcessorFatalError(
         message,
-        ProcessorErrors.illegalState(message)
+        ProcessorErrors.illegalState(message),
       );
     }
     if (opValue !== opValue.toLowerCase()) {
       const message = `Document Update operation must be lowercase but was ${opValue}`;
       throw new ProcessorFatalError(
         message,
-        ProcessorErrors.illegalState(message)
+        ProcessorErrors.illegalState(message),
       );
     }
     if (contract.expectedOp !== opValue) {
       const message = `Expected op ${contract.expectedOp} but was ${opValue}`;
       throw new ProcessorFatalError(
         message,
-        ProcessorErrors.illegalState(message)
+        ProcessorErrors.illegalState(message),
       );
     }
 
@@ -91,13 +91,13 @@ export class AssertDocumentUpdateContractProcessor
       getRequiredProperty(event as BlueNode, 'before'),
       !!contract.expectBeforeNull,
       contract.expectedBeforeValue,
-      'before'
+      'before',
     );
     this.validateValue(
       getRequiredProperty(event as BlueNode, 'after'),
       !!contract.expectAfterNull,
       contract.expectedAfterValue,
-      'after'
+      'after',
     );
   }
 
@@ -105,17 +105,17 @@ export class AssertDocumentUpdateContractProcessor
     node: BlueNode,
     expectNull: boolean,
     expectedValue: number | undefined,
-    label: string
+    label: string,
   ): void {
     const value = node.getValue();
     if (expectNull) {
       if (value != null) {
         const message = `Expected ${label} to be null, but was ${toPrimitive(
-          value
+          value,
         )}`;
         throw new ProcessorFatalError(
           message,
-          ProcessorErrors.illegalState(message)
+          ProcessorErrors.illegalState(message),
         );
       }
       return;
@@ -125,18 +125,18 @@ export class AssertDocumentUpdateContractProcessor
     const numeric = toPrimitive(value);
     if (typeof numeric !== 'number') {
       const message = `Expected ${label} to be numeric but was ${String(
-        numeric
+        numeric,
       )}`;
       throw new ProcessorFatalError(
         message,
-        ProcessorErrors.illegalState(message)
+        ProcessorErrors.illegalState(message),
       );
     }
     if (numeric !== expectedValue) {
       const message = `Expected ${label} value ${expectedValue} but was ${numeric}`;
       throw new ProcessorFatalError(
         message,
-        ProcessorErrors.illegalState(message)
+        ProcessorErrors.illegalState(message),
       );
     }
   }

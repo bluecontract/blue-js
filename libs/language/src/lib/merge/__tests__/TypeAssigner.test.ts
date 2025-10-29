@@ -15,25 +15,25 @@ describe('TypeAssigner', () => {
     // Create nodes
     const a = new BlueNode('A');
     const b = new BlueNode('B').setType(
-      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(a))
+      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(a)),
     );
     const c = new BlueNode('C').setType(
-      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b))
+      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b)),
     );
 
     const x = new BlueNode('X').setProperties({
       a: new BlueNode().setType(
-        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b))
+        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b)),
       ),
     });
 
     const y = new BlueNode('Y')
       .setType(
-        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(x))
+        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(x)),
       )
       .setProperties({
         a: new BlueNode().setType(
-          new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(c))
+          new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(c)),
         ),
       });
 
@@ -58,21 +58,21 @@ describe('TypeAssigner', () => {
     // Create nodes
     const a = new BlueNode('A');
     const b = new BlueNode('B').setType(
-      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(a))
+      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(a)),
     );
     const c = new BlueNode('C').setType(
-      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b))
+      new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b)),
     );
 
     const x = new BlueNode('X').setProperties({
       a: new BlueNode().setType(
-        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b))
+        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(b)),
       ),
     });
 
     const y = new BlueNode('Y')
       .setType(
-        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(x))
+        new BlueNode().setBlueId(BlueIdCalculator.calculateBlueIdSync(x)),
       )
       .setProperties({
         a: new BlueNode(), // Empty type should inherit from parent
@@ -129,7 +129,7 @@ a:
       (yaml) => {
         const parsed = yamlBlueParse(yaml) as JsonBlueValue;
         return NodeDeserializer.deserialize(parsed);
-      }
+      },
     );
 
     const nodeProvider = new BasicNodeProvider(nodes);
@@ -185,7 +185,7 @@ issuer:
     email: "info@hattorihanzo.com"`;
 
     const voucherDetailsNode = NodeDeserializer.deserialize(
-      yamlBlueParse(voucherDetailsYaml) as JsonBlueValue
+      yamlBlueParse(voucherDetailsYaml) as JsonBlueValue,
     );
 
     const voucherDetailsBlueId =
@@ -237,7 +237,7 @@ availableMenuItems:
         isAlcoholic: true
 `;
     const voucherKillBillNode = NodeDeserializer.deserialize(
-      yamlBlueParse(voucherKillBillYaml) as JsonBlueValue
+      yamlBlueParse(voucherKillBillYaml) as JsonBlueValue,
     );
     const voucherKillBillBlueId =
       BlueIdCalculator.calculateBlueIdSync(voucherKillBillNode);
@@ -249,7 +249,7 @@ serialNumber: 30902345235
 purchaseDate: 2024-04-01`;
 
     const myVoucherNode = NodeDeserializer.deserialize(
-      yamlBlueParse(myVoucherYaml) as JsonBlueValue
+      yamlBlueParse(myVoucherYaml) as JsonBlueValue,
     );
 
     const nodeProvider = new BasicNodeProvider([
@@ -274,7 +274,7 @@ purchaseDate: 2024-04-01`;
         .getProperties()
         ?.details?.getProperties()
         ?.customerSupport?.getProperties()
-        ?.phone?.getValue()
+        ?.phone?.getValue(),
     ).toBe('+1234567890');
   });
 });

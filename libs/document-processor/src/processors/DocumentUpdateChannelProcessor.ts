@@ -16,7 +16,7 @@ export class DocumentUpdateChannelProcessor extends BaseChannelProcessor {
   supports(
     event: EventNode,
     contractNode: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     if (!this.baseSupports(event)) return false;
     if (event.emissionType !== 'update') return false;
@@ -39,7 +39,7 @@ export class DocumentUpdateChannelProcessor extends BaseChannelProcessor {
     event: EventNode,
     _node: DocumentNode,
     ctx: ProcessingContext,
-    path: string
+    path: string,
   ): void {
     ctx.emitEvent({
       payload: event.payload,

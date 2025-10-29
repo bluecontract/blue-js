@@ -16,7 +16,7 @@ const factories = {
   of(
     document: BlueNode,
     triggeredEvents: readonly BlueNode[],
-    totalGas: number
+    totalGas: number,
   ): DocumentProcessingResult {
     return {
       document,
@@ -29,7 +29,7 @@ const factories = {
 
   capabilityFailure(
     document: BlueNode,
-    reason: string | null
+    reason: string | null,
   ): DocumentProcessingResult {
     return {
       document,

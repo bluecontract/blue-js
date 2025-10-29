@@ -26,7 +26,7 @@ describe('CheckpointManagerTest', () => {
   it('persistUpdatesCheckpointAndChargesGas', () => {
     const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const manager = new CheckpointManager(runtime, (node) =>
-      node != null ? 'sig' : null
+      node != null ? 'sig' : null,
     );
     const bundle = ContractBundle.builder().build();
     manager.ensureCheckpointMarker('/', bundle);

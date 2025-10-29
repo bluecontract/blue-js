@@ -116,7 +116,7 @@ describe('NodePatch Comprehensive Tests', () => {
       const result = applyBlueNodePatches(node, patches);
       expect(result.getType()?.getName()).toBe('UpdatedTypeName');
       expect(result.getType()?.getProperties()?.prop2.getValue()).toBe(
-        'value2'
+        'value2',
       );
     });
   });
@@ -248,7 +248,7 @@ describe('NodePatch Comprehensive Tests', () => {
         val: { name: 'item4', value: 'four' },
       };
       expect(() => applyBlueNodePatch(node, patch)).toThrow(
-        /ADD operation failed: Target array index '4' is greater than array length 3/
+        /ADD operation failed: Target array index '4' is greater than array length 3/,
       );
     });
 
@@ -294,7 +294,7 @@ describe('NodePatch Comprehensive Tests', () => {
       const result = applyBlueNodePatches(node, patches);
       const matrix = result.get('/matrix') as BlueNode;
       expect(
-        matrix.getItems()?.[0].getItems()?.[1].getValue()?.toString()
+        matrix.getItems()?.[0].getItems()?.[1].getValue()?.toString(),
       ).toBe('22');
       expect(matrix.getItems()?.[1].getItems()?.length).toBe(4);
     });
@@ -437,7 +437,7 @@ describe('NodePatch Comprehensive Tests', () => {
       const result = applyBlueNodePatch(node, patch);
       expect(result.getContracts()?.contract3).toBeDefined();
       expect(result.getContracts()?.contract3.get('/type/value')).toBe(
-        'Embedded Node Channel'
+        'Embedded Node Channel',
       );
     });
 
@@ -457,10 +457,10 @@ describe('NodePatch Comprehensive Tests', () => {
       ];
       const result = applyBlueNodePatches(node, patches);
       expect(result.getContracts()?.contract1.get('/timelineId/value')).toBe(
-        'timeline-2'
+        'timeline-2',
       );
       expect(result.getContracts()?.contract2.get('/channel/value')).toBe(
-        'contract3'
+        'contract3',
       );
     });
 
@@ -746,11 +746,11 @@ describe('NodePatch Comprehensive Tests', () => {
 
       const result = applyBlueNodePatches(node, patches);
       expect(result.get('/root/level1/level2/level3/data/value')).toBe(
-        'updated-deep'
+        'updated-deep',
       );
       expect(
         (result.get('/root/level1/level2/level3/list') as BlueNode)?.getItems()
-          ?.length
+          ?.length,
       ).toBe(4);
     });
   });
@@ -784,7 +784,7 @@ describe('NodePatch Comprehensive Tests', () => {
         val: 'x',
       };
       expect(() => applyBlueNodePatch(node, patch)).toThrow(
-        /REPLACE failed: Target array index '5' is out of bounds or does not exist at path '\/5'\./
+        /REPLACE failed: Target array index '5' is out of bounds or does not exist at path '\/5'\./,
       );
     });
   });
@@ -827,7 +827,7 @@ describe('NodePatch Comprehensive Tests', () => {
         applyBlueNodePatch(tempNode, patch);
       };
       expect(problemFn).toThrow(
-        /MOVE failed: 'from' location '\/does-not-exist' does not exist./
+        /MOVE failed: 'from' location '\/does-not-exist' does not exist./,
       );
     });
   });

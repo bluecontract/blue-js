@@ -19,18 +19,18 @@ export interface ChannelRunnerDependencies {
     channel: ChannelBinding,
     bundle: ContractBundle,
     scopePath: string,
-    event: BlueNode
+    event: BlueNode,
   ): ChannelMatch;
   isScopeInactive(scopePath: string): boolean;
   createContext(
     scopePath: string,
     bundle: ContractBundle,
     event: BlueNode,
-    allowTerminatedWork: boolean
+    allowTerminatedWork: boolean,
   ): ProcessorExecutionContext;
   executeHandler(
     handler: HandlerBinding,
-    context: ProcessorExecutionContext
+    context: ProcessorExecutionContext,
   ): void;
   canonicalSignature(node: BlueNode | null): string | null;
 }
@@ -39,14 +39,14 @@ export class ChannelRunner {
   constructor(
     private readonly runtime: DocumentProcessingRuntime,
     private readonly checkpointManager: CheckpointManager,
-    private readonly deps: ChannelRunnerDependencies
+    private readonly deps: ChannelRunnerDependencies,
   ) {}
 
   runExternalChannel(
     scopePath: string,
     bundle: ContractBundle,
     channel: ChannelBinding,
-    event: BlueNode
+    event: BlueNode,
   ): void {
     if (this.deps.isScopeInactive(scopePath)) {
       return;
@@ -63,7 +63,7 @@ export class ChannelRunner {
     this.checkpointManager.ensureCheckpointMarker(scopePath, bundle);
     const checkpoint = this.checkpointManager.findCheckpoint(
       bundle,
-      channel.key()
+      channel.key(),
     );
     const eventSignature =
       match.eventId ?? this.deps.canonicalSignature(checkpointEvent);
@@ -81,7 +81,7 @@ export class ChannelRunner {
       bundle,
       checkpoint,
       eventSignature ?? null,
-      checkpointEvent
+      checkpointEvent,
     );
   }
 
@@ -90,7 +90,7 @@ export class ChannelRunner {
     bundle: ContractBundle,
     channelKey: string,
     event: BlueNode,
-    allowTerminatedWork: boolean
+    allowTerminatedWork: boolean,
   ): void {
     const handlers = bundle.handlersFor(channelKey);
     if (handlers.length === 0) {
@@ -106,7 +106,7 @@ export class ChannelRunner {
         scopePath,
         bundle,
         event,
-        allowTerminatedWork
+        allowTerminatedWork,
       );
       this.deps.executeHandler(handler, context);
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {

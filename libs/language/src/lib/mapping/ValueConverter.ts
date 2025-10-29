@@ -37,7 +37,7 @@ export class ValueConverter {
     ) {
       return this.convertFromBigDecimal(
         new BigDecimalNumber(value?.toString()),
-        targetSchema
+        targetSchema,
       );
     } else if (
       INTEGER_TYPE_BLUE_ID === typeBlueId ||
@@ -45,7 +45,7 @@ export class ValueConverter {
     ) {
       return this.convertFromBigInteger(
         new BigIntegerNumber(value?.toString()),
-        targetSchema
+        targetSchema,
       );
     } else if (
       BOOLEAN_TYPE_BLUE_ID === typeBlueId ||
@@ -85,7 +85,7 @@ export class ValueConverter {
 
   private static convertFromBigDecimal(
     value: BigDecimalNumber,
-    targetSchema: ZodTypeAny
+    targetSchema: ZodTypeAny,
   ) {
     if (targetSchema instanceof ZodNumber) {
       return value.toNumber();
@@ -100,7 +100,7 @@ export class ValueConverter {
 
   private static convertFromBigInteger(
     value: BigIntegerNumber,
-    targetSchema: ZodTypeAny
+    targetSchema: ZodTypeAny,
   ) {
     if (targetSchema instanceof ZodNumber) {
       return value.toNumber();
@@ -151,7 +151,7 @@ export class ValueConverter {
     }
 
     throw new Error(
-      `Unsupported primitive type: ${targetSchema._def.typeName}`
+      `Unsupported primitive type: ${targetSchema._def.typeName}`,
     );
   }
 }

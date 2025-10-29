@@ -37,7 +37,7 @@ describe('SequentialWorkflowOperationProcessor', () => {
     } as any;
 
     processor = new SequentialWorkflowOperationProcessor(
-      mockSequentialWorkflowProcessor
+      mockSequentialWorkflowProcessor,
     );
 
     mockContext = {
@@ -60,7 +60,7 @@ describe('SequentialWorkflowOperationProcessor', () => {
       const result = processor.supports(
         event,
         mockSequentialWorkflowOperationNode,
-        mockContext
+        mockContext,
       );
       expect(result).toBe(true);
     });
@@ -79,7 +79,7 @@ describe('SequentialWorkflowOperationProcessor', () => {
       const result = processor.supports(
         event,
         mockSequentialWorkflowOperationNode,
-        mockContext
+        mockContext,
       );
       expect(result).toBe(false);
     });
@@ -98,7 +98,7 @@ describe('SequentialWorkflowOperationProcessor', () => {
       const result = processor.supports(
         event,
         mockSequentialWorkflowOperationNode,
-        mockContext
+        mockContext,
       );
       expect(result).toBe(false);
     });
@@ -123,7 +123,7 @@ describe('SequentialWorkflowOperationProcessor', () => {
       const result = processor.supports(
         event,
         nodeWithNullOperation,
-        mockContext
+        mockContext,
       );
       expect(result).toBe(false);
     });
@@ -147,14 +147,14 @@ describe('SequentialWorkflowOperationProcessor', () => {
         event,
         mockSequentialWorkflowOperationNode,
         mockContext,
-        path
+        path,
       );
 
       expect(mockSequentialWorkflowProcessor.handle).toHaveBeenCalledWith(
         event,
         mockSequentialWorkflowOperationNode,
         mockContext,
-        path
+        path,
       );
     });
 
@@ -180,8 +180,8 @@ describe('SequentialWorkflowOperationProcessor', () => {
           event,
           mockSequentialWorkflowOperationNode,
           mockContext,
-          'incrementImpl'
-        )
+          'incrementImpl',
+        ),
       ).rejects.toThrow('Sequential workflow processing failed');
 
       // Restore console.error

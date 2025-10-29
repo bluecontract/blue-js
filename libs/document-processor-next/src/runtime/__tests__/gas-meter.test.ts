@@ -25,7 +25,7 @@ describe('GasMeter', () => {
     const meter = new GasMeter(blue);
     const valueNode = nodeFrom({ payload: { answer: 42 } });
     const expectedSizeCharge = Math.floor(
-      (canonicalSize(blue, valueNode) + 99) / 100
+      (canonicalSize(blue, valueNode) + 99) / 100,
     );
 
     meter.chargePatchAddOrReplace(valueNode);
@@ -36,9 +36,7 @@ describe('GasMeter', () => {
   it('charges event emission and cascade routing', () => {
     const meter = new GasMeter(blue);
     const event = nodeFrom({ eventType: 'Lifecycle', data: { id: 'evt-1' } });
-    const sizeCharge = Math.floor(
-      (canonicalSize(blue, event) + 99) / 100
-    );
+    const sizeCharge = Math.floor((canonicalSize(blue, event) + 99) / 100);
 
     meter.chargeEmitEvent(event);
     meter.chargeCascadeRouting(3);

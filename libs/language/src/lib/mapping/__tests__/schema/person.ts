@@ -6,5 +6,5 @@ export const personSchema = withTypeBlueId('Person-BlueId')(
     name: z.string(),
     surname: z.string().optional(),
     age: z.number().optional(),
-  })
+  }),
 );

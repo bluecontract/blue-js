@@ -13,18 +13,18 @@ export interface ExecutionAdapter {
     scopePath: string,
     bundle: ContractBundle,
     patch: JsonPatch,
-    allowReservedMutation: boolean
+    allowReservedMutation: boolean,
   ): void;
   resolvePointer(scopePath: string, relativePointer: string): string;
   enterGracefulTermination(
     scopePath: string,
     bundle: ContractBundle,
-    reason: string | null
+    reason: string | null,
   ): void;
   enterFatalTermination(
     scopePath: string,
     bundle: ContractBundle,
-    reason: string | null
+    reason: string | null,
   ): void;
 }
 
@@ -35,7 +35,7 @@ export class ProcessorExecutionContext {
     private readonly scopePathValue: string,
     private readonly eventNode: BlueNode,
     private readonly allowTerminatedWork: boolean,
-    private readonly allowReservedMutation: boolean
+    private readonly allowReservedMutation: boolean,
   ) {}
 
   get scopePath(): string {
@@ -61,7 +61,7 @@ export class ProcessorExecutionContext {
       this.scopePathValue,
       this.bundle,
       patch,
-      this.allowReservedMutation
+      this.allowReservedMutation,
     );
   }
 
@@ -118,10 +118,12 @@ export class ProcessorExecutionContext {
       return false;
     }
     try {
-      return ProcessorEngine.nodeAt(
-        this.execution.runtime().document(),
-        absolutePointer
-      ) != null;
+      return (
+        ProcessorEngine.nodeAt(
+          this.execution.runtime().document(),
+          absolutePointer,
+        ) != null
+      );
     } catch {
       return false;
     }
@@ -130,7 +132,7 @@ export class ProcessorExecutionContext {
   private documentNodeAt(absolutePointer: string): BlueNode | null {
     const node = ProcessorEngine.nodeAt(
       this.execution.runtime().document(),
-      absolutePointer
+      absolutePointer,
     );
     return node instanceof BlueNode ? node : null;
   }
@@ -139,7 +141,7 @@ export class ProcessorExecutionContext {
     this.execution.enterGracefulTermination(
       this.scopePathValue,
       this.bundle,
-      reason ?? null
+      reason ?? null,
     );
   }
 
@@ -147,7 +149,7 @@ export class ProcessorExecutionContext {
     this.execution.enterFatalTermination(
       this.scopePathValue,
       this.bundle,
-      reason ?? null
+      reason ?? null,
     );
   }
 }

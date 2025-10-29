@@ -5,7 +5,7 @@ export class TinyQueue<T> {
 
   constructor(
     data: T[] = [],
-    compare: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+    compare: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0),
   ) {
     this.data = data;
     this.length = this.data.length;

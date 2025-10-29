@@ -51,7 +51,7 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(baseYaml))
+      processor.initializeDocument(blue.yamlToNode(baseYaml)),
     ).document.clone();
     const contracts = property(initialized, 'contracts');
     const unsupported = blue.jsonValueToNode({
@@ -71,7 +71,7 @@ contracts:
 
     const storedContracts = property(initialized, 'contracts');
     expect(storedContracts.getProperties()).toHaveProperty(
-      'unsupportedHandler'
+      'unsupportedHandler',
     );
   });
 });

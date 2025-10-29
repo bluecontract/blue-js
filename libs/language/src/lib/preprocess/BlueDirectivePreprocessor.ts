@@ -18,7 +18,7 @@ export class BlueDirectivePreprocessor {
    */
   constructor(
     preprocessingAliases?: Map<string, string>,
-    urlContentFetcher?: UrlContentFetcher
+    urlContentFetcher?: UrlContentFetcher,
   ) {
     if (preprocessingAliases) {
       this.preprocessingAliases = new Map(preprocessingAliases);
@@ -44,7 +44,7 @@ export class BlueDirectivePreprocessor {
         return this.handleBlueId(clonedNode, blueNodeValue);
       } else if (isUrl(blueNodeValue)) {
         throw new Error(
-          `URL '${blueNodeValue}' detected. Use the async version of this method to fetch the content.`
+          `URL '${blueNodeValue}' detected. Use the async version of this method to fetch the content.`,
         );
       } else {
         throw new Error(`Invalid blue value: ${blueNodeValue}`);
@@ -80,14 +80,14 @@ export class BlueDirectivePreprocessor {
         } catch (error) {
           if (error instanceof Error) {
             throw new Error(
-              `Failed to fetch from URL '${blueNodeValue}'.\n${error.message}`
+              `Failed to fetch from URL '${blueNodeValue}'.\n${error.message}`,
             );
           }
           throw error;
         }
       } else if (isUrl(blueNodeValue)) {
         throw new Error(
-          `UrlContentFetcher not provided for URL: ${blueNodeValue}`
+          `UrlContentFetcher not provided for URL: ${blueNodeValue}`,
         );
       } else {
         throw new Error(`Invalid blue value: ${blueNodeValue}`);
@@ -118,7 +118,7 @@ export class BlueDirectivePreprocessor {
    */
   private handleAliasValue(node: BlueNode, value: string): BlueNode {
     node.setBlue(
-      new BlueNode().setBlueId(this.preprocessingAliases.get(value))
+      new BlueNode().setBlueId(this.preprocessingAliases.get(value)),
     );
     return node;
   }
@@ -161,7 +161,7 @@ export class BlueDirectivePreprocessor {
    * @returns this instance for chaining
    */
   public setPreprocessingAliases(
-    aliases: Map<string, string>
+    aliases: Map<string, string>,
   ): BlueDirectivePreprocessor {
     this.preprocessingAliases = new Map(aliases);
     return this;
@@ -173,7 +173,7 @@ export class BlueDirectivePreprocessor {
    * @returns this instance for chaining
    */
   public addPreprocessingAliases(
-    aliases: Map<string, string>
+    aliases: Map<string, string>,
   ): BlueDirectivePreprocessor {
     aliases.forEach((value, key) => {
       this.preprocessingAliases.set(key, value);
@@ -187,7 +187,7 @@ export class BlueDirectivePreprocessor {
    * @returns this instance for chaining
    */
   public setUrlContentFetcher(
-    urlContentFetcher: UrlContentFetcher
+    urlContentFetcher: UrlContentFetcher,
   ): BlueDirectivePreprocessor {
     this.urlContentFetcher = urlContentFetcher;
     return this;

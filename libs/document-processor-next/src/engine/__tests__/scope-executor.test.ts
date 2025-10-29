@@ -17,7 +17,10 @@ function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
 }
 
-function getNode(runtime: DocumentProcessingRuntime, path: string): BlueNode | null {
+function getNode(
+  runtime: DocumentProcessingRuntime,
+  path: string,
+): BlueNode | null {
   if (path === '/') {
     return runtime.document() as BlueNode;
   }
@@ -88,7 +91,8 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
         _event: BlueNode,
         _allowTerminatedWork: boolean,
       ) => ({
-        resolvePointer: (relative: string) => resolvePointer(scopePath, relative),
+        resolvePointer: (relative: string) =>
+          resolvePointer(scopePath, relative),
         applyPatch: (patch: JsonPatch) => {
           if (patch.op === 'ADD' || patch.op === 'REPLACE') {
             runtime.directWrite(patch.path, patch.val ?? null);
@@ -139,9 +143,8 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
 
 describe('ScopeExecutor', () => {
   it('initializes scope and records lifecycle marker', () => {
-    const { executor, runtime, channelRunnerMocks, hooks } = createExecutor(
-      lifecycleBundle(),
-    );
+    const { executor, runtime, channelRunnerMocks, hooks } =
+      createExecutor(lifecycleBundle());
 
     executor.initializeScope('/', true);
 

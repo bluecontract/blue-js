@@ -38,7 +38,7 @@ describe('TerminationService', () => {
   it('throws RunTerminationError on root fatal', () => {
     const { runtime, service, adapter } = createFixture();
     expect(() =>
-      service.terminateScope(adapter, '/', null, 'FATAL', 'bad')
+      service.terminateScope(adapter, '/', null, 'FATAL', 'bad'),
     ).toThrow(RunTerminationError);
     expect(adapter.deliverLifecycle).toHaveBeenCalled();
     const deliverLifecycleMock = adapter.deliverLifecycle as ReturnType<
@@ -47,7 +47,7 @@ describe('TerminationService', () => {
     const lifecycleEvent = deliverLifecycleMock.mock.calls[0]?.[2] as BlueNode;
     expect(lifecycleEvent).toBeInstanceOf(BlueNode);
     expect(typeBlueId(lifecycleEvent)).toBe(
-      blueIds['Document Processing Terminated']
+      blueIds['Document Processing Terminated'],
     );
     const props = lifecycleEvent.getProperties() ?? {};
 

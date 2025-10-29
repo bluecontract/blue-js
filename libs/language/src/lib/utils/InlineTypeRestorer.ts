@@ -38,32 +38,34 @@ export class InlineTypeRestorer {
    * Returns a new BlueNode where all type references are restored to inline values when possible.
    */
   public restore(node: BlueNode): BlueNode {
-    return NodeTransformer.transform(node, (current) => this.restoreNode(current));
+    return NodeTransformer.transform(node, (current) =>
+      this.restoreNode(current),
+    );
   }
 
   private restoreNode(node: BlueNode): BlueNode {
     this.restoreTypeField(
       node,
       () => node.getType(),
-      (value) => node.setType(value)
+      (value) => node.setType(value),
     );
 
     this.restoreTypeField(
       node,
       () => node.getItemType(),
-      (value) => node.setItemType(value)
+      (value) => node.setItemType(value),
     );
 
     this.restoreTypeField(
       node,
       () => node.getKeyType(),
-      (value) => node.setKeyType(value)
+      (value) => node.setKeyType(value),
     );
 
     this.restoreTypeField(
       node,
       () => node.getValueType(),
-      (value) => node.setValueType(value)
+      (value) => node.setValueType(value),
     );
 
     return node;
@@ -72,7 +74,7 @@ export class InlineTypeRestorer {
   private restoreTypeField(
     node: BlueNode,
     getter: () => BlueNode | undefined,
-    setter: (value: BlueNode | undefined) => void
+    setter: (value: BlueNode | undefined) => void,
   ): void {
     const typeNode = getter();
     if (!typeNode) {
@@ -93,13 +95,15 @@ export class InlineTypeRestorer {
       return;
     }
 
-    const inlineNode = new BlueNode().setValue(inlineValue).setInlineValue(true);
+    const inlineNode = new BlueNode()
+      .setValue(inlineValue)
+      .setInlineValue(true);
     setter(inlineNode);
   }
 
   private resolveInlineValue(
     blueId: string,
-    contextNode: BlueNode
+    contextNode: BlueNode,
   ): string | undefined {
     const cached = this.blueIdToInlineValue.get(blueId);
     if (cached) {

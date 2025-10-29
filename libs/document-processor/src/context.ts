@@ -16,7 +16,7 @@ export class InternalContext implements ProcessingContext {
     private getDocument: () => DocumentNode,
     private taskInfo: HandlerTask,
     private blue: Blue,
-    private onFlush?: (actions: ProcessingAction[]) => Promise<void>
+    private onFlush?: (actions: ProcessingAction[]) => Promise<void>,
   ) {}
 
   get(path: string): BlueNodeGetResult {

@@ -13,7 +13,7 @@ export class BindingsFactory {
   static createStandardBindings(
     ctx: ProcessingContext,
     event: EventNode,
-    stepResults: Record<string, unknown>
+    stepResults: Record<string, unknown>,
   ): VMBindings {
     const blue = ctx.getBlue();
     const eventJson = blue.nodeToJson(event.payload, 'simple');

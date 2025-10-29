@@ -8,7 +8,7 @@ describe('ReplaceInlineValuesForTypeAttributesWithImports', () => {
       new Map([
         ['Integer', 'INTEGER_BLUE_ID'],
         ['Text', 'TEXT_BLUE_ID'],
-      ])
+      ]),
     );
 
     const node = new BlueNode()
@@ -28,7 +28,7 @@ describe('ReplaceInlineValuesForTypeAttributesWithImports', () => {
 
   it('should handle complex type structures (non-inline values)', () => {
     const processor = new ReplaceInlineValuesForTypeAttributesWithImports(
-      new Map([['Integer', 'INTEGER_BLUE_ID']])
+      new Map([['Integer', 'INTEGER_BLUE_ID']]),
     );
 
     // Complex type structure with nested types
@@ -37,7 +37,7 @@ describe('ReplaceInlineValuesForTypeAttributesWithImports', () => {
       .setType(
         new BlueNode()
           .setName('B')
-          .setType(new BlueNode().setValue('Integer').setInlineValue(true))
+          .setType(new BlueNode().setValue('Integer').setInlineValue(true)),
       );
 
     const node = new BlueNode().setType(complexType); // Not an inline value
@@ -48,7 +48,7 @@ describe('ReplaceInlineValuesForTypeAttributesWithImports', () => {
     expect(result.getType()?.getName()).toBe('A');
     expect(result.getType()?.getType()?.getName()).toBe('B');
     expect(result.getType()?.getType()?.getType()?.getBlueId()).toBe(
-      'INTEGER_BLUE_ID'
+      'INTEGER_BLUE_ID',
     );
   });
 });

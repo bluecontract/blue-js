@@ -22,7 +22,7 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
   const documentProcessor = new BlueDocumentProcessor(blue);
   const timelineEvent = (
     timelineId: string,
-    message: unknown = { name: 'Ping' }
+    message: unknown = { name: 'Ping' },
   ) => {
     return createTimelineEntryEvent(timelineId, message, blue);
   };
@@ -36,7 +36,7 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
       documentProcessor,
     });
     await expect(
-      documentProcessor.processEvents(initializedState, [EVT1])
+      documentProcessor.processEvents(initializedState, [EVT1]),
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
@@ -67,7 +67,7 @@ describe('Process Embedded – full dynamic cycle (t1→t2→t1→t3→t1)', () 
     ]);
 
     await expect(
-      documentProcessor.processEvents(state, [EVT1])
+      documentProcessor.processEvents(state, [EVT1]),
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 });

@@ -50,7 +50,7 @@ describe('Process Embedded – cross-boundary guard', () => {
     });
 
     await expect(
-      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT]),
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
@@ -63,7 +63,7 @@ describe('Process Embedded – cross-boundary guard', () => {
     });
 
     await expect(
-      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT]),
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
@@ -76,7 +76,7 @@ describe('Process Embedded – cross-boundary guard', () => {
     });
 
     await expect(
-      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT]),
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 
@@ -107,7 +107,7 @@ describe('Process Embedded – cross-boundary guard', () => {
     });
 
     await expect(
-      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT])
+      documentProcessor.processEvents(initializedState, [TIMELINE_EVENT]),
     ).rejects.toThrow(EmbeddedDocumentModificationError);
   });
 });

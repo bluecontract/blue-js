@@ -45,7 +45,7 @@ describe('ChannelRunnerTest', () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
-      new IncrementPropertyContractProcessor()
+      new IncrementPropertyContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -62,7 +62,7 @@ describe('ChannelRunnerTest', () => {
 
     const firstEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
     const afterFirst = expectOk(
-      processor.processDocument(current.clone(), firstEvent)
+      processor.processDocument(current.clone(), firstEvent),
     );
     current = afterFirst.document.clone();
 
@@ -73,14 +73,14 @@ describe('ChannelRunnerTest', () => {
 
     const duplicateEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
     const afterDuplicate = expectOk(
-      processor.processDocument(current.clone(), duplicateEvent)
+      processor.processDocument(current.clone(), duplicateEvent),
     );
     current = afterDuplicate.document.clone();
     expect(Number(property(current, 'counter').getValue())).toBe(1);
 
     const secondEvent = eventNode({ eventId: 'evt-2', kind: 'original' });
     const afterSecond = expectOk(
-      processor.processDocument(current.clone(), secondEvent)
+      processor.processDocument(current.clone(), secondEvent),
     );
     current = afterSecond.document.clone();
     expect(Number(property(current, 'counter').getValue())).toBe(2);
@@ -90,7 +90,7 @@ describe('ChannelRunnerTest', () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
-      new IncrementPropertyContractProcessor()
+      new IncrementPropertyContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -107,7 +107,7 @@ describe('ChannelRunnerTest', () => {
 
     const first = eventNode({ eventId: 'evt-1', kind: 'original' });
     current = expectOk(
-      processor.processDocument(current.clone(), first)
+      processor.processDocument(current.clone(), first),
     ).document.clone();
 
     const sameIdDifferentPayload = eventNode({
@@ -115,16 +115,16 @@ describe('ChannelRunnerTest', () => {
       kind: 'mutated',
     });
     current = expectOk(
-      processor.processDocument(current.clone(), sameIdDifferentPayload)
+      processor.processDocument(current.clone(), sameIdDifferentPayload),
     ).document.clone();
 
     current = expectOk(
-      processor.processDocument(current.clone(), sameIdDifferentPayload)
+      processor.processDocument(current.clone(), sameIdDifferentPayload),
     ).document.clone();
 
     const newId = eventNode({ eventId: 'evt-2', kind: 'mutated' });
     current = expectOk(
-      processor.processDocument(current.clone(), newId)
+      processor.processDocument(current.clone(), newId),
     ).document.clone();
 
     expect(Number(property(current, 'counter').getValue())).toBe(2);
@@ -134,7 +134,7 @@ describe('ChannelRunnerTest', () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
-      new IncrementPropertyContractProcessor()
+      new IncrementPropertyContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -152,19 +152,19 @@ describe('ChannelRunnerTest', () => {
     current = expectOk(
       processor.processDocument(
         current.clone(),
-        eventNode({ kind: 'original' })
-      )
+        eventNode({ kind: 'original' }),
+      ),
     ).document.clone();
 
     current = expectOk(
       processor.processDocument(
         current.clone(),
-        eventNode({ kind: 'original' })
-      )
+        eventNode({ kind: 'original' }),
+      ),
     ).document.clone();
 
     current = expectOk(
-      processor.processDocument(current.clone(), eventNode({ kind: 'other' }))
+      processor.processDocument(current.clone(), eventNode({ kind: 'other' })),
     ).document.clone();
 
     expect(Number(property(current, 'counter').getValue())).toBe(2);
@@ -174,7 +174,7 @@ describe('ChannelRunnerTest', () => {
     const processor = buildProcessor(
       blue,
       new NormalizingTestEventChannelProcessor(),
-      new SetPropertyOnEventContractProcessor()
+      new SetPropertyOnEventContractProcessor(),
     );
 
     const yaml = `contracts:
@@ -193,7 +193,7 @@ describe('ChannelRunnerTest', () => {
     let current = initialize(processor, yaml);
     const firstEvent = eventNode({ eventId: 'evt-1', kind: 'original' });
     current = expectOk(
-      processor.processDocument(current.clone(), firstEvent)
+      processor.processDocument(current.clone(), firstEvent),
     ).document.clone();
 
     const originalKind = firstEvent.getProperties()?.kind?.getValue();

@@ -21,12 +21,12 @@ export class SequentialWorkflowOperationProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     const blue = ctx.getBlue();
     const sequentialWorkflowOperation = blue.nodeToSchemaOutput(
       node,
-      SequentialWorkflowOperationSchema
+      SequentialWorkflowOperationSchema,
     );
     const operation = sequentialWorkflowOperation.operation;
     const eventChannelName = event.channelName;
@@ -43,14 +43,14 @@ export class SequentialWorkflowOperationProcessor {
     event: EventNode,
     node: DocumentNode,
     context: ProcessingContext,
-    path: string
+    path: string,
   ): Promise<void> {
     try {
       await this.sequentialWorkflowProcessor.handle(event, node, context, path);
     } catch (error) {
       console.error(
         'Error in SequentialWorkflowOperationProcessor.handle:',
-        error
+        error,
       );
       throw error;
     }

@@ -45,7 +45,7 @@ describe('ChannelRunner', () => {
       key,
       channel: 'external',
       order: key === 'h1' ? 0 : 1,
-    } as HandlerContract);
+    }) as HandlerContract;
 
   function createBundle(): ContractBundle {
     return ContractBundle.builder()
@@ -60,7 +60,7 @@ describe('ChannelRunner', () => {
       evaluateChannel: (event: BlueNode) => ChannelMatch;
       isScopeInactive: () => boolean;
       onExecute: (handler: HandlerBinding, event: BlueNode) => void;
-    }> = {}
+    }> = {},
   ) {
     const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const bundle = createBundle();
@@ -82,21 +82,21 @@ describe('ChannelRunner', () => {
         _channel: ChannelBinding,
         currentBundle: ContractBundle,
         currentScope: string,
-        event: BlueNode
+        event: BlueNode,
       ): ChannelMatch => evaluate(event),
       isScopeInactive: () => isInactive(),
       createContext: (
         currentScope: string,
         currentBundle: ContractBundle,
         event: BlueNode,
-        allowTerminatedWork: boolean
+        allowTerminatedWork: boolean,
       ) =>
         ({
           event: () => event,
-        } as unknown as ProcessorExecutionContext),
+        }) as unknown as ProcessorExecutionContext,
       executeHandler: (
         handler: HandlerBinding,
-        context: ProcessorExecutionContext
+        context: ProcessorExecutionContext,
       ) => {
         const eventNode = context.event();
         onExecute(handler, eventNode as BlueNode);
@@ -157,11 +157,11 @@ describe('ChannelRunner', () => {
 
     expect(handlerSpy).toHaveBeenCalledTimes(2);
     expect(
-      runtime.document().get('/contracts/checkpoint/lastEvents/external')
+      runtime.document().get('/contracts/checkpoint/lastEvents/external'),
     ).toBeInstanceOf(BlueNode);
     expect(
       (bundle.marker(KEY_CHECKPOINT) as ChannelEventCheckpoint)?.lastSignatures
-        ?.external
+        ?.external,
     ).toBe('event-1');
   });
 

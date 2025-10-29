@@ -70,7 +70,7 @@ export class Blue {
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider || defaultProvider,
-      repositories
+      repositories,
     );
 
     this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
@@ -79,7 +79,7 @@ export class Blue {
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
       undefined,
-      this.urlContentFetcher
+      this.urlContentFetcher,
     );
 
     this.blueIdsMappingGenerator = new BlueIdsMappingGenerator();
@@ -101,7 +101,7 @@ export class Blue {
    */
   public nodeToJson(
     node: BlueNode,
-    strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official'
+    strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official',
   ) {
     return NodeToMapListOrValue.get(node, strategy);
   }
@@ -109,7 +109,7 @@ export class Blue {
   public nodeToSchemaOutput<
     Output = unknown,
     Def extends ZodTypeDef = ZodTypeDef,
-    Input = Output
+    Input = Output,
   >(node: BlueNode, schema: ZodType<Output, Def, Input>): Output {
     const converter = new NodeToObjectConverter(this.typeSchemaResolver);
     return converter.convert(node, schema);
@@ -186,7 +186,7 @@ export class Blue {
   }
 
   private prepareForBlueIdCalculation = async (
-    value: JsonBlueValue | BlueNode | BlueNode[]
+    value: JsonBlueValue | BlueNode | BlueNode[],
   ): Promise<BlueNode | BlueNode[]> => {
     if (
       value instanceof BlueNode ||
@@ -197,7 +197,7 @@ export class Blue {
 
     if (Array.isArray(value)) {
       const nodes = await Promise.all(
-        value.map((v) => this.jsonValueToNodeAsync(v))
+        value.map((v) => this.jsonValueToNodeAsync(v)),
       );
       return nodes;
     }
@@ -206,14 +206,14 @@ export class Blue {
   };
 
   public calculateBlueId = async (
-    value: JsonBlueValue | BlueNode | BlueNode[]
+    value: JsonBlueValue | BlueNode | BlueNode[],
   ) => {
     const prepared = await this.prepareForBlueIdCalculation(value);
     return BlueIdCalculator.calculateBlueId(prepared);
   };
 
   private prepareForBlueIdCalculationSync = (
-    value: JsonBlueValue | BlueNode | BlueNode[]
+    value: JsonBlueValue | BlueNode | BlueNode[],
   ): BlueNode | BlueNode[] => {
     if (
       value instanceof BlueNode ||
@@ -247,9 +247,8 @@ export class Blue {
   }
 
   public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
-    const preprocessedNode = await this.blueDirectivePreprocessor.processAsync(
-      node
-    );
+    const preprocessedNode =
+      await this.blueDirectivePreprocessor.processAsync(node);
     return new Preprocessor({
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
@@ -258,7 +257,7 @@ export class Blue {
 
   public transform(
     node: BlueNode,
-    transformer: (node: BlueNode) => BlueNode
+    transformer: (node: BlueNode) => BlueNode,
   ): BlueNode {
     return NodeTransformer.transform(node, transformer);
   }
@@ -270,7 +269,7 @@ export class Blue {
   public setNodeProvider(nodeProvider: NodeProvider): Blue {
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider,
-      this.repositories
+      this.repositories,
     );
     return this;
   }
@@ -280,7 +279,7 @@ export class Blue {
   }
 
   public setTypeSchemaResolver(
-    typeSchemaResolver: TypeSchemaResolver | null
+    typeSchemaResolver: TypeSchemaResolver | null,
   ): Blue {
     this.typeSchemaResolver = typeSchemaResolver;
     return this;
@@ -426,7 +425,7 @@ export class Blue {
     schema: AnyZodObject,
     options?: {
       checkSchemaExtensions?: boolean;
-    }
+    },
   ): boolean {
     return BlueNodeTypeSchema.isTypeOf(node, schema, {
       checkSchemaExtensions: options?.checkSchemaExtensions,

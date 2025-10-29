@@ -1,12 +1,17 @@
 import type { HandlerProcessor } from '../../registry/types.js';
 import { removePropertySchema, type RemoveProperty } from '../models/index.js';
 
-export class RemovePropertyContractProcessor implements HandlerProcessor<RemoveProperty> {
+export class RemovePropertyContractProcessor
+  implements HandlerProcessor<RemoveProperty>
+{
   readonly kind = 'handler' as const;
   readonly blueIds = ['RemoveProperty'] as const;
   readonly schema = removePropertySchema;
 
-  execute(contract: RemoveProperty, context: Parameters<HandlerProcessor<RemoveProperty>['execute']>[1]): void {
+  execute(
+    contract: RemoveProperty,
+    context: Parameters<HandlerProcessor<RemoveProperty>['execute']>[1],
+  ): void {
     const propertyKey = contract.propertyKey;
     if (!propertyKey || propertyKey.trim().length === 0) {
       throw new Error('propertyKey must not be empty for RemoveProperty');
@@ -22,6 +27,3 @@ export class RemovePropertyContractProcessor implements HandlerProcessor<RemoveP
     return stripped.replace(/\/+/, '/');
   }
 }
-
-
-

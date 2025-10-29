@@ -37,7 +37,7 @@ describe('ProcessorExecutionContext', () => {
       '/',
       nodeFrom({ eventType: 'Event' }),
       false,
-      false
+      false,
     );
     return { context, adapter, runtime };
   }
@@ -86,21 +86,21 @@ describe('ProcessorExecutionContext', () => {
       '/child',
       nodeFrom({}),
       true,
-      false
+      false,
     );
 
     context.terminateGracefully('done');
     expect(adapter.enterGracefulTermination).toHaveBeenCalledWith(
       '/child',
       bundle,
-      'done'
+      'done',
     );
 
     context.terminateFatally('fatal');
     expect(adapter.enterFatalTermination).toHaveBeenCalledWith(
       '/child',
       bundle,
-      'fatal'
+      'fatal',
     );
   });
 

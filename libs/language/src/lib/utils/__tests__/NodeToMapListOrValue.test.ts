@@ -99,17 +99,17 @@ describe('NodeToMapListOrValue', () => {
     expect(party1).toBeDefined();
     expect(party1['name']).toEqual('Alice');
     expect((party1['role'] as Record<string, unknown>)['value']).toEqual(
-      'Seller'
+      'Seller',
     );
 
     const party2 = contracts['party2'] as Record<string, unknown>;
     expect(party2).toBeDefined();
     expect(party2['name']).toEqual('Bob');
     expect((party2['role'] as Record<string, unknown>)['value']).toEqual(
-      'Buyer'
+      'Buyer',
     );
     expect((party2['contactInfo'] as Record<string, unknown>)['value']).toEqual(
-      'bob@example.com'
+      'bob@example.com',
     );
 
     const terms = contracts['terms'] as Record<string, unknown>;
@@ -268,8 +268,8 @@ describe('NodeToMapListOrValue', () => {
     it('should throw error if an imprecise conversion occurs on node value', () => {
       const node1 = new BlueNode().setValue(
         new BigDecimalNumber(
-          '132452345234524739582739458723948572934875.132452345234524739582739458723948572934875'
-        )
+          '132452345234524739582739458723948572934875.132452345234524739582739458723948572934875',
+        ),
       );
 
       expect(NodeToMapListOrValue.get(node1)).toMatchInlineSnapshot(`
@@ -284,8 +284,8 @@ describe('NodeToMapListOrValue', () => {
       const node2 = new BlueNode().addProperty(
         'key',
         new BlueNode().setValue(
-          new BigIntegerNumber('132452345234524739582739458723948572934875')
-        )
+          new BigIntegerNumber('132452345234524739582739458723948572934875'),
+        ),
       );
 
       expect(NodeToMapListOrValue.get(node2)).toMatchInlineSnapshot(`
@@ -674,7 +674,7 @@ describe('NodeToMapListOrValue', () => {
       const arrayNode = NodeDeserializer.deserialize([1, 2, 3]);
 
       expect(NodeToMapListOrValue.get(stringNode, 'original')).toEqual(
-        'Hello World'
+        'Hello World',
       );
       expect(NodeToMapListOrValue.get(numberNode, 'original')).toEqual(42);
       expect(NodeToMapListOrValue.get(booleanNode, 'original')).toEqual(true);

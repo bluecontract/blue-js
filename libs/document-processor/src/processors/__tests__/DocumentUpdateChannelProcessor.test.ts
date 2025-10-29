@@ -43,7 +43,7 @@ describe('Document Update Channel — loop detection', () => {
     } as const;
 
     await expect(
-      prepareToProcess(doc, { blue, documentProcessor })
+      prepareToProcess(doc, { blue, documentProcessor }),
     ).rejects.toThrow(/Loop detected/);
   });
 
@@ -118,7 +118,7 @@ describe('Document Update Channel — loop detection', () => {
     } as const;
 
     await expect(
-      prepareToProcess(doc, { blue, documentProcessor })
+      prepareToProcess(doc, { blue, documentProcessor }),
     ).rejects.toThrow(/Loop detected/);
   });
 });

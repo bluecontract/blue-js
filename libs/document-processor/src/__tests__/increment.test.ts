@@ -52,7 +52,7 @@ describe('increment', () => {
     const eventToIgnore = createMyOSTimelineEntryEvent(
       'ignore-timeline',
       'foo',
-      blue
+      blue,
     );
 
     const { state: state1, emitted: emitted1 } =
@@ -76,7 +76,7 @@ describe('increment', () => {
     const eventTimeline = createMyOSTimelineEntryEvent(
       'timeline-1',
       'bar',
-      blue
+      blue,
     );
 
     const { state: state3, emitted: emitted3 } =

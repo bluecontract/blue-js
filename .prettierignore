@@ -1,5 +1,12 @@
-# Add files here to ignore them from prettier formatting
-/dist
-/coverage
-/.nx/cache
-/.nx/workspace-data
+node_modules
+**/dist/**
+**/coverage/**
+**/out-tsc/**
+
+*.timestamp*
+*.lock
+*.tsbuildinfo
+
+.nx/**
+.yalc/**
+src-concatenated.txt

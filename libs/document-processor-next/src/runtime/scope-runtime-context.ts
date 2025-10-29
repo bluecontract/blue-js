@@ -19,7 +19,11 @@ export class ScopeRuntimeContext {
   }
 
   enqueueTriggered(node: BlueNode): void {
-    if (this.cutOff && this.triggeredLimit >= 0 && this.triggeredQueue.length >= this.triggeredLimit) {
+    if (
+      this.cutOff &&
+      this.triggeredLimit >= 0 &&
+      this.triggeredQueue.length >= this.triggeredLimit
+    ) {
       return;
     }
     this.triggeredQueue.push(node);
@@ -50,7 +54,11 @@ export class ScopeRuntimeContext {
   }
 
   recordBridgeable(node: BlueNode): void {
-    if (this.cutOff && this.bridgeableLimit >= 0 && this.bridgeableEvents.length >= this.bridgeableLimit) {
+    if (
+      this.cutOff &&
+      this.bridgeableLimit >= 0 &&
+      this.bridgeableEvents.length >= this.bridgeableLimit
+    ) {
       return;
     }
     this.bridgeableEvents.push(node);
@@ -58,7 +66,11 @@ export class ScopeRuntimeContext {
 
   drainBridgeableEvents(): BlueNode[] {
     let drained: BlueNode[];
-    if (this.cutOff && this.bridgeableLimit >= 0 && this.bridgeableLimit < this.bridgeableEvents.length) {
+    if (
+      this.cutOff &&
+      this.bridgeableLimit >= 0 &&
+      this.bridgeableLimit < this.bridgeableEvents.length
+    ) {
       drained = this.bridgeableEvents.slice(0, this.bridgeableLimit);
     } else {
       drained = [...this.bridgeableEvents];
@@ -79,7 +91,10 @@ export class ScopeRuntimeContext {
     return this.terminationReasonValue;
   }
 
-  finalizeTermination(kind: TerminationKind, reason: string | null = null): void {
+  finalizeTermination(
+    kind: TerminationKind,
+    reason: string | null = null,
+  ): void {
     if (this.terminated) {
       return;
     }

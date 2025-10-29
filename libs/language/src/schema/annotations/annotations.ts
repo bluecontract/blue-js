@@ -49,7 +49,7 @@ export function setAnnotations<
   Output = any,
   Def extends ZodTypeDef = ZodTypeDef,
   Input = Output,
-  Schema extends ZodType<Output, Def, Input> = ZodType<Output, Def, Input>
+  Schema extends ZodType<Output, Def, Input> = ZodType<Output, Def, Input>,
 >(schema: Schema, annotations: Record<string, unknown>): Schema {
   const annotationsMap = getGlobalSchemaAnnotations();
   const existing = annotationsMap.get(schema) || {};

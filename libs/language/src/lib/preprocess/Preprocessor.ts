@@ -86,7 +86,7 @@ export class Preprocessor {
    */
   private preprocessWithOptions(
     document: BlueNode,
-    defaultBlue: BlueNode | null
+    defaultBlue: BlueNode | null,
   ): BlueNode {
     let processedDocument = document.clone();
     let blueNode = processedDocument.getBlue();
@@ -98,7 +98,7 @@ export class Preprocessor {
     if (blueNode) {
       new NodeExtender(this.nodeProvider).extend(
         blueNode,
-        PathLimits.withSinglePath('/*')
+        PathLimits.withSinglePath('/*'),
       );
 
       const transformations = blueNode.getItems();
@@ -109,7 +109,7 @@ export class Preprocessor {
             processedDocument = processor.process(processedDocument);
           } else {
             throw new Error(
-              `No processor found for transformation: ${transformation}`
+              `No processor found for transformation: ${transformation}`,
             );
           }
         }
@@ -118,7 +118,7 @@ export class Preprocessor {
       }
 
       processedDocument = new ValidateInlineTypesReplaced().process(
-        processedDocument
+        processedDocument,
       );
     }
 
@@ -132,7 +132,7 @@ export class Preprocessor {
   public static getStandardProvider(): TransformationProcessorProvider {
     return {
       getProcessor(
-        transformation: BlueNode
+        transformation: BlueNode,
       ): TransformationProcessor | undefined {
         const REPLACE_INLINE_TYPES =
           '27B7fuxQCS1VAptiCPc2RMkKoutP5qxkh3uDxZ7dr6Eo';
@@ -143,7 +143,7 @@ export class Preprocessor {
 
         if (REPLACE_INLINE_TYPES === blueId) {
           return new ReplaceInlineValuesForTypeAttributesWithImports(
-            transformation
+            transformation,
           );
         } else if (INFER_BASIC_TYPES === blueId) {
           return new InferBasicTypesForUntypedValues();

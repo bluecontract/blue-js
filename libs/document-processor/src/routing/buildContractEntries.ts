@@ -1,7 +1,7 @@
 import { DocumentNode } from '../types';
 
 export function buildContractEntries(
-  node: DocumentNode
+  node: DocumentNode,
 ): Array<[string, DocumentNode]> {
   const entries = Object.entries(node.getContracts() ?? {});
 

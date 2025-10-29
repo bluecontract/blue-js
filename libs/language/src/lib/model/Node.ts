@@ -131,7 +131,7 @@ export class BlueNode {
   }
 
   setValue(
-    value: JsonPrimitive | BigIntegerNumber | BigDecimalNumber | number
+    value: JsonPrimitive | BigIntegerNumber | BigDecimalNumber | number,
   ): BlueNode {
     if (typeof value === 'number') {
       if (value % 1 === 0) {
@@ -266,7 +266,7 @@ export class BlueNode {
 
   get(
     path: string,
-    linkingProvider?: (node: BlueNode) => BlueNode | null
+    linkingProvider?: (node: BlueNode) => BlueNode | null,
   ):
     | BlueNode
     | string
@@ -297,7 +297,7 @@ export class BlueNode {
     }
 
     throw new Error(
-      `Value at path ${path} is not a BigInteger or BigDecimal: ${value}`
+      `Value at path ${path} is not a BigInteger or BigDecimal: ${value}`,
     );
   }
 
@@ -312,7 +312,7 @@ export class BlueNode {
     cloned.items = this.items?.map((item) => item.clone());
     if (this.properties) {
       cloned.properties = Object.fromEntries(
-        Object.entries(this.properties).map(([k, v]) => [k, v.clone()])
+        Object.entries(this.properties).map(([k, v]) => [k, v.clone()]),
       );
     }
     cloned.blueId = this.blueId;

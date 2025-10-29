@@ -15,7 +15,7 @@ export const normalizeToBlueObject = (json: JsonBlueValue) => {
     return blueObjectSchema.parse(jsonBlueObject);
   } catch (error) {
     throw new Error(
-      `Failed transforming JSON-like value to BlueObject: ${error}`
+      `Failed transforming JSON-like value to BlueObject: ${error}`,
     );
   }
 };

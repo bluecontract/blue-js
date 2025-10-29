@@ -19,7 +19,7 @@ import {
  */
 function getType(
   node: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): BlueNode | undefined {
   const type = node.getType();
   if (type === undefined) {
@@ -31,7 +31,7 @@ function getType(
     // Handle core types
     if (
       CORE_TYPE_BLUE_IDS.includes(
-        typeBlueId as (typeof CORE_TYPE_BLUE_IDS)[number]
+        typeBlueId as (typeof CORE_TYPE_BLUE_IDS)[number],
       )
     ) {
       const typeName =
@@ -48,7 +48,7 @@ function getType(
     }
     if (typeNodes.length > 1) {
       throw new Error(
-        `Expected a single node for type with blueId '${typeBlueId}', but found multiple.`
+        `Expected a single node for type with blueId '${typeBlueId}', but found multiple.`,
       );
     }
     return typeNodes[0];
@@ -63,7 +63,7 @@ function getType(
 export function isSubtype(
   subtype: BlueNode,
   supertype: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   const subtypeBlueId = BlueIdCalculator.calculateBlueIdSync(subtype);
   const supertypeBlueId = BlueIdCalculator.calculateBlueIdSync(supertype);
@@ -76,7 +76,7 @@ export function isSubtype(
   if (
     subtypeBlueId &&
     CORE_TYPE_BLUE_IDS.includes(
-      subtypeBlueId as (typeof CORE_TYPE_BLUE_IDS)[number]
+      subtypeBlueId as (typeof CORE_TYPE_BLUE_IDS)[number],
     )
   ) {
     let current: BlueNode | undefined = supertype;
@@ -119,7 +119,7 @@ export function isSubtype(
  */
 export function isBasicType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   return BASIC_TYPE_BLUE_IDS.some((blueId) => {
     const basicTypeNode = new BlueNode().setBlueId(blueId);
@@ -132,7 +132,7 @@ export function isBasicType(
  */
 export function isTextType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   const textTypeNode = new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID);
   return isSubtype(type, textTypeNode, nodeProvider);
@@ -143,7 +143,7 @@ export function isTextType(
  */
 export function isIntegerType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   const integerTypeNode = new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID);
   return isSubtype(type, integerTypeNode, nodeProvider);
@@ -154,7 +154,7 @@ export function isIntegerType(
  */
 export function isNumberType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   const numberTypeNode = new BlueNode().setBlueId(DOUBLE_TYPE_BLUE_ID);
   return isSubtype(type, numberTypeNode, nodeProvider);
@@ -165,7 +165,7 @@ export function isNumberType(
  */
 export function isBooleanType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   const booleanTypeNode = new BlueNode().setBlueId(BOOLEAN_TYPE_BLUE_ID);
   return isSubtype(type, booleanTypeNode, nodeProvider);
@@ -176,7 +176,7 @@ export function isBooleanType(
  */
 export function isListType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   const listTypeNode = new BlueNode().setBlueId(LIST_TYPE_BLUE_ID);
   return isSubtype(type, listTypeNode, nodeProvider);
@@ -187,7 +187,7 @@ export function isListType(
  */
 export function isDictionaryType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   const dictionaryTypeNode = new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID);
   return isSubtype(type, dictionaryTypeNode, nodeProvider);
@@ -198,7 +198,7 @@ export function isDictionaryType(
  */
 export function isSubtypeOfBasicType(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): boolean {
   return BASIC_TYPES.some((basicTypeName) => {
     const basicTypeNode = new BlueNode().setName(basicTypeName);
@@ -211,7 +211,7 @@ export function isSubtypeOfBasicType(
  */
 export function findBasicTypeName(
   type: BlueNode,
-  nodeProvider: NodeProvider
+  nodeProvider: NodeProvider,
 ): string {
   for (const basicTypeName of BASIC_TYPES) {
     const basicTypeNode = new BlueNode().setName(basicTypeName);
@@ -222,6 +222,6 @@ export function findBasicTypeName(
   throw new Error(
     `Cannot determine the basic type for node of type "${
       type.getName() || 'unknown'
-    }".`
+    }".`,
   );
 }

@@ -56,7 +56,9 @@ export class PatchEngine {
     const segments = splitPointer(normalized);
     const { parent, leaf } = this.resolveParent(segments);
     if (leaf === ARRAY_APPEND_TOKEN) {
-      throw new Error(`Direct write does not support append token '-' for path ${normalized}`);
+      throw new Error(
+        `Direct write does not support append token '-' for path ${normalized}`,
+      );
     }
 
     const items = parent.getItems();
@@ -68,7 +70,13 @@ export class PatchEngine {
     this.directWriteObject(parent, leaf, value);
   }
 
-  private directWriteArray(parent: BlueNode, items: BlueNode[], leaf: string, value: BlueNode | null, normalized: string): void {
+  private directWriteArray(
+    parent: BlueNode,
+    items: BlueNode[],
+    leaf: string,
+    value: BlueNode | null,
+    normalized: string,
+  ): void {
     const mutable = ensureMutableItems(parent, items);
     const index = parseArrayIndex(leaf, normalized);
     if (value == null) {
@@ -90,21 +98,32 @@ export class PatchEngine {
       parent.setItems(mutable);
       return;
     }
-    throw new Error(`Array index out of bounds for direct write: ${normalized}`);
+    throw new Error(
+      `Array index out of bounds for direct write: ${normalized}`,
+    );
   }
 
-  private directWriteObject(parent: BlueNode, leaf: string, value: BlueNode | null): void {
+  private directWriteObject(
+    parent: BlueNode,
+    leaf: string,
+    value: BlueNode | null,
+  ): void {
     const properties = ensureMutableProperties(parent);
     if (value == null) {
       delete properties[leaf];
-      parent.setProperties(Object.keys(properties).length > 0 ? properties : undefined);
+      parent.setProperties(
+        Object.keys(properties).length > 0 ? properties : undefined,
+      );
       return;
     }
     properties[leaf] = value.clone();
     parent.setProperties(properties);
   }
 
-  private resolveParent(segments: readonly string[]): { parent: BlueNode; leaf: string } {
+  private resolveParent(segments: readonly string[]): {
+    parent: BlueNode;
+    leaf: string;
+  } {
     if (segments.length === 0) {
       throw new Error('Cannot apply direct write to root');
     }
@@ -123,17 +142,23 @@ export class PatchEngine {
     depth: number,
   ): BlueNode {
     if (segment === ARRAY_APPEND_TOKEN) {
-      throw new Error(`Append token '-' must be final segment: ${pointerPrefix(segments, depth)}`);
+      throw new Error(
+        `Append token '-' must be final segment: ${pointerPrefix(segments, depth)}`,
+      );
     }
     const items = current.getItems();
     if (items && isArrayIndexSegment(segment)) {
       const index = parseArrayIndex(segment, pointerPrefix(segments, depth));
       if (index < 0 || index >= items.length) {
-        throw new Error(`Array index out of bounds: ${pointerPrefix(segments, depth)}`);
+        throw new Error(
+          `Array index out of bounds: ${pointerPrefix(segments, depth)}`,
+        );
       }
       const child = items[index];
       if (!child) {
-        throw new Error(`Path does not exist: ${pointerPrefix(segments, depth)}`);
+        throw new Error(
+          `Path does not exist: ${pointerPrefix(segments, depth)}`,
+        );
       }
       return child;
     }
@@ -151,18 +176,26 @@ export class PatchEngine {
   private applyAdd(
     segments: string[],
     path: string,
-    value: BlueNode | null
+    value: BlueNode | null,
   ): void {
     if (path === '/' || path.length === 0) {
       throw new Error('ADD operation cannot target document root');
     }
-    const { parent, key, pointer, created } = this.resolveParentForPatch(segments, path, 'ADD');
+    const { parent, key, pointer, created } = this.resolveParentForPatch(
+      segments,
+      path,
+      'ADD',
+    );
     try {
       if (isArrayIndexSegment(key)) {
         const items = parent.getItems();
         const isAppend = key === ARRAY_APPEND_TOKEN;
         if (!items) {
-          throw new Error(isAppend ? `Append token '-' requires array at ${pointer}` : `Array index segment requires array at ${pointer}`);
+          throw new Error(
+            isAppend
+              ? `Append token '-' requires array at ${pointer}`
+              : `Array index segment requires array at ${pointer}`,
+          );
         }
         if (isAppend) {
           const mutable = ensureMutableItems(parent, items);
@@ -190,12 +223,16 @@ export class PatchEngine {
   private applyReplace(
     segments: string[],
     path: string,
-    value: BlueNode | null
+    value: BlueNode | null,
   ): void {
     if (path === '/' || path.length === 0) {
       throw new Error('REPLACE operation cannot target document root');
     }
-    const { parent, key, created } = this.resolveParentForPatch(segments, path, 'REPLACE');
+    const { parent, key, created } = this.resolveParentForPatch(
+      segments,
+      path,
+      'REPLACE',
+    );
     try {
       if (isArrayIndexSegment(key)) {
         const items = parent.getItems();
@@ -224,7 +261,11 @@ export class PatchEngine {
     if (path === '/' || path.length === 0) {
       throw new Error('REMOVE operation cannot target document root');
     }
-    const { parent, key } = this.resolveParentForPatch(segments, path, 'REMOVE');
+    const { parent, key } = this.resolveParentForPatch(
+      segments,
+      path,
+      'REMOVE',
+    );
 
     if (isArrayIndexSegment(key)) {
       const items = parent.getItems();
@@ -241,7 +282,10 @@ export class PatchEngine {
     }
 
     const currentProps = parent.getProperties();
-    if (!currentProps || !Object.prototype.hasOwnProperty.call(currentProps, key)) {
+    if (
+      !currentProps ||
+      !Object.prototype.hasOwnProperty.call(currentProps, key)
+    ) {
       throw new Error(`Path does not exist: ${path}`);
     }
     const properties = { ...currentProps };
@@ -253,7 +297,12 @@ export class PatchEngine {
     segments: string[],
     originalPath: string,
     op: 'ADD' | 'REPLACE' | 'REMOVE',
-  ): { parent: BlueNode; key: string; pointer: string; created: Array<{ owner: BlueNode; key: string }> } {
+  ): {
+    parent: BlueNode;
+    key: string;
+    pointer: string;
+    created: Array<{ owner: BlueNode; key: string }>;
+  } {
     if (segments.length === 0) {
       throw new Error(`${op} operation cannot target document root`);
     }
@@ -299,7 +348,9 @@ export class PatchEngine {
     return { parent: current, key, pointer: originalPath, created };
   }
 
-  private rollbackCreated(created: Array<{ owner: BlueNode; key: string }>): void {
+  private rollbackCreated(
+    created: Array<{ owner: BlueNode; key: string }>,
+  ): void {
     for (let i = created.length - 1; i >= 0; i -= 1) {
       const { owner, key } = created[i];
       const props = owner.getProperties();
@@ -334,7 +385,7 @@ function cloneAtSafe(
   root: BlueNode,
   segments: readonly string[],
   mode: 'before' | 'after',
-  path: string
+  path: string,
 ): BlueNode | null {
   try {
     if (segments.length === 0) {
@@ -351,7 +402,7 @@ function readNode(
   root: BlueNode,
   segments: readonly string[],
   mode: 'before' | 'after',
-  path: string
+  path: string,
 ): BlueNode | null {
   let current: BlueNode | null = root;
   for (let i = 0; i < segments.length; i += 1) {
@@ -370,7 +421,7 @@ function descendForRead(
   segment: string,
   isLast: boolean,
   mode: 'before' | 'after',
-  path: string
+  path: string,
 ): BlueNode | null {
   if (!current) {
     return null;
@@ -397,7 +448,9 @@ function descendForRead(
     return items[index] ?? null;
   }
 
-  const properties = current.getProperties() as Record<string, BlueNode> | undefined;
+  const properties = current.getProperties() as
+    | Record<string, BlueNode>
+    | undefined;
   if (!properties) {
     return null;
   }

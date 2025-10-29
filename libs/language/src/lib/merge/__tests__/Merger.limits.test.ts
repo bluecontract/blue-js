@@ -186,10 +186,10 @@ prop3:
     const result = merger.resolve(sourceNode, limits);
 
     expect(await result.get('/prop1/nested/value')).toStrictEqual(
-      new BigIntegerNumber(1)
+      new BigIntegerNumber(1),
     );
     expect(await result.get('/prop2/nested/value')).toStrictEqual(
-      new BigIntegerNumber(2)
+      new BigIntegerNumber(2),
     );
     expect(await result.get('/prop3')).toBeDefined(); // prop3 exists but is empty
     expect(await result.get('/prop3/other')).toBeUndefined(); // 'other' was not merged

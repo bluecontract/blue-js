@@ -11,7 +11,7 @@ export class DictionaryProcessor implements MergingProcessor {
   process(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     const sourceKeyType = source.getKeyType();
     const sourceValueType = source.getValueType();
@@ -22,7 +22,7 @@ export class DictionaryProcessor implements MergingProcessor {
       !NodeTypes.isDictionaryType(sourceType, nodeProvider)
     ) {
       throw new Error(
-        'Source node with keyType or valueType must have a Dictionary type'
+        'Source node with keyType or valueType must have a Dictionary type',
       );
     }
 
@@ -53,7 +53,7 @@ export class DictionaryProcessor implements MergingProcessor {
   private processKeyType(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     const targetKeyType = target.getKeyType();
     const sourceKeyType = source.getKeyType();
@@ -68,17 +68,17 @@ export class DictionaryProcessor implements MergingProcessor {
       const isSubtypeResult = NodeTypes.isSubtype(
         sourceKeyType,
         targetKeyType,
-        nodeProvider
+        nodeProvider,
       );
       if (!isSubtypeResult) {
         const sourceKeyTypeStr = NodeToMapListOrValue.get(sourceKeyType);
         const targetKeyTypeStr = NodeToMapListOrValue.get(targetKeyType);
         throw new Error(
           `The source key type '${JSON.stringify(
-            sourceKeyTypeStr
+            sourceKeyTypeStr,
           )}' is not a subtype of the target key type '${JSON.stringify(
-            targetKeyTypeStr
-          )}'.`
+            targetKeyTypeStr,
+          )}'.`,
         );
       }
       return target.clone().setKeyType(sourceKeyType);
@@ -89,7 +89,7 @@ export class DictionaryProcessor implements MergingProcessor {
   private processValueType(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     const targetValueType = target.getValueType();
     const sourceValueType = source.getValueType();
@@ -102,17 +102,17 @@ export class DictionaryProcessor implements MergingProcessor {
       const isSubtypeResult = NodeTypes.isSubtype(
         sourceValueType,
         targetValueType,
-        nodeProvider
+        nodeProvider,
       );
       if (!isSubtypeResult) {
         const sourceValueTypeStr = NodeToMapListOrValue.get(sourceValueType);
         const targetValueTypeStr = NodeToMapListOrValue.get(targetValueType);
         throw new Error(
           `The source value type '${JSON.stringify(
-            sourceValueTypeStr
+            sourceValueTypeStr,
           )}' is not a subtype of the target value type '${JSON.stringify(
-            targetValueTypeStr
-          )}'.`
+            targetValueTypeStr,
+          )}'.`,
         );
       }
       return target.clone().setValueType(sourceValueType);
@@ -122,7 +122,7 @@ export class DictionaryProcessor implements MergingProcessor {
 
   private validateBasicKeyType(
     keyType: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): void {
     if (!NodeTypes.isBasicType(keyType, nodeProvider)) {
       throw new Error('Dictionary key type must be a basic type');
@@ -132,7 +132,7 @@ export class DictionaryProcessor implements MergingProcessor {
   private validateKeyType(
     key: string,
     keyType: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): void {
     if (NodeTypes.isTextType(keyType, nodeProvider)) {
       return;
@@ -154,7 +154,7 @@ export class DictionaryProcessor implements MergingProcessor {
       }
     } else {
       throw new Error(
-        `Unsupported key type: ${keyType.getName() || 'unknown'}`
+        `Unsupported key type: ${keyType.getName() || 'unknown'}`,
       );
     }
   }
@@ -162,7 +162,7 @@ export class DictionaryProcessor implements MergingProcessor {
   private validateValueType(
     value: BlueNode,
     valueType: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): void {
     const nodeValueType = value.getType();
     if (
@@ -173,10 +173,10 @@ export class DictionaryProcessor implements MergingProcessor {
       const expectedValueTypeStr = NodeToMapListOrValue.get(valueType);
       throw new Error(
         `Value of type '${JSON.stringify(
-          valueTypeStr
+          valueTypeStr,
         )}' is not a subtype of the dictionary's value type '${JSON.stringify(
-          expectedValueTypeStr
-        )}'.`
+          expectedValueTypeStr,
+        )}'.`,
       );
     }
   }

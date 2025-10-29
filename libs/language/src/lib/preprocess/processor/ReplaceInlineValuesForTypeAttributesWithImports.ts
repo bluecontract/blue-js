@@ -62,7 +62,7 @@ export class ReplaceInlineValuesForTypeAttributesWithImports
 
   private transformTypeField(
     node: BlueNode,
-    typeNode: BlueNode | undefined
+    typeNode: BlueNode | undefined,
   ): void {
     if (
       typeNode &&

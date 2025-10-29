@@ -32,7 +32,7 @@ describe('ProcessorExecutionContextTest', () => {
       bundle,
       new BlueNode(),
       false,
-      false
+      false,
     );
 
     const snapshot = context.documentAt('/nested/inner');
@@ -60,7 +60,7 @@ describe('ProcessorExecutionContextTest', () => {
       bundle,
       new BlueNode(),
       false,
-      false
+      false,
     );
 
     context.emitEvent(new BlueNode().setValue('payload'));

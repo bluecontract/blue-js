@@ -38,7 +38,7 @@ export class Merger extends NodeResolver {
   public merge(target: BlueNode, source: BlueNode, limits: Limits): BlueNode {
     if (isNonNullable(source.getBlue())) {
       throw new Error(
-        'Document contains "blue" attribute. Preprocess document before merging.'
+        'Document contains "blue" attribute. Preprocess document before merging.',
       );
     }
 
@@ -50,7 +50,7 @@ export class Merger extends NodeResolver {
       if (isNonNullable(clonedTypeNode.getBlueId())) {
         new NodeExtender(this.nodeProvider).extend(
           clonedTypeNode,
-          PathLimits.withSinglePath('/')
+          PathLimits.withSinglePath('/'),
         );
       }
 
@@ -72,12 +72,12 @@ export class Merger extends NodeResolver {
   private mergeObject(
     target: BlueNode,
     source: BlueNode,
-    limits: Limits
+    limits: Limits,
   ): BlueNode {
     let newTarget = this.mergingProcessor.process(
       target,
       source,
-      this.nodeProvider
+      this.nodeProvider,
     );
 
     const children = source.getItems();
@@ -104,7 +104,7 @@ export class Merger extends NodeResolver {
       newTarget = this.mergingProcessor.postProcess(
         newTarget,
         source,
-        this.nodeProvider
+        this.nodeProvider,
       );
     }
     return newTarget;
@@ -120,13 +120,13 @@ export class Merger extends NodeResolver {
   private mergeChildren(
     target: BlueNode,
     sourceChildren: BlueNode[],
-    limits: Limits
+    limits: Limits,
   ): BlueNode {
     const targetChildren = target.getItems();
     if (isNullable(targetChildren)) {
       const filteredChildren = sourceChildren
         .filter((child, index) =>
-          limits.shouldMergePathSegment(String(index), child)
+          limits.shouldMergePathSegment(String(index), child),
         )
         .map((child) => {
           limits.enterPathSegment(String(sourceChildren.indexOf(child)), child);
@@ -137,7 +137,7 @@ export class Merger extends NodeResolver {
       return target.clone().setItems(filteredChildren);
     } else if (sourceChildren.length < targetChildren.length) {
       throw new Error(
-        `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`
+        `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`,
       );
     }
 
@@ -153,14 +153,14 @@ export class Merger extends NodeResolver {
         continue;
       }
       const sourceBlueId = BlueIdCalculator.calculateBlueIdSync(
-        sourceChildren[i]
+        sourceChildren[i],
       );
       const targetBlueId = BlueIdCalculator.calculateBlueIdSync(
-        newTargetChildren[i]
+        newTargetChildren[i],
       );
       if (sourceBlueId !== targetBlueId) {
         throw new Error(
-          `Mismatched items at index ${i}: source item has blueId '${sourceBlueId}', but target item has blueId '${targetBlueId}'.`
+          `Mismatched items at index ${i}: source item has blueId '${sourceBlueId}', but target item has blueId '${targetBlueId}'.`,
         );
       }
       limits.exitPathSegment();
@@ -180,7 +180,7 @@ export class Merger extends NodeResolver {
     target: BlueNode,
     sourceKey: string,
     sourceValue: BlueNode,
-    limits: Limits
+    limits: Limits,
   ): BlueNode {
     const node = this.resolve(sourceValue, limits);
     const newTarget = target.clone();
@@ -198,7 +198,7 @@ export class Merger extends NodeResolver {
       newTarget.getProperties()![sourceKey] = this.mergeObject(
         targetValue,
         node,
-        limits
+        limits,
       );
     }
     return newTarget;

@@ -33,7 +33,7 @@ export interface HandlerProcessor<TContract>
   readonly kind: 'handler';
   execute(
     contract: TContract,
-    context: ContractProcessorContext
+    context: ContractProcessorContext,
   ): void | Promise<void>;
 }
 
@@ -52,7 +52,7 @@ export interface ChannelProcessor<TContract>
   readonly kind: 'channel';
   matches(
     contract: TContract,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): boolean | Promise<boolean>;
   /**
    * Optional: Provide a channelized event for handlers without mutating the inbound event.
@@ -61,7 +61,7 @@ export interface ChannelProcessor<TContract>
    */
   channelize?(
     contract: TContract,
-    context: ChannelEvaluationContext
+    context: ChannelEvaluationContext,
   ): BlueNode | null | undefined;
 }
 

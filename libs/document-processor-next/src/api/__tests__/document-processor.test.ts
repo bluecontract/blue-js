@@ -55,7 +55,7 @@ describe('DocumentProcessor', () => {
     expect(init.triggeredEvents).toHaveLength(1);
     const lifecycleEvent = init.triggeredEvents[0];
     expect(lifecycleEvent.getProperties()?.type?.getValue()).toBe(
-      'Document Processing Initiated'
+      'Document Processing Initiated',
     );
   });
 
@@ -87,20 +87,20 @@ describe('DocumentProcessor', () => {
     expect(firstInit.capabilityFailure).toBe(false);
 
     expect(() => processor.initializeDocument(firstInit.document)).toThrowError(
-      /Document already initialized/
+      /Document already initialized/,
     );
   });
 
   it('throws when processing uninitialized document', () => {
     const processor = createDocumentProcessor();
     const uninitializedDoc = blue.yamlToNode(
-      documentWithLifecycleAndEventHandlers()
+      documentWithLifecycleAndEventHandlers(),
     );
     const eventNode = blue.jsonValueToNode({ type: { blueId: 'TestEvent' } });
 
-    expect(() => processor.processDocument(uninitializedDoc, eventNode)).toThrowError(
-      /Document not initialized/
-    );
+    expect(() =>
+      processor.processDocument(uninitializedDoc, eventNode),
+    ).toThrowError(/Document not initialized/);
   });
 
   it('returns capability failure when contracts are not understood', () => {
@@ -111,7 +111,7 @@ contracts:
   mysteryChannel:
     type:
       blueId: UnknownChannelType
-`
+`,
     );
 
     const result = processor.initializeDocument(original);
@@ -120,7 +120,7 @@ contracts:
     expect(result.totalGas).toBe(0);
     expect(result.triggeredEvents).toHaveLength(0);
     expect(blue.nodeToJson(result.document)).toEqual(
-      blue.nodeToJson(original.clone())
+      blue.nodeToJson(original.clone()),
     );
   });
 

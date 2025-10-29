@@ -80,7 +80,7 @@ describe('jsonBlueValueSchema', () => {
           },
         },
       },
-      true
+      true,
     );
   });
 

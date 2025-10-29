@@ -7,11 +7,7 @@ import {
   SetPropertyContractProcessor,
   TestEventChannelProcessor,
 } from './processors/index.js';
-import {
-  buildProcessor,
-  expectOk,
-  property,
-} from './test-utils.js';
+import { buildProcessor, expectOk, property } from './test-utils.js';
 
 const blue = createBlue();
 
@@ -50,14 +46,17 @@ describe('DocumentProcessorGasTest', () => {
       blue,
       new TestEventChannelProcessor(),
       new SetPropertyContractProcessor(),
-      new EmitEventsContractProcessor()
+      new EmitEventsContractProcessor(),
     );
   });
 
   it('initializationGasMatchesExpectedCharges', () => {
     const document = blue.yamlToNode('name: Doc\n');
     const result = expectOk(processor.initializeDocument(document.clone()));
-    const initializedMarker = property(property(result.document, 'contracts'), 'initialized');
+    const initializedMarker = property(
+      property(result.document, 'contracts'),
+      'initialized',
+    );
     const markerCharge = sizeCharge(initializedMarker);
 
     const expected =
@@ -86,9 +85,12 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document.clone();
-    const event = blue.jsonValueToNode({ type: { blueId: 'TestEvent' }, eventId: 'evt-1' });
+    const event = blue.jsonValueToNode({
+      type: { blueId: 'TestEvent' },
+      eventId: 'evt-1',
+    });
 
     const result = expectOk(processor.processDocument(initialized, event));
     const valueNode = property(result.document, 'x');
@@ -125,9 +127,12 @@ contracts:
 `;
 
     const initialized = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml))
+      processor.initializeDocument(blue.yamlToNode(yaml)),
     ).document.clone();
-    const event = blue.jsonValueToNode({ type: { blueId: 'TestEvent' }, eventId: 'evt-emit' });
+    const event = blue.jsonValueToNode({
+      type: { blueId: 'TestEvent' },
+      eventId: 'evt-emit',
+    });
 
     const result = expectOk(processor.processDocument(initialized, event));
     const emitter = property(property(result.document, 'contracts'), 'emitter');

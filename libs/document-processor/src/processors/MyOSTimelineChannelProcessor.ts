@@ -26,7 +26,7 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
   supports(
     event: EventNode,
     node: DocumentNode,
-    ctx: ProcessingContext
+    ctx: ProcessingContext,
   ): boolean {
     if (!this.baseSupports(event)) return false;
     if (!isTimelineEntryEvent(event, ctx)) return false;
@@ -34,7 +34,7 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
 
     const myosTimelineEntry = blue.nodeToSchemaOutput(
       event.payload,
-      MyOSTimelineEntrySchema
+      MyOSTimelineEntrySchema,
     );
     const myosTimelineChannel = ctx
       .getBlue()
@@ -56,7 +56,7 @@ export class MyOSTimelineChannelProcessor extends BaseChannelProcessor {
     event: EventNode,
     node: DocumentNode,
     ctx: ProcessingContext,
-    path: string
+    path: string,
   ): void {
     if (!isTimelineEntryEvent(event, ctx)) return;
 

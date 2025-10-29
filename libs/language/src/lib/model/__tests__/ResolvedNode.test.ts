@@ -142,7 +142,7 @@ type:
     // - Resolved has baseA and baseB properties
     // - Minimal only has the type reference
     const resolvedBlueId = BlueIdCalculator.calculateBlueIdSync(
-      resolvedNode.setBlueId(undefined)
+      resolvedNode.setBlueId(undefined),
     );
     const minimalBlueId = resolvedNode.getMinimalBlueId();
 
@@ -175,7 +175,7 @@ value: original
     // Should reflect the modifications
     expect(minimalNode.getValue()).toBe('modified');
     expect(minimalNode.getProperties()?.['newProp']?.getValue()).toBe(
-      'added after resolve'
+      'added after resolve',
     );
   });
 

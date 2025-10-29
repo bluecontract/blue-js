@@ -79,7 +79,7 @@ export function opReplace(root: BlueNode, path: string, raw: unknown): boolean {
     if (currentValue === undefined) {
       if (isArrayTarget) {
         throw new Error(
-          `REPLACE failed: Target array index '${key.toString()}' is out of bounds or does not exist at path '${path}'.`
+          `REPLACE failed: Target array index '${key.toString()}' is out of bounds or does not exist at path '${path}'.`,
         );
       } else {
         insert(parent, key, raw, true);
@@ -127,7 +127,7 @@ export function opMove(root: BlueNode, from: string, to: string): boolean {
 export function opTest(
   root: BlueNode,
   path: string,
-  expected: unknown
+  expected: unknown,
 ): boolean {
   const actual = readPath(root, path);
   let expectedToCompare: RValue = expected as RValue;
@@ -144,8 +144,8 @@ export function opTest(
       if (!deepEqual(actual.getValue() ?? null, expected)) {
         throw new Error(
           `TEST failed at '${path}': Expected ${JSON.stringify(
-            expected
-          )}, got ${JSON.stringify(actual.getValue() ?? null)}`
+            expected,
+          )}, got ${JSON.stringify(actual.getValue() ?? null)}`,
         );
       }
       return true;
@@ -186,7 +186,7 @@ export function opTest(
         ? expectedToCompare.toString()
         : JSON.stringify(expectedToCompare);
     throw new Error(
-      `TEST failed at '${path}': Expected ${expectedJson}, got ${actualJson}`
+      `TEST failed at '${path}': Expected ${expectedJson}, got ${actualJson}`,
     );
   }
   return true;

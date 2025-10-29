@@ -1,13 +1,21 @@
 import type { HandlerProcessor } from '../../registry/types.js';
 import { BlueNode } from '@blue-labs/language';
-import { incrementPropertySchema, type IncrementProperty } from '../models/index.js';
+import {
+  incrementPropertySchema,
+  type IncrementProperty,
+} from '../models/index.js';
 
-export class IncrementPropertyContractProcessor implements HandlerProcessor<IncrementProperty> {
+export class IncrementPropertyContractProcessor
+  implements HandlerProcessor<IncrementProperty>
+{
   readonly kind = 'handler' as const;
   readonly blueIds = ['IncrementProperty'] as const;
   readonly schema = incrementPropertySchema;
 
-  execute(contract: IncrementProperty, context: Parameters<HandlerProcessor<IncrementProperty>['execute']>[1]): void {
+  execute(
+    contract: IncrementProperty,
+    context: Parameters<HandlerProcessor<IncrementProperty>['execute']>[1],
+  ): void {
     const pointer = this.buildPointer(contract.propertyKey);
     const absolute = context.resolvePointer(pointer);
     const existing = context.documentAt(absolute);
@@ -26,10 +34,8 @@ export class IncrementPropertyContractProcessor implements HandlerProcessor<Incr
     }
     let stripped = key.trim().replace(/\/+/, '/');
     while (stripped.startsWith('/')) stripped = stripped.substring(1);
-    while (stripped.endsWith('/')) stripped = stripped.substring(0, stripped.length - 1);
+    while (stripped.endsWith('/'))
+      stripped = stripped.substring(0, stripped.length - 1);
     return `/${stripped}`;
   }
 }
-
-
-

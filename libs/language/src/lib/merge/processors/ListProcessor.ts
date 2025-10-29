@@ -11,7 +11,7 @@ export class ListProcessor implements MergingProcessor {
   process(
     target: BlueNode,
     source: BlueNode,
-    nodeProvider: NodeProvider
+    nodeProvider: NodeProvider,
   ): BlueNode {
     const sourceItemType = source.getItemType();
     const sourceType = source.getType();
@@ -34,17 +34,17 @@ export class ListProcessor implements MergingProcessor {
       const isSubtypeResult = NodeTypes.isSubtype(
         sourceItemType,
         targetItemType,
-        nodeProvider
+        nodeProvider,
       );
       if (!isSubtypeResult) {
         const sourceItemTypeStr = NodeToMapListOrValue.get(sourceItemType);
         const targetItemTypeStr = NodeToMapListOrValue.get(targetItemType);
         throw new Error(
           `The source item type '${JSON.stringify(
-            sourceItemTypeStr
+            sourceItemTypeStr,
           )}' is not a subtype of the target item type '${JSON.stringify(
-            targetItemTypeStr
-          )}'.`
+            targetItemTypeStr,
+          )}'.`,
         );
       }
       newTarget = target.clone().setItemType(sourceItemType);
@@ -64,19 +64,19 @@ export class ListProcessor implements MergingProcessor {
           !NodeTypes.isSubtype(
             itemType,
             targetItemTypeForValidation,
-            nodeProvider
+            nodeProvider,
           )
         ) {
           const itemTypeStr = NodeToMapListOrValue.get(itemType);
           const targetItemTypeStr = NodeToMapListOrValue.get(
-            targetItemTypeForValidation
+            targetItemTypeForValidation,
           );
           throw new Error(
             `Item of type '${JSON.stringify(
-              itemTypeStr
+              itemTypeStr,
             )}' is not a subtype of the list's item type '${JSON.stringify(
-              targetItemTypeStr
-            )}'.`
+              targetItemTypeStr,
+            )}'.`,
           );
         }
       }

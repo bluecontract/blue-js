@@ -9,5 +9,5 @@ export const y1Schema = withTypeBlueId('Y1-BlueId')(
     x11Field: x11Schema.optional(),
     x12Field: x12Schema.optional(),
     x11ListField: z.array(x11Schema).optional(),
-  })
+  }),
 );
