@@ -1,9 +1,6 @@
 import { BlueNode } from '@blue-labs/language';
-import {
-  TriggerEventSchema,
-  blueIds as conversationBlueIds,
-} from '@blue-repository/conversation';
-import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
+import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { isNullable } from '@blue-labs/shared-utils';
 
 import {
   sequentialWorkflowSchema,
@@ -11,6 +8,8 @@ import {
 } from '../../model/index.js';
 import type { HandlerProcessor, ContractProcessorContext } from '../types.js';
 import { JavaScriptCodeStepExecutor } from './steps/javascript-code-step-executor.js';
+import { UpdateDocumentStepExecutor } from './steps/update-document-step-executor.js';
+import { TriggerEventStepExecutor } from './steps/trigger-event-step-executor.js';
 
 type StepResultMap = Record<string, unknown>;
 
@@ -28,34 +27,10 @@ export interface SequentialWorkflowStepExecutor {
   execute(args: StepExecutionArgs): unknown | Promise<unknown>;
 }
 
-class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor {
-  readonly supportedBlueIds = [conversationBlueIds['Trigger Event']] as const;
-
-  execute(args: StepExecutionArgs): unknown {
-    const { stepNode, context } = args;
-    if (!context.blue.isTypeOf(stepNode, TriggerEventSchema)) {
-      context.throwFatal('Trigger Event step payload is invalid');
-    }
-
-    const triggerEvent = context.blue.nodeToSchemaOutput(
-      stepNode,
-      TriggerEventSchema,
-    );
-    const emission = triggerEvent.event;
-
-    if (isNonNullable(emission)) {
-      context.emitEvent(emission.clone());
-    } else {
-      context.throwFatal('Trigger Event step must declare event payload');
-    }
-
-    return undefined;
-  }
-}
-
 const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] = [
   new TriggerEventStepExecutor(),
   new JavaScriptCodeStepExecutor(),
+  new UpdateDocumentStepExecutor(),
 ];
 
 export class SequentialWorkflowHandlerProcessor

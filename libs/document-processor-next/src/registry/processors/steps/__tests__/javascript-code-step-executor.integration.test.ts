@@ -8,7 +8,7 @@ import {
   typeBlueId,
 } from '../../../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
-import { CodeBlockEvaluationError } from '../../../../util/exceptions.js';
+import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
 
 const blue = createBlue();
 
