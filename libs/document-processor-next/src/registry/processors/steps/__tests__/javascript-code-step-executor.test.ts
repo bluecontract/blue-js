@@ -7,7 +7,7 @@ import {
   createRealContext,
 } from '../../../../test-support/workflow.js';
 import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js';
-import { CodeBlockEvaluationError } from '../../../../util/exceptions.js';
+import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
 import { typeBlueId } from '../../../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
 

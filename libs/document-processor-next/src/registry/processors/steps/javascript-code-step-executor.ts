@@ -1,19 +1,16 @@
-import { BlueNode, isBigNumber } from '@blue-labs/language';
 import {
   blueIds as conversationBlueIds,
   JavaScriptCodeSchema,
 } from '@blue-repository/conversation';
 
-import {
-  QuickJSEvaluator,
-  type QuickJSBindings,
-} from '../../../util/quickjs-evaluator.js';
-import { CodeBlockEvaluationError } from '../../../util/exceptions.js';
+import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
+import { CodeBlockEvaluationError } from '../../../util/expression/exceptions.js';
 import type { ContractProcessorContext } from '../../types.js';
 import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
 } from '../sequential-workflow-processor.js';
+import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 
 interface ResultWithEvents {
   readonly events: readonly unknown[];
@@ -47,7 +44,7 @@ export class JavaScriptCodeStepExecutor
       );
     }
 
-    const bindings = this.createBindings(args);
+    const bindings = createQuickJSStepBindings(args);
 
     try {
       const result = await this.evaluator.evaluate({
@@ -60,34 +57,6 @@ export class JavaScriptCodeStepExecutor
     } catch (error) {
       throw new CodeBlockEvaluationError(code, error);
     }
-  }
-
-  private createBindings(args: StepExecutionArgs): QuickJSBindings {
-    const { context, eventNode, stepResults } = args;
-    const eventJson = this.convertNodeToJson(eventNode, context, 'simple');
-
-    return {
-      event: eventJson,
-      steps: this.normalizeJson(stepResults),
-      document: (pointer: unknown) => {
-        if (typeof pointer !== 'string') {
-          throw new TypeError('document() expects a string pointer');
-        }
-
-        const absolutePointer = pointer.startsWith('/')
-          ? pointer
-          : context.resolvePointer(pointer);
-
-        const snapshot = context.documentAt(absolutePointer);
-        if (!snapshot) {
-          return undefined;
-        }
-
-        return this.normalizeJson(
-          context.blue.nodeToJson(snapshot, 'original'),
-        );
-      },
-    };
   }
 
   private handleEvents(
@@ -105,33 +74,5 @@ export class JavaScriptCodeStepExecutor
       const eventNode = context.blue.jsonValueToNode(event);
       context.emitEvent(eventNode);
     }
-  }
-
-  private convertNodeToJson(
-    node: BlueNode | null,
-    context: ContractProcessorContext,
-    strategy: 'simple' | 'original',
-  ): unknown {
-    if (!node) {
-      return null;
-    }
-    const json = context.blue.nodeToJson(node, strategy);
-    return this.normalizeJson(json);
-  }
-
-  private normalizeJson<T>(value: T): T {
-    if (isBigNumber(value)) {
-      return value.toNumber() as T;
-    }
-    if (Array.isArray(value)) {
-      return value.map((item) => this.normalizeJson(item)) as T;
-    }
-    if (value && typeof value === 'object') {
-      const normalizedEntries = Object.entries(
-        value as Record<string, unknown>,
-      ).map(([key, val]) => [key, this.normalizeJson(val)]);
-      return Object.fromEntries(normalizedEntries) as T;
-    }
-    return value;
   }
 }

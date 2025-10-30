@@ -15,6 +15,7 @@
     }
   },
   "dependencies": {
+    "picomatch": "2.3.1",
     "@blue-labs/language": "1.37.1",
     "@blue-labs/shared-utils": "1.37.1",
     "quickjs-emscripten": "0.31.0"
