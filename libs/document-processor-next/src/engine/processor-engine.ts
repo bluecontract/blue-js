@@ -323,8 +323,9 @@ export class ProcessorExecution implements ExecutionHooks {
       return { matches: false };
     }
 
+    const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
+
     const eventClone = event.clone();
-    const eventCloneForId = event.clone();
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       blue: this.runtimeRef.blue(),
@@ -346,13 +347,9 @@ export class ProcessorExecution implements ExecutionHooks {
       ? channelizedFn.call(processor, channel.contract(), evaluationContext)
       : undefined;
 
-    const eventIdResult = this.runtimeRef
-      .blue()
-      .calculateBlueIdSync(eventCloneForId);
-
     return {
       matches: true,
-      eventId: eventIdResult,
+      eventId: eventBlueId,
       eventNode: channelizedResult ?? eventClone.clone(),
     };
   }
