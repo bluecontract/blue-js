@@ -1,5 +1,5 @@
 import type { QuickJSBindings } from '../../../util/expression/quickjs-evaluator.js';
-import type { StepExecutionArgs } from '../sequential-workflow-processor.js';
+import type { StepExecutionArgs } from '../workflow/step-runner.js';
 
 export function createQuickJSStepBindings(
   args: StepExecutionArgs,

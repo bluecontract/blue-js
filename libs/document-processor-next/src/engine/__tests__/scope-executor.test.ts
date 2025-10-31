@@ -32,7 +32,7 @@ function lifecycleBundle(): ContractBundle {
   return ContractBundle.builder()
     .addChannel(
       'lifecycle',
-      { key: 'lifecycle', order: 0 } as LifecycleChannel,
+      { order: 0 } as LifecycleChannel,
       blueIds['Lifecycle Event Channel'],
     )
     .build();
@@ -42,7 +42,7 @@ function externalBundle(): ContractBundle {
   return ContractBundle.builder()
     .addChannel(
       'external',
-      { key: 'external', order: 0, path: '/events' } as ChannelContract,
+      { order: 0, path: '/events' } as ChannelContract,
       'ExternalChannel',
     )
     .build();

@@ -94,6 +94,21 @@ export class ProcessorExecution implements ExecutionHooks {
             allowTerminatedWork,
             false,
           ),
+        shouldRunHandler: async (handler, context) => {
+          const processor = this.registry.lookupHandler(handler.blueId());
+          if (!processor) {
+            const reason = `No processor registered for handler contract ${handler.blueId()}`;
+            throw new ProcessorFatalError(
+              reason,
+              ProcessorErrors.illegalState(reason),
+            );
+          }
+          const matchesFn = processor.matches;
+          if (typeof matchesFn !== 'function') {
+            return true;
+          }
+          return await matchesFn.call(processor, handler.contract(), context);
+        },
         executeHandler: async (handler, context) =>
           this.executeHandler(handler, context),
         canonicalSignature: signatureFn,
@@ -323,13 +338,15 @@ export class ProcessorExecution implements ExecutionHooks {
       return { matches: false };
     }
 
+    const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
+
     const eventClone = event.clone();
-    const eventCloneForId = event.clone();
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       blue: this.runtimeRef.blue(),
       event: eventClone,
       markers: bundle.markers(),
+      bindingKey: channel.key(),
     };
 
     const matchesResult = await processor.matches(
@@ -346,13 +363,9 @@ export class ProcessorExecution implements ExecutionHooks {
       ? channelizedFn.call(processor, channel.contract(), evaluationContext)
       : undefined;
 
-    const eventIdResult = this.runtimeRef
-      .blue()
-      .calculateBlueIdSync(eventCloneForId);
-
     return {
       matches: true,
-      eventId: eventIdResult,
+      eventId: eventBlueId,
       eventNode: channelizedResult ?? eventClone.clone(),
     };
   }

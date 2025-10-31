@@ -22,7 +22,6 @@ function createEmptyCheckpointNode(blue: Blue): BlueNode {
 
 function createEmptyCheckpointContract(): ChannelEventCheckpoint {
   return {
-    key: KEY_CHECKPOINT,
     lastEvents: {},
     lastSignatures: {},
   };

@@ -1,37 +1,15 @@
-import { BlueNode } from '@blue-labs/language';
 import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
-import { isNullable } from '@blue-labs/shared-utils';
 
 import {
   sequentialWorkflowSchema,
   type SequentialWorkflow,
 } from '../../model/index.js';
 import type { HandlerProcessor, ContractProcessorContext } from '../types.js';
-import { JavaScriptCodeStepExecutor } from './steps/javascript-code-step-executor.js';
-import { UpdateDocumentStepExecutor } from './steps/update-document-step-executor.js';
-import { TriggerEventStepExecutor } from './steps/trigger-event-step-executor.js';
-
-type StepResultMap = Record<string, unknown>;
-
-export interface StepExecutionArgs {
-  readonly workflow: SequentialWorkflow;
-  readonly stepNode: BlueNode;
-  readonly eventNode: BlueNode;
-  readonly context: ContractProcessorContext;
-  readonly stepResults: StepResultMap;
-  readonly stepIndex: number;
-}
-
-export interface SequentialWorkflowStepExecutor {
-  readonly supportedBlueIds: readonly string[];
-  execute(args: StepExecutionArgs): unknown | Promise<unknown>;
-}
-
-const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] = [
-  new TriggerEventStepExecutor(),
-  new JavaScriptCodeStepExecutor(),
-  new UpdateDocumentStepExecutor(),
-];
+import {
+  WorkflowStepRunner,
+  DEFAULT_STEP_EXECUTORS,
+  type SequentialWorkflowStepExecutor,
+} from './workflow/step-runner.js';
 
 export class SequentialWorkflowHandlerProcessor
   implements HandlerProcessor<SequentialWorkflow>
@@ -40,21 +18,29 @@ export class SequentialWorkflowHandlerProcessor
   readonly blueIds = [conversationBlueIds['Sequential Workflow']] as const;
   readonly schema = sequentialWorkflowSchema;
 
-  private readonly executorIndex: ReadonlyMap<
-    string,
-    SequentialWorkflowStepExecutor
-  >;
+  private readonly runner: WorkflowStepRunner;
 
   constructor(
     executors: readonly SequentialWorkflowStepExecutor[] = DEFAULT_STEP_EXECUTORS,
   ) {
-    const byId = new Map<string, SequentialWorkflowStepExecutor>();
-    for (const executor of executors) {
-      for (const blueId of executor.supportedBlueIds) {
-        byId.set(blueId, executor);
-      }
+    this.runner = new WorkflowStepRunner(executors);
+  }
+
+  async matches(
+    contract: SequentialWorkflow,
+    context: ContractProcessorContext,
+  ): Promise<boolean> {
+    const eventNode = context.event();
+    if (!eventNode) {
+      return false;
     }
-    this.executorIndex = byId;
+    if (
+      contract.event &&
+      !context.blue.isTypeOfNode(eventNode, contract.event)
+    ) {
+      return false;
+    }
+    return true;
   }
 
   async execute(
@@ -66,74 +52,6 @@ export class SequentialWorkflowHandlerProcessor
       return;
     }
 
-    if (
-      contract.event &&
-      !this.matchesEventPattern(contract.event, eventNode, context)
-    ) {
-      return;
-    }
-
-    const steps = contract.steps ?? [];
-    if (steps.length === 0) {
-      return;
-    }
-
-    const results: StepResultMap = {};
-    for (const [index, stepNode] of steps.entries()) {
-      await this.executeStep({
-        workflow: contract,
-        stepNode,
-        eventNode,
-        context,
-        stepResults: results,
-        stepIndex: index,
-      });
-    }
-  }
-
-  private matchesEventPattern(
-    matcher: BlueNode,
-    eventNode: BlueNode,
-    context: ContractProcessorContext,
-  ): boolean {
-    try {
-      return context.blue.isTypeOfNode(eventNode, matcher);
-    } catch (error) {
-      console.warn(
-        'SequentialWorkflowHandlerProcessor event match failed',
-        error,
-      );
-      return false;
-    }
-  }
-
-  private async executeStep(args: StepExecutionArgs): Promise<void> {
-    const { stepNode, context, stepResults, stepIndex } = args;
-    const blueId = stepNode.getType?.()?.getBlueId();
-    if (isNullable(blueId)) {
-      return context.throwFatal(
-        'Sequential workflow step is missing type metadata',
-      );
-    }
-
-    const executor = this.executorIndex.get(blueId);
-    if (isNullable(executor)) {
-      const typeName = stepNode.getType?.()?.getName?.() ?? blueId;
-      return context.throwFatal(`Unsupported workflow step type "${typeName}"`);
-    }
-
-    const result = await executor.execute(args);
-    if (result !== undefined) {
-      const key = this.stepResultKey(stepNode, stepIndex);
-      stepResults[key] = result;
-    }
-  }
-
-  private stepResultKey(stepNode: BlueNode, index: number): string {
-    const name = stepNode.getName?.();
-    if (name && typeof name === 'string' && name.length > 0) {
-      return name;
-    }
-    return `Step${index + 1}`;
+    await this.runner.run({ workflow: contract, eventNode, context });
   }
 }

@@ -35,14 +35,12 @@ function signatureFn(node: BlueNode | null): string | null {
 
 describe('ChannelRunner', () => {
   const channelContract: ChannelContract = {
-    key: 'external',
     path: '/events/external',
     order: 0,
   } as ChannelContract;
 
   const handlerContract = (key: string): HandlerContract =>
     ({
-      key,
       channel: 'external',
       order: key === 'h1' ? 0 : 1,
     }) as HandlerContract;
@@ -65,6 +63,10 @@ describe('ChannelRunner', () => {
         handler: HandlerBinding,
         event: BlueNode,
       ) => void | Promise<void>;
+      shouldRunHandler: (
+        handler: HandlerBinding,
+        context: ProcessorExecutionContext,
+      ) => boolean | Promise<boolean>;
     }> = {},
   ) {
     const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
@@ -103,6 +105,11 @@ describe('ChannelRunner', () => {
         ({
           event: () => event,
         }) as unknown as ProcessorExecutionContext,
+      shouldRunHandler: async (
+        handler: HandlerBinding,
+        context: ProcessorExecutionContext,
+      ): Promise<boolean> =>
+        Promise.resolve(overrides.shouldRunHandler?.(handler, context) ?? true),
       executeHandler: async (
         handler: HandlerBinding,
         context: ProcessorExecutionContext,
@@ -211,6 +218,27 @@ describe('ChannelRunner', () => {
     await runner.runHandlers(scopePath, bundle, 'external', nodeFrom({}), true);
 
     expect(handlerCalls).toEqual(['h1', 'h2']);
+  });
+
+  it('skips handlers when shouldRunHandler returns false', async () => {
+    const handlerCalls: string[] = [];
+    const { runner, bundle, scopePath } = createRunner({
+      evaluateChannel: () => ({ matches: true, eventNode: nodeFrom({}) }),
+      shouldRunHandler: (handler) => handler.key() === 'h2',
+      onExecute: (handler) => {
+        handlerCalls.push(handler.key());
+      },
+    });
+
+    await runner.runHandlers(
+      scopePath,
+      bundle,
+      'external',
+      nodeFrom({}),
+      false,
+    );
+
+    expect(handlerCalls).toEqual(['h2']);
   });
 
   it('does nothing when channel does not match', async () => {

@@ -28,6 +28,10 @@ export interface ChannelRunnerDependencies {
     event: BlueNode,
     allowTerminatedWork: boolean,
   ): ProcessorExecutionContext;
+  shouldRunHandler(
+    handler: HandlerBinding,
+    context: ProcessorExecutionContext,
+  ): Promise<boolean>;
   executeHandler(
     handler: HandlerBinding,
     context: ProcessorExecutionContext,
@@ -112,13 +116,17 @@ export class ChannelRunner {
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
         break;
       }
-      this.runtime.chargeHandlerOverhead();
       const context = this.deps.createContext(
         scopePath,
         bundle,
         event,
         allowTerminatedWork,
       );
+      const shouldRun = await this.deps.shouldRunHandler(handler, context);
+      if (!shouldRun) {
+        continue;
+      }
+      this.runtime.chargeHandlerOverhead();
       await this.deps.executeHandler(handler, context);
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
         break;

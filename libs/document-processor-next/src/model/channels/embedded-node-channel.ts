@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { channelContractBaseSchema } from '../shared/index.js';
 import { EmbeddedNodeChannelSchema as CoreEmbeddedNodeChannelSchema } from '@blue-repository/core';
+import { channelContractBaseSchema } from '../shared/index.js';
 
 export const embeddedNodeChannelSchema = CoreEmbeddedNodeChannelSchema.merge(
   channelContractBaseSchema,

@@ -11,7 +11,7 @@ import type { ContractProcessorContext } from '../../types.js';
 import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
-} from '../sequential-workflow-processor.js';
+} from '../workflow/step-runner.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 import {
   resolveNodeExpressions,
