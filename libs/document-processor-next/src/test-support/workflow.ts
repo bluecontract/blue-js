@@ -8,7 +8,7 @@ import {
 import { ContractBundle } from '../engine/contract-bundle.js';
 import type { SequentialWorkflow } from '../model/handlers/sequential-workflow.js';
 import type { ContractProcessorContext } from '../registry/types.js';
-import type { StepExecutionArgs } from '../registry/processors/sequential-workflow-processor.js';
+import type { StepExecutionArgs } from '../registry/processors/workflow/step-runner.js';
 
 export function createRealContext(
   blue: Blue,

@@ -13,7 +13,7 @@ import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
-} from '../sequential-workflow-processor.js';
+} from '../workflow/step-runner.js';
 
 export class TriggerEventStepExecutor
   implements SequentialWorkflowStepExecutor
