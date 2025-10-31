@@ -94,6 +94,21 @@ export class ProcessorExecution implements ExecutionHooks {
             allowTerminatedWork,
             false,
           ),
+        shouldRunHandler: async (handler, context) => {
+          const processor = this.registry.lookupHandler(handler.blueId());
+          if (!processor) {
+            const reason = `No processor registered for handler contract ${handler.blueId()}`;
+            throw new ProcessorFatalError(
+              reason,
+              ProcessorErrors.illegalState(reason),
+            );
+          }
+          const matchesFn = processor.matches;
+          if (typeof matchesFn !== 'function') {
+            return true;
+          }
+          return await matchesFn.call(processor, handler.contract(), context);
+        },
         executeHandler: async (handler, context) =>
           this.executeHandler(handler, context),
         canonicalSignature: signatureFn,

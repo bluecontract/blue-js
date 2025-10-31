@@ -31,6 +31,14 @@ export interface ContractProcessorContext {
 export interface HandlerProcessor<TContract>
   extends ContractProcessor<TContract> {
   readonly kind: 'handler';
+  /**
+   * Optional guard to determine whether the handler should execute
+   * for the provided event within the current context.
+   */
+  matches?(
+    contract: TContract,
+    context: ContractProcessorContext,
+  ): boolean | Promise<boolean>;
   execute(
     contract: TContract,
     context: ContractProcessorContext,

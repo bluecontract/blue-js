@@ -85,8 +85,7 @@ export class ContractLoader {
   load(scopeNode: BlueNode, scopePath: string): ContractBundle {
     try {
       const builder = ContractBundle.builder();
-      const contractsNode = scopeNode.getProperties()?.contracts;
-      const contractEntries = contractsNode?.getProperties();
+      const contractEntries = scopeNode.getContracts();
       if (!contractEntries) {
         return builder.build();
       }
