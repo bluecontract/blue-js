@@ -1,7 +1,9 @@
 import { BlueNode } from '@blue-labs/language';
+import type { Blue } from '@blue-labs/language';
 import { isNullable } from '@blue-labs/shared-utils';
 import {
   blueIds as conversationBlueIds,
+  Operation,
   type OperationRequest,
   OperationRequestSchema,
   OperationSchema,
@@ -13,6 +15,7 @@ import {
   type SequentialWorkflowOperation,
 } from '../../model/index.js';
 import type { ContractProcessorContext, HandlerProcessor } from '../types.js';
+import type { ScopeContractsIndex } from '../../types/scope-contracts.js';
 import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
@@ -55,6 +58,35 @@ export class SequentialWorkflowOperationProcessor
     this.executorIndex = byId;
   }
 
+  deriveChannel(
+    contract: SequentialWorkflowOperation,
+    deps: {
+      blue: Blue;
+      scopeContracts: ScopeContractsIndex;
+    },
+  ): string | null | undefined {
+    const operationKey = contract.operation;
+    if (!operationKey) {
+      return null;
+    }
+    const entry = deps.scopeContracts.get(operationKey);
+    if (!entry) {
+      return null;
+    }
+    if (
+      !deps.blue.isTypeOf(entry.node, OperationSchema, {
+        checkSchemaExtensions: true,
+      })
+    ) {
+      return null;
+    }
+    const operation = deps.blue.nodeToSchemaOutput(entry.node, OperationSchema);
+    if (!operation) {
+      return null;
+    }
+    return this.extractOperationChannelKey(operation);
+  }
+
   async matches(
     contract: SequentialWorkflowOperation,
     context: ContractProcessorContext,
@@ -65,7 +97,11 @@ export class SequentialWorkflowOperationProcessor
     }
     const { blue } = context;
 
-    if (!blue.isTypeOf(eventNode, OperationRequestSchema)) {
+    if (
+      !blue.isTypeOf(eventNode, OperationRequestSchema, {
+        checkSchemaExtensions: true,
+      })
+    ) {
       return false;
     }
 
@@ -102,6 +138,25 @@ export class SequentialWorkflowOperationProcessor
       return false;
     }
     if (!blue.isTypeOf(operationNode, OperationSchema)) {
+      return false;
+    }
+    const operation = context.blue.nodeToSchemaOutput(
+      operationNode,
+      OperationSchema,
+    );
+    if (!operation) {
+      return false;
+    }
+    const operationChannelKey = this.extractOperationChannelKey(operation);
+    const rawHandlerChannel =
+      typeof contract.channel === 'string' ? contract.channel.trim() : '';
+    const handlerChannel =
+      rawHandlerChannel.length > 0 ? rawHandlerChannel : null;
+    if (
+      operationChannelKey &&
+      handlerChannel &&
+      operationChannelKey !== handlerChannel
+    ) {
       return false;
     }
 
@@ -191,6 +246,19 @@ export class SequentialWorkflowOperationProcessor
         stepResults[key] = result;
       }
     }
+  }
+
+  private extractOperationChannelKey(operation: Operation): string | null {
+    const channelKey = operation.channel;
+
+    if (typeof channelKey === 'string') {
+      const trimmed = channelKey.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+
+    return null;
   }
 
   private matchesEventPattern(

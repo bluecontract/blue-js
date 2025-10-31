@@ -21,6 +21,7 @@ type DocumentBuildOptions = {
   requestTypeYaml?: string;
   handlerEventYaml?: string;
   stepExpression?: string;
+  handlerChannel?: string | null;
 };
 
 function indentBlock(block: string, spaces: number): string {
@@ -31,17 +32,26 @@ function indentBlock(block: string, spaces: number): string {
     .join('\n');
 }
 
+const DEFAULT_STEP_EXPRESSION = "${event.request + document('/counter')}";
+
 function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
   const {
     operationChannel,
     requestTypeYaml = 'type: Integer',
     handlerEventYaml,
-    stepExpression = "${event.request + document('/counter')}",
+    stepExpression = DEFAULT_STEP_EXPRESSION,
+    handlerChannel = 'ownerChannel',
   } = options ?? {};
 
-  const operationChannelLine = operationChannel
-    ? `    channel: ${operationChannel}\n`
-    : '';
+  const operationChannelLine =
+    typeof operationChannel === 'string' && operationChannel.length > 0
+      ? `    channel: ${operationChannel}\n`
+      : '';
+
+  const handlerChannelLine =
+    typeof handlerChannel === 'string' && handlerChannel.length > 0
+      ? `    channel: ${handlerChannel}\n`
+      : '';
 
   const handlerEventSection = handlerEventYaml
     ? `    event:\n${indentBlock(handlerEventYaml.trim(), 6)}\n`
@@ -59,8 +69,7 @@ ${operationChannelLine}    request:
 ${indentBlock(requestTypeYaml.trim(), 6)}
   ${OPERATION_KEY}Handler:
     type: Sequential Workflow Operation
-    channel: ownerChannel
-    operation: ${OPERATION_KEY}
+${handlerChannelLine}    operation: ${OPERATION_KEY}
 ${handlerEventSection}    steps:
       - name: ApplyIncrement
         type: Update Document
@@ -231,6 +240,73 @@ contracts:
     );
 
     expect(numericValue(property(result.document, 'counter'))).toBe(7);
+  });
+
+  it('derives channel from Operation when handler omits channel', async () => {
+    const processor = buildProcessor(blue);
+    const doc = buildOperationDocument({
+      operationChannel: 'ownerChannel',
+      handlerChannel: null,
+    });
+    const init = await expectOk(processor.initializeDocument(doc));
+
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 4,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(4);
+  });
+
+  it('skips workflow when handler channel conflicts with operation channel', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Conflicting Channels Doc
+counter: 0
+contracts:
+  ownerChannel:
+    type: Timeline Channel
+    timelineId: ${TIMELINE_ID}
+  otherChannel:
+    type: Timeline Channel
+    timelineId: other-${TIMELINE_ID}
+  ${OPERATION_KEY}:
+    type: Operation
+    channel: otherChannel
+    request:
+      type: Integer
+  ${OPERATION_KEY}Handler:
+    type: Sequential Workflow Operation
+    channel: ownerChannel
+    operation: ${OPERATION_KEY}
+    steps:
+      - name: ApplyIncrement
+        type: Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: "${DEFAULT_STEP_EXPRESSION}"
+`;
+    const init = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 5,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(0);
   });
 
   //TODO: Check the event matching logic

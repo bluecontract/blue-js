@@ -2,6 +2,8 @@ import type { ZodType } from 'zod';
 import { BlueNode } from '@blue-labs/language';
 import type { Blue } from '@blue-labs/language';
 
+import type { ScopeContractsIndex } from '../types/scope-contracts.js';
+
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { MarkerContract } from '../model/index.js';
 
@@ -31,6 +33,16 @@ export interface ContractProcessorContext {
 export interface HandlerProcessor<TContract>
   extends ContractProcessor<TContract> {
   readonly kind: 'handler';
+  /**
+   * Optional sync hook to compute channel key when contract omitted it.
+   */
+  deriveChannel?(
+    contract: TContract,
+    deps: {
+      blue: Blue;
+      scopeContracts: ScopeContractsIndex;
+    },
+  ): string | null | undefined;
   /**
    * Optional guard to determine whether the handler should execute
    * for the provided event within the current context.

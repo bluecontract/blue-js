@@ -99,6 +99,10 @@ describe('ContractLoader', () => {
 
     const loader = new ContractLoader(registry, blue);
     const scopeNode = buildScopeNode(blue, {
+      main: {
+        type: { blueId: blueIdDocumentUpdate },
+        path: { value: '/document' },
+      },
       handler: {
         type: { blueId: 'Custom.Handler' },
         channel: { value: 'main' },
