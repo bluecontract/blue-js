@@ -142,6 +142,7 @@ describe('TimelineChannelProcessor', () => {
       blue,
       event: matchingEntry,
       markers: new Map(),
+      bindingKey: timelineBinding.key(),
     };
 
     expect(blue.isTypeOf(matchingEntry, TimelineEntrySchema)).toBe(true);

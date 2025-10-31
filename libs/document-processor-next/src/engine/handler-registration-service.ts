@@ -73,11 +73,7 @@ export class HandlerRegistrationService {
         );
       }
 
-      builder.addHandler(
-        key,
-        { ...contract, channel: channelKey, key },
-        blueId,
-      );
+      builder.addHandler(key, { ...contract, channel: channelKey }, blueId);
     } catch (error) {
       if (this.isZodError(error)) {
         throw new ProcessorFatalError(

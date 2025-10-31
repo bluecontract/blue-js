@@ -53,9 +53,9 @@ describe('ContractLoader', () => {
 
     const channels = bundle.channelsOfType(blueIdDocumentUpdate);
     expect(channels).toHaveLength(1);
+    expect(channels[0].key()).toBe('update');
     expect(channels[0].contract()).toMatchObject({
       path: '/document',
-      key: 'update',
     });
 
     expect(bundle.embeddedPaths()).toEqual(['/children']);
@@ -113,7 +113,7 @@ describe('ContractLoader', () => {
 
     const handlers = bundle.handlersFor('main');
     expect(handlers).toHaveLength(1);
-    expect(handlers[0].contract()).toMatchObject({ key: 'handler' });
+    expect(handlers[0].key()).toBe('handler');
   });
 
   it('surfaces illegal state when handler omits channel key', () => {

@@ -346,6 +346,7 @@ export class ProcessorExecution implements ExecutionHooks {
       blue: this.runtimeRef.blue(),
       event: eventClone,
       markers: bundle.markers(),
+      bindingKey: channel.key(),
     };
 
     const matchesResult = await processor.matches(

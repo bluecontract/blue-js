@@ -47,7 +47,8 @@ export class TimelineChannelProcessor
     const messageNode = entry.message as BlueNode | undefined;
     if (!messageNode) return null;
     const metadataNode = this.buildMetadataNode(event);
-    const channelKey = contract.key ?? undefined;
+    const bindingKey = context.bindingKey.trim();
+    const channelKey = bindingKey.length > 0 ? bindingKey : undefined;
     return this.buildNormalizedEvent(messageNode, metadataNode, channelKey);
   }
 

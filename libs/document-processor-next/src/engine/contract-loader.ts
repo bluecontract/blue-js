@@ -220,7 +220,7 @@ export class ContractLoader {
         node,
         processEmbeddedMarkerSchema,
       ) as ProcessEmbeddedMarker;
-      builder.setEmbedded({ ...embedded, key });
+      builder.setEmbedded(embedded);
     } catch (error) {
       if (isZodError(error)) {
         throw new ProcessorFatalError(
@@ -253,7 +253,7 @@ export class ContractLoader {
   ): void {
     try {
       const contract = this.convert(node, schema) as ChannelContract;
-      builder.addChannel(key, { ...contract, key }, blueId);
+      builder.addChannel(key, contract, blueId);
     } catch (error) {
       if (isZodError(error)) {
         throw new ProcessorFatalError(
@@ -285,7 +285,7 @@ export class ContractLoader {
   ): void {
     try {
       const marker = this.convert(node, schema) as MarkerContract;
-      builder.addMarker(key, { ...marker, key }, blueId);
+      builder.addMarker(key, marker, blueId);
     } catch (error) {
       if (isZodError(error)) {
         throw new ProcessorFatalError(

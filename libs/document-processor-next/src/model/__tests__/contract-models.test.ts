@@ -31,7 +31,6 @@ describe('contract model schemas', () => {
     const dto = blue.nodeToSchemaOutput(node, documentUpdateChannelSchema);
 
     expect(dto.path).toBe('/documents/foo');
-    expect(dto.key).toBe('documentUpdate');
     expect(dto.order).toBe(7);
   });
 

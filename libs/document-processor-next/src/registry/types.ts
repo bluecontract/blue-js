@@ -65,6 +65,10 @@ export interface ChannelEvaluationContext {
    */
   readonly event: BlueNode | null;
   readonly markers: ReadonlyMap<string, MarkerContract>;
+  /**
+   * Key assigned to the contract within the scope's contract map.
+   */
+  readonly bindingKey: string;
 }
 
 export interface ChannelProcessor<TContract>

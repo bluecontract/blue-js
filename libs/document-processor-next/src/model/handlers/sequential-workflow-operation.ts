@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { blueNodeField } from '@blue-labs/language';
 import { SequentialWorkflowOperationSchema as ConversationSequentialWorkflowOperationSchema } from '@blue-repository/conversation';
 
-import { handlerContractBaseSchema } from '../shared/handler-contract-base.js';
+import { handlerContractBaseSchema } from '../shared/index.js';
 
 export const sequentialWorkflowOperationSchema =
   ConversationSequentialWorkflowOperationSchema.merge(

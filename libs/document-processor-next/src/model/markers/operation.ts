@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { OperationSchema as ConversationOperationSchema } from '@blue-repository/conversation';
 
-import { markerContractBaseSchema } from '../shared/marker-contract-base.js';
+import { markerContractBaseSchema } from '../shared/index.js';
 
 export const operationMarkerSchema = ConversationOperationSchema.merge(
   markerContractBaseSchema,

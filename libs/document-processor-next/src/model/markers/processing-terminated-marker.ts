@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { markerContractBaseSchema } from '../shared/index.js';
 import { ProcessingTerminatedMarkerSchema as CoreProcessingTerminatedMarkerSchema } from '@blue-repository/core';
+import { markerContractBaseSchema } from '../shared/index.js';
 
 // TODO: Service based on that type like in JAVA version.
 

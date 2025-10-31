@@ -35,14 +35,12 @@ function signatureFn(node: BlueNode | null): string | null {
 
 describe('ChannelRunner', () => {
   const channelContract: ChannelContract = {
-    key: 'external',
     path: '/events/external',
     order: 0,
   } as ChannelContract;
 
   const handlerContract = (key: string): HandlerContract =>
     ({
-      key,
       channel: 'external',
       order: key === 'h1' ? 0 : 1,
     }) as HandlerContract;
