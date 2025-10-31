@@ -1,6 +1,7 @@
 import { Blue, BlueNode } from '@blue-labs/language';
 import { repository as coreRepository } from '@blue-repository/core';
 import { repository as conversationRepository } from '@blue-repository/conversation';
+import { repository as myosRepository } from '@blue-repository/myos';
 
 import { ContractLoader } from '../engine/contract-loader.js';
 import { ProcessorEngine } from '../engine/processor-engine.js';
@@ -11,7 +12,7 @@ import type { AnyContractProcessor } from '../registry/types.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
 
 const DEFAULT_BLUE = new Blue({
-  repositories: [coreRepository, conversationRepository],
+  repositories: [coreRepository, conversationRepository, myosRepository],
 });
 
 export interface DocumentProcessorOptions {
