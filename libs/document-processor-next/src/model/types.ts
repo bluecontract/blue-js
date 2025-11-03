@@ -12,6 +12,8 @@ import type {
   EmbeddedNodeChannel,
   LifecycleChannel,
   TriggeredEventChannel,
+  TimelineChannel,
+  MyOSTimelineChannel,
 } from './channels/index.js';
 import type { SequentialWorkflow } from './handlers/index.js';
 
@@ -36,6 +38,8 @@ export type ChannelContract =
   | EmbeddedNodeChannel
   | LifecycleChannel
   | TriggeredEventChannel
+  | TimelineChannel
+  | MyOSTimelineChannel
   | GenericChannelContract;
 
 export type HandlerContract = SequentialWorkflow | GenericHandlerContract;
