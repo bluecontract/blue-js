@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "packages": {
+    "@blue-repository/myos": {
+      "signature": "0d815320b85a9116f3bb804b6c2f49ae",
+      "pure": true
+    }
+  }
+}
