@@ -48,6 +48,7 @@ export class UpdateDocumentStepExecutor
     });
     const changeset = this.extractChanges(resolvedStepNode, context);
 
+    context.gasMeter().chargeUpdateDocumentBase(changeset.length);
     for (const change of changeset) {
       const patch = this.createPatch(change, context);
       await context.applyPatch(patch);

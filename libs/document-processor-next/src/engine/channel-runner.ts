@@ -55,7 +55,7 @@ export class ChannelRunner {
     if (this.deps.isScopeInactive(scopePath)) {
       return;
     }
-    this.runtime.chargeChannelMatchAttempt();
+    this.runtime.gasMeter().chargeChannelMatchAttempt();
 
     const match = await this.deps.evaluateChannel(
       channel,
@@ -126,7 +126,7 @@ export class ChannelRunner {
       if (!shouldRun) {
         continue;
       }
-      this.runtime.chargeHandlerOverhead();
+      this.runtime.gasMeter().chargeHandlerOverhead();
       await this.deps.executeHandler(handler, context);
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
         break;

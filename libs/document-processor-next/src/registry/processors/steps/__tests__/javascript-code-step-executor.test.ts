@@ -146,4 +146,26 @@ describe('JavaScriptCodeStepExecutor', () => {
       CodeBlockEvaluationError,
     );
   });
+
+  it('does not expose Date for deterministic execution', async () => {
+    const blue = createBlue();
+    const stepNode = createStepNode(blue, 'return typeof Date;');
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const result = await executor.execute(args);
+    expect(result).toBe('undefined');
+  });
+
+  it('does not expose Node.js process global', async () => {
+    const blue = createBlue();
+    const stepNode = createStepNode(blue, 'return typeof process;');
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const result = await executor.execute(args);
+    expect(result).toBe('undefined');
+  });
 });

@@ -47,7 +47,7 @@ export class TerminationService {
       pointer,
       createTerminationMarker(this.runtime.blue(), kind, reason),
     );
-    this.runtime.chargeTerminationMarker();
+    this.runtime.gasMeter().chargeTerminationMarker();
 
     const bundleRef = bundle ?? execution.bundleForScope(normalized) ?? null;
     const lifecycleEvent = createTerminationLifecycleEvent(kind, reason);
@@ -63,7 +63,7 @@ export class TerminationService {
     execution.clearPendingTermination(scopePath);
 
     if (kind === 'FATAL') {
-      this.runtime.chargeFatalTerminationOverhead();
+      this.runtime.gasMeter().chargeFatalTerminationOverhead();
     }
 
     if (kind === 'FATAL' && normalized === '/') {

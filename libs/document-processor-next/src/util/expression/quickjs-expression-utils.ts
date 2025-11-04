@@ -1,8 +1,8 @@
-import { CodeBlockEvaluationError } from './exceptions.js';
-import { QuickJSEvaluator, type QuickJSBindings } from './quickjs-evaluator.js';
 import { BlueNode } from '@blue-labs/language';
 import type { ContractProcessorContext } from '../../registry/types.js';
 import picomatch from 'picomatch';
+import { CodeBlockEvaluationError } from './exceptions.js';
+import { QuickJSEvaluator, type QuickJSBindings } from './quickjs-evaluator.js';
 
 // Matches if entire string is exactly ${...} (anchored with ^ and $)
 const EXPRESSION_PATTERN = /^\$\{([\s\S]*)\}$/;
@@ -140,14 +140,21 @@ export async function resolveNodeExpressions(
     if (typeof value === 'string' && shouldResolve(pointer)) {
       if (isExpression(value)) {
         const expression = extractExpressionContent(value);
+        context.gasMeter().chargeExpression(expression);
         const evaluated = await evaluateQuickJSExpression(
           evaluator,
           expression,
           bindings,
         );
         return context.blue.jsonValueToNode(evaluated ?? null);
-      }
-      if (containsExpression(value)) {
+      } else if (containsExpression(value)) {
+        const placeholderPattern = new RegExp(ALL_EXPRESSIONS_PATTERN);
+        let placeholderCount = 0;
+        placeholderPattern.lastIndex = 0;
+        while (placeholderPattern.exec(value)) {
+          placeholderCount += 1;
+        }
+        context.gasMeter().chargeTemplate(placeholderCount, value);
         const resolved = await resolveTemplateString(
           evaluator,
           value,

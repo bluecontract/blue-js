@@ -18,8 +18,8 @@ describe('DocumentProcessingRuntime', () => {
     });
     const runtime = new DocumentProcessingRuntime(document, blue);
 
-    runtime.chargeInitialization();
-    runtime.chargeScopeEntry('/child');
+    runtime.gasMeter().chargeInitialization();
+    runtime.gasMeter().chargeScopeEntry('/child');
 
     const patch: JsonPatch = {
       op: 'REPLACE',

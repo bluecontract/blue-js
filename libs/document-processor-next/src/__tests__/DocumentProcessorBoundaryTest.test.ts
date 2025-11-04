@@ -84,7 +84,6 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder()
       .setEmbedded({
-        key: 'embedded',
         paths: ['/child'],
       } satisfies ProcessEmbeddedMarker)
       .build();
@@ -116,7 +115,6 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder()
       .setEmbedded({
-        key: 'embedded',
         paths: ['/child'],
       } satisfies ProcessEmbeddedMarker)
       .build();
@@ -144,7 +142,6 @@ describe('DocumentProcessorBoundaryTest', () => {
     const execution = engine.createExecution(document);
     const bundle = ContractBundle.builder()
       .setEmbedded({
-        key: 'embedded',
         paths: ['/child'],
       } satisfies ProcessEmbeddedMarker)
       .build();

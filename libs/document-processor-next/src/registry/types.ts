@@ -6,6 +6,7 @@ import type { ScopeContractsIndex } from '../types/scope-contracts.js';
 
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { MarkerContract } from '../model/index.js';
+import type { GasMeter } from '../runtime/gas-meter.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
 
@@ -22,6 +23,7 @@ export interface ContractProcessorContext {
   applyPatch(patch: JsonPatch): Promise<void>;
   emitEvent(emission: BlueNode): void;
   consumeGas(units: number): void;
+  gasMeter(): GasMeter;
   throwFatal(reason: string): never;
   resolvePointer(relativePointer: string): string;
   documentAt(absolutePointer: string): BlueNode | null;

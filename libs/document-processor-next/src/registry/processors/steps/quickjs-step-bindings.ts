@@ -1,5 +1,6 @@
 import type { QuickJSBindings } from '../../../util/expression/quickjs-evaluator.js';
 import type { StepExecutionArgs } from '../workflow/step-runner.js';
+import { normalizePointer } from '../../../util/pointer-utils.js';
 
 export function createQuickJSStepBindings(
   args: StepExecutionArgs,
@@ -22,7 +23,9 @@ export function createQuickJSStepBindings(
         ? resolvedPointer
         : context.resolvePointer(resolvedPointer);
 
-      const snapshot = context.documentAt(absolutePointer);
+      const normalizedPointer = normalizePointer(absolutePointer);
+      const snapshot = context.documentAt(normalizedPointer);
+      context.gasMeter().chargeDocumentSnapshot(normalizedPointer, snapshot);
       if (!snapshot) {
         return undefined;
       }

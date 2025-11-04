@@ -3,6 +3,13 @@ import { describe, expect, it } from 'vitest';
 
 import { GasMeter } from '../gas-meter.js';
 import { canonicalSize } from '../../util/node-canonicalizer.js';
+import {
+  documentSnapshotAmount,
+  expressionAmount,
+  jsCodeBaseAmount,
+  templateAmount,
+  utf8,
+} from '../gas-helpers.js';
 
 const blue = createBlue();
 
@@ -43,5 +50,51 @@ describe('GasMeter', () => {
     meter.chargeCascadeRouting(0); // should be ignored
 
     expect(meter.totalGas()).toBe(20 + sizeCharge + 30);
+  });
+
+  it('charges JavaScript code base amounts using byte length', () => {
+    const meter = new GasMeter(blue);
+    const code = 'return 1;';
+    const codeBytes = utf8(code);
+    const expected = jsCodeBaseAmount(code);
+    expect(expected).toBe(100 + Math.floor((codeBytes + 99) / 100));
+
+    meter.chargeJavaScriptCodeBase(code);
+
+    expect(meter.totalGas()).toBe(expected);
+  });
+
+  it('charges document snapshot lookups by pointer depth and size', () => {
+    const meter = new GasMeter(blue);
+    const snapshot = nodeFrom({ profile: { name: 'Ada' } });
+    const snapshotBytes = canonicalSize(blue, snapshot);
+    const rootExpected = documentSnapshotAmount('/', snapshotBytes);
+    const missingExpected = documentSnapshotAmount('/a/b', 0);
+    expect(rootExpected).toBe(8 + Math.floor((snapshotBytes + 99) / 100));
+    expect(missingExpected).toBe(10);
+
+    meter.chargeDocumentSnapshot('/', snapshot);
+    meter.chargeDocumentSnapshot('/a/b', null);
+
+    expect(meter.totalGas()).toBe(rootExpected + missingExpected);
+  });
+
+  it('charges expressions and templates based on bytes and placeholders', () => {
+    const meter = new GasMeter(blue);
+    const expression = '1 + externalValue';
+    const exprBytes = utf8(expression);
+    const expectedExpr = expressionAmount(expression);
+    expect(expectedExpr).toBe(5 + Math.floor((exprBytes + 99) / 100));
+
+    meter.chargeExpression(expression);
+
+    const template = 'Hello ${first} ${last}!';
+    const templateBytes = utf8(template);
+    const expectedTemplate = templateAmount(2, template);
+    expect(expectedTemplate).toBe(6 + Math.floor((templateBytes + 99) / 100));
+
+    meter.chargeTemplate(2, template);
+
+    expect(meter.totalGas()).toBe(expectedExpr + expectedTemplate);
   });
 });

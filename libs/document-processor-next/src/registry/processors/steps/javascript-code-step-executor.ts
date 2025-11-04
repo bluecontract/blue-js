@@ -3,9 +3,9 @@ import {
   JavaScriptCodeSchema,
 } from '@blue-repository/conversation';
 
-import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
-import { CodeBlockEvaluationError } from '../../../util/expression/exceptions.js';
 import type { ContractProcessorContext } from '../../types.js';
+import { CodeBlockEvaluationError } from '../../../util/expression/exceptions.js';
+import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
 import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
@@ -44,6 +44,7 @@ export class JavaScriptCodeStepExecutor
       );
     }
 
+    context.gasMeter().chargeJavaScriptCodeBase(code);
     const bindings = createQuickJSStepBindings(args);
 
     try {

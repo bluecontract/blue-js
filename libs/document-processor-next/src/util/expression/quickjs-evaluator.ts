@@ -44,6 +44,7 @@ export class QuickJSEvaluator {
     const context = runtime.newContext();
     try {
       this.installConsole(context);
+      this.installDeterministicGlobals(context);
       this.installBindings(context, bindings);
 
       const wrappedCode = this.wrapCode(code);
@@ -107,6 +108,12 @@ export class QuickJSEvaluator {
       }
       context.setProp(context.global, 'console', consoleHandle);
     });
+  }
+
+  private installDeterministicGlobals(context: QuickJSContext): void {
+    // Hide non-deterministic and host-specific globals from user code
+    // Ensure typeof returns 'undefined' for these symbols
+    context.setProp(context.global, 'Date', context.undefined.dup());
   }
 
   private installBindings(

@@ -1,5 +1,13 @@
 import { Blue, BlueNode } from '@blue-labs/language';
 import { canonicalSize } from '../util/node-canonicalizer.js';
+import {
+  ceil100,
+  documentSnapshotAmount,
+  expressionAmount,
+  jsCodeBaseAmount,
+  templateAmount,
+  updateDocumentBaseAmount,
+} from './gas-helpers.js';
 import { normalizeScope } from '../util/pointer-utils.js';
 
 const INITIALIZATION = 1_000;
@@ -12,6 +20,7 @@ const DRAIN_EVENT = 10;
 const CHECKPOINT_UPDATE = 20;
 const TERMINATION_MARKER = 20;
 const LIFECYCLE_DELIVERY = 30;
+const TRIGGER_EVENT_BASE = 30;
 const FATAL_TERMINATION_OVERHEAD = 100;
 
 function scopeEntryCharge(depth: number): number {
@@ -105,12 +114,40 @@ export class GasMeter {
     this.add(FATAL_TERMINATION_OVERHEAD);
   }
 
+  chargeJavaScriptCodeBase(code: string): void {
+    this.add(jsCodeBaseAmount(code));
+  }
+
+  chargeTriggerEventBase(): void {
+    this.add(TRIGGER_EVENT_BASE);
+  }
+
+  chargeUpdateDocumentBase(changesLen: number): void {
+    this.add(updateDocumentBaseAmount(changesLen));
+  }
+
+  chargeExpression(expression: string): void {
+    this.add(expressionAmount(expression));
+  }
+
+  chargeTemplate(placeholderCount: number, template: string): void {
+    this.add(templateAmount(placeholderCount, template));
+  }
+
+  chargeDocumentSnapshot(
+    absPointer: string,
+    snapshot: BlueNode | null | undefined,
+  ): void {
+    const bytes = snapshot ? canonicalSize(this.blue, snapshot) : 0;
+    this.add(documentSnapshotAmount(absPointer, bytes));
+  }
+
   private payloadSizeCharge(node: BlueNode | null | undefined): number {
     if (!node) {
       return 0;
     }
     const bytes = canonicalSize(this.blue, node);
-    return Math.floor((bytes + 99) / 100);
+    return ceil100(bytes);
   }
 
   private scopeDepth(scopePath: string): number {
