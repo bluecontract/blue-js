@@ -122,7 +122,7 @@ export class ScopeExecutor {
     let preInitSnapshot: BlueNode | null = null;
 
     if (chargeScopeEntry) {
-      this.runtime.chargeScopeEntry(normalizedScope);
+      this.runtime.gasMeter().chargeScopeEntry(normalizedScope);
     }
 
     while (true) {
@@ -167,7 +167,7 @@ export class ScopeExecutor {
       return;
     }
 
-    this.runtime.chargeInitialization();
+    this.runtime.gasMeter().chargeInitialization();
     const documentId = this.blueId(preInitSnapshot ?? new BlueNode());
     const lifecycleEvent = this.createLifecycleEvent(documentId);
     const context = this.hooks.createContext(
@@ -205,7 +205,7 @@ export class ScopeExecutor {
     if (this.hooks.isScopeInactive(normalizedScope)) {
       return;
     }
-    this.runtime.chargeScopeEntry(normalizedScope);
+    this.runtime.gasMeter().chargeScopeEntry(normalizedScope);
     const bundle = await this.processEmbeddedChildren(normalizedScope, event);
     if (!bundle) {
       return;
@@ -243,7 +243,7 @@ export class ScopeExecutor {
     if (this.hooks.isScopeInactive(scopePath)) {
       return;
     }
-    this.runtime.chargeBoundaryCheck();
+    this.runtime.gasMeter().chargeBoundaryCheck();
     try {
       this.validatePatchBoundary(scopePath, bundle, patch);
       this.enforceReservedKeyWriteProtection(
@@ -264,10 +264,10 @@ export class ScopeExecutor {
       switch (patch.op) {
         case 'ADD':
         case 'REPLACE':
-          this.runtime.chargePatchAddOrReplace(patch.val ?? null);
+          this.runtime.gasMeter().chargePatchAddOrReplace(patch.val ?? null);
           break;
         case 'REMOVE':
-          this.runtime.chargePatchRemove();
+          this.runtime.gasMeter().chargePatchRemove();
           break;
         default:
           break;
@@ -279,7 +279,7 @@ export class ScopeExecutor {
       }
 
       await this.markCutOffChildrenIfNeeded(scopePath, bundle, data);
-      this.runtime.chargeCascadeRouting(data.cascadeScopes.length);
+      this.runtime.gasMeter().chargeCascadeRouting(data.cascadeScopes.length);
 
       for (const cascadeScope of data.cascadeScopes) {
         const targetBundle = this.bundles.get(cascadeScope);
@@ -338,7 +338,7 @@ export class ScopeExecutor {
     event: BlueNode,
     finalizeAfter: boolean,
   ): Promise<void> {
-    this.runtime.chargeLifecycleDelivery();
+    this.runtime.gasMeter().chargeLifecycleDelivery();
     await this.hooks.recordLifecycleForBridging(scopePath, event);
     if (!bundle) {
       return;
@@ -502,7 +502,7 @@ export class ScopeExecutor {
             continue;
           }
           if (!charged) {
-            this.runtime.chargeBridge(emission);
+            this.runtime.gasMeter().chargeBridge();
             charged = true;
           }
           await this.channelRunner.runHandlers(
@@ -537,7 +537,7 @@ export class ScopeExecutor {
       if (!next) {
         break;
       }
-      this.runtime.chargeDrainEvent();
+      this.runtime.gasMeter().chargeDrainEvent();
       for (const channel of triggeredChannels) {
         if (this.hooks.isScopeInactive(scopePath)) {
           context.clearTriggered();

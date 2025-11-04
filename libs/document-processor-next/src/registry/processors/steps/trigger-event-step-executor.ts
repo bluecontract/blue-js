@@ -5,15 +5,15 @@ import {
 import { isNullable } from '@blue-labs/shared-utils';
 
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
-import {
-  resolveNodeExpressions,
-  createPicomatchShouldResolve,
-} from '../../../util/expression/quickjs-expression-utils.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
 } from '../workflow/step-runner.js';
+import {
+  resolveNodeExpressions,
+  createPicomatchShouldResolve,
+} from '../../../util/expression/quickjs-expression-utils.js';
 
 export class TriggerEventStepExecutor
   implements SequentialWorkflowStepExecutor
@@ -28,6 +28,7 @@ export class TriggerEventStepExecutor
       return context.throwFatal('Trigger Event step payload is invalid');
     }
 
+    context.gasMeter().chargeTriggerEventBase();
     const resolvedStepNode = await resolveNodeExpressions({
       evaluator: this.evaluator,
       node: stepNode,

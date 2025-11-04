@@ -12,6 +12,10 @@ import {
 import { QuickJSEvaluator } from '../quickjs-evaluator.js';
 import { createBlue } from '../../../test-support/blue.js';
 import type { ContractProcessorContext } from '../../../registry/types.js';
+import {
+  expressionAmount,
+  templateAmount,
+} from '../../../runtime/gas-helpers.js';
 
 describe('quickjs-expression-utils', () => {
   const evaluator = new QuickJSEvaluator();
@@ -73,9 +77,20 @@ describe('quickjs-expression-utils', () => {
 
   describe('resolveNodeExpressions', () => {
     const blue = createBlue();
-    const context = { blue } as unknown as ContractProcessorContext;
 
     it('resolves matching pointers and leaves others untouched', async () => {
+      const gasCharges: number[] = [];
+      const context = {
+        blue,
+        gasMeter: () => ({
+          chargeExpression: (expression: string) => {
+            gasCharges.push(expressionAmount(expression));
+          },
+          chargeTemplate: (placeholderCount: number, template: string) => {
+            gasCharges.push(templateAmount(placeholderCount, template));
+          },
+        }),
+      } as unknown as ContractProcessorContext;
       const node = blue.jsonValueToNode({
         keep: 'Value stays',
         direct: '${steps.answer}',
@@ -129,6 +144,11 @@ describe('quickjs-expression-utils', () => {
         direct: string;
       };
       expect(originalJson.direct).toBe('${steps.answer}');
+      expect(gasCharges).toStrictEqual([
+        expressionAmount('steps.answer'),
+        templateAmount(2, 'Total: ${steps.answer} ${document("/unit")}'),
+        expressionAmount('steps.flag'),
+      ]);
     });
 
     it('supports custom include/exclude patterns', () => {

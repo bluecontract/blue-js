@@ -10,7 +10,7 @@ export type DocumentUpdateData = PatchResult;
 export class DocumentProcessingRuntime {
   private readonly patchEngine: PatchEngine;
   private readonly emissionRegistry = new EmissionRegistry();
-  private readonly gasMeter: GasMeter;
+  private readonly meter: GasMeter;
   private runTerminated = false;
 
   constructor(
@@ -18,7 +18,7 @@ export class DocumentProcessingRuntime {
     private readonly blueRef: Blue,
   ) {
     this.patchEngine = new PatchEngine(this.documentRef);
-    this.gasMeter = new GasMeter(this.blueRef);
+    this.meter = new GasMeter(this.blueRef);
   }
 
   document(): BlueNode {
@@ -46,76 +46,19 @@ export class DocumentProcessingRuntime {
   }
 
   addGas(amount: number): void {
-    this.gasMeter.add(amount);
+    this.meter.add(amount);
   }
 
   blue(): Blue {
     return this.blueRef;
   }
 
+  gasMeter(): GasMeter {
+    return this.meter;
+  }
+
   totalGas(): number {
-    return this.gasMeter.totalGas();
-  }
-
-  chargeScopeEntry(scopePath: string): void {
-    this.gasMeter.chargeScopeEntry(scopePath);
-  }
-
-  chargeInitialization(): void {
-    this.gasMeter.chargeInitialization();
-  }
-
-  chargeChannelMatchAttempt(): void {
-    this.gasMeter.chargeChannelMatchAttempt();
-  }
-
-  chargeHandlerOverhead(): void {
-    this.gasMeter.chargeHandlerOverhead();
-  }
-
-  chargeBoundaryCheck(): void {
-    this.gasMeter.chargeBoundaryCheck();
-  }
-
-  chargePatchAddOrReplace(value: BlueNode | null | undefined): void {
-    this.gasMeter.chargePatchAddOrReplace(value ?? null);
-  }
-
-  chargePatchRemove(): void {
-    this.gasMeter.chargePatchRemove();
-  }
-
-  chargeCascadeRouting(scopeCount: number): void {
-    this.gasMeter.chargeCascadeRouting(scopeCount);
-  }
-
-  chargeEmitEvent(event: BlueNode | null | undefined): void {
-    this.gasMeter.chargeEmitEvent(event ?? null);
-  }
-
-  chargeBridge(event?: BlueNode | null): void {
-    void event;
-    this.gasMeter.chargeBridge();
-  }
-
-  chargeDrainEvent(): void {
-    this.gasMeter.chargeDrainEvent();
-  }
-
-  chargeCheckpointUpdate(): void {
-    this.gasMeter.chargeCheckpointUpdate();
-  }
-
-  chargeTerminationMarker(): void {
-    this.gasMeter.chargeTerminationMarker();
-  }
-
-  chargeLifecycleDelivery(): void {
-    this.gasMeter.chargeLifecycleDelivery();
-  }
-
-  chargeFatalTerminationOverhead(): void {
-    this.gasMeter.chargeFatalTerminationOverhead();
+    return this.meter.totalGas();
   }
 
   isRunTerminated(): boolean {
