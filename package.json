@@ -52,7 +52,7 @@
     "@blue-repository/conversation": "0.1.0",
     "@blue-repository/core": "0.1.0",
     "@blue-repository/core-dev": "0.22.0",
-    "@blue-repository/myos": "file:.yalc/@blue-repository/myos",
+    "@blue-repository/myos": "0.1.0",
     "@blue-repository/myos-dev": "0.30.0",
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",
