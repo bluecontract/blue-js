@@ -1,5 +1,5 @@
 import { BlueNode, MergingProcessor } from '@blue-labs/language';
-import { isExpression } from '../../utils/expressionUtils';
+import { isExpression } from '../../util/expression/quickjs-expression-utils.js';
 
 /**
  * Preserves expression values (strings starting with "${" and ending with "}")

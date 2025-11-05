@@ -1,11 +1,12 @@
+/// <reference types='vitest' />
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
 import * as path from 'path';
-const dts = require('vite-plugin-dts').default;
 
 // @ts-expect-error - This is a valid import.
 import packageJson from './package.json';
 
-/** @type {import('vite').UserConfig} */
-export default {
+export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/document-processor',
   plugins: [
@@ -34,7 +35,7 @@ export default {
       fileName: 'index',
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
-      formats: ['es', 'cjs'],
+      formats: ['es' as const],
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
@@ -62,4 +63,4 @@ export default {
     },
     passWithNoTests: true,
   },
-};
+}));

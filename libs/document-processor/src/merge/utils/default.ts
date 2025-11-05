@@ -1,5 +1,5 @@
 import { MergingProcessor, MergingProcessors } from '@blue-labs/language';
-import { ExpressionPreserver } from '../processors/ExpressionPreserver';
+import { ExpressionPreserver } from '../processors/ExpressionPreserver.js';
 
 /**
  * Creates the default node processor with all standard processors

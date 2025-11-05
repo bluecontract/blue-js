@@ -1,1 +1,1 @@
-export * from './ExpressionPreserver';
+export * from './ExpressionPreserver.js';

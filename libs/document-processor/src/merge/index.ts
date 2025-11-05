@@ -1,2 +1,2 @@
-export * as MergingProcessors from './processors';
-export * from './utils/default';
+export * as MergingProcessors from './processors/index.js';
+export * from './utils/default.js';
