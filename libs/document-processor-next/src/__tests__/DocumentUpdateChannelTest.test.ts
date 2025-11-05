@@ -16,7 +16,7 @@ import {
 const blue = createBlue();
 
 describe('DocumentUpdateChannelTest', () => {
-  it('initializationTriggersDocumentUpdateHandlers', () => {
+  it('initializationTriggersDocumentUpdateHandlers', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Sample Doc
 contracts:
@@ -50,8 +50,8 @@ contracts:
     propertyValue: 1
 `;
 
-    const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const processed = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document;
 
     expect(Number(property(processed, 'x').getValue())).toBe(1);
@@ -59,7 +59,7 @@ contracts:
     expect(Number(property(processed, 'z').getValue())).toBe(1);
   });
 
-  it('nestedUpdatesPropagateToParentWatchers', () => {
+  it('nestedUpdatesPropagateToParentWatchers', async () => {
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -96,8 +96,8 @@ contracts:
     propertyKey: /y
 `;
 
-    const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const processed = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document;
 
     const a = property(processed, 'a');
@@ -107,7 +107,7 @@ contracts:
     expect(Number(property(processed, 'y').getValue())).toBe(2);
   });
 
-  it('cascadedUpdatesPropagateThroughEmbeddedScopes', () => {
+  it('cascadedUpdatesPropagateThroughEmbeddedScopes', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Cascading Doc
 x:
@@ -155,8 +155,8 @@ contracts:
     propertyValue: 1
 `;
 
-    const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const processed = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document;
 
     expect(Number(property(processed, 'a').getValue())).toBe(1);
@@ -173,7 +173,7 @@ contracts:
     expect(propertyOptional(originalY, 'a')).toBeUndefined();
   });
 
-  it('documentUpdateEventExposesRelativePathAndSnapshots', () => {
+  it('documentUpdateEventExposesRelativePathAndSnapshots', async () => {
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -221,14 +221,14 @@ contracts:
     expectedAfterValue: 1
 `;
 
-    const processed = expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+    const processed = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
     ).document;
     const a = property(processed, 'a');
     expect(Number(property(a, 'x').getValue())).toBe(1);
   });
 
-  it('document update events preserve append pointer token', () => {
+  it('document update events preserve append pointer token', async () => {
     const processor = buildProcessor(
       blue,
       new SetPropertyContractProcessor(),
@@ -261,7 +261,7 @@ contracts:
     expectedAfterValue: 5
 `;
 
-    const result = expectOk(
+    const result = await expectOk(
       processor.initializeDocument(blue.yamlToNode(yaml)),
     );
     const list = property(result.document, 'list');

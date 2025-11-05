@@ -54,7 +54,7 @@ timestamp: ${timestamp}
   return entry;
 }
 
-function initializeDocument() {
+async function initializeDocument() {
   const processor = buildProcessor(
     blue,
     new SetPropertyContractProcessor(),
@@ -79,16 +79,15 @@ contracts:
     propertyKey: /count
 `;
 
-  const initialized = expectOk(
+  const initializedResult = await expectOk(
     processor.initializeDocument(blue.yamlToNode(documentYaml)),
-  ).document;
-
-  return { processor, initialized };
+  );
+  return { processor, initialized: initializedResult.document };
 }
 
 describe('TimelineChannelProcessor', () => {
-  it('ignores non-timeline events and mismatched timeline ids', () => {
-    const { processor, initialized } = initializeDocument();
+  it('ignores non-timeline events and mismatched timeline ids', async () => {
+    const { processor, initialized } = await initializeDocument();
     expect(
       processor
         .registry()
@@ -98,22 +97,26 @@ describe('TimelineChannelProcessor', () => {
     const randomEvent = blue.yamlToNode(`type:
   blueId: RandomEvent
 `);
-    const afterRandom = expectOk(
-      processor.processDocument(initialized.clone(), randomEvent),
+    const afterRandom = (
+      await expectOk(
+        processor.processDocument(initialized.clone(), randomEvent),
+      )
     ).document;
     expect(propertyOptional(afterRandom, 'price')).toBeUndefined();
     expect(propertyOptional(afterRandom, 'count')).toBeUndefined();
 
     const mismatchedEntry = timelineEntryEvent('bob-timeline');
-    const afterMismatched = expectOk(
-      processor.processDocument(afterRandom.clone(), mismatchedEntry),
+    const afterMismatched = (
+      await expectOk(
+        processor.processDocument(afterRandom.clone(), mismatchedEntry),
+      )
     ).document;
     expect(propertyOptional(afterMismatched, 'price')).toBeUndefined();
     expect(propertyOptional(afterMismatched, 'count')).toBeUndefined();
   });
 
   it('delivers timeline entry messages to handlers and attaches metadata', async () => {
-    const { processor, initialized } = initializeDocument();
+    const { processor, initialized } = await initializeDocument();
     expect(
       processor
         .registry()
@@ -139,6 +142,7 @@ describe('TimelineChannelProcessor', () => {
       blue,
       event: matchingEntry,
       markers: new Map(),
+      bindingKey: timelineBinding.key(),
     };
 
     expect(blue.isTypeOf(matchingEntry, TimelineEntrySchema)).toBe(true);
@@ -148,8 +152,10 @@ describe('TimelineChannelProcessor', () => {
     );
     expect(doesMatch).toBe(true);
 
-    const afterMatching = expectOk(
-      processor.processDocument(initialized.clone(), matchingEntry),
+    const afterMatching = (
+      await expectOk(
+        processor.processDocument(initialized.clone(), matchingEntry),
+      )
     ).document;
 
     expect(numericProperty(afterMatching, 'price')).toBe(1500);
@@ -171,8 +177,8 @@ describe('TimelineChannelProcessor', () => {
     expect(Number(timestamp.getValue())).toBe(1_700_000_000);
   });
 
-  it('skips duplicate timeline entries using the entry blue id', () => {
-    const { processor, initialized } = initializeDocument();
+  it('skips duplicate timeline entries using the entry blue id', async () => {
+    const { processor, initialized } = await initializeDocument();
     expect(
       processor
         .registry()
@@ -180,14 +186,16 @@ describe('TimelineChannelProcessor', () => {
     ).toBeDefined();
 
     const firstEntry = timelineEntryEvent('alice-timeline');
-    const afterFirst = expectOk(
+    const afterFirstResult = await expectOk(
       processor.processDocument(initialized.clone(), firstEntry),
-    ).document;
+    );
+    const afterFirst = afterFirstResult.document;
     expect(numericProperty(afterFirst, 'count')).toBe(1);
 
-    const afterDuplicate = expectOk(
+    const afterDuplicateResult = await expectOk(
       processor.processDocument(afterFirst.clone(), firstEntry),
-    ).document;
+    );
+    const afterDuplicate = afterDuplicateResult.document;
     expect(numericProperty(afterDuplicate, 'count')).toBe(1);
   });
 });

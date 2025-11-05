@@ -1,10 +1,11 @@
+import { Blue, BlueNode } from '@blue-labs/language';
 import type { ContractBundle } from './contract-bundle.js';
 import type { JsonPatch } from '../model/shared/json-patch.js';
-import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
-import { ProcessorFatalError } from './processor-fatal-error.js';
-import { Blue, BlueNode } from '@blue-labs/language';
 import { ProcessorErrors } from '../types/errors.js';
 import { ProcessorEngine } from './processor-engine.js';
+import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
+import { ProcessorFatalError } from './processor-fatal-error.js';
+import type { GasMeter } from '../runtime/gas-meter.js';
 
 export interface ExecutionAdapter {
   runtime(): DocumentProcessingRuntime;
@@ -14,18 +15,18 @@ export interface ExecutionAdapter {
     bundle: ContractBundle,
     patch: JsonPatch,
     allowReservedMutation: boolean,
-  ): void;
+  ): Promise<void>;
   resolvePointer(scopePath: string, relativePointer: string): string;
   enterGracefulTermination(
     scopePath: string,
     bundle: ContractBundle,
     reason: string | null,
-  ): void;
+  ): Promise<void>;
   enterFatalTermination(
     scopePath: string,
     bundle: ContractBundle,
     reason: string | null,
-  ): void;
+  ): Promise<void>;
 }
 
 export class ProcessorExecutionContext {
@@ -46,18 +47,19 @@ export class ProcessorExecutionContext {
     return this.execution.runtime().blue();
   }
 
+  gasMeter(): GasMeter {
+    return this.execution.runtime().gasMeter();
+  }
+
   event(): BlueNode {
     return this.eventNode;
   }
 
-  applyPatch(patch: JsonPatch): void {
-    if (
-      !this.allowTerminatedWork &&
-      this.execution.isScopeInactive(this.scopePathValue)
-    ) {
+  async applyPatch(patch: JsonPatch): Promise<void> {
+    if (this.shouldSkipTerminatedWork()) {
       return;
     }
-    this.execution.handlePatch(
+    await this.execution.handlePatch(
       this.scopePathValue,
       this.bundle,
       patch,
@@ -66,15 +68,12 @@ export class ProcessorExecutionContext {
   }
 
   emitEvent(emission: BlueNode): void {
-    if (
-      !this.allowTerminatedWork &&
-      this.execution.isScopeInactive(this.scopePathValue)
-    ) {
+    if (this.shouldSkipTerminatedWork()) {
       return;
     }
     const runtime = this.execution.runtime();
     const scopeContext = runtime.scope(this.scopePathValue);
-    runtime.chargeEmitEvent(emission);
+    runtime.gasMeter().chargeEmitEvent(emission);
     const queued = emission.clone();
     scopeContext.enqueueTriggered(queued);
     scopeContext.recordBridgeable(queued.clone());
@@ -84,10 +83,7 @@ export class ProcessorExecutionContext {
   }
 
   consumeGas(units: number): void {
-    if (
-      !this.allowTerminatedWork &&
-      this.execution.isScopeInactive(this.scopePathValue)
-    ) {
+    if (this.shouldSkipTerminatedWork()) {
       return;
     }
     this.execution.runtime().addGas(units);
@@ -137,19 +133,26 @@ export class ProcessorExecutionContext {
     return node instanceof BlueNode ? node : null;
   }
 
-  terminateGracefully(reason: string | null): void {
-    this.execution.enterGracefulTermination(
+  async terminateGracefully(reason: string | null): Promise<void> {
+    await this.execution.enterGracefulTermination(
       this.scopePathValue,
       this.bundle,
       reason ?? null,
     );
   }
 
-  terminateFatally(reason: string | null): void {
-    this.execution.enterFatalTermination(
+  async terminateFatally(reason: string | null): Promise<void> {
+    await this.execution.enterFatalTermination(
       this.scopePathValue,
       this.bundle,
       reason ?? null,
+    );
+  }
+
+  private shouldSkipTerminatedWork(): boolean {
+    return (
+      !this.allowTerminatedWork &&
+      this.execution.isScopeInactive(this.scopePathValue)
     );
   }
 }

@@ -15,9 +15,13 @@ import {
 import { isProcessorManagedChannelBlueId } from '../constants/processor-contract-constants.js';
 import { ContractBundle, ContractBundleBuilder } from './contract-bundle.js';
 import { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
+import { HandlerRegistrationService } from './handler-registration-service.js';
+import type {
+  ScopeContractEntry,
+  ScopeContractsIndex,
+} from '../types/scope-contracts.js';
 import type {
   ChannelContract,
-  HandlerContract,
   MarkerContract,
   ProcessEmbeddedMarker,
 } from '../model/index.js';
@@ -77,25 +81,34 @@ const BUILTIN_MARKER_SCHEMAS: ReadonlyMap<
 ]);
 
 export class ContractLoader {
+  private readonly handlerRegistration: HandlerRegistrationService;
+
   constructor(
     private readonly registry: ContractProcessorRegistry,
     private readonly blue: Blue,
-  ) {}
+  ) {
+    this.handlerRegistration = new HandlerRegistrationService(
+      this.blue,
+      this.registry,
+      BUILTIN_CHANNEL_SCHEMAS,
+    );
+  }
 
   load(scopeNode: BlueNode, scopePath: string): ContractBundle {
     try {
       const builder = ContractBundle.builder();
-      const contractsNode = scopeNode.getProperties()?.contracts;
-      const contractEntries = contractsNode?.getProperties();
+      const contractEntries = scopeNode.getContracts();
       if (!contractEntries) {
         return builder.build();
       }
+
+      const scopeContracts = this.buildScopeContractsIndex(contractEntries);
 
       for (const [key, contractNode] of Object.entries(contractEntries)) {
         if (!contractNode) {
           continue;
         }
-        this.processContract(builder, key, contractNode);
+        this.processContract(builder, key, contractNode, scopeContracts);
       }
 
       return builder.build();
@@ -122,6 +135,7 @@ export class ContractLoader {
     builder: ContractBundleBuilder,
     key: string,
     node: BlueNode,
+    scopeContracts: ScopeContractsIndex,
   ): void {
     const blueId = node.getType()?.getBlueId();
     if (!blueId) {
@@ -159,13 +173,14 @@ export class ContractLoader {
 
     const handlerProcessor = this.registry.lookupHandler(blueId);
     if (handlerProcessor) {
-      this.handleHandler(
+      this.handlerRegistration.register({
         builder,
         key,
         node,
-        handlerProcessor.schema as ZodType<HandlerContract>,
+        processor: handlerProcessor,
         blueId,
-      );
+        scopeContracts,
+      });
       return;
     }
 
@@ -205,7 +220,7 @@ export class ContractLoader {
         node,
         processEmbeddedMarkerSchema,
       ) as ProcessEmbeddedMarker;
-      builder.setEmbedded({ ...embedded, key });
+      builder.setEmbedded(embedded);
     } catch (error) {
       if (isZodError(error)) {
         throw new ProcessorFatalError(
@@ -238,7 +253,7 @@ export class ContractLoader {
   ): void {
     try {
       const contract = this.convert(node, schema) as ChannelContract;
-      builder.addChannel(key, { ...contract, key }, blueId);
+      builder.addChannel(key, contract, blueId);
     } catch (error) {
       if (isZodError(error)) {
         throw new ProcessorFatalError(
@@ -261,45 +276,6 @@ export class ContractLoader {
     }
   }
 
-  private handleHandler(
-    builder: ContractBundleBuilder,
-    key: string,
-    node: BlueNode,
-    schema: ZodType<HandlerContract>,
-    blueId: string,
-  ): void {
-    try {
-      const contract = this.convert(node, schema) as HandlerContract;
-      const channelKey = contract.channel;
-      if (!channelKey) {
-        throw new ProcessorFatalError(
-          `Handler ${key} must declare channel`,
-          ProcessorErrors.illegalState(`Handler ${key} must declare channel`),
-        );
-      }
-      builder.addHandler(key, { ...contract, key }, blueId);
-    } catch (error) {
-      if (isZodError(error)) {
-        throw new ProcessorFatalError(
-          'Failed to parse handler contract',
-          ProcessorErrors.invalidContract(
-            blueId,
-            'Failed to parse handler contract',
-            key,
-            error,
-          ),
-        );
-      }
-      const reason =
-        (error as Error | undefined)?.message ??
-        'Failed to register handler contract';
-      throw new ProcessorFatalError(
-        reason,
-        ProcessorErrors.illegalState(reason),
-      );
-    }
-  }
-
   private handleMarker(
     builder: ContractBundleBuilder,
     key: string,
@@ -309,7 +285,7 @@ export class ContractLoader {
   ): void {
     try {
       const marker = this.convert(node, schema) as MarkerContract;
-      builder.addMarker(key, { ...marker, key }, blueId);
+      builder.addMarker(key, marker, blueId);
     } catch (error) {
       if (isZodError(error)) {
         throw new ProcessorFatalError(
@@ -330,6 +306,22 @@ export class ContractLoader {
         ProcessorErrors.illegalState(reason),
       );
     }
+  }
+
+  private buildScopeContractsIndex(
+    entries: Record<string, BlueNode | undefined>,
+  ): ScopeContractsIndex {
+    const map = new Map<string, ScopeContractEntry>();
+    for (const [entryKey, entryNode] of Object.entries(entries)) {
+      if (!entryNode) {
+        continue;
+      }
+      const entryBlueId = entryNode.getType()?.getBlueId();
+      if (typeof entryBlueId === 'string' && entryBlueId.trim().length > 0) {
+        map.set(entryKey, { node: entryNode, nodeTypeBlueId: entryBlueId });
+      }
+    }
+    return map;
   }
 
   private convert<T>(node: BlueNode, schema: ZodType<T>): T {

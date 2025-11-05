@@ -1,29 +1,33 @@
 import { expect } from 'vitest';
-import { BlueNode, Blue } from '@blue-labs/language';
+import { BlueNode, Blue, isBigNumber } from '@blue-labs/language';
 
 import { DocumentProcessor } from '../api/document-processor.js';
 import type { AnyContractProcessor } from '../registry/types.js';
 import { resolvePointer } from '../util/pointer-utils.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
 
-export function expectOk(
-  result: DocumentProcessingResult,
+export async function expectOk(
+  result: DocumentProcessingResult | Promise<DocumentProcessingResult>,
   message = 'Expected successful document processing result',
-): DocumentProcessingResult {
+): Promise<DocumentProcessingResult> {
+  const resolved = await result;
   const failureDetails =
-    result.failureReason != null
-      ? ` Failure reason: ${result.failureReason}`
+    resolved.failureReason != null
+      ? ` Failure reason: ${resolved.failureReason}`
       : '';
-  expect(result.capabilityFailure, `${message}.${failureDetails}`).toBe(false);
-  return result;
+  expect(resolved.capabilityFailure, `${message}.${failureDetails}`).toBe(
+    false,
+  );
+  return resolved;
 }
 
-export function expectErr(
-  result: DocumentProcessingResult,
+export async function expectErr(
+  result: DocumentProcessingResult | Promise<DocumentProcessingResult>,
   message = 'Expected capability failure',
-): DocumentProcessingResult {
-  expect(result.capabilityFailure, message).toBe(true);
-  return result;
+): Promise<DocumentProcessingResult> {
+  const resolved = await result;
+  expect(resolved.capabilityFailure, message).toBe(true);
+  return resolved;
 }
 
 export function property(node: BlueNode, key: string): BlueNode {
@@ -71,8 +75,8 @@ export function numericValue(node: BlueNode): number {
   if (typeof raw === 'number') {
     return raw;
   }
-  if (typeof (raw as { toNumber?: unknown }).toNumber === 'function') {
-    return (raw as { toNumber: () => number }).toNumber();
+  if (isBigNumber(raw)) {
+    return raw.toNumber();
   }
   const parsed = Number(raw);
   if (Number.isNaN(parsed)) {
@@ -107,4 +111,22 @@ export function terminatedMarker(
   } catch {
     return null;
   }
+}
+
+export function makeTimelineEntry(
+  blue: Blue,
+  timelineId: string,
+  message: string,
+): BlueNode {
+  const yaml = `type: Timeline Entry
+timeline:
+  timelineId: ${timelineId}
+message:
+  type: Chat Message
+  message: ${message}
+actor:
+  name: Timeline Driver
+timestamp: 1700000000
+`;
+  return blue.yamlToNode(yaml);
 }

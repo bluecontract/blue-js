@@ -49,7 +49,7 @@ interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
     bundle: ContractBundle | null,
     event: BlueNode,
     finalizeAfter: boolean,
-  ): void;
+  ): Promise<void>;
 }
 
 export class ProcessorExecution implements ExecutionHooks {
@@ -83,7 +83,7 @@ export class ProcessorExecution implements ExecutionHooks {
       this.runtimeRef,
       this.checkpointManager,
       {
-        evaluateChannel: (channel, bundle, scopePath, event) =>
+        evaluateChannel: async (channel, bundle, scopePath, event) =>
           this.evaluateChannel(channel, bundle, scopePath, event),
         isScopeInactive: (scopePath) => this.isScopeInactive(scopePath),
         createContext: (scopePath, bundle, event, allowTerminatedWork) =>
@@ -94,7 +94,22 @@ export class ProcessorExecution implements ExecutionHooks {
             allowTerminatedWork,
             false,
           ),
-        executeHandler: (handler, context) =>
+        shouldRunHandler: async (handler, context) => {
+          const processor = this.registry.lookupHandler(handler.blueId());
+          if (!processor) {
+            const reason = `No processor registered for handler contract ${handler.blueId()}`;
+            throw new ProcessorFatalError(
+              reason,
+              ProcessorErrors.illegalState(reason),
+            );
+          }
+          const matchesFn = processor.matches;
+          if (typeof matchesFn !== 'function') {
+            return true;
+          }
+          return await matchesFn.call(processor, handler.contract(), context);
+        },
+        executeHandler: async (handler, context) =>
           this.executeHandler(handler, context),
         canonicalSignature: signatureFn,
       },
@@ -137,25 +152,31 @@ export class ProcessorExecution implements ExecutionHooks {
     });
   }
 
-  initializeScope(scopePath: string, chargeScopeEntry: boolean): void {
-    this.scopeExecutor.initializeScope(scopePath, chargeScopeEntry);
+  async initializeScope(
+    scopePath: string,
+    chargeScopeEntry: boolean,
+  ): Promise<void> {
+    await this.scopeExecutor.initializeScope(scopePath, chargeScopeEntry);
   }
 
   loadBundles(scopePath: string): void {
     this.scopeExecutor.loadBundles(scopePath);
   }
 
-  processExternalEvent(scopePath: string, event: BlueNode): void {
-    this.scopeExecutor.processExternalEvent(scopePath, event);
+  async processExternalEvent(
+    scopePath: string,
+    event: BlueNode,
+  ): Promise<void> {
+    await this.scopeExecutor.processExternalEvent(scopePath, event);
   }
 
-  handlePatch(
+  async handlePatch(
     scopePath: string,
     bundle: ContractBundle,
     patch: JsonPatch,
     allowReservedMutation: boolean,
-  ): void {
-    this.scopeExecutor.handlePatch(
+  ): Promise<void> {
+    await this.scopeExecutor.handlePatch(
       scopePath,
       bundle,
       patch,
@@ -209,20 +230,20 @@ export class ProcessorExecution implements ExecutionHooks {
     );
   }
 
-  enterGracefulTermination(
+  async enterGracefulTermination(
     scopePath: string,
     bundle: ContractBundle | null,
     reason: string | null,
-  ): void {
-    this.terminate(scopePath, bundle, 'GRACEFUL', reason);
+  ): Promise<void> {
+    await this.terminate(scopePath, bundle, 'GRACEFUL', reason);
   }
 
-  enterFatalTermination(
+  async enterFatalTermination(
     scopePath: string,
     bundle: ContractBundle | null,
     reason: string | null,
-  ): void {
-    this.terminate(scopePath, bundle, 'FATAL', reason);
+  ): Promise<void> {
+    await this.terminate(scopePath, bundle, 'FATAL', reason);
   }
 
   recordPendingTermination(
@@ -237,7 +258,7 @@ export class ProcessorExecution implements ExecutionHooks {
     this.pendingTerminations.delete(normalizeScope(scopePath));
   }
 
-  markCutOff(scopePath: string): void {
+  async markCutOff(scopePath: string): Promise<void> {
     const normalized = normalizeScope(scopePath);
     if (this.cutOffScopes.add(normalized)) {
       const context = this.runtimeRef.existingScope(normalized);
@@ -245,13 +266,13 @@ export class ProcessorExecution implements ExecutionHooks {
     }
   }
 
-  deliverLifecycle(
+  async deliverLifecycle(
     scopePath: string,
     bundle: ContractBundle | null,
     event: BlueNode,
     finalizeAfter: boolean,
-  ): void {
-    this.scopeExecutor.deliverLifecycle(
+  ): Promise<void> {
+    await this.scopeExecutor.deliverLifecycle(
       scopePath,
       bundle,
       event,
@@ -259,7 +280,10 @@ export class ProcessorExecution implements ExecutionHooks {
     );
   }
 
-  recordLifecycleForBridging(scopePath: string, event: BlueNode): void {
+  async recordLifecycleForBridging(
+    scopePath: string,
+    event: BlueNode,
+  ): Promise<void> {
     const context = this.runtimeRef.scope(scopePath);
     context.recordBridgeable(event.clone());
     if (scopePath === '/') {
@@ -275,12 +299,12 @@ export class ProcessorExecution implements ExecutionHooks {
     return resolvePointer(scopePath, relativePointer);
   }
 
-  private terminate(
+  private async terminate(
     scopePath: string,
     bundle: ContractBundle | null,
     kind: TerminationKind,
     reason: string | null,
-  ): void {
+  ): Promise<void> {
     const normalized = normalizeScope(scopePath);
     if (
       this.pendingTerminations.has(normalized) ||
@@ -289,7 +313,7 @@ export class ProcessorExecution implements ExecutionHooks {
       return;
     }
     this.pendingTerminations.set(normalized, { kind, reason });
-    this.terminationService.terminateScope(
+    await this.terminationService.terminateScope(
       this,
       scopePath,
       bundle,
@@ -303,33 +327,32 @@ export class ProcessorExecution implements ExecutionHooks {
     return ProcessorEngine.nodeAt(this.runtimeRef.document(), normalized);
   }
 
-  private evaluateChannel(
+  private async evaluateChannel(
     channel: ChannelBinding,
     bundle: ContractBundle,
     scopePath: string,
     event: BlueNode,
-  ): ChannelMatch {
+  ): Promise<ChannelMatch> {
     const processor = this.registry.lookupChannel(channel.blueId());
     if (!processor) {
       return { matches: false };
     }
 
+    const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
+
     const eventClone = event.clone();
-    const eventCloneForId = event.clone();
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       blue: this.runtimeRef.blue(),
       event: eventClone,
       markers: bundle.markers(),
+      bindingKey: channel.key(),
     };
 
-    const matchesResult = processor.matches(
+    const matchesResult = await processor.matches(
       channel.contract() as ChannelContract,
       evaluationContext,
     );
-    if (matchesResult instanceof Promise) {
-      throw new Error('Async channel processors are not supported');
-    }
     if (!matchesResult) {
       return { matches: false };
     }
@@ -340,21 +363,17 @@ export class ProcessorExecution implements ExecutionHooks {
       ? channelizedFn.call(processor, channel.contract(), evaluationContext)
       : undefined;
 
-    const eventIdResult = this.runtimeRef
-      .blue()
-      .calculateBlueIdSync(eventCloneForId);
-
     return {
       matches: true,
-      eventId: eventIdResult,
+      eventId: eventBlueId,
       eventNode: channelizedResult ?? eventClone.clone(),
     };
   }
 
-  private executeHandler(
+  private async executeHandler(
     handler: HandlerBinding,
     context: ProcessorExecutionContext,
-  ): void {
+  ): Promise<void> {
     const processor = this.registry.lookupHandler(handler.blueId());
     if (!processor) {
       const reason = `No processor registered for handler contract ${handler.blueId()}`;
@@ -363,7 +382,7 @@ export class ProcessorExecution implements ExecutionHooks {
         ProcessorErrors.illegalState(reason),
       );
     }
-    processor.execute(handler.contract(), context);
+    await processor.execute(handler.contract(), context);
   }
 
   private createDocumentUpdateEvent(
@@ -416,28 +435,30 @@ export class ProcessorEngine {
     private readonly blue: Blue,
   ) {}
 
-  initializeDocument(document: BlueNode): DocumentProcessingResult {
+  async initializeDocument(
+    document: BlueNode,
+  ): Promise<DocumentProcessingResult> {
     if (this.isInitialized(document)) {
       throw new IllegalStateException('Document already initialized');
     }
     const execution = this.createExecution(document.clone());
-    return this.run(document, execution, () => {
-      execution.initializeScope('/', true);
+    return this.run(document, execution, async () => {
+      await execution.initializeScope('/', true);
     });
   }
 
-  processDocument(
+  async processDocument(
     document: BlueNode,
     event: BlueNode,
-  ): DocumentProcessingResult {
+  ): Promise<DocumentProcessingResult> {
     if (!this.isInitialized(document)) {
       throw new IllegalStateException('Document not initialized');
     }
     const execution = this.createExecution(document.clone());
     const eventClone = event.clone();
-    return this.run(document, execution, () => {
+    return this.run(document, execution, async () => {
       execution.loadBundles('/');
-      execution.processExternalEvent('/', eventClone);
+      await execution.processExternalEvent('/', eventClone);
     });
   }
 
@@ -454,13 +475,13 @@ export class ProcessorEngine {
     );
   }
 
-  private run(
+  private async run(
     originalDocument: BlueNode,
     execution: ProcessorExecution,
-    action: () => void,
-  ): DocumentProcessingResult {
+    action: () => Promise<void>,
+  ): Promise<DocumentProcessingResult> {
     try {
-      action();
+      await action();
     } catch (error) {
       if (error instanceof RunTerminationError) {
         return execution.result();

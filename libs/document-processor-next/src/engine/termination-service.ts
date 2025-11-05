@@ -25,20 +25,20 @@ export interface TerminationExecutionAdapter {
     bundle: ContractBundle | null,
     event: BlueNode,
     finalizeAfter: boolean,
-  ): void;
+  ): Promise<void>;
   clearPendingTermination(scopePath: string): void;
 }
 
 export class TerminationService {
   constructor(private readonly runtime: DocumentProcessingRuntime) {}
 
-  terminateScope(
+  async terminateScope(
     execution: TerminationExecutionAdapter,
     scopePath: string,
     bundle: ContractBundle | null,
     kind: TerminationKind,
     reason: string | null,
-  ): void {
+  ): Promise<void> {
     execution.recordPendingTermination(scopePath, kind, reason ?? null);
 
     const normalized = execution.normalizeScope(scopePath);
@@ -47,18 +47,23 @@ export class TerminationService {
       pointer,
       createTerminationMarker(this.runtime.blue(), kind, reason),
     );
-    this.runtime.chargeTerminationMarker();
+    this.runtime.gasMeter().chargeTerminationMarker();
 
     const bundleRef = bundle ?? execution.bundleForScope(normalized) ?? null;
     const lifecycleEvent = createTerminationLifecycleEvent(kind, reason);
-    execution.deliverLifecycle(normalized, bundleRef, lifecycleEvent, false);
+    await execution.deliverLifecycle(
+      normalized,
+      bundleRef,
+      lifecycleEvent,
+      false,
+    );
 
     const scopeContext = this.runtime.scope(normalized);
     scopeContext.finalizeTermination(kind, reason ?? null);
     execution.clearPendingTermination(scopePath);
 
     if (kind === 'FATAL') {
-      this.runtime.chargeFatalTerminationOverhead();
+      this.runtime.gasMeter().chargeFatalTerminationOverhead();
     }
 
     if (kind === 'FATAL' && normalized === '/') {

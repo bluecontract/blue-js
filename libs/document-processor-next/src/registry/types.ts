@@ -2,8 +2,11 @@ import type { ZodType } from 'zod';
 import { BlueNode } from '@blue-labs/language';
 import type { Blue } from '@blue-labs/language';
 
+import type { ScopeContractsIndex } from '../types/scope-contracts.js';
+
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { MarkerContract } from '../model/index.js';
+import type { GasMeter } from '../runtime/gas-meter.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
 
@@ -17,20 +20,39 @@ export interface ContractProcessorContext {
   readonly scopePath: string;
   readonly blue: Blue;
   event(): BlueNode | null;
-  applyPatch(patch: JsonPatch): void;
+  applyPatch(patch: JsonPatch): Promise<void>;
   emitEvent(emission: BlueNode): void;
   consumeGas(units: number): void;
+  gasMeter(): GasMeter;
   throwFatal(reason: string): never;
   resolvePointer(relativePointer: string): string;
   documentAt(absolutePointer: string): BlueNode | null;
   documentContains(absolutePointer: string): boolean;
-  terminateGracefully(reason: string | null): void;
-  terminateFatally(reason: string | null): void;
+  terminateGracefully(reason: string | null): Promise<void>;
+  terminateFatally(reason: string | null): Promise<void>;
 }
 
 export interface HandlerProcessor<TContract>
   extends ContractProcessor<TContract> {
   readonly kind: 'handler';
+  /**
+   * Optional sync hook to compute channel key when contract omitted it.
+   */
+  deriveChannel?(
+    contract: TContract,
+    deps: {
+      blue: Blue;
+      scopeContracts: ScopeContractsIndex;
+    },
+  ): string | null | undefined;
+  /**
+   * Optional guard to determine whether the handler should execute
+   * for the provided event within the current context.
+   */
+  matches?(
+    contract: TContract,
+    context: ContractProcessorContext,
+  ): boolean | Promise<boolean>;
   execute(
     contract: TContract,
     context: ContractProcessorContext,
@@ -45,6 +67,10 @@ export interface ChannelEvaluationContext {
    */
   readonly event: BlueNode | null;
   readonly markers: ReadonlyMap<string, MarkerContract>;
+  /**
+   * Key assigned to the contract within the scope's contract map.
+   */
+  readonly bindingKey: string;
 }
 
 export interface ChannelProcessor<TContract>

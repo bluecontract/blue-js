@@ -9,17 +9,17 @@ export class SetPropertyContractProcessor
   readonly blueIds = ['SetProperty'] as const;
   readonly schema = setPropertySchema;
 
-  execute(
+  async execute(
     contract: SetProperty,
     context: Parameters<HandlerProcessor<SetProperty>['execute']>[1],
-  ): void {
+  ): Promise<void> {
     const propertyKey = contract.propertyKey ?? 'x';
     const valueNode = new BlueNode().setValue(contract.propertyValue);
     const relativePointer = this.buildPointer(contract.path, propertyKey);
     const targetPath = context.resolvePointer(relativePointer);
     const exists = context.documentContains(targetPath);
     const op = exists ? 'REPLACE' : 'ADD';
-    context.applyPatch({ op, path: targetPath, val: valueNode });
+    await context.applyPatch({ op, path: targetPath, val: valueNode });
   }
 
   private buildPointer(path: string | undefined, propertyKey: string): string {

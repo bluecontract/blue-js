@@ -20,7 +20,7 @@ export interface ChannelRunnerDependencies {
     bundle: ContractBundle,
     scopePath: string,
     event: BlueNode,
-  ): ChannelMatch;
+  ): Promise<ChannelMatch>;
   isScopeInactive(scopePath: string): boolean;
   createContext(
     scopePath: string,
@@ -28,10 +28,14 @@ export interface ChannelRunnerDependencies {
     event: BlueNode,
     allowTerminatedWork: boolean,
   ): ProcessorExecutionContext;
+  shouldRunHandler(
+    handler: HandlerBinding,
+    context: ProcessorExecutionContext,
+  ): Promise<boolean>;
   executeHandler(
     handler: HandlerBinding,
     context: ProcessorExecutionContext,
-  ): void;
+  ): Promise<void>;
   canonicalSignature(node: BlueNode | null): string | null;
 }
 
@@ -42,18 +46,23 @@ export class ChannelRunner {
     private readonly deps: ChannelRunnerDependencies,
   ) {}
 
-  runExternalChannel(
+  async runExternalChannel(
     scopePath: string,
     bundle: ContractBundle,
     channel: ChannelBinding,
     event: BlueNode,
-  ): void {
+  ): Promise<void> {
     if (this.deps.isScopeInactive(scopePath)) {
       return;
     }
-    this.runtime.chargeChannelMatchAttempt();
+    this.runtime.gasMeter().chargeChannelMatchAttempt();
 
-    const match = this.deps.evaluateChannel(channel, bundle, scopePath, event);
+    const match = await this.deps.evaluateChannel(
+      channel,
+      bundle,
+      scopePath,
+      event,
+    );
     if (!match.matches) {
       return;
     }
@@ -71,7 +80,13 @@ export class ChannelRunner {
       return;
     }
 
-    this.runHandlers(scopePath, bundle, channel.key(), eventForHandlers, false);
+    await this.runHandlers(
+      scopePath,
+      bundle,
+      channel.key(),
+      eventForHandlers,
+      false,
+    );
     if (this.deps.isScopeInactive(scopePath)) {
       return;
     }
@@ -85,13 +100,13 @@ export class ChannelRunner {
     );
   }
 
-  runHandlers(
+  async runHandlers(
     scopePath: string,
     bundle: ContractBundle,
     channelKey: string,
     event: BlueNode,
     allowTerminatedWork: boolean,
-  ): void {
+  ): Promise<void> {
     const handlers = bundle.handlersFor(channelKey);
     if (handlers.length === 0) {
       return;
@@ -101,14 +116,18 @@ export class ChannelRunner {
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
         break;
       }
-      this.runtime.chargeHandlerOverhead();
       const context = this.deps.createContext(
         scopePath,
         bundle,
         event,
         allowTerminatedWork,
       );
-      this.deps.executeHandler(handler, context);
+      const shouldRun = await this.deps.shouldRunHandler(handler, context);
+      if (!shouldRun) {
+        continue;
+      }
+      this.runtime.gasMeter().chargeHandlerOverhead();
+      await this.deps.executeHandler(handler, context);
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
         break;
       }

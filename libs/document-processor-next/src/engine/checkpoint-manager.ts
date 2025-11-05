@@ -22,7 +22,6 @@ function createEmptyCheckpointNode(blue: Blue): BlueNode {
 
 function createEmptyCheckpointContract(): ChannelEventCheckpoint {
   return {
-    key: KEY_CHECKPOINT,
     lastEvents: {},
     lastSignatures: {},
   };
@@ -125,7 +124,7 @@ export class CheckpointManager {
       relativeCheckpointLastEvent(record.markerKey, record.channelKey),
     );
     const stored = eventNode?.clone() ?? null;
-    this.runtime.chargeCheckpointUpdate();
+    this.runtime.gasMeter().chargeCheckpointUpdate();
     this.runtime.directWrite(eventPointer, stored);
 
     if (!record.checkpoint.lastEvents) {

@@ -32,7 +32,7 @@ function lifecycleBundle(): ContractBundle {
   return ContractBundle.builder()
     .addChannel(
       'lifecycle',
-      { key: 'lifecycle', order: 0 } as LifecycleChannel,
+      { order: 0 } as LifecycleChannel,
       blueIds['Lifecycle Event Channel'],
     )
     .build();
@@ -42,7 +42,7 @@ function externalBundle(): ContractBundle {
   return ContractBundle.builder()
     .addChannel(
       'external',
-      { key: 'external', order: 0, path: '/events' } as ChannelContract,
+      { order: 0, path: '/events' } as ChannelContract,
       'ExternalChannel',
     )
     .build();
@@ -75,8 +75,8 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
     load: vi.fn(() => bundle),
   } as unknown as ContractLoader;
 
-  const runExternalChannel = vi.fn();
-  const runHandlers = vi.fn();
+  const runExternalChannel = vi.fn().mockResolvedValue(undefined);
+  const runHandlers = vi.fn().mockResolvedValue(undefined);
   const channelRunner = {
     runExternalChannel,
     runHandlers,
@@ -93,7 +93,7 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
       ) => ({
         resolvePointer: (relative: string) =>
           resolvePointer(scopePath, relative),
-        applyPatch: (patch: JsonPatch) => {
+        applyPatch: async (patch: JsonPatch) => {
           if (patch.op === 'ADD' || patch.op === 'REPLACE') {
             runtime.directWrite(patch.path, patch.val ?? null);
           } else if (patch.op === 'REMOVE') {
@@ -102,10 +102,10 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
         },
       }),
     ),
-    recordLifecycleForBridging: vi.fn(),
-    enterFatalTermination: vi.fn(),
+    recordLifecycleForBridging: vi.fn().mockResolvedValue(undefined),
+    enterFatalTermination: vi.fn().mockResolvedValue(undefined),
     fatalReason: vi.fn((_error: unknown, label: string) => label),
-    markCutOff: vi.fn(),
+    markCutOff: vi.fn().mockResolvedValue(undefined),
   };
 
   const executor = new ScopeExecutor({
@@ -142,11 +142,11 @@ function createExecutor(bundle: ContractBundle): ExecutorFixture {
 }
 
 describe('ScopeExecutor', () => {
-  it('initializes scope and records lifecycle marker', () => {
+  it('initializes scope and records lifecycle marker', async () => {
     const { executor, runtime, channelRunnerMocks, hooks } =
       createExecutor(lifecycleBundle());
 
-    executor.initializeScope('/', true);
+    await executor.initializeScope('/', true);
 
     expect(hooks.recordLifecycleForBridging).toHaveBeenCalledWith(
       '/',
@@ -163,11 +163,11 @@ describe('ScopeExecutor', () => {
     expect(marker).toBeInstanceOf(BlueNode);
   });
 
-  it('processes external events via channel runner', () => {
+  it('processes external events via channel runner', async () => {
     const { executor, channelRunnerMocks } = createExecutor(externalBundle());
     const event = nodeFrom({ eventType: 'Event' });
 
-    executor.processExternalEvent('/', event);
+    await executor.processExternalEvent('/', event);
 
     expect(channelRunnerMocks.runExternalChannel).toHaveBeenCalled();
     const [scopePath, bundleArg, channelBinding, passedEvent] =
@@ -178,7 +178,7 @@ describe('ScopeExecutor', () => {
     expect(passedEvent).toBe(event);
   });
 
-  it('enters fatal termination when patch violates boundary', () => {
+  it('enters fatal termination when patch violates boundary', async () => {
     const bundle = ContractBundle.builder().build();
     const { executor, hooks } = createExecutor(bundle);
     const patch: JsonPatch = {
@@ -187,7 +187,7 @@ describe('ScopeExecutor', () => {
       val: nodeFrom('value'),
     };
 
-    executor.handlePatch('/child', bundle, patch, false);
+    await executor.handlePatch('/child', bundle, patch, false);
 
     expect(hooks.enterFatalTermination).toHaveBeenCalled();
   });

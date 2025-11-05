@@ -20,17 +20,17 @@ export class CutOffProbeContractProcessor
   readonly blueIds = ['CutOffProbe'] as const;
   readonly schema = cutOffProbeSchema;
 
-  execute(
+  async execute(
     contract: CutOffProbe,
     context: Parameters<HandlerProcessor<CutOffProbe>['execute']>[1],
-  ): void {
+  ): Promise<void> {
     if (contract.emitBefore) {
       emitIfKind(context, contract.preEmitKind ?? null);
     }
     if (contract.patchPointer) {
       const pointer = context.resolvePointer(contract.patchPointer);
       const value = new BlueNode().setValue(contract.patchValue ?? 0);
-      context.applyPatch({ op: 'ADD', path: pointer, val: value });
+      await context.applyPatch({ op: 'ADD', path: pointer, val: value });
     }
     if (contract.emitAfter) {
       emitIfKind(context, contract.postEmitKind ?? null);
@@ -38,7 +38,7 @@ export class CutOffProbeContractProcessor
     if (contract.postPatchPointer) {
       const pointer = context.resolvePointer(contract.postPatchPointer);
       const value = new BlueNode().setValue(contract.postPatchValue ?? 0);
-      context.applyPatch({ op: 'ADD', path: pointer, val: value });
+      await context.applyPatch({ op: 'ADD', path: pointer, val: value });
     }
   }
 }

@@ -19,15 +19,15 @@ describe('TerminationService', () => {
       recordPendingTermination: vi.fn(),
       normalizeScope: vi.fn((scope) => scope),
       bundleForScope: vi.fn().mockReturnValue(ContractBundle.builder().build()),
-      deliverLifecycle: vi.fn(),
+      deliverLifecycle: vi.fn().mockResolvedValue(undefined),
       clearPendingTermination: vi.fn(),
     };
     return { runtime, service, adapter };
   }
 
-  it('writes termination marker and charges gas', () => {
+  it('writes termination marker and charges gas', async () => {
     const { runtime, service, adapter } = createFixture();
-    service.terminateScope(adapter, '/scope', null, 'GRACEFUL', 'done');
+    await service.terminateScope(adapter, '/scope', null, 'GRACEFUL', 'done');
 
     const marker = runtime.document().get('/scope/contracts/terminated');
     expect(marker).toBeInstanceOf(BlueNode);
@@ -35,11 +35,11 @@ describe('TerminationService', () => {
     expect(adapter.clearPendingTermination).toHaveBeenCalledWith('/scope');
   });
 
-  it('throws RunTerminationError on root fatal', () => {
+  it('throws RunTerminationError on root fatal', async () => {
     const { runtime, service, adapter } = createFixture();
-    expect(() =>
+    await expect(
       service.terminateScope(adapter, '/', null, 'FATAL', 'bad'),
-    ).toThrow(RunTerminationError);
+    ).rejects.toThrow(RunTerminationError);
     expect(adapter.deliverLifecycle).toHaveBeenCalled();
     const deliverLifecycleMock = adapter.deliverLifecycle as ReturnType<
       typeof vi.fn

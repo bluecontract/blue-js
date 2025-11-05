@@ -9,16 +9,16 @@ export class TerminateScopeContractProcessor
   readonly blueIds = ['TerminateScope'] as const;
   readonly schema = terminateScopeSchema;
 
-  execute(
+  async execute(
     contract: TerminateScope,
     context: Parameters<HandlerProcessor<TerminateScope>['execute']>[1],
-  ): void {
+  ): Promise<void> {
     const mode = (contract.mode ?? 'graceful').toLowerCase();
     const reason = contract.reason ?? null;
     if (mode === 'fatal') {
-      context.terminateFatally(reason);
+      await context.terminateFatally(reason);
     } else {
-      context.terminateGracefully(reason);
+      await context.terminateGracefully(reason);
     }
     if (contract.emitAfter) {
       const event = new BlueNode().setProperties({
@@ -28,7 +28,7 @@ export class TerminateScopeContractProcessor
     }
     if (contract.patchAfter) {
       const pointer = context.resolvePointer('/afterTermination');
-      context.applyPatch({
+      await context.applyPatch({
         op: 'ADD',
         path: pointer,
         val: new BlueNode().setValue('should-not-exist'),

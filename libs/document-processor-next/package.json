@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/document-processor-next",
-  "version": "1.36.0",
+  "version": "1.37.1",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -15,8 +15,10 @@
     }
   },
   "dependencies": {
-    "@blue-labs/language": "1.37.0",
-    "@blue-labs/shared-utils": "1.37.0"
+    "picomatch": "2.3.1",
+    "@blue-labs/language": "1.37.1",
+    "@blue-labs/shared-utils": "1.37.1",
+    "quickjs-emscripten": "0.31.0"
   },
   "license": "MIT",
   "publishConfig": {
@@ -28,6 +30,8 @@
   },
   "peerDependencies": {
     "zod": "^3.20.0",
-    "@blue-repository/core": ">=0.1.0 <1.0.0"
+    "@blue-repository/conversation": ">=0.1.0 <1.0.0",
+    "@blue-repository/core": ">=0.1.0 <1.0.0",
+    "@blue-repository/myos": ">=0.1.0 <1.0.0"
   }
 }

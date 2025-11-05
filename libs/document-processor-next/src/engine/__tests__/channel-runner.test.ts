@@ -35,14 +35,12 @@ function signatureFn(node: BlueNode | null): string | null {
 
 describe('ChannelRunner', () => {
   const channelContract: ChannelContract = {
-    key: 'external',
     path: '/events/external',
     order: 0,
   } as ChannelContract;
 
   const handlerContract = (key: string): HandlerContract =>
     ({
-      key,
       channel: 'external',
       order: key === 'h1' ? 0 : 1,
     }) as HandlerContract;
@@ -57,9 +55,18 @@ describe('ChannelRunner', () => {
 
   function createRunner(
     overrides: Partial<{
-      evaluateChannel: (event: BlueNode) => ChannelMatch;
+      evaluateChannel: (
+        event: BlueNode,
+      ) => ChannelMatch | Promise<ChannelMatch>;
       isScopeInactive: () => boolean;
-      onExecute: (handler: HandlerBinding, event: BlueNode) => void;
+      onExecute: (
+        handler: HandlerBinding,
+        event: BlueNode,
+      ) => void | Promise<void>;
+      shouldRunHandler: (
+        handler: HandlerBinding,
+        context: ProcessorExecutionContext,
+      ) => boolean | Promise<boolean>;
     }> = {},
   ) {
     const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
@@ -70,20 +77,24 @@ describe('ChannelRunner', () => {
     const isInactive = vi
       .fn()
       .mockImplementation(() => overrides.isScopeInactive?.() ?? false);
-    const noopExecute = (handler: HandlerBinding, event: BlueNode) => {
+    const noopExecute = async (handler: HandlerBinding, event: BlueNode) => {
       void handler;
       void event;
     };
     const onExecute = overrides.onExecute ?? noopExecute;
-    const evaluate = overrides.evaluateChannel ?? (() => ({ matches: true }));
+    const evaluate =
+      overrides.evaluateChannel ??
+      ((event: BlueNode): ChannelMatch | Promise<ChannelMatch> => ({
+        matches: true,
+      }));
 
     const deps: ChannelRunnerDependencies = {
-      evaluateChannel: (
+      evaluateChannel: async (
         _channel: ChannelBinding,
         currentBundle: ContractBundle,
         currentScope: string,
         event: BlueNode,
-      ): ChannelMatch => evaluate(event),
+      ): Promise<ChannelMatch> => Promise.resolve(evaluate(event)),
       isScopeInactive: () => isInactive(),
       createContext: (
         currentScope: string,
@@ -94,12 +105,17 @@ describe('ChannelRunner', () => {
         ({
           event: () => event,
         }) as unknown as ProcessorExecutionContext,
-      executeHandler: (
+      shouldRunHandler: async (
         handler: HandlerBinding,
         context: ProcessorExecutionContext,
-      ) => {
+      ): Promise<boolean> =>
+        Promise.resolve(overrides.shouldRunHandler?.(handler, context) ?? true),
+      executeHandler: async (
+        handler: HandlerBinding,
+        context: ProcessorExecutionContext,
+      ): Promise<void> => {
         const eventNode = context.event();
-        onExecute(handler, eventNode as BlueNode);
+        await onExecute(handler, eventNode as BlueNode);
       },
       canonicalSignature: signatureFn,
     };
@@ -115,20 +131,22 @@ describe('ChannelRunner', () => {
     };
   }
 
-  it('runs handlers and persists checkpoint for first event', () => {
+  it('runs handlers and persists checkpoint for first event', async () => {
     const calls: string[] = [];
     const { runner, runtime, bundle, scopePath } = createRunner({
       evaluateChannel: () => ({
         matches: true,
         eventNode: nodeFrom({ payload: 1 }),
       }),
-      onExecute: (handler) => calls.push(handler.key()),
+      onExecute: (handler) => {
+        calls.push(handler.key());
+      },
     });
 
     const channel = bundle.channelsOfType('Custom.Channel')[0]!;
     const event = nodeFrom({ payload: 1 });
 
-    runner.runExternalChannel(scopePath, bundle, channel, event);
+    await runner.runExternalChannel(scopePath, bundle, channel, event);
 
     expect(calls).toEqual(['h1', 'h2']);
     const stored = runtime
@@ -139,7 +157,7 @@ describe('ChannelRunner', () => {
     expect(marker.lastSignatures.external).toBeDefined();
   });
 
-  it('skips duplicate events based on signature', () => {
+  it('skips duplicate events based on signature', async () => {
     const handlerSpy = vi.fn();
     const { runner, runtime, bundle, scopePath } = createRunner({
       evaluateChannel: () => ({
@@ -152,8 +170,8 @@ describe('ChannelRunner', () => {
     const channel = bundle.channelsOfType('Custom.Channel')[0]!;
     const event = nodeFrom({ payload: 'same' });
 
-    runner.runExternalChannel(scopePath, bundle, channel, event);
-    runner.runExternalChannel(scopePath, bundle, channel, event);
+    await runner.runExternalChannel(scopePath, bundle, channel, event);
+    await runner.runExternalChannel(scopePath, bundle, channel, event);
 
     expect(handlerSpy).toHaveBeenCalledTimes(2);
     expect(
@@ -165,7 +183,7 @@ describe('ChannelRunner', () => {
     ).toBe('event-1');
   });
 
-  it('stops processing when scope becomes inactive', () => {
+  it('stops processing when scope becomes inactive', async () => {
     let inactive = false;
     const handlerCalls: string[] = [];
     const { runner, bundle, scopePath } = createRunner({
@@ -177,31 +195,60 @@ describe('ChannelRunner', () => {
       },
     });
 
-    runner.runHandlers(scopePath, bundle, 'external', nodeFrom({}), false);
+    await runner.runHandlers(
+      scopePath,
+      bundle,
+      'external',
+      nodeFrom({}),
+      false,
+    );
 
     expect(handlerCalls).toEqual(['h1']);
   });
 
-  it('allows terminated work when flag is set', () => {
+  it('allows terminated work when flag is set', async () => {
     const handlerCalls: string[] = [];
     const { runner, bundle, scopePath } = createRunner({
       evaluateChannel: () => ({ matches: true, eventNode: nodeFrom({}) }),
       isScopeInactive: () => true,
-      onExecute: (handler) => handlerCalls.push(handler.key()),
+      onExecute: (handler) => {
+        handlerCalls.push(handler.key());
+      },
     });
-    runner.runHandlers(scopePath, bundle, 'external', nodeFrom({}), true);
+    await runner.runHandlers(scopePath, bundle, 'external', nodeFrom({}), true);
 
     expect(handlerCalls).toEqual(['h1', 'h2']);
   });
 
-  it('does nothing when channel does not match', () => {
+  it('skips handlers when shouldRunHandler returns false', async () => {
+    const handlerCalls: string[] = [];
+    const { runner, bundle, scopePath } = createRunner({
+      evaluateChannel: () => ({ matches: true, eventNode: nodeFrom({}) }),
+      shouldRunHandler: (handler) => handler.key() === 'h2',
+      onExecute: (handler) => {
+        handlerCalls.push(handler.key());
+      },
+    });
+
+    await runner.runHandlers(
+      scopePath,
+      bundle,
+      'external',
+      nodeFrom({}),
+      false,
+    );
+
+    expect(handlerCalls).toEqual(['h2']);
+  });
+
+  it('does nothing when channel does not match', async () => {
     const execute = vi.fn();
     const { runner, bundle, scopePath } = createRunner({
       evaluateChannel: () => ({ matches: false }),
       onExecute: execute,
     });
     const channel = bundle.channelsOfType('Custom.Channel')[0]!;
-    runner.runExternalChannel(scopePath, bundle, channel, nodeFrom({}));
+    await runner.runExternalChannel(scopePath, bundle, channel, nodeFrom({}));
     expect(execute).not.toHaveBeenCalled();
   });
 });
