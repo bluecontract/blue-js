@@ -1,3 +1,22 @@
+## 2.0.0-rc.0 (2025-11-05)
+
+### 🚀 Features
+
+- ⚠️  **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+- **document-processor-next:** migrate processing engine and tests to async pipeline ([edabd6d](https://github.com/bluecontract/blue-js/commit/edabd6d))
+- **document-processor-next:** add JavaScript Code step executor via QuickJS ([0055d8b](https://github.com/bluecontract/blue-js/commit/0055d8b))
+- **document-processor-next:** add Trigger Event + Update Document executors with expression resolution ([c0f252c](https://github.com/bluecontract/blue-js/commit/c0f252c))
+- **document-processor-next:** add Sequential Workflow Operation and handler gating ([6a7e1b1](https://github.com/bluecontract/blue-js/commit/6a7e1b1))
+- **document-processor-next:** derive handler channel and centralize registration ([b944956](https://github.com/bluecontract/blue-js/commit/b944956))
+- **document-processor-next:** add MyOS Timeline Channel support and processor ([b8353d0](https://github.com/bluecontract/blue-js/commit/b8353d0))
+- **document-processor-next:** granular gas metering for sequential workflow steps and expose gasMeter() ([e06b0cc](https://github.com/bluecontract/blue-js/commit/e06b0cc))
+- **document-processor-next:** add ExpressionPreserver and merge exports ([efb9c24](https://github.com/bluecontract/blue-js/commit/efb9c24))
+- **expression:** hide Date in QuickJS; test: consolidate integration suites ([a1e7f3e](https://github.com/bluecontract/blue-js/commit/a1e7f3e))
+
+### ⚠️  Breaking Changes
+
+- ⚠️  **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+
 ## 1.37.1 (2025-10-29)
 
 ### 🚀 Features
