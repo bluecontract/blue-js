@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - main
+      - next
 
 env:
   # NX release needs to have a GH token in env.GITHUB_TOKEN
@@ -47,5 +47,5 @@ jobs:
         shell: bash
 
       - name: Release
-        run: npx nx release --skip-publish
+        run: npx nx release --preid=rc --skip-publish
         shell: bash
