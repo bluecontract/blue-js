@@ -32,6 +32,7 @@ export class NodeToObjectConverter {
       BlueNodeTypeSchema.checkSchemaExtension(
         resolvedSchema,
         unwrappedTargetType,
+        { typeSchemaResolver: this.typeSchemaResolver },
       ) &&
       isNonNullable(resolvedSchema)
     ) {

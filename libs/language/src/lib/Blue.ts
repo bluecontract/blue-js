@@ -73,7 +73,10 @@ export class Blue {
       repositories,
     );
 
-    this.typeSchemaResolver = typeSchemaResolver ?? new TypeSchemaResolver([]);
+    this.typeSchemaResolver =
+      typeSchemaResolver ??
+      new TypeSchemaResolver([], { nodeProvider: this.nodeProvider });
+    this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
@@ -271,6 +274,7 @@ export class Blue {
       nodeProvider,
       this.repositories,
     );
+    this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     return this;
   }
 
@@ -282,6 +286,7 @@ export class Blue {
     typeSchemaResolver: TypeSchemaResolver | null,
   ): Blue {
     this.typeSchemaResolver = typeSchemaResolver;
+    this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     return this;
   }
 
