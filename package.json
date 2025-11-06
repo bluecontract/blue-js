@@ -5,6 +5,7 @@
   "scripts": {},
   "private": true,
   "devDependencies": {
+    "@blue-repository/paynote": "0.1.1",
     "@eslint/js": "9.14.0",
     "@nx/eslint": "22.0.2",
     "@nx/eslint-plugin": "22.0.2",

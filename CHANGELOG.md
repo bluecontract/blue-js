@@ -2,7 +2,18 @@
 
 ### 🚀 Features
 
-- ⚠️  **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+- ⚠️ **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+
+## 1.37.3 (2025-11-06)
+
+### 🩹 Fixes
+
+- **language:** use nodeProvider for schema inheritance; remove extends/proxySchema ([7dda770](https://github.com/bluecontract/blue-js/commit/7dda770))
+
+## 1.37.2 (2025-11-06)
+
+### 🚀 Features
+
 - **document-processor-next:** migrate processing engine and tests to async pipeline ([edabd6d](https://github.com/bluecontract/blue-js/commit/edabd6d))
 - **document-processor-next:** add JavaScript Code step executor via QuickJS ([0055d8b](https://github.com/bluecontract/blue-js/commit/0055d8b))
 - **document-processor-next:** add Trigger Event + Update Document executors with expression resolution ([c0f252c](https://github.com/bluecontract/blue-js/commit/c0f252c))
@@ -13,9 +24,15 @@
 - **document-processor-next:** add ExpressionPreserver and merge exports ([efb9c24](https://github.com/bluecontract/blue-js/commit/efb9c24))
 - **expression:** hide Date in QuickJS; test: consolidate integration suites ([a1e7f3e](https://github.com/bluecontract/blue-js/commit/a1e7f3e))
 
-### ⚠️  Breaking Changes
+<<<<<<< HEAD
 
-- ⚠️  **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+### ⚠️ Breaking Changes
+
+- ⚠️ **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+
+=======
+
+> > > > > > > main
 
 ## 1.37.1 (2025-10-29)
 
@@ -194,7 +211,7 @@
 
 ### 🩹 Fixes
 
-- use _def.typeName instead of constructor.name for zod schema types ([e71834b](https://github.com/bluecontract/blue-js/commit/e71834b))
+- use \_def.typeName instead of constructor.name for zod schema types ([e71834b](https://github.com/bluecontract/blue-js/commit/e71834b))
 
 ## 1.24.1 (2025-06-30)
 
@@ -388,13 +405,11 @@
 
 ## 1.6.0 (2024-10-31)
 
-
 ### 🚀 Features
 
 - optimize blueId calculation and base58 handling ([a6fa814](https://github.com/bluecontract/blue-js/commit/a6fa814))
 
 ## 1.5.0 (2024-10-24)
-
 
 ### 🚀 Features
 
@@ -406,13 +421,11 @@
 
 ## 1.4.0 (2024-10-21)
 
-
 ### 🚀 Features
 
 - **contract:** Add Timeline Blue IDs and update InitialTimelineBlueMessage ([c21f902](https://github.com/bluecontract/blue-js/commit/c21f902))
 
 ## 1.3.0 (2024-10-17)
-
 
 ### 🚀 Features
 
@@ -424,7 +437,6 @@
 
 ## 1.2.0 (2024-10-16)
 
-
 ### 🚀 Features
 
 - **contract:** update Blue IDs and add new Chess-related types ([8012a5a](https://github.com/bluecontract/blue-js/commit/8012a5a))
@@ -433,13 +445,11 @@
 
 ## 1.1.0 (2024-10-11)
 
-
 ### 🚀 Features
 
 - **language,utils:** Add BaseBlueObjectWithId type and JSON type predicates ([2a9a231](https://github.com/bluecontract/blue-js/commit/2a9a231))
 
 ## 1.0.1 (2024-10-09)
-
 
 ### 🩹 Fixes
 
@@ -448,21 +458,19 @@
 
 # 1.0.0 (2024-10-09)
 
-
 ### 🚀 Features
 
-- ⚠️  **language:** overhaul BlueId calculation and CID conversion ([0bd76bb](https://github.com/bluecontract/blue-js/commit/0bd76bb))
+- ⚠️ **language:** overhaul BlueId calculation and CID conversion ([0bd76bb](https://github.com/bluecontract/blue-js/commit/0bd76bb))
 
 ### 🩹 Fixes
 
 - **language:** update external dependency handling in rollup config ([b0a1a87](https://github.com/bluecontract/blue-js/commit/b0a1a87))
 
-#### ⚠️  Breaking Changes
+#### ⚠️ Breaking Changes
 
 - **language:** Fundamentally altered how BlueIdCalculator generates BlueIds
 
 ## 0.17.0 (2024-10-02)
-
 
 ### 🚀 Features
 
@@ -471,13 +479,11 @@
 
 ## 0.16.0 (2024-09-26)
 
-
 ### 🚀 Features
 
 - **contract:** make id and actualTask properties optional ([d89038b](https://github.com/bluecontract/blue-js/commit/d89038b))
 
 ## 0.15.0 (2024-09-26)
-
 
 ### 🚀 Features
 
@@ -490,13 +496,11 @@
 
 ## 0.14.0 (2024-09-25)
 
-
 ### 🚀 Features
 
 - **language:** changes according to the new version of language-java ([720c683](https://github.com/bluecontract/blue-js/commit/720c683))
 
 ## 0.13.0 (2024-09-25)
-
 
 ### 🚀 Features
 
@@ -504,20 +508,17 @@
 
 ## 0.12.0 (2024-09-16)
 
-
 ### 🚀 Features
 
 - Update timeline and contract schemas ([af80ec6](https://github.com/bluecontract/blue-js/commit/af80ec6))
 
 ## 0.11.0 (2024-09-12)
 
-
 ### 🚀 Features
 
 - **contract:** Add participant utility functions ([1ac074f](https://github.com/bluecontract/blue-js/commit/1ac074f))
 
 ## 0.10.0 (2024-09-12)
-
 
 ### 🚀 Features
 
@@ -526,13 +527,11 @@
 
 ## 0.9.1 (2024-09-09)
 
-
 ### 🩹 Fixes
 
 - **contract:** update ActionByParticipantEvent schema ([e8f0c68](https://github.com/bluecontract/blue-js/commit/e8f0c68))
 
 ## 0.9.0 (2024-08-30)
-
 
 ### 🚀 Features
 
@@ -547,7 +546,6 @@
 
 ## 0.8.0 (2024-08-05)
 
-
 ### 🚀 Features
 
 - update NodeToObject ([18afed3](https://github.com/bluecontract/blue-js/commit/18afed3))
@@ -559,13 +557,11 @@
 
 ## 0.7.1 (2024-07-18)
 
-
 ### 🩹 Fixes
 
 - Base58 decode (issue with BlueIdToCid) ([fc59b8c](https://github.com/bluecontract/blue-js/commit/fc59b8c))
 
 ## 0.7.0 (2024-07-15)
-
 
 ### 🚀 Features
 
@@ -576,7 +572,6 @@
 - tsc command for contract ([fe9372b](https://github.com/bluecontract/blue-js/commit/fe9372b))
 
 ## 0.6.0 (2024-07-09)
-
 
 ### 🚀 Features
 
@@ -590,20 +585,17 @@
 
 ## 0.5.1 (2024-07-09)
 
-
 ### 🩹 Fixes
 
 - shared-utils dependency ([4adab1c](https://github.com/bluecontract/blue-js/commit/4adab1c))
 
 ## 0.5.0 (2024-07-09)
 
-
 ### 🚀 Features
 
 - add more utils ([aea9591](https://github.com/bluecontract/blue-js/commit/aea9591))
 
 ## 0.4.0 (2024-07-08)
-
 
 ### 🚀 Features
 
@@ -614,13 +606,11 @@
 
 ## 0.3.3 (2024-07-05)
 
-
 ### 🩹 Fixes
 
 - blueId for wrong json like objects and unify exported utilities ([a260906](https://github.com/bluecontract/blue-js/commit/a260906))
 
 ## 0.3.2 (2024-07-05)
-
 
 ### 🩹 Fixes
 

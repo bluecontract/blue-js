@@ -10,6 +10,7 @@ import {
 import { BlueIdCalculator, Properties } from '../../utils';
 import { schemas, TestEnum } from './schema';
 import { TypeSchemaResolver } from '../../utils/TypeSchemaResolver';
+import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 import { NodeToObjectConverter } from '../NodeToObjectConverter';
 import { getBlueObjectValue } from '../../../utils/blueObject/getters';
 import { BlueObject, isBlueObject } from '../../../schema';
@@ -36,6 +37,25 @@ describe('blueNodeToObject', () => {
 
   beforeEach(() => {
     const resolver = new TypeSchemaResolver(Object.values(schemas));
+    // Provide a NodeProvider with the type hierarchy loaded from YAML docs
+    const provider = new BasicNodeProvider();
+    provider.addSingleDocs(
+      `blueId: Person-BlueId\nname: Person`,
+      `blueId: X-BlueId\nname: X`,
+      `blueId: Y-BlueId\nname: Y`,
+      // Direct extensions
+      `blueId: Doctor-BlueId\nname: Doctor\ntype:\n  blueId: Person-BlueId`,
+      `blueId: Nurse-BlueId\nname: Nurse\ntype:\n  blueId: Person-BlueId`,
+      `blueId: X1-BlueId\nname: X1\ntype:\n  blueId: X-BlueId`,
+      `blueId: X2-BlueId\nname: X2\ntype:\n  blueId: X-BlueId`,
+      `blueId: X3-BlueId\nname: X3\ntype:\n  blueId: X-BlueId`,
+      // Second-level extensions
+      `blueId: X11-BlueId\nname: X11\ntype:\n  blueId: X1-BlueId`,
+      `blueId: X12-BlueId\nname: X12\ntype:\n  blueId: X1-BlueId`,
+      // Y variants
+      `blueId: Y1-BlueId\nname: Y1\ntype:\n  blueId: Y-BlueId`,
+    );
+    resolver.setNodeProvider(provider);
     converter = new NodeToObjectConverter(resolver);
   });
 
