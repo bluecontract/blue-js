@@ -1,3 +1,9 @@
+## 2.0.0-rc.1 (2025-11-06)
+
+### 🩹 Fixes
+
+- **language:** use nodeProvider for schema inheritance; remove extends/proxySchema ([7dda770](https://github.com/bluecontract/blue-js/commit/7dda770))
+
 ## 2.0.0-rc.0 (2025-11-05)
 
 ### 🚀 Features
