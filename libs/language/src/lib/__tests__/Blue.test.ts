@@ -45,6 +45,7 @@ describe('Blue', () => {
       const mockTypeSchemaResolver = {
         resolveSchema: vi.fn(),
         getBlueIdMap: vi.fn().mockReturnValue(new Map()),
+        setNodeProvider: vi.fn(),
       } as unknown as TypeSchemaResolver;
       const blue = new Blue({ typeSchemaResolver: mockTypeSchemaResolver });
       expect(blue).toBeInstanceOf(Blue);
@@ -57,6 +58,7 @@ describe('Blue', () => {
       const typeResolver = {
         resolveSchema: vi.fn(),
         getBlueIdMap: vi.fn().mockReturnValue(new Map()),
+        setNodeProvider: vi.fn(),
       } as unknown as TypeSchemaResolver;
 
       const blue = new Blue({

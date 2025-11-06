@@ -5,6 +5,7 @@ import { BlueNodeTypeSchema } from '../TypeSchema';
 import { BlueIdResolver } from '../BlueIdResolver';
 import { withTypeBlueId } from '../../../schema/annotations';
 import { TypeSchemaResolver } from '../TypeSchemaResolver';
+import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 
 // Mock BlueIdResolver to control the blueId resolution
 vi.mock('../BlueIdResolver', () => ({
@@ -121,6 +122,73 @@ describe('BlueNodeTypeSchema', () => {
 
       // Assert
       expect(result).toBe(true);
+    });
+
+    it('should check schema extensions across multiple levels when enabled', () => {
+      // Arrange
+      const schemaA = withTypeBlueId('schema-blue-id-a')(
+        z.object({
+          value: z.string(),
+        }),
+      );
+
+      const schemaB = withTypeBlueId('schema-blue-id-b')(
+        schemaA.extend({
+          flag: z.boolean(),
+        }),
+      );
+
+      const schemaC = withTypeBlueId('schema-blue-id-c')(
+        schemaB.extend({
+          count: z.number(),
+        }),
+      );
+
+      mockBlueIdResolver.resolveBlueId.mockImplementation((schema) => {
+        if (schema === schemaA) {
+          return 'schema-blue-id-a';
+        }
+        if (schema === schemaB) {
+          return 'schema-blue-id-b';
+        }
+        if (schema === schemaC) {
+          return 'schema-blue-id-c';
+        }
+        return undefined;
+      });
+
+      const typeSchemaResolver = new TypeSchemaResolver([
+        schemaA,
+        schemaB,
+        schemaC,
+      ]);
+      // Provide nodeProvider to establish C -> B -> A inheritance by blueId via YAML docs
+      const provider = new BasicNodeProvider();
+      provider.addSingleDocs(
+        `blueId: schema-blue-id-a\nname: A`,
+        `blueId: schema-blue-id-b\nname: B\ntype:\n  blueId: schema-blue-id-a`,
+        `blueId: schema-blue-id-c\nname: C\ntype:\n  blueId: schema-blue-id-b`,
+      );
+      typeSchemaResolver.setNodeProvider(provider);
+      const node = new BlueNode().setType(
+        new BlueNode().setBlueId('schema-blue-id-c'),
+      );
+
+      // Act
+      const result = BlueNodeTypeSchema.isTypeOf(node, schemaB, {
+        typeSchemaResolver,
+        checkSchemaExtensions: true,
+      });
+
+      // Assert
+      expect(result).toBe(true);
+
+      const resultBase = BlueNodeTypeSchema.isTypeOf(node, schemaA, {
+        typeSchemaResolver,
+        checkSchemaExtensions: true,
+      });
+
+      expect(resultBase).toBe(true);
     });
   });
 });

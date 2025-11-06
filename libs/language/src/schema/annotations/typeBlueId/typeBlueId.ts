@@ -8,7 +8,6 @@ import {
   ZodTypeAny,
 } from 'zod';
 import { getAnnotations, setAnnotations } from '../annotations';
-import { proxySchema } from './proxySchema';
 
 const typeBlueIdAnnotation = z.object({
   value: z.array(z.string()).optional(),
@@ -44,9 +43,7 @@ export const withTypeBlueId =
     const typeBlueIdAnnotation = (
       typeof value === 'string' ? { value: [value] } : value
     ) satisfies TypeBlueIdAnnotation;
-    const proxiedSchema = proxySchema(schema);
-
-    return setAnnotations(proxiedSchema, {
+    return setAnnotations(schema, {
       ...annotations,
       typeBlueId: {
         ...(annotations?.typeBlueId || {}),
