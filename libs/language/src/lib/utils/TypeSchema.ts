@@ -12,10 +12,7 @@ import { BlueNode } from '../model';
 import { BlueIdResolver } from './BlueIdResolver';
 import { TypeSchemaResolver } from './TypeSchemaResolver';
 import { isNullable, isNonNullable } from '@blue-labs/shared-utils';
-import {
-  isBlueNodeSchema,
-  isSchemaExtendedFrom,
-} from '../../schema/annotations';
+import { isBlueNodeSchema } from '../../schema/annotations';
 
 export class BlueNodeTypeSchema {
   // TODO: Enhance to support schemas associated with multiple blueIds
@@ -45,7 +42,9 @@ export class BlueNodeTypeSchema {
       isNonNullable(options.typeSchemaResolver)
     ) {
       const resolvedSchema = options.typeSchemaResolver.resolveSchema(node);
-      return BlueNodeTypeSchema.checkSchemaExtension(resolvedSchema, schema);
+      return BlueNodeTypeSchema.checkSchemaExtension(resolvedSchema, schema, {
+        typeSchemaResolver: options.typeSchemaResolver,
+      });
     }
 
     return false;
@@ -57,6 +56,9 @@ export class BlueNodeTypeSchema {
   static checkSchemaExtension(
     extendedSchema: ZodTypeAny | null | undefined,
     baseSchema: ZodTypeAny,
+    options?: {
+      typeSchemaResolver?: TypeSchemaResolver | null;
+    },
   ): boolean {
     if (!isNonNullable(extendedSchema)) {
       return false;
@@ -66,7 +68,14 @@ export class BlueNodeTypeSchema {
       BlueNodeTypeSchema.unwrapSchema(extendedSchema);
     const unwrappedBaseSchema = BlueNodeTypeSchema.unwrapSchema(baseSchema);
 
-    return isSchemaExtendedFrom(unwrappedExtendedSchema, unwrappedBaseSchema);
+    if (isNonNullable(options?.typeSchemaResolver)) {
+      return options.typeSchemaResolver.isSchemaExtendedFrom(
+        unwrappedExtendedSchema,
+        unwrappedBaseSchema,
+      );
+    }
+
+    return false;
   }
 
   private static isWrapperType(schema: ZodTypeAny) {
