@@ -1,9 +1,9 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "1.37.2",
+  "version": "1.37.3",
   "dependencies": {
-    "@blue-labs/language": "1.37.2",
-    "@blue-labs/shared-utils": "1.37.2",
+    "@blue-labs/language": "1.37.3",
+    "@blue-labs/shared-utils": "1.37.3",
     "isolated-vm": "^5.0.4"
   },
   "main": "./dist/index.js",

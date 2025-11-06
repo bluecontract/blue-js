@@ -1,3 +1,9 @@
+## 1.37.3 (2025-11-06)
+
+### 🩹 Fixes
+
+- **language:** use nodeProvider for schema inheritance; remove extends/proxySchema ([7dda770](https://github.com/bluecontract/blue-js/commit/7dda770))
+
 ## 1.37.2 (2025-11-06)
 
 ### 🚀 Features
