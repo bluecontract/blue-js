@@ -1,15 +1,17 @@
-import { describe, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createBlue } from '../../../test-support/blue.js';
-import { buildProcessor, expectOk } from '../../test-utils.js';
+import {
+  buildProcessor,
+  expectOk,
+  property,
+  typeBlueId,
+} from '../../test-utils.js';
+import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
 
 const blue = createBlue();
 
-// Repro for: Incorrect processing of documents inside triggered events (“document leakage into root flow”)
-// This test is intentionally skipped to avoid breaking the suite until the bug is fixed.
-// It mirrors the scenario where Trigger Event payload includes a literal Blue document
-// whose internal expressions should NOT be evaluated during emission.
-describe('Trigger Event step — leakage into root flow (repro)', () => {
-  it.skip('does not evaluate expressions inside nested document in Trigger Event payload (BUG)', async () => {
+describe('Trigger Event step — leakage into root flow', () => {
+  it('does not evaluate expressions inside nested document in Trigger Event payload', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Leakage Repro Doc
 counter: 0
@@ -46,8 +48,29 @@ contracts:
                         path: /counter
                         val: "\${document('counter') + event.request.value}"
 `;
-    // Expectation (after fix): initialization should succeed and not evaluate expressions
-    // within the nested "document" under the Trigger Event payload.
-    await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)));
+
+    const result = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+
+    const emissions = result.triggeredEvents;
+    expect(emissions.length).toBeGreaterThan(0);
+    const chatEvents = emissions.filter(
+      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+    );
+    expect(chatEvents.length).toBe(1);
+    const [event] = chatEvents;
+
+    const nestedDocument = property(event, 'document');
+    const nestedJson = blue.nodeToJson(nestedDocument, 'original') as {
+      contracts: {
+        incrementImpl: {
+          steps: Array<{ changeset: Array<{ val: string }> }>;
+        };
+      };
+    };
+
+    const val = nestedJson.contracts.incrementImpl.steps[0].changeset[0].val;
+    expect(val).toBe("${document('counter') + event.request.value}");
   });
 });
