@@ -71,11 +71,6 @@ export class MyOSTimelineChannelProcessor
       return null;
     }
 
-    const messageNode = entry.message as BlueNode | undefined;
-    if (!messageNode) {
-      return null;
-    }
-
-    return messageNode.clone();
+    return event.clone();
   }
 }
