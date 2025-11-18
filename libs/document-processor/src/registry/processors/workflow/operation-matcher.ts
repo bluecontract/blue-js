@@ -3,8 +3,12 @@ import type { Blue } from '@blue-labs/language';
 import {
   OperationRequestSchema,
   OperationSchema,
+  TimelineEntrySchema,
 } from '@blue-repository/conversation';
-import type { Operation } from '@blue-repository/conversation';
+import type {
+  Operation,
+  OperationRequest,
+} from '@blue-repository/conversation';
 
 import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflowOperation } from '../../../model/index.js';
@@ -19,22 +23,46 @@ export type LoadedOperation = {
   channelKey: string | null;
 };
 
+export function extractOperationRequestNode(
+  eventNode: BlueNode,
+  blue: Blue,
+): BlueNode | null {
+  if (
+    blue.isTypeOf(eventNode, OperationRequestSchema, {
+      checkSchemaExtensions: true,
+    })
+  ) {
+    return eventNode;
+  }
+
+  if (
+    blue.isTypeOf(eventNode, TimelineEntrySchema, {
+      checkSchemaExtensions: true,
+    })
+  ) {
+    const entry = blue.nodeToSchemaOutput(eventNode, TimelineEntrySchema);
+    const messageNode = entry.message as BlueNode | undefined;
+    if (
+      messageNode &&
+      blue.isTypeOf(messageNode, OperationRequestSchema, {
+        checkSchemaExtensions: true,
+      })
+    ) {
+      return messageNode;
+    }
+  }
+
+  return null;
+}
+
 export function isOperationRequestForContract(
   contract: SequentialWorkflowOperation,
   eventNode: BlueNode,
+  request: OperationRequest,
   context: ContractProcessorContext,
 ): boolean {
   const { blue } = context;
 
-  if (
-    !blue.isTypeOf(eventNode, OperationRequestSchema, {
-      checkSchemaExtensions: true,
-    })
-  ) {
-    return false;
-  }
-
-  const request = blue.nodeToSchemaOutput(eventNode, OperationRequestSchema);
   const operationKey = contract.operation;
   if (!operationKey || request.operation !== operationKey) {
     return false;
@@ -88,20 +116,20 @@ export function channelsCompatible(
 }
 
 export function isRequestTypeCompatible(
-  eventNode: BlueNode,
+  requestNode: BlueNode,
   operationNode: BlueNode,
   blue: Blue,
 ): boolean {
-  const requestNode = eventNode.getProperties()?.request;
+  const requestPayload = requestNode.getProperties()?.request;
   const requiredType = operationNode.getProperties()?.request;
   if (
-    !(requestNode instanceof BlueNode) ||
+    !(requestPayload instanceof BlueNode) ||
     !(requiredType instanceof BlueNode)
   ) {
     return false;
   }
   try {
-    if (!blue.isTypeOfNode(requestNode, requiredType)) {
+    if (!blue.isTypeOfNode(requestPayload, requiredType)) {
       return false;
     }
   } catch {
@@ -112,14 +140,14 @@ export function isRequestTypeCompatible(
 
 export function isPinnedDocumentAllowed(
   request: { allowNewerVersion?: boolean } | null | undefined,
-  eventNode: BlueNode,
+  requestNode: BlueNode,
   context: ContractProcessorContext,
 ): boolean {
   if (!request || request.allowNewerVersion !== false) {
     return true;
   }
 
-  const pinnedBlueId = extractPinnedDocumentBlueId(eventNode, context);
+  const pinnedBlueId = extractPinnedDocumentBlueId(requestNode, context);
   if (!pinnedBlueId) {
     return true;
   }

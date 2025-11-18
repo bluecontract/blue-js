@@ -19,11 +19,12 @@ import {
 } from './workflow/step-runner.js';
 import { extractOperationChannelKey } from './utils/operation-utils.js';
 import {
-  isOperationRequestForContract,
-  loadOperation,
   channelsCompatible,
-  isRequestTypeCompatible,
+  extractOperationRequestNode,
+  isOperationRequestForContract,
   isPinnedDocumentAllowed,
+  isRequestTypeCompatible,
+  loadOperation,
 } from './workflow/operation-matcher.js';
 export class SequentialWorkflowOperationProcessor
   implements HandlerProcessor<SequentialWorkflowOperation>
@@ -80,7 +81,23 @@ export class SequentialWorkflowOperationProcessor
       return false;
     }
 
-    if (!isOperationRequestForContract(contract, eventNode, context)) {
+    const operationRequestNode = extractOperationRequestNode(
+      eventNode,
+      context.blue,
+    );
+    if (!operationRequestNode) {
+      return false;
+    }
+
+    const request = context.blue.nodeToSchemaOutput(
+      operationRequestNode,
+      OperationRequestSchema,
+    );
+    if (!request) {
+      return false;
+    }
+
+    if (!isOperationRequestForContract(contract, eventNode, request, context)) {
       return false;
     }
 
@@ -100,7 +117,7 @@ export class SequentialWorkflowOperationProcessor
 
     if (
       !isRequestTypeCompatible(
-        eventNode,
+        operationRequestNode,
         loadedOperation.operationNode,
         context.blue,
       )
@@ -108,13 +125,9 @@ export class SequentialWorkflowOperationProcessor
       return false;
     }
 
-    const request = context.blue.nodeToSchemaOutput(
-      eventNode,
-      OperationRequestSchema,
-    );
     if (
       request?.allowNewerVersion === false &&
-      !isPinnedDocumentAllowed(request, eventNode, context)
+      !isPinnedDocumentAllowed(request, operationRequestNode, context)
     ) {
       return false;
     }
