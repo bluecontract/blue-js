@@ -67,6 +67,7 @@ describe('ChannelRunner', () => {
         handler: HandlerBinding,
         context: ProcessorExecutionContext,
       ) => boolean | Promise<boolean>;
+      handleHandlerError: (error: unknown) => void | Promise<void>;
     }> = {},
   ) {
     const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
@@ -116,6 +117,13 @@ describe('ChannelRunner', () => {
       ): Promise<void> => {
         const eventNode = context.event();
         await onExecute(handler, eventNode as BlueNode);
+      },
+      handleHandlerError: async (
+        _scope: string,
+        _bundle: ContractBundle,
+        error: unknown,
+      ) => {
+        await overrides.handleHandlerError?.(error);
       },
       canonicalSignature: signatureFn,
     };
@@ -204,6 +212,26 @@ describe('ChannelRunner', () => {
     );
 
     expect(handlerCalls).toEqual(['h1']);
+  });
+
+  it('forwards handler exceptions to handler error hook', async () => {
+    const errorHook = vi.fn();
+    const thrown = new Error('boom');
+    const { runner, bundle, scopePath } = createRunner({
+      evaluateChannel: () => ({ matches: true, eventNode: nodeFrom({}) }),
+      onExecute: () => {
+        throw thrown;
+      },
+      handleHandlerError: (error) => errorHook(error),
+    });
+
+    const channel = bundle.channelsOfType('Custom.Channel')[0]!;
+    const event = nodeFrom({ payload: 1 });
+
+    await runner.runExternalChannel(scopePath, bundle, channel, event);
+
+    expect(errorHook).toHaveBeenCalledTimes(1);
+    expect(errorHook).toHaveBeenCalledWith(thrown);
   });
 
   it('allows terminated work when flag is set', async () => {

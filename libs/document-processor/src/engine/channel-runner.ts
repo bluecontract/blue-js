@@ -36,6 +36,11 @@ export interface ChannelRunnerDependencies {
     handler: HandlerBinding,
     context: ProcessorExecutionContext,
   ): Promise<void>;
+  handleHandlerError(
+    scopePath: string,
+    bundle: ContractBundle,
+    error: unknown,
+  ): Promise<void>;
   canonicalSignature(node: BlueNode | null): string | null;
 }
 
@@ -116,20 +121,25 @@ export class ChannelRunner {
       if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
         break;
       }
-      const context = this.deps.createContext(
-        scopePath,
-        bundle,
-        event,
-        allowTerminatedWork,
-      );
-      const shouldRun = await this.deps.shouldRunHandler(handler, context);
-      if (!shouldRun) {
-        continue;
-      }
-      this.runtime.gasMeter().chargeHandlerOverhead();
-      await this.deps.executeHandler(handler, context);
-      if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
-        break;
+      try {
+        const context = this.deps.createContext(
+          scopePath,
+          bundle,
+          event,
+          allowTerminatedWork,
+        );
+        const shouldRun = await this.deps.shouldRunHandler(handler, context);
+        if (!shouldRun) {
+          continue;
+        }
+        this.runtime.gasMeter().chargeHandlerOverhead();
+        await this.deps.executeHandler(handler, context);
+        if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
+          break;
+        }
+      } catch (error) {
+        await this.deps.handleHandlerError(scopePath, bundle, error);
+        return;
       }
     }
   }
