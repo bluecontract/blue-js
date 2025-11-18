@@ -111,6 +111,8 @@ export class ProcessorExecution implements ExecutionHooks {
         },
         executeHandler: async (handler, context) =>
           this.executeHandler(handler, context),
+        handleHandlerError: async (scope, bundle, error) =>
+          this.handleHandlerError(scope, bundle, error),
         canonicalSignature: signatureFn,
       },
     );
@@ -139,8 +141,7 @@ export class ProcessorExecution implements ExecutionHooks {
           this.recordLifecycleForBridging(scopePath, event),
         enterFatalTermination: (scope, bundle, reason) =>
           this.enterFatalTermination(scope, bundle, reason ?? null),
-        fatalReason: (error, label) =>
-          (error instanceof Error && error.message) || label,
+        fatalReason: (error, label) => this.fatalReason(error, label),
         markCutOff: (scopePath) => this.markCutOff(scopePath),
       },
       blueId: (node) => this.runtimeRef.blue().calculateBlueIdSync(node),
@@ -383,6 +384,33 @@ export class ProcessorExecution implements ExecutionHooks {
       );
     }
     await processor.execute(handler.contract(), context);
+  }
+
+  /**
+   * Converts unexpected handler failures into fatal terminations while allowing
+   * sentinel errors (RunTerminationError/MustUnderstandFailure) to propagate so
+   * the outer run logic can react according to spec (§22).
+   */
+  private async handleHandlerError(
+    scopePath: string,
+    bundle: ContractBundle,
+    error: unknown,
+  ): Promise<void> {
+    if (error instanceof RunTerminationError) {
+      throw error;
+    }
+    if (error instanceof MustUnderstandFailure) {
+      throw error;
+    }
+    const reason = this.fatalReason(error, 'Runtime fatal');
+    await this.enterFatalTermination(scopePath, bundle, reason);
+  }
+
+  private fatalReason(error: unknown, label: string): string {
+    if (error instanceof Error && typeof error.message === 'string') {
+      return error.message;
+    }
+    return label;
   }
 
   private createDocumentUpdateEvent(
