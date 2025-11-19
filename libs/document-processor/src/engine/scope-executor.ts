@@ -1,5 +1,5 @@
 import { blueIds } from '@blue-repository/core';
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, ResolvedBlueNode } from '@blue-labs/language';
 
 import { ContractBundle } from './contract-bundle.js';
 import type { ChannelRunner } from './channel-runner.js';
@@ -24,6 +24,7 @@ import {
   normalizePointer,
   resolvePointer,
 } from '../util/pointer-utils.js';
+import { ingestExternalEvent } from './external-event.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
@@ -201,6 +202,14 @@ export class ScopeExecutor {
     scopePath: string,
     event: BlueNode,
   ): Promise<void> {
+    const ingested = ingestExternalEvent(this.runtime.blue(), event);
+    await this.processPreparedExternalEvent(scopePath, ingested);
+  }
+
+  private async processPreparedExternalEvent(
+    scopePath: string,
+    event: ResolvedBlueNode,
+  ): Promise<void> {
     const normalizedScope = normalizeScope(scopePath);
     if (this.hooks.isScopeInactive(normalizedScope)) {
       return;
@@ -365,7 +374,7 @@ export class ScopeExecutor {
 
   private async processEmbeddedChildren(
     scopePath: string,
-    event: BlueNode,
+    event: ResolvedBlueNode,
   ): Promise<ContractBundle | null> {
     const normalizedScope = normalizeScope(scopePath);
     const processed = new Set<string>();
@@ -387,7 +396,7 @@ export class ScopeExecutor {
       const childNode = this.nodeAt(childScope);
       if (childNode) {
         await this.initializeScope(childScope, false);
-        await this.processExternalEvent(childScope, event);
+        await this.processPreparedExternalEvent(childScope, event);
       }
       bundle = this.refreshBundle(normalizedScope);
     }
