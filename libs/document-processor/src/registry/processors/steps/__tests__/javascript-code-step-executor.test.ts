@@ -47,6 +47,33 @@ describe('JavaScriptCodeStepExecutor', () => {
     expect(result).toBe(14);
   });
 
+  it('exposes canonical event data and canon helper utilities', async () => {
+    const blue = createBlue();
+    const stepNode = createStepNode(
+      blue,
+      `
+        const canonicalId = canon.at(eventCanonical, '/payload/id');
+        return {
+          plain: event.payload.id,
+          canonicalWrapped: canonicalId,
+          canonicalValue: canonicalId?.value,
+          unwrapped: canon.unwrap(canonicalId)
+        };
+      `,
+    );
+    const eventNode = blue.jsonValueToNode({
+      payload: { id: 'evt-123' },
+    });
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const result = (await executor.execute(args)) as Record<string, unknown>;
+    expect(result.plain).toBe('evt-123');
+    expect(result.unwrapped).toBe(result.plain);
+    expect(result.canonicalValue).toBe('evt-123');
+    expect(result.canonicalWrapped).toMatchObject({ value: 'evt-123' });
+  });
+
   it('provides access to documents via document()', async () => {
     const blue = createBlue();
     const stepNode = createStepNode(blue, 'return document("/counter") * 3;');
@@ -58,6 +85,39 @@ describe('JavaScriptCodeStepExecutor', () => {
 
     const result = await executor.execute(args);
     expect(result).toBe(15);
+  });
+
+  it('exposes canonical document snapshots alongside plain values', async () => {
+    const blue = createBlue();
+    const stepNode = createStepNode(
+      blue,
+      `
+        const canonical = document.canonical('/counter');
+        return {
+          plain: document('/counter'),
+          normalized: document('counter'),
+          canonicalWrapped: canonical,
+          canonicalValue: canonical?.value,
+          unwrapped: canon.unwrap(canonical),
+          missingPlain: document('/missing'),
+          missingCanonical: document.canonical('/missing')
+        };
+      `,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context, execution } = createRealContext(blue, eventNode);
+    execution.runtime().directWrite('/counter', blue.jsonValueToNode(5));
+
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const result = (await executor.execute(args)) as Record<string, unknown>;
+    expect(result.plain).toBe(5);
+    expect(result.normalized).toBe(5);
+    expect(result.unwrapped).toBe(result.plain);
+    expect(result.canonicalValue).toBe(5);
+    expect(result.canonicalWrapped).toMatchObject({ value: 5 });
+    expect(result.missingPlain).toBeUndefined();
+    expect(result.missingCanonical).toBeUndefined();
   });
 
   it('provides previous step results', async () => {
