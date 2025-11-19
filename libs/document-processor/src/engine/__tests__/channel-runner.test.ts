@@ -22,6 +22,7 @@ import type {
   ChannelEventCheckpoint,
 } from '../../model/index.js';
 import { KEY_CHECKPOINT } from '../../constants/processor-contract-constants.js';
+import { ingestExternalEvent } from '../external-event.js';
 
 const blue = createBlue();
 
@@ -154,7 +155,12 @@ describe('ChannelRunner', () => {
     const channel = bundle.channelsOfType('Custom.Channel')[0]!;
     const event = nodeFrom({ payload: 1 });
 
-    await runner.runExternalChannel(scopePath, bundle, channel, event);
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, event),
+    );
 
     expect(calls).toEqual(['h1', 'h2']);
     const stored = runtime
@@ -163,6 +169,35 @@ describe('ChannelRunner', () => {
     expect(stored).toBeInstanceOf(BlueNode);
     const marker = bundle.marker(KEY_CHECKPOINT) as any;
     expect(marker.lastSignatures.external).toBeDefined();
+  });
+
+  it('resolves events before evaluating channels and persisting checkpoints', async () => {
+    const { runner, runtime, bundle, scopePath } = createRunner({
+      evaluateChannel: (event: BlueNode) => {
+        expect(event).toBeInstanceOf(BlueNode);
+        expect(event.isResolved()).toBe(true);
+        return {
+          matches: true,
+          eventNode: event.clone(),
+        };
+      },
+    });
+
+    const channel = bundle.channelsOfType('Custom.Channel')[0]!;
+    const unresolvedEvent = nodeFrom({ payload: 'resolve-me' });
+
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, unresolvedEvent),
+    );
+
+    const stored = runtime
+      .document()
+      .get('/contracts/checkpoint/lastEvents/external');
+    expect(stored).toBeInstanceOf(BlueNode);
+    expect((stored as BlueNode).isResolved()).toBe(true);
   });
 
   it('skips duplicate events based on signature', async () => {
@@ -178,8 +213,18 @@ describe('ChannelRunner', () => {
     const channel = bundle.channelsOfType('Custom.Channel')[0]!;
     const event = nodeFrom({ payload: 'same' });
 
-    await runner.runExternalChannel(scopePath, bundle, channel, event);
-    await runner.runExternalChannel(scopePath, bundle, channel, event);
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, event),
+    );
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, event),
+    );
 
     expect(handlerSpy).toHaveBeenCalledTimes(2);
     expect(
@@ -228,7 +273,12 @@ describe('ChannelRunner', () => {
     const channel = bundle.channelsOfType('Custom.Channel')[0]!;
     const event = nodeFrom({ payload: 1 });
 
-    await runner.runExternalChannel(scopePath, bundle, channel, event);
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, event),
+    );
 
     expect(errorHook).toHaveBeenCalledTimes(1);
     expect(errorHook).toHaveBeenCalledWith(thrown);
@@ -276,7 +326,12 @@ describe('ChannelRunner', () => {
       onExecute: execute,
     });
     const channel = bundle.channelsOfType('Custom.Channel')[0]!;
-    await runner.runExternalChannel(scopePath, bundle, channel, nodeFrom({}));
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, nodeFrom({})),
+    );
     expect(execute).not.toHaveBeenCalled();
   });
 });
