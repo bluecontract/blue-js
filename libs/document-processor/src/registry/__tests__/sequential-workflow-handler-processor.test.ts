@@ -48,7 +48,8 @@ async function initializeDocument(options?: {
   const processor = buildProcessor(blue);
   const eventSnippet = options?.eventType
     ? `    event:
-      type: ${options.eventType}
+      message:
+        type: ${options.eventType}
 `
     : '';
 

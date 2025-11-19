@@ -43,10 +43,6 @@ export class TimelineChannelProcessor
     if (!event || !blue.isTypeOf(event, TimelineEntrySchema)) {
       return null;
     }
-    const entry = blue.nodeToSchemaOutput(event, TimelineEntrySchema);
-    const messageNode = entry.message as BlueNode | undefined;
-    if (!messageNode) return null;
-
-    return messageNode.clone();
+    return event.clone();
   }
 }

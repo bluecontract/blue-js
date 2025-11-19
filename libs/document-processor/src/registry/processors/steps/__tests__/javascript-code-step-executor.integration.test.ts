@@ -5,10 +5,11 @@ import {
   buildProcessor,
   expectOk,
   property,
+  stringProperty,
   typeBlueId,
 } from '../../../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
-import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
+import { blueIds as coreBlueIds } from '@blue-repository/core';
 
 const blue = createBlue();
 
@@ -77,8 +78,25 @@ contracts:
 `;
 
     const doc = blue.yamlToNode(yaml);
-    await expect(processor.initializeDocument(doc)).rejects.toThrow(
-      CodeBlockEvaluationError,
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const terminated = property(
+      property(result.document, 'contracts'),
+      'terminated',
+    );
+    expect(stringProperty(terminated, 'cause')).toBe('fatal');
+    const reason = stringProperty(terminated, 'reason');
+    expect(reason).toBeTruthy();
+    expect(reason).toMatch(/Failed to evaluate code block/i);
+
+    const terminationEvents = result.triggeredEvents.filter(
+      (event) =>
+        typeBlueId(event) === coreBlueIds['Document Processing Terminated'],
+    );
+    expect(terminationEvents.length).toBe(1);
+    expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');
+    expect(stringProperty(terminationEvents[0], 'reason')).toMatch(
+      /Failed to evaluate code block/i,
     );
   });
 

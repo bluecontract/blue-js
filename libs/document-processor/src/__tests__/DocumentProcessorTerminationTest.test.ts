@@ -29,7 +29,6 @@ function testEvent(eventId: string) {
 
 describe('DocumentProcessorTerminationTest', () => {
   let processor = buildProcessor(blue);
-
   beforeEach(() => {
     processor = buildProcessor(
       blue,
@@ -147,5 +146,39 @@ contracts:
     const childContracts = property(property(processed, 'child'), 'contracts');
     const childTerminated = property(childContracts, 'terminated');
     expect(stringProperty(childTerminated, 'cause')).toBe('graceful');
+  });
+
+  it('treats runtime errors during initialization as fatal terminations instead of host exceptions', async () => {
+    const yaml = `name: JS Failing Init
+contracts:
+  life:
+    type: Lifecycle Event Channel
+  onInit:
+    type: Sequential Workflow
+    channel: life
+    event:
+      type: Document Processing Initiated
+    steps:
+      - name: Boom
+        type: JavaScript Code
+        code: |
+          throw new Error("boom");
+`;
+
+    const document = blue.yamlToNode(yaml);
+
+    const result = await expectOk(processor.initializeDocument(document));
+
+    const contracts = property(result.document, 'contracts');
+    const terminated = property(contracts, 'terminated');
+    expect(stringProperty(terminated, 'cause')).toBe('fatal');
+
+    const terminationEvents = result.triggeredEvents.filter(
+      (e) => typeBlueId(e) === blueIds['Document Processing Terminated'],
+    );
+    expect(terminationEvents.length).toBe(1);
+    expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');
+
+    expect(result.totalGas).toBeGreaterThan(0);
   });
 });

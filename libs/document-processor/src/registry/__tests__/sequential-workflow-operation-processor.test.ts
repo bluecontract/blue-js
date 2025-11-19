@@ -32,7 +32,8 @@ function indentBlock(block: string, spaces: number): string {
     .join('\n');
 }
 
-const DEFAULT_STEP_EXPRESSION = "${event.request + document('/counter')}";
+const DEFAULT_STEP_EXPRESSION =
+  "${event.message.request + document('/counter')}";
 
 function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
   const {
@@ -322,7 +323,7 @@ entries:
     entries:
       note:
         type: Text`,
-      stepExpression: "${event.request.amount + document('/counter')}",
+      stepExpression: "${event.message.request.amount + document('/counter')}",
     });
     const init = await expectOk(processor.initializeDocument(doc));
     const storedBlueId = storedDocumentBlueId(init.document);
@@ -345,8 +346,9 @@ entries:
   it('applies handler event patterns to Operation requests', async () => {
     const processor = buildProcessor(blue);
     const doc = buildOperationDocument({
-      handlerEventYaml: `type: Operation Request
-allowNewerVersion: false`,
+      handlerEventYaml: `message:
+  type: Operation Request
+  allowNewerVersion: false`,
     });
     const init = await expectOk(processor.initializeDocument(doc));
     const storedBlueId = storedDocumentBlueId(init.document);
