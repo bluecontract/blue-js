@@ -65,4 +65,43 @@ describe('QuickJSEvaluator', () => {
     expect(first).toBe(1);
     expect(second).toBe(2);
   });
+
+  it('provides canon helpers for working with canonical JSON', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    const result = (await evaluator.evaluate({
+      code: `
+        const canonicalEvent = {
+          payload: {
+            id: { value: 'evt-123' },
+            tags: { items: [{ value: 'a' }, { value: 'b' }] }
+          },
+          name: { value: 'example' }
+        };
+        const pointer = canon.at(canonicalEvent, '/payload/id');
+        return {
+          pointer,
+          pointerUnwrapped: canon.unwrap(pointer),
+          eventPlain: canon.unwrap(canonicalEvent),
+          eventShallow: canon.unwrap(canonicalEvent, false),
+          arrayPlain: canon.unwrap({ items: [{ value: 1 }, { value: 2 }] }),
+          missing: canon.at(canonicalEvent, '/payload/missing')
+        };
+      `,
+    })) as Record<string, unknown>;
+
+    expect(result.pointer).toMatchObject({ value: 'evt-123' });
+    expect(result.pointerUnwrapped).toBe('evt-123');
+    expect(result.eventPlain).toEqual({
+      payload: { id: 'evt-123', tags: ['a', 'b'] },
+      name: 'example',
+    });
+    const shallow = result.eventShallow as Record<string, unknown>;
+    expect(shallow.payload).toMatchObject({
+      id: { value: 'evt-123' },
+      tags: { items: [{ value: 'a' }, { value: 'b' }] },
+    });
+    expect(result.arrayPlain).toEqual([1, 2]);
+    expect(result.missing).toBeUndefined();
+  });
 });

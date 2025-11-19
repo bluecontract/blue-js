@@ -5,6 +5,10 @@ import {
   type QuickJSRuntime,
   type QuickJSWASMModule,
 } from 'quickjs-emscripten';
+import {
+  getCanonicalPointerValue,
+  unwrapCanonicalValue,
+} from './canonical-json-utils.js';
 
 const DEFAULT_TIMEOUT_MS = 500;
 const DEFAULT_MEMORY_LIMIT_BYTES = 32 * 1024 * 1024;
@@ -45,6 +49,7 @@ export class QuickJSEvaluator {
     try {
       this.installConsole(context);
       this.installDeterministicGlobals(context);
+      this.installCanonNamespace(context);
       this.installBindings(context, bindings);
 
       const wrappedCode = this.wrapCode(code);
@@ -116,6 +121,61 @@ export class QuickJSEvaluator {
     context.setProp(context.global, 'Date', context.undefined.dup());
   }
 
+  private installCanonNamespace(context: QuickJSContext): void {
+    context.newObject().consume((canonHandle) => {
+      context
+        .newFunction('unwrap', (...args: readonly QuickJSHandle[]) => {
+          try {
+            const [targetHandle, deepHandle] = args;
+            const target =
+              targetHandle !== undefined
+                ? context.dump(targetHandle)
+                : undefined;
+            const deep =
+              deepHandle === undefined
+                ? true
+                : Boolean(context.dump(deepHandle));
+            const value = unwrapCanonicalValue(target, deep);
+            return this.createReturnHandle(context, value);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            return context.newError(message);
+          }
+        })
+        .consume((handle) => context.setProp(canonHandle, 'unwrap', handle));
+
+      context
+        .newFunction('at', (...args: readonly QuickJSHandle[]) => {
+          try {
+            const [targetHandle, pointerHandle] = args;
+            const target =
+              targetHandle !== undefined
+                ? context.dump(targetHandle)
+                : undefined;
+            if (pointerHandle === undefined) {
+              throw new TypeError(
+                'canon.at(target, pointer) requires a pointer argument',
+              );
+            }
+            const pointerValue = context.dump(pointerHandle);
+            if (typeof pointerValue !== 'string') {
+              throw new TypeError('canon.at pointer must be a string');
+            }
+            const resolved = getCanonicalPointerValue(target, pointerValue);
+            return this.createReturnHandle(context, resolved);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            return context.newError(message);
+          }
+        })
+        .consume((handle) => context.setProp(canonHandle, 'at', handle));
+
+      context.setProp(context.global, 'canon', canonHandle);
+    });
+  }
+
   private installBindings(
     context: QuickJSContext,
     bindings: QuickJSBindings | undefined,
@@ -126,22 +186,10 @@ export class QuickJSEvaluator {
 
     for (const [key, value] of Object.entries(bindings)) {
       if (typeof value === 'function') {
-        const fnHandle = context.newFunction(
+        const fnHandle = this.createFunctionHandle(
+          context,
           key,
-          (...args: readonly QuickJSHandle[]) => {
-            try {
-              const hostArgs = args.map((arg) => context.dump(arg));
-              const result = value(...hostArgs);
-              if (result instanceof Promise) {
-                throw new TypeError('Async bindings are not supported');
-              }
-              return this.createReturnHandle(context, result);
-            } catch (error) {
-              const message =
-                error instanceof Error ? error.message : String(error);
-              return context.newError(message);
-            }
-          },
+          value as (...args: unknown[]) => unknown,
         );
         fnHandle.consume((handle) =>
           context.setProp(context.global, key, handle),
@@ -152,6 +200,73 @@ export class QuickJSEvaluator {
           context.setProp(context.global, key, handle),
         );
       }
+    }
+  }
+
+  private createFunctionHandle(
+    context: QuickJSContext,
+    name: string,
+    fn: (...args: unknown[]) => unknown,
+  ): QuickJSHandle {
+    const fnHandle = context.newFunction(
+      name,
+      (...args: readonly QuickJSHandle[]) => {
+        try {
+          const hostArgs = args.map((arg) => context.dump(arg));
+          const result = fn(...hostArgs);
+          if (result instanceof Promise) {
+            throw new TypeError('Async bindings are not supported');
+          }
+          return this.createReturnHandle(context, result);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          return context.newError(message);
+        }
+      },
+    );
+    this.applyFunctionProperties(context, fnHandle, fn);
+    return fnHandle;
+  }
+
+  /**
+   * Copies enumerable properties from a host function onto the QuickJS handle.
+   * Nested functions (e.g. `document.canonical = () => {}`) are recursively wrapped
+   * so they stay callable inside QuickJS; plain values are serialized via
+   * `createOwnedHandle`. This preserves helper namespaces on binding functions.
+   */
+  private applyFunctionProperties(
+    context: QuickJSContext,
+    targetHandle: QuickJSHandle,
+    source: unknown,
+  ): void {
+    if (
+      source === null ||
+      (typeof source !== 'object' && typeof source !== 'function')
+    ) {
+      return;
+    }
+    for (const [prop, propValue] of Object.entries(
+      source as Record<string, unknown>,
+    )) {
+      if (propValue === undefined) {
+        continue;
+      }
+      if (typeof propValue === 'function') {
+        const propertyHandle = this.createFunctionHandle(
+          context,
+          prop,
+          propValue as (...args: unknown[]) => unknown,
+        );
+        propertyHandle.consume((handle) =>
+          context.setProp(targetHandle, prop, handle),
+        );
+        continue;
+      }
+      const propertyHandle = this.createOwnedHandle(context, propValue);
+      propertyHandle.consume((handle) =>
+        context.setProp(targetHandle, prop, handle),
+      );
     }
   }
 
