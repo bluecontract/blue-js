@@ -1,3 +1,14 @@
+## 2.0.0-rc.2 (2025-11-19)
+
+### 🚀 Features
+
+- **document-processor:** MS-145 propagate full timeline entry events to handlers ([7a03208](https://github.com/bluecontract/blue-js/commit/7a03208))
+- **document-processor:** expose canonical JSON helpers and document canonical snapshots ([8b1e3ae](https://github.com/bluecontract/blue-js/commit/8b1e3ae))
+
+### 🩹 Fixes
+
+- Handle handler runtime errors as fatal terminations ([269996e](https://github.com/bluecontract/blue-js/commit/269996e))
+
 ## 2.0.0-rc.1 (2025-11-06)
 
 ### 🩹 Fixes
