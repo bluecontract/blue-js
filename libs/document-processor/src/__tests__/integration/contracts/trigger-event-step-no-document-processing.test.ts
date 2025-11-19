@@ -19,7 +19,8 @@ contracts:
     type: Sequential Workflow
     channel: timeline
     event:
-      type: Chat Message
+      message:
+        type: Chat Message
     steps:
       - name: EmitStart
         type: Trigger Event
