@@ -11,10 +11,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./quickjs.release.gas.wasm": "./quickjs.release.gas.wasm"
   },
   "files": [
     "dist",
+    "quickjs.release.gas.wasm",
     "!**/*.tsbuildinfo",
     "!dist/package.json"
   ],

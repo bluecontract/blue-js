@@ -4,6 +4,7 @@ export * from './constants/processor-pointer-constants.js';
 export * from './util/pointer-utils.js';
 export * from './util/node-canonicalizer.js';
 export * from './util/expression/quickjs-evaluator.js';
+export * from './util/expression/quickjs-gas-loader.js';
 export * from './util/expression/exceptions.js';
 export * from './util/expression/quickjs-expression-utils.js';
 export * from './model/index.js';
