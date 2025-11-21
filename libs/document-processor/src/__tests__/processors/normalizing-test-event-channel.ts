@@ -11,9 +11,7 @@ import {
 
 const DEFAULT_EVENT_TYPE = 'TestEvent';
 
-export class NormalizingTestEventChannelProcessor
-  implements ChannelProcessor<TestEventChannel>
-{
+export class NormalizingTestEventChannelProcessor implements ChannelProcessor<TestEventChannel> {
   static readonly NORMALIZED_KIND = 'channelized';
   readonly kind = 'channel' as const;
   readonly blueIds = ['TestEventChannel'] as const;

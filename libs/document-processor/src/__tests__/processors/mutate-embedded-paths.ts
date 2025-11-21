@@ -5,9 +5,7 @@ import {
   type MutateEmbeddedPaths,
 } from '../models/index.js';
 
-export class MutateEmbeddedPathsContractProcessor
-  implements HandlerProcessor<MutateEmbeddedPaths>
-{
+export class MutateEmbeddedPathsContractProcessor implements HandlerProcessor<MutateEmbeddedPaths> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['MutateEmbeddedPaths'] as const;
   readonly schema = mutateEmbeddedPathsSchema;

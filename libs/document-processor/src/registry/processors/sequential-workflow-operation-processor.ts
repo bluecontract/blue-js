@@ -24,9 +24,7 @@ import {
   isRequestTypeCompatible,
   loadOperation,
 } from './workflow/operation-matcher.js';
-export class SequentialWorkflowOperationProcessor
-  implements HandlerProcessor<SequentialWorkflowOperation>
-{
+export class SequentialWorkflowOperationProcessor implements HandlerProcessor<SequentialWorkflowOperation> {
   readonly kind = 'handler' as const;
   readonly blueIds = [
     conversationBlueIds['Conversation/Sequential Workflow Operation'],

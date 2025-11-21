@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Blue, BlueNode } from '@blue-labs/language';
 
 import { createBlue } from '../../../../test-support/blue.js';
@@ -10,6 +10,7 @@ import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js'
 import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
 import { typeBlueId } from '../../../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { hostGasToWasmFuel } from '../../../../util/expression/quickjs-config.js';
 
 function createStepNode(blue: Blue, code: string): BlueNode {
   const indented = code
@@ -116,8 +117,8 @@ describe('JavaScriptCodeStepExecutor', () => {
     expect(result.unwrapped).toBe(result.plain);
     expect(result.canonicalValue).toBe(5);
     expect(result.canonicalWrapped).toMatchObject({ value: 5 });
-    expect(result.missingPlain).toBeUndefined();
-    expect(result.missingCanonical).toBeUndefined();
+    expect(result.missingPlain).toBeNull();
+    expect(result.missingCanonical).toBeNull();
   });
 
   it('returns blueId when document() path ends with /blueId', async () => {
@@ -213,7 +214,7 @@ describe('JavaScriptCodeStepExecutor', () => {
     expect(result).toBe(20);
   });
 
-  it('supports async/await expressions', async () => {
+  it('rejects async/await expressions', async () => {
     const blue = createBlue();
     const stepNode = createStepNode(
       blue,
@@ -223,8 +224,9 @@ describe('JavaScriptCodeStepExecutor', () => {
     const { context } = createRealContext(blue, eventNode);
     const args = createArgs({ context, stepNode, eventNode });
 
-    const result = await executor.execute(args);
-    expect(result).toBe(11);
+    await expect(executor.execute(args)).rejects.toThrow(
+      CodeBlockEvaluationError,
+    );
   });
 
   it('emits events included in the result payload', async () => {
@@ -270,8 +272,11 @@ describe('JavaScriptCodeStepExecutor', () => {
     );
   });
 
-  it('enforces execution timeout for runaway code', async () => {
+  it('enforces execution gas limits for runaway code', async () => {
     const blue = createBlue();
+    const limitedExecutor = new JavaScriptCodeStepExecutor({
+      wasmGasLimit: hostGasToWasmFuel(1000),
+    });
     const stepNode = createStepNode(blue, 'while (true) {}');
     const eventNode = blue.jsonValueToNode({});
     const { context } = createRealContext(blue, eventNode);
@@ -281,9 +286,31 @@ describe('JavaScriptCodeStepExecutor', () => {
       eventNode,
     });
 
-    await expect(executor.execute(args)).rejects.toThrow(
+    await expect(limitedExecutor.execute(args)).rejects.toThrow(
       CodeBlockEvaluationError,
     );
+  });
+
+  it('charges wasm gas usage into the gas meter', async () => {
+    const blue = createBlue();
+    const code = `
+return 1;
+    `;
+    const stepNode = createStepNode(blue, code);
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const spy = vi.spyOn(context.gasMeter(), 'chargeWasmGas');
+
+    await executor.execute(args);
+
+    expect(spy).toHaveBeenCalled();
+    const [firstCharge] = spy.mock.calls[0] ?? [];
+
+    expect(
+      typeof firstCharge === 'bigint' ? firstCharge > 0n : firstCharge > 0,
+    ).toBe(true);
   });
 
   it('does not expose Date for deterministic execution', async () => {

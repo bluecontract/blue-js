@@ -22,7 +22,9 @@
     "picomatch": "4.0.3",
     "@blue-labs/language": "2.0.0-rc.21",
     "@blue-labs/shared-utils": "2.0.0-rc.21",
-    "quickjs-emscripten": "0.31.0"
+    "@blue-quickjs/abi-manifest": "0.2.3",
+    "@blue-quickjs/dv": "0.2.3",
+    "@blue-quickjs/quickjs-runtime": "0.2.3"
   },
   "license": "MIT",
   "publishConfig": {

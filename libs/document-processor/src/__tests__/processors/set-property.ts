@@ -2,9 +2,7 @@ import type { HandlerProcessor } from '../../registry/types.js';
 import { BlueNode } from '@blue-labs/language';
 import { setPropertySchema, type SetProperty } from '../models/index.js';
 
-export class SetPropertyContractProcessor
-  implements HandlerProcessor<SetProperty>
-{
+export class SetPropertyContractProcessor implements HandlerProcessor<SetProperty> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['SetProperty'] as const;
   readonly schema = setPropertySchema;

@@ -2,7 +2,12 @@ import { BlueNode } from '@blue-labs/language';
 import type { ContractProcessorContext } from '../../registry/types.js';
 import picomatch from 'picomatch';
 import { CodeBlockEvaluationError } from './exceptions.js';
-import { QuickJSEvaluator, type QuickJSBindings } from './quickjs-evaluator.js';
+import {
+  QuickJSEvaluator,
+  type QuickJSBindings,
+  type QuickJSEvaluationOptions,
+} from './quickjs-evaluator.js';
+import { DEFAULT_EXPRESSION_WASM_GAS_LIMIT } from './quickjs-config.js';
 
 // Matches if entire string is exactly ${...} (anchored with ^ and $)
 const EXPRESSION_PATTERN = /^\$\{([\s\S]*)\}$/;
@@ -44,10 +49,17 @@ export async function evaluateQuickJSExpression(
   evaluator: QuickJSEvaluator,
   expression: string,
   bindings: QuickJSBindings,
+  wasmGasLimit?: bigint | number,
+  onWasmGasUsed?: QuickJSEvaluationOptions['onWasmGasUsed'],
 ): Promise<unknown> {
-  const code = `return await (${expression});`;
+  const code = `return (${expression});`;
   try {
-    return await evaluator.evaluate({ code, bindings });
+    return await evaluator.evaluate({
+      code,
+      bindings,
+      wasmGasLimit,
+      onWasmGasUsed,
+    });
   } catch (error) {
     throw new CodeBlockEvaluationError(expression, error);
   }
@@ -57,6 +69,8 @@ export async function resolveTemplateString(
   evaluator: QuickJSEvaluator,
   template: string,
   bindings: QuickJSBindings,
+  wasmGasLimit?: bigint | number,
+  onWasmGasUsed?: QuickJSEvaluationOptions['onWasmGasUsed'],
 ): Promise<string> {
   let result = '';
   let lastIndex = 0;
@@ -70,6 +84,8 @@ export async function resolveTemplateString(
       evaluator,
       expression,
       bindings,
+      wasmGasLimit,
+      onWasmGasUsed,
     );
     result += evaluated == null ? '' : String(evaluated);
     lastIndex = index + full.length;
@@ -139,6 +155,13 @@ export async function resolveNodeExpressions(
     pointer = '/',
   } = options;
 
+  const expressionWasmGasLimit = DEFAULT_EXPRESSION_WASM_GAS_LIMIT;
+  const onExpressionWasmGasUsed: QuickJSEvaluationOptions['onWasmGasUsed'] = ({
+    used,
+  }) => {
+    context.gasMeter().chargeWasmGas(used);
+  };
+
   const clone = node.clone();
   if (!shouldDescend(pointer, clone)) {
     return clone;
@@ -149,25 +172,21 @@ export async function resolveNodeExpressions(
     if (typeof value === 'string' && shouldResolve(pointer)) {
       if (isExpression(value)) {
         const expression = extractExpressionContent(value);
-        context.gasMeter().chargeExpression(expression);
         const evaluated = await evaluateQuickJSExpression(
           evaluator,
           expression,
           bindings,
+          expressionWasmGasLimit,
+          onExpressionWasmGasUsed,
         );
         return context.blue.jsonValueToNode(evaluated ?? null);
       } else if (containsExpression(value)) {
-        const placeholderPattern = new RegExp(ALL_EXPRESSIONS_PATTERN);
-        let placeholderCount = 0;
-        placeholderPattern.lastIndex = 0;
-        while (placeholderPattern.exec(value)) {
-          placeholderCount += 1;
-        }
-        context.gasMeter().chargeTemplate(placeholderCount, value);
         const resolved = await resolveTemplateString(
           evaluator,
           value,
           bindings,
+          expressionWasmGasLimit,
+          onExpressionWasmGasUsed,
         );
         return new BlueNode().setValue(resolved);
       }

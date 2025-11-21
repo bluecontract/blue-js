@@ -16,9 +16,7 @@ import {
 /**
  * Processor that infers basic types for untyped values
  */
-export class InferBasicTypesForUntypedValues
-  implements TransformationProcessor
-{
+export class InferBasicTypesForUntypedValues implements TransformationProcessor {
   /**
    * Process a document node to infer basic types for untyped values
    * @param document - The document to process

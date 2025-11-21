@@ -2,9 +2,7 @@ import type { HandlerProcessor } from '../../registry/types.js';
 import { BlueNode } from '@blue-labs/language';
 import { mutateEventSchema, type MutateEvent } from '../models/index.js';
 
-export class MutateEventContractProcessor
-  implements HandlerProcessor<MutateEvent>
-{
+export class MutateEventContractProcessor implements HandlerProcessor<MutateEvent> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['MutateEvent'] as const;
   readonly schema = mutateEventSchema;

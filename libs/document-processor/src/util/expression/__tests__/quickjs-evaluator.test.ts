@@ -13,47 +13,44 @@ describe('QuickJSEvaluator', () => {
     expect(result).toBe(42);
   });
 
-  it('supports awaiting asynchronous results within the code block', async () => {
+  it('rejects async/await syntax in deterministic mode', async () => {
     const evaluator = new QuickJSEvaluator();
 
-    const result = await evaluator.evaluate({
-      code: `
-        const data = await Promise.resolve({ nested: [1, 2, 3] });
-        return data;
-      `,
-    });
-
-    expect(result).toEqual({ nested: [1, 2, 3] });
+    await expect(
+      evaluator.evaluate({
+        code: `
+          const data = await Promise.resolve({ nested: [1, 2, 3] });
+          return data;
+        `,
+      }),
+    ).rejects.toThrow(/expecting ';'/);
   });
 
-  it('exposes provided bindings (values and functions) to the evaluated code', async () => {
+  it('exposes provided bindings (values) to the evaluated code', async () => {
     const evaluator = new QuickJSEvaluator();
 
     const result = await evaluator.evaluate({
-      code: 'return add(steps, 5);',
+      code: 'return steps + factor;',
       bindings: {
         steps: 7,
-        add: (a: number, b: number) => a + b,
+        factor: 5,
       },
     });
 
     expect(result).toBe(12);
   });
 
-  it('returns an error object when a binding rejects with an async result', async () => {
+  it('throws when bindings include unsupported function values', async () => {
     const evaluator = new QuickJSEvaluator();
 
-    const result = await evaluator.evaluate({
-      code: 'return add(1, 2);',
-      bindings: {
-        add: () => Promise.resolve(3),
-      },
-    });
-
-    expect(result).toEqual({
-      message: 'Async bindings are not supported',
-      name: 'Error',
-    });
+    await expect(
+      evaluator.evaluate({
+        code: 'return add(1, 2);',
+        bindings: {
+          add: (a: number, b: number) => a + b,
+        },
+      }),
+    ).rejects.toThrow(/function values/);
   });
 
   it('can be reused across multiple evaluations', async () => {
@@ -85,7 +82,7 @@ describe('QuickJSEvaluator', () => {
           eventPlain: canon.unwrap(canonicalEvent),
           eventShallow: canon.unwrap(canonicalEvent, false),
           arrayPlain: canon.unwrap({ items: [{ value: 1 }, { value: 2 }] }),
-          missing: canon.at(canonicalEvent, '/payload/missing')
+          missing: canon.at(canonicalEvent, '/payload/missing') ?? null
         };
       `,
     })) as Record<string, unknown>;
@@ -102,6 +99,41 @@ describe('QuickJSEvaluator', () => {
       tags: { items: [{ value: 'a' }, { value: 'b' }] },
     });
     expect(result.arrayPlain).toEqual([1, 2]);
-    expect(result.missing).toBeUndefined();
+    expect(result.missing).toBeNull();
+  });
+
+  it('forwards emit calls to the host binding', async () => {
+    const evaluator = new QuickJSEvaluator();
+    const emissions: unknown[] = [];
+
+    const result = await evaluator.evaluate({
+      code: `
+        emit({ level: 'debug', message: 'hello', value: 42 });
+        return 7;
+      `,
+      bindings: {
+        emit: (value: unknown) => {
+          emissions.push(value);
+        },
+      },
+    });
+
+    expect(result).toBe(7);
+    expect(emissions).toEqual([
+      { level: 'debug', message: 'hello', value: 42 },
+    ]);
+  });
+
+  it('rejects non-function emit bindings', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    await expect(
+      evaluator.evaluate({
+        code: 'emit("test"); return 1;',
+        bindings: {
+          emit: 'not-a-function',
+        },
+      }),
+    ).rejects.toThrow(/emit binding must be a function/);
   });
 });

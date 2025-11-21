@@ -5,9 +5,7 @@ import { NodeTransformer } from '../../utils/NodeTransformer';
 /**
  * Processor that replaces inline values for type attributes with imports
  */
-export class ReplaceInlineValuesForTypeAttributesWithImports
-  implements TransformationProcessor
-{
+export class ReplaceInlineValuesForTypeAttributesWithImports implements TransformationProcessor {
   public static readonly MAPPINGS = 'mappings';
   private mappings: Map<string, string> = new Map();
 

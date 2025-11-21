@@ -15,9 +15,7 @@ import {
   type ExpressionTraversalPredicate,
 } from '../../../util/expression/quickjs-expression-utils.js';
 
-export class TriggerEventStepExecutor
-  implements SequentialWorkflowStepExecutor
-{
+export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor {
   readonly supportedBlueIds = [
     conversationBlueIds['Conversation/Trigger Event'],
   ] as const;

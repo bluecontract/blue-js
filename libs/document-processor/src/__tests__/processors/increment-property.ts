@@ -5,9 +5,7 @@ import {
   type IncrementProperty,
 } from '../models/index.js';
 
-export class IncrementPropertyContractProcessor
-  implements HandlerProcessor<IncrementProperty>
-{
+export class IncrementPropertyContractProcessor implements HandlerProcessor<IncrementProperty> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['IncrementProperty'] as const;
   readonly schema = incrementPropertySchema;
