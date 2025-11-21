@@ -161,5 +161,43 @@ describe('quickjs-expression-utils', () => {
       expect(predicate('/include/skip/here')).toBe(false);
       expect(predicate('/other')).toBe(false);
     });
+
+    it('honors shouldDescend predicates to keep literal subtrees intact', async () => {
+      const context = {
+        blue,
+        gasMeter: () => ({
+          chargeExpression() {
+            return undefined;
+          },
+          chargeTemplate() {
+            return undefined;
+          },
+        }),
+      } as unknown as ContractProcessorContext;
+      const node = blue.jsonValueToNode({
+        resolve: '${steps.answer}',
+        literal: {
+          nested: '${steps.answer}',
+        },
+      });
+
+      const resolved = await resolveNodeExpressions({
+        evaluator,
+        node,
+        bindings: { steps: { answer: 42 } },
+        shouldResolve: createPicomatchShouldResolve({
+          include: ['/**'],
+        }),
+        shouldDescend: (pointer) => pointer !== '/literal',
+        context,
+      });
+
+      const json = blue.nodeToJson(resolved, 'original') as {
+        resolve: number;
+        literal: { nested: string };
+      };
+      expect(json.resolve).toBe(42);
+      expect(json.literal.nested).toBe('${steps.answer}');
+    });
   });
 });

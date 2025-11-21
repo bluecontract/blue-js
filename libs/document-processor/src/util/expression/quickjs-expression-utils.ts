@@ -80,6 +80,10 @@ export async function resolveTemplateString(
 }
 
 export type ExpressionResolverPredicate = (pointer: string) => boolean;
+export type ExpressionTraversalPredicate = (
+  pointer: string,
+  node: BlueNode,
+) => boolean;
 
 export type PicomatchShouldResolveOptions = {
   include: readonly string[];
@@ -96,6 +100,7 @@ export type ResolveNodeExpressionsOptions = {
   node: BlueNode;
   bindings: QuickJSBindings;
   shouldResolve: ExpressionResolverPredicate;
+  shouldDescend?: ExpressionTraversalPredicate;
   context: ContractProcessorContext;
   pointer?: string;
 };
@@ -129,11 +134,15 @@ export async function resolveNodeExpressions(
     node,
     bindings,
     shouldResolve,
+    shouldDescend = () => true,
     context,
     pointer = '/',
   } = options;
 
   const clone = node.clone();
+  if (!shouldDescend(pointer, clone)) {
+    return clone;
+  }
   const value = clone.getValue();
 
   if (value !== undefined) {
