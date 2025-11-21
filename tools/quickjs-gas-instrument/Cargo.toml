@@ -1,0 +1,8 @@
+[package]
+name = "quickjs-gas-instrument"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wasm-instrument = { version = "0.4", features = ["sign_ext"] }
+parity-wasm = "0.45"
