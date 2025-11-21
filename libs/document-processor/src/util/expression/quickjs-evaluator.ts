@@ -12,6 +12,15 @@ import {
 
 const DEFAULT_TIMEOUT_MS = 500;
 const DEFAULT_MEMORY_LIMIT_BYTES = 32 * 1024 * 1024;
+type GasGlobal = { value: unknown };
+type GasAugmentedModule = QuickJSWASMModule & {
+  __setGasBudget?: (gas: bigint | number) => void;
+  __gasGlobal?: GasGlobal;
+  __gasExports?: Record<string, unknown>;
+  getFFI?: () => unknown;
+  module?: Record<string, unknown>;
+  asm?: Record<string, unknown>;
+};
 
 export interface QuickJSBindings {
   readonly [key: string]: unknown;
@@ -22,21 +31,26 @@ export interface QuickJSEvaluationOptions {
   readonly bindings?: QuickJSBindings;
   readonly timeout?: number;
   readonly memoryLimit?: number;
+  readonly instrumentedWasmUrl?: string;
+  readonly wasmGasLimit?: bigint | number;
 }
 
 export class QuickJSEvaluator {
-  private modulePromise?: Promise<QuickJSWASMModule>;
-  private moduleInstance?: QuickJSWASMModule;
+  private modulePromises = new Map<string, Promise<QuickJSWASMModule>>();
+  private moduleInstances = new Map<string, QuickJSWASMModule>();
 
   async evaluate({
     code,
     bindings,
     timeout = DEFAULT_TIMEOUT_MS,
     memoryLimit = DEFAULT_MEMORY_LIMIT_BYTES,
+    instrumentedWasmUrl,
+    wasmGasLimit,
   }: QuickJSEvaluationOptions): Promise<unknown> {
-    const quickJS = await this.ensureModule();
+    const quickJS = await this.ensureModule(instrumentedWasmUrl);
     const runtime = quickJS.newRuntime();
     runtime.setMemoryLimit(memoryLimit);
+    let safeDispose = true;
 
     const absoluteTimeout = Number.isFinite(timeout)
       ? Date.now() + Math.max(timeout, 0)
@@ -47,6 +61,10 @@ export class QuickJSEvaluator {
 
     const context = runtime.newContext();
     try {
+      if (instrumentedWasmUrl && wasmGasLimit !== undefined) {
+        this.setGasLimit(quickJS, wasmGasLimit);
+      }
+
       this.installConsole(context);
       this.installDeterministicGlobals(context);
       this.installCanonNamespace(context);
@@ -66,6 +84,18 @@ export class QuickJSEvaluator {
         );
         const hostValue = context.dump(resolvedHandle);
         return hostValue;
+      } catch (error) {
+        const message =
+          error instanceof Error ? String(error.message) : String(error);
+        if (
+          /out of gas/i.test(message) ||
+          /unreachable/i.test(message) ||
+          /Aborted\(Assertion failed/i.test(message)
+        ) {
+          safeDispose = false;
+          throw new Error('OutOfGas: QuickJS Wasm execution exceeded fuel');
+        }
+        throw error;
       } finally {
         if (resolvedHandle) {
           resolvedHandle.dispose();
@@ -74,23 +104,126 @@ export class QuickJSEvaluator {
         }
       }
     } finally {
-      context.dispose();
-      runtime.removeInterruptHandler?.();
-      runtime.dispose();
+      if (safeDispose) {
+        try {
+          context.dispose();
+        } catch {
+          // ignore disposal issues when runtime already aborted
+        }
+        try {
+          runtime.removeInterruptHandler?.();
+          runtime.dispose();
+        } catch {
+          // ignore disposal issues when runtime already aborted
+        }
+      }
     }
   }
 
-  private async ensureModule(): Promise<QuickJSWASMModule> {
-    if (this.moduleInstance) {
-      return this.moduleInstance;
+  private async ensureModule(
+    instrumentedWasmUrl?: string,
+  ): Promise<QuickJSWASMModule> {
+    const key = instrumentedWasmUrl ?? 'default';
+    const existing = this.moduleInstances.get(key);
+    if (existing) {
+      return existing;
     }
-    if (!this.modulePromise) {
-      this.modulePromise = getQuickJS().then((module) => {
-        this.moduleInstance = module;
-        return module;
-      });
+
+    let promise = this.modulePromises.get(key);
+    if (!promise) {
+      promise = instrumentedWasmUrl
+        ? this.loadInstrumentedModule(instrumentedWasmUrl)
+        : getQuickJS();
+      this.modulePromises.set(
+        key,
+        promise.then((module) => {
+          this.moduleInstances.set(key, module);
+          return module;
+        }),
+      );
     }
-    return this.modulePromise;
+
+    return promise;
+  }
+
+  private async loadInstrumentedModule(
+    wasmUrl: string,
+  ): Promise<QuickJSWASMModule> {
+    const { loadMeteredQuickJS } = await import('./quickjs-gas-loader.js');
+    return loadMeteredQuickJS(wasmUrl);
+  }
+
+  private setGasLimit(quickJS: QuickJSWASMModule, gasLimit: bigint | number) {
+    const modAny = quickJS as GasAugmentedModule;
+    if (typeof modAny.__setGasBudget === 'function') {
+      modAny.__setGasBudget(gasLimit);
+      return;
+    }
+
+    const gasGlobal = this.findGasGlobal(quickJS);
+    if (gasGlobal) {
+      gasGlobal.value = BigInt(gasLimit);
+      return;
+    }
+
+    throw new Error(
+      'Metered QuickJS: gas budget setter not found; ensure instrumented wasm is loaded',
+    );
+  }
+
+  private findGasGlobal(quickJS: QuickJSWASMModule): GasGlobal | undefined {
+    const quickJSCasted = quickJS as GasAugmentedModule;
+    const directCandidates: Array<unknown> = [
+      quickJSCasted.__gasGlobal,
+      quickJSCasted.__gasExports?.gas_left,
+      quickJSCasted.module?.gas_left,
+      quickJSCasted.asm?.gas_left,
+    ];
+
+    const ffiModule =
+      typeof quickJSCasted.getFFI === 'function'
+        ? quickJSCasted.getFFI()
+        : undefined;
+
+    if (ffiModule && typeof ffiModule === 'object') {
+      const moduleRef = (ffiModule as { module?: Record<string, unknown> })
+        .module;
+      if (moduleRef) {
+        const moduleRefAny = moduleRef as Record<string, unknown> & {
+          asm?: Record<string, unknown>;
+          wasmExports?: Record<string, unknown>;
+          instance?: { exports?: Record<string, unknown> };
+          exports?: Record<string, unknown>;
+          __gasGlobal?: unknown;
+          __gasExports?: Record<string, unknown>;
+        };
+        directCandidates.push(
+          moduleRefAny.__gasGlobal,
+          moduleRefAny.__gasExports?.gas_left,
+          moduleRefAny.asm?.gas_left,
+          moduleRefAny.wasmExports?.gas_left,
+          moduleRefAny.instance?.exports?.gas_left,
+          moduleRefAny.exports?.gas_left,
+          moduleRefAny.gas_left,
+        );
+      }
+    }
+
+    for (const candidate of directCandidates) {
+      if (this.isGasGlobal(candidate)) {
+        return candidate;
+      }
+    }
+
+    return undefined;
+  }
+
+  private isGasGlobal(candidate: unknown): candidate is GasGlobal {
+    return (
+      !!candidate &&
+      typeof candidate === 'object' &&
+      'value' in (candidate as Record<string, unknown>)
+    );
   }
 
   private wrapCode(code: string): string {

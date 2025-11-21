@@ -25,8 +25,15 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org/
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
         run: npm install
+        shell: bash
+
+      - name: Instrument QuickJS wasm
+        run: ./scripts/ci-instrument-quickjs.sh
         shell: bash
 
       - name: Build
