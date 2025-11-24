@@ -33,6 +33,7 @@ export interface QuickJSEvaluationOptions {
   readonly memoryLimit?: number;
   readonly instrumentedWasmUrl?: string;
   readonly wasmGasLimit?: bigint | number;
+  readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
 }
 
 export class QuickJSEvaluator {
@@ -46,84 +47,109 @@ export class QuickJSEvaluator {
     memoryLimit = DEFAULT_MEMORY_LIMIT_BYTES,
     instrumentedWasmUrl,
     wasmGasLimit,
+    onWasmGasUsed,
   }: QuickJSEvaluationOptions): Promise<unknown> {
-    const quickJS = await this.ensureModule(instrumentedWasmUrl);
-    const runtime = quickJS.newRuntime();
-    runtime.setMemoryLimit(memoryLimit);
-    let safeDispose = true;
-
-    const absoluteTimeout = Number.isFinite(timeout)
-      ? Date.now() + Math.max(timeout, 0)
-      : undefined;
-    if (absoluteTimeout !== undefined) {
-      runtime.setInterruptHandler(() => Date.now() > absoluteTimeout);
-    }
-
-    const context = runtime.newContext();
     try {
-      if (instrumentedWasmUrl && wasmGasLimit !== undefined) {
-        this.setGasLimit(quickJS, wasmGasLimit);
+      const wantsMetered =
+        instrumentedWasmUrl !== undefined || wasmGasLimit !== undefined;
+      const quickJS = await this.ensureModule(
+        wantsMetered ? instrumentedWasmUrl : undefined,
+        wantsMetered ? 'metered-default' : undefined,
+      );
+      const runtime = quickJS.newRuntime();
+      runtime.setMemoryLimit(memoryLimit);
+      let safeDispose = true;
+
+      const absoluteTimeout = Number.isFinite(timeout)
+        ? Date.now() + Math.max(timeout, 0)
+        : undefined;
+      if (absoluteTimeout !== undefined) {
+        runtime.setInterruptHandler(() => Date.now() > absoluteTimeout);
       }
 
-      this.installConsole(context);
-      this.installDeterministicGlobals(context);
-      this.installCanonNamespace(context);
-      this.installBindings(context, bindings);
-
-      const wrappedCode = this.wrapCode(code);
-      const evaluationResult = context.evalCode(wrappedCode);
-      const initialHandle = context.unwrapResult(evaluationResult);
-
-      let resolvedHandle: QuickJSHandle | null = null;
+      const context = runtime.newContext();
       try {
-        resolvedHandle = await this.resolveHandle(
-          context,
-          runtime,
-          initialHandle,
-          absoluteTimeout,
-        );
-        const hostValue = context.dump(resolvedHandle);
-        return hostValue;
-      } catch (error) {
-        const message =
-          error instanceof Error ? String(error.message) : String(error);
-        if (
-          /out of gas/i.test(message) ||
-          /unreachable/i.test(message) ||
-          /Aborted\(Assertion failed/i.test(message)
-        ) {
-          safeDispose = false;
-          throw new Error('OutOfGas: QuickJS Wasm execution exceeded fuel');
+        if (wantsMetered && wasmGasLimit !== undefined) {
+          this.setGasLimit(quickJS, wasmGasLimit);
         }
-        throw error;
+
+        this.installConsole(context);
+        this.installDeterministicGlobals(context);
+        this.installCanonNamespace(context);
+        this.installBindings(context, bindings);
+
+        const wrappedCode = this.wrapCode(code);
+        const evaluationResult = context.evalCode(wrappedCode);
+        const initialHandle = context.unwrapResult(evaluationResult);
+
+        let resolvedHandle: QuickJSHandle | null = null;
+        let gasRemaining: bigint | undefined;
+
+        try {
+          resolvedHandle = await this.resolveHandle(
+            context,
+            runtime,
+            initialHandle,
+            absoluteTimeout,
+          );
+          if (wantsMetered && wasmGasLimit !== undefined) {
+            const gasGlobal = this.findGasGlobal(quickJS);
+            if (
+              gasGlobal &&
+              typeof (gasGlobal as { value?: unknown }).value !== 'undefined'
+            ) {
+              gasRemaining = BigInt(
+                (gasGlobal as { value: unknown }).value as bigint,
+              );
+            }
+          }
+          const hostValue = context.dump(resolvedHandle);
+          if (gasRemaining !== undefined && onWasmGasUsed) {
+            const limit = BigInt(wasmGasLimit ?? 0);
+            const used = limit > gasRemaining ? limit - gasRemaining : 0n;
+            onWasmGasUsed({ used, remaining: gasRemaining });
+          }
+          return hostValue;
+        } catch (error) {
+          const normalized = this.normalizeWasmError(error);
+          if (normalized.outOfGas) {
+            safeDispose = false;
+            throw normalized.error;
+          }
+          throw normalized.error;
+        } finally {
+          if (resolvedHandle) {
+            resolvedHandle.dispose();
+          } else {
+            initialHandle.dispose();
+          }
+        }
       } finally {
-        if (resolvedHandle) {
-          resolvedHandle.dispose();
-        } else {
-          initialHandle.dispose();
+        if (safeDispose) {
+          try {
+            context.dispose();
+          } catch {
+            // ignore disposal issues when runtime already aborted
+          }
+          try {
+            runtime.removeInterruptHandler?.();
+            runtime.dispose();
+          } catch {
+            // ignore disposal issues when runtime already aborted
+          }
         }
       }
-    } finally {
-      if (safeDispose) {
-        try {
-          context.dispose();
-        } catch {
-          // ignore disposal issues when runtime already aborted
-        }
-        try {
-          runtime.removeInterruptHandler?.();
-          runtime.dispose();
-        } catch {
-          // ignore disposal issues when runtime already aborted
-        }
-      }
+    } catch (error) {
+      const normalized = this.normalizeWasmError(error);
+      throw normalized.error;
     }
   }
 
   private async ensureModule(
     instrumentedWasmUrl?: string,
+    keyHint?: string,
   ): Promise<QuickJSWASMModule> {
-    const key = instrumentedWasmUrl ?? 'default';
+    const key = keyHint ?? instrumentedWasmUrl ?? 'default';
     const existing = this.moduleInstances.get(key);
     if (existing) {
       return existing;
@@ -131,7 +157,9 @@ export class QuickJSEvaluator {
 
     let promise = this.modulePromises.get(key);
     if (!promise) {
-      promise = instrumentedWasmUrl
+      const shouldLoadInstrumented =
+        instrumentedWasmUrl !== undefined || key === 'metered-default';
+      promise = shouldLoadInstrumented
         ? this.loadInstrumentedModule(instrumentedWasmUrl)
         : getQuickJS();
       this.modulePromises.set(
@@ -147,7 +175,7 @@ export class QuickJSEvaluator {
   }
 
   private async loadInstrumentedModule(
-    wasmUrl: string,
+    wasmUrl?: string,
   ): Promise<QuickJSWASMModule> {
     const { loadMeteredQuickJS } = await import('./quickjs-gas-loader.js');
     return loadMeteredQuickJS(wasmUrl);
@@ -547,5 +575,27 @@ export class QuickJSEvaluator {
         }
       }
     }
+  }
+
+  private normalizeWasmError(error: unknown): {
+    error: Error;
+    outOfGas: boolean;
+  } {
+    const err =
+      error instanceof Error
+        ? error
+        : new Error(String(error ?? 'Unknown error'));
+    const message = err.message ?? '';
+    if (
+      /out of gas/i.test(message) ||
+      /unreachable/i.test(message) ||
+      /Aborted\(Assertion failed/i.test(message)
+    ) {
+      return {
+        error: new Error('OutOfGas: QuickJS Wasm execution exceeded fuel'),
+        outOfGas: true,
+      };
+    }
+    return { error: err, outOfGas: false };
   }
 }

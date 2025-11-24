@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createBlue } from '../../../../test-support/blue.js';
+import {
+  createArgs,
+  createRealContext,
+} from '../../../../test-support/workflow.js';
 import {
   buildProcessor,
   expectOk,
@@ -10,6 +14,8 @@ import {
 } from '../../../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
 import { blueIds as coreBlueIds } from '@blue-repository/core';
+import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js';
+import { jsCodeBaseAmount } from '../../../../runtime/gas-helpers.js';
 
 const blue = createBlue();
 
@@ -158,5 +164,34 @@ contracts:
     expect(chatEvents.length).toBe(1);
     const message = property(chatEvents[0], 'message').getValue();
     expect(message).toBe('Triggered via Triggered Event Channel');
+  });
+
+  it('executes a sequential workflow step and charges wasm gas', async () => {
+    const executor = new JavaScriptCodeStepExecutor();
+    const code =
+      'return { result: document("/counter") + event.payload.delta };';
+    const stepNode = blue.yamlToNode(
+      `type: JavaScript Code
+name: Compute
+code: ${JSON.stringify(code)}
+`,
+    );
+    const eventNode = blue.jsonValueToNode({ payload: { delta: 7 } });
+    const { context, execution } = createRealContext(blue, eventNode);
+    execution.runtime().directWrite('/counter', blue.jsonValueToNode(5));
+
+    const baseArgs = createArgs({ context, stepNode, eventNode });
+    const args = { ...baseArgs, workflow: { steps: [stepNode] } };
+
+    const initialGas = context.gasMeter().totalGas();
+    const wasmSpy = vi.spyOn(context.gasMeter(), 'chargeWasmGas');
+
+    const result = await executor.execute(args);
+
+    expect(result).toEqual({ result: 12 });
+    expect(wasmSpy).toHaveBeenCalled();
+
+    const postGas = context.gasMeter().totalGas();
+    expect(postGas).toBeGreaterThan(initialGas + jsCodeBaseAmount(code));
   });
 });

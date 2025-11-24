@@ -142,6 +142,13 @@ export class GasMeter {
     this.add(documentSnapshotAmount(absPointer, bytes));
   }
 
+  chargeWasmGas(amount: bigint | number): void {
+    const numeric = typeof amount === 'bigint' ? Number(amount) : amount;
+    if (Number.isFinite(numeric) && numeric > 0) {
+      this.add(numeric);
+    }
+  }
+
   private payloadSizeCharge(node: BlueNode | null | undefined): number {
     if (!node) {
       return 0;
