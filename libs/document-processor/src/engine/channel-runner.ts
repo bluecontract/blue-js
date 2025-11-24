@@ -1,4 +1,4 @@
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, ResolvedBlueNode } from '@blue-labs/language';
 import type {
   ContractBundle,
   ChannelBinding,
@@ -55,13 +55,14 @@ export class ChannelRunner {
     scopePath: string,
     bundle: ContractBundle,
     channel: ChannelBinding,
-    event: BlueNode,
+    event: ResolvedBlueNode,
   ): Promise<void> {
     if (this.deps.isScopeInactive(scopePath)) {
       return;
     }
     this.runtime.gasMeter().chargeChannelMatchAttempt();
 
+    const checkpointEvent = event;
     const match = await this.deps.evaluateChannel(
       channel,
       bundle,
@@ -73,7 +74,6 @@ export class ChannelRunner {
     }
 
     const eventForHandlers = match.eventNode ?? event;
-    const checkpointEvent = event; // persist and dedupe against the original external event
     this.checkpointManager.ensureCheckpointMarker(scopePath, bundle);
     const checkpoint = this.checkpointManager.findCheckpoint(
       bundle,

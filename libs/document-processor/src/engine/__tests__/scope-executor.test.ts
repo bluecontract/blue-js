@@ -175,7 +175,9 @@ describe('ScopeExecutor', () => {
     expect(scopePath).toBe('/');
     expect(bundleArg).toBeInstanceOf(ContractBundle);
     expect(channelBinding.key()).toBe('external');
-    expect(passedEvent).toBe(event);
+    expect(passedEvent).not.toBe(event);
+    expect(passedEvent).toBeInstanceOf(BlueNode);
+    expect(passedEvent.isResolved()).toBe(true);
   });
 
   it('enters fatal termination when patch violates boundary', async () => {

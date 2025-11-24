@@ -8,7 +8,7 @@ import {
 import { TriggerEventStepExecutor } from '../trigger-event-step-executor.js';
 import { ProcessorFatalError } from '../../../../engine/processor-fatal-error.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
-import { typeBlueId } from '../../../../__tests__/test-utils.js';
+import { property, typeBlueId } from '../../../../__tests__/test-utils.js';
 
 describe('TriggerEventStepExecutor', () => {
   const executor = new TriggerEventStepExecutor();
@@ -93,5 +93,62 @@ event:
 
     const message = emitted.getProperties()?.message?.getValue();
     expect(message).toBe('Subscription renewal for 125 USD');
+  });
+
+  it('keeps nested documents inside the event payload as literal data', async () => {
+    const blue = createBlue();
+    const messageTemplate = 'Launching ${steps.Prepare.name}';
+    const stepNode = blue.yamlToNode(`type: Trigger Event
+event:
+  type: Chat Message
+  message: ${JSON.stringify(messageTemplate)}
+  document:
+    name: Child Worker Session
+    contracts:
+      nestedTimeline:
+        type: Timeline Channel
+        timelineId: child
+      nestedWorkflow:
+        type: Sequential Workflow
+        channel: nestedTimeline
+        steps:
+          - name: UpdateToken
+            type: Update Document
+            changeset:
+              - op: replace
+                path: /token
+                val: "\${steps.Prepare.secret}"
+`);
+    const eventNode = blue.jsonValueToNode({});
+    const setup = createRealContext(blue, eventNode);
+    const args = createArgs({
+      context: setup.context,
+      stepNode,
+      eventNode,
+      stepResults: {
+        Prepare: { name: 'Alpha', secret: 'shared-secret' },
+      },
+    });
+
+    await executor.execute(args);
+
+    const emissions = setup.execution.runtime().rootEmissions();
+    expect(emissions).toHaveLength(1);
+    const emitted = emissions[0];
+
+    const message = property(emitted, 'message').getValue();
+    expect(message).toBe('Launching Alpha');
+
+    const nestedDocument = property(emitted, 'document');
+    const nestedJson = blue.nodeToJson(nestedDocument, 'original') as {
+      contracts: {
+        nestedWorkflow: {
+          steps: Array<{ changeset: Array<{ val: string }> }>;
+        };
+      };
+    };
+
+    const val = nestedJson.contracts.nestedWorkflow.steps[0].changeset[0].val;
+    expect(val).toBe('${steps.Prepare.secret}');
   });
 });
