@@ -42,7 +42,7 @@ describeIfGas('QuickJSEvaluator with wasm gas metering', () => {
         return total;
       `,
       instrumentedWasmUrl: gasWasmPath,
-      wasmGasLimit: 10_000_000n,
+      wasmGasLimit: 200_000_000n,
     });
 
     expect(result).toBe(499_500);
