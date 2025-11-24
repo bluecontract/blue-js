@@ -11,7 +11,7 @@ echo " output: ${OUT_WASM}"
 
 cargo build --manifest-path "$ROOT_DIR/tools/quickjs-gas-instrument/Cargo.toml" --release --target-dir "$ROOT_DIR/target"
 BIN="$ROOT_DIR/target/release/quickjs-gas-instrument"
-"$BIN" "$IN_WASM" "$OUT_WASM"
+"$BIN" --input "$IN_WASM" --output "$OUT_WASM"
 
 echo "Instrumented wasm written to ${OUT_WASM}"
 

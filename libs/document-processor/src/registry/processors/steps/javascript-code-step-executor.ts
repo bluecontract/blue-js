@@ -12,6 +12,8 @@ import type {
 } from '../workflow/step-runner.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 
+const DEFAULT_WASM_GAS_LIMIT = 1_000_000_000n;
+
 interface ResultWithEvents {
   readonly events: readonly unknown[];
   readonly [key: string]: unknown;
@@ -51,6 +53,8 @@ export class JavaScriptCodeStepExecutor
       const result = await this.evaluator.evaluate({
         code,
         bindings,
+        wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
+        onWasmGasUsed: ({ used }) => context.gasMeter().chargeWasmGas(used),
       });
 
       this.handleEvents(result, context);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Blue, BlueNode } from '@blue-labs/language';
 
 import { createBlue } from '../../../../test-support/blue.js';
@@ -205,6 +205,27 @@ describe('JavaScriptCodeStepExecutor', () => {
     await expect(executor.execute(args)).rejects.toThrow(
       CodeBlockEvaluationError,
     );
+  });
+
+  it('charges wasm gas usage into the gas meter', async () => {
+    const blue = createBlue();
+    const code = `
+return 1;
+    `;
+    const stepNode = createStepNode(blue, code);
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const spy = vi.spyOn(context.gasMeter(), 'chargeWasmGas');
+
+    await executor.execute(args);
+
+    expect(spy).toHaveBeenCalled();
+    const [firstCharge] = spy.mock.calls[0] ?? [];
+    expect(
+      typeof firstCharge === 'bigint' ? firstCharge > 0n : firstCharge > 0,
+    ).toBe(true);
   });
 
   it('does not expose Date for deterministic execution', async () => {
