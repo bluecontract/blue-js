@@ -9,7 +9,10 @@ import {
   createPicomatchShouldResolve,
   resolveNodeExpressions,
 } from '../quickjs-expression-utils.js';
-import { QuickJSEvaluator } from '../quickjs-evaluator.js';
+import {
+  QuickJSEvaluator,
+  type QuickJSEvaluationOptions,
+} from '../quickjs-evaluator.js';
 import { createBlue } from '../../../test-support/blue.js';
 import type { ContractProcessorContext } from '../../../registry/types.js';
 import {
@@ -89,6 +92,9 @@ describe('quickjs-expression-utils', () => {
           chargeTemplate: (placeholderCount: number, template: string) => {
             gasCharges.push(templateAmount(placeholderCount, template));
           },
+          chargeWasmGas() {
+            return undefined;
+          },
         }),
       } as unknown as ContractProcessorContext;
       const node = blue.jsonValueToNode({
@@ -151,6 +157,48 @@ describe('quickjs-expression-utils', () => {
       ]);
     });
 
+    it('charges wasm gas usage for each evaluated expression', async () => {
+      const wasmCharges: number[] = [];
+      const context = {
+        blue,
+        gasMeter: () => ({
+          chargeExpression() {
+            return undefined;
+          },
+          chargeTemplate() {
+            return undefined;
+          },
+          chargeWasmGas(amount: bigint | number) {
+            const numeric =
+              typeof amount === 'bigint' ? Number(amount) : amount;
+            wasmCharges.push(numeric);
+          },
+        }),
+      } as unknown as ContractProcessorContext;
+      const evaluator = {
+        async evaluate({
+          onWasmGasUsed,
+        }: QuickJSEvaluationOptions): Promise<unknown> {
+          onWasmGasUsed?.({ used: 123n, remaining: 0n });
+          return 7;
+        },
+      } as unknown as QuickJSEvaluator;
+      const node = blue.jsonValueToNode({ value: '${steps.answer}' });
+
+      const resolved = await resolveNodeExpressions({
+        evaluator,
+        node,
+        bindings: {},
+        shouldResolve: createPicomatchShouldResolve({
+          include: ['/**'],
+        }),
+        context,
+      });
+
+      expect(blue.nodeToJson(resolved, 'simple')).toBe(7);
+      expect(wasmCharges).toStrictEqual([123]);
+    });
+
     it('supports custom include/exclude patterns', () => {
       const predicate = createPicomatchShouldResolve({
         include: ['/include/**'],
@@ -170,6 +218,9 @@ describe('quickjs-expression-utils', () => {
             return undefined;
           },
           chargeTemplate() {
+            return undefined;
+          },
+          chargeWasmGas() {
             return undefined;
           },
         }),
