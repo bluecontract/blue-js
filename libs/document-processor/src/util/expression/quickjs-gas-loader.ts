@@ -115,7 +115,11 @@ export async function loadMeteredQuickJS(
   quickjsModule.__gasGlobal = emscriptenModuleOverrides.__gasGlobal;
   quickjsModule.__gasExports = emscriptenModuleOverrides.__gasExports;
   quickjsModule.__setGasBudget = (gas: bigint | number) => {
-    currentGasBudget = BigInt(gas);
+    const big = BigInt(gas);
+    if (quickjsModule.__gasGlobal && 'value' in quickjsModule.__gasGlobal) {
+      quickjsModule.__gasGlobal.value = big;
+    }
+    currentGasBudget = big;
   };
 
   return quickjsModule;
@@ -124,7 +128,7 @@ export async function loadMeteredQuickJS(
 function resolvePackagedWasmUrl(): string {
   // Point to the packaged artifact shipped alongside this module.
   // Works in Node (file path) and browsers (URL string fetched by bundler).
-  const url = new URL('../../quickjs.release.gas.wasm', import.meta.url);
+  const url = new URL('../../../quickjs.release.gas.wasm', import.meta.url);
   if (url.protocol === 'file:') {
     // Node/fs friendly path.
     return url.pathname;
