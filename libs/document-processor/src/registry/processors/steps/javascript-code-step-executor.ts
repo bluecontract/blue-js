@@ -11,8 +11,7 @@ import type {
   StepExecutionArgs,
 } from '../workflow/step-runner.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
-
-const DEFAULT_WASM_GAS_LIMIT = 1_000_000_000n;
+import { DEFAULT_WASM_GAS_LIMIT } from '../../../util/expression/quickjs-config.js';
 
 interface ResultWithEvents {
   readonly events: readonly unknown[];
