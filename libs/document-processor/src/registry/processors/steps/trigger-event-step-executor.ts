@@ -1,3 +1,4 @@
+import { BlueNode } from '@blue-labs/language';
 import {
   blueIds as conversationBlueIds,
   TriggerEventSchema,
@@ -13,6 +14,7 @@ import type {
 import {
   resolveNodeExpressions,
   createPicomatchShouldResolve,
+  type ExpressionTraversalPredicate,
 } from '../../../util/expression/quickjs-expression-utils.js';
 
 export class TriggerEventStepExecutor
@@ -36,6 +38,7 @@ export class TriggerEventStepExecutor
       shouldResolve: createPicomatchShouldResolve({
         include: ['/event', '/event/**'],
       }),
+      shouldDescend: createTriggerEventShouldDescend(),
       context,
     });
 
@@ -54,4 +57,29 @@ export class TriggerEventStepExecutor
     context.emitEvent(emission.clone());
     return undefined;
   }
+}
+
+function createTriggerEventShouldDescend(): ExpressionTraversalPredicate {
+  return (pointer, node) => {
+    if (pointer === '/event') {
+      return true;
+    }
+    if (!pointer.startsWith('/event/')) {
+      return true;
+    }
+    return !isEmbeddedDocumentNode(node);
+  };
+}
+
+function isEmbeddedDocumentNode(node: BlueNode): boolean {
+  const properties = node.getProperties?.();
+  if (!properties) {
+    return false;
+  }
+
+  const contractsNode = properties.contracts;
+  if (contractsNode) {
+    return true;
+  }
+  return false;
 }
