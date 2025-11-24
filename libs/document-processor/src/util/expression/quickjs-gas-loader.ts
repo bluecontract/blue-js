@@ -48,13 +48,12 @@ export async function loadMeteredQuickJS(
   wasmUrl = resolvePackagedWasmUrl(),
   baseVariant = DEFAULT_BASE_VARIANT,
 ) {
+  // Expect wasm instrumented with the mutable_global backend exposing gas_left as the fuel counter.
   const wasmBytes = await readWasmBytes(wasmUrl);
   const wasmBinary = wasmBytes.buffer.slice(
     wasmBytes.byteOffset,
     wasmBytes.byteOffset + wasmBytes.byteLength,
   ) as ArrayBuffer;
-  // Large default to survive module init; evaluator will reset per execution.
-  let currentGasBudget = 1_000_000_000_000n;
 
   const wasmApi = (globalThis as unknown as { WebAssembly: WebAssemblyApi })
     .WebAssembly;
@@ -73,19 +72,6 @@ export async function loadMeteredQuickJS(
       imports && typeof imports === 'object'
         ? (imports as Record<string, Record<string, unknown>>)
         : ({} as Record<string, Record<string, unknown>>);
-
-    const importsEnv =
-      normalizedImports.env ??
-      ((normalizedImports.env = {}) as Record<string, unknown>);
-
-    importsEnv.gas_charge = (amount: number | bigint) => {
-      currentGasBudget -= BigInt(amount);
-      if (currentGasBudget < 0n) {
-        // Throwing propagates as a wasm trap; evaluator will normalize to OutOfGas.
-        throw new Error('OutOfGas');
-      }
-    };
-
     const instantiated = await wasmApi.instantiate(
       wasmBytes,
       normalizedImports,
@@ -96,6 +82,7 @@ export async function loadMeteredQuickJS(
         : (instantiated as WasmInstance);
 
     const exports = instance.exports ?? {};
+    // Instrumentation with the mutable_global backend exposes gas_left as the fuel counter.
     const gas = (exports as WasmExports).gas_left;
     if (isGasGlobal(gas)) {
       emscriptenModuleOverrides.__gasGlobal = gas;
@@ -119,7 +106,6 @@ export async function loadMeteredQuickJS(
     if (quickjsModule.__gasGlobal && 'value' in quickjsModule.__gasGlobal) {
       quickjsModule.__gasGlobal.value = big;
     }
-    currentGasBudget = big;
   };
 
   return quickjsModule;
