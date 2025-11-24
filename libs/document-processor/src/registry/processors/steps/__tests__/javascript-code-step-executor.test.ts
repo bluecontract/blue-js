@@ -129,23 +129,72 @@ describe('JavaScriptCodeStepExecutor', () => {
         return {
           blueId: document('/propA/blueId'),
           canonical,
-          canonicalValue: canonical?.value
+          canonicalValue: canonical
         };
       `,
     );
     const eventNode = blue.jsonValueToNode({});
     const { context, execution } = createRealContext(blue, eventNode);
-    const propABlueId = 'Custom.PropA';
-    execution
-      .runtime()
-      .directWrite('/propA', new BlueNode().setBlueId(propABlueId));
+    const propNode = new BlueNode().setName('PropA');
+    const propABlueId = blue.calculateBlueIdSync(propNode);
+    execution.runtime().directWrite('/propA', propNode);
 
     const args = createArgs({ context, stepNode, eventNode });
 
     const result = (await executor.execute(args)) as Record<string, unknown>;
     expect(result.blueId).toBe(propABlueId);
     expect(result.canonicalValue).toBe(propABlueId);
-    expect(result.canonical).toMatchObject({ value: propABlueId });
+    expect(result.canonical).toBe(propABlueId);
+  });
+
+  it('supports special document() segments like name/description/type/value', async () => {
+    const blue = createBlue();
+    const stepNode = createStepNode(
+      blue,
+      `
+        return {
+          name: document('/prop/name'),
+          description: document('/prop/description'),
+          typeName: document('/prop/type/name'),
+          value: document('/prop/value'),
+          blueId: document('/prop/blueId'),
+          canonical: {
+            name: document.canonical('/prop/name'),
+            description: document.canonical('/prop/description'),
+            typeName: document.canonical('/prop/type/name'),
+            value: document.canonical('/prop/value'),
+            blueId: document.canonical('/prop/blueId')
+          }
+        };
+      `,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context, execution } = createRealContext(blue, eventNode);
+    const propNode = new BlueNode()
+      .setName('Prop A')
+      .setDescription('Desc')
+      .setType(new BlueNode().setName('TypeX'))
+      .setValue(7);
+    execution.runtime().directWrite('/prop', propNode);
+    const expectedBlueId = blue.calculateBlueIdSync(propNode);
+
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const result = (await executor.execute(args)) as Record<string, unknown>;
+    expect(result).toMatchObject({
+      name: 'Prop A',
+      description: 'Desc',
+      typeName: 'TypeX',
+      value: 7,
+      blueId: expectedBlueId,
+      canonical: {
+        name: 'Prop A',
+        description: 'Desc',
+        typeName: 'TypeX',
+        value: 7,
+        blueId: expectedBlueId,
+      },
+    });
   });
 
   it('provides previous step results', async () => {

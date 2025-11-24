@@ -1,4 +1,4 @@
-import { Blue, BlueNode } from '@blue-labs/language';
+import { Blue, BlueIdCalculator, BlueNode } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/core';
 
 import { ChannelRunner, type ChannelMatch } from './channel-runner.js';
@@ -325,7 +325,10 @@ export class ProcessorExecution implements ExecutionHooks {
 
   private nodeAt(scopePath: string): BlueNode | null {
     const normalized = normalizeScope(scopePath);
-    return ProcessorEngine.nodeAt(this.runtimeRef.document(), normalized);
+    return ProcessorEngine.nodeAt(this.runtimeRef.document(), normalized, {
+      calculateBlueId: (node) =>
+        this.runtimeRef.blue().calculateBlueIdSync(node),
+    });
   }
 
   private async evaluateChannel(
@@ -552,7 +555,11 @@ export class ProcessorEngine {
     return marker;
   }
 
-  static nodeAt(root: BlueNode, pointer: string): BlueNode | null {
+  static nodeAt(
+    root: BlueNode,
+    pointer: string,
+    options?: { calculateBlueId?: (node: BlueNode) => string },
+  ): BlueNode | null {
     if (!(root instanceof BlueNode)) {
       return null;
     }
@@ -590,8 +597,9 @@ export class ProcessorEngine {
         continue;
       }
 
-      if (segment === 'blueId') {
-        current = new BlueNode().setValue(current.getBlueId() ?? null);
+      const specialNode = this.specialSegmentNode(current, segment, options);
+      if (specialNode !== undefined) {
+        current = specialNode;
         continue;
       }
 
@@ -602,5 +610,41 @@ export class ProcessorEngine {
     }
 
     return current;
+  }
+
+  private static specialSegmentNode(
+    node: BlueNode,
+    segment: string,
+    options?: { calculateBlueId?: (node: BlueNode) => string },
+  ): BlueNode | null | undefined {
+    switch (segment) {
+      case 'name':
+        return new BlueNode().setValue(node.getName() ?? null);
+      case 'description':
+        return new BlueNode().setValue(node.getDescription() ?? null);
+      case 'type':
+        return node.getType() ?? null;
+      case 'itemType':
+        return node.getItemType() ?? null;
+      case 'keyType':
+        return node.getKeyType() ?? null;
+      case 'valueType':
+        return node.getValueType() ?? null;
+      case 'value':
+        return new BlueNode().setValue(node.getValue() ?? null);
+      case 'blue':
+        return node.getBlue() ?? null;
+      case 'contracts':
+        return new BlueNode().setContracts(node.getContracts());
+      case 'blueId': {
+        const calculatedBlueId =
+          node.getBlueId() ??
+          options?.calculateBlueId?.(node) ??
+          BlueIdCalculator.calculateBlueIdSync(node);
+        return new BlueNode().setValue(calculatedBlueId ?? null);
+      }
+      default:
+        return undefined;
+    }
   }
 }
