@@ -26,9 +26,20 @@ export function createQuickJSStepBindings(
   };
 }
 
+const RAW_VALUE_SEGMENTS = new Set(['blueId', 'name', 'description', 'value']);
+
 function createDocumentBinding(
   context: StepExecutionArgs['context'],
 ): DocumentBinding {
+  const shouldReturnRawValue = (normalizedPointer: string) => {
+    if (normalizedPointer === '/') {
+      return false;
+    }
+    const lastSlash = normalizedPointer.lastIndexOf('/');
+    const segment = normalizedPointer.substring(lastSlash + 1);
+    return RAW_VALUE_SEGMENTS.has(segment);
+  };
+
   const readSnapshot = (pointer?: unknown) => {
     const resolvedPointer =
       pointer == null
@@ -50,9 +61,12 @@ function createDocumentBinding(
   };
 
   const toJson = (pointer: unknown, strategy: JsonStrategy) => {
-    const { snapshot } = readSnapshot(pointer);
+    const { snapshot, normalizedPointer } = readSnapshot(pointer);
     if (!snapshot) {
       return undefined;
+    }
+    if (shouldReturnRawValue(normalizedPointer)) {
+      return context.blue.nodeToJson(snapshot, 'simple');
     }
     return context.blue.nodeToJson(snapshot, strategy);
   };

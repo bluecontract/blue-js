@@ -118,6 +118,10 @@ export class ProcessorExecutionContext {
         ProcessorEngine.nodeAt(
           this.execution.runtime().document(),
           absolutePointer,
+          {
+            calculateBlueId: (node) =>
+              this.execution.runtime().blue().calculateBlueIdSync(node),
+          },
         ) != null
       );
     } catch {
@@ -129,6 +133,10 @@ export class ProcessorExecutionContext {
     const node = ProcessorEngine.nodeAt(
       this.execution.runtime().document(),
       absolutePointer,
+      {
+        calculateBlueId: (node) =>
+          this.execution.runtime().blue().calculateBlueIdSync(node),
+      },
     );
     return node instanceof BlueNode ? node : null;
   }
