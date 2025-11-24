@@ -1,3 +1,9 @@
+## 2.0.0-rc.4 (2025-11-24)
+
+### 🩹 Fixes
+
+- **document-processor:** enhance ProcessorEngine to handle blueId and improve property checks ([8201521](https://github.com/bluecontract/blue-js/commit/8201521))
+
 ## 2.0.0-rc.3 (2025-11-24)
 
 ### 🩹 Fixes
