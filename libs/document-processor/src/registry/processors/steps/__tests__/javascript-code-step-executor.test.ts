@@ -120,6 +120,34 @@ describe('JavaScriptCodeStepExecutor', () => {
     expect(result.missingCanonical).toBeUndefined();
   });
 
+  it('returns blueId when document() path ends with /blueId', async () => {
+    const blue = createBlue();
+    const stepNode = createStepNode(
+      blue,
+      `
+        const canonical = document.canonical('/propA/blueId');
+        return {
+          blueId: document('/propA/blueId'),
+          canonical,
+          canonicalValue: canonical?.value
+        };
+      `,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context, execution } = createRealContext(blue, eventNode);
+    const propABlueId = 'Custom.PropA';
+    execution
+      .runtime()
+      .directWrite('/propA', new BlueNode().setBlueId(propABlueId));
+
+    const args = createArgs({ context, stepNode, eventNode });
+
+    const result = (await executor.execute(args)) as Record<string, unknown>;
+    expect(result.blueId).toBe(propABlueId);
+    expect(result.canonicalValue).toBe(propABlueId);
+    expect(result.canonical).toMatchObject({ value: propABlueId });
+  });
+
   it('provides previous step results', async () => {
     const blue = createBlue();
     const stepNode = createStepNode(blue, 'return steps.Compute.value + 8;');

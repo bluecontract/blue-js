@@ -581,14 +581,24 @@ export class ProcessorEngine {
       const properties = current.getProperties() as
         | Record<string, BlueNode>
         | undefined;
+      if (properties && segment in properties) {
+        const nextNode = properties[segment];
+        if (!(nextNode instanceof BlueNode)) {
+          return null;
+        }
+        current = nextNode;
+        continue;
+      }
+
+      if (segment === 'blueId') {
+        current = new BlueNode().setValue(current.getBlueId() ?? null);
+        continue;
+      }
+
       if (!properties) {
         return null;
       }
-      const nextNode = properties[segment] as BlueNode | undefined;
-      if (!(nextNode instanceof BlueNode)) {
-        return null;
-      }
-      current = nextNode;
+      return null;
     }
 
     return current;
