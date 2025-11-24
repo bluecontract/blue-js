@@ -1,3 +1,9 @@
+## 2.0.0-rc.5 (2025-11-24)
+
+### 🚀 Features
+
+- **document-processor:** support blueId and metadata segments in JavaScript document() steps ([17e92ec](https://github.com/bluecontract/blue-js/commit/17e92ec))
+
 ## 2.0.0-rc.4 (2025-11-24)
 
 ### 🩹 Fixes
