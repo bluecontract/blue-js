@@ -1,3 +1,11 @@
+## 2.0.0-rc.3 (2025-11-24)
+
+### 🩹 Fixes
+
+- **document-processor:** prevent expression leakage into nested documents in Trigger Event payloads (MS-143) ([b737ea8](https://github.com/bluecontract/blue-js/commit/b737ea8))
+- **document-processor:** resolve external events before channel evaluation and checkpointing ([333687b](https://github.com/bluecontract/blue-js/commit/333687b))
+- **tests:** update Trigger Event step test to reflect new event.message structure ([f0f3da8](https://github.com/bluecontract/blue-js/commit/f0f3da8))
+
 ## 2.0.0-rc.2 (2025-11-19)
 
 ### 🚀 Features
