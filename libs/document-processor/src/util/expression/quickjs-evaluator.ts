@@ -9,18 +9,10 @@ import {
   getCanonicalPointerValue,
   unwrapCanonicalValue,
 } from './canonical-json-utils.js';
+import { QuickJSGasController } from './quickjs-gas-controller.js';
 
 const DEFAULT_TIMEOUT_MS = 500;
 const DEFAULT_MEMORY_LIMIT_BYTES = 32 * 1024 * 1024;
-type GasGlobal = { value: unknown };
-type GasAugmentedModule = QuickJSWASMModule & {
-  __setGasBudget?: (gas: bigint | number) => void;
-  __gasGlobal?: GasGlobal;
-  __gasExports?: Record<string, unknown>;
-  getFFI?: () => unknown;
-  module?: Record<string, unknown>;
-  asm?: Record<string, unknown>;
-};
 
 export interface QuickJSBindings {
   readonly [key: string]: unknown;
@@ -49,13 +41,18 @@ export class QuickJSEvaluator {
     wasmGasLimit,
     onWasmGasUsed,
   }: QuickJSEvaluationOptions): Promise<unknown> {
+    let lastQuickJS: QuickJSWASMModule | undefined;
+    let lastWasMetered = false;
     try {
       const wantsMetered =
         instrumentedWasmUrl !== undefined || wasmGasLimit !== undefined;
+      lastWasMetered = wantsMetered;
       const quickJS = await this.ensureModule(
         wantsMetered ? instrumentedWasmUrl : undefined,
         wantsMetered ? 'metered-default' : undefined,
       );
+      lastQuickJS = quickJS;
+      const gasController = new QuickJSGasController(quickJS, wantsMetered);
       const runtime = quickJS.newRuntime();
       runtime.setMemoryLimit(memoryLimit);
       let safeDispose = true;
@@ -70,7 +67,7 @@ export class QuickJSEvaluator {
       const context = runtime.newContext();
       try {
         if (wantsMetered && wasmGasLimit !== undefined) {
-          this.setGasLimit(quickJS, wasmGasLimit);
+          gasController.setGasLimit(wasmGasLimit);
         }
 
         this.installConsole(context);
@@ -93,15 +90,7 @@ export class QuickJSEvaluator {
             absoluteTimeout,
           );
           if (wantsMetered && wasmGasLimit !== undefined) {
-            const gasGlobal = this.findGasGlobal(quickJS);
-            if (
-              gasGlobal &&
-              typeof (gasGlobal as { value?: unknown }).value !== 'undefined'
-            ) {
-              gasRemaining = BigInt(
-                (gasGlobal as { value: unknown }).value as bigint,
-              );
-            }
+            gasRemaining = gasController.readGasRemaining();
           }
           const hostValue = context.dump(resolvedHandle);
           if (gasRemaining !== undefined && onWasmGasUsed) {
@@ -111,7 +100,7 @@ export class QuickJSEvaluator {
           }
           return hostValue;
         } catch (error) {
-          const normalized = this.normalizeWasmError(error);
+          const normalized = gasController.normalizeError(error);
           if (normalized.outOfGas) {
             safeDispose = false;
             throw normalized.error;
@@ -140,7 +129,10 @@ export class QuickJSEvaluator {
         }
       }
     } catch (error) {
-      const normalized = this.normalizeWasmError(error);
+      const normalized = new QuickJSGasController(
+        lastQuickJS,
+        lastWasMetered,
+      ).normalizeError(error);
       throw normalized.error;
     }
   }
@@ -179,79 +171,6 @@ export class QuickJSEvaluator {
   ): Promise<QuickJSWASMModule> {
     const { loadMeteredQuickJS } = await import('./quickjs-gas-loader.js');
     return loadMeteredQuickJS(wasmUrl);
-  }
-
-  private setGasLimit(quickJS: QuickJSWASMModule, gasLimit: bigint | number) {
-    const modAny = quickJS as GasAugmentedModule;
-    if (typeof modAny.__setGasBudget === 'function') {
-      modAny.__setGasBudget(gasLimit);
-      return;
-    }
-
-    const gasGlobal = this.findGasGlobal(quickJS);
-    if (gasGlobal) {
-      gasGlobal.value = BigInt(gasLimit);
-      return;
-    }
-
-    throw new Error(
-      'Metered QuickJS: gas budget setter not found; ensure instrumented wasm is loaded',
-    );
-  }
-
-  private findGasGlobal(quickJS: QuickJSWASMModule): GasGlobal | undefined {
-    const quickJSCasted = quickJS as GasAugmentedModule;
-    const directCandidates: Array<unknown> = [
-      quickJSCasted.__gasGlobal,
-      quickJSCasted.__gasExports?.gas_left,
-      quickJSCasted.module?.gas_left,
-      quickJSCasted.asm?.gas_left,
-    ];
-
-    const ffiModule =
-      typeof quickJSCasted.getFFI === 'function'
-        ? quickJSCasted.getFFI()
-        : undefined;
-
-    if (ffiModule && typeof ffiModule === 'object') {
-      const moduleRef = (ffiModule as { module?: Record<string, unknown> })
-        .module;
-      if (moduleRef) {
-        const moduleRefAny = moduleRef as Record<string, unknown> & {
-          asm?: Record<string, unknown>;
-          wasmExports?: Record<string, unknown>;
-          instance?: { exports?: Record<string, unknown> };
-          exports?: Record<string, unknown>;
-          __gasGlobal?: unknown;
-          __gasExports?: Record<string, unknown>;
-        };
-        directCandidates.push(
-          moduleRefAny.__gasGlobal,
-          moduleRefAny.__gasExports?.gas_left,
-          moduleRefAny.asm?.gas_left,
-          moduleRefAny.wasmExports?.gas_left,
-          moduleRefAny.instance?.exports?.gas_left,
-          moduleRefAny.exports?.gas_left,
-          moduleRefAny.gas_left,
-        );
-      }
-    }
-
-    for (const candidate of directCandidates) {
-      if (this.isGasGlobal(candidate)) {
-        return candidate;
-      }
-    }
-
-    return undefined;
-  }
-
-  private isGasGlobal(candidate: unknown): candidate is GasGlobal {
-    return (
-      !!candidate &&
-      typeof candidate === 'object' &&
-      'value' in (candidate as Record<string, unknown>)
-    );
   }
 
   private wrapCode(code: string): string {
@@ -575,27 +494,5 @@ export class QuickJSEvaluator {
         }
       }
     }
-  }
-
-  private normalizeWasmError(error: unknown): {
-    error: Error;
-    outOfGas: boolean;
-  } {
-    const err =
-      error instanceof Error
-        ? error
-        : new Error(String(error ?? 'Unknown error'));
-    const message = err.message ?? '';
-    if (
-      /out of gas/i.test(message) ||
-      /unreachable/i.test(message) ||
-      /Aborted\(Assertion failed/i.test(message)
-    ) {
-      return {
-        error: new Error('OutOfGas: QuickJS Wasm execution exceeded fuel'),
-        outOfGas: true,
-      };
-    }
-    return { error: err, outOfGas: false };
   }
 }
