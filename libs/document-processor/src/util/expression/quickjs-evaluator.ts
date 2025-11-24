@@ -55,7 +55,6 @@ export class QuickJSEvaluator {
       const gasController = new QuickJSGasController(quickJS, wantsMetered);
       const runtime = quickJS.newRuntime();
       runtime.setMemoryLimit(memoryLimit);
-      let safeDispose = true;
 
       const absoluteTimeout = Number.isFinite(timeout)
         ? Date.now() + Math.max(timeout, 0)
@@ -102,7 +101,6 @@ export class QuickJSEvaluator {
         } catch (error) {
           const normalized = gasController.normalizeError(error);
           if (normalized.outOfGas) {
-            safeDispose = false;
             throw normalized.error;
           }
           throw normalized.error;
@@ -114,18 +112,16 @@ export class QuickJSEvaluator {
           }
         }
       } finally {
-        if (safeDispose) {
-          try {
-            context.dispose();
-          } catch {
-            // ignore disposal issues when runtime already aborted
-          }
-          try {
-            runtime.removeInterruptHandler?.();
-            runtime.dispose();
-          } catch {
-            // ignore disposal issues when runtime already aborted
-          }
+        try {
+          context.dispose();
+        } catch {
+          // ignore disposal issues when runtime already aborted
+        }
+        try {
+          runtime.removeInterruptHandler?.();
+          runtime.dispose();
+        } catch {
+          // ignore disposal issues when runtime already aborted
         }
       }
     } catch (error) {
