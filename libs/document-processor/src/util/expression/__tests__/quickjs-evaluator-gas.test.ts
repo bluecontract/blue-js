@@ -10,8 +10,6 @@ const GAS_WASM_DEFAULT = path.resolve(
   '../../../../quickjs.release.gas.wasm',
 );
 
-console.log('GAS_WASM_DEFAULT', GAS_WASM_DEFAULT);
-
 const gasWasmPath =
   (GAS_WASM_ENV && fs.existsSync(GAS_WASM_ENV) && GAS_WASM_ENV) ||
   (fs.existsSync(GAS_WASM_DEFAULT) ? GAS_WASM_DEFAULT : undefined);
