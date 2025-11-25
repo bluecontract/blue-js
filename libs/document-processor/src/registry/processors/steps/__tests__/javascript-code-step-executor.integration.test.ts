@@ -15,7 +15,6 @@ import {
 import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
 import { blueIds as coreBlueIds } from '@blue-repository/core';
 import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js';
-import { jsCodeBaseAmount } from '../../../../runtime/gas-helpers.js';
 
 const blue = createBlue();
 
@@ -192,6 +191,7 @@ code: ${JSON.stringify(code)}
     expect(wasmSpy).toHaveBeenCalled();
 
     const postGas = context.gasMeter().totalGas();
-    expect(postGas).toBeGreaterThan(initialGas + jsCodeBaseAmount(code));
+    // WASM fuel metering charges actual VM execution cost
+    expect(postGas).toBeGreaterThan(initialGas);
   });
 });
