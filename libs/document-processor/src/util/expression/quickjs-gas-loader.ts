@@ -28,41 +28,67 @@ type AugmentedQuickJSModule = QuickJSWASMModule & {
 const isGasGlobal = (value: unknown): value is GasGlobalLike =>
   Boolean(value && typeof value === 'object' && 'value' in (value as object));
 
-async function readWasmBytes(wasmUrl: string): Promise<Uint8Array> {
-  const globalScope = globalThis as { window?: unknown };
-  if (typeof globalScope.window === 'undefined') {
-    const fs = await import('node:fs/promises');
-    return new Uint8Array(await fs.readFile(wasmUrl));
+function defaultWasmUrl(): string {
+  const url = new URL('../../../quickjs.release.gas.wasm', import.meta.url);
+
+  // Node: import.meta.url is file://
+  if (url.protocol === 'file:') {
+    return url.pathname;
   }
 
+  // Browser / dev server: http:// or https://
+  return url.toString();
+}
+
+async function readWasmBytes(wasmUrl: string): Promise<Uint8Array> {
+  const globalScope = globalThis as { window?: unknown };
+
+  // Node / workers: use fs
+  if (typeof globalScope.window === 'undefined') {
+    const [{ fileURLToPath }, fs] = await Promise.all([
+      import('node:url'),
+      import('node:fs/promises'),
+    ]);
+
+    // In Node, defaultWasmUrl() gives you a file path (from url.pathname),
+    // so this is safe; if you change defaultWasmUrl to return file://
+    // later, fileURLToPath will still handle it.
+    const filePath = wasmUrl.startsWith('file:')
+      ? fileURLToPath(wasmUrl)
+      : wasmUrl;
+
+    const buf = await fs.readFile(filePath);
+    return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+  }
+
+  // Browser: use fetch. In browser builds Vite/webpack will have rewritten
+  // defaultWasmUrl() so this points at the right public URL.
   const response = await fetch(wasmUrl);
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch instrumented QuickJS wasm (${response.status})`,
+      `Failed to fetch instrumented QuickJS wasm (${response.status}) from ${wasmUrl}`,
     );
   }
   return new Uint8Array(await response.arrayBuffer());
 }
 
 export async function loadMeteredQuickJS(
-  wasmUrl = resolvePackagedWasmUrl(),
+  wasmUrl = defaultWasmUrl(),
   baseVariant = DEFAULT_BASE_VARIANT,
-) {
-  // Expect wasm instrumented with the mutable_global backend exposing gas_left as the fuel counter.
+): Promise<QuickJSWASMModule> {
   const wasmBytes = await readWasmBytes(wasmUrl);
   const wasmBinary = wasmBytes.buffer.slice(
     wasmBytes.byteOffset,
     wasmBytes.byteOffset + wasmBytes.byteLength,
-  ) as ArrayBuffer;
+  );
 
   const wasmApi = (globalThis as unknown as { WebAssembly: WebAssemblyApi })
     .WebAssembly;
 
-  // Let Emscripten perform instantiation so it wires exports onto the module object.
   const emscriptenModuleOverrides: EmscriptenModuleLoaderOptions & {
     __gasGlobal?: GasGlobalLike;
     __gasExports?: WasmExports;
-  } = { wasmBinary };
+  } = { wasmBinary: wasmBinary as ArrayBuffer };
 
   emscriptenModuleOverrides.instantiateWasm = async (
     imports: Record<string, unknown> | undefined,
@@ -71,18 +97,18 @@ export async function loadMeteredQuickJS(
     const normalizedImports =
       imports && typeof imports === 'object'
         ? (imports as Record<string, Record<string, unknown>>)
-        : ({} as Record<string, Record<string, unknown>>);
+        : {};
     const instantiated = await wasmApi.instantiate(
       wasmBytes,
       normalizedImports,
     );
+
     const instance =
       'instance' in instantiated
         ? instantiated.instance
         : (instantiated as WasmInstance);
 
     const exports = instance.exports ?? {};
-    // Instrumentation with the mutable_global backend exposes gas_left as the fuel counter.
     const gas = (exports as WasmExports).gas_left;
     if (isGasGlobal(gas)) {
       emscriptenModuleOverrides.__gasGlobal = gas;
@@ -95,9 +121,10 @@ export async function loadMeteredQuickJS(
   const gasVariant = newVariant(baseVariant, {
     emscriptenModule: emscriptenModuleOverrides,
   });
+
   const quickjsModule = (await newQuickJSWASMModuleFromVariant(
     gasVariant,
-  )) as unknown as AugmentedQuickJSModule;
+  )) as AugmentedQuickJSModule;
 
   quickjsModule.__gasGlobal = emscriptenModuleOverrides.__gasGlobal;
   quickjsModule.__gasExports = emscriptenModuleOverrides.__gasExports;
@@ -109,15 +136,4 @@ export async function loadMeteredQuickJS(
   };
 
   return quickjsModule;
-}
-
-function resolvePackagedWasmUrl(): string {
-  // Point to the packaged artifact shipped alongside this module.
-  // Works in Node (file path) and browsers (URL string fetched by bundler).
-  const url = new URL('../../../quickjs.release.gas.wasm', import.meta.url);
-  if (url.protocol === 'file:') {
-    // Node/fs friendly path.
-    return url.pathname;
-  }
-  return url.toString();
 }

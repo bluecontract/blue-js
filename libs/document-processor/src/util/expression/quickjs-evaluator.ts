@@ -1,5 +1,4 @@
 import {
-  getQuickJS,
   type QuickJSContext,
   type QuickJSHandle,
   type QuickJSRuntime,
@@ -10,9 +9,35 @@ import {
   unwrapCanonicalValue,
 } from './canonical-json-utils.js';
 import { QuickJSGasController } from './quickjs-gas-controller.js';
+import { loadMeteredQuickJS } from './quickjs-gas-loader.js';
 
 const DEFAULT_TIMEOUT_MS = 500;
 const DEFAULT_MEMORY_LIMIT_BYTES = 32 * 1024 * 1024;
+const DEFAULT_WASM_KEY = 'metered';
+
+const meteredModulePromises = new Map<string, Promise<QuickJSWASMModule>>();
+const meteredModuleInstances = new Map<string, QuickJSWASMModule>();
+
+function getWasmCacheKey(wasmUrl?: string): string {
+  return wasmUrl ?? DEFAULT_WASM_KEY;
+}
+
+function getMeteredQuickJS(wasmUrl?: string): Promise<QuickJSWASMModule> {
+  const key = getWasmCacheKey(wasmUrl);
+  const existingModule = meteredModuleInstances.get(key);
+  if (existingModule) {
+    return Promise.resolve(existingModule);
+  }
+  let promise = meteredModulePromises.get(key);
+  if (!promise) {
+    promise = loadMeteredQuickJS(wasmUrl).then((module) => {
+      meteredModuleInstances.set(key, module);
+      return module;
+    });
+    meteredModulePromises.set(key, promise);
+  }
+  return promise;
+}
 
 export interface QuickJSBindings {
   readonly [key: string]: unknown;
@@ -29,9 +54,6 @@ export interface QuickJSEvaluationOptions {
 }
 
 export class QuickJSEvaluator {
-  private modulePromises = new Map<string, Promise<QuickJSWASMModule>>();
-  private moduleInstances = new Map<string, QuickJSWASMModule>();
-
   async evaluate({
     code,
     bindings,
@@ -42,17 +64,10 @@ export class QuickJSEvaluator {
     onWasmGasUsed,
   }: QuickJSEvaluationOptions): Promise<unknown> {
     let lastQuickJS: QuickJSWASMModule | undefined;
-    let lastWasMetered = false;
     try {
-      const wantsMetered =
-        instrumentedWasmUrl !== undefined || wasmGasLimit !== undefined;
-      lastWasMetered = wantsMetered;
-      const quickJS = await this.ensureModule(
-        wantsMetered ? instrumentedWasmUrl : undefined,
-        wantsMetered ? 'metered-default' : undefined,
-      );
+      const quickJS = await this.ensureModule(instrumentedWasmUrl);
       lastQuickJS = quickJS;
-      const gasController = new QuickJSGasController(quickJS, wantsMetered);
+      const gasController = new QuickJSGasController(quickJS, true);
       const runtime = quickJS.newRuntime();
       runtime.setMemoryLimit(memoryLimit);
 
@@ -65,7 +80,7 @@ export class QuickJSEvaluator {
 
       const context = runtime.newContext();
       try {
-        if (wantsMetered && wasmGasLimit !== undefined) {
+        if (wasmGasLimit !== undefined) {
           gasController.setGasLimit(wasmGasLimit);
         }
 
@@ -88,7 +103,7 @@ export class QuickJSEvaluator {
             initialHandle,
             absoluteTimeout,
           );
-          if (wantsMetered && wasmGasLimit !== undefined) {
+          if (wasmGasLimit !== undefined) {
             gasRemaining = gasController.readGasRemaining();
           }
           const hostValue = context.dump(resolvedHandle);
@@ -127,46 +142,16 @@ export class QuickJSEvaluator {
     } catch (error) {
       const normalized = new QuickJSGasController(
         lastQuickJS,
-        lastWasMetered,
+        true,
       ).normalizeError(error);
       throw normalized.error;
     }
   }
 
-  private async ensureModule(
+  private ensureModule(
     instrumentedWasmUrl?: string,
-    keyHint?: string,
   ): Promise<QuickJSWASMModule> {
-    const key = keyHint ?? instrumentedWasmUrl ?? 'default';
-    const existing = this.moduleInstances.get(key);
-    if (existing) {
-      return existing;
-    }
-
-    let promise = this.modulePromises.get(key);
-    if (!promise) {
-      const shouldLoadInstrumented =
-        instrumentedWasmUrl !== undefined || key === 'metered-default';
-      promise = shouldLoadInstrumented
-        ? this.loadInstrumentedModule(instrumentedWasmUrl)
-        : getQuickJS();
-      this.modulePromises.set(
-        key,
-        promise.then((module) => {
-          this.moduleInstances.set(key, module);
-          return module;
-        }),
-      );
-    }
-
-    return promise;
-  }
-
-  private async loadInstrumentedModule(
-    wasmUrl?: string,
-  ): Promise<QuickJSWASMModule> {
-    const { loadMeteredQuickJS } = await import('./quickjs-gas-loader.js');
-    return loadMeteredQuickJS(wasmUrl);
+    return getMeteredQuickJS(instrumentedWasmUrl);
   }
 
   private wrapCode(code: string): string {
