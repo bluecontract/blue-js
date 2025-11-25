@@ -11,6 +11,9 @@
     },
     {
       "path": "./libs/document-processor"
+    },
+    {
+      "path": "./libs/quickjs-wasm-gas"
     }
   ]
 }
