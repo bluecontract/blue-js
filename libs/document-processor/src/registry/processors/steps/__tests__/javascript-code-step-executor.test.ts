@@ -300,6 +300,7 @@ return 1;
 
     expect(spy).toHaveBeenCalled();
     const [firstCharge] = spy.mock.calls[0] ?? [];
+
     expect(
       typeof firstCharge === 'bigint' ? firstCharge > 0n : firstCharge > 0,
     ).toBe(true);
