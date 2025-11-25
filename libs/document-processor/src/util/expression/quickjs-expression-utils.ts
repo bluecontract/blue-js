@@ -172,7 +172,6 @@ export async function resolveNodeExpressions(
     if (typeof value === 'string' && shouldResolve(pointer)) {
       if (isExpression(value)) {
         const expression = extractExpressionContent(value);
-        context.gasMeter().chargeExpression(expression);
         const evaluated = await evaluateQuickJSExpression(
           evaluator,
           expression,
@@ -182,13 +181,6 @@ export async function resolveNodeExpressions(
         );
         return context.blue.jsonValueToNode(evaluated ?? null);
       } else if (containsExpression(value)) {
-        const placeholderPattern = new RegExp(ALL_EXPRESSIONS_PATTERN);
-        let placeholderCount = 0;
-        placeholderPattern.lastIndex = 0;
-        while (placeholderPattern.exec(value)) {
-          placeholderCount += 1;
-        }
-        context.gasMeter().chargeTemplate(placeholderCount, value);
         const resolved = await resolveTemplateString(
           evaluator,
           value,

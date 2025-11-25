@@ -15,10 +15,6 @@ import {
 } from '../quickjs-evaluator.js';
 import { createBlue } from '../../../test-support/blue.js';
 import type { ContractProcessorContext } from '../../../registry/types.js';
-import {
-  expressionAmount,
-  templateAmount,
-} from '../../../runtime/gas-helpers.js';
 
 describe('quickjs-expression-utils', () => {
   const evaluator = new QuickJSEvaluator();
@@ -82,18 +78,14 @@ describe('quickjs-expression-utils', () => {
     const blue = createBlue();
 
     it('resolves matching pointers and leaves others untouched', async () => {
-      const gasCharges: number[] = [];
+      const wasmCharges: bigint[] = [];
       const context = {
         blue,
         gasMeter: () => ({
-          chargeExpression: (expression: string) => {
-            gasCharges.push(expressionAmount(expression));
-          },
-          chargeTemplate: (placeholderCount: number, template: string) => {
-            gasCharges.push(templateAmount(placeholderCount, template));
-          },
-          chargeWasmGas() {
-            return undefined;
+          chargeWasmGas(amount: bigint | number) {
+            wasmCharges.push(
+              typeof amount === 'bigint' ? amount : BigInt(amount),
+            );
           },
         }),
       } as unknown as ContractProcessorContext;
@@ -150,11 +142,8 @@ describe('quickjs-expression-utils', () => {
         direct: string;
       };
       expect(originalJson.direct).toBe('${steps.answer}');
-      expect(gasCharges).toStrictEqual([
-        expressionAmount('steps.answer'),
-        templateAmount(2, 'Total: ${steps.answer} ${document("/unit")}'),
-        expressionAmount('steps.flag'),
-      ]);
+      // WASM gas is charged for each expression evaluation
+      expect(wasmCharges.length).toBeGreaterThanOrEqual(1);
     });
 
     it('charges wasm gas usage for each evaluated expression', async () => {
@@ -162,12 +151,6 @@ describe('quickjs-expression-utils', () => {
       const context = {
         blue,
         gasMeter: () => ({
-          chargeExpression() {
-            return undefined;
-          },
-          chargeTemplate() {
-            return undefined;
-          },
           chargeWasmGas(amount: bigint | number) {
             const numeric =
               typeof amount === 'bigint' ? Number(amount) : amount;
@@ -175,7 +158,7 @@ describe('quickjs-expression-utils', () => {
           },
         }),
       } as unknown as ContractProcessorContext;
-      const evaluator = {
+      const mockEvaluator = {
         async evaluate({
           onWasmGasUsed,
         }: QuickJSEvaluationOptions): Promise<unknown> {
@@ -186,7 +169,7 @@ describe('quickjs-expression-utils', () => {
       const node = blue.jsonValueToNode({ value: '${steps.answer}' });
 
       const resolved = await resolveNodeExpressions({
-        evaluator,
+        evaluator: mockEvaluator,
         node,
         bindings: {},
         shouldResolve: createPicomatchShouldResolve({
@@ -214,12 +197,6 @@ describe('quickjs-expression-utils', () => {
       const context = {
         blue,
         gasMeter: () => ({
-          chargeExpression() {
-            return undefined;
-          },
-          chargeTemplate() {
-            return undefined;
-          },
           chargeWasmGas() {
             return undefined;
           },

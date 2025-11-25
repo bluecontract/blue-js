@@ -45,7 +45,6 @@ export class JavaScriptCodeStepExecutor
       );
     }
 
-    context.gasMeter().chargeJavaScriptCodeBase(code);
     const bindings = createQuickJSStepBindings(args);
 
     try {

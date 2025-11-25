@@ -3,12 +3,10 @@ import { canonicalSize } from '../util/node-canonicalizer.js';
 import {
   ceil100,
   documentSnapshotAmount,
-  expressionAmount,
-  jsCodeBaseAmount,
-  templateAmount,
   updateDocumentBaseAmount,
 } from './gas-helpers.js';
 import { normalizeScope } from '../util/pointer-utils.js';
+import { wasmFuelToHostGas } from './gas-schedule.js';
 
 const INITIALIZATION = 1_000;
 const CHANNEL_MATCH_ATTEMPT = 5;
@@ -114,24 +112,12 @@ export class GasMeter {
     this.add(FATAL_TERMINATION_OVERHEAD);
   }
 
-  chargeJavaScriptCodeBase(code: string): void {
-    this.add(jsCodeBaseAmount(code));
-  }
-
   chargeTriggerEventBase(): void {
     this.add(TRIGGER_EVENT_BASE);
   }
 
   chargeUpdateDocumentBase(changesLen: number): void {
     this.add(updateDocumentBaseAmount(changesLen));
-  }
-
-  chargeExpression(expression: string): void {
-    this.add(expressionAmount(expression));
-  }
-
-  chargeTemplate(placeholderCount: number, template: string): void {
-    this.add(templateAmount(placeholderCount, template));
   }
 
   chargeDocumentSnapshot(
@@ -143,9 +129,9 @@ export class GasMeter {
   }
 
   chargeWasmGas(amount: bigint | number): void {
-    const numeric = typeof amount === 'bigint' ? Number(amount) : amount;
-    if (Number.isFinite(numeric) && numeric > 0) {
-      this.add(numeric);
+    const charge = wasmFuelToHostGas(amount);
+    if (charge > 0) {
+      this.add(charge);
     }
   }
 
