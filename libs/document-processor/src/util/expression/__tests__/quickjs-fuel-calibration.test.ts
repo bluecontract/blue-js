@@ -1,23 +1,9 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 
 import { QuickJSEvaluator } from '../quickjs-evaluator.js';
 import { DEFAULT_WASM_GAS_LIMIT } from '../quickjs-config.js';
 
-const GAS_WASM_ENV = process.env.QUICKJS_GAS_WASM;
-const GAS_WASM_DEFAULT = path.resolve(
-  __dirname,
-  '../../../../../../libs/quickjs-wasmfile-release-sync-gas/emscripten-module-gas.wasm',
-);
-
-const gasWasmPath =
-  (GAS_WASM_ENV && fs.existsSync(GAS_WASM_ENV) && GAS_WASM_ENV) ||
-  (fs.existsSync(GAS_WASM_DEFAULT) ? GAS_WASM_DEFAULT : undefined);
-
-const describeIfGas = gasWasmPath ? describe : describe.skip;
-
-describeIfGas('QuickJS wasm fuel samples', () => {
+describe('QuickJS wasm fuel samples', () => {
   it('captures baseline usage for representative scripts', async () => {
     const evaluator = new QuickJSEvaluator();
     const samples = [
@@ -38,7 +24,6 @@ describeIfGas('QuickJS wasm fuel samples', () => {
       let used = 0n;
       await evaluator.evaluate({
         code: sample.code,
-        instrumentedWasmUrl: gasWasmPath,
         wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
         onWasmGasUsed: ({ used: reported }) => {
           used = reported;
@@ -65,9 +50,3 @@ describeIfGas('QuickJS wasm fuel samples', () => {
     `);
   });
 });
-
-if (!gasWasmPath) {
-  console.warn(
-    'Skipping QuickJS fuel calibration test; set QUICKJS_GAS_WASM or place emscripten-module-gas.wasm under libs/document-processor/',
-  );
-}
