@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/quickjs-wasmfile-release-sync-gas",
-  "version": "2.0.0-rc.5",
+  "version": "2.0.0-rc.6",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
