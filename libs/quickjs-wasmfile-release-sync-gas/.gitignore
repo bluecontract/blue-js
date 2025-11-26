@@ -1,5 +1,6 @@
 # Cargo build artifacts
 tools/quickjs-gas-instrument/target/
+tools/quickjs-gas-instrument/target-docker/
 
 # Generated WASM (built during build process)
 emscripten-module-gas.wasm

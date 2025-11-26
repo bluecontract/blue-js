@@ -35,9 +35,12 @@ use_docker() {
 }
 
 if use_docker; then
-  echo " mode  : Docker (${RUST_DOCKER_IMAGE})"
-  # Use Docker to ensure deterministic builds across macOS/Linux/CI
+  echo " mode  : Docker (${RUST_DOCKER_IMAGE}) [linux/amd64]"
+  # Use Docker with explicit linux/amd64 platform to ensure deterministic builds
+  # across macOS ARM, macOS Intel, and Linux CI runners.
+  # Use a separate target directory (target-docker) to avoid conflicts with native builds.
   docker run --rm \
+    --platform linux/amd64 \
     -v "$ROOT_DIR:/workspace" \
     -w /workspace \
     "$RUST_DOCKER_IMAGE" \
@@ -45,9 +48,9 @@ if use_docker; then
       cargo build \
         --manifest-path /workspace/libs/quickjs-wasmfile-release-sync-gas/tools/quickjs-gas-instrument/Cargo.toml \
         --release \
-        --target-dir /workspace/libs/quickjs-wasmfile-release-sync-gas/tools/quickjs-gas-instrument/target
+        --target-dir /workspace/libs/quickjs-wasmfile-release-sync-gas/tools/quickjs-gas-instrument/target-docker
       
-      /workspace/libs/quickjs-wasmfile-release-sync-gas/tools/quickjs-gas-instrument/target/release/quickjs-gas-instrument \
+      /workspace/libs/quickjs-wasmfile-release-sync-gas/tools/quickjs-gas-instrument/target-docker/release/quickjs-gas-instrument \
         --input /workspace/node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm \
         --output /workspace/libs/quickjs-wasmfile-release-sync-gas/emscripten-module-gas.wasm
     "
