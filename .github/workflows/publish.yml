@@ -29,12 +29,9 @@ jobs:
         run: npm install
         shell: bash
 
-      # USE_DOCKER=true ensures deterministic WASM instrumentation via Docker
       - name: Build
         run: npx nx run-many -t build
         shell: bash
-        env:
-          USE_DOCKER: 'true'
 
       - name: Print Environment Info
         run: npx nx report

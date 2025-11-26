@@ -19,16 +19,19 @@ echo "Instrumenting QuickJS wasm"
 echo " input : ${IN_WASM}"
 echo " output: ${OUT_WASM}"
 
-# Check if Docker is available and running
+# Use Docker by default for deterministic builds
+# Set USE_DOCKER=false to use native Rust toolchain instead
 use_docker() {
-  if [ "${USE_DOCKER:-auto}" = "false" ]; then
+  if [ "${USE_DOCKER:-true}" = "false" ]; then
     return 1
   fi
-  if [ "${USE_DOCKER:-auto}" = "true" ]; then
-    return 0
+  # Verify Docker is available
+  if ! docker info &>/dev/null; then
+    echo "ERROR: Docker is required for deterministic builds but is not running."
+    echo "       Start Docker or set USE_DOCKER=false to use native toolchain."
+    exit 1
   fi
-  # Auto-detect: use Docker if available
-  docker info &>/dev/null
+  return 0
 }
 
 if use_docker; then
