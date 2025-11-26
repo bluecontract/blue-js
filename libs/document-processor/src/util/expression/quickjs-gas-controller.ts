@@ -1,16 +1,10 @@
 import type { QuickJSWASMModule } from 'quickjs-emscripten';
+import {
+  setGasBudget as setGasBudgetHelper,
+  getGasRemaining as getGasRemainingHelper,
+} from '@blue-labs/quickjs-wasm-gas';
 
 const OUT_OF_GAS_MESSAGE = 'OutOfGas: QuickJS Wasm execution exceeded fuel';
-
-type GasGlobal = { value: unknown };
-type GasAugmentedModule = QuickJSWASMModule & {
-  __setGasBudget?: (gas: bigint | number) => void;
-  __gasGlobal?: GasGlobal;
-  __gasExports?: Record<string, unknown>;
-  getFFI?: () => unknown;
-  module?: Record<string, unknown>;
-  asm?: Record<string, unknown>;
-};
 
 export class QuickJSGasController {
   constructor(
@@ -20,50 +14,22 @@ export class QuickJSGasController {
 
   setGasLimit(gasLimit: bigint | number): void {
     if (!this.quickJS) {
+      throw new Error('QuickJS module not loaded');
+    }
+    try {
+      setGasBudgetHelper(this.quickJS, gasLimit);
+    } catch {
       throw new Error(
         'Metered QuickJS: gas budget setter not found; ensure instrumented wasm is loaded',
       );
     }
-    const modAny = this.quickJS as GasAugmentedModule;
-    if (typeof modAny.__setGasBudget === 'function') {
-      modAny.__setGasBudget(gasLimit);
-      return;
-    }
-
-    const gasGlobal = this.findGasGlobal();
-    if (gasGlobal) {
-      gasGlobal.value = BigInt(gasLimit);
-      return;
-    }
-
-    throw new Error(
-      'Metered QuickJS: gas budget setter not found; ensure instrumented wasm is loaded',
-    );
   }
 
   readGasRemaining(): bigint | undefined {
-    const gasGlobal = this.findGasGlobal();
-    if (!gasGlobal) {
+    if (!this.quickJS) {
       return undefined;
     }
-    const rawValue = (gasGlobal as { value?: unknown }).value;
-    if (rawValue === undefined || rawValue === null) {
-      return undefined;
-    }
-    if (typeof rawValue === 'bigint') {
-      return rawValue;
-    }
-    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
-      return BigInt(Math.trunc(rawValue));
-    }
-    if (typeof rawValue === 'string') {
-      try {
-        return BigInt(rawValue);
-      } catch {
-        return undefined;
-      }
-    }
-    return undefined;
+    return getGasRemainingHelper(this.quickJS);
   }
 
   normalizeError(error: unknown): { error: Error; outOfGas: boolean } {
@@ -101,29 +67,6 @@ export class QuickJSGasController {
     }
 
     return { error: err, outOfGas: false };
-  }
-
-  private findGasGlobal(): GasGlobal | undefined {
-    if (!this.quickJS) {
-      return undefined;
-    }
-    const mod = this.quickJS as GasAugmentedModule;
-    if (this.isGasGlobal(mod.__gasGlobal)) {
-      return mod.__gasGlobal;
-    }
-    const gasLeft = mod.__gasExports?.gas_left;
-    if (this.isGasGlobal(gasLeft)) {
-      return gasLeft;
-    }
-    return undefined;
-  }
-
-  private isGasGlobal(candidate: unknown): candidate is GasGlobal {
-    return (
-      !!candidate &&
-      typeof candidate === 'object' &&
-      'value' in (candidate as Record<string, unknown>)
-    );
   }
 
   private newOutOfGasError(): Error {

@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "../quickjs-wasm-gas"
+    },
+    {
       "path": "../shared/utils"
     },
     {
