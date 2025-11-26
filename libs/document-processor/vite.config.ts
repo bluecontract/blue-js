@@ -40,7 +40,10 @@ export default defineConfig(() => ({
     rollupOptions: {
       // External packages that should not be bundled into your library.
       external: (id: string) => {
-        const dependencies = Object.keys(packageJson.dependencies ?? {});
+        const dependencies = [
+          ...Object.keys(packageJson.dependencies ?? {}),
+          '@blue-labs/quickjs-wasm-gas',
+        ];
         const peerDependencies = Object.keys(
           packageJson.peerDependencies ?? {},
         );

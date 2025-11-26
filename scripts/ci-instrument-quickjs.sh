@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IN_WASM="${IN_WASM:-$ROOT_DIR/node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm}"
-OUT_WASM="${OUT_WASM:-$ROOT_DIR/libs/document-processor/quickjs.release.gas.wasm}"
+OUT_WASM="${OUT_WASM:-$ROOT_DIR/libs/quickjs-wasm-gas/quickjs.release.gas.wasm}"
 
 echo "Instrumenting QuickJS wasm"
 echo " input : ${IN_WASM}"
@@ -16,7 +16,7 @@ BIN="$ROOT_DIR/target/release/quickjs-gas-instrument"
 echo "Instrumented wasm written to ${OUT_WASM}"
 
 # Copy into publishable output if the dist/packages directory exists (Nx release uses it)
-DEST_PKG_DIR="$ROOT_DIR/dist/packages/document-processor"
+DEST_PKG_DIR="$ROOT_DIR/dist/packages/quickjs-wasm-gas"
 if mkdir -p "$DEST_PKG_DIR"; then
   cp "$OUT_WASM" "$DEST_PKG_DIR/quickjs.release.gas.wasm"
   echo "Copied wasm to ${DEST_PKG_DIR}/quickjs.release.gas.wasm"

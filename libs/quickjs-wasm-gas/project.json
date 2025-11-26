@@ -1,7 +1,7 @@
 {
-  "name": "document-processor",
+  "name": "quickjs-wasm-gas",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/document-processor/src",
+  "sourceRoot": "libs/quickjs-wasm-gas/src",
   "projectType": "library",
   "release": {
     "version": {

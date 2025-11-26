@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/quickjs-wasm-gas",
-  "version": "0.0.1",
+  "version": "2.0.0-rc.5",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -11,16 +11,27 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./quickjs.release.gas.wasm": "./quickjs.release.gas.wasm"
   },
   "files": [
     "dist",
+    "quickjs.release.gas.wasm",
     "!**/*.tsbuildinfo"
   ],
   "nx": {
     "name": "quickjs-wasm-gas"
   },
   "dependencies": {
+    "quickjs-emscripten": "0.31.0",
     "tslib": "^2.3.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
   }
 }
