@@ -41,7 +41,7 @@ const isGasGlobal = (value: unknown): value is GasGlobalLike =>
  * In Browser: returns the full URL string.
  */
 export function defaultWasmUrl(): string {
-  const url = new URL('../../quickjs.release.gas.wasm', import.meta.url);
+  const url = new URL('../../emscripten-module-gas.wasm', import.meta.url);
 
   // Node: import.meta.url is file://
   if (url.protocol === 'file:') {

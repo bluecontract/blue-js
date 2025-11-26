@@ -147,7 +147,7 @@ struct Args {
     /// Input wasm path (e.g., node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm)
     #[arg(long)]
     input: PathBuf,
-    /// Output wasm path (e.g., libs/document-processor/quickjs.release.gas.wasm)
+    /// Output wasm path (e.g., libs/quickjs-wasmfile-release-sync-gas/emscripten-module-gas.wasm)
     #[arg(long)]
     output: PathBuf,
     /// Exported mutable global name that tracks gas left

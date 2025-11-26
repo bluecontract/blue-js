@@ -22,7 +22,7 @@
         "{projectRoot}/scripts/instrument-wasm.sh",
         "{workspaceRoot}/node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm"
       ],
-      "outputs": ["{projectRoot}/quickjs.release.gas.wasm"]
+      "outputs": ["{projectRoot}/emscripten-module-gas.wasm"]
     },
     "build": {
       "dependsOn": ["instrument-wasm"]
