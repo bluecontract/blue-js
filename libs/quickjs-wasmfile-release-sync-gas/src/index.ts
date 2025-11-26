@@ -6,9 +6,9 @@
  * @example
  * ```ts
  * import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten';
- * import variant, { setGasBudget, getGasRemaining } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
+ * import { gasVariant, setGasBudget, getGasRemaining } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
  *
- * const module = await newQuickJSWASMModuleFromVariant(variant);
+ * const module = await newQuickJSWASMModuleFromVariant(gasVariant);
  * setGasBudget(module, 1_000_000n);
  *
  * const vm = module.newContext();
@@ -24,14 +24,12 @@ export { default } from './lib/quickjs-wasm-gas.js';
 
 // Named exports
 export {
-  // Variant factory (for custom WASM URLs)
-  createGasVariant,
+  // The gas-metered variant
+  gasVariant,
   // Gas control helpers
   getGasGlobal,
   setGasBudget,
   getGasRemaining,
-  // Utility
-  defaultWasmUrl,
   // Types
   type AugmentedQuickJSModule,
   type GasGlobalLike,

@@ -36,11 +36,11 @@ const isGasGlobal = (value: unknown): value is GasGlobalLike =>
   Boolean(value && typeof value === 'object' && 'value' in (value as object));
 
 /**
- * Returns the default URL for the instrumented QuickJS wasm file.
+ * Returns the URL for the bundled instrumented QuickJS wasm file.
  * In Node: returns a file path from the URL.
  * In Browser: returns the full URL string.
  */
-export function defaultWasmUrl(): string {
+function getBundledWasmUrl(): string {
   const url = new URL('../../emscripten-module-gas.wasm', import.meta.url);
 
   // Node: import.meta.url is file://
@@ -53,9 +53,10 @@ export function defaultWasmUrl(): string {
 }
 
 /**
- * Reads WASM bytes from a URL, handling both Node and browser environments.
+ * Reads WASM bytes from the bundled file, handling both Node and browser environments.
  */
-async function readWasmBytes(wasmUrl: string): Promise<Uint8Array> {
+async function readWasmBytes(): Promise<Uint8Array> {
+  const wasmUrl = getBundledWasmUrl();
   const globalScope = globalThis as { window?: unknown };
 
   // Node / workers: use fs
@@ -147,7 +148,7 @@ export function getGasRemaining(module: QuickJSWASMModule): bigint | undefined {
 // ---------------------------------------------------------------------------
 
 /**
- * Creates a QuickJSSyncVariant configured with gas-instrumented WASM.
+ * Creates the QuickJSSyncVariant configured with gas-instrumented WASM.
  *
  * This follows the official quickjs-emscripten variant pattern.
  * Use with `newQuickJSWASMModuleFromVariant()`.
@@ -165,17 +166,13 @@ export function getGasRemaining(module: QuickJSWASMModule): bigint | undefined {
  *
  * console.log('Gas remaining:', getGasRemaining(module));
  * ```
- *
- * @param wasmUrl - Optional URL to the instrumented WASM file. Defaults to the bundled wasm.
  */
-export function createGasVariant(
-  wasmUrl = defaultWasmUrl(),
-): QuickJSSyncVariant {
+function createGasVariant(): QuickJSSyncVariant {
   return {
     type: 'sync',
     importFFI: () => RELEASE_SYNC.importFFI(),
     importModuleLoader: async () => {
-      const wasmBytes = await readWasmBytes(wasmUrl);
+      const wasmBytes = await readWasmBytes();
       const wasmBinary = wasmBytes.buffer.slice(
         wasmBytes.byteOffset,
         wasmBytes.byteOffset + wasmBytes.byteLength,
@@ -246,7 +243,7 @@ export function createGasVariant(
 }
 
 /**
- * Default gas-instrumented QuickJS variant.
+ * Gas-instrumented QuickJS variant.
  *
  * ### @blue-labs/quickjs-wasmfile-release-sync-gas
  *
@@ -263,12 +260,12 @@ export function createGasVariant(
  * @example
  * ```ts
  * import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten';
- * import variant, { setGasBudget } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
+ * import gasVariant, { setGasBudget } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
  *
- * const module = await newQuickJSWASMModuleFromVariant(variant);
+ * const module = await newQuickJSWASMModuleFromVariant(gasVariant);
  * setGasBudget(module, 1_000_000n);
  * ```
  */
-const variant: QuickJSSyncVariant = createGasVariant();
+export const gasVariant: QuickJSSyncVariant = createGasVariant();
 
-export default variant;
+export default gasVariant;
