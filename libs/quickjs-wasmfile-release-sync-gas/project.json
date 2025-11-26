@@ -1,7 +1,7 @@
 {
-  "name": "quickjs-wasm-gas",
+  "name": "quickjs-wasmfile-release-sync-gas",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/quickjs-wasm-gas/src",
+  "sourceRoot": "libs/quickjs-wasmfile-release-sync-gas/src",
   "projectType": "library",
   "release": {
     "version": {

@@ -8,7 +8,7 @@ import { DEFAULT_WASM_GAS_LIMIT } from '../quickjs-config.js';
 const GAS_WASM_ENV = process.env.QUICKJS_GAS_WASM;
 const GAS_WASM_DEFAULT = path.resolve(
   __dirname,
-  '../../../../../../libs/quickjs-wasm-gas/quickjs.release.gas.wasm',
+  '../../../../../../libs/quickjs-wasmfile-release-sync-gas/quickjs.release.gas.wasm',
 );
 
 const gasWasmPath =

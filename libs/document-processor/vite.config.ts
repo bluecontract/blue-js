@@ -42,7 +42,7 @@ export default defineConfig(() => ({
       external: (id: string) => {
         const dependencies = [
           ...Object.keys(packageJson.dependencies ?? {}),
-          '@blue-labs/quickjs-wasm-gas',
+          '@blue-labs/quickjs-wasmfile-release-sync-gas',
         ];
         const peerDependencies = Object.keys(
           packageJson.peerDependencies ?? {},

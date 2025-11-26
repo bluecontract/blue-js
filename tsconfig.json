@@ -13,7 +13,7 @@
       "path": "./libs/document-processor"
     },
     {
-      "path": "./libs/quickjs-wasm-gas"
+      "path": "./libs/quickjs-wasmfile-release-sync-gas"
     }
   ]
 }
