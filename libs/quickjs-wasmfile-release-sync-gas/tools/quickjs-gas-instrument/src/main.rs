@@ -234,3 +234,4 @@ fn bump_gas_global_init(module: &mut Module, export_name: &str, initial: i64) {
         }
     }
 }
+
