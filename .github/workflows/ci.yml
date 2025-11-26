@@ -35,7 +35,4 @@ jobs:
 
       - uses: nrwl/nx-set-shas@v4
 
-      # USE_DOCKER=true ensures deterministic WASM instrumentation via Docker
       - run: npx nx affected --exclude @blue-js/monorepo -t lint test build
-        env:
-          USE_DOCKER: 'true'
