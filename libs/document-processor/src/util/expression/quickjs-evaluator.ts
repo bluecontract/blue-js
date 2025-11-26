@@ -69,16 +69,17 @@ export class QuickJSEvaluator {
 
       const context = runtime.newContext();
       try {
-        if (wasmGasLimit !== undefined) {
-          gasController.setGasLimit(wasmGasLimit);
-        }
-
         this.installConsole(context);
         this.installDeterministicGlobals(context);
         this.installCanonNamespace(context);
         this.installBindings(context, bindings);
 
         const wrappedCode = this.wrapCode(code);
+
+        if (wasmGasLimit !== undefined) {
+          gasController.setGasLimit(wasmGasLimit);
+        }
+
         const evaluationResult = context.evalCode(wrappedCode);
         const initialHandle = context.unwrapResult(evaluationResult);
 

@@ -20,6 +20,10 @@ module.exports = [
     },
   },
   {
-    ignores: ['**/out-tsc', '**/tools/quickjs-gas-instrument/target/**'],
+    ignores: [
+      '**/out-tsc',
+      '**/tools/quickjs-gas-instrument/target/**',
+      '**/tools/quickjs-gas-instrument/target-docker/**',
+    ],
   },
 ];

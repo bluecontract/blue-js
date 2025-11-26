@@ -35,15 +35,15 @@ describe('QuickJS wasm fuel samples', () => {
     expect(results).toMatchInlineSnapshot(`
       [
         {
-          "fuel": "2436121",
+          "fuel": "1522699",
           "name": "return-1",
         },
         {
-          "fuel": "53128144",
+          "fuel": "52214722",
           "name": "loop-1k",
         },
         {
-          "fuel": "486743029",
+          "fuel": "485829607",
           "name": "loop-10k",
         },
       ]
