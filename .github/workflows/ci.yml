@@ -25,11 +25,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.91.1
-
       - name: Install Node
         uses: actions/setup-node@v4
         with:
@@ -40,4 +35,7 @@ jobs:
 
       - uses: nrwl/nx-set-shas@v4
 
+      # USE_DOCKER=true ensures deterministic WASM instrumentation via Docker
       - run: npx nx affected --exclude @blue-js/monorepo -t lint test build
+        env:
+          USE_DOCKER: 'true'
