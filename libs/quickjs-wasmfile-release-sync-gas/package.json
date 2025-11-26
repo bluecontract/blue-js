@@ -14,9 +14,14 @@
     },
     "./quickjs.release.gas.wasm": "./quickjs.release.gas.wasm"
   },
+  "scripts": {
+    "build:c": "./scripts/instrument-wasm.sh",
+    "clean": "rm -rf target dist quickjs.release.gas.wasm"
+  },
   "files": [
     "dist",
     "quickjs.release.gas.wasm",
+    "docs",
     "!**/*.tsbuildinfo"
   ],
   "nx": {

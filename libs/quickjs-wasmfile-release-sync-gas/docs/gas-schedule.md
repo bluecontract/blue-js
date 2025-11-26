@@ -20,7 +20,7 @@ Mutable global export name: `gas_left`
 
 ## Host Gas Conversion
 
-WASM fuel is converted to host gas units using the factor defined in `gas-schedule.ts`:
+WASM fuel is converted to host gas units using a factor defined in the consumer code (e.g., document-processor):
 
 ```
 WASM_FUEL_PER_HOST_GAS_UNIT = 162,000
@@ -31,16 +31,25 @@ This means ~162,000 WASM fuel = 1 host gas unit. The factor was calibrated so th
 - A 1,000-iteration loop uses ~328 host gas units
 - A 10,000-iteration loop uses ~3,006 host gas units
 
-## Calibration
+## Building
 
-Run calibration tests to capture baseline fuel usage:
+The instrumented WASM is built as part of the package build process:
 
 ```bash
-NX_DAEMON=false nx test document-processor --testNamePattern="fuel"
+# Build everything (instrument wasm + compile TypeScript)
+npm run build
+
+# Or just instrument the wasm
+npm run build:c
 ```
+
+## Calibration
+
+Run calibration tests in the consuming package to capture baseline fuel usage.
 
 ## Updating the Schedule
 
 1. Edit `tools/quickjs-gas-instrument/src/main.rs`
-2. Run `scripts/ci-instrument-quickjs.sh` to regenerate the instrumented WASM
+2. Run `npm run build:c` to regenerate the instrumented WASM
 3. Update calibration snapshots if fuel usage changes
+

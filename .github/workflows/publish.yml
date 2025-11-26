@@ -32,10 +32,6 @@ jobs:
         run: npm install
         shell: bash
 
-      - name: Instrument QuickJS wasm
-        run: ./scripts/ci-instrument-quickjs.sh
-        shell: bash
-
       - name: Build
         run: npx nx run-many -t build
         shell: bash
