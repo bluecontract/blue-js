@@ -12,15 +12,15 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./quickjs.release.gas.wasm": "./quickjs.release.gas.wasm"
+    "./emscripten-module-gas.wasm": "./emscripten-module-gas.wasm"
   },
   "scripts": {
     "build:c": "./scripts/instrument-wasm.sh",
-    "clean": "rm -rf target dist quickjs.release.gas.wasm"
+    "clean": "rm -rf target dist emscripten-module-gas.wasm"
   },
   "files": [
     "dist",
-    "quickjs.release.gas.wasm",
+    "emscripten-module-gas.wasm",
     "docs",
     "!**/*.tsbuildinfo"
   ],

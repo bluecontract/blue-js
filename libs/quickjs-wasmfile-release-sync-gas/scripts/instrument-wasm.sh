@@ -9,7 +9,7 @@ LIB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 ROOT_DIR="$(cd "$LIB_DIR/../.." && pwd)"
 
 IN_WASM="${IN_WASM:-$ROOT_DIR/node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm}"
-OUT_WASM="${OUT_WASM:-$LIB_DIR/quickjs.release.gas.wasm}"
+OUT_WASM="${OUT_WASM:-$LIB_DIR/emscripten-module-gas.wasm}"
 TARGET_DIR="${TARGET_DIR:-$LIB_DIR/target}"
 
 echo "Instrumenting QuickJS wasm"

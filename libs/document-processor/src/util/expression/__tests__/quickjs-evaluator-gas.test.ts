@@ -7,7 +7,7 @@ import { QuickJSEvaluator } from '../quickjs-evaluator.js';
 const GAS_WASM_ENV = process.env.QUICKJS_GAS_WASM;
 const GAS_WASM_DEFAULT = path.resolve(
   __dirname,
-  '../../../../../../libs/quickjs-wasmfile-release-sync-gas/quickjs.release.gas.wasm',
+  '../../../../../../libs/quickjs-wasmfile-release-sync-gas/emscripten-module-gas.wasm',
 );
 
 const gasWasmPath =
@@ -49,6 +49,6 @@ describeIfGas('QuickJSEvaluator with wasm gas metering', () => {
 
 if (!gasWasmPath) {
   console.warn(
-    'Skipping QuickJS gas metering tests; set QUICKJS_GAS_WASM or place quickjs.release.gas.wasm under libs/document-processor/',
+    'Skipping QuickJS gas metering tests; set QUICKJS_GAS_WASM or place emscripten-module-gas.wasm under libs/document-processor/',
   );
 }

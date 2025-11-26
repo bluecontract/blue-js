@@ -8,7 +8,7 @@ import { DEFAULT_WASM_GAS_LIMIT } from '../quickjs-config.js';
 const GAS_WASM_ENV = process.env.QUICKJS_GAS_WASM;
 const GAS_WASM_DEFAULT = path.resolve(
   __dirname,
-  '../../../../../../libs/quickjs-wasmfile-release-sync-gas/quickjs.release.gas.wasm',
+  '../../../../../../libs/quickjs-wasmfile-release-sync-gas/emscripten-module-gas.wasm',
 );
 
 const gasWasmPath =
@@ -68,6 +68,6 @@ describeIfGas('QuickJS wasm fuel samples', () => {
 
 if (!gasWasmPath) {
   console.warn(
-    'Skipping QuickJS fuel calibration test; set QUICKJS_GAS_WASM or place quickjs.release.gas.wasm under libs/document-processor/',
+    'Skipping QuickJS fuel calibration test; set QUICKJS_GAS_WASM or place emscripten-module-gas.wasm under libs/document-processor/',
   );
 }

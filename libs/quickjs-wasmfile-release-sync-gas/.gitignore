@@ -3,5 +3,5 @@ target/
 tools/quickjs-gas-instrument/Cargo.lock
 
 # Generated WASM (built during build process)
-quickjs.release.gas.wasm
+emscripten-module-gas.wasm
 
