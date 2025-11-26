@@ -1,6 +1,8 @@
 import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten';
 import type { QuickJSWASMModule } from 'quickjs-emscripten';
-import variant, { createGasVariant } from '@blue-labs/quickjs-wasm-gas';
+import variant, {
+  createGasVariant,
+} from '@blue-labs/quickjs-wasmfile-release-sync-gas';
 
 // Re-export gas control helpers for convenience
 export {
@@ -8,7 +10,7 @@ export {
   setGasBudget,
   getGasRemaining,
   type AugmentedQuickJSModule,
-} from '@blue-labs/quickjs-wasm-gas';
+} from '@blue-labs/quickjs-wasmfile-release-sync-gas';
 
 /**
  * Loads the gas-metered QuickJS WASM module using the official variant pattern.

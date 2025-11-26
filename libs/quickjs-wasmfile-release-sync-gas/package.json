@@ -1,5 +1,5 @@
 {
-  "name": "@blue-labs/quickjs-wasm-gas",
+  "name": "@blue-labs/quickjs-wasmfile-release-sync-gas",
   "version": "2.0.0-rc.5",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,7 +20,7 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
-    "name": "quickjs-wasm-gas"
+    "name": "quickjs-wasmfile-release-sync-gas"
   },
   "dependencies": {
     "quickjs-emscripten": "0.31.0",

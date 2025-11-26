@@ -1,12 +1,12 @@
 /**
- * @blue-labs/quickjs-wasm-gas
+ * @blue-labs/quickjs-wasmfile-release-sync-gas
  *
  * Gas-metered QuickJS WASM variant following the official quickjs-emscripten pattern.
  *
  * @example
  * ```ts
  * import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten';
- * import variant, { setGasBudget, getGasRemaining } from '@blue-labs/quickjs-wasm-gas';
+ * import variant, { setGasBudget, getGasRemaining } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
  *
  * const module = await newQuickJSWASMModuleFromVariant(variant);
  * setGasBudget(module, 1_000_000n);

@@ -2,7 +2,7 @@ import type { QuickJSWASMModule } from 'quickjs-emscripten';
 import {
   setGasBudget as setGasBudgetHelper,
   getGasRemaining as getGasRemainingHelper,
-} from '@blue-labs/quickjs-wasm-gas';
+} from '@blue-labs/quickjs-wasmfile-release-sync-gas';
 
 const OUT_OF_GAS_MESSAGE = 'OutOfGas: QuickJS Wasm execution exceeded fuel';
 

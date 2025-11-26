@@ -2,14 +2,14 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(() => ({
   root: __dirname,
-  cacheDir: '../../node_modules/.vite/libs/quickjs-wasm-gas',
+  cacheDir: '../../node_modules/.vite/libs/quickjs-wasmfile-release-sync-gas',
   plugins: [],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [],
   // },
   test: {
-    name: 'quickjs-wasm-gas',
+    name: 'quickjs-wasmfile-release-sync-gas',
     watch: false,
     globals: true,
     environment: 'node',

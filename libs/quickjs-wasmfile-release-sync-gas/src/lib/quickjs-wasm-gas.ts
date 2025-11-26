@@ -3,11 +3,9 @@ import {
   type EmscriptenModuleLoaderOptions,
   type QuickJSWASMModule,
   type QuickJSSyncVariant,
+  type QuickJSEmscriptenModule,
+  type EmscriptenModuleLoader,
 } from 'quickjs-emscripten';
-import type {
-  QuickJSEmscriptenModule,
-  EmscriptenModuleLoader,
-} from '@jitl/quickjs-ffi-types';
 
 export type GasGlobalLike = { value: unknown };
 
@@ -157,7 +155,7 @@ export function getGasRemaining(module: QuickJSWASMModule): bigint | undefined {
  * @example
  * ```ts
  * import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten';
- * import gasVariant, { setGasBudget, getGasRemaining } from '@blue-labs/quickjs-wasm-gas';
+ * import gasVariant, { setGasBudget, getGasRemaining } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
  *
  * const module = await newQuickJSWASMModuleFromVariant(gasVariant);
  * setGasBudget(module, 1_000_000n);
@@ -250,7 +248,7 @@ export function createGasVariant(
 /**
  * Default gas-instrumented QuickJS variant.
  *
- * ### @blue-labs/quickjs-wasm-gas
+ * ### @blue-labs/quickjs-wasmfile-release-sync-gas
  *
  * Gas-metered variant of QuickJS. Uses a custom instrumented WASM binary
  * that tracks execution cost via a mutable global.
@@ -265,7 +263,7 @@ export function createGasVariant(
  * @example
  * ```ts
  * import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten';
- * import variant, { setGasBudget } from '@blue-labs/quickjs-wasm-gas';
+ * import variant, { setGasBudget } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
  *
  * const module = await newQuickJSWASMModuleFromVariant(variant);
  * setGasBudget(module, 1_000_000n);
