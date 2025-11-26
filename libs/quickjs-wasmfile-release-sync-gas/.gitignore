@@ -1,6 +1,5 @@
 # Cargo build artifacts
-target/
-tools/quickjs-gas-instrument/Cargo.lock
+tools/quickjs-gas-instrument/target/
 
 # Generated WASM (built during build process)
 emscripten-module-gas.wasm
