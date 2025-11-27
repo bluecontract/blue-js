@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { BlueNode } from '@blue-labs/language';
+import { blueIds as myosBlueIds } from '@blue-repository/myos';
 
 import { ContractLoader } from '../contract-loader.js';
 import { ContractProcessorRegistry } from '../../registry/contract-processor-registry.js';
@@ -77,6 +78,39 @@ describe('ContractLoader', () => {
     expect(() => loader.load(scopeNode, '/')).toThrowError(
       MustUnderstandFailure,
     );
+  });
+
+  it('loads Document Anchors and Document Links marker contracts', () => {
+    const blue = createBlue();
+    const registry = new ContractProcessorRegistry();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      anchors: {
+        type: { blueId: myosBlueIds['Document Anchors'] },
+        anchorAlpha: {
+          type: { blueId: myosBlueIds['Document Anchor'] },
+          description: 'Primary anchor',
+        },
+      },
+      links: {
+        type: { blueId: myosBlueIds['Document Links'] },
+        outbound: {
+          type: { blueId: myosBlueIds['Document Link'] },
+          anchor: 'anchorAlpha',
+          documentId: 'doc-123',
+        },
+        linkAgent: {
+          type: { blueId: myosBlueIds['MyOS Session Link'] },
+          anchor: 'anchorA',
+          sessionId: 'session-abc',
+        },
+      },
+    });
+
+    const bundle = loader.load(scopeNode, '/');
+
+    expect(bundle.marker('anchors')).toBeDefined();
+    expect(bundle.marker('links')).toBeDefined();
   });
 
   it('loads custom handler contracts using registry schema', () => {
