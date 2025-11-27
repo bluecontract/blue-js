@@ -407,22 +407,10 @@ export class QuickJSEvaluator {
         }
 
         const jobsResult = runtime.executePendingJobs();
-        let executed = 0;
         try {
-          executed = context.unwrapResult(jobsResult);
+          context.unwrapResult(jobsResult);
         } finally {
           jobsResult.dispose();
-        }
-
-        if (executed === 0) {
-          if (deadline !== undefined && Date.now() > deadline) {
-            current.dispose();
-            throw new Error(
-              'QuickJS execution timed out while awaiting Promise',
-            );
-          }
-          // Yield to the event loop; prevents tight spin when promises never settle.
-          await new Promise((resolve) => setTimeout(resolve, 0));
         }
 
         continue;
@@ -439,24 +427,12 @@ export class QuickJSEvaluator {
 
       if (state.type === 'rejected') {
         try {
-          const errorValue = context.dump(state.error);
-          if (errorValue instanceof Error) {
-            throw errorValue;
+          const err = context.dump(state.error);
+          if (err instanceof Error) throw err;
+          if (err && typeof err === 'object' && 'message' in err) {
+            throw new Error(String((err as { message: unknown }).message));
           }
-          if (
-            errorValue &&
-            typeof errorValue === 'object' &&
-            'message' in errorValue
-          ) {
-            throw new Error(
-              String((errorValue as { message: unknown }).message),
-            );
-          }
-          throw new Error(
-            typeof errorValue === 'string'
-              ? errorValue
-              : JSON.stringify(errorValue),
-          );
+          throw new Error(typeof err === 'string' ? err : JSON.stringify(err));
         } finally {
           state.error.dispose();
           current.dispose();
