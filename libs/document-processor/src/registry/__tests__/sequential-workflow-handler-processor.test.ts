@@ -139,4 +139,53 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     );
     expect(requestResult.triggeredEvents).toHaveLength(1);
   });
+
+  it('requires events to satisfy both channel and workflow filters', async () => {
+    const processor = buildProcessor(blue);
+    const documentYaml = `name: Sequential Workflow With Combined Filters
+contracts:
+  timelineChannel:
+    type: Timeline Channel
+    timelineId: alice
+    event:
+      message:
+        type: Chat Message
+  emitNotification:
+    type: Sequential Workflow
+    channel: timelineChannel
+    event:
+      message:
+        message: eligible
+    steps:
+      - name: EmitGreeting
+        type: Trigger Event
+        event:
+          type: Chat Message
+          message: Workflow says hi
+`;
+
+    const initializedResult = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(documentYaml)),
+    );
+    const initialized = initializedResult.document;
+
+    const matchingEvent = timelineEntryEvent('alice', 'Chat Message', {
+      message: 'eligible',
+    });
+    const afterMatching = await expectOk(
+      processor.processDocument(initialized.clone(), matchingEvent),
+    );
+    expect(afterMatching.triggeredEvents).toHaveLength(1);
+
+    const nonMatchingEvent = timelineEntryEvent('alice', 'Chat Message', {
+      message: 'ignored',
+    });
+    const afterNonMatching = await expectOk(
+      processor.processDocument(
+        afterMatching.document.clone(),
+        nonMatchingEvent,
+      ),
+    );
+    expect(afterNonMatching.triggeredEvents).toHaveLength(0);
+  });
 });
