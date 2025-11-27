@@ -105,12 +105,17 @@ describe('ContractLoader', () => {
           sessionId: 'session-abc',
         },
       },
+      participants: {
+        type: { blueId: myosBlueIds['MyOS Participants Orchestration'] },
+        name: 'Orchestration',
+      },
     });
 
     const bundle = loader.load(scopeNode, '/');
 
     expect(bundle.marker('anchors')).toBeDefined();
     expect(bundle.marker('links')).toBeDefined();
+    expect(bundle.marker('participants')).toBeDefined();
   });
 
   it('loads custom handler contracts using registry schema', () => {

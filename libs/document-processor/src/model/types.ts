@@ -8,6 +8,7 @@ import type {
   ProcessingTerminatedMarker,
   DocumentAnchorsMarker,
   DocumentLinksMarker,
+  MyOSParticipantsOrchestrationMarker,
 } from './markers/index.js';
 import type {
   DocumentUpdateChannel,
@@ -35,6 +36,7 @@ export type MarkerContract =
   | ChannelEventCheckpoint
   | DocumentAnchorsMarker
   | DocumentLinksMarker
+  | MyOSParticipantsOrchestrationMarker
   | GenericMarkerContract;
 
 export type ChannelContract =

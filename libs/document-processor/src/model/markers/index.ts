@@ -5,3 +5,4 @@ export * from './processing-terminated-marker.js';
 export * from './operation.js';
 export * from './document-anchors.js';
 export * from './document-links.js';
+export * from './myos-participants-orchestration.js';
