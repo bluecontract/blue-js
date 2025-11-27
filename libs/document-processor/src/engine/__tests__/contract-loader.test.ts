@@ -80,7 +80,7 @@ describe('ContractLoader', () => {
     );
   });
 
-  it('loads Document Anchors and Document Links marker contracts', () => {
+  it('loads built-in MyOS marker contracts', () => {
     const blue = createBlue();
     const registry = new ContractProcessorRegistry();
     const loader = new ContractLoader(registry, blue);
@@ -105,12 +105,27 @@ describe('ContractLoader', () => {
           sessionId: 'session-abc',
         },
       },
+      participants: {
+        type: { blueId: myosBlueIds['MyOS Participants Orchestration'] },
+        name: 'Orchestration',
+      },
+      sessionInteraction: {
+        type: { blueId: myosBlueIds['MyOS Session Interaction'] },
+        name: 'Session Interaction',
+      },
+      workerAgency: {
+        type: { blueId: myosBlueIds['MyOS Worker Agency'] },
+        name: 'Worker Agency',
+      },
     });
 
     const bundle = loader.load(scopeNode, '/');
 
     expect(bundle.marker('anchors')).toBeDefined();
     expect(bundle.marker('links')).toBeDefined();
+    expect(bundle.marker('participants')).toBeDefined();
+    expect(bundle.marker('sessionInteraction')).toBeDefined();
+    expect(bundle.marker('workerAgency')).toBeDefined();
   });
 
   it('loads custom handler contracts using registry schema', () => {
