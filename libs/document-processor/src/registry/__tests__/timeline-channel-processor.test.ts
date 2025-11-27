@@ -198,4 +198,59 @@ describe('TimelineChannelProcessor', () => {
     const afterDuplicate = afterDuplicateResult.document;
     expect(numericProperty(afterDuplicate, 'count')).toBe(1);
   });
+
+  it('respects channel-level event filters when provided', async () => {
+    const processor = buildProcessor(
+      blue,
+      new SetPropertyContractProcessor(),
+      new IncrementPropertyContractProcessor(),
+    );
+
+    const documentYaml = `name: Timeline Channel Filter Test
+contracts:
+  timelineChannel:
+    type: Timeline Channel
+    timelineId: alice-timeline
+    event:
+      message:
+        kind: set-price
+  setPrice:
+    channel: timelineChannel
+    type:
+      blueId: SetProperty
+    propertyKey: /price
+    propertyValue: 1500
+  bumpCount:
+    channel: timelineChannel
+    type:
+      blueId: IncrementProperty
+    propertyKey: /count
+`;
+
+    const initializedResult = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(documentYaml)),
+    );
+    const initialized = initializedResult.document;
+
+    const matchingEntry = timelineEntryEvent('alice-timeline', {
+      kind: 'set-price',
+    });
+    const afterMatching = (
+      await expectOk(
+        processor.processDocument(initialized.clone(), matchingEntry),
+      )
+    ).document;
+    expect(numericProperty(afterMatching, 'count')).toBe(1);
+
+    const nonMatchingEntry = timelineEntryEvent('alice-timeline', {
+      kind: 'adjust-price',
+    });
+    const afterNonMatching = (
+      await expectOk(
+        processor.processDocument(afterMatching.clone(), nonMatchingEntry),
+      )
+    ).document;
+    // count remains unchanged because the channel filtered out the event
+    expect(numericProperty(afterNonMatching, 'count')).toBe(1);
+  });
 });

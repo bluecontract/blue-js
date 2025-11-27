@@ -1,5 +1,6 @@
 import { Blue, BlueNode } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/core';
+import { blueIds as myosBlueIds } from '@blue-repository/myos';
 import { ZodError, ZodType } from 'zod';
 
 import {
@@ -11,6 +12,11 @@ import {
   initializationMarkerSchema,
   processingTerminatedMarkerSchema,
   channelEventCheckpointSchema,
+  documentAnchorsMarkerSchema,
+  documentLinksMarkerSchema,
+  myosParticipantsOrchestrationMarkerSchema,
+  myosSessionInteractionMarkerSchema,
+  myosWorkerAgencyMarkerSchema,
 } from '../model/index.js';
 import { isProcessorManagedChannelBlueId } from '../constants/processor-contract-constants.js';
 import { ContractBundle, ContractBundleBuilder } from './contract-bundle.js';
@@ -39,6 +45,13 @@ const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
 const PROCESSING_TERMINATED_MARKER_BLUE_ID =
   blueIds['Processing Terminated Marker'];
 const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
+const DOCUMENT_ANCHORS_BLUE_ID = myosBlueIds['Document Anchors'];
+const DOCUMENT_LINKS_BLUE_ID = myosBlueIds['Document Links'];
+const MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID =
+  myosBlueIds['MyOS Participants Orchestration'];
+const MYOS_SESSION_INTERACTION_BLUE_ID =
+  myosBlueIds['MyOS Session Interaction'];
+const MYOS_WORKER_AGENCY_BLUE_ID = myosBlueIds['MyOS Worker Agency'];
 
 const BUILTIN_CHANNEL_SCHEMAS: ReadonlyMap<
   string,
@@ -77,6 +90,26 @@ const BUILTIN_MARKER_SCHEMAS: ReadonlyMap<
   [
     CHANNEL_EVENT_CHECKPOINT_BLUE_ID,
     channelEventCheckpointSchema as ZodType<MarkerContract>,
+  ],
+  [
+    DOCUMENT_ANCHORS_BLUE_ID,
+    documentAnchorsMarkerSchema as ZodType<MarkerContract>,
+  ],
+  [
+    DOCUMENT_LINKS_BLUE_ID,
+    documentLinksMarkerSchema as ZodType<MarkerContract>,
+  ],
+  [
+    MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID,
+    myosParticipantsOrchestrationMarkerSchema as ZodType<MarkerContract>,
+  ],
+  [
+    MYOS_SESSION_INTERACTION_BLUE_ID,
+    myosSessionInteractionMarkerSchema as ZodType<MarkerContract>,
+  ],
+  [
+    MYOS_WORKER_AGENCY_BLUE_ID,
+    myosWorkerAgencyMarkerSchema as ZodType<MarkerContract>,
   ],
 ]);
 
