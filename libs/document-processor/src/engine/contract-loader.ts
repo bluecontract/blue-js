@@ -15,6 +15,8 @@ import {
   documentAnchorsMarkerSchema,
   documentLinksMarkerSchema,
   myosParticipantsOrchestrationMarkerSchema,
+  myosSessionInteractionMarkerSchema,
+  myosWorkerAgencyMarkerSchema,
 } from '../model/index.js';
 import { isProcessorManagedChannelBlueId } from '../constants/processor-contract-constants.js';
 import { ContractBundle, ContractBundleBuilder } from './contract-bundle.js';
@@ -47,6 +49,9 @@ const DOCUMENT_ANCHORS_BLUE_ID = myosBlueIds['Document Anchors'];
 const DOCUMENT_LINKS_BLUE_ID = myosBlueIds['Document Links'];
 const MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID =
   myosBlueIds['MyOS Participants Orchestration'];
+const MYOS_SESSION_INTERACTION_BLUE_ID =
+  myosBlueIds['MyOS Session Interaction'];
+const MYOS_WORKER_AGENCY_BLUE_ID = myosBlueIds['MyOS Worker Agency'];
 
 const BUILTIN_CHANNEL_SCHEMAS: ReadonlyMap<
   string,
@@ -97,6 +102,14 @@ const BUILTIN_MARKER_SCHEMAS: ReadonlyMap<
   [
     MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID,
     myosParticipantsOrchestrationMarkerSchema as ZodType<MarkerContract>,
+  ],
+  [
+    MYOS_SESSION_INTERACTION_BLUE_ID,
+    myosSessionInteractionMarkerSchema as ZodType<MarkerContract>,
+  ],
+  [
+    MYOS_WORKER_AGENCY_BLUE_ID,
+    myosWorkerAgencyMarkerSchema as ZodType<MarkerContract>,
   ],
 ]);
 

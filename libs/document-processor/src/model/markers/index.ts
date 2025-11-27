@@ -6,3 +6,5 @@ export * from './operation.js';
 export * from './document-anchors.js';
 export * from './document-links.js';
 export * from './myos-participants-orchestration.js';
+export * from './myos-session-interaction.js';
+export * from './myos-worker-agency.js';
