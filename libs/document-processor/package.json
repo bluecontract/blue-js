@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "2.0.0-rc.5",
+  "version": "2.0.0-rc.6",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -20,8 +20,8 @@
   ],
   "dependencies": {
     "picomatch": "2.3.1",
-    "@blue-labs/language": "2.0.0-rc.5",
-    "@blue-labs/shared-utils": "2.0.0-rc.5",
+    "@blue-labs/language": "2.0.0-rc.6",
+    "@blue-labs/shared-utils": "2.0.0-rc.6",
     "quickjs-emscripten": "0.31.0"
   },
   "license": "MIT",

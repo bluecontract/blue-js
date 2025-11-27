@@ -1,3 +1,12 @@
+## 2.0.0-rc.6 (2025-11-27)
+
+### 🚀 Features
+
+- **document-processor:** add Document Anchors and Document Links marker contracts ([99e72e2](https://github.com/bluecontract/blue-js/commit/99e72e2))
+- **document-processor:** add MyOS Participants Orchestration marker contract ([9ae3f4f](https://github.com/bluecontract/blue-js/commit/9ae3f4f))
+- **document-processor:** add MyOS Session Interaction and Worker Agency marker contracts ([df29e3f](https://github.com/bluecontract/blue-js/commit/df29e3f))
+- **document-processor:** add event filtering support to channel contracts ([af3ffeb](https://github.com/bluecontract/blue-js/commit/af3ffeb))
+
 ## 2.0.0-rc.5 (2025-11-24)
 
 ### 🚀 Features
