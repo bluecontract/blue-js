@@ -345,6 +345,14 @@ export class ProcessorExecution implements ExecutionHooks {
     const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
 
     const eventClone = event.clone();
+    const contract = channel.contract() as ChannelContract;
+    const eventFilter = contract.event;
+    if (
+      eventFilter &&
+      !this.runtimeRef.blue().isTypeOfNode(eventClone, eventFilter)
+    ) {
+      return { matches: false };
+    }
     const evaluationContext: ChannelEvaluationContext = {
       scopePath,
       blue: this.runtimeRef.blue(),
@@ -353,10 +361,7 @@ export class ProcessorExecution implements ExecutionHooks {
       bindingKey: channel.key(),
     };
 
-    const matchesResult = await processor.matches(
-      channel.contract() as ChannelContract,
-      evaluationContext,
-    );
+    const matchesResult = await processor.matches(contract, evaluationContext);
     if (!matchesResult) {
       return { matches: false };
     }
@@ -364,7 +369,7 @@ export class ProcessorExecution implements ExecutionHooks {
     // allow channel to provide a separate, channelized event for handlers
     const channelizedFn = processor.channelize;
     const channelizedResult = channelizedFn
-      ? channelizedFn.call(processor, channel.contract(), evaluationContext)
+      ? channelizedFn.call(processor, contract, evaluationContext)
       : undefined;
 
     return {
