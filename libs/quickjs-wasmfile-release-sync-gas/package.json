@@ -1,5 +1,5 @@
 {
-  "name": "@blue-labs/document-processor",
+  "name": "@blue-labs/quickjs-wasmfile-release-sync-gas",
   "version": "2.0.0-rc.6",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,19 +11,25 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./emscripten-module-gas.wasm": "./emscripten-module-gas.wasm"
+  },
+  "scripts": {
+    "build:c": "./scripts/instrument-wasm.sh",
+    "clean": "rm -rf target dist emscripten-module-gas.wasm"
   },
   "files": [
     "dist",
-    "!**/*.tsbuildinfo",
-    "!dist/package.json"
+    "emscripten-module-gas.wasm",
+    "docs",
+    "!**/*.tsbuildinfo"
   ],
+  "nx": {
+    "name": "quickjs-wasmfile-release-sync-gas"
+  },
   "dependencies": {
-    "picomatch": "2.3.1",
-    "@blue-labs/language": "2.0.0-rc.6",
-    "@blue-labs/quickjs-wasmfile-release-sync-gas": "2.0.0-rc.6",
-    "@blue-labs/shared-utils": "2.0.0-rc.6",
-    "quickjs-emscripten": "0.31.0"
+    "quickjs-emscripten": "0.31.0",
+    "tslib": "^2.3.0"
   },
   "license": "MIT",
   "publishConfig": {
@@ -32,11 +38,5 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bluecontract/blue-js.git"
-  },
-  "peerDependencies": {
-    "zod": "^3.20.0",
-    "@blue-repository/conversation": ">=0.2.0 <1.0.0",
-    "@blue-repository/core": ">=0.2.0 <1.0.0",
-    "@blue-repository/myos": ">=0.5.0 <1.0.0"
   }
 }

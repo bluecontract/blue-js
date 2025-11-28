@@ -1,0 +1,38 @@
+{
+  "name": "quickjs-wasmfile-release-sync-gas",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/quickjs-wasmfile-release-sync-gas/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
+    }
+  },
+  "tags": [],
+  "targets": {
+    "instrument-wasm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["./scripts/instrument-wasm.sh"]
+      },
+      "inputs": [
+        "{projectRoot}/tools/**/*",
+        "{projectRoot}/scripts/instrument-wasm.sh",
+        "{workspaceRoot}/node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm"
+      ],
+      "outputs": ["{projectRoot}/emscripten-module-gas.wasm"]
+    },
+    "build": {
+      "dependsOn": ["instrument-wasm"]
+    },
+    "yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["yalc push"]
+      }
+    }
+  }
+}

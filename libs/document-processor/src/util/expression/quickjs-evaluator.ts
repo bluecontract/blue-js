@@ -1,5 +1,4 @@
 import {
-  getQuickJS,
   type QuickJSContext,
   type QuickJSHandle,
   type QuickJSRuntime,
@@ -9,9 +8,27 @@ import {
   getCanonicalPointerValue,
   unwrapCanonicalValue,
 } from './canonical-json-utils.js';
+import { QuickJSGasController } from './quickjs-gas-controller.js';
+import { loadMeteredQuickJS } from './quickjs-gas-loader.js';
 
 const DEFAULT_TIMEOUT_MS = 500;
 const DEFAULT_MEMORY_LIMIT_BYTES = 32 * 1024 * 1024;
+
+let cachedModulePromise: Promise<QuickJSWASMModule> | undefined;
+let cachedModule: QuickJSWASMModule | undefined;
+
+function getMeteredQuickJS(): Promise<QuickJSWASMModule> {
+  if (cachedModule) {
+    return Promise.resolve(cachedModule);
+  }
+  if (!cachedModulePromise) {
+    cachedModulePromise = loadMeteredQuickJS().then((module) => {
+      cachedModule = module;
+      return module;
+    });
+  }
+  return cachedModulePromise;
+}
 
 export interface QuickJSBindings {
   readonly [key: string]: unknown;
@@ -22,75 +39,107 @@ export interface QuickJSEvaluationOptions {
   readonly bindings?: QuickJSBindings;
   readonly timeout?: number;
   readonly memoryLimit?: number;
+  readonly wasmGasLimit?: bigint | number;
+  readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
 }
 
 export class QuickJSEvaluator {
-  private modulePromise?: Promise<QuickJSWASMModule>;
-  private moduleInstance?: QuickJSWASMModule;
-
   async evaluate({
     code,
     bindings,
     timeout = DEFAULT_TIMEOUT_MS,
     memoryLimit = DEFAULT_MEMORY_LIMIT_BYTES,
+    wasmGasLimit,
+    onWasmGasUsed,
   }: QuickJSEvaluationOptions): Promise<unknown> {
-    const quickJS = await this.ensureModule();
-    const runtime = quickJS.newRuntime();
-    runtime.setMemoryLimit(memoryLimit);
-
-    const absoluteTimeout = Number.isFinite(timeout)
-      ? Date.now() + Math.max(timeout, 0)
-      : undefined;
-    if (absoluteTimeout !== undefined) {
-      runtime.setInterruptHandler(() => Date.now() > absoluteTimeout);
-    }
-
-    const context = runtime.newContext();
+    let lastQuickJS: QuickJSWASMModule | undefined;
     try {
-      this.installConsole(context);
-      this.installDeterministicGlobals(context);
-      this.installCanonNamespace(context);
-      this.installBindings(context, bindings);
+      const quickJS = await this.ensureModule();
+      lastQuickJS = quickJS;
+      const gasController = new QuickJSGasController(quickJS, true);
+      const runtime = quickJS.newRuntime();
+      runtime.setMemoryLimit(memoryLimit);
 
-      const wrappedCode = this.wrapCode(code);
-      const evaluationResult = context.evalCode(wrappedCode);
-      const initialHandle = context.unwrapResult(evaluationResult);
+      const absoluteTimeout = Number.isFinite(timeout)
+        ? Date.now() + Math.max(timeout, 0)
+        : undefined;
+      if (absoluteTimeout !== undefined) {
+        runtime.setInterruptHandler(() => Date.now() > absoluteTimeout);
+      }
 
-      let resolvedHandle: QuickJSHandle | null = null;
+      const context = runtime.newContext();
       try {
-        resolvedHandle = await this.resolveHandle(
-          context,
-          runtime,
-          initialHandle,
-          absoluteTimeout,
-        );
-        const hostValue = context.dump(resolvedHandle);
-        return hostValue;
+        this.installConsole(context);
+        this.installDeterministicGlobals(context);
+        this.installCanonNamespace(context);
+        this.installBindings(context, bindings);
+
+        const wrappedCode = this.wrapCode(code);
+
+        if (wasmGasLimit !== undefined) {
+          gasController.setGasLimit(wasmGasLimit);
+        }
+
+        const evaluationResult = context.evalCode(wrappedCode);
+        const initialHandle = context.unwrapResult(evaluationResult);
+
+        let resolvedHandle: QuickJSHandle | null = null;
+        let gasRemaining: bigint | undefined;
+
+        try {
+          resolvedHandle = await this.resolveHandle(
+            context,
+            runtime,
+            initialHandle,
+            absoluteTimeout,
+          );
+          if (wasmGasLimit !== undefined) {
+            gasRemaining = gasController.readGasRemaining();
+          }
+          const hostValue = context.dump(resolvedHandle);
+          if (gasRemaining !== undefined && onWasmGasUsed) {
+            const limit = BigInt(wasmGasLimit ?? 0);
+            const used = limit > gasRemaining ? limit - gasRemaining : 0n;
+            onWasmGasUsed({ used, remaining: gasRemaining });
+          }
+          return hostValue;
+        } catch (error) {
+          const normalized = gasController.normalizeError(error);
+          if (normalized.outOfGas) {
+            throw normalized.error;
+          }
+          throw normalized.error;
+        } finally {
+          if (resolvedHandle) {
+            resolvedHandle.dispose();
+          } else {
+            initialHandle.dispose();
+          }
+        }
       } finally {
-        if (resolvedHandle) {
-          resolvedHandle.dispose();
-        } else {
-          initialHandle.dispose();
+        try {
+          context.dispose();
+        } catch {
+          // ignore disposal issues when runtime already aborted
+        }
+        try {
+          runtime.removeInterruptHandler?.();
+          runtime.dispose();
+        } catch {
+          // ignore disposal issues when runtime already aborted
         }
       }
-    } finally {
-      context.dispose();
-      runtime.removeInterruptHandler?.();
-      runtime.dispose();
+    } catch (error) {
+      const normalized = new QuickJSGasController(
+        lastQuickJS,
+        true,
+      ).normalizeError(error);
+      throw normalized.error;
     }
   }
 
-  private async ensureModule(): Promise<QuickJSWASMModule> {
-    if (this.moduleInstance) {
-      return this.moduleInstance;
-    }
-    if (!this.modulePromise) {
-      this.modulePromise = getQuickJS().then((module) => {
-        this.moduleInstance = module;
-        return module;
-      });
-    }
-    return this.modulePromise;
+  private ensureModule(): Promise<QuickJSWASMModule> {
+    return getMeteredQuickJS();
   }
 
   private wrapCode(code: string): string {
@@ -358,22 +407,10 @@ export class QuickJSEvaluator {
         }
 
         const jobsResult = runtime.executePendingJobs();
-        let executed = 0;
         try {
-          executed = context.unwrapResult(jobsResult);
+          context.unwrapResult(jobsResult);
         } finally {
           jobsResult.dispose();
-        }
-
-        if (executed === 0) {
-          if (deadline !== undefined && Date.now() > deadline) {
-            current.dispose();
-            throw new Error(
-              'QuickJS execution timed out while awaiting Promise',
-            );
-          }
-          // Yield to the event loop; prevents tight spin when promises never settle.
-          await new Promise((resolve) => setTimeout(resolve, 0));
         }
 
         continue;
@@ -390,24 +427,12 @@ export class QuickJSEvaluator {
 
       if (state.type === 'rejected') {
         try {
-          const errorValue = context.dump(state.error);
-          if (errorValue instanceof Error) {
-            throw errorValue;
+          const err = context.dump(state.error);
+          if (err instanceof Error) throw err;
+          if (err && typeof err === 'object' && 'message' in err) {
+            throw new Error(String((err as { message: unknown }).message));
           }
-          if (
-            errorValue &&
-            typeof errorValue === 'object' &&
-            'message' in errorValue
-          ) {
-            throw new Error(
-              String((errorValue as { message: unknown }).message),
-            );
-          }
-          throw new Error(
-            typeof errorValue === 'string'
-              ? errorValue
-              : JSON.stringify(errorValue),
-          );
+          throw new Error(typeof err === 'string' ? err : JSON.stringify(err));
         } finally {
           state.error.dispose();
           current.dispose();
