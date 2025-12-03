@@ -34,6 +34,15 @@ export interface QuickJSBindings {
   readonly [key: string]: unknown;
 }
 
+export interface QuickJSEvaluatorOptions {
+  /**
+   * When false, bypass the shared module cache and instantiate a fresh QuickJS
+   * wasm module for each evaluator call. Useful for deterministic fuel sampling
+   * where prior allocations could skew measurements.
+   */
+  readonly useModuleCache?: boolean;
+}
+
 export interface QuickJSEvaluationOptions {
   readonly code: string;
   readonly bindings?: QuickJSBindings;
@@ -43,7 +52,33 @@ export interface QuickJSEvaluationOptions {
   readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
 }
 
+export interface QuickJSPinnedRunner {
+  run: (options?: {
+    readonly wasmGasLimit?: bigint | number;
+    readonly onWasmGasUsed?: QuickJSEvaluationOptions['onWasmGasUsed'];
+  }) => Promise<unknown>;
+  dispose: () => void;
+}
+
+export interface QuickJSPinnedRunnerOptions extends QuickJSEvaluationOptions {
+  /**
+   * When true (default), run deterministic GC before and after each invocation.
+   * Set to false for extremely tight determinism when running repeated samples;
+   * call `runDeterministicGC` manually at your own cadence if needed.
+   */
+  readonly runDeterministicGCBetweenRuns?: boolean;
+  /**
+   * When false, wraps the provided code in a synchronous function instead of an async IIFE.
+   * This avoids the promise microtask machinery and can be useful for ultra-tight fuel sampling.
+   */
+  readonly wrapAsAsync?: boolean;
+}
+
 export class QuickJSEvaluator {
+  constructor(
+    private readonly evaluatorOptions: QuickJSEvaluatorOptions = {},
+  ) {}
+
   async evaluate({
     code,
     bindings,
@@ -60,6 +95,35 @@ export class QuickJSEvaluator {
       const runtime = quickJS.newRuntime();
       runtime.setMemoryLimit(memoryLimit);
 
+      let deterministicGCReady = false;
+      const ensureDeterministicGC = (): void => {
+        if (deterministicGCReady) {
+          return;
+        }
+        gasController.configureDeterministicGC(runtime);
+        deterministicGCReady = true;
+      };
+      const runDeterministicGC = (propagateError: boolean): void => {
+        if (!deterministicGCReady) {
+          if (propagateError) {
+            ensureDeterministicGC();
+          } else {
+            return;
+          }
+        }
+        if (propagateError) {
+          gasController.runDeterministicGC(runtime);
+        } else if (deterministicGCReady) {
+          try {
+            gasController.runDeterministicGC(runtime);
+          } catch {
+            // ignore cleanup errors while tearing down the runtime
+          }
+        }
+      };
+
+      runDeterministicGC(true);
+
       const absoluteTimeout = Number.isFinite(timeout)
         ? Date.now() + Math.max(timeout, 0)
         : undefined;
@@ -69,6 +133,7 @@ export class QuickJSEvaluator {
 
       const context = runtime.newContext();
       try {
+        runDeterministicGC(true);
         this.installConsole(context);
         this.installDeterministicGlobals(context);
         this.installCanonNamespace(context);
@@ -102,6 +167,7 @@ export class QuickJSEvaluator {
             const used = limit > gasRemaining ? limit - gasRemaining : 0n;
             onWasmGasUsed({ used, remaining: gasRemaining });
           }
+          runDeterministicGC(true);
           return hostValue;
         } catch (error) {
           const normalized = gasController.normalizeError(error);
@@ -117,6 +183,7 @@ export class QuickJSEvaluator {
           }
         }
       } finally {
+        runDeterministicGC(false);
         try {
           context.dispose();
         } catch {
@@ -124,6 +191,11 @@ export class QuickJSEvaluator {
         }
         try {
           runtime.removeInterruptHandler?.();
+        } catch {
+          // ignore disposal issues when runtime already aborted
+        }
+        runDeterministicGC(false);
+        try {
           runtime.dispose();
         } catch {
           // ignore disposal issues when runtime already aborted
@@ -139,11 +211,22 @@ export class QuickJSEvaluator {
   }
 
   private ensureModule(): Promise<QuickJSWASMModule> {
+    if (this.evaluatorOptions.useModuleCache === false) {
+      return loadMeteredQuickJS();
+    }
     return getMeteredQuickJS();
   }
 
   private wrapCode(code: string): string {
     return `(async () => {\n${code}\n})()`;
+  }
+
+  private wrapCodeAsFunction(code: string): string {
+    return `(async function __quickjs_eval(){\n${code}\n})`;
+  }
+
+  private wrapCodeAsFunctionSync(code: string): string {
+    return `(function __quickjs_eval(){\n${code}\n})`;
   }
 
   private installConsole(context: QuickJSContext): void {
@@ -167,7 +250,7 @@ export class QuickJSEvaluator {
   private installDeterministicGlobals(context: QuickJSContext): void {
     // Hide non-deterministic and host-specific globals from user code
     // Ensure typeof returns 'undefined' for these symbols
-    context.setProp(context.global, 'Date', context.undefined.dup());
+    context.setProp(context.global, 'Date', context.undefined);
   }
 
   private installCanonNamespace(context: QuickJSContext): void {
@@ -439,5 +522,135 @@ export class QuickJSEvaluator {
         }
       }
     }
+  }
+
+  async createPinnedRunner({
+    code,
+    bindings,
+    timeout = DEFAULT_TIMEOUT_MS,
+    memoryLimit = DEFAULT_MEMORY_LIMIT_BYTES,
+    wasmGasLimit,
+    onWasmGasUsed,
+    runDeterministicGCBetweenRuns = true,
+    wrapAsAsync = true,
+  }: QuickJSPinnedRunnerOptions): Promise<QuickJSPinnedRunner> {
+    const quickJS = await this.ensureModule();
+    const gasController = new QuickJSGasController(quickJS, true);
+    const runtime = quickJS.newRuntime();
+    runtime.setMemoryLimit(memoryLimit);
+    gasController.configureDeterministicGC(runtime);
+    gasController.runDeterministicGC(runtime);
+
+    const absoluteTimeout = Number.isFinite(timeout)
+      ? Date.now() + Math.max(timeout, 0)
+      : undefined;
+    if (absoluteTimeout !== undefined) {
+      runtime.setInterruptHandler(() => Date.now() > absoluteTimeout);
+    }
+
+    const context = runtime.newContext();
+    this.installConsole(context);
+    this.installDeterministicGlobals(context);
+    this.installCanonNamespace(context);
+    this.installBindings(context, bindings);
+
+    const compiledResult = context.evalCode(
+      wrapAsAsync
+        ? this.wrapCodeAsFunction(code)
+        : this.wrapCodeAsFunctionSync(code),
+    );
+    const fnHandle = context.unwrapResult(compiledResult);
+
+    let disposed = false;
+
+    const dispose = (): void => {
+      if (disposed) return;
+      disposed = true;
+      try {
+        gasController.runDeterministicGC(runtime);
+      } catch {
+        // ignore cleanup failures
+      }
+      try {
+        fnHandle.dispose();
+      } catch {
+        // ignore cleanup failures
+      }
+      try {
+        context.dispose();
+      } catch {
+        // ignore cleanup failures
+      }
+      try {
+        runtime.removeInterruptHandler?.();
+      } catch {
+        // ignore cleanup failures
+      }
+      try {
+        runtime.dispose();
+      } catch {
+        // ignore cleanup failures
+      }
+    };
+
+    const run: QuickJSPinnedRunner['run'] = async (options) => {
+      const effectiveGasLimit =
+        options?.wasmGasLimit !== undefined
+          ? options.wasmGasLimit
+          : wasmGasLimit;
+      const gasCallback =
+        options?.onWasmGasUsed !== undefined
+          ? options.onWasmGasUsed
+          : onWasmGasUsed;
+
+      let resolvedHandle: QuickJSHandle | null = null;
+      let initialHandle: QuickJSHandle | null = null;
+      try {
+        if (runDeterministicGCBetweenRuns) {
+          gasController.runDeterministicGC(runtime);
+        }
+        if (effectiveGasLimit !== undefined) {
+          gasController.setGasLimit(effectiveGasLimit);
+        }
+        const invocationResult = context.callFunction(
+          fnHandle,
+          context.undefined,
+        );
+        initialHandle = context.unwrapResult(invocationResult);
+        resolvedHandle = await this.resolveHandle(
+          context,
+          runtime,
+          initialHandle,
+          absoluteTimeout,
+        );
+
+        let gasRemaining: bigint | undefined;
+        if (effectiveGasLimit !== undefined) {
+          gasRemaining = gasController.readGasRemaining();
+        }
+
+        const hostValue = context.dump(resolvedHandle);
+        if (gasRemaining !== undefined && gasCallback) {
+          const limit = BigInt(effectiveGasLimit ?? 0);
+          const used = gasRemaining < limit ? limit - gasRemaining : 0n;
+          gasCallback({ used, remaining: gasRemaining });
+        }
+        if (runDeterministicGCBetweenRuns) {
+          gasController.runDeterministicGC(runtime);
+        }
+        return hostValue;
+      } catch (error) {
+        const normalized = gasController.normalizeError(error);
+        throw normalized.error;
+      } finally {
+        if (resolvedHandle) {
+          resolvedHandle.dispose();
+        } else if (initialHandle) {
+          initialHandle.dispose();
+        }
+      }
+    };
+
+    return { run, dispose };
   }
 }

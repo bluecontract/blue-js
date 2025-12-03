@@ -30,6 +30,9 @@ export {
   getGasGlobal,
   setGasBudget,
   getGasRemaining,
+  setRuntimeGCThreshold,
+  disableRuntimeAutomaticGC,
+  collectRuntimeGarbage,
   // Types
   type AugmentedQuickJSModule,
   type GasGlobalLike,

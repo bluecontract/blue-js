@@ -1,0 +1,5 @@
+node_modules
+dist
+target
+emscripten-module-*.wasm
+tools/quickjs-emscripten

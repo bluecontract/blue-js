@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build:c": "./scripts/instrument-wasm.sh",
+    "build:wasm:deterministic": "./scripts/build-deterministic-wasm.sh",
     "clean": "rm -rf target dist emscripten-module-gas.wasm"
   },
   "files": [
@@ -28,7 +29,7 @@
     "name": "quickjs-wasmfile-release-sync-gas"
   },
   "dependencies": {
-    "quickjs-emscripten": "0.31.0",
+    "quickjs-emscripten": "0.31.0-qc.0",
     "tslib": "^2.3.0"
   },
   "license": "MIT",
