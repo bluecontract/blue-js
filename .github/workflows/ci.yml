@@ -38,15 +38,4 @@ jobs:
       # Build first to generate the WASM
       - run: npx nx build quickjs-wasmfile-release-sync-gas --skip-nx-cache
 
-      # Verify WASM checksums for determinism debugging
-      - name: Verify WASM checksums
-        run: |
-          echo "=== Input WASM (from npm) ==="
-          shasum -a 256 node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm
-          echo ""
-          echo "=== Output WASM (instrumented) ==="
-          shasum -a 256 libs/quickjs-wasmfile-release-sync-gas/emscripten-module-gas.wasm
-          echo ""
-          echo "Expected local checksum: 31601c0567716717cf549715e8da191d8faebb00087d2e90b5b3257b2cc40f99"
-
       - run: npx nx affected --exclude @blue-js/monorepo -t lint test build

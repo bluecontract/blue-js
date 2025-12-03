@@ -36,9 +36,6 @@
       ],
       "outputs": ["{projectRoot}/emscripten-module-deterministic.wasm"]
     },
-    "build": {
-      "dependsOn": ["build-deterministic-wasm", "instrument-wasm"]
-    },
     "yalc-push": {
       "executor": "nx:run-commands",
       "options": {
