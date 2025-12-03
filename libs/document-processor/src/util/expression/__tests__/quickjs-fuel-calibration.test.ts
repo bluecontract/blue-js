@@ -101,8 +101,8 @@ describe('QuickJS wasm fuel samples', () => {
   });
 
   it('captures baseline usage via createPinnedRunner (for comparison)', async () => {
-    // Uses cached module and QuickJSEvaluator internals - may vary across environments
-    const evaluator = new QuickJSEvaluator();
+    // Uses QuickJSEvaluator internals but forces a fresh module per sample to avoid cache drift
+    const evaluator = new QuickJSEvaluator({ useModuleCache: false });
     const samples = [
       { name: 'return-1', code: 'return 1;' },
       {

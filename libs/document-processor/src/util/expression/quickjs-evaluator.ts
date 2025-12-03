@@ -34,6 +34,15 @@ export interface QuickJSBindings {
   readonly [key: string]: unknown;
 }
 
+export interface QuickJSEvaluatorOptions {
+  /**
+   * When false, bypass the shared module cache and instantiate a fresh QuickJS
+   * wasm module for each evaluator call. Useful for deterministic fuel sampling
+   * where prior allocations could skew measurements.
+   */
+  readonly useModuleCache?: boolean;
+}
+
 export interface QuickJSEvaluationOptions {
   readonly code: string;
   readonly bindings?: QuickJSBindings;
@@ -66,6 +75,10 @@ export interface QuickJSPinnedRunnerOptions extends QuickJSEvaluationOptions {
 }
 
 export class QuickJSEvaluator {
+  constructor(
+    private readonly evaluatorOptions: QuickJSEvaluatorOptions = {},
+  ) {}
+
   async evaluate({
     code,
     bindings,
@@ -198,6 +211,9 @@ export class QuickJSEvaluator {
   }
 
   private ensureModule(): Promise<QuickJSWASMModule> {
+    if (this.evaluatorOptions.useModuleCache === false) {
+      return loadMeteredQuickJS();
+    }
     return getMeteredQuickJS();
   }
 
