@@ -1,7 +1,9 @@
-import type { QuickJSWASMModule } from 'quickjs-emscripten';
+import type { QuickJSRuntime, QuickJSWASMModule } from 'quickjs-emscripten';
 import {
   setGasBudget as setGasBudgetHelper,
   getGasRemaining as getGasRemainingHelper,
+  disableRuntimeAutomaticGC,
+  collectRuntimeGarbage,
 } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
 
 const OUT_OF_GAS_MESSAGE = 'OutOfGas: QuickJS Wasm execution exceeded fuel';
@@ -30,6 +32,24 @@ export class QuickJSGasController {
       return undefined;
     }
     return getGasRemainingHelper(this.quickJS);
+  }
+
+  configureDeterministicGC(runtime: QuickJSRuntime): void {
+    const module = this.getQuickJSOrThrow();
+    try {
+      disableRuntimeAutomaticGC(module, runtime);
+    } catch (error) {
+      throw this.newGCControlError(error);
+    }
+  }
+
+  runDeterministicGC(runtime: QuickJSRuntime): void {
+    const module = this.getQuickJSOrThrow();
+    try {
+      collectRuntimeGarbage(module, runtime);
+    } catch (error) {
+      throw this.newGCControlError(error);
+    }
   }
 
   normalizeError(error: unknown): { error: Error; outOfGas: boolean } {
@@ -73,5 +93,21 @@ export class QuickJSGasController {
     const outOfGasError = new Error(OUT_OF_GAS_MESSAGE);
     outOfGasError.name = 'OutOfGasError';
     return outOfGasError;
+  }
+
+  private getQuickJSOrThrow(): QuickJSWASMModule {
+    if (!this.quickJS) {
+      throw new Error('QuickJS module not loaded');
+    }
+    return this.quickJS;
+  }
+
+  private newGCControlError(error: unknown): Error {
+    const message =
+      error instanceof Error ? error.message : String(error ?? 'Unknown error');
+    return new Error(
+      `Metered QuickJS: GC control helpers unavailable (${message}). ` +
+        'Rebuild the instrumented wasm bundle before running evaluations.',
+    );
   }
 }

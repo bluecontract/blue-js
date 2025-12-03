@@ -60,6 +60,35 @@ export class QuickJSEvaluator {
       const runtime = quickJS.newRuntime();
       runtime.setMemoryLimit(memoryLimit);
 
+      let deterministicGCReady = false;
+      const ensureDeterministicGC = (): void => {
+        if (deterministicGCReady) {
+          return;
+        }
+        gasController.configureDeterministicGC(runtime);
+        deterministicGCReady = true;
+      };
+      const runDeterministicGC = (propagateError: boolean): void => {
+        if (!deterministicGCReady) {
+          if (propagateError) {
+            ensureDeterministicGC();
+          } else {
+            return;
+          }
+        }
+        if (propagateError) {
+          gasController.runDeterministicGC(runtime);
+        } else if (deterministicGCReady) {
+          try {
+            gasController.runDeterministicGC(runtime);
+          } catch {
+            // ignore cleanup errors while tearing down the runtime
+          }
+        }
+      };
+
+      runDeterministicGC(true);
+
       const absoluteTimeout = Number.isFinite(timeout)
         ? Date.now() + Math.max(timeout, 0)
         : undefined;
@@ -69,6 +98,7 @@ export class QuickJSEvaluator {
 
       const context = runtime.newContext();
       try {
+        runDeterministicGC(true);
         this.installConsole(context);
         this.installDeterministicGlobals(context);
         this.installCanonNamespace(context);
@@ -102,6 +132,7 @@ export class QuickJSEvaluator {
             const used = limit > gasRemaining ? limit - gasRemaining : 0n;
             onWasmGasUsed({ used, remaining: gasRemaining });
           }
+          runDeterministicGC(true);
           return hostValue;
         } catch (error) {
           const normalized = gasController.normalizeError(error);
@@ -117,6 +148,7 @@ export class QuickJSEvaluator {
           }
         }
       } finally {
+        runDeterministicGC(false);
         try {
           context.dispose();
         } catch {
@@ -124,6 +156,11 @@ export class QuickJSEvaluator {
         }
         try {
           runtime.removeInterruptHandler?.();
+        } catch {
+          // ignore disposal issues when runtime already aborted
+        }
+        runDeterministicGC(false);
+        try {
           runtime.dispose();
         } catch {
           // ignore disposal issues when runtime already aborted
