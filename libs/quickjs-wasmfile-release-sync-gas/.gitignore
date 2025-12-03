@@ -6,5 +6,5 @@ tools/emsdk-cache/
 tools/quickjs-wasm-clean/build/
 
 # Generated WASM (built during build process)
-emscripten-module-gas.wasm
-emscripten-module-deterministic.wasm
+# emscripten-module-gas.wasm
+# emscripten-module-deterministic.wasm
