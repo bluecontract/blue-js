@@ -37,6 +37,7 @@ describe('QuickJS wasm fuel samples', () => {
       const runner = await evaluator.createPinnedRunner({
         code: sample.code,
         wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
+        wrapAsAsync: false,
       });
       try {
         await runner.run({
@@ -57,18 +58,18 @@ describe('QuickJS wasm fuel samples', () => {
     expect(results).toMatchInlineSnapshot(`
       [
         {
-          "fuel": "423911",
-          "hostFuel": "3",
+          "fuel": "102867",
+          "hostFuel": "1",
           "name": "return-1",
         },
         {
-          "fuel": "48630640",
-          "hostFuel": "301",
+          "fuel": "48314760",
+          "hostFuel": "299",
           "name": "loop-1k",
         },
         {
-          "fuel": "482235838",
-          "hostFuel": "2977",
+          "fuel": "481919958",
+          "hostFuel": "2975",
           "name": "loop-10k",
         },
       ]
@@ -177,8 +178,6 @@ describe('QuickJS gas metering determinism', () => {
     const distinctValues = new Set(
       measurements.map((sample) => sample.toString()),
     );
-
-    console.log('measurements', measurements);
 
     // QuickJS occasionally re-interns atoms when GC runs between evals. That adds
     // a fixed, low overhead (~MAX_CONTEXT_VARIANCE fuel) that we allow but still guard tightly.
