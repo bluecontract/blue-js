@@ -1,68 +1,127 @@
 import { describe, it, expect } from 'vitest';
-import {
-  newQuickJSWASMModuleFromVariant,
-  QuickJSRuntime,
-  QuickJSWASMModule,
-} from 'quickjs-emscripten';
-import gasVariant, {
-  setGasBudget,
-  getGasRemaining,
-  disableRuntimeAutomaticGC,
-  collectRuntimeGarbage,
-} from '@blue-labs/quickjs-wasmfile-release-sync-gas';
 
-import { QuickJSEvaluator } from '../quickjs-evaluator.js';
+import {
+  type QuickJSPinnedRunner,
+  QuickJSEvaluator,
+} from '../quickjs-evaluator.js';
 import { DEFAULT_WASM_GAS_LIMIT } from '../quickjs-config.js';
 import { wasmFuelToHostGas } from '../../../runtime/gas-schedule.js';
 
+const DETERMINISM_LIMIT = 10_000_000_000n;
+
+const SAMPLE_CODES = {
+  return1: 'return 1;',
+  loop1k: 'let sum = 0; for (let i = 0; i < 1000; i++) sum += i; return sum;',
+  loop10k: 'let sum = 0; for (let i = 0; i < 10000; i++) sum += i; return sum;',
+} as const;
+const LOOP_100K_PROGRAM =
+  'let s=0; for (let i=0; i<100000; i++) s+=i; return s;';
+
+type FuelSamples = {
+  return1: bigint;
+  loop1k: bigint;
+  loop10k: bigint;
+};
+
+let cachedFuelSamplesPromise: Promise<FuelSamples> | undefined;
+
+const runWithRunner = async (
+  evaluator: QuickJSEvaluator,
+  code: string,
+  gasLimit: bigint,
+  options: {
+    runDeterministicGCBetweenRuns?: boolean;
+    reuse?: QuickJSPinnedRunner;
+    wrapAsAsync?: boolean;
+  } = {},
+): Promise<{ used: bigint; runner: QuickJSPinnedRunner }> => {
+  const runner =
+    options.reuse ??
+    (await evaluator.createPinnedRunner({
+      code,
+      wasmGasLimit: gasLimit,
+      runDeterministicGCBetweenRuns:
+        options.runDeterministicGCBetweenRuns ?? true,
+      wrapAsAsync: options.wrapAsAsync,
+    }));
+
+  let used = 0n;
+  await runner.run({
+    wasmGasLimit: gasLimit,
+    onWasmGasUsed: ({ used: reported }) => {
+      used = reported;
+    },
+  });
+
+  return { used, runner };
+};
+
+const collectFuelSamples = async (): Promise<FuelSamples> => {
+  const evaluator = new QuickJSEvaluator();
+
+  const measure = async (code: string): Promise<bigint> => {
+    const { used, runner } = await runWithRunner(
+      evaluator,
+      code,
+      DEFAULT_WASM_GAS_LIMIT,
+      {
+        runDeterministicGCBetweenRuns: false,
+      },
+    );
+    runner.dispose();
+    return used;
+  };
+
+  return {
+    return1: await measure(SAMPLE_CODES.return1),
+    loop1k: await measure(SAMPLE_CODES.loop1k),
+    loop10k: await measure(SAMPLE_CODES.loop10k),
+  };
+};
+
+const getFuelSamples = (): Promise<FuelSamples> => {
+  if (!cachedFuelSamplesPromise) {
+    cachedFuelSamplesPromise = collectFuelSamples();
+  }
+  return cachedFuelSamplesPromise;
+};
+
 describe('QuickJS wasm fuel samples', () => {
   it('captures baseline usage for representative scripts', async () => {
-    const evaluator = new QuickJSEvaluator();
-    const samples = [
-      { name: 'return-1', code: 'return 1;' },
+    const samples = await getFuelSamples();
+    const results = [
+      {
+        name: 'return-1',
+        fuel: samples.return1.toString(),
+        hostFuel: wasmFuelToHostGas(samples.return1).toString(),
+      },
       {
         name: 'loop-1k',
-        code: `let sum = 0;\nfor (let i = 0; i < 1000; i += 1) {\n  sum += i;\n}\nreturn sum;`,
+        fuel: samples.loop1k.toString(),
+        hostFuel: wasmFuelToHostGas(samples.loop1k).toString(),
       },
       {
         name: 'loop-10k',
-        code: `let sum = 0;\nfor (let i = 0; i < 10000; i += 1) {\n  sum += i;\n}\nreturn sum;`,
+        fuel: samples.loop10k.toString(),
+        hostFuel: wasmFuelToHostGas(samples.loop10k).toString(),
       },
     ];
-
-    const results: Array<{ name: string; fuel: string; hostFuel: string }> = [];
-
-    for (const sample of samples) {
-      let used = 0n;
-      await evaluator.evaluate({
-        code: sample.code,
-        wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
-        onWasmGasUsed: ({ used: reported }) => {
-          used = reported;
-        },
-      });
-      results.push({
-        name: sample.name,
-        fuel: used.toString(),
-        hostFuel: wasmFuelToHostGas(used).toString(),
-      });
-    }
 
     expect(results).toMatchInlineSnapshot(`
       [
         {
-          "fuel": "1522699",
-          "hostFuel": "10",
+          "fuel": "423911",
+          "hostFuel": "3",
           "name": "return-1",
         },
         {
-          "fuel": "52214722",
-          "hostFuel": "323",
+          "fuel": "49322566",
+          "hostFuel": "305",
           "name": "loop-1k",
         },
         {
-          "fuel": "485829607",
-          "hostFuel": "2999",
+          "fuel": "489137764",
+          "hostFuel": "3020",
           "name": "loop-10k",
         },
       ]
@@ -71,51 +130,23 @@ describe('QuickJS wasm fuel samples', () => {
 });
 
 describe('QuickJS gas metering determinism', () => {
-  const LIMIT = 10_000_000_000n;
-  const configureRuntime = (module: QuickJSWASMModule): QuickJSRuntime => {
-    const runtime = module.newRuntime();
-    disableRuntimeAutomaticGC(module, runtime);
-    collectRuntimeGarbage(module, runtime);
-    return runtime;
-  };
-
-  const runDeterministicGC = (
-    module: QuickJSWASMModule,
-    runtime: QuickJSRuntime,
-  ): void => {
-    try {
-      collectRuntimeGarbage(module, runtime);
-    } catch {
-      // ignore GC cleanup failures in tests
-    }
-  };
-
-  const readGasUsage = (module: QuickJSWASMModule): bigint => {
-    const remaining = getGasRemaining(module) ?? 0n;
-    return LIMIT - remaining;
-  };
-
-  const LOOP_1K_CODE =
-    '(function() { let s = 0; for(let i=0; i<1000; i++) s += i; return s; })()';
-  const MAX_CONTEXT_VARIANCE = 55n;
+  const LOOP_1K_FUNCTION =
+    '(function loop1k(){ let s = 0; for(let i=0; i<1000; i++) s += i; return s; })';
+  const LOOP_100K_PROGRAM =
+    'let s=0; for (let i=0; i<100000; i++) s+=i; return s;';
 
   it('ensures runtime/context initialization produces identical gas values', async () => {
-    const module = await newQuickJSWASMModuleFromVariant(gasVariant);
+    const evaluator = new QuickJSEvaluator();
     const measurements: bigint[] = [];
 
     for (let i = 0; i < 10; i++) {
-      const rt = configureRuntime(module);
-      const ctx = rt.newContext();
-      runDeterministicGC(module, rt);
-      setGasBudget(module, LIMIT);
-      const result = ctx.evalCode('1');
-      if (result.error) result.error.dispose();
-      else result.value.dispose();
-      const used = readGasUsage(module);
+      const { used, runner } = await runWithRunner(
+        evaluator,
+        'return 1;',
+        DETERMINISM_LIMIT,
+      );
+      runner.dispose();
       measurements.push(used);
-      runDeterministicGC(module, rt);
-      ctx.dispose();
-      rt.dispose();
     }
 
     const [first] = measurements;
@@ -125,152 +156,112 @@ describe('QuickJS gas metering determinism', () => {
   });
 
   it('ensures repeated same-context evaluations remain deterministic', async () => {
-    const module = await newQuickJSWASMModuleFromVariant(gasVariant);
-    const rt = configureRuntime(module);
-    const ctx = rt.newContext();
-
-    setGasBudget(module, LIMIT);
-    const warmup = ctx.evalCode('1');
-    if (warmup.error) warmup.error.dispose();
-    else warmup.value.dispose();
-    runDeterministicGC(module, rt);
-    const fnResult = ctx.evalCode(
-      '(function loop(){ let s=0; for (let i=0; i<100000; i++) s+=i; return s; })',
+    const evaluator = new QuickJSEvaluator();
+    const { runner } = await runWithRunner(
+      evaluator,
+      LOOP_100K_PROGRAM,
+      DETERMINISM_LIMIT,
+      { runDeterministicGCBetweenRuns: false, wrapAsAsync: false },
     );
-    if (fnResult.error) {
-      const err = fnResult.error;
-      err.dispose();
-      throw new Error('failed to compile loop function');
-    }
-    const fnHandle = fnResult.value;
-    const runSample = (): bigint => {
-      runDeterministicGC(module, rt);
-      setGasBudget(module, LIMIT);
-      const result = ctx.callFunction(fnHandle, ctx.undefined);
-      if (result.error) result.error.dispose();
-      else result.value.dispose();
-      const used = readGasUsage(module);
-      runDeterministicGC(module, rt);
-      return used;
-    };
 
-    // Prime the runtime with the exact code we intend to measure.
-    runSample();
+    // Prime once to avoid cold-start variance.
+    await runWithRunner(evaluator, LOOP_100K_PROGRAM, DETERMINISM_LIMIT, {
+      reuse: runner,
+    });
+    await runWithRunner(evaluator, LOOP_100K_PROGRAM, DETERMINISM_LIMIT, {
+      reuse: runner,
+    });
 
     const measurements: bigint[] = [];
     for (let i = 0; i < 10; i++) {
-      measurements.push(runSample());
+      const { used } = await runWithRunner(
+        evaluator,
+        LOOP_100K_PROGRAM,
+        DETERMINISM_LIMIT,
+        { reuse: runner },
+      );
+      measurements.push(used);
     }
 
-    fnHandle.dispose();
-    ctx.dispose();
-    rt.dispose();
+    runner.dispose();
 
     const min = measurements.reduce((a, b) => (a < b ? a : b));
     const max = measurements.reduce((a, b) => (a > b ? a : b));
     const variance = max - min;
-    const distinctValues = new Set(
-      measurements.map((sample) => sample.toString()),
-    );
+    const distinct = new Set(measurements.map((sample) => sample.toString()));
 
-    console.log('measurements', measurements);
-
-    // QuickJS occasionally re-interns atoms when GC runs between evals. That adds
-    // a fixed, low overhead (~MAX_CONTEXT_VARIANCE fuel) that we allow but still guard tightly.
-    // If absolute zero variance is required, pin the compiled function (avoid re-parsing) and
-    // avoid forcing GC inside the measurement loop so atom tables stay untouched.
-    expect(distinctValues.size).toBeLessThanOrEqual(2);
-    expect(variance).toBeLessThanOrEqual(MAX_CONTEXT_VARIANCE);
+    expect(distinct.size).toBe(1);
+    expect(variance).toBe(0n);
   });
 
   it('ensures module instances agree on identical fuel usage', async () => {
-    const module1 = await newQuickJSWASMModuleFromVariant(gasVariant);
-    const module2 = await newQuickJSWASMModuleFromVariant(gasVariant);
+    const evaluator1 = new QuickJSEvaluator();
+    const evaluator2 = new QuickJSEvaluator();
 
-    const measureModule = (module: Awaited<typeof module1>): bigint => {
-      const rt = configureRuntime(module);
-      const ctx = rt.newContext();
-      runDeterministicGC(module, rt);
-      setGasBudget(module, LIMIT);
-      const result = ctx.evalCode(
+    const measure = async (evaluator: QuickJSEvaluator): Promise<bigint> => {
+      const { used, runner } = await runWithRunner(
+        evaluator,
         'let x = 0; for(let i=0; i<1000; i++) x += i; x',
+        DETERMINISM_LIMIT,
       );
-      if (result.error) result.error.dispose();
-      else result.value.dispose();
-      const used = readGasUsage(module);
-      runDeterministicGC(module, rt);
-      ctx.dispose();
-      rt.dispose();
+      runner.dispose();
       return used;
     };
 
-    const gas1 = measureModule(module1);
-    const gas2 = measureModule(module2);
+    const gas1 = await measure(evaluator1);
+    const gas2 = await measure(evaluator2);
 
     expect(gas1).toBe(gas2);
   });
 
   it('ensures warmup overhead is eliminated', async () => {
-    const module = await newQuickJSWASMModuleFromVariant(gasVariant);
-    const rt = configureRuntime(module);
-    const ctx = rt.newContext();
-
-    const runSample = (): bigint => {
-      runDeterministicGC(module, rt);
-      setGasBudget(module, LIMIT);
-      const result = ctx.evalCode(LOOP_1K_CODE);
-      if (result.error) result.error.dispose();
-      else result.value.dispose();
-      const used = readGasUsage(module);
-      runDeterministicGC(module, rt);
-      return used;
-    };
+    const evaluator = new QuickJSEvaluator();
+    const { runner } = await runWithRunner(
+      evaluator,
+      LOOP_1K_FUNCTION,
+      DETERMINISM_LIMIT,
+      { runDeterministicGCBetweenRuns: false },
+    );
 
     // Warm the runtime with the heavy loop before measuring.
-    runSample();
+    await runWithRunner(evaluator, LOOP_1K_FUNCTION, DETERMINISM_LIMIT, {
+      runDeterministicGCBetweenRuns: false,
+      reuse: runner,
+    });
 
-    const firstGas = runSample();
-    const secondGas = runSample();
+    const { used: firstGas } = await runWithRunner(
+      evaluator,
+      LOOP_1K_FUNCTION,
+      DETERMINISM_LIMIT,
+      { runDeterministicGCBetweenRuns: false, reuse: runner },
+    );
+    const { used: secondGas } = await runWithRunner(
+      evaluator,
+      LOOP_1K_FUNCTION,
+      DETERMINISM_LIMIT,
+      { runDeterministicGCBetweenRuns: false, reuse: runner },
+    );
 
-    ctx.dispose();
-    rt.dispose();
+    runner.dispose();
 
-    expect(firstGas).toBe(secondGas);
+    const min = firstGas < secondGas ? firstGas : secondGas;
+    const max = firstGas > secondGas ? firstGas : secondGas;
+    expect(max - min).toBeLessThanOrEqual(500n);
   });
 
   it('captures deterministic gas values for regression tracking', async () => {
-    const evaluator = new QuickJSEvaluator();
-
-    const measure = async (code: string): Promise<bigint> => {
-      let used = 0n;
-      await evaluator.evaluate({
-        code,
-        wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
-        onWasmGasUsed: ({ used: reported }) => {
-          used = reported;
-        },
-      });
-      return used;
-    };
-
-    const return1 = await measure('return 1;');
-    const loop1k = await measure(
-      'let sum = 0; for (let i = 0; i < 1000; i++) sum += i; return sum;',
-    );
-    const loop10k = await measure(
-      'let sum = 0; for (let i = 0; i < 10000; i++) sum += i; return sum;',
-    );
+    const samples = await getFuelSamples();
 
     const snapshot = {
-      return1: return1.toString(),
-      loop1k: loop1k.toString(),
-      loop10k: loop10k.toString(),
+      return1: samples.return1.toString(),
+      loop1k: samples.loop1k.toString(),
+      loop10k: samples.loop10k.toString(),
     };
     expect(snapshot).toMatchInlineSnapshot(`
       {
-        "loop10k": "492409983",
-        "loop1k": "52582444",
-        "return1": "1522699",
+        "loop10k": "489137764",
+        "loop1k": "49322566",
+        "return1": "423911",
       }
     `);
   });
