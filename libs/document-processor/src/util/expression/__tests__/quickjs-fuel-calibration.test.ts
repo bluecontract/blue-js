@@ -12,6 +12,8 @@ import gasVariant, {
 } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
 
 import { wasmFuelToHostGas } from '../../../runtime/gas-schedule.js';
+import { QuickJSEvaluator } from '../quickjs-evaluator.js';
+import { DEFAULT_WASM_GAS_LIMIT } from '../quickjs-config.js';
 
 describe('QuickJS wasm fuel samples', () => {
   const LIMIT = 10_000_000_000n;
@@ -91,6 +93,67 @@ describe('QuickJS wasm fuel samples', () => {
         },
         {
           "fuel": "481830294",
+          "hostFuel": "2975",
+          "name": "loop-10k",
+        },
+      ]
+    `);
+  });
+
+  it('captures baseline usage via createPinnedRunner (for comparison)', async () => {
+    // Uses cached module and QuickJSEvaluator internals - may vary across environments
+    const evaluator = new QuickJSEvaluator();
+    const samples = [
+      { name: 'return-1', code: 'return 1;' },
+      {
+        name: 'loop-1k',
+        code: `let sum = 0;\nfor (let i = 0; i < 1000; i += 1) {\n  sum += i;\n}\nreturn sum;`,
+      },
+      {
+        name: 'loop-10k',
+        code: `let sum = 0;\nfor (let i = 0; i < 10000; i += 1) {\n  sum += i;\n}\nreturn sum;`,
+      },
+    ];
+
+    const results: Array<{ name: string; fuel: string; hostFuel: string }> = [];
+
+    for (const sample of samples) {
+      let used = 0n;
+      const runner = await evaluator.createPinnedRunner({
+        code: sample.code,
+        wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
+        wrapAsAsync: false,
+      });
+      try {
+        await runner.run({
+          onWasmGasUsed: ({ used: reported }) => {
+            used = reported;
+          },
+        });
+      } finally {
+        runner.dispose();
+      }
+      results.push({
+        name: sample.name,
+        fuel: used.toString(),
+        hostFuel: wasmFuelToHostGas(used).toString(),
+      });
+    }
+
+    expect(results).toMatchInlineSnapshot(`
+      [
+        {
+          "fuel": "102867",
+          "hostFuel": "1",
+          "name": "return-1",
+        },
+        {
+          "fuel": "48314760",
+          "hostFuel": "299",
+          "name": "loop-1k",
+        },
+        {
+          "fuel": "481919958",
           "hostFuel": "2975",
           "name": "loop-10k",
         },
