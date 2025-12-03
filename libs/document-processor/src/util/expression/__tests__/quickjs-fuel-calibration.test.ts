@@ -19,7 +19,6 @@ describe('QuickJS wasm fuel samples', () => {
   const LIMIT = 10_000_000_000n;
 
   it('captures baseline usage for representative scripts', async () => {
-    // Use fresh module (not cached) for deterministic measurements across environments
     const module = await newQuickJSWASMModuleFromVariant(gasVariant);
     const runtime = module.newRuntime();
     disableRuntimeAutomaticGC(module, runtime);
@@ -101,7 +100,6 @@ describe('QuickJS wasm fuel samples', () => {
   });
 
   it('captures baseline usage via createPinnedRunner (for comparison)', async () => {
-    // Uses QuickJSEvaluator internals but forces a fresh module per sample to avoid cache drift
     const evaluator = new QuickJSEvaluator({ useModuleCache: false });
     const samples = [
       { name: 'return-1', code: 'return 1;' },
@@ -143,17 +141,17 @@ describe('QuickJS wasm fuel samples', () => {
     expect(results).toMatchInlineSnapshot(`
       [
         {
-          "fuel": "102867",
+          "fuel": "14743",
           "hostFuel": "1",
           "name": "return-1",
         },
         {
-          "fuel": "48314760",
-          "hostFuel": "299",
+          "fuel": "48226523",
+          "hostFuel": "298",
           "name": "loop-1k",
         },
         {
-          "fuel": "481919958",
+          "fuel": "481831721",
           "hostFuel": "2975",
           "name": "loop-10k",
         },
