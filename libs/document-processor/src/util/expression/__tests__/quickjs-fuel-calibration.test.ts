@@ -11,13 +11,19 @@ import gasVariant, {
   collectRuntimeGarbage,
 } from '@blue-labs/quickjs-wasmfile-release-sync-gas';
 
-import { QuickJSEvaluator } from '../quickjs-evaluator.js';
-import { DEFAULT_WASM_GAS_LIMIT } from '../quickjs-config.js';
 import { wasmFuelToHostGas } from '../../../runtime/gas-schedule.js';
 
 describe('QuickJS wasm fuel samples', () => {
+  const LIMIT = 10_000_000_000n;
+
   it('captures baseline usage for representative scripts', async () => {
-    const evaluator = new QuickJSEvaluator();
+    // Use fresh module (not cached) for deterministic measurements across environments
+    const module = await newQuickJSWASMModuleFromVariant(gasVariant);
+    const runtime = module.newRuntime();
+    disableRuntimeAutomaticGC(module, runtime);
+    collectRuntimeGarbage(module, runtime);
+    const ctx = runtime.newContext();
+
     const samples = [
       { name: 'return-1', code: 'return 1;' },
       {
@@ -33,21 +39,34 @@ describe('QuickJS wasm fuel samples', () => {
     const results: Array<{ name: string; fuel: string; hostFuel: string }> = [];
 
     for (const sample of samples) {
-      let used = 0n;
-      const runner = await evaluator.createPinnedRunner({
-        code: sample.code,
-        wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
-        wrapAsAsync: false,
-      });
-      try {
-        await runner.run({
-          onWasmGasUsed: ({ used: reported }) => {
-            used = reported;
-          },
-        });
-      } finally {
-        runner.dispose();
+      // Compile function once
+      const wrappedCode = `(function __eval(){ ${sample.code} })`;
+      const fnResult = ctx.evalCode(wrappedCode);
+      if (fnResult.error) {
+        fnResult.error.dispose();
+        throw new Error(`Failed to compile: ${sample.name}`);
       }
+      const fnHandle = fnResult.value;
+
+      // Warmup run to prime internal state
+      collectRuntimeGarbage(module, runtime);
+      setGasBudget(module, LIMIT);
+      const warmup = ctx.callFunction(fnHandle, ctx.undefined);
+      if (warmup.error) warmup.error.dispose();
+      else warmup.value.dispose();
+      collectRuntimeGarbage(module, runtime);
+
+      // Measured run
+      setGasBudget(module, LIMIT);
+      const result = ctx.callFunction(fnHandle, ctx.undefined);
+      if (result.error) result.error.dispose();
+      else result.value.dispose();
+      const remaining = getGasRemaining(module) ?? 0n;
+      const used = LIMIT - remaining;
+      collectRuntimeGarbage(module, runtime);
+
+      fnHandle.dispose();
+
       results.push({
         name: sample.name,
         fuel: used.toString(),
@@ -55,20 +74,23 @@ describe('QuickJS wasm fuel samples', () => {
       });
     }
 
+    ctx.dispose();
+    runtime.dispose();
+
     expect(results).toMatchInlineSnapshot(`
       [
         {
-          "fuel": "102867",
+          "fuel": "16404",
           "hostFuel": "1",
           "name": "return-1",
         },
         {
-          "fuel": "48314760",
-          "hostFuel": "299",
+          "fuel": "48228184",
+          "hostFuel": "298",
           "name": "loop-1k",
         },
         {
-          "fuel": "481919958",
+          "fuel": "481830294",
           "hostFuel": "2975",
           "name": "loop-10k",
         },
