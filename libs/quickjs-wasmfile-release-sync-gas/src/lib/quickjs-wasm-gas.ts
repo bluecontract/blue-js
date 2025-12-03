@@ -1,6 +1,7 @@
 import {
   RELEASE_SYNC,
   type EmscriptenModuleLoaderOptions,
+  type QuickJSRuntime,
   type QuickJSWASMModule,
   type QuickJSSyncVariant,
   type QuickJSEmscriptenModule,
@@ -19,8 +20,14 @@ type WebAssemblyApi = {
   ) => Promise<WasmInstantiateResult>;
 };
 
+type QuickJSGCControls = {
+  setThreshold: (runtimePtr: number, threshold: number) => void;
+  collect: (runtimePtr: number) => void;
+};
+
 type GasAugmentedEmscriptenModule = QuickJSEmscriptenModule & {
   __gasGlobal?: GasGlobalLike;
+  __gcControls?: QuickJSGCControls;
 };
 
 /**
@@ -34,6 +41,12 @@ export type AugmentedQuickJSModule = QuickJSWASMModule & {
 
 const isGasGlobal = (value: unknown): value is GasGlobalLike =>
   Boolean(value && typeof value === 'object' && 'value' in (value as object));
+
+type QuickJSRuntimeInternal = QuickJSRuntime & {
+  rt?: { value: number | undefined };
+};
+
+const DISABLE_AUTOMATIC_GC_THRESHOLD = 0xffffffff;
 
 /**
  * Returns the URL for the bundled instrumented QuickJS wasm file.
@@ -141,6 +154,84 @@ export function getGasRemaining(module: QuickJSWASMModule): bigint | undefined {
     }
   }
   return undefined;
+}
+
+function getGCControls(module: QuickJSWASMModule): QuickJSGCControls {
+  const augmented = module as AugmentedQuickJSModule;
+  const underlying = augmented.module;
+  if (!underlying) {
+    throw new Error(
+      'QuickJS module not augmented; load via gas variant before controlling GC',
+    );
+  }
+  if (!underlying.__gcControls) {
+    const { cwrap } = underlying;
+    if (typeof cwrap !== 'function') {
+      throw new Error(
+        'QuickJS module missing cwrap; cannot configure GC controls',
+      );
+    }
+    const setThreshold = cwrap('QTS_RuntimeSetGCThreshold', null, [
+      'number',
+      'number',
+    ]) as QuickJSGCControls['setThreshold'];
+    const collect = cwrap('QTS_RuntimeCollectGarbage', null, [
+      'number',
+    ]) as QuickJSGCControls['collect'];
+    if (typeof setThreshold !== 'function' || typeof collect !== 'function') {
+      throw new Error(
+        'Instrumented QuickJS wasm missing GC control exports; rebuild the wasm bundle',
+      );
+    }
+    underlying.__gcControls = { setThreshold, collect };
+  }
+  return underlying.__gcControls;
+}
+
+function getRuntimePointer(runtime: QuickJSRuntime): number {
+  const internal = runtime as QuickJSRuntimeInternal;
+  const handleValue = internal.rt?.value;
+  if (typeof handleValue !== 'number') {
+    throw new Error(
+      'Unable to access QuickJS runtime pointer; QuickJS internals may have changed',
+    );
+  }
+  return handleValue;
+}
+
+/**
+ * Sets the runtime GC threshold via the new FFI export.
+ */
+export function setRuntimeGCThreshold(
+  module: QuickJSWASMModule,
+  runtime: QuickJSRuntime,
+  threshold: number,
+): void {
+  const controls = getGCControls(module);
+  controls.setThreshold(getRuntimePointer(runtime), threshold >>> 0);
+}
+
+/**
+ * Disables automatic garbage collection by setting the GC threshold to size_t(-1).
+ * Note: QuickJS may still trigger GC in some internal paths; this only prevents
+ * threshold-based automatic collections.
+ */
+export function disableRuntimeAutomaticGC(
+  module: QuickJSWASMModule,
+  runtime: QuickJSRuntime,
+): void {
+  setRuntimeGCThreshold(module, runtime, DISABLE_AUTOMATIC_GC_THRESHOLD);
+}
+
+/**
+ * Runs the runtime garbage collector deterministically.
+ */
+export function collectRuntimeGarbage(
+  module: QuickJSWASMModule,
+  runtime: QuickJSRuntime,
+): void {
+  const controls = getGCControls(module);
+  controls.collect(getRuntimePointer(runtime));
 }
 
 // ---------------------------------------------------------------------------

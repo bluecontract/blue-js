@@ -33,6 +33,8 @@ npm-debug.log
 yarn-error.log
 testem.log
 /typings
+/.corepack
+/.docker
 
 # System Files
 .DS_Store
@@ -45,5 +47,3 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 .cursor
 .github/instructions/nx.instructions.md
-
-.yalc

@@ -11,6 +11,11 @@ LIB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Workspace root directory
 ROOT_DIR="$(cd "$LIB_DIR/../.." && pwd)"
 
+BUILT_WASM="${LIB_DIR}/emscripten-module-deterministic.wasm"
+IN_WASM="${IN_WASM:-}"
+if [ -z "$IN_WASM" ] && [ -f "$BUILT_WASM" ]; then
+  IN_WASM="$BUILT_WASM"
+fi
 IN_WASM="${IN_WASM:-$ROOT_DIR/node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm}"
 OUT_WASM="${OUT_WASM:-$LIB_DIR/emscripten-module-gas.wasm}"
 TARGET_DIR="${TARGET_DIR:-$LIB_DIR/tools/quickjs-gas-instrument/target}"
@@ -62,4 +67,3 @@ else
 fi
 
 echo "Instrumented wasm written to ${OUT_WASM}"
-
