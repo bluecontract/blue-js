@@ -222,11 +222,11 @@ export class QuickJSEvaluator {
   }
 
   private wrapCodeAsFunction(code: string): string {
-    return `(function __quickjs_eval(){ return (async () => {\n${code}\n})(); })`;
+    return `(async function __quickjs_eval(){\n${code}\n})`;
   }
 
   private wrapCodeAsFunctionSync(code: string): string {
-    return `(function __quickjs_eval(){ return (function(){\n${code}\n})(); })`;
+    return `(function __quickjs_eval(){\n${code}\n})`;
   }
 
   private installConsole(context: QuickJSContext): void {
@@ -250,7 +250,7 @@ export class QuickJSEvaluator {
   private installDeterministicGlobals(context: QuickJSContext): void {
     // Hide non-deterministic and host-specific globals from user code
     // Ensure typeof returns 'undefined' for these symbols
-    context.setProp(context.global, 'Date', context.undefined.dup());
+    context.setProp(context.global, 'Date', context.undefined);
   }
 
   private installCanonNamespace(context: QuickJSContext): void {
