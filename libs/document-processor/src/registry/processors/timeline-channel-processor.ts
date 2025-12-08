@@ -6,6 +6,7 @@ import {
   timelineChannelSchema,
   type TimelineChannel,
 } from '../../model/index.js';
+import { isTimelineEventNewer } from './shared/timeline-recency.js';
 
 export class TimelineChannelProcessor
   implements ChannelProcessor<TimelineChannel>
@@ -44,5 +45,17 @@ export class TimelineChannelProcessor
       return null;
     }
     return event.clone();
+  }
+
+  isNewerEvent(
+    contract: TimelineChannel,
+    context: ChannelEvaluationContext,
+    lastEvent: BlueNode,
+  ): boolean {
+    const { event, blue } = context;
+    if (!event) {
+      return true;
+    }
+    return isTimelineEventNewer(blue, event, lastEvent);
   }
 }
