@@ -1,3 +1,9 @@
+## 2.0.0-rc.7 (2025-12-08)
+
+### 🚀 Features
+
+- **document-processor:** respect checkpoints with timestamp-based event filtering ([834fe2d](https://github.com/bluecontract/blue-js/commit/834fe2d))
+
 ## 2.0.0-rc.6 (2025-11-27)
 
 ### 🚀 Features
