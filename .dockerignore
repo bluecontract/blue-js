@@ -1,0 +1,44 @@
+# Docker ignore file for test builds
+
+# Ignore git directory
+.git
+.gitignore
+
+# Ignore build outputs (will be regenerated in container)
+node_modules
+dist
+coverage
+*.tsbuildinfo
+out-tsc
+
+# Ignore IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore local scripts and configs not needed for tests
+*.log
+*.local
+
+# Ignore concatenated source files
+src-concatenated.txt
+
+# Ignore Rust build artifacts (will be rebuilt if needed)
+**/target
+
+# Ignore benchmark and generated data
+**/scripts/benchmark
+
+# Keep important config files (explicitly NOT ignored)
+# !tsconfig*.json
+# !vite.config.ts
+# !eslint.config.*
+# !package.json
+# !*.wasm
+

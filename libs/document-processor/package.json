@@ -23,7 +23,7 @@
     "@blue-labs/language": "2.0.0-rc.6",
     "@blue-labs/quickjs-wasmfile-release-sync-gas": "2.0.0-rc.6",
     "@blue-labs/shared-utils": "2.0.0-rc.6",
-    "quickjs-emscripten": "0.31.0-qc.0"
+    "quickjs-emscripten": "0.31.0-qc.1"
   },
   "license": "MIT",
   "publishConfig": {

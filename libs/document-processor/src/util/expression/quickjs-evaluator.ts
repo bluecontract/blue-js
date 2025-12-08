@@ -152,7 +152,7 @@ export class QuickJSEvaluator {
         let gasRemaining: bigint | undefined;
 
         try {
-          resolvedHandle = await this.resolveHandle(
+          resolvedHandle = this.resolveHandle(
             context,
             runtime,
             initialHandle,
@@ -250,7 +250,7 @@ export class QuickJSEvaluator {
   private installDeterministicGlobals(context: QuickJSContext): void {
     // Hide non-deterministic and host-specific globals from user code
     // Ensure typeof returns 'undefined' for these symbols
-    context.setProp(context.global, 'Date', context.undefined);
+    context.setProp(context.global, 'Date', context.undefined.dup());
   }
 
   private installCanonNamespace(context: QuickJSContext): void {
@@ -472,12 +472,12 @@ export class QuickJSEvaluator {
     );
   }
 
-  private async resolveHandle(
+  private resolveHandle(
     context: QuickJSContext,
     runtime: QuickJSRuntime,
     initialHandle: QuickJSHandle,
     deadline: number | undefined,
-  ): Promise<QuickJSHandle> {
+  ): QuickJSHandle {
     let current = initialHandle;
 
     while (true) {
@@ -536,7 +536,14 @@ export class QuickJSEvaluator {
   }: QuickJSPinnedRunnerOptions): Promise<QuickJSPinnedRunner> {
     const quickJS = await this.ensureModule();
     const gasController = new QuickJSGasController(quickJS, true);
-    const runtime = quickJS.newRuntime();
+    const runtime = quickJS.newRuntime({
+      deterministic: {
+        enabled: true,
+        randomSeed: 0x1n,
+        now: 1700000000000,
+        timezoneOffsetMinutes: 0,
+      },
+    });
     runtime.setMemoryLimit(memoryLimit);
     gasController.configureDeterministicGC(runtime);
     gasController.runDeterministicGC(runtime);
@@ -617,7 +624,7 @@ export class QuickJSEvaluator {
           context.undefined,
         );
         initialHandle = context.unwrapResult(invocationResult);
-        resolvedHandle = await this.resolveHandle(
+        resolvedHandle = this.resolveHandle(
           context,
           runtime,
           initialHandle,

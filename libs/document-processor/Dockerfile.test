@@ -1,0 +1,71 @@
+# syntax=docker/dockerfile:1.7
+# Dockerfile for running document-processor tests in an isolated environment
+# Useful for ensuring deterministic test results (e.g., gas metering tests)
+
+FROM node:20-slim AS base
+
+# Install git (needed for some npm packages)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Copy root package files first for better layer caching
+COPY package.json package-lock.json ./
+COPY nx.json tsconfig.base.json tsconfig.json vitest.workspace.ts eslint.config.js project.json ./
+
+# Create the libs directory structure
+RUN mkdir -p libs/document-processor libs/language libs/quickjs-wasmfile-release-sync-gas libs/shared/utils
+
+# Copy all lib package.json files for workspace resolution
+COPY libs/document-processor/package.json libs/document-processor/
+COPY libs/language/package.json libs/language/
+COPY libs/quickjs-wasmfile-release-sync-gas/package.json libs/quickjs-wasmfile-release-sync-gas/
+COPY libs/shared/utils/package.json libs/shared/utils/
+
+# Install dependencies
+RUN npm ci
+
+# Copy source and config files for each lib
+# document-processor
+COPY libs/document-processor/src libs/document-processor/src
+COPY libs/document-processor/tsconfig*.json libs/document-processor/
+COPY libs/document-processor/vite.config.ts libs/document-processor/
+COPY libs/document-processor/project.json libs/document-processor/
+COPY libs/document-processor/eslint.config.cjs libs/document-processor/
+
+# language
+COPY libs/language/src libs/language/src
+COPY libs/language/tsconfig*.json libs/language/
+COPY libs/language/vite.config.ts libs/language/
+COPY libs/language/project.json libs/language/
+COPY libs/language/eslint.config.js libs/language/
+COPY libs/language/types libs/language/types
+
+# quickjs-wasmfile-release-sync-gas (includes WASM files)
+COPY libs/quickjs-wasmfile-release-sync-gas/src libs/quickjs-wasmfile-release-sync-gas/src
+COPY libs/quickjs-wasmfile-release-sync-gas/tsconfig*.json libs/quickjs-wasmfile-release-sync-gas/
+COPY libs/quickjs-wasmfile-release-sync-gas/vite.config.ts libs/quickjs-wasmfile-release-sync-gas/
+COPY libs/quickjs-wasmfile-release-sync-gas/project.json libs/quickjs-wasmfile-release-sync-gas/
+COPY libs/quickjs-wasmfile-release-sync-gas/eslint.config.cjs libs/quickjs-wasmfile-release-sync-gas/
+COPY libs/quickjs-wasmfile-release-sync-gas/*.wasm libs/quickjs-wasmfile-release-sync-gas/
+
+# shared-utils
+COPY libs/shared/utils/src libs/shared/utils/src
+COPY libs/shared/utils/tsconfig*.json libs/shared/utils/
+COPY libs/shared/utils/vite.config.ts libs/shared/utils/
+COPY libs/shared/utils/project.json libs/shared/utils/
+COPY libs/shared/utils/eslint.config.js libs/shared/utils/
+
+# Disable Nx Daemon in Docker (causes issues with project graph calculation)
+ENV NX_DAEMON=false
+
+# Build dependencies first (in dependency order)
+RUN npx nx build quickjs-wasmfile-release-sync-gas --skip-nx-cache
+RUN npx nx build shared-utils --skip-nx-cache
+RUN npx nx build language --skip-nx-cache
+
+# Default command: run the fuel calibration test
+CMD ["npx", "nx", "test", "document-processor", "--skip-nx-cache", "--", "--testNamePattern=QuickJS"]
+
