@@ -29,7 +29,7 @@
     "name": "quickjs-wasmfile-release-sync-gas"
   },
   "dependencies": {
-    "quickjs-emscripten": "0.31.0-qc.0",
+    "quickjs-emscripten": "0.31.0-qc.1",
     "tslib": "^2.3.0"
   },
   "license": "MIT",

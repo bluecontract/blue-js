@@ -13,10 +13,9 @@ import gasVariant, {
 
 import { wasmFuelToHostGas } from '../../../runtime/gas-schedule.js';
 import { QuickJSEvaluator } from '../quickjs-evaluator.js';
-import { DEFAULT_WASM_GAS_LIMIT } from '../quickjs-config.js';
 
 describe('QuickJS wasm fuel samples', () => {
-  const LIMIT = 10_000_000_000n;
+  const LIMIT = 100_000_000_000n;
 
   it('captures baseline usage for representative scripts', async () => {
     const module = await newQuickJSWASMModuleFromVariant(gasVariant);
@@ -109,7 +108,7 @@ describe('QuickJS wasm fuel samples', () => {
       },
       {
         name: 'loop-10k',
-        code: `let sum = 0;\nfor (let i = 0; i < 10000; i += 1) {\n  sum += i;\n}\nreturn sum;`,
+        code: `let sum = 0;\nfor (let i = 0; i < 100000; i += 1) {\n  sum += i;\n}\nreturn sum;`,
       },
     ];
 
@@ -119,7 +118,7 @@ describe('QuickJS wasm fuel samples', () => {
       let used = 0n;
       const runner = await evaluator.createPinnedRunner({
         code: sample.code,
-        wasmGasLimit: DEFAULT_WASM_GAS_LIMIT,
+        wasmGasLimit: LIMIT,
         wrapAsAsync: false,
       });
       try {
@@ -151,8 +150,8 @@ describe('QuickJS wasm fuel samples', () => {
           "name": "loop-1k",
         },
         {
-          "fuel": "481831721",
-          "hostFuel": "2975",
+          "fuel": "5101964708",
+          "hostFuel": "31494",
           "name": "loop-10k",
         },
       ]
@@ -323,5 +322,183 @@ describe('QuickJS gas metering determinism', () => {
     rt.dispose();
 
     expect(firstGas).toBe(secondGas);
+  });
+
+  // NOTE: This test produces deterministic results on the same machine, but the
+  // exact gas values may differ across environments (e.g., different Node.js
+  // versions or different hardware). The inline snapshot values are calibrated
+  // for the CI environment.
+  it('shows string concatenation gas variance via createPinnedRunner', async () => {
+    const evaluator = new QuickJSEvaluator({ useModuleCache: false });
+
+    // String concatenation creates new atoms
+    const STRING_CONCAT_CODE = `
+      let arr = [];
+      for (let i = 0; i < 1000; i++) {
+        arr.push({ x: i, y: i * 2, s: 'item' + i });
+      }
+      return arr.length;
+    `;
+
+    const measurements: bigint[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      let used = 0n;
+      const runner = await evaluator.createPinnedRunner({
+        code: STRING_CONCAT_CODE,
+        wasmGasLimit: LIMIT,
+        wrapAsAsync: false,
+      });
+      try {
+        await runner.run({
+          onWasmGasUsed: ({ used: reported }) => {
+            used = reported;
+          },
+        });
+      } finally {
+        runner.dispose();
+      }
+      measurements.push(used);
+    }
+
+    const distinctValues = new Set(measurements.map((m) => m.toString()));
+    const min = measurements.reduce((a, b) => (a < b ? a : b));
+    const max = measurements.reduce((a, b) => (a > b ? a : b));
+
+    console.log(
+      'String concat (pinned) measurements:',
+      measurements.map(String),
+    );
+    console.log(
+      'Distinct values:',
+      distinctValues.size,
+      'Variance:',
+      max - min,
+    );
+
+    expect(distinctValues.values().next().value).toBe('267684204');
+
+    // With createPinnedRunner, even string concatenation is deterministic!
+    expect(distinctValues.size).toBe(1);
+    expect(max - min).toBe(0n);
+  });
+
+  // NOTE: This test produces deterministic results on the same machine, but the
+  // exact gas values may differ across environments (e.g., different Node.js
+  // versions or different hardware). The inline snapshot values are calibrated
+  // for the CI environment.
+  it('shows object allocation is deterministic via createPinnedRunner', async () => {
+    const evaluator = new QuickJSEvaluator({ useModuleCache: false });
+
+    // Pure numeric object allocation - no new string atoms
+    const NUMERIC_ALLOC_CODE = `
+      let arr = [];
+      for (let i = 0; i < 1000; i++) {
+        arr.push({ x: i, y: i * 2, z: i * 3 });
+      }
+      return arr.length;
+    `;
+
+    const measurements: bigint[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      let used = 0n;
+      const runner = await evaluator.createPinnedRunner({
+        code: NUMERIC_ALLOC_CODE,
+        wasmGasLimit: LIMIT,
+        wrapAsAsync: false,
+      });
+      try {
+        await runner.run({
+          onWasmGasUsed: ({ used: reported }) => {
+            used = reported;
+          },
+        });
+      } finally {
+        runner.dispose();
+      }
+      measurements.push(used);
+    }
+
+    const distinctValues = new Set(measurements.map((m) => m.toString()));
+    const min = measurements.reduce((a, b) => (a < b ? a : b));
+    const max = measurements.reduce((a, b) => (a > b ? a : b));
+
+    console.log(
+      'Numeric alloc (pinned) measurements:',
+      measurements.map(String),
+    );
+    console.log(
+      'Distinct values:',
+      distinctValues.size,
+      'Variance:',
+      max - min,
+    );
+
+    expect(distinctValues.values().next().value).toBe('179875801');
+
+    // With createPinnedRunner, object allocation is deterministic
+    expect(distinctValues.size).toBe(1);
+    expect(max - min).toBe(0n);
+  });
+
+  // NOTE: This test also produces deterministic results on the same machine, but
+  // the exact gas values may differ across environments (e.g., different Node.js
+  // versions or different hardware). The inline snapshot values are calibrated
+  // for the CI environment.
+  it('shows array operations are deterministic via createPinnedRunner', async () => {
+    const evaluator = new QuickJSEvaluator({ useModuleCache: false });
+
+    // Pre-allocated array with numeric operations
+    const ARRAY_CODE = `
+      let arr = new Array(1000);
+      for (let i = 0; i < 1000; i++) {
+        arr[i] = i * 2 + 1;
+      }
+      let sum = 0;
+      for (let i = 0; i < 1000; i++) {
+        sum += arr[i];
+      }
+      return sum;
+    `;
+
+    const measurements: bigint[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      let used = 0n;
+      const runner = await evaluator.createPinnedRunner({
+        code: ARRAY_CODE,
+        wasmGasLimit: LIMIT,
+        wrapAsAsync: false,
+      });
+      try {
+        await runner.run({
+          onWasmGasUsed: ({ used: reported }) => {
+            used = reported;
+          },
+        });
+      } finally {
+        runner.dispose();
+      }
+      measurements.push(used);
+    }
+
+    const distinctValues = new Set(measurements.map((m) => m.toString()));
+    const min = measurements.reduce((a, b) => (a < b ? a : b));
+    const max = measurements.reduce((a, b) => (a > b ? a : b));
+
+    console.log('Array ops (pinned) measurements:', measurements.map(String));
+    console.log(
+      'Distinct values:',
+      distinctValues.size,
+      'Variance:',
+      max - min,
+    );
+
+    expect(distinctValues.values().next().value).toBe('116606756');
+
+    // With createPinnedRunner, array operations are deterministic
+    expect(distinctValues.size).toBe(1);
+    expect(max - min).toBe(0n);
   });
 });

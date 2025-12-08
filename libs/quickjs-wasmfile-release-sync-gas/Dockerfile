@@ -12,7 +12,7 @@ COPY libs/quickjs-wasmfile-release-sync-gas /workspace/lib
 WORKDIR /workspace/lib
 ARG QUICKJS_REPO="https://github.com/mjwebblue/quickjs-emscripten.git"
 ARG QUICKJS_BRANCH="feature/gc"
-ARG QUICKJS_COMMIT="ba5ae554b937e2f4f678d036d88b08b6e7757147"
+ARG QUICKJS_COMMIT="db14d521b65f1e20d3f3301f1a9931b28823227f"
 RUN rm -rf tools/quickjs-emscripten && \
     git clone --depth 1 --branch "${QUICKJS_BRANCH}" "${QUICKJS_REPO}" tools/quickjs-emscripten && \
     if [ -n "${QUICKJS_COMMIT}" ]; then \
