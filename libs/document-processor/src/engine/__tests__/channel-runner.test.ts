@@ -127,6 +127,7 @@ describe('ChannelRunner', () => {
         await overrides.handleHandlerError?.(error);
       },
       canonicalSignature: signatureFn,
+      channelProcessorFor: () => null,
     };
 
     const runner = new ChannelRunner(runtime, checkpointManager, deps);
