@@ -11,6 +11,9 @@
     },
     {
       "path": "./libs/document-processor"
+    },
+    {
+      "path": "./libs/repository-generator"
     }
   ]
 }
