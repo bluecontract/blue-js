@@ -25,7 +25,7 @@
   },
   "release": {
     "version": {
-      "preVersionCommand": "npx nx run-many -t build --exclude document-processor-next",
+      "preVersionCommand": "npx nx run-many -t build",
       "conventionalCommits": true
     },
     "changelog": {
@@ -35,6 +35,9 @@
           "authors": false
         }
       }
+    },
+    "releaseTag": {
+      "checkAllBranchesWhen": "main"
     }
   },
   "plugins": [

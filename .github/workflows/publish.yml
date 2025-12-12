@@ -30,15 +30,24 @@ jobs:
         shell: bash
 
       - name: Build
-        run: npx nx run-many --exclude document-processor-next -t build
+        run: npx nx run-many -t build
         shell: bash
 
       - name: Print Environment Info
         run: npx nx report
         shell: bash
 
+      - name: Publish RC group packages
+        if: ${{ contains(github.ref_name, '-rc.') }}
+        run: npx nx release publish --tag next
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+
       - name: Publish stable group packages
-        run: npx nx release publish --projects=language,shared-utils,document-processor
+        if: ${{ !contains(github.ref_name, '-rc.') }}
+        run: npx nx release publish
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}

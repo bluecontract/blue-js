@@ -1,4 +1,4 @@
-import { ExpressionPreserver } from '../ExpressionPreserver';
+import { ExpressionPreserver } from '../ExpressionPreserver.js';
 import {
   Blue,
   BasicNodeProvider,

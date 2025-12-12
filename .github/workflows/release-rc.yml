@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - next
+
+env:
+  # NX release needs to have a GH token in env.GITHUB_TOKEN
+  # As during this workflow we will create a new release
+  # that should trigger other workflow, we need to create custom TOKEN
+  # with proper permissions,
+  # more: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+  GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.branch || github.ref }}
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+        shell: bash
+
+      - name: Print Environment Info
+        run: npx nx report
+        shell: bash
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+        shell: bash
+
+      - name: Release
+        run: npx nx release --preid=rc --skip-publish
+        shell: bash

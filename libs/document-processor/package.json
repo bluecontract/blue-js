@@ -1,19 +1,29 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "1.37.3",
-  "dependencies": {
-    "@blue-labs/language": "1.37.3",
-    "@blue-labs/shared-utils": "1.37.3",
-    "isolated-vm": "^5.0.4"
-  },
+  "version": "2.0.0-rc.7",
+  "type": "module",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
     "dist",
     "!**/*.tsbuildinfo",
     "!dist/package.json"
   ],
+  "dependencies": {
+    "picomatch": "2.3.1",
+    "@blue-labs/language": "2.0.0-rc.7",
+    "@blue-labs/shared-utils": "2.0.0-rc.7",
+    "quickjs-emscripten": "0.31.0"
+  },
   "license": "MIT",
   "publishConfig": {
     "access": "public"
@@ -22,18 +32,10 @@
     "type": "git",
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
-  },
-  "nx": {
-    "name": "document-processor"
-  },
   "peerDependencies": {
-    "@blue-repository/core-dev": ">=0.22.0 <1.0.0",
-    "@blue-repository/myos-dev": ">=0.30.0 <1.0.0"
+    "zod": "^3.20.0",
+    "@blue-repository/conversation": ">=0.2.0 <1.0.0",
+    "@blue-repository/core": ">=0.2.0 <1.0.0",
+    "@blue-repository/myos": ">=0.5.0 <1.0.0"
   }
 }

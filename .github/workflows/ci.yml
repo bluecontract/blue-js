@@ -4,6 +4,8 @@ on:
     branches:
       - main
       - develop
+      - next
+
   pull_request:
     types:
       - opened
@@ -33,4 +35,4 @@ jobs:
 
       - uses: nrwl/nx-set-shas@v4
 
-      - run: npx nx affected --exclude document-processor-next,@blue-js/monorepo  -t lint test build
+      - run: npx nx affected --exclude @blue-js/monorepo -t lint test build

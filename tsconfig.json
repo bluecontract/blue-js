@@ -11,9 +11,6 @@
     },
     {
       "path": "./libs/document-processor"
-    },
-    {
-      "path": "./libs/document-processor-next"
     }
   ]
 }

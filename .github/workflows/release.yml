@@ -47,5 +47,5 @@ jobs:
         shell: bash
 
       - name: Release
-        run: npx nx release --skip-publish --projects=language,shared-utils,document-processor
+        run: npx nx release --skip-publish
         shell: bash
