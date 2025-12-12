@@ -33,6 +33,13 @@ export default {
     },
     rollupOptions: {
       external: (id: string) => {
+        // Treat Node built-ins as external so this library
+        // is built purely for Node and Vite doesn't try to
+        // replace them with browser stubs.
+        if (id === 'fs' || id === 'path' || id.startsWith('node:')) {
+          return true;
+        }
+
         const dependencies = Object.keys(packageJson.dependencies || {});
         const peerDependencies = Object.keys(
           packageJson.peerDependencies || {},

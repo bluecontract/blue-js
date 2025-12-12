@@ -7,8 +7,7 @@
   "dependencies": {
     "@blue-labs/language": "2.0.0",
     "fast-json-patch": "3.1.1",
-    "js-yaml": "4.1.0",
-    "vitest": "3.2.4"
+    "js-yaml": "4.1.0"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

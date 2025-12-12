@@ -10,12 +10,5 @@
     }
   },
   "tags": [],
-  "targets": {
-    "build": {
-      "executor": "@webpro/nx-tsc:tsc",
-      "options": {
-        "tsConfig": ["tsconfig.lib.json", "tsconfig.spec.json"]
-      }
-    }
-  }
+  "targets": {}
 }
