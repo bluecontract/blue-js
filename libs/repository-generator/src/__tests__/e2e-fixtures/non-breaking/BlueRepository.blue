@@ -1,0 +1,95 @@
+name: Blue Repository
+packages:
+  - name: App
+    types:
+      - status: stable
+        content:
+          name: Document
+          type:
+            blueId: AaWLcfRqjdDw3qrh1vwGGzEtjDe2qLTFPMc34eg2UTjP
+          id:
+            type:
+              blueId: C4p1uhDURJa53thQiX9JtBLZJVjeVwkhmerMTnwjZk2Q
+          title:
+            type:
+              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          tags:
+            type:
+              blueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
+          status:
+            value:
+              value: draft
+              type:
+                blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          note:
+            type:
+              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            description: Optional note
+          description: |
+            Minimal document type with cross-package references and a literal field.
+        versions:
+          - repositoryVersionIndex: 0
+            typeBlueId: BpFwtRBVbQusMBBxVGXGjbaGP5Zhdm71qzZnXcUBMvtk
+            attributesAdded: []
+          - repositoryVersionIndex: 1
+            typeBlueId: AmcZseAuxXrb2U2w6mEYBhxzdRWLXdRvyuQhHcWsrPmN
+            attributesAdded:
+              - /note
+      - status: dev
+        content:
+          name: Draft
+          type:
+            blueId: AaWLcfRqjdDw3qrh1vwGGzEtjDe2qLTFPMc34eg2UTjP
+          content:
+            type:
+              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          description: Dev draft type
+        versions:
+          - repositoryVersionIndex: 0
+            typeBlueId: CrFJMatbEgC6q3aWnpXQ9TXSodSjBbfAK6M9XEbjZoFc
+            attributesAdded: []
+  - name: Conversation
+    types:
+      - status: stable
+        content:
+          name: Event
+          description: Generic conversation event
+        versions:
+          - repositoryVersionIndex: 0
+            typeBlueId: AaWLcfRqjdDw3qrh1vwGGzEtjDe2qLTFPMc34eg2UTjP
+            attributesAdded: []
+      - status: stable
+        content:
+          name: Operation
+          description: Basic operation marker
+        versions:
+          - repositoryVersionIndex: 0
+            typeBlueId: 6E8LZFVYhwjhTE5Behb2tgoDZhsH5LwwcyjBk2r3TSdm
+            attributesAdded: []
+  - name: Core
+    types:
+      - status: stable
+        content:
+          name: Id
+          type:
+            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          description: Unique identifier
+        versions:
+          - repositoryVersionIndex: 0
+            typeBlueId: C4p1uhDURJa53thQiX9JtBLZJVjeVwkhmerMTnwjZk2Q
+            attributesAdded: []
+      - status: stable
+        content:
+          name: Tag List
+          type:
+            blueId: 6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY
+          itemType:
+            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          description: Simple list of tags
+        versions:
+          - repositoryVersionIndex: 0
+            typeBlueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
+            attributesAdded: []
+repositoryVersions:
+  - EsnJbexa3Apme8hKA3zdhvzj6pdeJRTh2HHnirnJdbyu
+  - DPyjUUVnZk9JmbWnsjcegA2bMmUebxcxGnG4h2NepCiJ
