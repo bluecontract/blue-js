@@ -89,6 +89,15 @@ export interface ChannelProcessor<TContract>
     contract: TContract,
     context: ChannelEvaluationContext,
   ): BlueNode | null | undefined;
+  /**
+   * Optional: Determine whether an event should be processed relative to the
+   * last checkpointed event for this channel.
+   */
+  isNewerEvent?(
+    contract: TContract,
+    context: ChannelEvaluationContext,
+    lastEvent: BlueNode,
+  ): boolean | Promise<boolean>;
 }
 
 export interface MarkerProcessor<TContract>

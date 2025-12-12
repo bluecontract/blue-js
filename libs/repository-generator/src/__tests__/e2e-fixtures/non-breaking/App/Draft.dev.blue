@@ -1,0 +1,5 @@
+name: Draft
+type: Conversation/Event
+content:
+  type: Text
+description: Dev draft type

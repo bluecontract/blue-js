@@ -14,6 +14,7 @@ import {
   type MyOSTimelineChannel,
 } from '../../model/index.js';
 import type { ChannelEvaluationContext, ChannelProcessor } from '../types.js';
+import { isTimelineEventNewer } from './shared/timeline-recency.js';
 
 function resolveTimelineEntry(
   blue: ChannelEvaluationContext['blue'],
@@ -72,5 +73,17 @@ export class MyOSTimelineChannelProcessor
     }
 
     return event.clone();
+  }
+
+  isNewerEvent(
+    contract: MyOSTimelineChannel,
+    context: ChannelEvaluationContext,
+    lastEvent: BlueNode,
+  ): boolean {
+    const { event, blue } = context;
+    if (!event) {
+      return true;
+    }
+    return isTimelineEventNewer(blue, event, lastEvent);
   }
 }

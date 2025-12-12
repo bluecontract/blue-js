@@ -11,6 +11,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../quickjs-wasmfile-release-sync-gas/tsconfig.lib.json"
+    },
+    {
       "path": "../shared/utils/tsconfig.lib.json"
     },
     {

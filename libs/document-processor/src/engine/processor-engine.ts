@@ -114,6 +114,8 @@ export class ProcessorExecution implements ExecutionHooks {
         handleHandlerError: async (scope, bundle, error) =>
           this.handleHandlerError(scope, bundle, error),
         canonicalSignature: signatureFn,
+        channelProcessorFor: (blueId) =>
+          this.registry.lookupChannel(blueId) ?? null,
       },
     );
     this.scopeExecutor = new ScopeExecutor({

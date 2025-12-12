@@ -1,0 +1,4 @@
+name: Tag List
+type: List
+itemType: Text
+description: Simple list of tags

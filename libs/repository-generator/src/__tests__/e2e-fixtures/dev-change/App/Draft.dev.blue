@@ -1,0 +1,9 @@
+name: Draft
+type: Conversation/Event
+content:
+  type: Text
+metadata:
+  type: Dictionary
+  keyType: Text
+  valueType: Text
+description: Dev draft type

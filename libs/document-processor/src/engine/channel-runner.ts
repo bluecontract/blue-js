@@ -7,6 +7,7 @@ import type {
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import { CheckpointManager } from './checkpoint-manager.js';
 import type { ProcessorExecutionContext } from './processor-execution-context.js';
+import type { ChannelProcessor } from '../registry/types.js';
 
 export interface ChannelMatch {
   readonly matches: boolean;
@@ -42,6 +43,7 @@ export interface ChannelRunnerDependencies {
     error: unknown,
   ): Promise<void>;
   canonicalSignature(node: BlueNode | null): string | null;
+  channelProcessorFor(blueId: string): ChannelProcessor<unknown> | null;
 }
 
 export class ChannelRunner {
@@ -82,6 +84,17 @@ export class ChannelRunner {
     const eventSignature =
       match.eventId ?? this.deps.canonicalSignature(checkpointEvent);
     if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
+      return;
+    }
+
+    const shouldProcess = await this.shouldProcessRelativeToCheckpoint(
+      scopePath,
+      bundle,
+      channel,
+      checkpointEvent,
+      checkpoint,
+    );
+    if (!shouldProcess) {
       return;
     }
 
@@ -142,5 +155,33 @@ export class ChannelRunner {
         return;
       }
     }
+  }
+
+  private async shouldProcessRelativeToCheckpoint(
+    scopePath: string,
+    bundle: ContractBundle,
+    channel: ChannelBinding,
+    event: BlueNode,
+    checkpoint: ReturnType<CheckpointManager['findCheckpoint']>,
+  ): Promise<boolean> {
+    if (!checkpoint?.lastEventNode) {
+      return true;
+    }
+    const processor = this.deps.channelProcessorFor(channel.blueId());
+    if (!processor || typeof processor.isNewerEvent !== 'function') {
+      return true;
+    }
+    const context = {
+      scopePath,
+      blue: this.runtime.blue(),
+      event: event.clone(),
+      markers: bundle.markers(),
+      bindingKey: channel.key(),
+    };
+    return await processor.isNewerEvent(
+      channel.contract() as unknown,
+      context,
+      checkpoint.lastEventNode.clone(),
+    );
   }
 }

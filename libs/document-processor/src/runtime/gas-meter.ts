@@ -3,12 +3,10 @@ import { canonicalSize } from '../util/node-canonicalizer.js';
 import {
   ceil100,
   documentSnapshotAmount,
-  expressionAmount,
-  jsCodeBaseAmount,
-  templateAmount,
   updateDocumentBaseAmount,
 } from './gas-helpers.js';
 import { normalizeScope } from '../util/pointer-utils.js';
+import { wasmFuelToHostGas } from './gas-schedule.js';
 
 const INITIALIZATION = 1_000;
 const CHANNEL_MATCH_ATTEMPT = 5;
@@ -114,10 +112,6 @@ export class GasMeter {
     this.add(FATAL_TERMINATION_OVERHEAD);
   }
 
-  chargeJavaScriptCodeBase(code: string): void {
-    this.add(jsCodeBaseAmount(code));
-  }
-
   chargeTriggerEventBase(): void {
     this.add(TRIGGER_EVENT_BASE);
   }
@@ -126,20 +120,19 @@ export class GasMeter {
     this.add(updateDocumentBaseAmount(changesLen));
   }
 
-  chargeExpression(expression: string): void {
-    this.add(expressionAmount(expression));
-  }
-
-  chargeTemplate(placeholderCount: number, template: string): void {
-    this.add(templateAmount(placeholderCount, template));
-  }
-
   chargeDocumentSnapshot(
     absPointer: string,
     snapshot: BlueNode | null | undefined,
   ): void {
     const bytes = snapshot ? canonicalSize(this.blue, snapshot) : 0;
     this.add(documentSnapshotAmount(absPointer, bytes));
+  }
+
+  chargeWasmGas(amount: bigint | number): void {
+    const charge = wasmFuelToHostGas(amount);
+    if (charge > 0) {
+      this.add(charge);
+    }
   }
 
   private payloadSizeCharge(node: BlueNode | null | undefined): number {

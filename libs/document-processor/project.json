@@ -17,13 +17,6 @@
         "cwd": "{projectRoot}",
         "commands": ["yalc push"]
       }
-    },
-    "test": {
-      "options": {
-        "env": {
-          "NODE_OPTIONS": "--no-node-snapshot"
-        }
-      }
     }
   }
 }

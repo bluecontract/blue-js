@@ -1,3 +1,35 @@
+# 2.0.0 (2025-12-12)
+
+### 🚀 Features
+
+- ⚠️  **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+- **document-processor:** MS-145 propagate full timeline entry events to handlers ([7a03208](https://github.com/bluecontract/blue-js/commit/7a03208))
+- **document-processor:** expose canonical JSON helpers and document canonical snapshots ([8b1e3ae](https://github.com/bluecontract/blue-js/commit/8b1e3ae))
+- **document-processor:** support blueId and metadata segments in JavaScript document() steps ([17e92ec](https://github.com/bluecontract/blue-js/commit/17e92ec))
+- **document-processor:** add Document Anchors and Document Links marker contracts ([99e72e2](https://github.com/bluecontract/blue-js/commit/99e72e2))
+- **document-processor:** add MyOS Participants Orchestration marker contract ([9ae3f4f](https://github.com/bluecontract/blue-js/commit/9ae3f4f))
+- **document-processor:** add MyOS Session Interaction and Worker Agency marker contracts ([df29e3f](https://github.com/bluecontract/blue-js/commit/df29e3f))
+- **document-processor:** add event filtering support to channel contracts ([af3ffeb](https://github.com/bluecontract/blue-js/commit/af3ffeb))
+- **document-processor:** respect checkpoints with timestamp-based event filtering ([834fe2d](https://github.com/bluecontract/blue-js/commit/834fe2d))
+
+### 🩹 Fixes
+
+- Handle handler runtime errors as fatal terminations ([269996e](https://github.com/bluecontract/blue-js/commit/269996e))
+- **document-processor:** prevent expression leakage into nested documents in Trigger Event payloads (MS-143) ([b737ea8](https://github.com/bluecontract/blue-js/commit/b737ea8))
+- **document-processor:** resolve external events before channel evaluation and checkpointing ([333687b](https://github.com/bluecontract/blue-js/commit/333687b))
+- **document-processor:** enhance ProcessorEngine to handle blueId and improve property checks ([8201521](https://github.com/bluecontract/blue-js/commit/8201521))
+- **tests:** update Trigger Event step test to reflect new event.message structure ([f0f3da8](https://github.com/bluecontract/blue-js/commit/f0f3da8))
+
+### ⚠️  Breaking Changes
+
+- ⚠️  **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
+
+## 2.0.0-rc.7 (2025-12-08)
+
+### 🚀 Features
+
+- **document-processor:** respect checkpoints with timestamp-based event filtering ([834fe2d](https://github.com/bluecontract/blue-js/commit/834fe2d))
+
 ## 2.0.0-rc.6 (2025-11-27)
 
 ### 🚀 Features

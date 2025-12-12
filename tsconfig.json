@@ -11,6 +11,15 @@
     },
     {
       "path": "./libs/document-processor"
+    },
+    {
+      "path": "./libs/repository-generator"
+    },
+    {
+      "path": "./libs/quickjs-wasm-gas"
+    },
+    {
+      "path": "./libs/quickjs-wasmfile-release-sync-gas"
     }
   ]
 }

@@ -10,6 +10,7 @@ import {
   NodeTypeMatcher,
   TypeSchemaResolver,
 } from './utils';
+import { NodeToYaml } from './utils/NodeToYaml';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
 import { ZodTypeDef, ZodType, AnyZodObject } from 'zod';
@@ -107,6 +108,17 @@ export class Blue {
     strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official',
   ) {
     return NodeToMapListOrValue.get(node, strategy);
+  }
+
+  /**
+   * Converts a BlueNode to a deterministic YAML string. Uses nodeToJson under the hood
+   * and then applies stable key ordering (Blue fields first, then alpha) before dumping.
+   */
+  public nodeToYaml(
+    node: BlueNode,
+    strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official',
+  ) {
+    return NodeToYaml.get(node, { strategy });
   }
 
   public nodeToSchemaOutput<
