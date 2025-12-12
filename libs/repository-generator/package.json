@@ -1,11 +1,11 @@
 {
   "name": "@blue-labs/repository-generator",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "bin": {
     "blue-repo-generator": "./dist/bin/blue-repo-generator.js"
   },
   "dependencies": {
-    "@blue-labs/language": "1.37.3",
+    "@blue-labs/language": "2.0.0",
     "fast-json-patch": "3.1.1",
     "js-yaml": "4.1.0",
     "vitest": "3.2.4"
