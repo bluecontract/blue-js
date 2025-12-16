@@ -1,30 +1,22 @@
-import { JsonBlueValue } from '@blue-labs/language';
+import type { JsonBlueValue } from '@blue-labs/language';
+import type {
+  BluePackage as ContractBluePackage,
+  BlueRepositoryDocument as ContractBlueRepositoryDocument,
+  BlueTypeMetadata as ContractBlueTypeMetadata,
+  BlueTypeVersion as ContractBlueTypeVersion,
+} from '@blue-labs/repository-contract';
 import { BlueTypeStatusLiteral } from './core/constants';
 
 export type BlueTypeStatus = BlueTypeStatusLiteral;
 
-export interface BlueTypeVersion {
-  repositoryVersionIndex: number;
-  typeBlueId: string;
-  attributesAdded: string[];
-}
-
-export interface BlueTypeMetadata {
-  status: BlueTypeStatus;
-  content: Record<string, JsonBlueValue>;
-  versions: BlueTypeVersion[];
-}
-
-export interface BluePackage {
-  name: string;
-  types: BlueTypeMetadata[];
-}
-
-export interface BlueRepositoryDocument {
-  name: string;
-  packages: BluePackage[];
-  repositoryVersions: string[];
-}
+export type BlueTypeVersion = ContractBlueTypeVersion;
+export type BlueTypeMetadata = ContractBlueTypeMetadata<
+  Record<string, JsonBlueValue>
+>;
+export type BluePackage = ContractBluePackage<Record<string, JsonBlueValue>>;
+export type BlueRepositoryDocument = ContractBlueRepositoryDocument<
+  Record<string, JsonBlueValue>
+>;
 
 export type GeneratorMode = 'check' | 'write';
 
