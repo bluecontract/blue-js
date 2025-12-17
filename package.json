@@ -50,10 +50,11 @@
     "libs/shared/*"
   ],
   "dependencies": {
+    "@blue-labs/repository-contract": "file:libs/repository-contract",
     "@blue-repository/conversation": "0.2.0",
     "@blue-repository/core": "0.2.0",
     "@blue-repository/myos": "0.5.0",
-    "@blue-labs/repository-contract": "file:libs/repository-contract",
+    "@blue-repository/types": "link:.yalc/@blue-repository/types",
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",
     "base32.js": "0.1.0",

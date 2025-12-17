@@ -1,10 +1,8 @@
 import { PreloadedNodeProvider } from './PreloadedNodeProvider';
 import { NodeContentHandler } from './NodeContentHandler';
 import { BlueNode, NodeDeserializer } from '../model';
-import { Preprocessor } from '../preprocess/Preprocessor';
-import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
 import { JsonBlueValue } from '../../schema';
-import { BlueRepository } from '../types/BlueRepository';
+import { AnyBlueRepository } from '../types/BlueRepository';
 
 /**
  * A NodeProvider that processes content from BlueRepository definitions.
@@ -13,122 +11,123 @@ import { BlueRepository } from '../types/BlueRepository';
 export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
-  private preprocessor: (node: BlueNode) => BlueNode;
+  private readonly toCurrentBlueId?: (blueId: string) => string;
 
-  constructor(repositories: BlueRepository[]) {
+  constructor(
+    repositories: AnyBlueRepository[],
+    toCurrentBlueId?: (blueId: string) => string,
+  ) {
     super();
-
-    // Create preprocessor with parent provider if available
-    const defaultPreprocessor = new Preprocessor({ nodeProvider: this });
-    this.preprocessor = (node: BlueNode) =>
-      defaultPreprocessor.preprocessWithDefaultBlue(node);
+    this.toCurrentBlueId = toCurrentBlueId;
 
     // Process all repository contents
     this.loadRepositories(repositories);
   }
 
-  private loadRepositories(repositories: BlueRepository[]): void {
+  private loadRepositories(repositories: AnyBlueRepository[]): void {
     for (const repository of repositories) {
-      if (repository.contents) {
-        for (const [providedBlueId, content] of Object.entries(
-          repository.contents,
-        )) {
-          this.processContent(content, providedBlueId);
+      Object.values(repository.packages).forEach((pkg) => {
+        for (const [providedBlueId, content] of Object.entries(pkg.contents)) {
+          this.storeContent(providedBlueId, content);
+          this.indexNameMappings(providedBlueId, content);
         }
-      }
+      });
     }
   }
 
-  private processContent(
-    content: JsonBlueValue,
-    providedBlueId?: string,
-  ): void {
-    // Check if content is an array (multiple documents)
-    if (Array.isArray(content)) {
-      this.processMultipleDocuments(content, providedBlueId);
-    } else {
-      this.processSingleDocument(content, providedBlueId);
-    }
-  }
-
-  private processSingleDocument(
-    content: JsonBlueValue,
-    providedBlueId?: string,
-  ): void {
-    const node = NodeDeserializer.deserialize(content);
-    const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNode(
-      node,
-      this.preprocessor,
+  private storeContent(providedBlueId: string, content: JsonBlueValue): void {
+    this.blueIdToContentMap.set(providedBlueId, content);
+    this.blueIdToMultipleDocumentsMap.set(
+      providedBlueId,
+      Array.isArray(content),
     );
+  }
 
-    // Use provided blueId if available, otherwise use calculated one
-    const blueId = providedBlueId || parsedContent.blueId;
+  private indexNameMappings(providedBlueId: string, content: JsonBlueValue) {
+    if (Array.isArray(content)) {
+      content.forEach((item, idx) => {
+        const node = NodeDeserializer.deserialize(item);
+        const nodeName = node.getName();
+        if (nodeName) {
+          this.addToNameMap(nodeName, `${providedBlueId}#${idx}`);
+        }
+      });
+      return;
+    }
 
-    this.blueIdToContentMap.set(blueId, parsedContent.content);
-    this.blueIdToMultipleDocumentsMap.set(blueId, false);
-
-    // Add name mapping if node has a name
+    const node = NodeDeserializer.deserialize(content);
     const nodeName = node.getName();
     if (nodeName) {
-      this.addToNameMap(nodeName, blueId);
+      this.addToNameMap(nodeName, providedBlueId);
     }
-  }
-
-  private processMultipleDocuments(
-    contents: JsonBlueValue[],
-    providedBlueId?: string,
-  ): void {
-    const nodes = contents.map((item) => {
-      const node = NodeDeserializer.deserialize(item);
-      return this.preprocessor(node);
-    });
-
-    const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
-      nodes,
-      (node) => node, // Already preprocessed above
-    );
-
-    // Use provided blueId if available, otherwise use calculated one
-    const blueId = providedBlueId || parsedContent.blueId;
-
-    this.blueIdToContentMap.set(blueId, parsedContent.content);
-    this.blueIdToMultipleDocumentsMap.set(blueId, true);
-
-    // Process individual items and add name mappings
-    nodes.forEach((node, index) => {
-      // Store individual items with their # reference
-      const itemBlueId = `${blueId}#${index}`;
-      const itemContent = NodeToMapListOrValue.get(node);
-
-      // Also calculate and store the individual item's own blueId
-      const individualBlueId = BlueIdCalculator.calculateBlueIdSync(node);
-      this.blueIdToContentMap.set(individualBlueId, itemContent);
-      this.blueIdToMultipleDocumentsMap.set(individualBlueId, false);
-
-      // Add name mapping with # reference
-      const nodeName = node.getName();
-      if (nodeName) {
-        this.addToNameMap(nodeName, itemBlueId);
-      }
-    });
   }
 
   protected override fetchContentByBlueId(
     baseBlueId: string,
   ): JsonBlueValue | null {
-    const content = this.blueIdToContentMap.get(baseBlueId);
+    const lookupBlueId = this.toCurrentBlueId?.(baseBlueId) ?? baseBlueId;
+    const content = this.blueIdToContentMap.get(lookupBlueId);
     const isMultipleDocuments =
-      this.blueIdToMultipleDocumentsMap.get(baseBlueId);
+      this.blueIdToMultipleDocumentsMap.get(lookupBlueId);
 
     if (content !== undefined && isMultipleDocuments !== undefined) {
       return NodeContentHandler.resolveThisReferences(
         content,
-        baseBlueId,
+        lookupBlueId,
         isMultipleDocuments,
       );
     }
 
     return null;
+  }
+
+  override fetchByBlueId(blueId: string): BlueNode[] | null {
+    const baseBlueId = blueId.split('#')[0];
+    const lookupBlueId = this.toCurrentBlueId?.(baseBlueId) ?? baseBlueId;
+    const content = this.blueIdToContentMap.get(lookupBlueId);
+    const isMultipleDocuments =
+      this.blueIdToMultipleDocumentsMap.get(lookupBlueId);
+
+    if (content === undefined || isMultipleDocuments === undefined) {
+      return null;
+    }
+
+    const resolvedContent = NodeContentHandler.resolveThisReferences(
+      content,
+      lookupBlueId,
+      isMultipleDocuments,
+    );
+
+    if (blueId.includes('#')) {
+      const parts = blueId.split('#');
+      if (parts.length > 1) {
+        const index = parseInt(parts[1]);
+        if (Array.isArray(resolvedContent) && index < resolvedContent.length) {
+          const item = resolvedContent[index];
+          const node = NodeDeserializer.deserialize(item);
+
+          node.setBlueId(blueId);
+          return [node];
+        } else if (index === 0) {
+          const node = NodeDeserializer.deserialize(resolvedContent);
+          node.setBlueId(blueId);
+          return [node];
+        }
+        return null;
+      }
+    }
+
+    if (Array.isArray(resolvedContent)) {
+      return resolvedContent.map((item, idx) => {
+        const node = NodeDeserializer.deserialize(item);
+        node.setBlueId(`${baseBlueId}#${idx}`);
+        return node;
+      });
+    } else {
+      const node = NodeDeserializer.deserialize(resolvedContent);
+      node.setBlueId(baseBlueId);
+      return [node];
+    }
   }
 
   /**
@@ -143,6 +142,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
    */
   public hasBlueId(blueId: string): boolean {
     const baseBlueId = blueId.split('#')[0];
-    return this.blueIdToContentMap.has(baseBlueId);
+    const lookupBlueId = this.toCurrentBlueId?.(baseBlueId) ?? baseBlueId;
+    return this.blueIdToContentMap.has(lookupBlueId);
   }
 }

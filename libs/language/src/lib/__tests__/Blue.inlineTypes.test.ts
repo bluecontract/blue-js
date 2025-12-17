@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Blue } from '../Blue';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import type { BlueRepository } from '../types/BlueRepository';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { RepositoryBasedNodeProvider } from '../provider';
 import { TEXT_TYPE_BLUE_ID } from '../utils/Properties';
 
@@ -108,13 +109,13 @@ describe('Blue.restoreInlineTypes', () => {
     const baseTypeBlueId = BlueIdCalculator.calculateBlueIdSync(baseTypeNode);
     blue.registerBlueIds({ 'Base Type': baseTypeBlueId });
 
-    const repository: BlueRepository = {
-      blueIds: { 'Base Type': baseTypeBlueId },
-      schemas: [],
-      contents: {
-        [baseTypeBlueId]: blue.nodeToJson(baseTypeNode),
+    const repository: BlueRepository = buildTestRepository([
+      {
+        name: 'Base Type',
+        blueId: baseTypeBlueId,
+        json: blue.nodeToJson(baseTypeNode),
       },
-    };
+    ]);
 
     blue.setNodeProvider(new RepositoryBasedNodeProvider([repository]));
 
@@ -211,14 +212,14 @@ describe('Blue.restoreInlineTypes', () => {
 
     blue.registerBlueIds({ Option: optionBlueId, Form: formBlueId });
 
-    const repository: BlueRepository = {
-      blueIds: { Option: optionBlueId, Form: formBlueId },
-      schemas: [],
-      contents: {
-        [optionBlueId]: blue.nodeToJson(optionNode),
-        [formBlueId]: blue.nodeToJson(formNode),
+    const repository: BlueRepository = buildTestRepository([
+      {
+        name: 'Option',
+        blueId: optionBlueId,
+        json: blue.nodeToJson(optionNode),
       },
-    };
+      { name: 'Form', blueId: formBlueId, json: blue.nodeToJson(formNode) },
+    ]);
 
     blue.setNodeProvider(new RepositoryBasedNodeProvider([repository]));
 
@@ -422,17 +423,18 @@ describe('Blue.restoreInlineTypes', () => {
     const derivedBlueId = BlueIdCalculator.calculateBlueIdSync(derivedNode);
     blue.registerBlueIds({ 'Derived Preferences': derivedBlueId });
 
-    const repository: BlueRepository = {
-      blueIds: {
-        'Base Preferences': baseBlueId,
-        'Derived Preferences': derivedBlueId,
+    const repository: BlueRepository = buildTestRepository([
+      {
+        name: 'Base Preferences',
+        blueId: baseBlueId,
+        json: blue.nodeToJson(baseNode),
       },
-      schemas: [],
-      contents: {
-        [baseBlueId]: blue.nodeToJson(baseNode),
-        [derivedBlueId]: blue.nodeToJson(derivedNode),
+      {
+        name: 'Derived Preferences',
+        blueId: derivedBlueId,
+        json: blue.nodeToJson(derivedNode),
       },
-    };
+    ]);
 
     blue.setNodeProvider(new RepositoryBasedNodeProvider([repository]));
 
@@ -474,3 +476,42 @@ describe('Blue.restoreInlineTypes', () => {
     `);
   });
 });
+
+function buildTestRepository(
+  types: Array<{ name: string; blueId: string; json: JsonValue }>,
+): BlueRepository {
+  const typesMeta = Object.fromEntries(
+    types.map(({ name, blueId }) => [
+      blueId,
+      {
+        status: 'stable' as const,
+        name,
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: blueId,
+            attributesAdded: [],
+          },
+        ],
+      },
+    ]),
+  );
+
+  const contents = Object.fromEntries(
+    types.map(({ blueId, json }) => [blueId, json]),
+  );
+
+  return {
+    name: 'test.repo',
+    repositoryVersions: ['R0'],
+    packages: {
+      test: {
+        name: 'test',
+        aliases: {},
+        typesMeta,
+        contents,
+        schemas: {},
+      },
+    },
+  };
+}

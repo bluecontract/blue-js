@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "packages": {
+    "@blue-repository/types": {
+      "signature": "6a0b29ed881b18b2b9897fc472500bf8",
+      "file": true
+    }
+  }
+}

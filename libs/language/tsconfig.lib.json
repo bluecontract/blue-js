@@ -9,7 +9,14 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src/**/*.ts", "types/base32.js.d.ts"],
-  "references": [{ "path": "../shared/utils/tsconfig.lib.json" }],
+  "references": [
+    {
+      "path": "../repository-contract/tsconfig.lib.json"
+    },
+    {
+      "path": "../shared/utils/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",
@@ -22,6 +29,7 @@
     "src/**/*.test.js",
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
-    "src/**/*.spec.jsx"
+    "src/**/*.spec.jsx",
+    "dist/**/*"
   ]
 }

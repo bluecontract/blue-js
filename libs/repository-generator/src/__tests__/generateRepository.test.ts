@@ -197,6 +197,92 @@ optionalField:
     expect(second.currentRepoBlueId).not.toEqual(first.currentRepoBlueId);
   });
 
+  it('rejects optional additions that introduce fixed list payloads', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `name: Thing
+value:
+  type: Text
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `name: Thing
+value:
+  type: Text
+optionalList:
+  - foo
+  - bar
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('allows enum constraints in newly-added optional fields', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `name: Thing
+value:
+  type: Text
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `name: Thing
+value:
+  type: Text
+optionalEnum:
+  type: Text
+  schema:
+    enum: [foo, bar]
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p) => p.name === 'Core')
+      ?.types.find((t) => (t.content as { name?: string }).name === 'Thing');
+    expect(typeMeta?.versions).toHaveLength(2);
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
+      '/optionalEnum',
+    ]);
+  });
+
   it('stores dev BlueId in versions and overwrites on change', () => {
     const repoRoot = createRepo();
     writeType(

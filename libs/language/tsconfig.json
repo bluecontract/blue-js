@@ -3,8 +3,17 @@
   "files": [],
   "include": [],
   "references": [
-    { "path": "../shared/utils" },
-    { "path": "./tsconfig.lib.json" },
-    { "path": "./tsconfig.spec.json" }
+    {
+      "path": "../repository-contract"
+    },
+    {
+      "path": "../shared/utils"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
   ]
 }

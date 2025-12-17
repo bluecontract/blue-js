@@ -50,4 +50,13 @@ describe('pointers', () => {
       validateAttributesAddedPointer('/prop/valueType/x'),
     ).not.toThrow(InvalidRepositoryPointerError);
   });
+
+  it('validateAttributesAddedPointer rejects pointers ending in itemType/valueType', () => {
+    expect(() => validateAttributesAddedPointer('/prop/itemType')).toThrow(
+      InvalidRepositoryPointerError,
+    );
+    expect(() => validateAttributesAddedPointer('/prop/valueType')).toThrow(
+      InvalidRepositoryPointerError,
+    );
+  });
 });

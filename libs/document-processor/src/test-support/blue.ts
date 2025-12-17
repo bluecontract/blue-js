@@ -42,10 +42,39 @@ const fallbackContents = Object.fromEntries(
     },
   ]),
 );
+
+const fallbackTypesMeta = Object.fromEntries(
+  FALLBACK_BLUE_IDS.map((id) => [
+    id,
+    {
+      status: 'stable' as const,
+      name: id,
+      versions: [
+        { repositoryVersionIndex: 0, typeBlueId: id, attributesAdded: [] },
+      ],
+    },
+  ]),
+);
+
+const fallbackToCurrentBlueIdIndex = Object.fromEntries(
+  FALLBACK_BLUE_IDS.map((id) => [id, id]),
+);
+
 const testFallbackRepository: BlueRepository = {
-  blueIds: fallbackBlueIdMap,
-  schemas: [],
-  contents: fallbackContents,
+  name: 'test.fallback.repo',
+  repositoryVersions: ['R0'],
+  repoVersionIndexById: { R0: 0 },
+  packages: {
+    fallback: {
+      name: 'fallback',
+      aliases: fallbackBlueIdMap,
+      typesMeta: fallbackTypesMeta,
+      types: fallbackTypesMeta,
+      toCurrentBlueIdIndex: fallbackToCurrentBlueIdIndex,
+      contents: fallbackContents,
+      schemas: {},
+    },
+  },
 };
 
 export function createBlue(): Blue {

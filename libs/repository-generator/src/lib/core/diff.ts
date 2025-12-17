@@ -132,6 +132,10 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
       return true;
     }
 
+    if (Object.prototype.hasOwnProperty.call(current, 'items')) {
+      return true;
+    }
+
     if (
       Object.prototype.hasOwnProperty.call(current, 'schema') &&
       isRecord(current.schema) &&
@@ -140,7 +144,10 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
       return true;
     }
 
-    for (const val of Object.values(current)) {
+    for (const [key, val] of Object.entries(current)) {
+      if (key === 'schema') {
+        continue;
+      }
       if (isRecord(val)) {
         stack.push(val);
       }

@@ -91,4 +91,12 @@ export function validateAttributesAddedPointer(pointer: string): void {
       );
     }
   }
+
+  const terminal = segments.at(-1);
+  if (terminal === 'itemType' || terminal === 'valueType') {
+    throw new InvalidRepositoryPointerError(
+      pointer,
+      `attributesAdded pointers must not end with '${terminal}'`,
+    );
+  }
 }
