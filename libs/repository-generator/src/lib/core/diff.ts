@@ -10,7 +10,6 @@ import {
 } from '@blue-labs/repository-contract';
 
 const PRIMITIVE_BLUE_ID_SET = new Set(Object.values(PRIMITIVE_BLUE_IDS));
-const { compare } = fastJsonPatch;
 
 export const CHANGE_STATUS = {
   Unchanged: 'unchanged',
