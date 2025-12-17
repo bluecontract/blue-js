@@ -31,7 +31,7 @@ export function classifyChange(
   packageName: string,
   typeName: string,
 ): ChangeClassification {
-  const patch = compare(
+  const patch = fastJsonPatch.compare(
     previousContent as unknown as Record<string, unknown>,
     nextContent as unknown as Record<string, unknown>,
   );

@@ -1,3 +1,16 @@
+## 2.0.0-rc.9 (2025-12-17)
+
+### 🚀 Features
+
+- publish repository-generator with cli entrypoint ([92b1135](https://github.com/bluecontract/blue-js/commit/92b1135))
+
+## 2.0.0-rc.8 (2025-12-17)
+
+### 🚀 Features
+
+- add nodeToYaml serialization method ([7c1f0ed](https://github.com/bluecontract/blue-js/commit/7c1f0ed))
+- blue repository generator ([#119](https://github.com/bluecontract/blue-js/pull/119))
+
 # 2.0.0 (2025-12-12)
 
 ### 🚀 Features
