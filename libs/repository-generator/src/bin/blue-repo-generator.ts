@@ -79,9 +79,18 @@ function main() {
 
     if (args.mode === 'check') {
       if (!result.existingYaml) {
-        throw new Error(
-          'BlueRepository.blue is missing. Run with --mode write to create it.',
-        );
+        logJson(args.json, {
+          repoBlueId: result.currentRepoBlueId,
+          changed: true,
+          reason: 'BlueRepository.blue is missing.',
+        });
+        if (args.failOnDiff) {
+          throw new Error(
+            'BlueRepository.blue is missing. Run with --mode write to create it.',
+          );
+        }
+        console.warn('BlueRepository.blue is missing. Run with --mode write.');
+        return;
       }
       if (!fileMatches) {
         logJson(args.json, {

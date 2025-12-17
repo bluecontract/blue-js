@@ -1,4 +1,5 @@
-import { compare, Operation } from 'fast-json-patch';
+import fastJsonPatch from 'fast-json-patch';
+import type { Operation } from 'fast-json-patch';
 import { JsonBlueValue } from '@blue-labs/language';
 import { JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS } from './constants';
@@ -25,7 +26,7 @@ export function classifyChange(
   packageName: string,
   typeName: string,
 ): ChangeClassification {
-  const patch = compare(
+  const patch = fastJsonPatch.compare(
     previousContent as unknown as Record<string, unknown>,
     nextContent as unknown as Record<string, unknown>,
   );
