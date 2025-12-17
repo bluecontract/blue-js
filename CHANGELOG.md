@@ -1,3 +1,9 @@
+## 2.0.0-rc.9 (2025-12-17)
+
+### 🚀 Features
+
+- publish repository-generator with cli entrypoint ([92b1135](https://github.com/bluecontract/blue-js/commit/92b1135))
+
 ## 2.0.0-rc.8 (2025-12-17)
 
 ### 🚀 Features
