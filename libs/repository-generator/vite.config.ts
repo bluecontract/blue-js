@@ -26,9 +26,15 @@ export default {
       transformMixedEsModules: true,
     },
     lib: {
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        'bin/blue-repo-generator': 'src/bin/blue-repo-generator.ts',
+      },
       name: 'repository-generator',
-      fileName: 'index',
+      fileName: (format: string, entryName: string) => {
+        const ext = format === 'es' ? 'mjs' : 'js';
+        return `${entryName}.${ext}`;
+      },
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
