@@ -28,6 +28,9 @@
     }
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "zod": "^3.0.0"
   }
