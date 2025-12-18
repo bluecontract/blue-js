@@ -50,7 +50,7 @@
     "libs/shared/*"
   ],
   "dependencies": {
-    "@blue-repository/types": "1.0.0-rc.3",
+    "@blue-repository/types": "1.0.0-rc.4",
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",
     "base32.js": "0.1.0",

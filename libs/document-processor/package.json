@@ -34,6 +34,6 @@
   },
   "peerDependencies": {
     "zod": "^3.20.0",
-    "@blue-repository/types": "1.0.0-rc.3"
+    "@blue-repository/types": "1.0.0-rc.4"
   }
 }
