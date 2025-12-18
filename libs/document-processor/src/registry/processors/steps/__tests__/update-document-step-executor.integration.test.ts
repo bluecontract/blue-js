@@ -11,15 +11,15 @@ describe('UpdateDocumentStepExecutor (integration)', () => {
     const yaml = `name: Update Document Workflow
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   handler:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: SeedStatus
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: ADD
             path: /status
@@ -41,19 +41,19 @@ contracts:
 counter: 5
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   handler:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: Compute
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           return { increment: 4 };
       - name: Apply
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /counter
@@ -75,15 +75,15 @@ contracts:
 history: []
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   handler:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: Apply
-        type: Update Document
+        type: Conversation/Update Document
         changeset: "\${[
           { op: 'REPLACE', path: '/status', val: 'ready' },
           { op: 'ADD', path: '/history/-', val: 'booted' }

@@ -1,5 +1,5 @@
 import { Blue, BlueIdCalculator, BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/core';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import { ChannelRunner, type ChannelMatch } from './channel-runner.js';
 import { CheckpointManager } from './checkpoint-manager.js';
@@ -39,8 +39,8 @@ import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
 
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Processing Initialized Marker'];
-const DOCUMENT_UPDATE_BLUE_ID = blueIds['Document Update'];
+  blueIds['Core/Processing Initialized Marker'];
+const DOCUMENT_UPDATE_BLUE_ID = blueIds['Core/Document Update'];
 
 interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   bundleForScope(scopePath: string): ContractBundle | undefined;

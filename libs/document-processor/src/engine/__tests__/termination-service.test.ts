@@ -8,7 +8,7 @@ import { ContractBundle } from '../contract-bundle.js';
 import { RunTerminationError } from '../run-termination-error.js';
 import type { TerminationExecutionAdapter } from '../termination-service.js';
 import { typeBlueId } from '../../__tests__/test-utils.js';
-import { blueIds } from '@blue-repository/core';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 describe('TerminationService', () => {
   function createFixture() {
@@ -47,7 +47,7 @@ describe('TerminationService', () => {
     const lifecycleEvent = deliverLifecycleMock.mock.calls[0]?.[2] as BlueNode;
     expect(lifecycleEvent).toBeInstanceOf(BlueNode);
     expect(typeBlueId(lifecycleEvent)).toBe(
-      blueIds['Document Processing Terminated'],
+      blueIds['Core/Document Processing Terminated'],
     );
     const props = lifecycleEvent.getProperties() ?? {};
 

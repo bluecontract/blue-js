@@ -1,6 +1,7 @@
 import type { ChannelEvaluationContext, ChannelProcessor } from '../types.js';
 import { BlueNode } from '@blue-labs/language';
-import { TimelineEntrySchema, blueIds } from '@blue-repository/conversation';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+import { blueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import {
   timelineChannelSchema,
@@ -12,7 +13,7 @@ export class TimelineChannelProcessor
   implements ChannelProcessor<TimelineChannel>
 {
   readonly kind = 'channel' as const;
-  readonly blueIds = [blueIds['Timeline Channel']] as const;
+  readonly blueIds = [blueIds['Conversation/Timeline Channel']] as const;
   readonly schema = timelineChannelSchema;
 
   matches(

@@ -33,7 +33,7 @@ function lifecycleBundle(): ContractBundle {
     .addChannel(
       'lifecycle',
       { order: 0 } as LifecycleChannel,
-      blueIds['Lifecycle Event Channel'],
+      blueIds['Core/Lifecycle Event Channel'],
     )
     .build();
 }

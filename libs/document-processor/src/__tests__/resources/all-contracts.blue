@@ -1,31 +1,31 @@
 contracts:
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /payment
       - /shipping
   documentUpdate:
-    type: Document Update Channel
+    type: Core/Document Update Channel
     path: /
   triggered:
-    type: Triggered Event Channel
+    type: Core/Triggered Event Channel
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   embeddedNode:
-    type: Embedded Node Channel
+    type: Core/Embedded Node Channel
     childPath: /payment
   checkpoint:
-    type: Channel Event Checkpoint
+    type: Core/Channel Event Checkpoint
     lastEvents:
       external:
         type:
           blueId: TestEvent
         eventId: evt-001
   initialized:
-    type: Processing Initialized Marker
+    type: Core/Processing Initialized Marker
     documentId: doc-123
   failure:
-    type: Processing Terminated Marker
+    type: Core/Processing Terminated Marker
     cause: RuntimeFatal
     reason: boundary violation
   setProperty:

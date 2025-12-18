@@ -54,17 +54,57 @@ describe('blue.resolve with Document Links and Document Link values', () => {
 
     blue.registerBlueIds({ 'Document Links': documentLinksBlueId });
 
-    const repository: BlueRepository = {
-      blueIds: {
-        Link: linkBlueId,
-        'Document Link': documentLinkBlueId,
-        'Document Links': documentLinksBlueId,
+    const typesMeta = {
+      [linkBlueId]: {
+        status: 'stable' as const,
+        name: 'Link',
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: linkBlueId,
+            attributesAdded: [],
+          },
+        ],
       },
-      schemas: [],
-      contents: {
-        [linkBlueId]: blue.nodeToJson(linkNode),
-        [documentLinkBlueId]: blue.nodeToJson(documentLinkNode),
-        [documentLinksBlueId]: blue.nodeToJson(documentLinksNode),
+      [documentLinkBlueId]: {
+        status: 'stable' as const,
+        name: 'Document Link',
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: documentLinkBlueId,
+            attributesAdded: [],
+          },
+        ],
+      },
+      [documentLinksBlueId]: {
+        status: 'stable' as const,
+        name: 'Document Links',
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: documentLinksBlueId,
+            attributesAdded: [],
+          },
+        ],
+      },
+    };
+
+    const repository: BlueRepository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: {},
+          typesMeta,
+          contents: {
+            [linkBlueId]: blue.nodeToJson(linkNode),
+            [documentLinkBlueId]: blue.nodeToJson(documentLinkNode),
+            [documentLinksBlueId]: blue.nodeToJson(documentLinksNode),
+          },
+          schemas: {},
+        },
       },
     };
 

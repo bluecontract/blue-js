@@ -2,7 +2,7 @@ import { Blue, BlueNode } from '@blue-labs/language';
 import {
   TimelineEntrySchema,
   type TimelineEntry,
-} from '@blue-repository/conversation';
+} from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
 
 type TimelineEntryLike = Pick<TimelineEntry, 'timestamp'>;
 

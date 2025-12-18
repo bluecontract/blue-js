@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { DocumentAnchorsSchema as RepositoryDocumentAnchorsSchema } from '@blue-repository/myos';
+import { DocumentAnchorsSchema as RepositoryDocumentAnchorsSchema } from '@blue-repository/types/packages/myos/schemas/DocumentAnchors';
 
 import { markerContractBaseSchema } from '../shared/index.js';
 

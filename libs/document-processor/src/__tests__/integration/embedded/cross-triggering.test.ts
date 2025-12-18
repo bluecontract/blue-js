@@ -27,44 +27,44 @@ groupA:
     lastEvent: "none"
     contracts:
       subTimeline:
-        type: Timeline Channel
+        type: Conversation/Timeline Channel
         timelineId: sub-a
       subWorkflow:
-        type: Sequential Workflow
+        type: Conversation/Sequential Workflow
         channel: subTimeline
         steps:
           - name: IncrementScore
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /score
                 val: "\${document('score') + 2}"
           - name: RecordHandled
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /lastEvent
                 val: handled
   contracts:
     embeddedSubA:
-      type: Process Embedded
+      type: Core/Process Embedded
       paths:
         - /subA
     subAScoreUpdates:
-      type: Document Update Channel
+      type: Core/Document Update Channel
       path: /subA/score
     onSubAScoreUpdate:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: subAScoreUpdates
       steps:
         - name: IncrementGroupCounter
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /counter
               val: "\${(document('counter') ?? 0) + 1}"
         - name: RecordGroupPath
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastTriggered
@@ -78,82 +78,82 @@ groupB:
     yChanges: 0
     contracts:
       nestedTimeline:
-        type: Timeline Channel
+        type: Conversation/Timeline Channel
         timelineId: nested-b
       nestedWorkflow:
-        type: Sequential Workflow
+        type: Conversation/Sequential Workflow
         channel: nestedTimeline
         steps:
           - name: IncrementX
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /x
                 val: "\${document('x') + 1}"
           - name: AdjustY
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /y
                 val: "\${document('y') + document('x')}"
       nestedYUpdates:
-        type: Document Update Channel
+        type: Core/Document Update Channel
         path: /y
       onNestedYUpdate:
-        type: Sequential Workflow
+        type: Conversation/Sequential Workflow
         channel: nestedYUpdates
         steps:
           - name: CountYChanges
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /yChanges
                 val: "\${(document('yChanges') ?? 0) + 1}"
   contracts:
     embeddedNestedB:
-      type: Process Embedded
+      type: Core/Process Embedded
       paths:
         - /nestedB
     nestedBXUpdates:
-      type: Document Update Channel
+      type: Core/Document Update Channel
       path: /nestedB/x
     onNestedBXUpdate:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: nestedBXUpdates
       steps:
         - name: IncrementTotalUpdates
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /totalUpdates
               val: "\${(document('totalUpdates') ?? 0) + 1}"
         - name: RecordNestedPath
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastFromNested
               val: "\${event.path}"
 contracts:
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /groupA
       - /groupB
   rootNestedBXUpdates:
-    type: Document Update Channel
+    type: Core/Document Update Channel
     path: /groupB/nestedB/x
   onRootNestedBXUpdate:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootNestedBXUpdates
     steps:
       - name: IncrementRootCounter
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /rootCounter
             val: "\${(document('rootCounter') ?? 0) + 1}"
       - name: RecordRootPath
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /rootLastPath

@@ -31,11 +31,11 @@ function makeTimelineEntryWithValue(
   const stableTimestamp = entryId
     .split('')
     .reduce((acc, c) => acc + c.charCodeAt(0), 1700000000);
-  const yaml = `type: Timeline Entry
+  const yaml = `type: Conversation/Timeline Entry
 timeline:
   timelineId: ${timelineId}
 message:
-  type: Chat Message
+  type: Conversation/Chat Message
   message: "${value}"
 actor:
   name: Timeline Driver
@@ -73,14 +73,14 @@ emb1:
   counter-0: 0
   contracts:
     incrementChannel0:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: ${timelineIds[0]}
     counterWorkflow:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: incrementChannel0
       steps:
         - name: Increment Counter
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /counter-0
@@ -91,59 +91,59 @@ emb2:
   counter-2: 0
   contracts:
     incrementChannel1:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: ${timelineIds[1]}
     incrementChannel2:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: ${timelineIds[2]}
     counterWorkflow1:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: incrementChannel1
       steps:
         - name: Increment Counter
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /counter-1
               val: "\${document('counter-1') + parseInt(event.message.message)}"
     counterWorkflow2:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: incrementChannel2
       steps:
         - name: Increment Counter
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /counter-2
               val: "\${document('counter-2') + parseInt(event.message.message)}"
 contracts:
   processEmbedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /emb1
       - /emb2
   incrementChannel1:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${timelineIds[1]}
   incrementChannel3:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${timelineIds[3]}
   counterWorkflow1:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: incrementChannel1
     steps:
       - name: Increment Counter
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /counter-1
             val: "\${document('counter-1') + parseInt(event.message.message)}"
   counterWorkflow2:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: incrementChannel3
     steps:
       - name: Increment Counter
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /counter-3
@@ -250,14 +250,14 @@ contracts:
 counter: 0
 contracts:
   timelineChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${timelineId}
   counterWorkflow:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: timelineChannel
     steps:
       - name: Increment Counter
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /counter
@@ -327,32 +327,32 @@ child:
   childCounter: 0
   contracts:
     childChannel:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: ${sharedTimelineId}
     childWorkflow:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: childChannel
       steps:
         - name: Increment Child Counter
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /childCounter
               val: "\${document('childCounter') + 1}"
 contracts:
   processEmbedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /child
   rootChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${sharedTimelineId}
   rootWorkflow:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootChannel
     steps:
       - name: Increment Root Counter
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /rootCounter
@@ -440,32 +440,32 @@ child:
   childCounter: 0
   contracts:
     childChannel:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: ${sharedTimelineId}
     childWorkflow:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: childChannel
       steps:
         - name: Increment Child Counter
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /childCounter
               val: "\${document('childCounter') + 1}"
 contracts:
   processEmbedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /child
   rootChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${sharedTimelineId}
   rootWorkflow:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootChannel
     steps:
       - name: Increment Root Counter
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /rootCounter

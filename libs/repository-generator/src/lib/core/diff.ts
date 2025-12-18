@@ -4,6 +4,10 @@ import { JsonBlueValue } from '@blue-labs/language';
 import { JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS } from './constants';
 import { isRecord } from './utils';
+import {
+  parsePointer as parseRepositoryPointer,
+  validateAttributesAddedPointer,
+} from '@blue-labs/repository-contract';
 
 const PRIMITIVE_BLUE_ID_SET = new Set(Object.values(PRIMITIVE_BLUE_IDS));
 
@@ -71,9 +75,11 @@ function validateAttributePointers(
   typeName: string,
 ) {
   for (const attr of attributes) {
-    if (!attr.startsWith('/')) {
+    try {
+      validateAttributesAddedPointer(attr);
+    } catch (err) {
       throw new Error(
-        `Invalid attribute pointer "${attr}" for ${packageName}/${typeName}. Expected JSON Pointer starting with '/'.`,
+        `Invalid attribute pointer "${attr}" for ${packageName}/${typeName}: ${(err as Error).message}`,
       );
     }
   }
@@ -84,7 +90,7 @@ function isOptionalAddition(op: Operation): boolean {
     return false;
   }
 
-  const segments = parsePointer(op.path);
+  const segments = safeParsePointer(op.path);
   if (segments.length === 0) {
     return false;
   }
@@ -105,15 +111,12 @@ function isOptionalAddition(op: Operation): boolean {
   return true;
 }
 
-function parsePointer(pointer: string): string[] {
-  if (!pointer.startsWith('/')) {
+function safeParsePointer(pointer: string): string[] {
+  try {
+    return parseRepositoryPointer(pointer);
+  } catch {
     return [];
   }
-
-  return pointer
-    .slice(1)
-    .split('/')
-    .map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
 }
 
 function introducesRequiredField(value: Record<string, unknown>): boolean {
@@ -128,6 +131,10 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
       return true;
     }
 
+    if (Object.prototype.hasOwnProperty.call(current, 'items')) {
+      return true;
+    }
+
     if (
       Object.prototype.hasOwnProperty.call(current, 'schema') &&
       isRecord(current.schema) &&
@@ -136,7 +143,10 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
       return true;
     }
 
-    for (const val of Object.values(current)) {
+    for (const [key, val] of Object.entries(current)) {
+      if (key === 'schema') {
+        continue;
+      }
       if (isRecord(val)) {
         stack.push(val);
       }
@@ -149,7 +159,7 @@ function isTypeBlueIdReplace(op: Operation, previousContent: JsonMap): boolean {
   if (op.op !== 'replace' || typeof op.path !== 'string') {
     return false;
   }
-  const segments = parsePointer(op.path);
+  const segments = safeParsePointer(op.path);
   if (segments.length < 2) {
     return false;
   }

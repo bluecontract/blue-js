@@ -22,13 +22,13 @@ describe('DocumentProcessorInitializationTest', () => {
     const yaml = `name: Sample Doc
 contracts:
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   setX:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     propertyKey: /x
     propertyValue: 5
   setXLater:
@@ -37,7 +37,7 @@ contracts:
     type:
       blueId: SetProperty
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     propertyKey: /x
     propertyValue: 10
 `;
@@ -66,7 +66,7 @@ contracts:
     const contracts = property(initialized, 'contracts');
     const initializedMarker = property(contracts, 'initialized');
     expect(initializedMarker.getType()?.getBlueId()).toBe(
-      blueIds['Processing Initialized Marker'],
+      blueIds['Core/Processing Initialized Marker'],
     );
     expect(stringProperty(initializedMarker, 'documentId')).toBe(
       expectedDocumentId,
@@ -96,13 +96,13 @@ contracts:
     const yaml = `name: Custom Path Doc
 contracts:
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   setRoot:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     propertyKey: /x
     propertyValue: 3
   setNested:
@@ -112,7 +112,7 @@ contracts:
       blueId: SetProperty
     path: /nested/branch/
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     propertyKey: x
     propertyValue: 7
   setExplicit:
@@ -122,7 +122,7 @@ contracts:
       blueId: SetProperty
     path: a/x
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     propertyKey: x
     propertyValue: 11
 `;
@@ -147,7 +147,7 @@ contracts:
     const yaml = `name: Sample Doc
 contracts:
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   setX:
     channel: lifecycleChannel
     type:
@@ -225,13 +225,13 @@ x:
     blueId: Text
 contracts:
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   removeX:
     channel: lifecycleChannel
     type:
       blueId: RemoveProperty
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     propertyKey: /x
 `;
 
@@ -258,7 +258,7 @@ contracts:
     const yaml = `name: Invalid Doc
 contracts:
   checkpoint:
-    type: Channel Event Checkpoint
+    type: Core/Channel Event Checkpoint
 `;
 
     const document = blue.yamlToNode(yaml);
@@ -270,7 +270,7 @@ contracts:
     const yaml = `name: Wrong Checkpoint Doc
 contracts:
   checkpoint:
-    type: Processing Terminated Marker
+    type: Core/Processing Terminated Marker
 `;
 
     await expect(
@@ -283,9 +283,9 @@ contracts:
     const yaml = `name: Duplicate Checkpoint Doc
 contracts:
   checkpoint:
-    type: Channel Event Checkpoint
+    type: Core/Channel Event Checkpoint
   extraCheckpoint:
-    type: Channel Event Checkpoint
+    type: Core/Channel Event Checkpoint
 `;
 
     await expect(
@@ -298,15 +298,15 @@ contracts:
     const yaml = `name: Lifecycle Trigger Isolation
 contracts:
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   triggeredChannel:
-    type: Triggered Event Channel
+    type: Core/Triggered Event Channel
   handleLifecycle:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     propertyKey: /lifecycle
     propertyValue: 1
   triggeredHandler:
@@ -333,11 +333,11 @@ child:
   contracts: {}
 contracts:
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /child
   childBridge:
-    type: Embedded Node Channel
+    type: Core/Embedded Node Channel
     childPath: /child
   captureChildLifecycle:
     channel: childBridge

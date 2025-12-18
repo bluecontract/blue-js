@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ProcessingTerminatedMarkerSchema as CoreProcessingTerminatedMarkerSchema } from '@blue-repository/core';
+import { ProcessingTerminatedMarkerSchema as CoreProcessingTerminatedMarkerSchema } from '@blue-repository/types/packages/core/schemas/ProcessingTerminatedMarker';
 import { markerContractBaseSchema } from '../shared/index.js';
 
 // TODO: Service based on that type like in JAVA version.

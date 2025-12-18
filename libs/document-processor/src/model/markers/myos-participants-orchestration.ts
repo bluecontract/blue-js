@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { MyOSParticipantsOrchestrationSchema } from '@blue-repository/myos';
+import { MyOSParticipantsOrchestrationSchema } from '@blue-repository/types/packages/myos/schemas/MyOSParticipantsOrchestration';
 
 import { markerContractBaseSchema } from '../shared/index.js';
 

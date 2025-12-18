@@ -1,9 +1,16 @@
-import { ZodTypeAny } from 'zod';
-import { JsonValue } from '@blue-labs/shared-utils';
-import { BlueIdsRecord } from '../preprocess/utils/BlueIdsMappingGenerator';
+import type { ZodTypeAny } from 'zod';
+import type { JsonValue } from '@blue-labs/shared-utils';
+import type {
+  BlueRepository as ContractBlueRepository,
+  BlueRepositoryPackage as ContractBlueRepositoryPackage,
+  BlueTypeRuntimeMeta as ContractBlueTypeRuntimeMeta,
+} from '@blue-labs/repository-contract';
 
-export interface BlueRepository {
-  blueIds: BlueIdsRecord;
-  schemas: ZodTypeAny[];
-  contents?: Record<string, JsonValue>;
-}
+export type BlueTypeRuntimeMeta = ContractBlueTypeRuntimeMeta;
+export type BlueRepositoryPackage = ContractBlueRepositoryPackage<
+  JsonValue,
+  ZodTypeAny
+>;
+export type BlueRepository = ContractBlueRepository<JsonValue, ZodTypeAny>;
+export type VersionedBlueRepository = BlueRepository;
+export type AnyBlueRepository = BlueRepository;

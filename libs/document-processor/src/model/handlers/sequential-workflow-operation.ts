@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { blueNodeField } from '@blue-labs/language';
-import { SequentialWorkflowOperationSchema as ConversationSequentialWorkflowOperationSchema } from '@blue-repository/conversation';
+import { SequentialWorkflowOperationSchema as ConversationSequentialWorkflowOperationSchema } from '@blue-repository/types/packages/conversation/schemas/SequentialWorkflowOperation';
 
 import { handlerContractBaseSchema } from '../shared/index.js';
 

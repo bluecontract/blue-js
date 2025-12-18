@@ -1,5 +1,5 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/core';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import type { ContractBundle } from './contract-bundle.js';
 import type { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
@@ -8,9 +8,9 @@ import { resolvePointer } from '../util/pointer-utils.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
 import { RunTerminationError } from './run-termination-error.js';
 const PROCESSING_TERMINATED_MARKER_BLUE_ID =
-  blueIds['Processing Terminated Marker'];
+  blueIds['Core/Processing Terminated Marker'];
 const DOCUMENT_PROCESSING_TERMINATED_BLUE_ID =
-  blueIds['Document Processing Terminated'];
+  blueIds['Core/Document Processing Terminated'];
 
 export interface TerminationExecutionAdapter {
   recordPendingTermination(
