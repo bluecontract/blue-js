@@ -1,3 +1,7 @@
+## 2.0.0-rc.11 (2025-12-18)
+
+This was a version bump only, there were no code changes.
+
 ## 2.0.0-rc.10 (2025-12-18)
 
 ### 🚀 Features
