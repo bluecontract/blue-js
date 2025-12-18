@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { MyOSWorkerAgencySchema } from '@blue-repository/myos';
+import { MyOSWorkerAgencySchema } from '@blue-repository/types/packages/myos/schemas/MyOSWorkerAgency';
 
 import { markerContractBaseSchema } from '../shared/index.js';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createBlue } from '../../../test-support/blue.js';
 import { buildProcessor, expectOk, typeBlueId } from '../../test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 const blue = createBlue();
 
@@ -11,30 +11,30 @@ describe('Trigger Event step — does not process embedded document payload', ()
     const documentYaml = `name: Trigger Event Nested Document
 contracts:
   timeline:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: admin
   triggered:
-    type: Triggered Event Channel
+    type: Core/Triggered Event Channel
   onTimeline:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: timeline
     event:
       message:
-        type: Chat Message
+        type: Conversation/Chat Message
     steps:
       - name: EmitStart
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: start
           document:
             name: Child Worker Session
             contracts:
               nestedTimeline:
-                type: Timeline Channel
+                type: Conversation/Timeline Channel
                 timelineId: child
               nestedWorkflow:
-                type: Sequential Workflow
+                type: Conversation/Sequential Workflow
                 channel: nestedTimeline
                 steps: []
 `;
@@ -44,9 +44,9 @@ contracts:
     );
 
     const externalTimelineEvent = blue.jsonValueToNode({
-      type: 'Timeline Entry',
+      type: 'Conversation/Timeline Entry',
       timeline: { timelineId: 'admin' },
-      message: { type: 'Chat Message', message: 'hello' },
+      message: { type: 'Conversation/Chat Message', message: 'hello' },
     });
 
     const processed = await expectOk(
@@ -61,7 +61,7 @@ contracts:
     expect(processed.triggeredEvents.length).toBeGreaterThan(0);
 
     const chatEvents = processed.triggeredEvents.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(chatEvents.length).toBe(1);
   });

@@ -127,7 +127,7 @@ contracts:
           blueId: TestEvent
         kind: emitted
   triggered:
-    type: Triggered Event Channel
+    type: Core/Triggered Event Channel
 `;
 
     const initialized = (

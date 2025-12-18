@@ -1,11 +1,7 @@
-import { Blue } from '@blue-labs/language';
+import { Blue, Properties } from '@blue-labs/language';
 import type { BlueRepository } from '@blue-labs/language';
-import {
-  blueIds as coreBlueIds,
-  repository as coreRepository,
-} from '@blue-repository/core';
-import { repository as conversationRepository } from '@blue-repository/conversation';
-import { repository as myosRepository } from '@blue-repository/myos';
+import { repository as blueRepository } from '@blue-repository/types';
+import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 const FALLBACK_BLUE_IDS = [
   'AssertDocumentUpdate',
@@ -37,7 +33,7 @@ const fallbackContents = Object.fromEntries(
     id,
     {
       name: id,
-      type: { blueId: coreBlueIds.Dictionary },
+      type: { blueId: Properties.DICTIONARY_TYPE_BLUE_ID },
       properties: {},
     },
   ]),
@@ -56,21 +52,14 @@ const fallbackTypesMeta = Object.fromEntries(
   ]),
 );
 
-const fallbackToCurrentBlueIdIndex = Object.fromEntries(
-  FALLBACK_BLUE_IDS.map((id) => [id, id]),
-);
-
 const testFallbackRepository: BlueRepository = {
   name: 'test.fallback.repo',
   repositoryVersions: ['R0'],
-  repoVersionIndexById: { R0: 0 },
   packages: {
     fallback: {
       name: 'fallback',
       aliases: fallbackBlueIdMap,
       typesMeta: fallbackTypesMeta,
-      types: fallbackTypesMeta,
-      toCurrentBlueIdIndex: fallbackToCurrentBlueIdIndex,
       contents: fallbackContents,
       schemas: {},
     },
@@ -80,9 +69,7 @@ const testFallbackRepository: BlueRepository = {
 export function createBlue(): Blue {
   return new Blue({
     repositories: [
-      coreRepository,
-      conversationRepository,
-      myosRepository,
+      blueRepository as unknown as BlueRepository,
       testFallbackRepository,
     ],
   });

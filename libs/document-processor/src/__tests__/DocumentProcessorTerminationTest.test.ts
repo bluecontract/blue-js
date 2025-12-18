@@ -69,7 +69,7 @@ contracts:
     expect(result.triggeredEvents.length).toBe(1);
     const terminationEvent = result.triggeredEvents[0];
     expect(typeBlueId(terminationEvent)).toBe(
-      blueIds['Document Processing Terminated'],
+      blueIds['Core/Document Processing Terminated'],
     );
     expect(stringProperty(terminationEvent, 'cause')).toBe('graceful');
   });
@@ -98,7 +98,7 @@ contracts:
     expect(result.triggeredEvents.length).toBe(1);
     const terminatedEvent = result.triggeredEvents[0];
     expect(typeBlueId(terminatedEvent)).toBe(
-      blueIds['Document Processing Terminated'],
+      blueIds['Core/Document Processing Terminated'],
     );
     expect(stringProperty(terminatedEvent, 'cause')).toBe('fatal');
     expect(stringProperty(terminatedEvent, 'reason')).toBe('panic');
@@ -119,11 +119,11 @@ child:
       mode: graceful
 contracts:
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /child
   childBridge:
-    type: Embedded Node Channel
+    type: Core/Embedded Node Channel
     childPath: /child
   captureChild:
     channel: childBridge
@@ -152,15 +152,15 @@ contracts:
     const yaml = `name: JS Failing Init
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onInit:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: Boom
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           throw new Error("boom");
 `;
@@ -174,7 +174,7 @@ contracts:
     expect(stringProperty(terminated, 'cause')).toBe('fatal');
 
     const terminationEvents = result.triggeredEvents.filter(
-      (e) => typeBlueId(e) === blueIds['Document Processing Terminated'],
+      (e) => typeBlueId(e) === blueIds['Core/Document Processing Terminated'],
     );
     expect(terminationEvents.length).toBe(1);
     expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');

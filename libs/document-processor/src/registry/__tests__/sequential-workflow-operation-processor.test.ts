@@ -9,7 +9,7 @@ import {
   property,
   typeBlueId,
 } from '../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 const blue = createBlue();
 
@@ -62,18 +62,18 @@ function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
 counter: 0
 contracts:
   ownerChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${TIMELINE_ID}
   ${OPERATION_KEY}:
-    type: Operation
+    type: Conversation/Operation
 ${operationChannelLine}    request:
 ${indentBlock(requestTypeYaml.trim(), 6)}
   ${OPERATION_KEY}Handler:
-    type: Sequential Workflow Operation
+    type: Conversation/Sequential Workflow Operation
 ${handlerChannelLine}    operation: ${OPERATION_KEY}
 ${handlerEventSection}    steps:
       - name: ApplyIncrement
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: replace
             path: /counter
@@ -95,7 +95,7 @@ function operationRequestEvent(options?: {
     operation = OPERATION_KEY,
   } = options ?? {};
   const message: Record<string, unknown> = {
-    type: 'Operation Request',
+    type: 'Conversation/Operation Request',
     operation,
     request,
   };
@@ -106,7 +106,7 @@ function operationRequestEvent(options?: {
     message.document = { blueId: documentBlueId };
   }
   return blue.jsonValueToNode({
-    type: 'Timeline Entry',
+    type: 'Conversation/Timeline Entry',
     timeline: { timelineId: TIMELINE_ID },
     message,
   });
@@ -190,14 +190,14 @@ describe('SequentialWorkflowOperationProcessor', () => {
     const yaml = `name: Missing Channel Doc
 contracts:
   ownerChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${TIMELINE_ID}
   ${OPERATION_KEY}:
-    type: Operation
+    type: Conversation/Operation
     request:
       type: Integer
   ${OPERATION_KEY}Handler:
-    type: Sequential Workflow Operation
+    type: Conversation/Sequential Workflow Operation
     operation: ${OPERATION_KEY}
     steps: []
 `;
@@ -218,7 +218,7 @@ contracts:
       OPERATION_KEY,
     );
     expect(typeBlueId(operationContract)).toBe(
-      conversationBlueIds['Operation'],
+      conversationBlueIds['Conversation/Operation'],
     );
   });
 
@@ -271,23 +271,23 @@ contracts:
 counter: 0
 contracts:
   ownerChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: ${TIMELINE_ID}
   otherChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: other-${TIMELINE_ID}
   ${OPERATION_KEY}:
-    type: Operation
+    type: Conversation/Operation
     channel: otherChannel
     request:
       type: Integer
   ${OPERATION_KEY}Handler:
-    type: Sequential Workflow Operation
+    type: Conversation/Sequential Workflow Operation
     channel: ownerChannel
     operation: ${OPERATION_KEY}
     steps:
       - name: ApplyIncrement
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: replace
             path: /counter
@@ -347,7 +347,7 @@ entries:
     const processor = buildProcessor(blue);
     const doc = buildOperationDocument({
       handlerEventYaml: `message:
-  type: Operation Request
+  type: Conversation/Operation Request
   allowNewerVersion: false`,
     });
     const init = await expectOk(processor.initializeDocument(doc));

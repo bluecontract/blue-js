@@ -21,7 +21,7 @@ function documentWithLifecycleAndEventHandlers(): string {
   return `name: Example
 contracts:
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onLifecycle:
     channel: lifecycleChannel
     type:

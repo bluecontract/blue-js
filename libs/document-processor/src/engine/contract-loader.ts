@@ -1,6 +1,6 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/core';
-import { blueIds as myosBlueIds } from '@blue-repository/myos';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 import { ZodError, ZodType } from 'zod';
 
 import {
@@ -35,23 +35,24 @@ import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 
-const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Document Update Channel'];
-const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Embedded Node Channel'];
-const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Lifecycle Event Channel'];
-const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Triggered Event Channel'];
-const PROCESS_EMBEDDED_BLUE_ID = blueIds['Process Embedded'];
+const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
+const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];
+const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Lifecycle Event Channel'];
+const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Triggered Event Channel'];
+const PROCESS_EMBEDDED_BLUE_ID = blueIds['Core/Process Embedded'];
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Processing Initialized Marker'];
+  blueIds['Core/Processing Initialized Marker'];
 const PROCESSING_TERMINATED_MARKER_BLUE_ID =
-  blueIds['Processing Terminated Marker'];
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
-const DOCUMENT_ANCHORS_BLUE_ID = myosBlueIds['Document Anchors'];
-const DOCUMENT_LINKS_BLUE_ID = myosBlueIds['Document Links'];
+  blueIds['Core/Processing Terminated Marker'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
+  blueIds['Core/Channel Event Checkpoint'];
+const DOCUMENT_ANCHORS_BLUE_ID = myosBlueIds['MyOS/Document Anchors'];
+const DOCUMENT_LINKS_BLUE_ID = myosBlueIds['MyOS/Document Links'];
 const MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID =
-  myosBlueIds['MyOS Participants Orchestration'];
+  myosBlueIds['MyOS/MyOS Participants Orchestration'];
 const MYOS_SESSION_INTERACTION_BLUE_ID =
-  myosBlueIds['MyOS Session Interaction'];
-const MYOS_WORKER_AGENCY_BLUE_ID = myosBlueIds['MyOS Worker Agency'];
+  myosBlueIds['MyOS/MyOS Session Interaction'];
+const MYOS_WORKER_AGENCY_BLUE_ID = myosBlueIds['MyOS/MyOS Worker Agency'];
 
 const BUILTIN_CHANNEL_SCHEMAS: ReadonlyMap<
   string,

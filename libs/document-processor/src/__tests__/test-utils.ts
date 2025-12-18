@@ -118,11 +118,11 @@ export function makeTimelineEntry(
   timelineId: string,
   message: string,
 ): BlueNode {
-  const yaml = `type: Timeline Entry
+  const yaml = `type: Conversation/Timeline Entry
 timeline:
   timelineId: ${timelineId}
 message:
-  type: Chat Message
+  type: Conversation/Chat Message
   message: ${message}
 actor:
   name: Timeline Driver

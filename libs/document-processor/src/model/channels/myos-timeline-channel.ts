@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { MyOSTimelineChannelSchema as RepositoryMyOSTimelineChannelSchema } from '@blue-repository/myos';
+import { MyOSTimelineChannelSchema as RepositoryMyOSTimelineChannelSchema } from '@blue-repository/types/packages/myos/schemas/MyOSTimelineChannel';
 
 import { channelContractBaseSchema } from '../shared/index.js';
 

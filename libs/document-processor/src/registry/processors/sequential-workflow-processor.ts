@@ -1,4 +1,4 @@
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import {
   sequentialWorkflowSchema,
@@ -15,7 +15,9 @@ export class SequentialWorkflowHandlerProcessor
   implements HandlerProcessor<SequentialWorkflow>
 {
   readonly kind = 'handler' as const;
-  readonly blueIds = [conversationBlueIds['Sequential Workflow']] as const;
+  readonly blueIds = [
+    conversationBlueIds['Conversation/Sequential Workflow'],
+  ] as const;
   readonly schema = sequentialWorkflowSchema;
 
   private readonly runner: WorkflowStepRunner;

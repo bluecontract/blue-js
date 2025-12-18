@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { TriggeredEventChannelSchema as CoreTriggeredEventChannelSchema } from '@blue-repository/core';
+import { TriggeredEventChannelSchema as CoreTriggeredEventChannelSchema } from '@blue-repository/types/packages/core/schemas/TriggeredEventChannel';
 import { channelContractBaseSchema } from '../shared/index.js';
 
 export const triggeredEventChannelSchema =

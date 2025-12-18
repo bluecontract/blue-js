@@ -1,9 +1,7 @@
 import type { Blue } from '@blue-labs/language';
-import {
-  blueIds as conversationBlueIds,
-  OperationRequestSchema,
-  OperationSchema,
-} from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { OperationRequestSchema } from '@blue-repository/types/packages/conversation/schemas/OperationRequest';
+import { OperationSchema } from '@blue-repository/types/packages/conversation/schemas/Operation';
 
 import {
   sequentialWorkflowOperationSchema,
@@ -31,7 +29,7 @@ export class SequentialWorkflowOperationProcessor
 {
   readonly kind = 'handler' as const;
   readonly blueIds = [
-    conversationBlueIds['Sequential Workflow Operation'],
+    conversationBlueIds['Conversation/Sequential Workflow Operation'],
   ] as const;
   readonly schema = sequentialWorkflowOperationSchema;
 

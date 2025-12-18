@@ -1,9 +1,9 @@
 import { BlueNode } from '@blue-labs/language';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import {
-  blueIds as conversationBlueIds,
-  UpdateDocument,
   UpdateDocumentSchema,
-} from '@blue-repository/conversation';
+  type UpdateDocument,
+} from '@blue-repository/types/packages/conversation/schemas/UpdateDocument';
 
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
 import type { JsonPatch } from '../../../model/shared/json-patch.js';
@@ -25,7 +25,9 @@ type ChangeInput = Required<UpdateDocument>['changeset'][number];
 export class UpdateDocumentStepExecutor
   implements SequentialWorkflowStepExecutor
 {
-  readonly supportedBlueIds = [conversationBlueIds['Update Document']] as const;
+  readonly supportedBlueIds = [
+    conversationBlueIds['Conversation/Update Document'],
+  ] as const;
 
   private readonly evaluator = new QuickJSEvaluator();
 

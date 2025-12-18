@@ -9,14 +9,14 @@ import {
 import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js';
 import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
 import { typeBlueId } from '../../../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 function createStepNode(blue: Blue, code: string): BlueNode {
   const indented = code
     .split('\n')
     .map((line) => `  ${line}`)
     .join('\n');
-  const yaml = `type: JavaScript Code\ncode: |\n${indented}\n`;
+  const yaml = `type: Conversation/JavaScript Code\ncode: |\n${indented}\n`;
   return blue.yamlToNode(yaml);
 }
 
@@ -235,7 +235,7 @@ describe('JavaScriptCodeStepExecutor', () => {
         status: 'done',
         events: [
           {
-            type: "Chat Message",
+            type: "Conversation/Chat Message",
             message: "Workflow finished"
           }
         ]
@@ -251,7 +251,9 @@ describe('JavaScriptCodeStepExecutor', () => {
     const emitted = execution.runtime().rootEmissions();
     expect(emitted).toHaveLength(1);
     const emittedEvent = emitted[0];
-    expect(typeBlueId(emittedEvent)).toBe(conversationBlueIds['Chat Message']);
+    expect(typeBlueId(emittedEvent)).toBe(
+      conversationBlueIds['Conversation/Chat Message'],
+    );
     const message = emittedEvent.getProperties()?.message?.getValue();
     expect(message).toBe('Workflow finished');
   });
