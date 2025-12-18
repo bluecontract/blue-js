@@ -1,3 +1,17 @@
+## 2.0.0-rc.10 (2025-12-18)
+
+### 🚀 Features
+
+- add repository-contract package ([438670e](https://github.com/bluecontract/blue-js/commit/438670e))
+- wip ([e27b73e](https://github.com/bluecontract/blue-js/commit/e27b73e))
+- migrate processor to single repository types ([aec9e86](https://github.com/bluecontract/blue-js/commit/aec9e86))
+- **repository-generator:** repository-generator esm only, use repository-contract ([eab59c4](https://github.com/bluecontract/blue-js/commit/eab59c4))
+
+### 🩹 Fixes
+
+- fix deps ([084650e](https://github.com/bluecontract/blue-js/commit/084650e))
+- try codex fix for hanging npm ci ([72ecac8](https://github.com/bluecontract/blue-js/commit/72ecac8))
+
 ## 2.0.0-rc.9 (2025-12-17)
 
 ### 🚀 Features
