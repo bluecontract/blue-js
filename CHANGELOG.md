@@ -1,3 +1,10 @@
+## 2.0.0-rc.12 (2025-12-18)
+
+### 🚀 Features
+
+- publish repository-contract as first release ([1e7718b](https://github.com/bluecontract/blue-js/commit/1e7718b))
+- publish repository-contract ([3817ac5](https://github.com/bluecontract/blue-js/commit/3817ac5))
+
 ## 2.0.0-rc.11 (2025-12-18)
 
 This was a version bump only, there were no code changes.
