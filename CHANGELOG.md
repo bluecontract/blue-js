@@ -1,3 +1,9 @@
+## 2.0.0-rc.15 (2025-12-18)
+
+### 🚀 Features
+
+- update types package ([a97edcf](https://github.com/bluecontract/blue-js/commit/a97edcf))
+
 ## 2.0.0-rc.14 (2025-12-18)
 
 ### 🩹 Fixes
