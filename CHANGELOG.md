@@ -1,3 +1,9 @@
+## 2.0.0-rc.14 (2025-12-18)
+
+### 🩹 Fixes
+
+- fix missing url ([effc032](https://github.com/bluecontract/blue-js/commit/effc032))
+
 ## 2.0.0-rc.13 (2025-12-18)
 
 ### 🚀 Features
