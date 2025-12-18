@@ -1,3 +1,9 @@
+## 2.0.0-rc.13 (2025-12-18)
+
+### 🚀 Features
+
+- fix publish config for repository-contract ([49bc8eb](https://github.com/bluecontract/blue-js/commit/49bc8eb))
+
 ## 2.0.0-rc.12 (2025-12-18)
 
 ### 🚀 Features
