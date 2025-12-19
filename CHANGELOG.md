@@ -1,3 +1,9 @@
+## 2.0.0-rc.16 (2025-12-19)
+
+### 🚀 Features
+
+- **blue-js:** implement blue.getTypeAlias ([67379a9](https://github.com/bluecontract/blue-js/commit/67379a9))
+
 ## 2.0.0-rc.15 (2025-12-18)
 
 ### 🚀 Features
