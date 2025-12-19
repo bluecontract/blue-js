@@ -44,6 +44,7 @@ import {
   NodeToJsonOptions,
 } from './types/BlueContext';
 import { ReplaceInlineValuesForTypeAttributesWithImports } from './preprocess/processor';
+import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from './utils/Properties';
 
 export type { AnyBlueRepository, BlueRepository } from './types/BlueRepository';
 
@@ -518,6 +519,60 @@ export class Blue {
 
   public toCurrentBlueId(blueId: string): string {
     return this.repositoryRegistry?.toCurrentBlueId(blueId) ?? blueId;
+  }
+
+  /**
+   * Returns the fully-qualified type alias (`<package>/<Type>`) for a given type reference.
+   *
+   * - For core primitives (Text/Integer/Double/Boolean/List/Dictionary), returns the bare name.
+   * - For repository types, resolves historical BlueIds to the current one and returns the canonical alias.
+   * - For inline alias type nodes (pre-preprocess), attempts to resolve the alias to a BlueId first.
+   */
+  public getTypeAlias(blueId: string | null | undefined): string | undefined;
+  public getTypeAlias(
+    typeNode: BlueNode | null | undefined,
+  ): string | undefined;
+  public getTypeAlias(
+    typeOrBlueId: string | BlueNode | null | undefined,
+  ): string | undefined {
+    if (!typeOrBlueId) {
+      return undefined;
+    }
+
+    if (typeof typeOrBlueId === 'string') {
+      return this.getTypeAliasFromBlueId(typeOrBlueId);
+    }
+
+    const typeNode = typeOrBlueId;
+
+    const blueId = typeNode.getBlueId();
+    if (blueId) {
+      return this.getTypeAliasFromBlueId(blueId);
+    }
+
+    if (!typeNode.isInlineValue()) {
+      return undefined;
+    }
+
+    const inlineValue = typeNode.getValue();
+    if (typeof inlineValue !== 'string') {
+      return undefined;
+    }
+
+    return inlineValue;
+  }
+
+  private getTypeAliasFromBlueId(blueId: string): string | undefined {
+    const currentBlueId = this.toCurrentBlueId(blueId);
+    const coreName = (CORE_TYPE_BLUE_ID_TO_NAME_MAP as Record<string, string>)[
+      currentBlueId
+    ];
+    if (coreName) {
+      return coreName;
+    }
+
+    return this.repositoryRegistry?.findRuntimeByBlueId(currentBlueId)
+      ?.typeAlias;
   }
 
   private normalizeHistoricalBlueIds(node: BlueNode): BlueNode {
