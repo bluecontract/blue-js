@@ -35,6 +35,9 @@
     "type": "git",
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
+  "dependencies": {
+    "@blue-labs/shared-utils": "2.0.0-rc.15"
+  },
   "peerDependencies": {
     "zod": "^3.0.0"
   }

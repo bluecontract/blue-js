@@ -2,7 +2,7 @@ import { PreloadedNodeProvider } from './PreloadedNodeProvider';
 import { NodeContentHandler } from './NodeContentHandler';
 import { BlueNode, NodeDeserializer } from '../model';
 import { JsonBlueValue } from '../../schema';
-import { AnyBlueRepository } from '../types/BlueRepository';
+import { BlueRepository } from '../types/BlueRepository';
 
 /**
  * A NodeProvider that processes content from BlueRepository definitions.
@@ -14,7 +14,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private readonly toCurrentBlueId?: (blueId: string) => string;
 
   constructor(
-    repositories: AnyBlueRepository[],
+    repositories: BlueRepository[],
     toCurrentBlueId?: (blueId: string) => string,
   ) {
     super();
@@ -24,7 +24,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     this.loadRepositories(repositories);
   }
 
-  private loadRepositories(repositories: AnyBlueRepository[]): void {
+  private loadRepositories(repositories: BlueRepository[]): void {
     for (const repository of repositories) {
       Object.values(repository.packages).forEach((pkg) => {
         for (const [providedBlueId, content] of Object.entries(pkg.contents)) {

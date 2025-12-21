@@ -10,10 +10,6 @@ export class InvalidRepositoryPointerError extends Error {
 
 export const RESERVED_ATTRIBUTES_POINTER_SEGMENTS: ReadonlySet<string> =
   new Set([
-    'name',
-    'description',
-    'type',
-    'keyType',
     'value',
     'items',
     'blueId',
@@ -22,6 +18,13 @@ export const RESERVED_ATTRIBUTES_POINTER_SEGMENTS: ReadonlySet<string> =
     'mergePolicy',
     'contracts',
   ]);
+
+const RESERVED_ATTRIBUTES_POINTER_TERMINALS: ReadonlySet<string> = new Set([
+  'type',
+  'itemType',
+  'valueType',
+  'keyType',
+]);
 
 export function unescapePointerToken(token: string): string {
   let result = '';
@@ -93,7 +96,7 @@ export function validateAttributesAddedPointer(pointer: string): void {
   }
 
   const terminal = segments.at(-1);
-  if (terminal === 'itemType' || terminal === 'valueType') {
+  if (terminal && RESERVED_ATTRIBUTES_POINTER_TERMINALS.has(terminal)) {
     throw new InvalidRepositoryPointerError(
       pointer,
       `attributesAdded pointers must not end with '${terminal}'`,

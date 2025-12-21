@@ -1,15 +1,23 @@
 import fastJsonPatch from 'fast-json-patch';
 import type { Operation } from 'fast-json-patch';
-import { JsonBlueValue } from '@blue-labs/language';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS } from './constants';
 import { isRecord } from './utils';
 import {
   parsePointer as parseRepositoryPointer,
+  RESERVED_ATTRIBUTES_POINTER_SEGMENTS,
   validateAttributesAddedPointer,
 } from '@blue-labs/repository-contract';
 
 const PRIMITIVE_BLUE_ID_SET = new Set(Object.values(PRIMITIVE_BLUE_IDS));
+const RESERVED_TERMINAL_SEGMENTS = new Set([
+  'type',
+  'itemType',
+  'valueType',
+  'keyType',
+]);
+const ALLOWED_PRIMITIVE_ADDITIONS = new Set(['name', 'description']);
 
 export const CHANGE_STATUS = {
   Unchanged: 'unchanged',
@@ -94,14 +102,21 @@ function isOptionalAddition(op: Operation): boolean {
   if (segments.length === 0) {
     return false;
   }
-
   const last = segments.at(-1);
   if (last && /^\d+$/.test(last)) {
     return false;
   }
 
-  if (!isRecord(op.value)) {
+  if (last && RESERVED_TERMINAL_SEGMENTS.has(last)) {
     return false;
+  }
+
+  if (segments.some((segment) => RESERVED_ATTRIBUTES_POINTER_SEGMENTS.has(segment))) {
+    return false;
+  }
+
+  if (!isRecord(op.value)) {
+    return last ? ALLOWED_PRIMITIVE_ADDITIONS.has(last) : false;
   }
 
   if (introducesRequiredField(op.value)) {
@@ -203,19 +218,19 @@ function isTypeBlueIdReplace(op: Operation, previousContent: JsonMap): boolean {
 }
 
 function getValueAt(
-  content: JsonBlueValue,
+  content: JsonValue,
   segments: string[],
-): JsonBlueValue | undefined {
-  let current: JsonBlueValue = content;
+): JsonValue | undefined {
+  let current: JsonValue = content;
   for (const seg of segments) {
     if (Array.isArray(current)) {
       const idx = Number(seg);
       if (Number.isNaN(idx) || idx < 0 || idx >= current.length) {
         return undefined;
       }
-      current = current[idx] as JsonBlueValue;
+      current = current[idx] as JsonValue;
     } else if (isRecord(current)) {
-      current = current[seg] as JsonBlueValue;
+      current = current[seg] as JsonValue;
     } else {
       return undefined;
     }

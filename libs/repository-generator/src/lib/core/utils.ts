@@ -1,4 +1,4 @@
-import { JsonBlueValue } from '@blue-labs/language';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { BlueTypeVersion } from '../types';
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -7,22 +7,22 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isPlainObject(
   value: unknown,
-): value is Record<string, JsonBlueValue> {
+): value is Record<string, JsonValue> {
   if (!isRecord(value)) {
     return false;
   }
   return Object.getPrototypeOf(value) === Object.prototype;
 }
 
-export function cloneJson<T extends JsonBlueValue>(value: T): T {
+export function cloneJson<T extends JsonValue>(value: T): T {
   if (Array.isArray(value)) {
-    return value.map((item) => cloneJson(item as JsonBlueValue)) as T;
+    return value.map((item) => cloneJson(item as JsonValue)) as T;
   }
 
   if (isPlainObject(value)) {
-    const copy: Record<string, JsonBlueValue> = {};
+    const copy: Record<string, JsonValue> = {};
     for (const [key, val] of Object.entries(value)) {
-      copy[key] = cloneJson(val as JsonBlueValue);
+      copy[key] = cloneJson(val as JsonValue);
     }
     return copy as T;
   }

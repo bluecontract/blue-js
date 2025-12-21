@@ -1,4 +1,3 @@
-import type { JsonBlueValue } from '@blue-labs/language';
 import type {
   BluePackage as ContractBluePackage,
   BlueRepositoryDocument as ContractBlueRepositoryDocument,
@@ -10,13 +9,9 @@ import { BlueTypeStatusLiteral } from './core/constants';
 export type BlueTypeStatus = BlueTypeStatusLiteral;
 
 export type BlueTypeVersion = ContractBlueTypeVersion;
-export type BlueTypeMetadata = ContractBlueTypeMetadata<
-  Record<string, JsonBlueValue>
->;
-export type BluePackage = ContractBluePackage<Record<string, JsonBlueValue>>;
-export type BlueRepositoryDocument = ContractBlueRepositoryDocument<
-  Record<string, JsonBlueValue>
->;
+export type BlueTypeMetadata = ContractBlueTypeMetadata;
+export type BluePackage = ContractBluePackage;
+export type BlueRepositoryDocument = ContractBlueRepositoryDocument;
 
 export type GeneratorMode = 'check' | 'write';
 

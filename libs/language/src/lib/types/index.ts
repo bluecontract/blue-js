@@ -1,5 +1,4 @@
 export type {
-  AnyBlueRepository,
   BlueRepository,
   VersionedBlueRepository,
   BlueRepositoryPackage,

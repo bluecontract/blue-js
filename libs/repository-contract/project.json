@@ -3,14 +3,27 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/repository-contract/src",
   "projectType": "library",
+  "release": {
+    "version": {
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
+    }
+  },
   "tags": [],
   "targets": {
-    "build": {
+    "yalc-push": {
       "executor": "nx:run-commands",
-      "outputs": ["{projectRoot}/dist"],
       "options": {
         "cwd": "{projectRoot}",
-        "command": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.lib.json"
+        "commands": ["yalc push"]
+      }
+    },
+    "yalc-push-watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx watch --projects=repository-contract -- nx yalc-push repository-contract"
+        ]
       }
     },
     "tsc": {

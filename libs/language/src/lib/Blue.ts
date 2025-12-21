@@ -27,7 +27,7 @@ import {
 } from './preprocess/utils/BlueIdsMappingGenerator';
 import { Limits, NO_LIMITS } from './utils/limits';
 import { NodeExtender } from './utils/NodeExtender';
-import { AnyBlueRepository } from './types/BlueRepository';
+import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultMergingProcessor } from './merge';
@@ -46,13 +46,13 @@ import {
 import { ReplaceInlineValuesForTypeAttributesWithImports } from './preprocess/processor';
 import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from './utils/Properties';
 
-export type { AnyBlueRepository, BlueRepository } from './types/BlueRepository';
+export type { BlueRepository } from './types/BlueRepository';
 
 export interface BlueOptions {
   nodeProvider?: NodeProvider;
   typeSchemaResolver?: TypeSchemaResolver;
   urlFetchStrategy?: UrlFetchStrategy;
-  repositories?: AnyBlueRepository[];
+  repositories?: BlueRepository[];
   mergingProcessor?: MergingProcessor;
 }
 
@@ -64,7 +64,7 @@ export class Blue {
   private blueIdsMappingGenerator: BlueIdsMappingGenerator;
   private globalLimits = NO_LIMITS;
   private mergingProcessor: MergingProcessor;
-  private repositories?: AnyBlueRepository[];
+  private repositories?: BlueRepository[];
   private repositoryRegistry: RepositoryRegistry;
 
   constructor(options: BlueOptions = {}) {

@@ -1,7 +1,7 @@
 import { JsonValue } from '@blue-labs/shared-utils';
 import { ZodTypeAny } from 'zod';
 import {
-  AnyBlueRepository,
+  BlueRepository,
   VersionedBlueRepository,
   BlueRepositoryPackage,
   BlueTypeRuntimeMeta,
@@ -27,7 +27,7 @@ export class RepositoryRegistry {
   private readonly contents: Record<string, JsonValue>;
   private readonly aliases: Record<string, string>;
 
-  constructor(repositories: AnyBlueRepository[]) {
+  constructor(repositories: BlueRepository[]) {
     const runtimes: RegisteredRepositoryRuntime[] = [];
 
     for (const repo of repositories) {

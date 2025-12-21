@@ -1,4 +1,4 @@
-import { JsonBlueValue } from '@blue-labs/language';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { BlueTypeMetadata } from '../types';
 import { BlueTypeStatusLiteral } from './constants';
 
@@ -6,7 +6,7 @@ export type PackageName = string;
 export type TypeName = string;
 export type Alias = `${PackageName}/${TypeName}`;
 
-export type JsonMap = Record<string, JsonBlueValue>;
+export type JsonMap = Record<string, JsonValue>;
 
 export interface DiscoveredType {
   packageName: PackageName;

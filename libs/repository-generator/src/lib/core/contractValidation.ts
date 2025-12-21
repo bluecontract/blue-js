@@ -5,9 +5,11 @@ import {
   validateNoCycles,
   validateStableDoesNotDependOnDev,
 } from '@blue-labs/repository-contract';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { BluePackage, BlueTypeMetadata } from '../types';
 import { Alias } from './internalTypes';
 import { BLUE_REPOSITORY_NAME } from './constants';
+import { isPlainObject } from './utils';
 
 type PackagesRecord = Record<string, BlueRepositoryPackage>;
 
@@ -35,7 +37,7 @@ function buildContractPackages(
   for (const pkg of packages) {
     const aliases = extractAliases(pkg.name, aliasToBlueId);
     const typesMeta: Record<string, BlueTypeRuntimeMeta> = {};
-    const contents: Record<string, unknown> = {};
+    const contents: Record<string, JsonValue> = {};
 
     for (const type of pkg.types) {
       const currentBlueId =
@@ -83,8 +85,8 @@ function extractAliases(
 
 function extractTypeName(type: BlueTypeMetadata): string {
   const candidate =
-    typeof type.content?.name === 'string'
-      ? (type.content.name as string)
+    isPlainObject(type.content) && typeof type.content.name === 'string'
+      ? type.content.name
       : null;
   if (!candidate) {
     throw new Error('Type content is missing required "name" field.');

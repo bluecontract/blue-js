@@ -2,7 +2,7 @@ import { NodeProvider } from '../NodeProvider';
 import { SequentialNodeProvider } from '../provider/SequentialNodeProvider';
 import { BootstrapProvider } from '../provider/BootstrapProvider';
 import { RepositoryBasedNodeProvider } from '../provider/RepositoryBasedNodeProvider';
-import { AnyBlueRepository } from '../types/BlueRepository';
+import { BlueRepository } from '../types/BlueRepository';
 
 /**
  * Utility to wrap a NodeProvider with a SequentialNodeProvider that includes bootstrap providers
@@ -17,7 +17,7 @@ export class NodeProviderWrapper {
    */
   public static wrap(
     originalProvider: NodeProvider,
-    repositories?: AnyBlueRepository[],
+    repositories?: BlueRepository[],
     options?: { toCurrentBlueId?: (blueId: string) => string },
   ): NodeProvider {
     const providers: NodeProvider[] = [BootstrapProvider.INSTANCE];

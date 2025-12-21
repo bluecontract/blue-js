@@ -8,7 +8,7 @@ import {
   PackageName,
 } from './internalTypes';
 import { classifyChange, CHANGE_STATUS } from './diff';
-import { cloneVersions } from './utils';
+import { cloneVersions, isPlainObject } from './utils';
 import { BLUE_TYPE_STATUS } from './constants';
 
 export function indexPreviousTypes(
@@ -25,9 +25,10 @@ export function indexPreviousTypes(
     }
     const types = new Map<TypeName, BlueTypeMetadata>();
     for (const type of pkg.types || []) {
+      const content = type.content;
       const typeName =
-        typeof (type.content as JsonMap).name === 'string'
-          ? ((type.content as JsonMap).name as string)
+        isPlainObject(content) && typeof content.name === 'string'
+          ? content.name
           : undefined;
       if (!typeName) {
         continue;
@@ -194,8 +195,14 @@ function buildExistingStableMetadata({
   packageName: PackageName;
   typeName: TypeName;
 }): BlueTypeMetadata {
+  if (!isPlainObject(previousType.content)) {
+    throw new Error(
+      `Type ${alias} has non-object content; cannot compute diff for stable versioning.`,
+    );
+  }
+
   const diffResult = classifyChange(
-    previousType.content,
+    previousType.content as JsonMap,
     currentContent,
     packageName,
     typeName,

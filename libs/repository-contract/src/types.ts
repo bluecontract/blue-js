@@ -1,4 +1,5 @@
 import type { ZodTypeAny } from 'zod';
+import type { JsonValue } from '@blue-labs/shared-utils';
 
 export type AnyZodSchema = ZodTypeAny;
 
@@ -13,7 +14,7 @@ export type BlueRepositoryStatus = 'stable' | 'dev';
 export interface BlueRepositoryVersionEntry {
   repositoryVersionIndex: number;
   typeBlueId: TypeBlueId;
-  attributesAdded: string[];
+  attributesAdded: readonly string[];
 }
 
 export interface BlueTypeRuntimeMeta {
@@ -22,38 +23,35 @@ export interface BlueTypeRuntimeMeta {
   versions: readonly BlueRepositoryVersionEntry[];
 }
 
-export interface BlueRepositoryPackage<
-  ContentT = unknown,
-  SchemaT = AnyZodSchema,
-> {
+export interface BlueRepositoryPackage {
   name: PackageName;
   aliases: Record<TypeAlias, TypeBlueId>;
   typesMeta: Record<TypeBlueId, BlueTypeRuntimeMeta>;
-  contents: Record<TypeBlueId, ContentT>;
-  schemas: Record<TypeBlueId, SchemaT>;
+  contents: Record<TypeBlueId, JsonValue>;
+  schemas: Record<TypeBlueId, AnyZodSchema>;
 }
 
-export interface BlueRepository<ContentT = unknown, SchemaT = AnyZodSchema> {
+export interface BlueRepository {
   name: RepoName;
   repositoryVersions: readonly RepoBlueId[];
-  packages: Record<PackageName, BlueRepositoryPackage<ContentT, SchemaT>>;
+  packages: Record<PackageName, BlueRepositoryPackage>;
 }
 
 export type BlueTypeVersion = BlueRepositoryVersionEntry;
 
-export interface BlueTypeMetadata<ContentT = unknown> {
+export interface BlueTypeMetadata {
   status: BlueRepositoryStatus;
-  content: ContentT;
+  content: JsonValue;
   versions: BlueTypeVersion[];
 }
 
-export interface BluePackage<ContentT = unknown> {
+export interface BluePackage {
   name: PackageName;
-  types: BlueTypeMetadata<ContentT>[];
+  types: BlueTypeMetadata[];
 }
 
-export interface BlueRepositoryDocument<ContentT = unknown> {
+export interface BlueRepositoryDocument {
   name: RepoName;
-  packages: BluePackage<ContentT>[];
+  packages: BluePackage[];
   repositoryVersions: RepoBlueId[];
 }
