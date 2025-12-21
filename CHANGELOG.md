@@ -1,3 +1,9 @@
+## 2.0.0-rc.19 (2025-12-21)
+
+### 🚀 Features
+
+- simplified types ([34da448](https://github.com/bluecontract/blue-js/commit/34da448))
+
 ## 2.0.0-rc.18 (2025-12-21)
 
 ### 🚀 Features

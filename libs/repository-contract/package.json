@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/repository-contract",
-  "version": "2.0.0-rc.18",
+  "version": "2.0.0-rc.19",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -36,7 +36,7 @@
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
   "dependencies": {
-    "@blue-labs/shared-utils": "2.0.0-rc.18"
+    "@blue-labs/shared-utils": "2.0.0-rc.19"
   },
   "peerDependencies": {
     "zod": "^3.0.0"
