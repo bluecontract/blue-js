@@ -1,3 +1,9 @@
+## 2.0.0-rc.18 (2025-12-21)
+
+### 🚀 Features
+
+- lint, build and deps fixes ([870b7e2](https://github.com/bluecontract/blue-js/commit/870b7e2))
+
 ## 2.0.0-rc.17 (2025-12-21)
 
 ### 🚀 Features
