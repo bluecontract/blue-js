@@ -111,7 +111,11 @@ function isOptionalAddition(op: Operation): boolean {
     return false;
   }
 
-  if (segments.some((segment) => RESERVED_ATTRIBUTES_POINTER_SEGMENTS.has(segment))) {
+  if (
+    segments.some((segment) =>
+      RESERVED_ATTRIBUTES_POINTER_SEGMENTS.has(segment),
+    )
+  ) {
     return false;
   }
 

@@ -8,7 +8,8 @@
     "@blue-labs/language": "2.0.0-rc.17",
     "@blue-labs/repository-contract": "2.0.0-rc.17",
     "fast-json-patch": "3.1.1",
-    "js-yaml": "4.1.0"
+    "js-yaml": "4.1.0",
+    "@blue-labs/shared-utils": "2.0.0-rc.17"
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",

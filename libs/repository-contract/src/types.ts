@@ -1,5 +1,5 @@
 import type { ZodTypeAny } from 'zod';
-import type { JsonValue } from '@blue-labs/shared-utils';
+import { JsonValue } from '@blue-labs/shared-utils';
 
 export type AnyZodSchema = ZodTypeAny;
 

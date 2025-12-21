@@ -4,7 +4,9 @@ import { BLUE_REPOSITORY_NAME } from './constants';
 import { PackageName } from './internalTypes';
 import { isPlainObject } from './utils';
 
-type BlueIdInput = Parameters<typeof BlueIdCalculator.INSTANCE.calculateSync>[0];
+type BlueIdInput = Parameters<
+  typeof BlueIdCalculator.INSTANCE.calculateSync
+>[0];
 
 export function finalizePackages(
   packages: Map<PackageName, BluePackage['types']>,

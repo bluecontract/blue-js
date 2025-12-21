@@ -191,7 +191,8 @@ optionalField:
     const typeMeta = second.document.packages
       .find((p: BluePackage) => p.name === 'Core')
       ?.types.find(
-        (t: BlueTypeMetadata) => (t.content as { name?: string }).name === 'Thing',
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Thing',
       );
     expect(typeMeta?.versions).toHaveLength(2);
     expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
@@ -284,7 +285,8 @@ optionalEnum:
     const typeMeta = updated.document.packages
       .find((p: BluePackage) => p.name === 'Core')
       ?.types.find(
-        (t: BlueTypeMetadata) => (t.content as { name?: string }).name === 'Thing',
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Thing',
       );
     expect(typeMeta?.versions).toHaveLength(2);
     expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
@@ -642,7 +644,8 @@ value:
     const draftMeta = initial.document.packages
       .find((p: BluePackage) => p.name === 'Sandbox')
       ?.types.find(
-        (t: BlueTypeMetadata) => (t.content as { name?: string }).name === 'Draft',
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Draft',
       );
     expect(draftMeta?.versions).toHaveLength(1);
     const firstDevVersion = draftMeta?.versions[0];
@@ -668,7 +671,8 @@ note:
     const updatedDraftMeta = updated.document.packages
       .find((p: BluePackage) => p.name === 'Sandbox')
       ?.types.find(
-        (t: BlueTypeMetadata) => (t.content as { name?: string }).name === 'Draft',
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Draft',
       );
     expect(updatedDraftMeta?.versions).toHaveLength(1);
     const updatedVersion = updatedDraftMeta?.versions[0];
@@ -1251,7 +1255,8 @@ map:
       (p: BluePackage) => p.name === 'Conversation',
     );
     const messageMeta = conversationPkg?.types.find(
-      (t: BlueTypeMetadata) => (t.content as { name?: string }).name === 'Message',
+      (t: BlueTypeMetadata) =>
+        (t.content as { name?: string }).name === 'Message',
     );
     const mapHolderMeta = conversationPkg?.types.find(
       (t: BlueTypeMetadata) =>
@@ -1282,7 +1287,8 @@ map:
     const listMeta = result.document.packages
       .find((p: BluePackage) => p.name === 'Core')
       ?.types.find(
-        (t: BlueTypeMetadata) => (t.content as { name?: string }).name === 'List',
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'List',
       );
 
     expect(listMeta?.versions.at(-1)?.typeBlueId).toEqual(primitiveIds.List);

@@ -103,9 +103,7 @@ export function normalizeForBlueId(
   parentHasExplicitType = false,
 ): JsonValue {
   if (Array.isArray(value)) {
-    const items = value.map((item) =>
-      normalizeForBlueId(item as JsonValue),
-    );
+    const items = value.map((item) => normalizeForBlueId(item as JsonValue));
     return { items };
   }
 
