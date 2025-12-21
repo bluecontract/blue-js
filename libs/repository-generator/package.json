@@ -1,12 +1,12 @@
 {
   "name": "@blue-labs/repository-generator",
-  "version": "2.0.0-rc.15",
+  "version": "2.0.0-rc.16",
   "bin": {
     "blue-repo-generator": "./dist/bin/blue-repo-generator.mjs"
   },
   "dependencies": {
-    "@blue-labs/language": "2.0.0-rc.15",
-    "@blue-labs/repository-contract": "2.0.0-rc.15",
+    "@blue-labs/language": "2.0.0-rc.16",
+    "@blue-labs/repository-contract": "2.0.0-rc.16",
     "fast-json-patch": "3.1.1",
     "js-yaml": "4.1.0"
   },

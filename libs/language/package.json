@@ -1,9 +1,9 @@
 {
   "name": "@blue-labs/language",
-  "version": "2.0.0-rc.15",
+  "version": "2.0.0-rc.16",
   "dependencies": {
-    "@blue-labs/repository-contract": "2.0.0-rc.15",
-    "@blue-labs/shared-utils": "2.0.0-rc.15",
+    "@blue-labs/repository-contract": "2.0.0-rc.16",
+    "@blue-labs/shared-utils": "2.0.0-rc.16",
     "@types/big.js": "^6.2.2",
     "@types/js-yaml": "^4.0.9",
     "base32.js": "^0.1.0",
