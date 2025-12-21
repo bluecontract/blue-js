@@ -1,6 +1,5 @@
 export type {
   BlueRepository,
-  VersionedBlueRepository,
   BlueRepositoryPackage,
   BlueTypeRuntimeMeta,
 } from './BlueRepository';

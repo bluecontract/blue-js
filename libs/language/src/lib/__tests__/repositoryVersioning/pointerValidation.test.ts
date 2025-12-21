@@ -3,7 +3,7 @@ import { Blue } from '../../Blue';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
-import type { VersionedBlueRepository } from '../../types/BlueRepository';
+import type { BlueRepository } from '../../types/BlueRepository';
 import { TEXT_TYPE_BLUE_ID } from '../../utils/Properties';
 import { parsePointer as parseRepositoryPointer } from '@blue-labs/repository-contract';
 
@@ -41,7 +41,7 @@ describe('Repository versioning: pointer parsing and validation', () => {
       },
     };
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'invalid.repo',
       repositoryVersions: ['R0'],
       packages: {
@@ -73,7 +73,7 @@ describe('Repository versioning: pointer parsing and validation', () => {
       },
     };
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'invalid.repo',
       repositoryVersions: ['R0'],
       packages: {
@@ -105,7 +105,7 @@ describe('Repository versioning: pointer parsing and validation', () => {
       },
     };
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'invalid.repo',
       repositoryVersions: ['R0'],
       packages: {
@@ -148,7 +148,7 @@ describe('Repository versioning: pointer parsing and validation', () => {
       },
     };
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.blue',
       repositoryVersions: ['R0', 'R1'],
       packages: {
@@ -191,7 +191,7 @@ describe('Repository versioning: pointer parsing and validation', () => {
       },
     };
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.blue',
       repositoryVersions: ['R0', 'R1'],
       packages: {
@@ -232,7 +232,7 @@ describe('Repository versioning: pointer parsing and validation', () => {
     const escapedCurrentId =
       BlueIdCalculator.calculateBlueIdSync(escapedCurrent);
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.blue',
       repositoryVersions,
       packages: {

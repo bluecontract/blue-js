@@ -3,7 +3,7 @@ import { Blue } from '../../Blue';
 import { BlueError, BlueErrorCode } from '../../errors/BlueError';
 import { BlueNode } from '../../model';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
-import type { VersionedBlueRepository } from '../../types/BlueRepository';
+import type { BlueRepository } from '../../types/BlueRepository';
 
 describe('Repository versioning: inlining cycles', () => {
   it('throws when inlining encounters a type chain cycle', () => {
@@ -17,7 +17,7 @@ describe('Repository versioning: inlining cycles', () => {
       new BlueNode().setBlueId(typeAId),
     );
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.cycle',
       repositoryVersions: ['R0', 'R1'] as const,
       packages: {
@@ -92,7 +92,7 @@ describe('Repository versioning: inlining cycles', () => {
       a: new BlueNode().setType(new BlueNode().setBlueId(typeAId)),
     });
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.cycle.props',
       repositoryVersions: ['R0', 'R1'] as const,
       packages: {

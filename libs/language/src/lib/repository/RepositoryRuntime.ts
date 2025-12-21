@@ -2,7 +2,6 @@ import { JsonValue } from '@blue-labs/shared-utils';
 import { ZodTypeAny } from 'zod';
 import {
   BlueRepository,
-  VersionedBlueRepository,
   BlueRepositoryPackage,
   BlueTypeRuntimeMeta,
 } from '../types/BlueRepository';
@@ -98,7 +97,7 @@ export class RepositoryRegistry {
 }
 
 function buildRegisteredRepositoryRuntime(
-  repository: VersionedBlueRepository,
+  repository: BlueRepository,
 ): RegisteredRepositoryRuntime {
   const aliases: Record<string, string> = {};
   const types: Record<string, BlueTypeRuntimeMeta> = {};
@@ -186,7 +185,7 @@ function buildRegisteredRepositoryRuntime(
 
 function normalizeTypeMeta(
   meta: BlueTypeRuntimeMeta,
-  repository: VersionedBlueRepository,
+  repository: BlueRepository,
   currentBlueId: string,
   packageName: string,
 ): BlueTypeRuntimeMeta {
@@ -243,7 +242,7 @@ function normalizeTypeMeta(
 
 function validateDevVersions(
   meta: BlueTypeRuntimeMeta,
-  repository: VersionedBlueRepository,
+  repository: BlueRepository,
   currentBlueId: string,
   packageName: string,
 ) {

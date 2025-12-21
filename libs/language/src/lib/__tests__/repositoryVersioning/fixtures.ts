@@ -6,7 +6,7 @@ import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
 import { withTypeBlueId } from '../../../schema/annotations';
 import { BlueError, BlueErrorCode } from '../../errors/BlueError';
-import type { VersionedBlueRepository } from '../../types/BlueRepository';
+import type { BlueRepository } from '../../types/BlueRepository';
 import {
   DICTIONARY_TYPE_BLUE_ID,
   LIST_TYPE_BLUE_ID,
@@ -184,7 +184,7 @@ export function buildTypedRepository() {
     BlueIdCalculator.calculateBlueIdSync(containerHistoric);
   const containerCurrentId = BlueIdCalculator.calculateBlueIdSync(container);
 
-  const repository: VersionedBlueRepository = {
+  const repository: BlueRepository = {
     name: 'repo.blue',
     repositoryVersions,
     packages: {
@@ -403,7 +403,7 @@ function buildRepositoryFixtures() {
     ),
   };
 
-  const repository: VersionedBlueRepository = {
+  const repository: BlueRepository = {
     name: 'repo.blue',
     repositoryVersions,
     packages: {
@@ -514,7 +514,7 @@ function buildRepositoryFixtures() {
     },
   };
 
-  const otherRepository: VersionedBlueRepository = {
+  const otherRepository: BlueRepository = {
     name: 'other.repo',
     repositoryVersions: ['X0'],
     packages: {

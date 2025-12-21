@@ -3,7 +3,7 @@ import { Blue } from '../../Blue';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
-import type { VersionedBlueRepository } from '../../types/BlueRepository';
+import type { BlueRepository } from '../../types/BlueRepository';
 import {
   DICTIONARY_TYPE_BLUE_ID,
   LIST_TYPE_BLUE_ID,
@@ -32,7 +32,7 @@ describe('Repository versioning: list and dictionary semantics', () => {
       );
     const ruleCurrentId = BlueIdCalculator.calculateBlueIdSync(ruleCurrent);
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.blue',
       repositoryVersions,
       packages: {

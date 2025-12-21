@@ -3,7 +3,7 @@ import { Blue } from '../../Blue';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { NodeToMapListOrValue } from '../../utils/NodeToMapListOrValue';
-import type { VersionedBlueRepository } from '../../types/BlueRepository';
+import type { BlueRepository } from '../../types/BlueRepository';
 import { TEXT_TYPE_BLUE_ID } from '../../utils/Properties';
 
 describe('Repository versioning: dictionary reserved keys', () => {
@@ -23,7 +23,7 @@ describe('Repository versioning: dictionary reserved keys', () => {
       );
     const ruleCurrentId = BlueIdCalculator.calculateBlueIdSync(ruleCurrent);
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.blue',
       repositoryVersions,
       packages: {
@@ -103,7 +103,7 @@ describe('Repository versioning: dictionary reserved keys', () => {
       );
     const valueTypeV2Id = BlueIdCalculator.calculateBlueIdSync(valueTypeV2);
 
-    const repository: VersionedBlueRepository = {
+    const repository: BlueRepository = {
       name: 'repo.blue',
       repositoryVersions,
       packages: {

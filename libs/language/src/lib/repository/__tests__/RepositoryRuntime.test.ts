@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RepositoryRegistry } from '../RepositoryRuntime';
 import type { JsonValue } from '@blue-labs/shared-utils';
-import type { VersionedBlueRepository } from '../../types/BlueRepository';
+import type { BlueRepository } from '../../types/BlueRepository';
 
 describe('RepositoryRegistry', () => {
   it('throws on alias collisions across repositories', () => {
@@ -48,7 +48,7 @@ function buildRepo(
   blueId: string,
   aliases: Record<string, string>,
   content: JsonValue,
-): VersionedBlueRepository {
+): BlueRepository {
   const typesMeta = {
     [blueId]: {
       status: 'stable' as const,
