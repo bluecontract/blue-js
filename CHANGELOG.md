@@ -1,3 +1,13 @@
+## 2.0.0-rc.17 (2025-12-21)
+
+### 🚀 Features
+
+- cr remarks ([4db6dc1](https://github.com/bluecontract/blue-js/commit/4db6dc1))
+
+### 🩹 Fixes
+
+- fix package-lock ([651b608](https://github.com/bluecontract/blue-js/commit/651b608))
+
 ## 2.0.0-rc.16 (2025-12-19)
 
 ### 🚀 Features
