@@ -698,7 +698,6 @@ export class Blue {
     const message = `Unknown RepoBlueId '${requestedRepoBlueId}' for repository '${repoName}'.`;
     const detail = {
       code: BlueErrorCode.REPO_UNKNOWN_REPO_BLUE_ID,
-      severity: 'error' as const,
       message,
       locationPath: [],
       context: {

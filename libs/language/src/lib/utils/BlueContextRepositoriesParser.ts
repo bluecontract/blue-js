@@ -101,7 +101,6 @@ function invalidError(raw: string, reason: string): BlueError {
     [
       {
         code: BlueErrorCode.INVALID_BLUE_CONTEXT_REPOSITORIES,
-        severity: 'error',
         message: reason,
         locationPath: [],
         context: {

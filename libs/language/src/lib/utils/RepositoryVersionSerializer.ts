@@ -387,7 +387,6 @@ export class RepositoryVersionSerializer {
     return new BlueError(BlueErrorCode.INVALID_REPOSITORY_POINTER, message, [
       {
         code: BlueErrorCode.INVALID_REPOSITORY_POINTER,
-        severity: 'error',
         message,
         locationPath: [],
         context: { pointer },
@@ -429,7 +428,6 @@ export class RepositoryVersionSerializer {
 
     const detail = {
       code: BlueErrorCode.REPO_UNREPRESENTABLE_IN_TARGET_VERSION,
-      severity: 'error' as const,
       message,
       locationPath: ['type'],
       context,

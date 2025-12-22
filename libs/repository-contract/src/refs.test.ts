@@ -9,15 +9,15 @@ import type { BlueRepository } from './types.js';
 describe('refs utilities', () => {
   it('collects references from inline shapes', () => {
     const refs = collectTypeRefsFromContent({
-      type: 'core/Text',
+      type: 'Package/CustomType',
       nested: {
         keyType: { blueId: 'blue/key' },
-        child: { valueType: 'core/Integer' },
+        child: { valueType: 'Package/Number' },
       },
-      itemType: 'core/List',
+      itemType: 'Package/Array',
     });
     expect(refs).toEqual(
-      new Set(['core/Text', 'blue/key', 'core/Integer', 'core/List']),
+      new Set(['Package/CustomType', 'blue/key', 'Package/Number', 'Package/Array']),
     );
   });
 

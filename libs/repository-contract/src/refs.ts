@@ -61,31 +61,6 @@ export function collectTypeRefsFromContent(content: unknown): Set<Ref> {
   return refs;
 }
 
-function getTypesMeta(
-  pkg: BlueRepositoryPackage,
-): Record<TypeBlueId, BlueTypeRuntimeMeta> {
-  const fromTypesMeta = (
-    pkg as {
-      typesMeta?: Record<TypeBlueId, BlueTypeRuntimeMeta>;
-    }
-  ).typesMeta;
-  if (fromTypesMeta) {
-    return fromTypesMeta;
-  }
-  const fromLegacyTypeMetas = (
-    pkg as {
-      typeMetas?: Record<TypeBlueId, BlueTypeRuntimeMeta>;
-    }
-  ).typeMetas;
-  if (fromLegacyTypeMetas) {
-    return fromLegacyTypeMetas;
-  }
-  const direct = pkg.typesMeta as
-    | Record<TypeBlueId, BlueTypeRuntimeMeta>
-    | undefined;
-  return direct ?? {};
-}
-
 function buildResolver(packages: Record<string, BlueRepositoryPackage>): {
   allTypeMetas: Map<TypeBlueId, BlueTypeRuntimeMeta>;
   aliasToBlueId: Map<TypeAlias, TypeBlueId>;
@@ -96,9 +71,8 @@ function buildResolver(packages: Record<string, BlueRepositoryPackage>): {
   Object.values(packages).forEach((pkg) => {
     Object.entries(pkg.aliases || {}).forEach(([alias, blueId]) => {
       aliasToBlueId.set(alias, blueId);
-      aliasToBlueId.set(alias.toLowerCase(), blueId);
     });
-    Object.entries(getTypesMeta(pkg)).forEach(([blueId, meta]) => {
+    Object.entries(pkg.typesMeta).forEach(([blueId, meta]) => {
       allTypeMetas.set(blueId, meta);
     });
   });
@@ -114,8 +88,7 @@ function resolveRef(
   if (allTypeMetas.has(ref)) {
     return ref;
   }
-  const resolved =
-    aliasToBlueId.get(ref) ?? aliasToBlueId.get(ref.toLowerCase());
+  const resolved = aliasToBlueId.get(ref);
   if (resolved) {
     return resolved;
   }
@@ -177,8 +150,7 @@ export function validateStableDoesNotDependOnDev(
   const resolve = (ref: Ref) => resolveRef(ref, aliasToBlueId, allTypeMetas);
 
   for (const [pkgName, pkg] of Object.entries(repository.packages)) {
-    const typesMeta = getTypesMeta(pkg);
-    for (const [blueId, meta] of Object.entries(typesMeta)) {
+    for (const [blueId, meta] of Object.entries(pkg.typesMeta)) {
       if (meta.status !== 'stable') continue;
       const refs = collectTypeRefsFromContent(pkg.contents[blueId]);
       for (const ref of refs) {
