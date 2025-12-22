@@ -93,7 +93,7 @@ export class TypeSchemaResolver {
 
     const blueId = BlueIdResolver.resolveBlueId(schema);
     if (isNonNullable(blueId)) {
-      return blueId;
+      return this.mapToCurrent(blueId);
     }
 
     for (const [registeredBlueId, registeredSchema] of this.blueIdMap) {
@@ -101,7 +101,7 @@ export class TypeSchemaResolver {
         registeredSchema === schema ||
         registeredSchema._def === schema._def
       ) {
-        return registeredBlueId;
+        return this.mapToCurrent(registeredBlueId);
       }
     }
 
