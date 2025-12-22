@@ -68,10 +68,7 @@ const testFallbackRepository: BlueRepository = {
 
 export function createBlue(): Blue {
   return new Blue({
-    repositories: [
-      blueRepository as unknown as BlueRepository,
-      testFallbackRepository,
-    ],
+    repositories: [blueRepository, testFallbackRepository],
   });
 }
 
