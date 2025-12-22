@@ -25,6 +25,9 @@ function parsePair(
   if (idx === -1) {
     throw invalidError(raw, `Missing '=' in segment '${segment.trim()}'`);
   }
+  if (segment.indexOf('=', idx + 1) !== -1) {
+    throw invalidError(raw, `Unexpected '=' in segment '${segment.trim()}'`);
+  }
   const name = stripQuotes(segment.slice(0, idx).trim());
   const value = stripQuotes(segment.slice(idx + 1).trim());
 
@@ -41,45 +44,23 @@ function parsePair(
 export function parseBlueContextRepositories(
   input: string,
 ): Record<string, string> {
-  const repos: Record<string, string> = Object.create(null) as Record<
+  if (input.trim().length === 0) {
+    return Object.create(null) as Record<string, string>;
+  }
+
+  const repos = Object.create(null) as Record<
     string,
     string
   >;
 
-  let buffer = '';
-  let quote: "'" | '"' | null = null;
-  for (let i = 0; i < input.length; i++) {
-    const ch = input[i];
-    if ((ch === "'" || ch === '"') && quote === null) {
-      quote = ch;
-      buffer += ch;
-      continue;
+  for (const segment of input.split(',')) {
+    const trimmed = segment.trim();
+    if (!trimmed) {
+      throw invalidError(input, 'Empty repository segment');
     }
-    if (quote && ch === quote) {
-      quote = null;
-      buffer += ch;
-      continue;
-    }
-    if (ch === ',' && quote === null) {
-      if (buffer.trim().length > 0) {
-        const { name, value } = parsePair(buffer, input);
-        rejectForbiddenKey(name, input);
-        repos[name] = value;
-      }
-      buffer = '';
-      continue;
-    }
-    buffer += ch;
-  }
-
-  if (buffer.trim().length > 0) {
-    const { name, value } = parsePair(buffer, input);
+    const { name, value } = parsePair(trimmed, input);
     rejectForbiddenKey(name, input);
     repos[name] = value;
-  }
-
-  if (quote !== null) {
-    throw invalidError(input, 'Unterminated quoted repository name or id');
   }
 
   return repos;
