@@ -43,7 +43,6 @@ import {
   NodeToJsonFormat,
   NodeToJsonOptions,
 } from './types/BlueContext';
-import { ReplaceInlineValuesForTypeAttributesWithImports } from './preprocess/processor';
 import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from './utils/Properties';
 
 export type { BlueRepository } from './types/BlueRepository';
@@ -287,20 +286,20 @@ export class Blue {
 
   public preprocess(node: BlueNode): BlueNode {
     const preprocessedNode = this.blueDirectivePreprocessor.process(node);
-    const aliasReplaced = this.replaceInlineTypeAliases(preprocessedNode);
     const processed = new Preprocessor({
       nodeProvider: this.nodeProvider,
-    }).preprocessWithDefaultBlue(aliasReplaced);
+      blueIdsMappingGenerator: this.blueIdsMappingGenerator,
+    }).preprocessWithDefaultBlue(preprocessedNode);
     return this.normalizeHistoricalBlueIds(processed);
   }
 
   public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
     const preprocessedNode =
       await this.blueDirectivePreprocessor.processAsync(node);
-    const aliasReplaced = this.replaceInlineTypeAliases(preprocessedNode);
     const processed = new Preprocessor({
       nodeProvider: this.nodeProvider,
-    }).preprocessWithDefaultBlue(aliasReplaced);
+      blueIdsMappingGenerator: this.blueIdsMappingGenerator,
+    }).preprocessWithDefaultBlue(preprocessedNode);
     return this.normalizeHistoricalBlueIds(processed);
   }
 
@@ -721,25 +720,5 @@ export class Blue {
     }
 
     return CompositeLimits.of(this.globalLimits, methodLimits);
-  }
-
-  private replaceInlineTypeAliases(node: BlueNode): BlueNode {
-    const mappings = new Map<string, string>(
-      Object.entries(this.blueIdsMappingGenerator.getAllBlueIds()),
-    );
-
-    const preprocessingAliases =
-      this.blueDirectivePreprocessor.getPreprocessingAliases();
-    preprocessingAliases.forEach((value, key) => {
-      mappings.set(key, value);
-    });
-
-    if (mappings.size === 0) {
-      return node;
-    }
-
-    return new ReplaceInlineValuesForTypeAttributesWithImports(
-      mappings,
-    ).process(node);
   }
 }
