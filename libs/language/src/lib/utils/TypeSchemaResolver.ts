@@ -117,5 +117,4 @@ export class TypeSchemaResolver {
   public getBlueIdMap() {
     return new Map(this.blueIdMap);
   }
-
 }

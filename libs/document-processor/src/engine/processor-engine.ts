@@ -1,4 +1,9 @@
-import { Blue, BlueIdCalculator, BlueNode } from '@blue-labs/language';
+import {
+  Blue,
+  BlueIdCalculator,
+  BlueNode,
+  Properties,
+} from '@blue-labs/language';
 import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import { ChannelRunner, type ChannelMatch } from './channel-runner.js';
@@ -537,7 +542,7 @@ export class ProcessorEngine {
   }
 
   private initializationMarker(document: BlueNode): BlueNode | null {
-    const contracts = document.getProperties()?.contracts;
+    const contracts = document.getProperties()?.[Properties.OBJECT_CONTRACTS];
     const marker = contracts?.getProperties()?.initialized ?? null;
     if (!marker) {
       return null;
@@ -641,7 +646,7 @@ export class ProcessorEngine {
         return new BlueNode().setValue(node.getValue() ?? null);
       case 'blue':
         return node.getBlue() ?? null;
-      case 'contracts':
+      case Properties.OBJECT_CONTRACTS:
         return new BlueNode().setContracts(node.getContracts());
       case 'blueId': {
         const calculatedBlueId =

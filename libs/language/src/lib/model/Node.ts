@@ -10,6 +10,7 @@ import {
   BOOLEAN_TYPE_BLUE_ID,
   DOUBLE_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
+  OBJECT_CONTRACTS,
 } from '../utils/Properties';
 
 export class BlueNode {
@@ -187,7 +188,7 @@ export class BlueNode {
   }
 
   private getContractsProperty() {
-    return this.properties?.['contracts'];
+    return this.properties?.[OBJECT_CONTRACTS];
   }
 
   getContracts() {
@@ -196,9 +197,12 @@ export class BlueNode {
 
   setContracts(contracts: Record<string, BlueNode> | undefined): BlueNode {
     if (isNullable(contracts)) {
-      this.removeProperty('contracts');
+      this.removeProperty(OBJECT_CONTRACTS);
     } else {
-      this.addProperty('contracts', new BlueNode().setProperties(contracts));
+      this.addProperty(
+        OBJECT_CONTRACTS,
+        new BlueNode().setProperties(contracts),
+      );
     }
     return this;
   }
@@ -206,7 +210,10 @@ export class BlueNode {
   addContract(key: string, value: BlueNode): BlueNode {
     const contractsProperty = this.getContractsProperty();
     if (isNullable(contractsProperty)) {
-      this.addProperty('contracts', new BlueNode().addProperty(key, value));
+      this.addProperty(
+        OBJECT_CONTRACTS,
+        new BlueNode().addProperty(key, value),
+      );
     } else {
       contractsProperty.addProperty(key, value);
     }
@@ -223,7 +230,7 @@ export class BlueNode {
         remainingProperties &&
         Object.keys(remainingProperties).length === 0
       ) {
-        this.removeProperty('contracts');
+        this.removeProperty(OBJECT_CONTRACTS);
       }
     }
     return this;

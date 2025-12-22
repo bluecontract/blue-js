@@ -1,3 +1,9 @@
+import {
+  OBJECT_CONTRACTS,
+  OBJECT_MERGE_POLICY,
+  OBJECT_SCHEMA,
+} from './keys.js';
+
 export class InvalidRepositoryPointerError extends Error {
   constructor(
     public readonly pointer: string,
@@ -14,9 +20,9 @@ export const RESERVED_ATTRIBUTES_POINTER_SEGMENTS: ReadonlySet<string> =
     'items',
     'blueId',
     'blue',
-    'schema',
-    'mergePolicy',
-    'contracts',
+    OBJECT_SCHEMA,
+    OBJECT_MERGE_POLICY,
+    OBJECT_CONTRACTS,
   ]);
 
 const RESERVED_ATTRIBUTES_POINTER_TERMINALS: ReadonlySet<string> = new Set([

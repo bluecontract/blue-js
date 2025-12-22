@@ -17,7 +17,12 @@ describe('refs utilities', () => {
       itemType: 'Package/Array',
     });
     expect(refs).toEqual(
-      new Set(['Package/CustomType', 'blue/key', 'Package/Number', 'Package/Array']),
+      new Set([
+        'Package/CustomType',
+        'blue/key',
+        'Package/Number',
+        'Package/Array',
+      ]),
     );
   });
 

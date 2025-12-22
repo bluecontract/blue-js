@@ -5,6 +5,7 @@ import { JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS } from './constants';
 import { isRecord } from './utils';
 import {
+  OBJECT_SCHEMA,
   parsePointer as parseRepositoryPointer,
   RESERVED_ATTRIBUTES_POINTER_SEGMENTS,
   validateAttributesAddedPointer,
@@ -154,16 +155,15 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
       return true;
     }
 
-    if (
-      Object.prototype.hasOwnProperty.call(current, 'schema') &&
-      isRecord(current.schema) &&
-      current.schema.required === true
-    ) {
-      return true;
+    if (Object.prototype.hasOwnProperty.call(current, OBJECT_SCHEMA)) {
+      const schema = current[OBJECT_SCHEMA];
+      if (isRecord(schema) && schema.required === true) {
+        return true;
+      }
     }
 
     for (const [key, val] of Object.entries(current)) {
-      if (key === 'schema') {
+      if (key === OBJECT_SCHEMA) {
         continue;
       }
       if (isRecord(val)) {

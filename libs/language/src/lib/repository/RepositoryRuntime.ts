@@ -5,7 +5,11 @@ import {
   BlueRepositoryPackage,
   BlueTypeRuntimeMeta,
 } from '../types/BlueRepository';
-import { validateAttributesAddedPointer as validateAttributesAddedPointerContract } from '@blue-labs/repository-contract';
+import {
+  BLUE_REPOSITORY_STATUS_DEV,
+  BLUE_REPOSITORY_STATUS_STABLE,
+  validateAttributesAddedPointer as validateAttributesAddedPointerContract,
+} from '@blue-labs/repository-contract';
 import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from '../utils/Properties';
 
 export interface RegisteredRepositoryRuntime {
@@ -161,11 +165,14 @@ function buildRegisteredRepositoryRuntime(
       typePackageByCurrentBlueId[blueId] = pkg.name;
       typeAliasByCurrentBlueId[blueId] = `${pkg.name}/${meta.name}`;
 
-      if (normalizedMeta.status === 'stable' && !toCurrentBlueIdIndex[blueId]) {
+      if (
+        normalizedMeta.status === BLUE_REPOSITORY_STATUS_STABLE &&
+        !toCurrentBlueIdIndex[blueId]
+      ) {
         toCurrentBlueIdIndex[blueId] = blueId;
       }
 
-      if (normalizedMeta.status === 'stable') {
+      if (normalizedMeta.status === BLUE_REPOSITORY_STATUS_STABLE) {
         for (const version of normalizedMeta.versions) {
           const existing = toCurrentBlueIdIndex[version.typeBlueId];
           if (existing && existing !== blueId) {
@@ -209,7 +216,7 @@ function normalizeTypeMeta(
   currentBlueId: string,
   packageName: string,
 ): BlueTypeRuntimeMeta {
-  if (meta.status === 'dev') {
+  if (meta.status === BLUE_REPOSITORY_STATUS_DEV) {
     validateDevVersions(meta, repository, currentBlueId, packageName);
     return {
       ...meta,
@@ -266,7 +273,7 @@ function validateDevVersions(
   currentBlueId: string,
   packageName: string,
 ) {
-  if (meta.status !== 'dev') {
+  if (meta.status !== BLUE_REPOSITORY_STATUS_DEV) {
     return;
   }
   if (meta.versions && meta.versions.length > 1) {

@@ -246,7 +246,8 @@ contracts:
 
     const hasLifecycle = result.triggeredEvents.some(
       (eventNode: BlueNode) =>
-        stringProperty(eventNode, 'type') === 'Core/Document Processing Initiated',
+        stringProperty(eventNode, 'type') ===
+        'Core/Document Processing Initiated',
     );
     expect(hasLifecycle).toBe(true);
 
