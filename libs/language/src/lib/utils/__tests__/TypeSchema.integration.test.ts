@@ -8,6 +8,43 @@ import { NodeToMapListOrValue } from '../NodeToMapListOrValue';
 import { INTEGER_TYPE_BLUE_ID, TEXT_TYPE_BLUE_ID } from '../Properties';
 
 describe('BlueNodeTypeSchema.integration', () => {
+  it('matches exact types for base schemas without extension checks', () => {
+    const { repository, schemas } = buildRepository();
+    const blue = new Blue({ repositories: [repository] });
+
+    const document = `
+name: Request Document
+type: payments/Request
+requestId: abc-123`;
+
+    const documentNode = blue.yamlToNode(document);
+    const resolvedNode = blue.resolve(documentNode);
+
+    const rawMatch = blue.isTypeOf(documentNode, schemas.request, {
+      checkSchemaExtensions: false,
+    });
+    const resolvedMatch = blue.isTypeOf(resolvedNode, schemas.request, {
+      checkSchemaExtensions: false,
+    });
+    const rawMatchWithExtensions = blue.isTypeOf(
+      documentNode,
+      schemas.request,
+      { checkSchemaExtensions: true },
+    );
+    const resolvedMatchWithExtensions = blue.isTypeOf(
+      resolvedNode,
+      schemas.request,
+      { checkSchemaExtensions: true },
+    );
+
+    expect([
+      rawMatch,
+      resolvedMatch,
+      rawMatchWithExtensions,
+      resolvedMatchWithExtensions,
+    ]).toEqual([true, true, true, true]);
+  });
+
   it('resolves inherited blueIds from registered repositories', () => {
     const { repository, schemas } = buildRepository();
     const blue = new Blue({
@@ -46,6 +83,23 @@ amount: 100`;
       resolvedIsRequest,
       resolvedIsRequestWithExtension,
     ]).toEqual([false, true, false, true]);
+  });
+
+  it('returns false when schema is missing a BlueId annotation', () => {
+    const { repository } = buildRepository();
+    const blue = new Blue({ repositories: [repository] });
+
+    const document = `
+name: Request Document
+type: payments/Request
+requestId: abc-123`;
+
+    const documentNode = blue.yamlToNode(document);
+    const unannotatedSchema = z.object({
+      requestId: z.string(),
+    });
+
+    expect(blue.isTypeOf(documentNode, unannotatedSchema)).toBe(false);
   });
 });
 
