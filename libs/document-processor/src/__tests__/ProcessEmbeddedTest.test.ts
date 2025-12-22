@@ -75,7 +75,7 @@ contracts:
     expect(result.triggeredEvents).toHaveLength(1);
     const lifecycleEvent = result.triggeredEvents[0]!;
     expect(stringProperty(lifecycleEvent, 'type')).toBe(
-      'Document Processing Initiated',
+      'Core/Document Processing Initiated',
     );
     expect(stringProperty(lifecycleEvent, 'documentId')).toBe(rootId);
   });
