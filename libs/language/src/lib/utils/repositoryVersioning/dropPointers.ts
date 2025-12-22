@@ -1,3 +1,5 @@
+import { parsePointer } from '@blue-labs/repository-contract';
+
 export function collectDropPointers(
   versions: readonly {
     repositoryVersionIndex: number;
@@ -22,11 +24,5 @@ export function collectDropPointers(
 }
 
 function depth(pointer: string): number {
-  if (!pointer.startsWith('/')) {
-    return 0;
-  }
-  return pointer
-    .split('/')
-    .slice(1)
-    .map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~')).length;
+  return parsePointer(pointer).length;
 }
