@@ -122,21 +122,16 @@ requestId: abc-123`;
       }),
     ).toBe(true);
     expect(
-      blue.isTypeOf(nodeTypeBv0, schemas.typeAv0, {
-        checkSchemaExtensions: true,
-      }),
-    ).toBe(true);
-    expect(
       blue.isTypeOf(nodeTypeAv0, schemas.typeAv1, {
         checkSchemaExtensions: true,
       }),
     ).toBe(true);
-    expect(
-      blue.isTypeOf(nodeTypeAv0, schemas.typeAv0, {
-        checkSchemaExtensions: true,
-      }),
-    ).toBe(true);
-    expect(blue.isTypeOf(nodeTypeAv1, schemas.typeAv0)).toBe(false);
+    expect(blue.isTypeOf(nodeTypeAv1, schemas.typeAv1)).toBe(true);
+
+    const futureNode = new BlueNode().setType(
+      new BlueNode().setBlueId('future-type-id'),
+    );
+    expect(blue.isTypeOf(futureNode, schemas.typeAv1)).toBe(false);
   });
 });
 
@@ -251,11 +246,6 @@ function buildVersionedRepository() {
   const typeBv0Id = BlueIdCalculator.calculateBlueIdSync(typeBv0);
   const typeBv1Id = BlueIdCalculator.calculateBlueIdSync(typeBv1);
 
-  const schemaAv0 = withTypeBlueId(typeAv0Id)(
-    z.object({
-      label: z.string(),
-    }),
-  );
   const schemaAv1 = withTypeBlueId(typeAv1Id)(
     z.object({
       label: z.string(),
@@ -333,7 +323,6 @@ function buildVersionedRepository() {
       typeBv1: typeBv1Id,
     },
     schemas: {
-      typeAv0: schemaAv0,
       typeAv1: schemaAv1,
     },
   };

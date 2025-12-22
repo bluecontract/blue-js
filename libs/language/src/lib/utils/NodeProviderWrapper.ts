@@ -3,6 +3,7 @@ import { SequentialNodeProvider } from '../provider/SequentialNodeProvider';
 import { BootstrapProvider } from '../provider/BootstrapProvider';
 import { RepositoryBasedNodeProvider } from '../provider/RepositoryBasedNodeProvider';
 import { BlueRepository } from '../types/BlueRepository';
+import type { BlueIdMapper } from '../types/BlueIdMapper';
 
 /**
  * Utility to wrap a NodeProvider with a SequentialNodeProvider that includes bootstrap providers
@@ -18,7 +19,7 @@ export class NodeProviderWrapper {
   public static wrap(
     originalProvider: NodeProvider,
     repositories?: BlueRepository[],
-    options?: { toCurrentBlueId?: (blueId: string) => string },
+    options?: { blueIdMapper?: BlueIdMapper },
   ): NodeProvider {
     const providers: NodeProvider[] = [BootstrapProvider.INSTANCE];
 
@@ -27,7 +28,7 @@ export class NodeProviderWrapper {
       // This allows preprocessing to work correctly with all providers
       const repositoryProvider = new RepositoryBasedNodeProvider(
         repositories,
-        options?.toCurrentBlueId,
+        options?.blueIdMapper,
       );
       providers.push(repositoryProvider);
     }

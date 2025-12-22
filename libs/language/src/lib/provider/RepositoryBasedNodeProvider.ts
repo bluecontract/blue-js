@@ -3,6 +3,7 @@ import { NodeContentHandler } from './NodeContentHandler';
 import { BlueNode, NodeDeserializer } from '../model';
 import { JsonBlueValue } from '../../schema';
 import { BlueRepository } from '../types/BlueRepository';
+import type { BlueIdMapper } from '../types/BlueIdMapper';
 
 /**
  * A NodeProvider that processes content from BlueRepository definitions.
@@ -11,14 +12,14 @@ import { BlueRepository } from '../types/BlueRepository';
 export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
-  private readonly toCurrentBlueId?: (blueId: string) => string;
+  private readonly blueIdMapper?: BlueIdMapper;
 
   constructor(
     repositories: BlueRepository[],
-    toCurrentBlueId?: (blueId: string) => string,
+    blueIdMapper?: BlueIdMapper,
   ) {
     super();
-    this.toCurrentBlueId = toCurrentBlueId;
+    this.blueIdMapper = blueIdMapper;
 
     // Process all repository contents
     this.loadRepositories(repositories);
@@ -65,7 +66,8 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   protected override fetchContentByBlueId(
     baseBlueId: string,
   ): JsonBlueValue | null {
-    const lookupBlueId = this.toCurrentBlueId?.(baseBlueId) ?? baseBlueId;
+    const lookupBlueId =
+      this.blueIdMapper?.toCurrentBlueId(baseBlueId) ?? baseBlueId;
     const content = this.blueIdToContentMap.get(lookupBlueId);
     const isMultipleDocuments =
       this.blueIdToMultipleDocumentsMap.get(lookupBlueId);
@@ -83,7 +85,8 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
 
   override fetchByBlueId(blueId: string): BlueNode[] | null {
     const baseBlueId = blueId.split('#')[0];
-    const lookupBlueId = this.toCurrentBlueId?.(baseBlueId) ?? baseBlueId;
+    const lookupBlueId =
+      this.blueIdMapper?.toCurrentBlueId(baseBlueId) ?? baseBlueId;
     const content = this.blueIdToContentMap.get(lookupBlueId);
     const isMultipleDocuments =
       this.blueIdToMultipleDocumentsMap.get(lookupBlueId);
@@ -98,6 +101,9 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       isMultipleDocuments,
     );
 
+    const mappedBlueId =
+      this.blueIdMapper?.toCurrentBlueId(baseBlueId) ?? baseBlueId;
+
     if (blueId.includes('#')) {
       const parts = blueId.split('#');
       if (parts.length > 1) {
@@ -106,11 +112,11 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
           const item = resolvedContent[index];
           const node = NodeDeserializer.deserialize(item);
 
-          node.setBlueId(blueId);
+          node.setBlueId(`${mappedBlueId}#${index}`);
           return [node];
         } else if (index === 0) {
           const node = NodeDeserializer.deserialize(resolvedContent);
-          node.setBlueId(blueId);
+          node.setBlueId(`${mappedBlueId}#${index}`);
           return [node];
         }
         return null;
@@ -120,12 +126,12 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     if (Array.isArray(resolvedContent)) {
       return resolvedContent.map((item, idx) => {
         const node = NodeDeserializer.deserialize(item);
-        node.setBlueId(`${baseBlueId}#${idx}`);
+        node.setBlueId(`${mappedBlueId}#${idx}`);
         return node;
       });
     } else {
       const node = NodeDeserializer.deserialize(resolvedContent);
-      node.setBlueId(baseBlueId);
+      node.setBlueId(mappedBlueId);
       return [node];
     }
   }
@@ -142,7 +148,8 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
    */
   public hasBlueId(blueId: string): boolean {
     const baseBlueId = blueId.split('#')[0];
-    const lookupBlueId = this.toCurrentBlueId?.(baseBlueId) ?? baseBlueId;
+    const lookupBlueId =
+      this.blueIdMapper?.toCurrentBlueId(baseBlueId) ?? baseBlueId;
     return this.blueIdToContentMap.has(lookupBlueId);
   }
 }

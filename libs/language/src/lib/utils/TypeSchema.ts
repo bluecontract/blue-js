@@ -31,8 +31,12 @@ export class BlueNodeTypeSchema {
       return false;
     }
 
+    const normalizedNodeTypeBlueId =
+      options?.typeSchemaResolver?.normalizeBlueId(nodeTypeBlueId) ??
+      nodeTypeBlueId;
+
     // Direct BlueId match
-    if (schemaBlueId === nodeTypeBlueId) {
+    if (schemaBlueId === normalizedNodeTypeBlueId) {
       return true;
     }
 

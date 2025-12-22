@@ -85,14 +85,14 @@ export class Blue {
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider || defaultProvider,
       repositories,
-      { toCurrentBlueId: this.toCurrentBlueId.bind(this) },
+      { blueIdMapper: this.repositoryRegistry },
     );
 
     this.typeSchemaResolver =
       typeSchemaResolver ??
       new TypeSchemaResolver([], {
         nodeProvider: this.nodeProvider,
-        toCurrentBlueId: this.toCurrentBlueId.bind(this),
+        blueIdMapper: this.repositoryRegistry,
       });
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
@@ -319,7 +319,7 @@ export class Blue {
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider,
       this.repositories,
-      { toCurrentBlueId: this.toCurrentBlueId.bind(this) },
+      { blueIdMapper: this.repositoryRegistry },
     );
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     return this;

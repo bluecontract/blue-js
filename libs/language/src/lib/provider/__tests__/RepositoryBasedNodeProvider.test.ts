@@ -42,13 +42,16 @@ describe('RepositoryBasedNodeProvider', () => {
       },
     };
 
-    const mapper = (blueId: string) => toCurrentBlueIdIndex[blueId] ?? blueId;
+    const mapper = {
+      toCurrentBlueId: (blueId: string) =>
+        toCurrentBlueIdIndex[blueId] ?? blueId,
+    };
 
     const provider = new RepositoryBasedNodeProvider([repository], mapper);
 
     expect(provider.hasBlueId(historicalId)).toBe(true);
     const fetched = provider.fetchByBlueId(historicalId);
-    expect(fetched?.[0]?.getBlueId()).toEqual(historicalId);
+    expect(fetched?.[0]?.getBlueId()).toEqual(currentId);
   });
 
   it('indexes names for new-style repositories', () => {

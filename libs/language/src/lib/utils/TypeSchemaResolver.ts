@@ -5,21 +5,22 @@ import { BlueNode } from '../model/Node';
 import { BlueIdCalculator } from './BlueIdCalculator';
 import { NodeProvider } from '../NodeProvider';
 import { isSubtype } from './NodeTypes';
+import type { BlueIdMapper } from '../types/BlueIdMapper';
 
 export class TypeSchemaResolver {
   private readonly blueIdMap = new Map<string, ZodTypeAny>();
   private nodeProvider: NodeProvider | null;
-  private readonly toCurrentBlueIdFn?: (blueId: string) => string;
+  private readonly blueIdMapper?: BlueIdMapper;
 
   constructor(
     schemas: ZodTypeAny[] = [],
     options?: {
       nodeProvider?: NodeProvider | null;
-      toCurrentBlueId?: (blueId: string) => string;
+      blueIdMapper?: BlueIdMapper;
     },
   ) {
     this.nodeProvider = options?.nodeProvider ?? null;
-    this.toCurrentBlueIdFn = options?.toCurrentBlueId;
+    this.blueIdMapper = options?.blueIdMapper;
     this.registerSchemas(schemas);
   }
 
@@ -33,10 +34,11 @@ export class TypeSchemaResolver {
     const blueId = BlueIdResolver.resolveBlueId(schema);
 
     if (isNonNullable(blueId)) {
-      if (this.blueIdMap.has(blueId)) {
-        throw new Error(`Duplicate BlueId value: ${blueId}`);
+      const normalizedBlueId = this.mapToCurrent(blueId) ?? blueId;
+      if (this.blueIdMap.has(normalizedBlueId)) {
+        throw new Error(`Duplicate BlueId value: ${normalizedBlueId}`);
       }
-      this.blueIdMap.set(blueId, schema);
+      this.blueIdMap.set(normalizedBlueId, schema);
     }
   }
 
@@ -122,10 +124,14 @@ export class TypeSchemaResolver {
     if (isNullable(blueId)) {
       return null;
     }
-    return this.toCurrentBlueIdFn ? this.toCurrentBlueIdFn(blueId) : blueId;
+    return this.blueIdMapper?.toCurrentBlueId(blueId) ?? blueId;
   }
 
   public getBlueIdMap() {
     return new Map(this.blueIdMap);
+  }
+
+  public normalizeBlueId(blueId: string | null | undefined) {
+    return this.mapToCurrent(blueId);
   }
 }
