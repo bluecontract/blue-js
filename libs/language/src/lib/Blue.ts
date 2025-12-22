@@ -210,11 +210,15 @@ export class Blue {
   }
 
   public jsonValueToNode(json: unknown) {
-    return this.preprocess(NodeDeserializer.deserialize(json));
+    const preprocessed = this.preprocess(NodeDeserializer.deserialize(json));
+    return this.normalizeTypeReferences(preprocessed);
   }
 
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
-    return this.preprocessAsync(NodeDeserializer.deserialize(json));
+    const preprocessed = await this.preprocessAsync(
+      NodeDeserializer.deserialize(json),
+    );
+    return this.normalizeTypeReferences(preprocessed);
   }
 
   public yamlToNode(yaml: string) {
@@ -292,7 +296,7 @@ export class Blue {
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
-    return normalizeNodeBlueIds(processed, this.repositoryRegistry);
+    return processed;
   }
 
   public normalizeTypeReferences(node: BlueNode): BlueNode {
@@ -306,7 +310,7 @@ export class Blue {
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
-    return normalizeNodeBlueIds(processed, this.repositoryRegistry);
+    return processed;
   }
 
   public transform(
