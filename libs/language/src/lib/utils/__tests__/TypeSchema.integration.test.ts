@@ -116,13 +116,16 @@ requestId: abc-123`;
       new BlueNode().setBlueId(ids.typeAv1),
     );
 
+    const normalizedTypeBv0 = blue.normalizeTypeReferences(nodeTypeBv0);
+    const normalizedTypeAv0 = blue.normalizeTypeReferences(nodeTypeAv0);
+
     expect(
-      blue.isTypeOf(nodeTypeBv0, schemas.typeAv1, {
+      blue.isTypeOf(normalizedTypeBv0, schemas.typeAv1, {
         checkSchemaExtensions: true,
       }),
     ).toBe(true);
     expect(
-      blue.isTypeOf(nodeTypeAv0, schemas.typeAv1, {
+      blue.isTypeOf(normalizedTypeAv0, schemas.typeAv1, {
         checkSchemaExtensions: true,
       }),
     ).toBe(true);
@@ -240,9 +243,7 @@ function buildVersionedRepository() {
     .setProperties({
       title: textType(),
     });
-  const typeBv1 = typeBv0
-    .clone()
-    .setType(new BlueNode().setBlueId(typeAv1Id));
+  const typeBv1 = typeBv0.clone().setType(new BlueNode().setBlueId(typeAv1Id));
   const typeBv0Id = BlueIdCalculator.calculateBlueIdSync(typeBv0);
   const typeBv1Id = BlueIdCalculator.calculateBlueIdSync(typeBv1);
 

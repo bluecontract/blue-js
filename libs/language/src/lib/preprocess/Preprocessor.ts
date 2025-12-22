@@ -38,7 +38,8 @@ export class Preprocessor {
    * @param options - Configuration options for the preprocessor
    */
   constructor(options: PreprocessorOptions = {}) {
-    const { nodeProvider, processorProvider, blueIdsMappingGenerator } = options;
+    const { nodeProvider, processorProvider, blueIdsMappingGenerator } =
+      options;
 
     // Set up node provider (required)
     if (!nodeProvider) {

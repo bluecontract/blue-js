@@ -44,7 +44,7 @@ describe('Repository versioning: historical id normalization', () => {
     ).toEqual(ids.ruleCurrent);
   });
 
-  it('resolves schema by mapping historical BlueId to current', () => {
+  it('resolves schema after normalizing historical BlueId', () => {
     const blue = createBlueInstance();
     const ruleNode = new BlueNode()
       .setType(new BlueNode().setBlueId(ids.ruleHistoric))
@@ -53,8 +53,9 @@ describe('Repository versioning: historical id normalization', () => {
         then: new BlueNode().setValue('then'),
       });
 
+    const normalizedRuleNode = blue.normalizeTypeReferences(ruleNode);
     const output = blue.nodeToSchemaOutput(
-      ruleNode,
+      normalizedRuleNode,
       fixtureSchemas.ruleSchemaCurrent,
     );
 

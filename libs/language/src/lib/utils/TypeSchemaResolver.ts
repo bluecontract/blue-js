@@ -5,22 +5,17 @@ import { BlueNode } from '../model/Node';
 import { BlueIdCalculator } from './BlueIdCalculator';
 import { NodeProvider } from '../NodeProvider';
 import { isSubtype } from './NodeTypes';
-import type { BlueIdMapper } from '../types/BlueIdMapper';
 
 export class TypeSchemaResolver {
   private readonly blueIdMap = new Map<string, ZodTypeAny>();
   private nodeProvider: NodeProvider | null;
-  private readonly blueIdMapper?: BlueIdMapper;
-
   constructor(
     schemas: ZodTypeAny[] = [],
     options?: {
       nodeProvider?: NodeProvider | null;
-      blueIdMapper?: BlueIdMapper;
     },
   ) {
     this.nodeProvider = options?.nodeProvider ?? null;
-    this.blueIdMapper = options?.blueIdMapper;
     this.registerSchemas(schemas);
   }
 
@@ -34,11 +29,10 @@ export class TypeSchemaResolver {
     const blueId = BlueIdResolver.resolveBlueId(schema);
 
     if (isNonNullable(blueId)) {
-      const normalizedBlueId = this.mapToCurrent(blueId) ?? blueId;
-      if (this.blueIdMap.has(normalizedBlueId)) {
-        throw new Error(`Duplicate BlueId value: ${normalizedBlueId}`);
+      if (this.blueIdMap.has(blueId)) {
+        throw new Error(`Duplicate BlueId value: ${blueId}`);
       }
-      this.blueIdMap.set(normalizedBlueId, schema);
+      this.blueIdMap.set(blueId, schema);
     }
   }
 
@@ -95,7 +89,7 @@ export class TypeSchemaResolver {
 
     const blueId = BlueIdResolver.resolveBlueId(schema);
     if (isNonNullable(blueId)) {
-      return this.mapToCurrent(blueId);
+      return blueId;
     }
 
     for (const [registeredBlueId, registeredSchema] of this.blueIdMap) {
@@ -103,7 +97,7 @@ export class TypeSchemaResolver {
         registeredSchema === schema ||
         registeredSchema._def === schema._def
       ) {
-        return this.mapToCurrent(registeredBlueId);
+        return registeredBlueId;
       }
     }
 
@@ -113,25 +107,15 @@ export class TypeSchemaResolver {
   private getEffectiveBlueId(node: BlueNode) {
     const nodeType = node.getType();
     if (isNonNullable(nodeType) && isNonNullable(nodeType.getBlueId())) {
-      return this.mapToCurrent(nodeType.getBlueId());
+      return nodeType.getBlueId();
     } else if (isNonNullable(nodeType)) {
-      return this.mapToCurrent(BlueIdCalculator.calculateBlueIdSync(nodeType));
+      return BlueIdCalculator.calculateBlueIdSync(nodeType);
     }
     return null;
-  }
-
-  private mapToCurrent(blueId: string | null | undefined) {
-    if (isNullable(blueId)) {
-      return null;
-    }
-    return this.blueIdMapper?.toCurrentBlueId(blueId) ?? blueId;
   }
 
   public getBlueIdMap() {
     return new Map(this.blueIdMap);
   }
 
-  public normalizeBlueId(blueId: string | null | undefined) {
-    return this.mapToCurrent(blueId);
-  }
 }

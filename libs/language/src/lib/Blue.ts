@@ -35,15 +35,13 @@ import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
 import { RepositoryRegistry } from './repository/RepositoryRuntime';
-import { RepositoryVersionSerializer } from './utils/RepositoryVersionSerializer';
-import { BlueError, BlueErrorCode } from './errors/BlueError';
-import { normalizeBlueContextRepositories } from './utils/BlueContextRepositoriesParser';
+import { BlueContextResolver } from './utils/BlueContextResolver';
+import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
 import {
   BlueContext,
   NodeToJsonFormat,
   NodeToJsonOptions,
 } from './types/BlueContext';
-import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from './utils/Properties';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -65,6 +63,7 @@ export class Blue {
   private mergingProcessor: MergingProcessor;
   private repositories?: BlueRepository[];
   private repositoryRegistry: RepositoryRegistry;
+  private blueContextResolver: BlueContextResolver;
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -78,6 +77,10 @@ export class Blue {
     // Store repositories for later use in setNodeProvider
     this.repositories = repositories;
     this.repositoryRegistry = new RepositoryRegistry(repositories ?? []);
+    this.blueContextResolver = new BlueContextResolver({
+      registry: this.repositoryRegistry,
+      blueIdMapper: this.repositoryRegistry,
+    });
 
     // Use NodeProviderWrapper to create the provider chain with repositories
     const defaultProvider = createNodeProvider(() => []);
@@ -91,7 +94,6 @@ export class Blue {
       typeSchemaResolver ??
       new TypeSchemaResolver([], {
         nodeProvider: this.nodeProvider,
-        blueIdMapper: this.repositoryRegistry,
       });
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
@@ -130,7 +132,7 @@ export class Blue {
   ) {
     const options = this.normalizeNodeToJsonOptions(strategyOrOptions);
     const targetNode = options.blueContext
-      ? this.transformForBlueContext(node, options.blueContext)
+      ? this.blueContextResolver.transform(node, options.blueContext)
       : node;
     return NodeToMapListOrValue.get(targetNode, options.format);
   }
@@ -147,7 +149,7 @@ export class Blue {
   ) {
     const options = this.normalizeNodeToJsonOptions(strategy);
     const targetNode = options.blueContext
-      ? this.transformForBlueContext(node, options.blueContext)
+      ? this.blueContextResolver.transform(node, options.blueContext)
       : node;
     return NodeToYaml.get(targetNode, { strategy: options.format });
   }
@@ -290,7 +292,11 @@ export class Blue {
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
-    return this.normalizeHistoricalBlueIds(processed);
+    return normalizeNodeBlueIds(processed, this.repositoryRegistry);
+  }
+
+  public normalizeTypeReferences(node: BlueNode): BlueNode {
+    return normalizeNodeBlueIds(node, this.repositoryRegistry);
   }
 
   public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
@@ -300,7 +306,7 @@ export class Blue {
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
-    return this.normalizeHistoricalBlueIds(processed);
+    return normalizeNodeBlueIds(processed, this.repositoryRegistry);
   }
 
   public transform(
@@ -562,61 +568,7 @@ export class Blue {
   }
 
   private getTypeAliasFromBlueId(blueId: string): string | undefined {
-    const currentBlueId = this.toCurrentBlueId(blueId);
-    const coreName = (CORE_TYPE_BLUE_ID_TO_NAME_MAP as Record<string, string>)[
-      currentBlueId
-    ];
-    if (coreName) {
-      return coreName;
-    }
-
-    return this.repositoryRegistry?.findRuntimeByBlueId(currentBlueId)
-      ?.typeAlias;
-  }
-
-  private normalizeHistoricalBlueIds(node: BlueNode): BlueNode {
-    return NodeTransformer.transform(node, (current) => {
-      this.normalizeTypeField(
-        current,
-        () => current.getType(),
-        (value) => current.setType(value),
-      );
-      this.normalizeTypeField(
-        current,
-        () => current.getItemType(),
-        (value) => current.setItemType(value),
-      );
-      this.normalizeTypeField(
-        current,
-        () => current.getKeyType(),
-        (value) => current.setKeyType(value),
-      );
-      this.normalizeTypeField(
-        current,
-        () => current.getValueType(),
-        (value) => current.setValueType(value),
-      );
-      return current;
-    });
-  }
-
-  private normalizeTypeField(
-    node: BlueNode,
-    getter: () => BlueNode | undefined,
-    setter: (value: BlueNode | undefined) => void,
-  ) {
-    const typeNode = getter();
-    if (!typeNode || typeNode.isInlineValue()) {
-      return;
-    }
-    const blueId = typeNode.getBlueId();
-    if (!blueId) {
-      return;
-    }
-    const mapped = this.toCurrentBlueId(blueId);
-    if (mapped !== blueId) {
-      setter(typeNode.clone().setBlueId(mapped));
-    }
+    return this.repositoryRegistry.getTypeAlias(blueId);
   }
 
   private normalizeNodeToJsonOptions(
@@ -632,82 +584,6 @@ export class Blue {
       format: strategyOrOptions?.format ?? 'official',
       blueContext: strategyOrOptions?.blueContext,
     };
-  }
-
-  private transformForBlueContext(
-    node: BlueNode,
-    blueContext: BlueContext,
-  ): BlueNode {
-    const targetRepoVersionIndexes =
-      this.computeTargetRepoVersionIndexes(blueContext);
-
-    if (Object.keys(targetRepoVersionIndexes).length === 0) {
-      return node;
-    }
-
-    const normalized = this.normalizeHistoricalBlueIds(node);
-
-    const serializer = new RepositoryVersionSerializer({
-      registry: this.repositoryRegistry,
-      targetRepoVersionIndexes,
-      fallbackToCurrentInlineDefinitions:
-        blueContext.fallbackToCurrentInlineDefinitions !== false,
-    });
-
-    return serializer.transform(normalized);
-  }
-
-  private computeTargetRepoVersionIndexes(
-    blueContext: BlueContext | undefined,
-  ): Record<string, number> {
-    const result: Record<string, number> = {};
-
-    if (!blueContext?.repositories) {
-      return result;
-    }
-
-    const repositories =
-      typeof blueContext.repositories === 'string'
-        ? normalizeBlueContextRepositories(blueContext.repositories)
-        : blueContext.repositories;
-    for (const [repoName, repoBlueId] of Object.entries(repositories)) {
-      const runtime = this.repositoryRegistry.findRuntimeByName(repoName);
-      if (!runtime) {
-        continue;
-      }
-      const index = runtime.repoVersionIndexById[repoBlueId];
-      if (index === undefined) {
-        throw this.unknownRepoBlueIdError(
-          repoName,
-          repoBlueId,
-          runtime.currentRepoBlueId,
-        );
-      }
-      result[repoName] = index;
-    }
-
-    return result;
-  }
-
-  private unknownRepoBlueIdError(
-    repoName: string,
-    requestedRepoBlueId: string,
-    serverRepoBlueId: string,
-  ): BlueError {
-    const message = `Unknown RepoBlueId '${requestedRepoBlueId}' for repository '${repoName}'.`;
-    const detail = {
-      code: BlueErrorCode.REPO_UNKNOWN_REPO_BLUE_ID,
-      message,
-      locationPath: [],
-      context: {
-        repoName,
-        requestedRepoBlueId,
-        serverRepoBlueId,
-      },
-    };
-    return new BlueError(BlueErrorCode.REPO_UNKNOWN_REPO_BLUE_ID, message, [
-      detail,
-    ]);
   }
 
   private combineWithGlobalLimits(methodLimits: Limits) {

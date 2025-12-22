@@ -48,10 +48,7 @@ export function parseBlueContextRepositories(
     return Object.create(null) as Record<string, string>;
   }
 
-  const repos = Object.create(null) as Record<
-    string,
-    string
-  >;
+  const repos = Object.create(null) as Record<string, string>;
 
   for (const segment of input.split(',')) {
     const trimmed = segment.trim();

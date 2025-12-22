@@ -145,6 +145,7 @@ export class RepositoryVersionSerializer {
     }
 
     const normalized = this.registry.toCurrentBlueId(blueId);
+    const typeAlias = this.registry.getTypeAlias(normalized);
     const owned = this.registry.findRuntimeByBlueId(normalized);
     if (!owned || !owned.typeMeta) {
       return { kind: 'no-runtime' };
@@ -160,7 +161,7 @@ export class RepositoryVersionSerializer {
         runtimeName: owned.runtime.name,
         runtime: owned.runtime,
         meta: owned.typeMeta,
-        typeAlias: owned.typeAlias,
+        typeAlias,
       };
     }
 
@@ -177,7 +178,7 @@ export class RepositoryVersionSerializer {
             owned.runtime,
             meta,
             targetRepoVersionIndex,
-            owned.typeAlias,
+            typeAlias,
           ),
         };
       }
@@ -201,7 +202,7 @@ export class RepositoryVersionSerializer {
           owned.runtime,
           meta,
           targetRepoVersionIndex,
-          owned.typeAlias,
+          typeAlias,
         ),
       };
     }
@@ -217,7 +218,7 @@ export class RepositoryVersionSerializer {
           owned.runtime,
           meta,
           targetRepoVersionIndex,
-          owned.typeAlias,
+          typeAlias,
         ),
       };
     }

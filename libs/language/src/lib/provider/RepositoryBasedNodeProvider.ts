@@ -14,10 +14,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
   private readonly blueIdMapper?: BlueIdMapper;
 
-  constructor(
-    repositories: BlueRepository[],
-    blueIdMapper?: BlueIdMapper,
-  ) {
+  constructor(repositories: BlueRepository[], blueIdMapper?: BlueIdMapper) {
     super();
     this.blueIdMapper = blueIdMapper;
 

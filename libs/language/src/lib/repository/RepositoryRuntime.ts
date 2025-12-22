@@ -6,6 +6,7 @@ import {
   BlueTypeRuntimeMeta,
 } from '../types/BlueRepository';
 import { validateAttributesAddedPointer as validateAttributesAddedPointerContract } from '@blue-labs/repository-contract';
+import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from '../utils/Properties';
 
 export interface RegisteredRepositoryRuntime {
   name: string;
@@ -70,6 +71,25 @@ export class RepositoryRegistry {
       }
     }
     return blueId;
+  }
+
+  public getTypeAlias(blueId: string): string | undefined {
+    const currentBlueId = this.toCurrentBlueId(blueId);
+    const coreName = (CORE_TYPE_BLUE_ID_TO_NAME_MAP as Record<string, string>)[
+      currentBlueId
+    ];
+    if (coreName) {
+      return coreName;
+    }
+
+    for (const runtime of this.runtimes) {
+      const alias = runtime.typeAliasByCurrentBlueId[currentBlueId];
+      if (alias) {
+        return alias;
+      }
+    }
+
+    return undefined;
   }
 
   public findRuntimeByBlueId(blueId: string):
