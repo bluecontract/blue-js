@@ -7,9 +7,6 @@ import { NodeTransformer } from './NodeTransformer';
 import { BlueError, BlueErrorCode } from '../errors/BlueError';
 import {
   CORE_TYPE_BLUE_IDS,
-  OBJECT_CONTRACTS,
-  OBJECT_MERGE_POLICY,
-  OBJECT_SCHEMA,
   OBJECT_ITEM_TYPE,
   OBJECT_SPECIFIC_KEYS,
   OBJECT_TYPE,
@@ -22,12 +19,7 @@ import {
   parsePointer as parseRepositoryPointer,
 } from '@blue-labs/repository-contract';
 
-const RESERVED_DICTIONARY_KEYS = new Set<string>([
-  ...OBJECT_SPECIFIC_KEYS,
-  OBJECT_SCHEMA,
-  OBJECT_MERGE_POLICY,
-  OBJECT_CONTRACTS,
-]);
+const RESERVED_DICTIONARY_KEYS = new Set<string>([...OBJECT_SPECIFIC_KEYS]);
 
 const RESOLUTION_KIND = {
   core: 'core',

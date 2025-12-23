@@ -110,6 +110,107 @@ export function buildInlineRepository(options: {
   };
 }
 
+export function buildInheritanceRepository(options?: {
+  includeChildV0?: boolean;
+}) {
+  const includeChildV0 = options?.includeChildV0 ?? true;
+  const repositoryVersions = ['R0', 'R1'] as const;
+
+  const baseV0 = new BlueNode('Base').setProperties({
+    keep: new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+  });
+  const baseV0Id = BlueIdCalculator.calculateBlueIdSync(baseV0);
+  const baseV1 = baseV0
+    .clone()
+    .addProperty(
+      'extra',
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+    );
+  const baseV1Id = BlueIdCalculator.calculateBlueIdSync(baseV1);
+
+  const childV0 = new BlueNode('Child')
+    .setType(new BlueNode().setBlueId(baseV0Id))
+    .setProperties({
+      own: new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+    });
+  const childV0Id = BlueIdCalculator.calculateBlueIdSync(childV0);
+  const childV1 = childV0.clone().setType(new BlueNode().setBlueId(baseV1Id));
+  const childV1Id = BlueIdCalculator.calculateBlueIdSync(childV1);
+
+  const childVersions = includeChildV0
+    ? [
+        {
+          repositoryVersionIndex: 0,
+          typeBlueId: childV0Id,
+          attributesAdded: [],
+        },
+        {
+          repositoryVersionIndex: 1,
+          typeBlueId: childV1Id,
+          attributesAdded: ['/extra'],
+        },
+      ]
+    : [
+        {
+          repositoryVersionIndex: 1,
+          typeBlueId: childV1Id,
+          attributesAdded: [],
+        },
+      ];
+
+  const repository: BlueRepository = {
+    name: 'repo.inherit',
+    repositoryVersions,
+    packages: {
+      core: {
+        name: 'core',
+        aliases: {
+          'core/Base': baseV1Id,
+          'core/Child': childV1Id,
+        },
+        typesMeta: {
+          [baseV1Id]: {
+            status: 'stable',
+            name: 'Base',
+            versions: [
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: baseV0Id,
+                attributesAdded: [],
+              },
+              {
+                repositoryVersionIndex: 1,
+                typeBlueId: baseV1Id,
+                attributesAdded: ['/extra'],
+              },
+            ],
+          },
+          [childV1Id]: {
+            status: 'stable',
+            name: 'Child',
+            versions: childVersions,
+          },
+        },
+        contents: {
+          [baseV1Id]: NodeToMapListOrValue.get(baseV1),
+          [childV1Id]: NodeToMapListOrValue.get(childV1),
+        },
+        schemas: {},
+      },
+    },
+  };
+
+  return {
+    repository,
+    ids: {
+      baseV0: baseV0Id,
+      baseV1: baseV1Id,
+      childV0: includeChildV0 ? childV0Id : undefined,
+      childV1: childV1Id,
+    },
+  };
+}
+
 export function buildTypedRepository() {
   const repositoryVersions = ['R0', 'R1'] as const;
 

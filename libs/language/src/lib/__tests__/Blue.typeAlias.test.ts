@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createBlueInstance, ids } from './fixtures';
-import { BlueNode } from '../../model';
+import { createBlueInstance, ids } from './repositoryVersioning/fixtures';
+import { BlueNode } from '../model';
 import {
   BOOLEAN_TYPE_BLUE_ID,
   DICTIONARY_TYPE_BLUE_ID,
@@ -8,9 +8,9 @@ import {
   INTEGER_TYPE_BLUE_ID,
   LIST_TYPE_BLUE_ID,
   TEXT_TYPE_BLUE_ID,
-} from '../../utils/Properties';
+} from '../utils/Properties';
 
-describe('Repository versioning: type alias resolution', () => {
+describe('Blue.getTypeAlias', () => {
   it('returns bare names for core primitives (by BlueId)', () => {
     const blue = createBlueInstance();
 
