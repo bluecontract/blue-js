@@ -39,7 +39,7 @@ jobs:
 
       - name: Publish RC group packages
         if: ${{ contains(github.ref_name, '-rc.') }}
-        run: npx nx release publish --tag next --first-release
+        run: npx nx release publish --tag next
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
