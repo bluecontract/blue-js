@@ -7,11 +7,13 @@
    - Map inline type names → BlueIds
    - Infer primitive types
    - (async) Fetch `blue:` URLs with allow-listed `UrlContentFetcher`
-3. Resolve (`Merger`)
+3. Normalize historical type BlueIds to current (`yamlToNode/jsonValueToNode` or `normalizeTypeReferences`)
+4. Resolve (`Merger`)
    - Provider chain (`NodeProviderWrapper`) = Bootstrap → Repositories → Your provider(s)
    - MergingProcessor pipeline to enforce consistency
-4. Use
+5. Use
    - Compute BlueId, convert to DTO (Zod), patch (RFC-6902), limit traversal (`PathLimits`), match types, reverse to minimal node.
+   - Serialize to a target repository version with `nodeToJson/nodeToYaml` + `BlueContext`
 
 **Provider composition**
 
@@ -19,6 +21,8 @@
 const wrapped = NodeProviderWrapper.wrap(myProvider, repositories);
 // Internally: SequentialNodeProvider([Bootstrap, RepositoryBased, myProvider])
 ```
+
+`repositories` is the list of generated repository packages (e.g. from `@blue-repository/types`) used for type aliases, contents, and schemas.
 
 **Limits**
 

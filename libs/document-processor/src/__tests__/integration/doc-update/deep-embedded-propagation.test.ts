@@ -32,130 +32,130 @@ branch:
       lastOp: none
       contracts:
         life:
-          type: Lifecycle Event Channel
+          type: Core/Lifecycle Event Channel
         initializeLeaf:
-          type: Sequential Workflow
+          type: Conversation/Sequential Workflow
           channel: life
           event:
-            type: Document Processing Initiated
+            type: Core/Document Processing Initiated
           steps:
             - name: SeedLeaf
-              type: Update Document
+              type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /value
                   val: 1
         leafUpdates:
-          type: Document Update Channel
+          type: Core/Document Update Channel
           path: /value
         leafWatcher:
-          type: Sequential Workflow
+          type: Conversation/Sequential Workflow
           channel: leafUpdates
           steps:
             - name: IncrementLeaf
-              type: Update Document
+              type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /observed
                   val: "\${(document('observed') ?? 0) + 1}"
             - name: RecordLeafPath
-              type: Update Document
+              type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /lastPath
                   val: "\${event.path}"
             - name: RecordLeafOp
-              type: Update Document
+              type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /lastOp
                   val: "\${event.op}"
     contracts:
       embedded:
-        type: Process Embedded
+        type: Core/Process Embedded
         paths:
           - /leaf
       subLeafUpdates:
-        type: Document Update Channel
+        type: Core/Document Update Channel
         path: /leaf/value
       subWatcher:
-        type: Sequential Workflow
+        type: Conversation/Sequential Workflow
         channel: subLeafUpdates
         steps:
           - name: IncrementSub
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /observed
                 val: "\${(document('observed') ?? 0) + 1}"
           - name: RecordSubPath
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /lastPath
                 val: "\${event.path}"
           - name: RecordSubOp
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /lastOp
                 val: "\${event.op}"
   contracts:
     embedded:
-      type: Process Embedded
+      type: Core/Process Embedded
       paths:
         - /sub
     branchLeafUpdates:
-      type: Document Update Channel
+      type: Core/Document Update Channel
       path: /sub/leaf/value
     branchWatcher:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: branchLeafUpdates
       steps:
         - name: IncrementBranch
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /observed
               val: "\${(document('observed') ?? 0) + 1}"
         - name: RecordBranchPath
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastPath
               val: "\${event.path}"
         - name: RecordBranchOp
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastOp
               val: "\${event.op}"
 contracts:
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /branch
   rootLeafUpdates:
-    type: Document Update Channel
+    type: Core/Document Update Channel
     path: /branch/sub/leaf/value
   rootWatcher:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootLeafUpdates
     steps:
       - name: IncrementRoot
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /observed
             val: "\${(document('observed') ?? 0) + 1}"
       - name: RecordRootPath
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /lastPath
             val: "\${event.path}"
       - name: RecordRootOp
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /lastOp
@@ -169,7 +169,7 @@ contracts:
     expect(initResult.triggeredEvents).toHaveLength(1);
     const initEvent = initResult.triggeredEvents[0]!;
     expect(stringProperty(initEvent, 'type')).toBe(
-      'Document Processing Initiated',
+      'Core/Document Processing Initiated',
     );
     expect(stringProperty(initEvent, 'documentId')).not.toBeNull();
 

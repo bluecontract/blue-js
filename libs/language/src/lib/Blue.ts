@@ -34,6 +34,14 @@ import { createDefaultMergingProcessor } from './merge';
 import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
+import { RepositoryRegistry } from './repository/RepositoryRuntime';
+import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
+import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
+import {
+  BlueContext,
+  NodeToJsonFormat,
+  NodeToJsonOptions,
+} from './types/BlueContext';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -54,6 +62,8 @@ export class Blue {
   private globalLimits = NO_LIMITS;
   private mergingProcessor: MergingProcessor;
   private repositories?: BlueRepository[];
+  private repositoryRegistry: RepositoryRegistry;
+  private blueContextResolver: BlueContextResolver;
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -66,6 +76,11 @@ export class Blue {
 
     // Store repositories for later use in setNodeProvider
     this.repositories = repositories;
+    this.repositoryRegistry = new RepositoryRegistry(repositories ?? []);
+    this.blueContextResolver = new BlueContextResolver({
+      registry: this.repositoryRegistry,
+      blueIdMapper: this.repositoryRegistry,
+    });
 
     // Use NodeProviderWrapper to create the provider chain with repositories
     const defaultProvider = createNodeProvider(() => []);
@@ -76,7 +91,9 @@ export class Blue {
 
     this.typeSchemaResolver =
       typeSchemaResolver ??
-      new TypeSchemaResolver([], { nodeProvider: this.nodeProvider });
+      new TypeSchemaResolver([], {
+        nodeProvider: this.nodeProvider,
+      });
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
@@ -87,12 +104,15 @@ export class Blue {
     );
 
     this.blueIdsMappingGenerator = new BlueIdsMappingGenerator();
+    this.blueIdsMappingGenerator.registerBlueIds(
+      this.repositoryRegistry.getAliases(),
+    );
 
-    if (repositories) {
-      for (const { schemas, blueIds } of repositories) {
-        this.typeSchemaResolver?.registerSchemas(schemas);
-        this.blueIdsMappingGenerator.registerBlueIds(blueIds);
-      }
+    const schemasToRegister = this.repositoryRegistry
+      .getRuntimes()
+      .flatMap((runtime) => runtime.schemas);
+    if (schemasToRegister.length > 0) {
+      this.typeSchemaResolver?.registerSchemas(schemasToRegister);
     }
   }
 
@@ -100,14 +120,20 @@ export class Blue {
    * Converts a BlueNode to a JSON representation based on the specified strategy.
    *
    * @param node - The BlueNode to convert.
-   * @param strategy - The conversion strategy to use. See {@link NodeToMapListOrValue.get} for detailed strategy descriptions.
+   * @param strategyOrOptions - The conversion strategy or options to use. See {@link NodeToMapListOrValue.get} for detailed strategy descriptions.
    * @returns A JSON representation of the node.
    */
   public nodeToJson(
     node: BlueNode,
-    strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official',
+    strategyOrOptions:
+      | Parameters<typeof NodeToMapListOrValue.get>[1]
+      | NodeToJsonOptions = 'official',
   ) {
-    return NodeToMapListOrValue.get(node, strategy);
+    const options = this.normalizeNodeToJsonOptions(strategyOrOptions);
+    const targetNode = options.blueContext
+      ? this.blueContextResolver.transform(node, options.blueContext)
+      : node;
+    return NodeToMapListOrValue.get(targetNode, options.format);
   }
 
   /**
@@ -116,9 +142,15 @@ export class Blue {
    */
   public nodeToYaml(
     node: BlueNode,
-    strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official',
+    strategy:
+      | Parameters<typeof NodeToMapListOrValue.get>[1]
+      | NodeToJsonOptions = 'official',
   ) {
-    return NodeToYaml.get(node, { strategy });
+    const options = this.normalizeNodeToJsonOptions(strategy);
+    const targetNode = options.blueContext
+      ? this.blueContextResolver.transform(node, options.blueContext)
+      : node;
+    return NodeToYaml.get(targetNode, { strategy: options.format });
   }
 
   public nodeToSchemaOutput<
@@ -177,11 +209,15 @@ export class Blue {
   }
 
   public jsonValueToNode(json: unknown) {
-    return this.preprocess(NodeDeserializer.deserialize(json));
+    const preprocessed = this.preprocess(NodeDeserializer.deserialize(json));
+    return this.normalizeTypeReferences(preprocessed);
   }
 
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
-    return this.preprocessAsync(NodeDeserializer.deserialize(json));
+    const preprocessed = await this.preprocessAsync(
+      NodeDeserializer.deserialize(json),
+    );
+    return this.normalizeTypeReferences(preprocessed);
   }
 
   public yamlToNode(yaml: string) {
@@ -255,19 +291,25 @@ export class Blue {
 
   public preprocess(node: BlueNode): BlueNode {
     const preprocessedNode = this.blueDirectivePreprocessor.process(node);
-    return new Preprocessor({
+    const processed = new Preprocessor({
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
+    return processed;
+  }
+
+  public normalizeTypeReferences(node: BlueNode): BlueNode {
+    return normalizeNodeBlueIds(node, this.repositoryRegistry);
   }
 
   public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
     const preprocessedNode =
       await this.blueDirectivePreprocessor.processAsync(node);
-    return new Preprocessor({
+    const processed = new Preprocessor({
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
+    return processed;
   }
 
   public transform(
@@ -480,6 +522,70 @@ export class Blue {
    */
   public getGlobalLimits(): Limits {
     return this.globalLimits;
+  }
+
+  public toCurrentBlueId(blueId: string): string {
+    return this.repositoryRegistry?.toCurrentBlueId(blueId) ?? blueId;
+  }
+
+  /**
+   * Returns the fully-qualified type alias (`<package>/<Type>`) for a given type reference.
+   *
+   * - For core primitives (Text/Integer/Double/Boolean/List/Dictionary), returns the bare name.
+   * - For repository types, resolves historical BlueIds to the current one and returns the canonical alias.
+   * - For inline alias type nodes (pre-preprocess), attempts to resolve the alias to a BlueId first.
+   */
+  public getTypeAlias(blueId: string | null | undefined): string | undefined;
+  public getTypeAlias(
+    typeNode: BlueNode | null | undefined,
+  ): string | undefined;
+  public getTypeAlias(
+    typeOrBlueId: string | BlueNode | null | undefined,
+  ): string | undefined {
+    if (!typeOrBlueId) {
+      return undefined;
+    }
+
+    if (typeof typeOrBlueId === 'string') {
+      return this.getTypeAliasFromBlueId(typeOrBlueId);
+    }
+
+    const typeNode = typeOrBlueId;
+
+    const blueId = typeNode.getBlueId();
+    if (blueId) {
+      return this.getTypeAliasFromBlueId(blueId);
+    }
+
+    if (!typeNode.isInlineValue()) {
+      return undefined;
+    }
+
+    const inlineValue = typeNode.getValue();
+    if (typeof inlineValue !== 'string') {
+      return undefined;
+    }
+
+    return inlineValue;
+  }
+
+  private getTypeAliasFromBlueId(blueId: string): string | undefined {
+    return this.repositoryRegistry.getTypeAlias(blueId);
+  }
+
+  private normalizeNodeToJsonOptions(
+    strategyOrOptions:
+      | Parameters<typeof NodeToMapListOrValue.get>[1]
+      | NodeToJsonOptions,
+  ): { format: NodeToJsonFormat; blueContext?: BlueContext } {
+    if (typeof strategyOrOptions === 'string') {
+      return { format: strategyOrOptions, blueContext: undefined };
+    }
+
+    return {
+      format: strategyOrOptions?.format ?? 'official',
+      blueContext: strategyOrOptions?.blueContext,
+    };
   }
 
   private combineWithGlobalLimits(methodLimits: Limits) {

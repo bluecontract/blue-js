@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ChannelEventCheckpointSchema as CoreChannelEventCheckpointSchema } from '@blue-repository/core';
+import { ChannelEventCheckpointSchema as CoreChannelEventCheckpointSchema } from '@blue-repository/types/packages/core/schemas/ChannelEventCheckpoint';
 import { markerContractBaseSchema } from '../shared/index.js';
 
 // TODO: Service based on that type like in JAVA version.

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { yamlBlueParse, JsonBlueValue } from '@blue-labs/language';
+import { yamlBlueParse } from '@blue-labs/language';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { DiscoveredType, JsonMap, Alias } from './internalTypes';
 import {
   PRIMITIVE_TYPES,
@@ -95,9 +96,9 @@ function findBlueFiles(dir: string): string[] {
 function collectReferences(content: JsonMap, filePath: string): Set<Alias> {
   const references = new Set<Alias>();
 
-  const visit = (value: JsonBlueValue) => {
+  const visit = (value: JsonValue) => {
     if (Array.isArray(value)) {
-      value.forEach((item) => visit(item as JsonBlueValue));
+      value.forEach((item) => visit(item as JsonValue));
       return;
     }
 
@@ -125,7 +126,7 @@ function collectReferences(content: JsonMap, filePath: string): Set<Alias> {
     maybeAdd(value.keyType);
     maybeAdd(value.valueType);
 
-    Object.values(value).forEach((v) => visit(v as JsonBlueValue));
+    Object.values(value).forEach((v) => visit(v as JsonValue));
   };
 
   visit(content);

@@ -4,6 +4,12 @@
   "include": [],
   "references": [
     {
+      "path": "../shared/utils"
+    },
+    {
+      "path": "../repository-contract"
+    },
+    {
       "path": "../language"
     },
     {

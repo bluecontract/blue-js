@@ -8,8 +8,8 @@ import {
   stringProperty,
   typeBlueId,
 } from '../../../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
-import { blueIds as coreBlueIds } from '@blue-repository/core';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 const blue = createBlue();
 
@@ -20,25 +20,25 @@ describe('JavaScriptCodeStepExecutor (integration)', () => {
     const yaml = `name: JS Code Workflow Doc
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onInit:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: Compute
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           return { value: 12 };
       - name: Emit
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           const result = steps.Compute.value + 8;
           return {
             events: [
               {
-                type: "Chat Message",
+                type: "Conversation/Chat Message",
                 message: "Result is " + result
               }
             ]
@@ -51,7 +51,7 @@ contracts:
     // Should include initialization lifecycle event and the Chat Message emitted by JS step
     const emissions = result.triggeredEvents;
     const chatEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(chatEvents.length).toBe(1);
     const message = property(chatEvents[0], 'message').getValue();
@@ -64,15 +64,15 @@ contracts:
     const yaml = `name: JS Code Workflow Doc (error)
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onInit:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: Boom
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           throw new Error("boom");
 `;
@@ -91,7 +91,8 @@ contracts:
 
     const terminationEvents = result.triggeredEvents.filter(
       (event) =>
-        typeBlueId(event) === coreBlueIds['Document Processing Terminated'],
+        typeBlueId(event) ===
+        coreBlueIds['Core/Document Processing Terminated'],
     );
     expect(terminationEvents.length).toBe(1);
     expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');
@@ -106,36 +107,36 @@ contracts:
     const yaml = `name: JS Code Triggers Triggered Channel
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   trig:
-    type: Triggered Event Channel
+    type: Core/Triggered Event Channel
   producer:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: EmitStatus
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           return {
             events: [
-              { type: "Status Completed" }
+              { type: "Conversation/Status Completed" }
             ]
           };
   consumer:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: trig
     event:
-      type: Status Completed
+      type: Conversation/Status Completed
     steps:
       - name: EmitChat
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           return {
             events: [
               {
-                type: "Chat Message",
+                type: "Conversation/Chat Message",
                 message: "Triggered via Triggered Event Channel"
               }
             ]
@@ -148,12 +149,13 @@ contracts:
     const emissions = result.triggeredEvents;
 
     const completedEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Status Completed'],
+      (e) =>
+        typeBlueId(e) === conversationBlueIds['Conversation/Status Completed'],
     );
     expect(completedEvents.length).toBe(1);
 
     const chatEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(chatEvents.length).toBe(1);
     const message = property(chatEvents[0], 'message').getValue();

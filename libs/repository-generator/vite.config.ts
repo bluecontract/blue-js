@@ -1,9 +1,29 @@
 import * as path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import type { OutputBundle, OutputOptions } from 'rollup';
 const dts = require('vite-plugin-dts').default;
 
 // @ts-expect-error - This is a valid import.
 import packageJson from './package.json';
+
+const preserveCliShebang = () => ({
+  name: 'preserve-cli-shebang',
+  generateBundle(_outputOptions: OutputOptions, bundle: OutputBundle) {
+    for (const [fileName, output] of Object.entries(bundle)) {
+      if (
+        output.type !== 'chunk' ||
+        !output.isEntry ||
+        !fileName.startsWith('bin/blue-repo-generator')
+      ) {
+        continue;
+      }
+
+      if (!output.code.startsWith('#!')) {
+        output.code = `#!/usr/bin/env node\n${output.code}`;
+      }
+    }
+  },
+});
 
 /** @type {import('vite').UserConfig} */
 export default {
@@ -16,6 +36,7 @@ export default {
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    preserveCliShebang(),
   ],
 
   build: {
@@ -26,9 +47,13 @@ export default {
       transformMixedEsModules: true,
     },
     lib: {
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        'bin/blue-repo-generator': 'src/bin/blue-repo-generator.ts',
+      },
       name: 'repository-generator',
-      fileName: 'index',
+      fileName: (format: string, entryName: string) =>
+        `${entryName}.${format === 'es' ? 'mjs' : 'js'}`,
       formats: ['es', 'cjs'],
     },
     rollupOptions: {

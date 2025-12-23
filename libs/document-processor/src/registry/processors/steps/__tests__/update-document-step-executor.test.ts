@@ -14,7 +14,7 @@ describe('UpdateDocumentStepExecutor', () => {
 
   it('applies replace operation with static value', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: /amount
@@ -36,7 +36,7 @@ changeset:
 
   it('adds a new value with ADD operation', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: ADD
     path: /items/-
@@ -60,7 +60,7 @@ changeset:
 
   it('removes a value with REMOVE operation', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REMOVE
     path: /flag
@@ -81,7 +81,7 @@ changeset:
 
   it('evaluates path expressions', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: "\${event.payload.target}"
@@ -107,7 +107,7 @@ changeset:
 
   it('supports template expressions in path', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: "/items/\${event.payload.index}"
@@ -131,7 +131,7 @@ changeset:
 
   it('evaluates value expressions', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: /total
@@ -153,7 +153,7 @@ changeset:
 
   it('resolves template expressions in value', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: /message
@@ -175,7 +175,7 @@ changeset:
 
   it('evaluates changeset expression returning array', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset: "\${[{ op: 'REPLACE', path: '/flag', val: event.payload.flag }]}"
 `);
     const eventNode = blue.jsonValueToNode({ payload: { flag: 'yep' } });
@@ -196,7 +196,7 @@ changeset: "\${[{ op: 'REPLACE', path: '/flag', val: event.payload.flag }]}"
 
   it('exposes previous step results in bindings', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: /outcome
@@ -223,7 +223,7 @@ changeset:
 
   it('allows reading the document() binding', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: /next
@@ -246,7 +246,7 @@ changeset:
 
   it('throws a fatal error when the step schema is invalid', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: JavaScript Code
+    const stepNode = blue.yamlToNode(`type: Conversation/JavaScript Code
 code: return 1;
 `);
     const eventNode = blue.jsonValueToNode({});
@@ -258,7 +258,7 @@ code: return 1;
 
   it('wraps path evaluation errors in CodeBlockEvaluationError', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
     path: "\${doesNotExist.value}"
@@ -275,7 +275,7 @@ changeset:
 
   it('throws fatal error for unsupported operations', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Update Document
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: UPSERT
     path: /value

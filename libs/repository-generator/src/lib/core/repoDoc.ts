@@ -1,7 +1,12 @@
-import { BlueIdCalculator, JsonBlueValue } from '@blue-labs/language';
+import { BlueIdCalculator } from '@blue-labs/language';
 import { BluePackage, BlueRepositoryDocument } from '../types';
 import { BLUE_REPOSITORY_NAME } from './constants';
-import { JsonMap, PackageName } from './internalTypes';
+import { PackageName } from './internalTypes';
+import { isPlainObject } from './utils';
+
+type BlueIdInput = Parameters<
+  typeof BlueIdCalculator.INSTANCE.calculateSync
+>[0];
 
 export function finalizePackages(
   packages: Map<PackageName, BluePackage['types']>,
@@ -18,12 +23,12 @@ export function finalizePackages(
         }))
         .sort((a, b) => {
           const nameA =
-            typeof (a.content as JsonMap).name === 'string'
-              ? ((a.content as JsonMap).name as string)
+            isPlainObject(a.content) && typeof a.content.name === 'string'
+              ? a.content.name
               : '';
           const nameB =
-            typeof (b.content as JsonMap).name === 'string'
-              ? ((b.content as JsonMap).name as string)
+            isPlainObject(b.content) && typeof b.content.name === 'string'
+              ? b.content.name
               : '';
           return nameA.localeCompare(nameB);
         }),
@@ -33,7 +38,7 @@ export function finalizePackages(
 
 export function computeRepoBlueId(packages: BluePackage[]): string {
   return BlueIdCalculator.INSTANCE.calculateSync(
-    packages as unknown as JsonBlueValue,
+    packages as unknown as BlueIdInput,
   );
 }
 

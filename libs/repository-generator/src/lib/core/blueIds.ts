@@ -1,4 +1,6 @@
-import { BlueIdCalculator, JsonBlueValue } from '@blue-labs/language';
+import { BlueIdCalculator } from '@blue-labs/language';
+import { OBJECT_CONTRACTS } from '@blue-labs/repository-contract';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { Alias, DiscoveredType, JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS, PRIMITIVE_TYPES } from './constants';
 import { cloneJson, isPlainObject, isRecord } from './utils';
@@ -36,15 +38,15 @@ export function computeBlueIds(
 }
 
 export function substituteAliases(
-  content: JsonBlueValue,
+  content: JsonValue,
   aliasToBlueId: Map<Alias, string>,
   skipContracts = false,
   underContracts = false,
-): JsonBlueValue {
+): JsonValue {
   if (Array.isArray(content)) {
     return content.map((item) =>
       substituteAliases(
-        item as JsonBlueValue,
+        item as JsonValue,
         aliasToBlueId,
         skipContracts,
         underContracts,
@@ -56,10 +58,10 @@ export function substituteAliases(
     return content;
   }
 
-  const updated: Record<string, JsonBlueValue> = {};
+  const updated: Record<string, JsonValue> = {};
 
   for (const [key, value] of Object.entries(content)) {
-    const inContracts = underContracts || key === 'contracts';
+    const inContracts = underContracts || key === OBJECT_CONTRACTS;
 
     if (
       (key === 'type' ||
@@ -87,7 +89,7 @@ export function substituteAliases(
     }
 
     updated[key] = substituteAliases(
-      value as JsonBlueValue,
+      value as JsonValue,
       aliasToBlueId,
       skipContracts,
       inContracts,
@@ -98,13 +100,11 @@ export function substituteAliases(
 }
 
 export function normalizeForBlueId(
-  value: JsonBlueValue,
+  value: JsonValue,
   parentHasExplicitType = false,
-): JsonBlueValue {
+): JsonValue {
   if (Array.isArray(value)) {
-    const items = value.map((item) =>
-      normalizeForBlueId(item as JsonBlueValue),
-    );
+    const items = value.map((item) => normalizeForBlueId(item as JsonValue));
     return { items };
   }
 
@@ -114,12 +114,12 @@ export function normalizeForBlueId(
     }
 
     const currentHasExplicitType = hasExplicitType(value);
-    const normalized: Record<string, JsonBlueValue> = {};
+    const normalized: Record<string, JsonValue> = {};
 
     for (const [key, val] of Object.entries(value)) {
       if (isPrimitiveValue(val)) {
         if (shouldSkipWrappingPrimitive(key, currentHasExplicitType)) {
-          normalized[key] = val as JsonBlueValue;
+          normalized[key] = val as JsonValue;
         } else {
           normalized[key] = wrapPrimitive(
             val as string | number | boolean | null,
@@ -129,7 +129,7 @@ export function normalizeForBlueId(
       }
 
       normalized[key] = normalizeForBlueId(
-        val as JsonBlueValue,
+        val as JsonValue,
         currentHasExplicitType,
       );
     }
@@ -193,7 +193,7 @@ function isPrimitiveValue(
 }
 
 function isBlueIdReference(
-  value: Record<string, JsonBlueValue>,
+  value: Record<string, JsonValue>,
 ): value is { blueId: string } {
   const entries = Object.entries(value);
   return (
@@ -203,7 +203,7 @@ function isBlueIdReference(
   );
 }
 
-function hasExplicitType(value: Record<string, JsonBlueValue>): boolean {
+function hasExplicitType(value: Record<string, JsonValue>): boolean {
   return (
     Object.prototype.hasOwnProperty.call(value, 'type') ||
     Object.prototype.hasOwnProperty.call(value, 'itemType') ||

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { createBlue } from '../../../test-support/blue.js';
 import {
@@ -24,72 +24,72 @@ sub1:
   x: 1
   contracts:
     alice:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: alice
     subWorkflow:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: alice
       steps:
         - name: UpdateSubX
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /x
               val: 2
         - name: EmitPayment
-          type: Trigger Event
+          type: Conversation/Trigger Event
           event:
-            type: Chat Message
+            type: Conversation/Chat Message
             message: Payment Succeeded for Alice
 sub2:
   y: 1
 contracts:
   embeddedSub1:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /sub1
   sub1Bridge:
-    type: Embedded Node Channel
+    type: Core/Embedded Node Channel
     childPath: /sub1
   alice:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: alice
   workflowRootSetOne:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: alice
     order: 0
     steps:
       - name: SetRootOne
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /x
             val: 1
   workflowRootSetFive:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: alice
     order: 1
     steps:
       - name: SetRootFive
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /x
             val: 5
   workflowFromSub:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: sub1Bridge
     steps:
       - name: SetRootTen
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /x
             val: 10
       - name: ReEmitPayment
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: Payment Succeeded for Alice
 `;
 
@@ -114,7 +114,9 @@ contracts:
 
     expect(processed.triggeredEvents).toHaveLength(1);
     const emitted = processed.triggeredEvents[0]!;
-    expect(typeBlueId(emitted)).toBe(conversationBlueIds['Chat Message']);
+    expect(typeBlueId(emitted)).toBe(
+      conversationBlueIds['Conversation/Chat Message'],
+    );
     expect(stringProperty(emitted, 'message')).toBe(
       'Payment Succeeded for Alice',
     );

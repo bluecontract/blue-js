@@ -104,13 +104,13 @@ a:
   name: Child Doc
   contracts:
     life:
-      type: Lifecycle Event Channel
+      type: Core/Lifecycle Event Channel
     triggered:
-      type: Triggered Event Channel
+      type: Core/Triggered Event Channel
     emitOnInit:
       channel: life
       event:
-        type: Document Processing Initiated
+        type: Core/Document Processing Initiated
       type:
         blueId: EmitEvents
       events:
@@ -144,11 +144,11 @@ a:
       propertyValue: 1
 contracts:
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /a
   embeddedEvents:
-    type: Embedded Node Channel
+    type: Core/Embedded Node Channel
     childPath: /a
   setRootFromChild:
     channel: embeddedEvents

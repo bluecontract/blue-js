@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { MyOSSessionInteractionSchema } from '@blue-repository/myos';
+import { MyOSSessionInteractionSchema } from '@blue-repository/types/packages/myos/schemas/MyOSSessionInteraction';
 
 import { markerContractBaseSchema } from '../shared/index.js';
 

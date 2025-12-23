@@ -1,8 +1,6 @@
 import { BlueNode } from '@blue-labs/language';
-import {
-  blueIds as conversationBlueIds,
-  TriggerEventSchema,
-} from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { TriggerEventSchema } from '@blue-repository/types/packages/conversation/schemas/TriggerEvent';
 import { isNullable } from '@blue-labs/shared-utils';
 
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
@@ -20,7 +18,9 @@ import {
 export class TriggerEventStepExecutor
   implements SequentialWorkflowStepExecutor
 {
-  readonly supportedBlueIds = [conversationBlueIds['Trigger Event']] as const;
+  readonly supportedBlueIds = [
+    conversationBlueIds['Conversation/Trigger Event'],
+  ] as const;
 
   private readonly evaluator = new QuickJSEvaluator();
 

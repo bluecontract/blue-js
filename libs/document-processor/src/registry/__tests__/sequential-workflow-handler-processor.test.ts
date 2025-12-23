@@ -8,7 +8,7 @@ import {
   property,
   typeBlueId,
 } from '../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 const blue = createBlue();
 
@@ -26,11 +26,11 @@ function timelineEntryEvent(
       ? `  message: ${message}\n`
       : `  requestId: ${requestId}\n`;
 
-  const yaml = `type: Timeline Entry
+  const yaml = `type: Conversation/Timeline Entry
 timeline:
   timelineId: ${timelineId}
 message:
-  type: ${messageType}
+  type: Conversation/${messageType}
 ${messageFields}actor:
   name: Timeline Owner
 timestamp: 1700000000
@@ -49,23 +49,23 @@ async function initializeDocument(options?: {
   const eventSnippet = options?.eventType
     ? `    event:
       message:
-        type: ${options.eventType}
+        type: Conversation/${options.eventType}
 `
     : '';
 
   const yaml = `name: Sequential Workflow Document
 contracts:
   timelineChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: alice
   emitNotification:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: timelineChannel
 ${eventSnippet}    steps:
       - name: EmitGreeting
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: Workflow says hi
 `;
 
@@ -89,7 +89,9 @@ describe('SequentialWorkflowHandlerProcessor', () => {
 
     expect(result.triggeredEvents).toHaveLength(1);
     const emitted = result.triggeredEvents[0];
-    expect(typeBlueId(emitted)).toBe(conversationBlueIds['Chat Message']);
+    expect(typeBlueId(emitted)).toBe(
+      conversationBlueIds['Conversation/Chat Message'],
+    );
     const emittedMessage = property(emitted, 'message').getValue();
     expect(emittedMessage).toBe('Workflow says hi');
   });
@@ -145,22 +147,22 @@ describe('SequentialWorkflowHandlerProcessor', () => {
     const documentYaml = `name: Sequential Workflow With Combined Filters
 contracts:
   timelineChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: alice
     event:
       message:
-        type: Chat Message
+        type: Conversation/Chat Message
   emitNotification:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: timelineChannel
     event:
       message:
         message: eligible
     steps:
       - name: EmitGreeting
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: Workflow says hi
 `;
 

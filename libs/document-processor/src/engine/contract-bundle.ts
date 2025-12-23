@@ -1,4 +1,4 @@
-import { blueIds } from '@blue-repository/core';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
 import type {
@@ -27,7 +27,8 @@ type StoredHandler = {
   readonly blueId: string;
 };
 
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
+  blueIds['Core/Channel Event Checkpoint'];
 
 function contractOrder(contract: { readonly order?: number | null }): number {
   return typeof contract.order === 'number' ? contract.order : 0;

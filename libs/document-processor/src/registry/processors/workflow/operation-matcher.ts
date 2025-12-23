@@ -2,13 +2,13 @@ import { BlueNode } from '@blue-labs/language';
 import type { Blue } from '@blue-labs/language';
 import {
   OperationRequestSchema,
+  type OperationRequest,
+} from '@blue-repository/types/packages/conversation/schemas/OperationRequest';
+import {
   OperationSchema,
-  TimelineEntrySchema,
-} from '@blue-repository/conversation';
-import type {
-  Operation,
-  OperationRequest,
-} from '@blue-repository/conversation';
+  type Operation,
+} from '@blue-repository/types/packages/conversation/schemas/Operation';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
 
 import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflowOperation } from '../../../model/index.js';

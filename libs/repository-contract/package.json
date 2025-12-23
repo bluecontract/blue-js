@@ -1,0 +1,54 @@
+{
+  "name": "@blue-labs/repository-contract",
+  "version": "2.0.0-rc.21",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./pointers": {
+      "types": "./dist/pointers.d.ts",
+      "import": "./dist/pointers.mjs",
+      "require": "./dist/pointers.js"
+    },
+    "./refs": {
+      "types": "./dist/refs.d.ts",
+      "import": "./dist/refs.mjs",
+      "require": "./dist/refs.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "import": "./dist/validation.mjs",
+      "require": "./dist/validation.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.mjs",
+      "require": "./dist/types.js"
+    }
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  },
+  "dependencies": {
+    "@blue-labs/shared-utils": "2.0.0-rc.21"
+  },
+  "peerDependencies": {
+    "zod": "^3.20.0"
+  }
+}

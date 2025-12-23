@@ -1,10 +1,24 @@
-import { compare, Operation } from 'fast-json-patch';
-import { JsonBlueValue } from '@blue-labs/language';
-import { JsonMap } from './internalTypes';
+import fastJsonPatch from 'fast-json-patch';
+import type { Operation } from 'fast-json-patch';
+import type { JsonValue } from '@blue-labs/shared-utils';
+import { Alias, JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS } from './constants';
 import { isRecord } from './utils';
+import {
+  OBJECT_SCHEMA,
+  parsePointer as parseRepositoryPointer,
+  RESERVED_ATTRIBUTES_POINTER_SEGMENTS,
+  validateAttributesAddedPointer,
+} from '@blue-labs/repository-contract';
 
 const PRIMITIVE_BLUE_ID_SET = new Set(Object.values(PRIMITIVE_BLUE_IDS));
+const RESERVED_TERMINAL_SEGMENTS = new Set([
+  'type',
+  'itemType',
+  'valueType',
+  'keyType',
+]);
+const ALLOWED_PRIMITIVE_ADDITIONS = new Set(['name', 'description']);
 
 export const CHANGE_STATUS = {
   Unchanged: 'unchanged',
@@ -24,8 +38,9 @@ export function classifyChange(
   nextContent: JsonMap,
   packageName: string,
   typeName: string,
+  blueIdAliases: Map<string, Set<Alias>>,
 ): ChangeClassification {
-  const patch = compare(
+  const patch = fastJsonPatch.compare(
     previousContent as unknown as Record<string, unknown>,
     nextContent as unknown as Record<string, unknown>,
   );
@@ -37,7 +52,7 @@ export function classifyChange(
   const attributesAdded: string[] = [];
   let dependencyUpdates = false;
   for (const op of patch) {
-    if (isTypeBlueIdReplace(op, previousContent)) {
+    if (isTypeBlueIdReplace(op, previousContent, blueIdAliases)) {
       dependencyUpdates = true;
       continue;
     }
@@ -70,9 +85,11 @@ function validateAttributePointers(
   typeName: string,
 ) {
   for (const attr of attributes) {
-    if (!attr.startsWith('/')) {
+    try {
+      validateAttributesAddedPointer(attr);
+    } catch (err) {
       throw new Error(
-        `Invalid attribute pointer "${attr}" for ${packageName}/${typeName}. Expected JSON Pointer starting with '/'.`,
+        `Invalid attribute pointer "${attr}" for ${packageName}/${typeName}: ${(err as Error).message}`,
       );
     }
   }
@@ -83,18 +100,29 @@ function isOptionalAddition(op: Operation): boolean {
     return false;
   }
 
-  const segments = parsePointer(op.path);
+  const segments = safeParsePointer(op.path);
   if (segments.length === 0) {
     return false;
   }
-
   const last = segments.at(-1);
   if (last && /^\d+$/.test(last)) {
     return false;
   }
 
-  if (!isRecord(op.value)) {
+  if (last && RESERVED_TERMINAL_SEGMENTS.has(last)) {
     return false;
+  }
+
+  if (
+    segments.some((segment) =>
+      RESERVED_ATTRIBUTES_POINTER_SEGMENTS.has(segment),
+    )
+  ) {
+    return false;
+  }
+
+  if (!isRecord(op.value)) {
+    return last ? ALLOWED_PRIMITIVE_ADDITIONS.has(last) : false;
   }
 
   if (introducesRequiredField(op.value)) {
@@ -104,15 +132,12 @@ function isOptionalAddition(op: Operation): boolean {
   return true;
 }
 
-function parsePointer(pointer: string): string[] {
-  if (!pointer.startsWith('/')) {
+function safeParsePointer(pointer: string): string[] {
+  try {
+    return parseRepositoryPointer(pointer);
+  } catch {
     return [];
   }
-
-  return pointer
-    .slice(1)
-    .split('/')
-    .map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
 }
 
 function introducesRequiredField(value: Record<string, unknown>): boolean {
@@ -127,15 +152,21 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
       return true;
     }
 
-    if (
-      Object.prototype.hasOwnProperty.call(current, 'schema') &&
-      isRecord(current.schema) &&
-      current.schema.required === true
-    ) {
+    if (Object.prototype.hasOwnProperty.call(current, 'items')) {
       return true;
     }
 
-    for (const val of Object.values(current)) {
+    if (Object.prototype.hasOwnProperty.call(current, OBJECT_SCHEMA)) {
+      const schema = current[OBJECT_SCHEMA];
+      if (isRecord(schema) && schema.required === true) {
+        return true;
+      }
+    }
+
+    for (const [key, val] of Object.entries(current)) {
+      if (key === OBJECT_SCHEMA) {
+        continue;
+      }
       if (isRecord(val)) {
         stack.push(val);
       }
@@ -144,11 +175,15 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
   return false;
 }
 
-function isTypeBlueIdReplace(op: Operation, previousContent: JsonMap): boolean {
+function isTypeBlueIdReplace(
+  op: Operation,
+  previousContent: JsonMap,
+  blueIdAliases: Map<string, Set<Alias>>,
+): boolean {
   if (op.op !== 'replace' || typeof op.path !== 'string') {
     return false;
   }
-  const segments = parsePointer(op.path);
+  const segments = safeParsePointer(op.path);
   if (segments.length < 2) {
     return false;
   }
@@ -188,23 +223,39 @@ function isTypeBlueIdReplace(op: Operation, previousContent: JsonMap): boolean {
     return false;
   }
 
-  return true;
+  if (!previousBlueId || !nextBlueId) {
+    return false;
+  }
+
+  const previousAliases = blueIdAliases.get(previousBlueId);
+  const nextAliases = blueIdAliases.get(nextBlueId);
+  if (!previousAliases || !nextAliases) {
+    return false;
+  }
+
+  for (const alias of previousAliases) {
+    if (nextAliases.has(alias)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function getValueAt(
-  content: JsonBlueValue,
+  content: JsonValue,
   segments: string[],
-): JsonBlueValue | undefined {
-  let current: JsonBlueValue = content;
+): JsonValue | undefined {
+  let current: JsonValue = content;
   for (const seg of segments) {
     if (Array.isArray(current)) {
       const idx = Number(seg);
       if (Number.isNaN(idx) || idx < 0 || idx >= current.length) {
         return undefined;
       }
-      current = current[idx] as JsonBlueValue;
+      current = current[idx] as JsonValue;
     } else if (isRecord(current)) {
-      current = current[seg] as JsonBlueValue;
+      current = current[seg] as JsonValue;
     } else {
       return undefined;
     }

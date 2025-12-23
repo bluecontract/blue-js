@@ -9,10 +9,11 @@ import { isSubtype } from './NodeTypes';
 export class TypeSchemaResolver {
   private readonly blueIdMap = new Map<string, ZodTypeAny>();
   private nodeProvider: NodeProvider | null;
-
   constructor(
     schemas: ZodTypeAny[] = [],
-    options?: { nodeProvider?: NodeProvider | null },
+    options?: {
+      nodeProvider?: NodeProvider | null;
+    },
   ) {
     this.nodeProvider = options?.nodeProvider ?? null;
     this.registerSchemas(schemas);

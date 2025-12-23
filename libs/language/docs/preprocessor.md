@@ -7,6 +7,8 @@ Before resolution, `Preprocessor` performs document-level transformations declar
 2. Infers basic types for untyped primitive values (`Text/Integer/Double/Boolean`).
 3. Validates no stray inline type values remain.
 
+Mappings are assembled from core types plus registered repository aliases via `BlueIdsMappingGenerator` and injected into the default Blue transformation at runtime.
+
 **Blue directive sources**
 
 - Alias (from mappings/aliases)
@@ -35,3 +37,7 @@ function preprocessWithDefaultBlue(doc) {
 
 - `ReplaceInlineValuesForTypeAttributesWithImports` – maps `"Text"` → `{ blueId: ... }` etc.
 - `InferBasicTypesForUntypedValues` – tags `value: 123` as `Integer`, `"abc"` as `Text`, etc.
+
+**Historical BlueIds**
+
+`Preprocessor` only applies transformations. Normalization to current type BlueIds is a separate step (`blue.normalizeTypeReferences(...)`). The `yamlToNode/jsonValueToNode` entry points call normalization after preprocessing; if you construct nodes manually, normalize explicitly before type checks or schema output.

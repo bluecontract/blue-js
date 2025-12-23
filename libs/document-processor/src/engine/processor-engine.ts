@@ -1,5 +1,10 @@
-import { Blue, BlueIdCalculator, BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/core';
+import {
+  Blue,
+  BlueIdCalculator,
+  BlueNode,
+  Properties,
+} from '@blue-labs/language';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import { ChannelRunner, type ChannelMatch } from './channel-runner.js';
 import { CheckpointManager } from './checkpoint-manager.js';
@@ -39,8 +44,8 @@ import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
 
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Processing Initialized Marker'];
-const DOCUMENT_UPDATE_BLUE_ID = blueIds['Document Update'];
+  blueIds['Core/Processing Initialized Marker'];
+const DOCUMENT_UPDATE_BLUE_ID = blueIds['Core/Document Update'];
 
 interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   bundleForScope(scopePath: string): ContractBundle | undefined;
@@ -537,7 +542,7 @@ export class ProcessorEngine {
   }
 
   private initializationMarker(document: BlueNode): BlueNode | null {
-    const contracts = document.getProperties()?.contracts;
+    const contracts = document.getProperties()?.[Properties.OBJECT_CONTRACTS];
     const marker = contracts?.getProperties()?.initialized ?? null;
     if (!marker) {
       return null;
@@ -641,7 +646,7 @@ export class ProcessorEngine {
         return new BlueNode().setValue(node.getValue() ?? null);
       case 'blue':
         return node.getBlue() ?? null;
-      case 'contracts':
+      case Properties.OBJECT_CONTRACTS:
         return new BlueNode().setContracts(node.getContracts());
       case 'blueId': {
         const calculatedBlueId =

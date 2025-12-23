@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { BlueNode } from '@blue-labs/language';
-import { blueIds as myosBlueIds } from '@blue-repository/myos';
+import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 
 import { ContractLoader } from '../contract-loader.js';
 import { ContractProcessorRegistry } from '../../registry/contract-processor-registry.js';
@@ -11,10 +11,10 @@ import { MustUnderstandFailure } from '../must-understand-failure.js';
 import { ProcessorFatalError } from '../processor-fatal-error.js';
 import { blueIds, createBlue } from '../../test-support/blue.js';
 
-const blueIdDocumentUpdate = blueIds['Document Update Channel'];
-const blueIdInitialization = blueIds['Processing Initialized Marker'];
-const blueIdProcessEmbedded = blueIds['Process Embedded'];
-const blueIdCheckpoint = blueIds['Channel Event Checkpoint'];
+const blueIdDocumentUpdate = blueIds['Core/Document Update Channel'];
+const blueIdInitialization = blueIds['Core/Processing Initialized Marker'];
+const blueIdProcessEmbedded = blueIds['Core/Process Embedded'];
+const blueIdCheckpoint = blueIds['Core/Channel Event Checkpoint'];
 
 function buildScopeNode(
   blue: ReturnType<typeof createBlue>,
@@ -86,35 +86,35 @@ describe('ContractLoader', () => {
     const loader = new ContractLoader(registry, blue);
     const scopeNode = buildScopeNode(blue, {
       anchors: {
-        type: { blueId: myosBlueIds['Document Anchors'] },
+        type: { blueId: myosBlueIds['MyOS/Document Anchors'] },
         anchorAlpha: {
-          type: { blueId: myosBlueIds['Document Anchor'] },
+          type: { blueId: myosBlueIds['MyOS/Document Anchor'] },
           description: 'Primary anchor',
         },
       },
       links: {
-        type: { blueId: myosBlueIds['Document Links'] },
+        type: { blueId: myosBlueIds['MyOS/Document Links'] },
         outbound: {
-          type: { blueId: myosBlueIds['Document Link'] },
+          type: { blueId: myosBlueIds['MyOS/Document Link'] },
           anchor: 'anchorAlpha',
           documentId: 'doc-123',
         },
         linkAgent: {
-          type: { blueId: myosBlueIds['MyOS Session Link'] },
+          type: { blueId: myosBlueIds['MyOS/MyOS Session Link'] },
           anchor: 'anchorA',
           sessionId: 'session-abc',
         },
       },
       participants: {
-        type: { blueId: myosBlueIds['MyOS Participants Orchestration'] },
+        type: { blueId: myosBlueIds['MyOS/MyOS Participants Orchestration'] },
         name: 'Orchestration',
       },
       sessionInteraction: {
-        type: { blueId: myosBlueIds['MyOS Session Interaction'] },
+        type: { blueId: myosBlueIds['MyOS/MyOS Session Interaction'] },
         name: 'Session Interaction',
       },
       workerAgency: {
-        type: { blueId: myosBlueIds['MyOS Worker Agency'] },
+        type: { blueId: myosBlueIds['MyOS/MyOS Worker Agency'] },
         name: 'Worker Agency',
       },
     });

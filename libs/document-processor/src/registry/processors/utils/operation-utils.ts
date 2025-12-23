@@ -1,5 +1,5 @@
 import { BlueNode } from '@blue-labs/language';
-import type { Operation } from '@blue-repository/conversation';
+import type { Operation } from '@blue-repository/types/packages/conversation/schemas/Operation';
 
 import type { ContractProcessorContext } from '../../types.js';
 

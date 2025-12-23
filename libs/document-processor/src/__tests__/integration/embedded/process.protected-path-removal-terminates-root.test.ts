@@ -21,43 +21,43 @@ child:
   count: 0
   contracts:
     childTimeline:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: child
     incrementChild:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: childTimeline
       steps:
         - name: IncrementChild
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /count
               val: "\${document('count') + 1}"
 contracts:
   rootTimeline:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: root
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /child
   removeEmbeddedPath:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootTimeline
     order: 1
     steps:
       - name: RemoveMarker
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REMOVE
             path: /contracts/embedded/paths/0
   rootWriteAttempt:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootTimeline
     order: 2
     steps:
       - name: RootIncrement
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /child/count

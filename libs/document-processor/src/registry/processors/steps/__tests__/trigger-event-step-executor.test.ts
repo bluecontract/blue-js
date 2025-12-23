@@ -7,7 +7,7 @@ import {
 } from '../../../../test-support/workflow.js';
 import { TriggerEventStepExecutor } from '../trigger-event-step-executor.js';
 import { ProcessorFatalError } from '../../../../engine/processor-fatal-error.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { property, typeBlueId } from '../../../../__tests__/test-utils.js';
 
 describe('TriggerEventStepExecutor', () => {
@@ -15,9 +15,9 @@ describe('TriggerEventStepExecutor', () => {
 
   it('emits the provided event payload', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Trigger Event
+    const stepNode = blue.yamlToNode(`type: Conversation/Trigger Event
 event:
-  type: Chat Message
+  type: Conversation/Chat Message
   message: Hello World
 `);
     const eventNode = blue.jsonValueToNode({});
@@ -29,14 +29,16 @@ event:
     const emissions = setup.execution.runtime().rootEmissions();
     expect(emissions).toHaveLength(1);
     const emitted = emissions[0];
-    expect(typeBlueId(emitted)).toBe(conversationBlueIds['Chat Message']);
+    expect(typeBlueId(emitted)).toBe(
+      conversationBlueIds['Conversation/Chat Message'],
+    );
     const message = emitted.getProperties()?.message?.getValue();
     expect(message).toBe('Hello World');
   });
 
   it('throws a fatal error when the step schema is invalid', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: JavaScript Code
+    const stepNode = blue.yamlToNode(`type: Conversation/JavaScript Code
 code: return 1;
 `);
     const eventNode = blue.jsonValueToNode({});
@@ -48,7 +50,7 @@ code: return 1;
 
   it('throws a fatal error when event payload is missing', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Trigger Event
+    const stepNode = blue.yamlToNode(`type: Conversation/Trigger Event
 `);
     const eventNode = blue.jsonValueToNode({});
     const setup = createRealContext(blue, eventNode);
@@ -61,9 +63,9 @@ code: return 1;
     const blue = createBlue();
     const messageTemplate =
       "${steps.PreparePayment.description} for ${steps.PreparePayment.amount} ${document('/currency')}";
-    const stepNode = blue.yamlToNode(`type: Trigger Event
+    const stepNode = blue.yamlToNode(`type: Conversation/Trigger Event
 event:
-  type: Chat Message
+  type: Conversation/Chat Message
   message: ${JSON.stringify(messageTemplate)}
 `);
     const eventNode = blue.jsonValueToNode({});
@@ -89,7 +91,9 @@ event:
     const emissions = setup.execution.runtime().rootEmissions();
     expect(emissions).toHaveLength(1);
     const emitted = emissions[0];
-    expect(typeBlueId(emitted)).toBe(conversationBlueIds['Chat Message']);
+    expect(typeBlueId(emitted)).toBe(
+      conversationBlueIds['Conversation/Chat Message'],
+    );
 
     const message = emitted.getProperties()?.message?.getValue();
     expect(message).toBe('Subscription renewal for 125 USD');
@@ -98,22 +102,22 @@ event:
   it('keeps nested documents inside the event payload as literal data', async () => {
     const blue = createBlue();
     const messageTemplate = 'Launching ${steps.Prepare.name}';
-    const stepNode = blue.yamlToNode(`type: Trigger Event
+    const stepNode = blue.yamlToNode(`type: Conversation/Trigger Event
 event:
-  type: Chat Message
+  type: Conversation/Chat Message
   message: ${JSON.stringify(messageTemplate)}
   document:
     name: Child Worker Session
     contracts:
       nestedTimeline:
-        type: Timeline Channel
+        type: Conversation/Timeline Channel
         timelineId: child
       nestedWorkflow:
-        type: Sequential Workflow
+        type: Conversation/Sequential Workflow
         channel: nestedTimeline
         steps:
           - name: UpdateToken
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: replace
                 path: /token

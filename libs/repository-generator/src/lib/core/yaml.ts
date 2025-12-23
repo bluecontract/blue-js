@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { dump as yamlDump } from 'js-yaml';
+import yaml from 'js-yaml';
 import { yamlBlueParse } from '@blue-labs/language';
 import { BLUE_REPOSITORY_NAME } from './constants';
 import { BluePackage, BlueRepositoryDocument } from '../types';
@@ -57,5 +57,5 @@ export function readExistingRepository(blueRepositoryPath: string): {
 }
 
 export function serializeRepository(document: BlueRepositoryDocument): string {
-  return yamlDump(document, { lineWidth: -1 });
+  return yaml.dump(document, { lineWidth: -1 });
 }

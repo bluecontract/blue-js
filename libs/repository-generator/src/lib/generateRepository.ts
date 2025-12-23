@@ -17,6 +17,7 @@ import {
   computeRepoBlueId,
   composeRepositoryDocument,
 } from './core/repoDoc';
+import { validateWithContract } from './core/contractValidation';
 import { readExistingRepository, serializeRepository } from './core/yaml';
 
 export function generateRepository(
@@ -61,6 +62,12 @@ export function generateRepository(
     packages,
     previous,
     currentRepoBlueId,
+  );
+
+  validateWithContract(
+    document.packages,
+    document.repositoryVersions,
+    aliasToBlueId,
   );
 
   const yaml = serializeRepository(document);

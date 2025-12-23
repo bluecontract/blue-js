@@ -8,7 +8,7 @@ import {
   PackageName,
 } from './internalTypes';
 import { classifyChange, CHANGE_STATUS } from './diff';
-import { cloneVersions } from './utils';
+import { cloneVersions, isPlainObject } from './utils';
 import { BLUE_TYPE_STATUS } from './constants';
 
 export function indexPreviousTypes(
@@ -25,9 +25,10 @@ export function indexPreviousTypes(
     }
     const types = new Map<TypeName, BlueTypeMetadata>();
     for (const type of pkg.types || []) {
+      const content = type.content;
       const typeName =
-        typeof (type.content as JsonMap).name === 'string'
-          ? ((type.content as JsonMap).name as string)
+        isPlainObject(content) && typeof content.name === 'string'
+          ? content.name
           : undefined;
       if (!typeName) {
         continue;
@@ -75,6 +76,7 @@ export function buildPackages({
   nextRepoVersionIndex,
 }: BuildPackagesArgs): Map<PackageName, BlueTypeMetadata[]> {
   const packages = new Map<PackageName, BlueTypeMetadata[]>();
+  const blueIdAliases = buildBlueIdAliasMap(previousTypes, aliasToBlueId);
 
   for (const [alias, type] of discovered) {
     const blueId = aliasToBlueId.get(alias);
@@ -110,6 +112,7 @@ export function buildPackages({
               currentContent,
               packageName: type.packageName,
               typeName: type.typeName,
+              blueIdAliases,
             });
 
     metadata.content = currentContent;
@@ -121,6 +124,39 @@ export function buildPackages({
   }
 
   return packages;
+}
+
+function buildBlueIdAliasMap(
+  previousTypes: PackageTypeMap,
+  aliasToBlueId: Map<Alias, string>,
+): Map<string, Set<Alias>> {
+  const map = new Map<string, Set<Alias>>();
+
+  const addAlias = (blueId: string, alias: Alias) => {
+    const existing = map.get(blueId);
+    if (existing) {
+      existing.add(alias);
+      return;
+    }
+    map.set(blueId, new Set([alias]));
+  };
+
+  for (const [packageName, types] of previousTypes) {
+    for (const [typeName, metadata] of types) {
+      const alias = `${packageName}/${typeName}` as Alias;
+      for (const version of metadata.versions ?? []) {
+        if (typeof version.typeBlueId === 'string') {
+          addAlias(version.typeBlueId, alias);
+        }
+      }
+    }
+  }
+
+  for (const [alias, blueId] of aliasToBlueId) {
+    addAlias(blueId, alias);
+  }
+
+  return map;
 }
 
 function buildDevMetadata({
@@ -185,6 +221,7 @@ function buildExistingStableMetadata({
   currentContent,
   packageName,
   typeName,
+  blueIdAliases,
 }: {
   alias: Alias;
   blueId: string;
@@ -193,12 +230,20 @@ function buildExistingStableMetadata({
   currentContent: JsonMap;
   packageName: PackageName;
   typeName: TypeName;
+  blueIdAliases: Map<string, Set<Alias>>;
 }): BlueTypeMetadata {
+  if (!isPlainObject(previousType.content)) {
+    throw new Error(
+      `Type ${alias} has non-object content; cannot compute diff for stable versioning.`,
+    );
+  }
+
   const diffResult = classifyChange(
-    previousType.content,
+    previousType.content as JsonMap,
     currentContent,
     packageName,
     typeName,
+    blueIdAliases,
   );
 
   if (diffResult.status === CHANGE_STATUS.Unchanged) {

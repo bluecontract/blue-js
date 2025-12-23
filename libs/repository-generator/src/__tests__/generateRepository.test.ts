@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { BlueIdCalculator } from '@blue-labs/language';
 import { generateRepository } from '../lib/generateRepository';
+import type { BluePackage, BlueTypeMetadata } from '../lib/types';
 
 const BLUE_REPOSITORY = 'BlueRepository.blue';
 
@@ -86,7 +87,7 @@ type: Orders/Order
 
     expect(result.changed).toBe(true);
     expect(result.document.repositoryVersions).toHaveLength(1);
-    expect(result.document.packages.map((p) => p.name)).toEqual([
+    expect(result.document.packages.map((p: BluePackage) => p.name)).toEqual([
       'Core',
       'Orders',
       'Payments',
@@ -188,13 +189,428 @@ optionalField:
 
     expect(second.document.repositoryVersions).toHaveLength(2);
     const typeMeta = second.document.packages
-      .find((p) => p.name === 'Core')
-      ?.types.find((t) => (t.content as { name?: string }).name === 'Thing');
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Thing',
+      );
     expect(typeMeta?.versions).toHaveLength(2);
     expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
       '/optionalField',
     ]);
     expect(second.currentRepoBlueId).not.toEqual(first.currentRepoBlueId);
+  });
+
+  it('rejects optional additions that introduce fixed list payloads', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `
+name: Thing
+value:
+  type: Text
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `
+name: Thing
+value:
+  type: Text
+optionalList:
+  - foo
+  - bar
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('allows enum constraints in newly-added optional fields', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `
+name: Thing
+value:
+  type: Text
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'Thing.blue',
+      `
+name: Thing
+value:
+  type: Text
+optionalEnum:
+  type: Text
+  schema:
+    enum: [foo, bar]
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Thing',
+      );
+    expect(typeMeta?.versions).toHaveLength(2);
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
+      '/optionalEnum',
+    ]);
+  });
+
+  it('allows adding fields inside inline list itemType definitions', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'ListItemTypeEvolution.blue',
+      `
+name: List Item Type Evolution
+test:
+  type: List
+  itemType:
+    test:
+      type: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'ListItemTypeEvolution.blue',
+      `
+name: List Item Type Evolution
+test:
+  type: List
+  itemType:
+    test:
+      type: Integer
+    newProp:
+      type: Text
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'List Item Type Evolution',
+      );
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
+      '/test/itemType/newProp',
+    ]);
+  });
+
+  it('allows adding fields inside inline dictionary valueType definitions', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'DictionaryItemTypeEvolution.blue',
+      `
+name: Dictionary Item Type Evolution
+test:
+  type: Dictionary
+  valueType:
+    test:
+      type: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'DictionaryItemTypeEvolution.blue',
+      `
+name: Dictionary Item Type Evolution
+test:
+  type: Dictionary
+  valueType:
+    test:
+      type: Integer
+    newProp:
+      type: Text
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name ===
+          'Dictionary Item Type Evolution',
+      );
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
+      '/test/valueType/newProp',
+    ]);
+  });
+
+  it('allows adding fields inside inline dictionary keyType definitions', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'DictionaryKeyTypeEvolution.blue',
+      `
+name: Dictionary Key Type Evolution
+test:
+  type: Dictionary
+  keyType:
+    test:
+      type: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'DictionaryKeyTypeEvolution.blue',
+      `
+name: Dictionary Key Type Evolution
+test:
+  type: Dictionary
+  keyType:
+    test:
+      type: Integer
+    test2:
+      type: Text
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name ===
+          'Dictionary Key Type Evolution',
+      );
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
+      '/test/keyType/test2',
+    ]);
+  });
+
+  it('allows adding schema on newly added optional fields', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'SchemaOnNewField.blue',
+      `
+name: Schema On New Field
+field:
+  type: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'SchemaOnNewField.blue',
+      `
+name: Schema On New Field
+field:
+  type: Integer
+newField:
+  type: Integer
+  schema:
+    minimum: 5
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Schema On New Field',
+      );
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual(['/newField']);
+  });
+
+  it('allows adding name and description to existing fields', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'FieldMetadataEvolution.blue',
+      `
+name: Field Metadata Evolution
+field:
+  type: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'FieldMetadataEvolution.blue',
+      `
+name: Field Metadata Evolution
+field:
+  type: Integer
+  name: Field Name
+  description: Field description
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Field Metadata Evolution',
+      );
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
+      '/field/name',
+      '/field/description',
+    ]);
+  });
+
+  it('allows additions under inline type definitions', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeSegmentEvolution.blue',
+      `
+name: Type Segment Evolution
+test:
+  type:
+    field:
+      type: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeSegmentEvolution.blue',
+      `
+name: Type Segment Evolution
+test:
+  type:
+    field:
+      type: Integer
+    newField:
+      type: Boolean
+`,
+    );
+
+    const updated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    expect(updated.document.repositoryVersions).toHaveLength(2);
+
+    const typeMeta = updated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Type Segment Evolution',
+      );
+    expect(typeMeta?.versions.at(-1)?.attributesAdded).toEqual([
+      '/test/type/newField',
+    ]);
   });
 
   it('stores dev BlueId in versions and overwrites on change', () => {
@@ -203,7 +619,8 @@ optionalField:
       repoRoot,
       'Sandbox',
       'Base.blue',
-      `name: Base
+      `
+name: Base
 value:
   type: Text
 `,
@@ -212,7 +629,8 @@ value:
       repoRoot,
       'Sandbox',
       'Draft.dev.blue',
-      `name: Draft
+      `
+name: Draft
 value:
   type: Sandbox/Base
 `,
@@ -224,8 +642,11 @@ value:
     });
     persistRepository(repoRoot, initial.yaml);
     const draftMeta = initial.document.packages
-      .find((p) => p.name === 'Sandbox')
-      ?.types.find((t) => (t.content as { name?: string }).name === 'Draft');
+      .find((p: BluePackage) => p.name === 'Sandbox')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Draft',
+      );
     expect(draftMeta?.versions).toHaveLength(1);
     const firstDevVersion = draftMeta?.versions[0];
     expect(firstDevVersion?.repositoryVersionIndex).toBe(0);
@@ -234,7 +655,8 @@ value:
       repoRoot,
       'Sandbox',
       'Draft.dev.blue',
-      `name: Draft
+      `
+name: Draft
 value:
   type: Sandbox/Base
 note:
@@ -247,8 +669,11 @@ note:
       blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
     });
     const updatedDraftMeta = updated.document.packages
-      .find((p) => p.name === 'Sandbox')
-      ?.types.find((t) => (t.content as { name?: string }).name === 'Draft');
+      .find((p: BluePackage) => p.name === 'Sandbox')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Draft',
+      );
     expect(updatedDraftMeta?.versions).toHaveLength(1);
     const updatedVersion = updatedDraftMeta?.versions[0];
     expect(updatedVersion?.repositoryVersionIndex).toBe(1);
@@ -262,7 +687,8 @@ note:
       repoRoot,
       'Sandbox',
       'Base.blue',
-      `name: Base
+      `
+name: Base
 value:
   type: Text
 `,
@@ -271,7 +697,8 @@ value:
       repoRoot,
       'Sandbox',
       'Draft.dev.blue',
-      `name: Draft
+      `
+name: Draft
 value:
   type: Sandbox/Base
 `,
@@ -300,7 +727,8 @@ value:
       repoRoot,
       'Core',
       'Foo.blue',
-      `name: Foo
+      `
+name: Foo
 value:
   type: Text
 `,
@@ -316,9 +744,381 @@ value:
       repoRoot,
       'Core',
       'Foo.blue',
-      `name: Foo
+      `
+name: Foo
 value:
   type: Integer
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when field type changes', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeBreakingChange.blue',
+      `
+name: Type Breaking Change
+test:
+  type: Text
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeBreakingChange.blue',
+      `
+name: Type Breaking Change
+test:
+  type: Integer
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when referenced type changes', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeA.blue',
+      `
+name: Type A
+value:
+  type: Text
+`,
+    );
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeB.blue',
+      `
+name: Type B
+value:
+  type: Text
+`,
+    );
+    writeType(
+      repoRoot,
+      'Core',
+      'RefType.blue',
+      `
+name: Reference Type
+ref:
+  type: Core/Type A
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'RefType.blue',
+      `
+name: Reference Type
+ref:
+  type: Core/Type B
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when nested field shape changes', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'NestedTypeBreakingChange.blue',
+      `
+name: Nested Type Breaking Change
+test:
+  nested:
+    type: Boolean
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'NestedTypeBreakingChange.blue',
+      `
+name: Nested Type Breaking Change
+test:
+  nested:
+    moreNested:
+      type: Boolean
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when switching to a literal value', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'ValueTypeBreakingChange.blue',
+      `
+name: Value Type Breaking Change
+test:
+  type: Text
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'ValueTypeBreakingChange.blue',
+      `
+name: Value Type Breaking Change
+test: Specific text
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when literal values change', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'ValueBreakingChange.blue',
+      `
+name: Value Breaking Change
+test: Test 1
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'ValueBreakingChange.blue',
+      `
+name: Value Breaking Change
+test: Test 2
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when dictionary item type changes', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'DictionaryTypeBreakingChange.blue',
+      `
+name: Dictionary Type Breaking Change
+test:
+  type: Dictionary
+  itemType: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'DictionaryTypeBreakingChange.blue',
+      `
+name: Dictionary Type Breaking Change
+test:
+  type: Dictionary
+  itemType: Text
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when adding schema to existing fields', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'SchemaTypeBreakingChange.blue',
+      `
+name: Schema Type Breaking Change
+test:
+  type: Integer
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'SchemaTypeBreakingChange.blue',
+      `
+name: Schema Type Breaking Change
+test:
+  type: Integer
+  schema:
+    minimum: 0
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when root type changes', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'Test.blue',
+      `
+name: Test
+value:
+  type: Text
+`,
+    );
+    writeType(
+      repoRoot,
+      'Core',
+      'RootTypeBreakingChange.blue',
+      `
+name: Root Type Breaking Change
+type: Core/Test
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'RootTypeBreakingChange.blue',
+      `
+name: Root Type Breaking Change
+type: Integer
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
+  it('rejects breaking changes when root type is introduced', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'RootTypeBreakingChange.blue',
+      `
+name: Root Type Breaking Change
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'RootTypeBreakingChange.blue',
+      `
+name: Root Type Breaking Change
+type: Integer
 `,
     );
 
@@ -336,7 +1136,8 @@ value:
       repoRoot,
       'Core',
       'Stable.blue',
-      `name: Stable
+      `
+name: Stable
 value:
   type: Text
 `,
@@ -345,7 +1146,8 @@ value:
       repoRoot,
       'Core',
       'Scratch.dev.blue',
-      `name: Scratch
+      `
+name: Scratch
 type: Text
 `,
     );
@@ -379,7 +1181,8 @@ type: Text
       repoRoot,
       'Experiments',
       'Feature.dev.blue',
-      `name: Feature
+      `
+name: Feature
 flag:
   type: Text
 `,
@@ -388,7 +1191,8 @@ flag:
       repoRoot,
       'Core',
       'UsesFeature.blue',
-      `name: Uses Feature
+      `
+name: Uses Feature
 feature:
   type: Experiments/Feature
 `,
@@ -408,7 +1212,8 @@ feature:
       repoRoot,
       'Core',
       'A.blue',
-      `name: A
+      `
+name: A
 ref:
   type: Core/B
 `,
@@ -417,7 +1222,8 @@ ref:
       repoRoot,
       'Core',
       'B.blue',
-      `name: B
+      `
+name: B
 ref:
   type: Core/A
 `,
@@ -442,7 +1248,8 @@ ref:
       repoRoot,
       'Core',
       'Text.blue',
-      `name: Text
+      `
+name: Text
 description: primitive text
 `,
     );
@@ -450,7 +1257,8 @@ description: primitive text
       repoRoot,
       'Core',
       'Dictionary.blue',
-      `name: Dictionary
+      `
+name: Dictionary
 description: dictionary primitive
 keyType:
   description: key type
@@ -462,7 +1270,8 @@ valueType:
       repoRoot,
       'Conversation',
       'Message.blue',
-      `name: Message
+      `
+name: Message
 body:
   type: Text
 `,
@@ -471,7 +1280,8 @@ body:
       repoRoot,
       'Conversation',
       'MapHolder.blue',
-      `name: Map Holder
+      `
+name: Map Holder
 map:
   type: Dictionary
   keyType: Text
@@ -500,13 +1310,15 @@ map:
     });
 
     const conversationPkg = result.document.packages.find(
-      (p) => p.name === 'Conversation',
+      (p: BluePackage) => p.name === 'Conversation',
     );
     const messageMeta = conversationPkg?.types.find(
-      (t) => (t.content as { name?: string }).name === 'Message',
+      (t: BlueTypeMetadata) =>
+        (t.content as { name?: string }).name === 'Message',
     );
     const mapHolderMeta = conversationPkg?.types.find(
-      (t) => (t.content as { name?: string }).name === 'Map Holder',
+      (t: BlueTypeMetadata) =>
+        (t.content as { name?: string }).name === 'Map Holder',
     );
 
     expect(messageMeta?.versions.at(-1)?.typeBlueId).toEqual(
@@ -531,8 +1343,11 @@ map:
     });
 
     const listMeta = result.document.packages
-      .find((p) => p.name === 'Core')
-      ?.types.find((t) => (t.content as { name?: string }).name === 'List');
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'List',
+      );
 
     expect(listMeta?.versions.at(-1)?.typeBlueId).toEqual(primitiveIds.List);
   });
@@ -550,7 +1365,8 @@ map:
       repoRoot,
       'Conversation',
       'StatusLiteral.blue',
-      `name: Status Literal
+      `
+name: Status Literal
 mode: terminated
 flag: true
 count: 3
@@ -574,9 +1390,10 @@ score: 1.5
     });
 
     const meta = result.document.packages
-      .find((p) => p.name === 'Conversation')
+      .find((p: BluePackage) => p.name === 'Conversation')
       ?.types.find(
-        (t) => (t.content as { name?: string }).name === 'Status Literal',
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Status Literal',
       );
 
     expect(meta?.versions.at(-1)?.typeBlueId).toEqual(expectedBlueId);
