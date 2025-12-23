@@ -1,3 +1,9 @@
+## 2.0.0-rc.21 (2025-12-23)
+
+### 🩹 Fixes
+
+- **repository-generator:** braking change detection bug fixed ([5fba6af](https://github.com/bluecontract/blue-js/commit/5fba6af))
+
 ## 2.0.0-rc.20 (2025-12-23)
 
 ### 🚀 Features
