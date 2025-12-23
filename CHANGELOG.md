@@ -1,3 +1,22 @@
+## 2.0.0-rc.20 (2025-12-23)
+
+### 🚀 Features
+
+- cleanup stale fields in blue error and legacy refs ([2bf16f6](https://github.com/bluecontract/blue-js/commit/2bf16f6))
+- simplify blue-context string parsing ([b2fe219](https://github.com/bluecontract/blue-js/commit/b2fe219))
+- bring back mapping generator - preprocessing in one place ([84219d3](https://github.com/bluecontract/blue-js/commit/84219d3))
+- normalize only at boundaries, assume normalized nodes ([84c188c](https://github.com/bluecontract/blue-js/commit/84c188c))
+- restore baseline behavior of RepositoryBasedNodeProvider ([a7e4f87](https://github.com/bluecontract/blue-js/commit/a7e4f87))
+- remove normalization from preprocessing ([a5b5257](https://github.com/bluecontract/blue-js/commit/a5b5257))
+- **language:** support historical blue ids for type schema checks ([1abcf92](https://github.com/bluecontract/blue-js/commit/1abcf92))
+- **language:** revert historical mapping in repository based node provider ([dd29c99](https://github.com/bluecontract/blue-js/commit/dd29c99))
+
+### 🩹 Fixes
+
+- **document-processor:** emit core-prefixed document processing initiatied event ([e80af73](https://github.com/bluecontract/blue-js/commit/e80af73))
+- **language:** to current blue id fixes ([50fcb2f](https://github.com/bluecontract/blue-js/commit/50fcb2f))
+- **language:** lint and ts fixes ([af31f2d](https://github.com/bluecontract/blue-js/commit/af31f2d))
+
 ## 2.0.0-rc.19 (2025-12-21)
 
 ### 🚀 Features
