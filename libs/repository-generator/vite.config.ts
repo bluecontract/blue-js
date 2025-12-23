@@ -52,8 +52,9 @@ export default {
         'bin/blue-repo-generator': 'src/bin/blue-repo-generator.ts',
       },
       name: 'repository-generator',
-      fileName: (_format: string, entryName: string) => `${entryName}.mjs`,
-      formats: ['es'],
+      fileName: (format: string, entryName: string) =>
+        `${entryName}.${format === 'es' ? 'mjs' : 'js'}`,
+      formats: ['es', 'cjs'],
     },
     rollupOptions: {
       external: (id: string) => {
