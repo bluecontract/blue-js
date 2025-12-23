@@ -4,13 +4,9 @@ import { BlueNode } from '../../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
 
 describe('RepositoryBasedNodeProvider', () => {
-  it('maps historical BlueIds in hasBlueId', () => {
+  it('does not map historical BlueIds automatically', () => {
     const historicalId = 'old-id';
     const currentId = 'current-id';
-    const toCurrentBlueIdIndex: Record<string, string> = {
-      [historicalId]: currentId,
-      [currentId]: currentId,
-    };
 
     const typeNode = new BlueNode('TestType');
     const typesMeta = {
@@ -42,15 +38,12 @@ describe('RepositoryBasedNodeProvider', () => {
       },
     };
 
-    const mapper = {
-      toCurrentBlueId: (blueId: string) =>
-        toCurrentBlueIdIndex[blueId] ?? blueId,
-    };
+    const provider = new RepositoryBasedNodeProvider([repository]);
 
-    const provider = new RepositoryBasedNodeProvider([repository], mapper);
-
-    expect(provider.hasBlueId(historicalId)).toBe(true);
-    const fetched = provider.fetchByBlueId(historicalId);
+    expect(provider.hasBlueId(historicalId)).toBe(false);
+    expect(provider.fetchByBlueId(historicalId)).toBeNull();
+    expect(provider.hasBlueId(currentId)).toBe(true);
+    const fetched = provider.fetchByBlueId(currentId);
     expect(fetched?.[0]?.getBlueId()).toEqual(currentId);
   });
 

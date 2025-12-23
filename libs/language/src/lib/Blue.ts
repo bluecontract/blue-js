@@ -87,7 +87,6 @@ export class Blue {
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider || defaultProvider,
       repositories,
-      { blueIdMapper: this.repositoryRegistry },
     );
 
     this.typeSchemaResolver =
@@ -328,7 +327,6 @@ export class Blue {
     this.nodeProvider = NodeProviderWrapper.wrap(
       nodeProvider,
       this.repositories,
-      { blueIdMapper: this.repositoryRegistry },
     );
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     return this;
