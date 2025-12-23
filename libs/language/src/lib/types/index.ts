@@ -8,3 +8,4 @@ export type {
   NodeToJsonFormat,
   NodeToJsonOptions,
 } from './BlueContext';
+export type { BlueIdMapper } from './BlueIdMapper';

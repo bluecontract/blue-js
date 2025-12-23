@@ -9,7 +9,12 @@ export type PackageName = string;
 export type TypeBlueId = string;
 export type TypeAlias = string;
 
-export type BlueRepositoryStatus = 'stable' | 'dev';
+export const BLUE_REPOSITORY_STATUS_STABLE = 'stable' as const;
+export const BLUE_REPOSITORY_STATUS_DEV = 'dev' as const;
+
+export type BlueRepositoryStatus =
+  | typeof BLUE_REPOSITORY_STATUS_STABLE
+  | typeof BLUE_REPOSITORY_STATUS_DEV;
 
 export interface BlueRepositoryVersionEntry {
   repositoryVersionIndex: number;

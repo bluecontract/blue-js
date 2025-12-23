@@ -3,7 +3,7 @@ import {
   normalizeBlueContextRepositories,
   parseBlueContextRepositories,
 } from '../BlueContextRepositoriesParser';
-import { BlueError, BlueErrorCode } from '../../errors/BlueError';
+import { BlueError, BlueErrorCode } from '../../../errors/BlueError';
 
 describe('BlueContextRepositoriesParser', () => {
   it('parses comma separated repositories with quotes', () => {
@@ -24,6 +24,11 @@ describe('BlueContextRepositoriesParser', () => {
     expect(normalizeBlueContextRepositories(obj)).toEqual(obj);
   });
 
+  it('returns an empty object for empty input', () => {
+    expect(parseBlueContextRepositories('')).toEqual({});
+    expect(parseBlueContextRepositories('   ')).toEqual({});
+  });
+
   it('keeps last duplicate repository name', () => {
     const input = `Repo=R1, Repo=R2`;
     const parsed = parseBlueContextRepositories(input);
@@ -31,7 +36,17 @@ describe('BlueContextRepositoriesParser', () => {
   });
 
   it('throws on invalid syntax', () => {
-    const badInputs = [`RepoR1`, `Repo=`, `'Repo`];
+    const badInputs = [
+      `RepoR1`,
+      `Repo=`,
+      `'Repo`,
+      `Repo=R1,`,
+      `Repo=R1,   `,
+      `""=R1`,
+      `Repo=""`,
+      `Repo=R=1`,
+      `"Repo, A"=R1`,
+    ];
     for (const input of badInputs) {
       expect(() => parseBlueContextRepositories(input)).toThrow(BlueError);
       try {

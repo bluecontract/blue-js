@@ -1,5 +1,4 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-import type { BlueRepository } from '@blue-labs/language';
 import { repository as blueRepository } from '@blue-repository/types';
 
 import { ContractLoader } from '../engine/contract-loader.js';
@@ -11,7 +10,7 @@ import type { AnyContractProcessor } from '../registry/types.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
 
 const DEFAULT_BLUE = new Blue({
-  repositories: [blueRepository as unknown as BlueRepository],
+  repositories: [blueRepository],
 });
 
 export interface DocumentProcessorOptions {

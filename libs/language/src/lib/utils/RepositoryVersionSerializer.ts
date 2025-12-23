@@ -5,9 +5,29 @@ import {
 } from '../repository/RepositoryRuntime';
 import { NodeTransformer } from './NodeTransformer';
 import { BlueError, BlueErrorCode } from '../errors/BlueError';
-import { CORE_TYPE_BLUE_IDS, OBJECT_SPECIFIC_KEYS } from './Properties';
+import {
+  CORE_TYPE_BLUE_IDS,
+  OBJECT_ITEM_TYPE,
+  OBJECT_SPECIFIC_KEYS,
+  OBJECT_TYPE,
+  OBJECT_VALUE_TYPE,
+} from './Properties';
 import { collectDropPointers } from './repositoryVersioning/dropPointers';
-import { parsePointer as parseRepositoryPointer } from '@blue-labs/repository-contract';
+import {
+  BLUE_REPOSITORY_STATUS_DEV,
+  BLUE_REPOSITORY_STATUS_STABLE,
+  parsePointer as parseRepositoryPointer,
+} from '@blue-labs/repository-contract';
+
+const RESERVED_DICTIONARY_KEYS = new Set<string>([...OBJECT_SPECIFIC_KEYS]);
+
+const RESOLUTION_KIND = {
+  core: 'core',
+  noRuntime: 'no-runtime',
+  noTargetContext: 'no-target-context',
+  representable: 'representable',
+  unrepresentable: 'unrepresentable',
+} as const;
 
 interface SerializerOptions {
   registry: RepositoryRegistry;
@@ -16,10 +36,10 @@ interface SerializerOptions {
 }
 
 type ResolveResult =
-  | { kind: 'core'; blueId: string }
-  | { kind: 'no-runtime' }
+  | { kind: typeof RESOLUTION_KIND.core; blueId: string }
+  | { kind: typeof RESOLUTION_KIND.noRuntime }
   | {
-      kind: 'no-target-context';
+      kind: typeof RESOLUTION_KIND.noTargetContext;
       currentBlueId: string;
       runtimeName: string;
       runtime: RegisteredRepositoryRuntime;
@@ -27,12 +47,16 @@ type ResolveResult =
       typeAlias?: string;
     }
   | {
-      kind: 'representable';
+      kind: typeof RESOLUTION_KIND.representable;
       currentBlueId: string;
       targetBlueId: string;
       dropPointers: string[];
     }
-  | { kind: 'unrepresentable'; currentBlueId: string; error: BlueError };
+  | {
+      kind: typeof RESOLUTION_KIND.unrepresentable;
+      currentBlueId: string;
+      error: BlueError;
+    };
 
 export class RepositoryVersionSerializer {
   private readonly registry: RepositoryRegistry;
@@ -99,38 +123,38 @@ export class RepositoryVersionSerializer {
     const resolution = this.resolveType(blueId);
 
     switch (resolution.kind) {
-      case 'core': {
+      case RESOLUTION_KIND.core: {
         typeNode.setBlueId(resolution.blueId);
         return;
       }
-      case 'representable': {
+      case RESOLUTION_KIND.representable: {
         this.applyDropPointers(options.dropTargets, resolution.dropPointers);
         typeNode.setBlueId(resolution.targetBlueId);
         return;
       }
-      case 'no-runtime':
-      case 'no-target-context':
-      case 'unrepresentable': {
+      case RESOLUTION_KIND.noRuntime:
+      case RESOLUTION_KIND.noTargetContext:
+      case RESOLUTION_KIND.unrepresentable: {
         if (this.fallbackToCurrentInlineDefinitions) {
           this.inlineDefinition(node, options.setter, blueId);
           return;
         }
         const err =
-          resolution.kind === 'unrepresentable'
+          resolution.kind === RESOLUTION_KIND.unrepresentable
             ? resolution.error
             : this.unrepresentableError(
                 blueId,
-                resolution.kind === 'no-target-context'
+                resolution.kind === RESOLUTION_KIND.noTargetContext
                   ? `Repository '${resolution.runtimeName}' not provided in BlueContext.`
                   : 'Type does not belong to any declared repository.',
-                resolution.kind === 'no-target-context'
+                resolution.kind === RESOLUTION_KIND.noTargetContext
                   ? resolution.runtime
                   : undefined,
-                resolution.kind === 'no-target-context'
+                resolution.kind === RESOLUTION_KIND.noTargetContext
                   ? resolution.meta
                   : undefined,
                 undefined,
-                resolution.kind === 'no-target-context'
+                resolution.kind === RESOLUTION_KIND.noTargetContext
                   ? resolution.typeAlias
                   : undefined,
               );
@@ -141,13 +165,14 @@ export class RepositoryVersionSerializer {
 
   private resolveType(blueId: string): ResolveResult {
     if ((CORE_TYPE_BLUE_IDS as readonly string[]).includes(blueId)) {
-      return { kind: 'core', blueId };
+      return { kind: RESOLUTION_KIND.core, blueId };
     }
 
     const normalized = this.registry.toCurrentBlueId(blueId);
+    const typeAlias = this.registry.getTypeAlias(normalized);
     const owned = this.registry.findRuntimeByBlueId(normalized);
     if (!owned || !owned.typeMeta) {
-      return { kind: 'no-runtime' };
+      return { kind: RESOLUTION_KIND.noRuntime };
     }
 
     const targetRepoVersionIndex =
@@ -155,21 +180,21 @@ export class RepositoryVersionSerializer {
 
     if (targetRepoVersionIndex === undefined) {
       return {
-        kind: 'no-target-context',
+        kind: RESOLUTION_KIND.noTargetContext,
         currentBlueId: normalized,
         runtimeName: owned.runtime.name,
         runtime: owned.runtime,
         meta: owned.typeMeta,
-        typeAlias: owned.typeAlias,
+        typeAlias,
       };
     }
 
     const meta = owned.typeMeta;
-    if (meta.status === 'dev') {
+    if (meta.status === BLUE_REPOSITORY_STATUS_DEV) {
       const currentIndex = owned.runtime.repositoryVersions.length - 1;
       if (targetRepoVersionIndex !== currentIndex) {
         return {
-          kind: 'unrepresentable',
+          kind: RESOLUTION_KIND.unrepresentable,
           currentBlueId: normalized,
           error: this.unrepresentableError(
             normalized,
@@ -177,13 +202,13 @@ export class RepositoryVersionSerializer {
             owned.runtime,
             meta,
             targetRepoVersionIndex,
-            owned.typeAlias,
+            typeAlias,
           ),
         };
       }
       const devVersion = meta.versions?.[0];
       return {
-        kind: 'representable',
+        kind: RESOLUTION_KIND.representable,
         currentBlueId: normalized,
         targetBlueId: devVersion?.typeBlueId ?? normalized,
         dropPointers: [],
@@ -193,7 +218,7 @@ export class RepositoryVersionSerializer {
     const versions = meta.versions || [];
     if (versions.length === 0) {
       return {
-        kind: 'unrepresentable',
+        kind: RESOLUTION_KIND.unrepresentable,
         currentBlueId: normalized,
         error: this.unrepresentableError(
           normalized,
@@ -201,7 +226,7 @@ export class RepositoryVersionSerializer {
           owned.runtime,
           meta,
           targetRepoVersionIndex,
-          owned.typeAlias,
+          typeAlias,
         ),
       };
     }
@@ -209,7 +234,7 @@ export class RepositoryVersionSerializer {
     const firstIndex = versions[0].repositoryVersionIndex;
     if (targetRepoVersionIndex < firstIndex) {
       return {
-        kind: 'unrepresentable',
+        kind: RESOLUTION_KIND.unrepresentable,
         currentBlueId: normalized,
         error: this.unrepresentableError(
           normalized,
@@ -217,7 +242,7 @@ export class RepositoryVersionSerializer {
           owned.runtime,
           meta,
           targetRepoVersionIndex,
-          owned.typeAlias,
+          typeAlias,
         ),
       };
     }
@@ -230,12 +255,12 @@ export class RepositoryVersionSerializer {
     }
 
     const dropPointers =
-      meta.status === 'stable'
+      meta.status === BLUE_REPOSITORY_STATUS_STABLE
         ? this.getDropPointers(meta, targetRepoVersionIndex)
         : [];
 
     return {
-      kind: 'representable',
+      kind: RESOLUTION_KIND.representable,
       currentBlueId: normalized,
       targetBlueId: chosen,
       dropPointers,
@@ -246,7 +271,7 @@ export class RepositoryVersionSerializer {
     meta: RegisteredRepositoryRuntime['types'][string],
     targetRepoVersionIndex: number,
   ): string[] {
-    if (meta.status !== 'stable') {
+    if (meta.status !== BLUE_REPOSITORY_STATUS_STABLE) {
       return [];
     }
     return collectDropPointers(meta.versions, targetRepoVersionIndex);
@@ -265,15 +290,10 @@ export class RepositoryVersionSerializer {
     if (!props) {
       return [];
     }
-    const RESERVED_KEYS = new Set<string>([
-      ...OBJECT_SPECIFIC_KEYS,
-      'schema',
-      'mergePolicy',
-      'contracts',
-    ]);
     return Object.entries(props)
       .filter(
-        ([key, value]) => value instanceof BlueNode && !RESERVED_KEYS.has(key),
+        ([key, value]) =>
+          value instanceof BlueNode && !RESERVED_DICTIONARY_KEYS.has(key),
       )
       .map(([, value]) => value as BlueNode);
   }
@@ -296,7 +316,7 @@ export class RepositoryVersionSerializer {
 
     const [segment, ...rest] = segments;
 
-    if (segment === 'itemType') {
+    if (segment === OBJECT_ITEM_TYPE) {
       const itemType = node.getItemType();
       if (itemType) {
         this.applyPointerSegments(itemType, rest);
@@ -308,7 +328,7 @@ export class RepositoryVersionSerializer {
       return;
     }
 
-    if (segment === 'valueType') {
+    if (segment === OBJECT_VALUE_TYPE) {
       const valueType = node.getValueType();
       if (valueType) {
         this.applyPointerSegments(valueType, rest);
@@ -387,7 +407,6 @@ export class RepositoryVersionSerializer {
     return new BlueError(BlueErrorCode.INVALID_REPOSITORY_POINTER, message, [
       {
         code: BlueErrorCode.INVALID_REPOSITORY_POINTER,
-        severity: 'error',
         message,
         locationPath: [],
         context: { pointer },
@@ -419,7 +438,7 @@ export class RepositoryVersionSerializer {
       context.serverRepoBlueId = runtime.currentRepoBlueId;
     }
 
-    if (meta && meta.status === 'stable') {
+    if (meta && meta.status === BLUE_REPOSITORY_STATUS_STABLE) {
       const introducedIdx = meta.versions?.[0]?.repositoryVersionIndex;
       if (introducedIdx !== undefined) {
         context.typeIntroducedInRepoBlueId =
@@ -429,9 +448,8 @@ export class RepositoryVersionSerializer {
 
     const detail = {
       code: BlueErrorCode.REPO_UNREPRESENTABLE_IN_TARGET_VERSION,
-      severity: 'error' as const,
       message,
-      locationPath: ['type'],
+      locationPath: [OBJECT_TYPE],
       context,
     };
 

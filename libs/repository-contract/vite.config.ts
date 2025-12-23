@@ -36,8 +36,9 @@ export default {
     lib: {
       entry: entryPoints,
       name: 'repository-contract',
-      fileName: (_format: string, entryName: string) => `${entryName}.js`,
-      formats: ['es'],
+      fileName: (format: string, entryName: string) =>
+        `${entryName}.${format === 'es' ? 'mjs' : 'js'}`,
+      formats: ['es', 'cjs'],
     },
     rollupOptions: {
       external: (id: string) => {

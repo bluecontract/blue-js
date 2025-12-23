@@ -12,23 +12,18 @@ export class NodeProviderWrapper {
    * Wraps a NodeProvider with a SequentialNodeProvider that includes bootstrap providers and repository definitions
    * @param originalProvider - The original NodeProvider to wrap
    * @param repositories - Optional repositories containing definitions
-   * @param options - Additional options
    * @returns A wrapped NodeProvider that includes bootstrap providers and repository definitions
    */
   public static wrap(
     originalProvider: NodeProvider,
     repositories?: BlueRepository[],
-    options?: { toCurrentBlueId?: (blueId: string) => string },
   ): NodeProvider {
     const providers: NodeProvider[] = [BootstrapProvider.INSTANCE];
 
     if (repositories && repositories.length > 0) {
       // Create RepositoryBasedNodeProvider with access to the wrapped provider chain
       // This allows preprocessing to work correctly with all providers
-      const repositoryProvider = new RepositoryBasedNodeProvider(
-        repositories,
-        options?.toCurrentBlueId,
-      );
+      const repositoryProvider = new RepositoryBasedNodeProvider(repositories);
       providers.push(repositoryProvider);
     }
 

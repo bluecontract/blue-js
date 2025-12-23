@@ -55,7 +55,7 @@ contracts:
     expect(initResult.triggeredEvents.length).toBe(1);
     const lifecycleEvent = initResult.triggeredEvents[0];
     expect(stringProperty(lifecycleEvent, 'type')).toBe(
-      'Document Processing Initiated',
+      'Core/Document Processing Initiated',
     );
     expect(stringProperty(lifecycleEvent, 'documentId')).toBe(
       expectedDocumentId,
@@ -246,7 +246,8 @@ contracts:
 
     const hasLifecycle = result.triggeredEvents.some(
       (eventNode: BlueNode) =>
-        stringProperty(eventNode, 'type') === 'Document Processing Initiated',
+        stringProperty(eventNode, 'type') ===
+        'Core/Document Processing Initiated',
     );
     expect(hasLifecycle).toBe(true);
 

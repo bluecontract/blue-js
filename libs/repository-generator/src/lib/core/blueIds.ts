@@ -1,4 +1,5 @@
 import { BlueIdCalculator } from '@blue-labs/language';
+import { OBJECT_CONTRACTS } from '@blue-labs/repository-contract';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import { Alias, DiscoveredType, JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS, PRIMITIVE_TYPES } from './constants';
@@ -60,7 +61,7 @@ export function substituteAliases(
   const updated: Record<string, JsonValue> = {};
 
   for (const [key, value] of Object.entries(content)) {
-    const inContracts = underContracts || key === 'contracts';
+    const inContracts = underContracts || key === OBJECT_CONTRACTS;
 
     if (
       (key === 'type' ||

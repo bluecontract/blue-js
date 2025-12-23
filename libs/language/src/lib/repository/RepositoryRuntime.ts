@@ -5,7 +5,13 @@ import {
   BlueRepositoryPackage,
   BlueTypeRuntimeMeta,
 } from '../types/BlueRepository';
-import { validateAttributesAddedPointer as validateAttributesAddedPointerContract } from '@blue-labs/repository-contract';
+import {
+  BLUE_REPOSITORY_STATUS_DEV,
+  BLUE_REPOSITORY_STATUS_STABLE,
+  validateAttributesAddedPointer as validateAttributesAddedPointerContract,
+} from '@blue-labs/repository-contract';
+import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from '../utils/Properties';
+import { JsonCanonicalizer } from '../utils/JsonCanonicalizer';
 
 export interface RegisteredRepositoryRuntime {
   name: string;
@@ -72,6 +78,25 @@ export class RepositoryRegistry {
     return blueId;
   }
 
+  public getTypeAlias(blueId: string): string | undefined {
+    const currentBlueId = this.toCurrentBlueId(blueId);
+    const coreName = (CORE_TYPE_BLUE_ID_TO_NAME_MAP as Record<string, string>)[
+      currentBlueId
+    ];
+    if (coreName) {
+      return coreName;
+    }
+
+    for (const runtime of this.runtimes) {
+      const alias = runtime.typeAliasByCurrentBlueId[currentBlueId];
+      if (alias) {
+        return alias;
+      }
+    }
+
+    return undefined;
+  }
+
   public findRuntimeByBlueId(blueId: string):
     | {
         runtime: RegisteredRepositoryRuntime;
@@ -99,88 +124,135 @@ export class RepositoryRegistry {
 function buildRegisteredRepositoryRuntime(
   repository: BlueRepository,
 ): RegisteredRepositoryRuntime {
-  const aliases: Record<string, string> = {};
-  const types: Record<string, BlueTypeRuntimeMeta> = {};
-  const toCurrentBlueIdIndex: Record<string, string> = {};
-  const contents: Record<string, JsonValue> = {};
-  const schemas: ZodTypeAny[] = [];
-  const typeAliasByCurrentBlueId: Record<string, string> = {};
-  const typePackageByCurrentBlueId: Record<string, string> = {};
-
-  const packageNames = new Set<string>();
-  const repoVersionIndexById = Object.fromEntries(
-    repository.repositoryVersions.map((id, idx) => [id, idx]),
-  );
+  const state = createRuntimeState(repository);
 
   Object.values(repository.packages).forEach((pkg: BlueRepositoryPackage) => {
-    if (packageNames.has(pkg.name)) {
-      throw new Error(`Duplicate package name detected: ${pkg.name}`);
-    }
-    packageNames.add(pkg.name);
-
-    Object.entries(pkg.aliases).forEach(([alias, blueId]) => {
-      if (aliases[alias] && aliases[alias] !== blueId) {
-        throw new Error(`Conflicting alias mapping for ${alias}`);
-      }
-      aliases[alias] = blueId;
-    });
-
-    const pkgTypesMeta: Record<string, BlueTypeRuntimeMeta> = pkg.typesMeta;
-
-    Object.entries(pkgTypesMeta).forEach(([blueId, meta]) => {
-      if (types[blueId]) {
-        throw new Error(`Duplicate type mapping for BlueId ${blueId}`);
-      }
-      const normalizedMeta = normalizeTypeMeta(
-        meta,
-        repository,
-        blueId,
-        pkg.name,
-      );
-      types[blueId] = normalizedMeta;
-      typePackageByCurrentBlueId[blueId] = pkg.name;
-      typeAliasByCurrentBlueId[blueId] = `${pkg.name}/${meta.name}`;
-
-      if (normalizedMeta.status === 'stable' && !toCurrentBlueIdIndex[blueId]) {
-        toCurrentBlueIdIndex[blueId] = blueId;
-      }
-
-      if (normalizedMeta.status === 'stable') {
-        for (const version of normalizedMeta.versions) {
-          const existing = toCurrentBlueIdIndex[version.typeBlueId];
-          if (existing && existing !== blueId) {
-            throw new Error(
-              `Conflicting toCurrentBlueIdIndex mapping for ${version.typeBlueId}`,
-            );
-          }
-          toCurrentBlueIdIndex[version.typeBlueId] = blueId;
-        }
-      }
-    });
-
-    Object.entries(pkg.contents).forEach(([blueId, content]) => {
-      contents[blueId] = content;
-    });
-
-    schemas.push(...Object.values(pkg.schemas));
+    registerPackage(state, repository, pkg);
   });
-
-  const currentRepoBlueId =
-    repository.repositoryVersions[repository.repositoryVersions.length - 1];
 
   return {
     name: repository.name,
     repositoryVersions: repository.repositoryVersions,
-    repoVersionIndexById,
-    aliases,
-    types,
-    toCurrentBlueIdIndex,
-    contents,
-    schemas,
-    currentRepoBlueId,
-    typeAliasByCurrentBlueId,
-    typePackageByCurrentBlueId,
+    repoVersionIndexById: state.repoVersionIndexById,
+    aliases: state.aliases,
+    types: state.types,
+    toCurrentBlueIdIndex: state.toCurrentBlueIdIndex,
+    contents: state.contents,
+    schemas: state.schemas,
+    currentRepoBlueId: state.currentRepoBlueId,
+    typeAliasByCurrentBlueId: state.typeAliasByCurrentBlueId,
+    typePackageByCurrentBlueId: state.typePackageByCurrentBlueId,
   };
+}
+
+type RuntimeState = {
+  aliases: Record<string, string>;
+  types: Record<string, BlueTypeRuntimeMeta>;
+  toCurrentBlueIdIndex: Record<string, string>;
+  contents: Record<string, JsonValue>;
+  schemas: ZodTypeAny[];
+  typeAliasByCurrentBlueId: Record<string, string>;
+  typePackageByCurrentBlueId: Record<string, string>;
+  packageNames: Set<string>;
+  repoVersionIndexById: Record<string, number>;
+  currentRepoBlueId: string;
+};
+
+function createRuntimeState(repository: BlueRepository): RuntimeState {
+  const repoVersionIndexById = Object.fromEntries(
+    repository.repositoryVersions.map((id, idx) => [id, idx]),
+  );
+  const currentRepoBlueId =
+    repository.repositoryVersions[repository.repositoryVersions.length - 1];
+
+  return {
+    aliases: {},
+    types: {},
+    toCurrentBlueIdIndex: {},
+    contents: {},
+    schemas: [],
+    typeAliasByCurrentBlueId: {},
+    typePackageByCurrentBlueId: {},
+    packageNames: new Set<string>(),
+    repoVersionIndexById,
+    currentRepoBlueId,
+  };
+}
+
+function registerPackage(
+  state: RuntimeState,
+  repository: BlueRepository,
+  pkg: BlueRepositoryPackage,
+) {
+  if (state.packageNames.has(pkg.name)) {
+    throw new Error(`Duplicate package name detected: ${pkg.name}`);
+  }
+  state.packageNames.add(pkg.name);
+
+  registerAliases(state, pkg);
+  registerTypesMeta(state, repository, pkg);
+  registerContents(state, pkg);
+  registerSchemas(state, pkg);
+}
+
+function registerAliases(state: RuntimeState, pkg: BlueRepositoryPackage) {
+  Object.entries(pkg.aliases).forEach(([alias, blueId]) => {
+    if (state.aliases[alias] && state.aliases[alias] !== blueId) {
+      throw new Error(`Conflicting alias mapping for ${alias}`);
+    }
+    state.aliases[alias] = blueId;
+  });
+}
+
+function registerTypesMeta(
+  state: RuntimeState,
+  repository: BlueRepository,
+  pkg: BlueRepositoryPackage,
+) {
+  Object.entries(pkg.typesMeta).forEach(([blueId, meta]) => {
+    if (state.types[blueId]) {
+      throw new Error(`Duplicate type mapping for BlueId ${blueId}`);
+    }
+
+    const normalizedMeta = normalizeTypeMeta(
+      meta,
+      repository,
+      blueId,
+      pkg.name,
+    );
+    state.types[blueId] = normalizedMeta;
+    state.typePackageByCurrentBlueId[blueId] = pkg.name;
+    state.typeAliasByCurrentBlueId[blueId] = `${pkg.name}/${meta.name}`;
+
+    if (
+      normalizedMeta.status === BLUE_REPOSITORY_STATUS_STABLE &&
+      !state.toCurrentBlueIdIndex[blueId]
+    ) {
+      state.toCurrentBlueIdIndex[blueId] = blueId;
+    }
+
+    if (normalizedMeta.status === BLUE_REPOSITORY_STATUS_STABLE) {
+      for (const version of normalizedMeta.versions) {
+        const existing = state.toCurrentBlueIdIndex[version.typeBlueId];
+        if (existing && existing !== blueId) {
+          throw new Error(
+            `Conflicting toCurrentBlueIdIndex mapping for ${version.typeBlueId}`,
+          );
+        }
+        state.toCurrentBlueIdIndex[version.typeBlueId] = blueId;
+      }
+    }
+  });
+}
+
+function registerContents(state: RuntimeState, pkg: BlueRepositoryPackage) {
+  Object.entries(pkg.contents).forEach(([blueId, content]) => {
+    state.contents[blueId] = content;
+  });
+}
+
+function registerSchemas(state: RuntimeState, pkg: BlueRepositoryPackage) {
+  state.schemas.push(...Object.values(pkg.schemas));
 }
 
 function normalizeTypeMeta(
@@ -189,7 +261,7 @@ function normalizeTypeMeta(
   currentBlueId: string,
   packageName: string,
 ): BlueTypeRuntimeMeta {
-  if (meta.status === 'dev') {
+  if (meta.status === BLUE_REPOSITORY_STATUS_DEV) {
     validateDevVersions(meta, repository, currentBlueId, packageName);
     return {
       ...meta,
@@ -246,7 +318,7 @@ function validateDevVersions(
   currentBlueId: string,
   packageName: string,
 ) {
-  if (meta.status !== 'dev') {
+  if (meta.status !== BLUE_REPOSITORY_STATUS_DEV) {
     return;
   }
   if (meta.versions && meta.versions.length > 1) {
@@ -321,36 +393,10 @@ function mergeContentsOrThrow(
 function deepEqualJsonValue(a: JsonValue, b: JsonValue): boolean {
   if (a === b) return true;
 
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return (
-      a.length === b.length &&
-      a.every((v, i) => deepEqualJsonValue(v, b[i] as JsonValue))
-    );
-  }
+  if (a === null || b === null) return false;
+  if (typeof a !== 'object' || typeof b !== 'object') return false;
 
-  if (
-    typeof a === 'object' &&
-    a !== null &&
-    typeof b === 'object' &&
-    b !== null &&
-    !Array.isArray(a) &&
-    !Array.isArray(b)
-  ) {
-    const aKeys = Object.keys(a as Record<string, JsonValue>);
-    const bKeys = Object.keys(b as Record<string, JsonValue>);
-    if (aKeys.length !== bKeys.length) return false;
-    aKeys.sort();
-    bKeys.sort();
-    for (let i = 0; i < aKeys.length; i++) {
-      if (aKeys[i] !== bKeys[i]) return false;
-    }
-    for (const key of aKeys) {
-      const av = (a as Record<string, JsonValue>)[key];
-      const bv = (b as Record<string, JsonValue>)[key];
-      if (!deepEqualJsonValue(av, bv)) return false;
-    }
-    return true;
-  }
-
-  return false;
+  const canonicalA = JsonCanonicalizer.canonicalize(a);
+  const canonicalB = JsonCanonicalizer.canonicalize(b);
+  return canonicalA !== undefined && canonicalA === canonicalB;
 }

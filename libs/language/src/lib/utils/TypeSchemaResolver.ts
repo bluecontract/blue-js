@@ -9,17 +9,13 @@ import { isSubtype } from './NodeTypes';
 export class TypeSchemaResolver {
   private readonly blueIdMap = new Map<string, ZodTypeAny>();
   private nodeProvider: NodeProvider | null;
-  private readonly toCurrentBlueIdFn?: (blueId: string) => string;
-
   constructor(
     schemas: ZodTypeAny[] = [],
     options?: {
       nodeProvider?: NodeProvider | null;
-      toCurrentBlueId?: (blueId: string) => string;
     },
   ) {
     this.nodeProvider = options?.nodeProvider ?? null;
-    this.toCurrentBlueIdFn = options?.toCurrentBlueId;
     this.registerSchemas(schemas);
   }
 
@@ -111,18 +107,11 @@ export class TypeSchemaResolver {
   private getEffectiveBlueId(node: BlueNode) {
     const nodeType = node.getType();
     if (isNonNullable(nodeType) && isNonNullable(nodeType.getBlueId())) {
-      return this.mapToCurrent(nodeType.getBlueId());
+      return nodeType.getBlueId();
     } else if (isNonNullable(nodeType)) {
-      return this.mapToCurrent(BlueIdCalculator.calculateBlueIdSync(nodeType));
+      return BlueIdCalculator.calculateBlueIdSync(nodeType);
     }
     return null;
-  }
-
-  private mapToCurrent(blueId: string | null | undefined) {
-    if (isNullable(blueId)) {
-      return null;
-    }
-    return this.toCurrentBlueIdFn ? this.toCurrentBlueIdFn(blueId) : blueId;
   }
 
   public getBlueIdMap() {

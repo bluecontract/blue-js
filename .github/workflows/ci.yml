@@ -31,7 +31,7 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org/
 
-      - run: npm ci --no-audit --no-fund --verbose
+      - run: npm ci
 
       - uses: nrwl/nx-set-shas@v4
 

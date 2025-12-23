@@ -15,9 +15,11 @@ import {
 import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits';
 import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
+import { BlueIdsMappingGenerator } from './utils/BlueIdsMappingGenerator';
 export interface PreprocessorOptions {
   nodeProvider?: NodeProvider;
   processorProvider?: TransformationProcessorProvider;
+  blueIdsMappingGenerator?: BlueIdsMappingGenerator;
 }
 
 /**
@@ -30,12 +32,14 @@ export class Preprocessor {
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;
   private defaultSimpleBlue: BlueNode | null = null;
+  private blueIdsMappingGenerator: BlueIdsMappingGenerator;
   /**
    * Creates a new Preprocessor with the specified options
    * @param options - Configuration options for the preprocessor
    */
   constructor(options: PreprocessorOptions = {}) {
-    const { nodeProvider, processorProvider } = options;
+    const { nodeProvider, processorProvider, blueIdsMappingGenerator } =
+      options;
 
     // Set up node provider (required)
     if (!nodeProvider) {
@@ -46,6 +50,9 @@ export class Preprocessor {
     // Set up processor provider (optional, defaults to standard provider)
     this.processorProvider =
       processorProvider || Preprocessor.getStandardProvider();
+
+    this.blueIdsMappingGenerator =
+      blueIdsMappingGenerator || new BlueIdsMappingGenerator();
 
     this.loadDefaultSimpleBlue();
   }
@@ -145,11 +152,26 @@ export class Preprocessor {
   }
 
   /**
+   * Enriches the default Blue YAML with dynamic BlueIds mappings
+   * @param defaultBlue - The base default Blue YAML content
+   * @returns Enriched YAML content with dynamic mappings
+   */
+  private enrichDefaultBlue(defaultBlue: string): string {
+    const dynamicMappings = this.blueIdsMappingGenerator.generateMappingsYaml();
+
+    return `
+${defaultBlue}
+${dynamicMappings}
+    `;
+  }
+
+  /**
    * Loads the default simple Blue node
    */
   private loadDefaultSimpleBlue(): void {
     try {
-      const parsedYaml = yamlBlueParse(DefaultBlueYaml);
+      const enrichedDefaultBlue = this.enrichDefaultBlue(DefaultBlueYaml);
+      const parsedYaml = yamlBlueParse(enrichedDefaultBlue);
       if (parsedYaml) {
         this.defaultSimpleBlue = NodeDeserializer.deserialize(parsedYaml);
       } else {

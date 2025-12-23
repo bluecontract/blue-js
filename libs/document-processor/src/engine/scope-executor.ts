@@ -668,7 +668,7 @@ export class ScopeExecutor {
     return new BlueNode()
       .setType(new BlueNode().setBlueId(DOCUMENT_PROCESSING_INITIATED_BLUE_ID))
       .setProperties({
-        type: new BlueNode().setValue('Document Processing Initiated'),
+        type: new BlueNode().setValue('Core/Document Processing Initiated'),
         documentId: new BlueNode().setValue(documentId),
       });
   }

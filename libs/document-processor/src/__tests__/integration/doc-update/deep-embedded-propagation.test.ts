@@ -169,7 +169,7 @@ contracts:
     expect(initResult.triggeredEvents).toHaveLength(1);
     const initEvent = initResult.triggeredEvents[0]!;
     expect(stringProperty(initEvent, 'type')).toBe(
-      'Document Processing Initiated',
+      'Core/Document Processing Initiated',
     );
     expect(stringProperty(initEvent, 'documentId')).not.toBeNull();
 

@@ -3,6 +3,7 @@ import { NodeDeserializer } from '../../model/NodeDeserializer';
 import { BigIntegerNumber as ModelBigIntegerNumber } from '../../model/BigIntegerNumber';
 import { BigDecimalNumber as ModelBigDecimalNumber } from '../../model/BigDecimalNumber';
 import { JsonPrimitive } from '@blue-labs/shared-utils';
+import { OBJECT_CONTRACTS } from '../Properties';
 
 export { ModelBigIntegerNumber as BigIntegerNumber };
 export { ModelBigDecimalNumber as BigDecimalNumber };
@@ -97,7 +98,7 @@ function _getBlueNodeSpecialProperty(
       return node.getItems();
     case 'properties':
       return node.getProperties();
-    case 'contracts':
+    case OBJECT_CONTRACTS:
       return node.getContracts();
     default:
       return undefined;
@@ -130,7 +131,7 @@ export function step(
         'blue',
         'items',
         'properties',
-        'contracts',
+        OBJECT_CONTRACTS,
       ].includes(tok)
     ) {
       return specialProp as Container;
@@ -220,7 +221,7 @@ export function read(parent: Container, key: string | number): RValue {
         'blue',
         'items',
         'properties',
-        'contracts',
+        OBJECT_CONTRACTS,
       ].includes(k)
     ) {
       return specialProp;
@@ -335,7 +336,7 @@ export function write(
       case 'properties':
         parent.setProperties(raw as Dict | undefined);
         return;
-      case 'contracts':
+      case OBJECT_CONTRACTS:
         parent.setContracts(raw as Dict | undefined);
         return;
       default: {

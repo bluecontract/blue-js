@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { RepositoryBasedNodeProvider } from '../RepositoryBasedNodeProvider';
 import { BlueNode } from '../../model';
-import { NodeToMapListOrValue } from '../../utils';
+import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
 
 describe('RepositoryBasedNodeProvider', () => {
-  it('maps historical BlueIds in hasBlueId', () => {
+  it('does not map historical BlueIds automatically', () => {
     const historicalId = 'old-id';
     const currentId = 'current-id';
-    const toCurrentBlueIdIndex: Record<string, string> = {
-      [historicalId]: currentId,
-      [currentId]: currentId,
-    };
 
     const typeNode = new BlueNode('TestType');
     const typesMeta = {
@@ -42,13 +38,13 @@ describe('RepositoryBasedNodeProvider', () => {
       },
     };
 
-    const mapper = (blueId: string) => toCurrentBlueIdIndex[blueId] ?? blueId;
+    const provider = new RepositoryBasedNodeProvider([repository]);
 
-    const provider = new RepositoryBasedNodeProvider([repository], mapper);
-
-    expect(provider.hasBlueId(historicalId)).toBe(true);
-    const fetched = provider.fetchByBlueId(historicalId);
-    expect(fetched?.[0]?.getBlueId()).toEqual(historicalId);
+    expect(provider.hasBlueId(historicalId)).toBe(false);
+    expect(provider.fetchByBlueId(historicalId)).toBeNull();
+    expect(provider.hasBlueId(currentId)).toBe(true);
+    const fetched = provider.fetchByBlueId(currentId);
+    expect(fetched?.[0]?.getBlueId()).toEqual(currentId);
   });
 
   it('indexes names for new-style repositories', () => {
@@ -89,7 +85,67 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(found?.getBlueId()).toEqual(typeId);
   });
 
-  it('returns deterministic #idx blueIds for multi-document content', () => {
+  it('preprocesses repository content using alias mappings', () => {
+    const childId = 'child-id';
+    const parentId = 'parent-id';
+
+    const typesMeta = {
+      [childId]: {
+        status: 'stable' as const,
+        name: 'Child',
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: childId,
+            attributesAdded: [],
+          },
+        ],
+      },
+      [parentId]: {
+        status: 'stable' as const,
+        name: 'Parent',
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: parentId,
+            attributesAdded: [],
+          },
+        ],
+      },
+    };
+
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: { 'test/Child': childId, 'test/Parent': parentId },
+          typesMeta,
+          contents: {
+            [childId]: { name: 'Child' },
+            [parentId]: {
+              name: 'Parent',
+              child: {
+                type: 'test/Child',
+              },
+            },
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+    const fetched = provider.fetchByBlueId(parentId);
+    const childType = fetched
+      ? fetched[0]?.getProperties()?.child?.getType()
+      : undefined;
+
+    expect(childType?.getBlueId()).toEqual(childId);
+  });
+
+  it('preserves # references for multi-document content', () => {
     const listId = 'multi-doc';
     const first = new BlueNode('First');
     const second = new BlueNode('Second');
@@ -128,10 +184,14 @@ describe('RepositoryBasedNodeProvider', () => {
 
     const provider = new RepositoryBasedNodeProvider([repository]);
     const items = provider.fetchByBlueId(listId);
-    expect(items?.map((n) => n.getBlueId())).toEqual([
-      `${listId}#0`,
-      `${listId}#1`,
-    ]);
+    expect(items?.map((n) => n.getBlueId())).toEqual([undefined, undefined]);
+
+    const byIndex = provider.fetchByBlueId(`${listId}#0`);
+    expect(byIndex?.[0]?.getBlueId()).toEqual(`${listId}#0`);
+
+    const individualBlueId = BlueIdCalculator.calculateBlueIdSync(first);
+    const byIndividual = provider.fetchByBlueId(individualBlueId);
+    expect(byIndividual?.[0]?.getBlueId()).toEqual(individualBlueId);
 
     const byName = provider.findNodeByName('First');
     expect(byName?.getBlueId()).toEqual(`${listId}#0`);

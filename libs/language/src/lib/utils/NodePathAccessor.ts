@@ -1,6 +1,7 @@
 import { BlueNode } from '../model';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import { BigIntegerNumber, BigDecimalNumber } from '../model';
+import { OBJECT_CONTRACTS } from './Properties';
 
 export class NodePathAccessor {
   static get(
@@ -147,7 +148,7 @@ export class NodePathAccessor {
           resultNode = new BlueNode().setProperties(directProps);
           break;
         }
-        case 'contracts': {
+        case OBJECT_CONTRACTS: {
           const directContracts = node.getContracts();
           resultNode = new BlueNode().setContracts(directContracts);
           break;

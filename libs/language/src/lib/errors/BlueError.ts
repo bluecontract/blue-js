@@ -1,6 +1,5 @@
 export interface BlueErrorDetail {
   code: string;
-  severity: 'info' | 'warning' | 'error' | 'fatal';
   message: string;
   locationPath?: string[];
   context?: Record<string, unknown>;
