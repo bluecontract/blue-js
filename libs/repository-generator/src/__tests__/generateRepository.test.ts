@@ -797,6 +797,64 @@ test:
     ).toThrow(/Breaking change/);
   });
 
+  it('rejects breaking changes when referenced type changes', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeA.blue',
+      `
+name: Type A
+value:
+  type: Text
+`,
+    );
+    writeType(
+      repoRoot,
+      'Core',
+      'TypeB.blue',
+      `
+name: Type B
+value:
+  type: Text
+`,
+    );
+    writeType(
+      repoRoot,
+      'Core',
+      'RefType.blue',
+      `
+name: Reference Type
+ref:
+  type: Core/Type A
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
+
+    writeType(
+      repoRoot,
+      'Core',
+      'RefType.blue',
+      `
+name: Reference Type
+ref:
+  type: Core/Type B
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Breaking change/);
+  });
+
   it('rejects breaking changes when nested field shape changes', () => {
     const repoRoot = createRepo();
     writeType(

@@ -1,7 +1,7 @@
 import fastJsonPatch from 'fast-json-patch';
 import type { Operation } from 'fast-json-patch';
 import type { JsonValue } from '@blue-labs/shared-utils';
-import { JsonMap } from './internalTypes';
+import { Alias, JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS } from './constants';
 import { isRecord } from './utils';
 import {
@@ -38,6 +38,7 @@ export function classifyChange(
   nextContent: JsonMap,
   packageName: string,
   typeName: string,
+  blueIdAliases: Map<string, Set<Alias>>,
 ): ChangeClassification {
   const patch = fastJsonPatch.compare(
     previousContent as unknown as Record<string, unknown>,
@@ -51,7 +52,7 @@ export function classifyChange(
   const attributesAdded: string[] = [];
   let dependencyUpdates = false;
   for (const op of patch) {
-    if (isTypeBlueIdReplace(op, previousContent)) {
+    if (isTypeBlueIdReplace(op, previousContent, blueIdAliases)) {
       dependencyUpdates = true;
       continue;
     }
@@ -174,7 +175,11 @@ function introducesRequiredField(value: Record<string, unknown>): boolean {
   return false;
 }
 
-function isTypeBlueIdReplace(op: Operation, previousContent: JsonMap): boolean {
+function isTypeBlueIdReplace(
+  op: Operation,
+  previousContent: JsonMap,
+  blueIdAliases: Map<string, Set<Alias>>,
+): boolean {
   if (op.op !== 'replace' || typeof op.path !== 'string') {
     return false;
   }
@@ -218,7 +223,23 @@ function isTypeBlueIdReplace(op: Operation, previousContent: JsonMap): boolean {
     return false;
   }
 
-  return true;
+  if (!previousBlueId || !nextBlueId) {
+    return false;
+  }
+
+  const previousAliases = blueIdAliases.get(previousBlueId);
+  const nextAliases = blueIdAliases.get(nextBlueId);
+  if (!previousAliases || !nextAliases) {
+    return false;
+  }
+
+  for (const alias of previousAliases) {
+    if (nextAliases.has(alias)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function getValueAt(
