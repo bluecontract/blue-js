@@ -111,11 +111,10 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       return this.preprocessor(node);
     });
 
-    const parsedContent =
-      NodeContentHandler.parseAndCalculateBlueIdForNodeList(
-        nodes,
-        (node) => node,
-      );
+    const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
+      nodes,
+      (node) => node,
+    );
 
     const blueId = providedBlueId || parsedContent.blueId;
     this.blueIdToContentMap.set(blueId, parsedContent.content);

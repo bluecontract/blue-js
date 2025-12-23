@@ -128,7 +128,11 @@ describe('RepositoryRegistry', () => {
           aliases: { 'pkg/A': sharedId },
           typesMeta: {
             [sharedId]: stableMeta('A', [
-              { repositoryVersionIndex: 0, typeBlueId: sharedId, attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: sharedId,
+                attributesAdded: [],
+              },
             ]),
           },
           contents: {
@@ -145,7 +149,11 @@ describe('RepositoryRegistry', () => {
           aliases: { 'pkg/B': sharedId },
           typesMeta: {
             [sharedId]: stableMeta('B', [
-              { repositoryVersionIndex: 0, typeBlueId: sharedId, attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: sharedId,
+                attributesAdded: [],
+              },
             ]),
           },
           contents: {
@@ -167,7 +175,11 @@ describe('RepositoryRegistry', () => {
           aliases: { 'pkg/Type': 'id-a' },
           typesMeta: {
             'id-a': stableMeta('A', [
-              { repositoryVersionIndex: 0, typeBlueId: 'id-a', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'id-a',
+                attributesAdded: [],
+              },
             ]),
           },
           contents: { 'id-a': { name: 'A' } },
@@ -182,7 +194,11 @@ describe('RepositoryRegistry', () => {
           aliases: { 'pkg/Type': 'id-b' },
           typesMeta: {
             'id-b': stableMeta('B', [
-              { repositoryVersionIndex: 0, typeBlueId: 'id-b', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'id-b',
+                attributesAdded: [],
+              },
             ]),
           },
           contents: { 'id-b': { name: 'B' } },
@@ -204,7 +220,11 @@ describe('RepositoryRegistry', () => {
           aliases: { 'pkg/A': 'shared-id' },
           typesMeta: {
             'shared-id': stableMeta('A', [
-              { repositoryVersionIndex: 0, typeBlueId: 'shared-id', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'shared-id',
+                attributesAdded: [],
+              },
             ]),
           },
           contents: { 'shared-id': { name: 'A' } },
@@ -219,7 +239,11 @@ describe('RepositoryRegistry', () => {
           aliases: { 'pkg/B': 'shared-id' },
           typesMeta: {
             'shared-id': stableMeta('B', [
-              { repositoryVersionIndex: 0, typeBlueId: 'shared-id', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'shared-id',
+                attributesAdded: [],
+              },
             ]),
           },
           contents: { 'shared-id': { name: 'B' } },
@@ -278,7 +302,11 @@ describe('RepositoryRegistry', () => {
           name: 'a',
           typesMeta: {
             shared: stableMeta('Type', [
-              { repositoryVersionIndex: 0, typeBlueId: 'shared', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'shared',
+                attributesAdded: [],
+              },
             ]),
           },
         }),
@@ -286,7 +314,11 @@ describe('RepositoryRegistry', () => {
           name: 'b',
           typesMeta: {
             shared: stableMeta('Other', [
-              { repositoryVersionIndex: 0, typeBlueId: 'shared', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'shared',
+                attributesAdded: [],
+              },
             ]),
           },
         }),
@@ -325,8 +357,16 @@ describe('RepositoryRegistry', () => {
           name: 'pkg',
           typesMeta: {
             id: stableMeta('Type', [
-              { repositoryVersionIndex: 0, typeBlueId: 'id', attributesAdded: [] },
-              { repositoryVersionIndex: 0, typeBlueId: 'id-dup', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'id',
+                attributesAdded: [],
+              },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'id-dup',
+                attributesAdded: [],
+              },
             ]),
           },
         }),
@@ -347,7 +387,11 @@ describe('RepositoryRegistry', () => {
           name: 'pkg',
           typesMeta: {
             id: stableMeta('Type', [
-              { repositoryVersionIndex: 2, typeBlueId: 'id', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 2,
+                typeBlueId: 'id',
+                attributesAdded: [],
+              },
             ]),
           },
         }),
@@ -368,7 +412,11 @@ describe('RepositoryRegistry', () => {
           name: 'pkg',
           typesMeta: {
             id: stableMeta('Type', [
-              { repositoryVersionIndex: 0, typeBlueId: 'id', attributesAdded: ['/type'] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'id',
+                attributesAdded: ['/type'],
+              },
             ]),
           },
         }),
@@ -389,8 +437,16 @@ describe('RepositoryRegistry', () => {
           name: 'pkg',
           typesMeta: {
             id: devMeta('Type', [
-              { repositoryVersionIndex: 0, typeBlueId: 'id', attributesAdded: [] },
-              { repositoryVersionIndex: 1, typeBlueId: 'id2', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'id',
+                attributesAdded: [],
+              },
+              {
+                repositoryVersionIndex: 1,
+                typeBlueId: 'id2',
+                attributesAdded: [],
+              },
             ]),
           },
         }),
@@ -411,7 +467,11 @@ describe('RepositoryRegistry', () => {
           name: 'pkg',
           typesMeta: {
             id: devMeta('Type', [
-              { repositoryVersionIndex: 2, typeBlueId: 'id', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 2,
+                typeBlueId: 'id',
+                attributesAdded: [],
+              },
             ]),
           },
         }),
@@ -432,7 +492,11 @@ describe('RepositoryRegistry', () => {
           name: 'pkg',
           typesMeta: {
             id: devMeta('Type', [
-              { repositoryVersionIndex: 0, typeBlueId: 'id', attributesAdded: [] },
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: 'id',
+                attributesAdded: [],
+              },
             ]),
           },
         }),

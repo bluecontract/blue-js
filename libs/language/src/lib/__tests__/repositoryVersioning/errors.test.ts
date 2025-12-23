@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { Blue } from '../../Blue';
 import { BlueError, BlueErrorCode } from '../../errors/BlueError';
 import {
   createBlueInstance,
@@ -115,5 +114,4 @@ describe('Repository versioning: errors and edge cases', () => {
       }),
     ).toThrowError(BlueError);
   });
-
 });

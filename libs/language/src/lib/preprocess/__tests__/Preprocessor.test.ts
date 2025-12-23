@@ -13,7 +13,10 @@ import { yamlBlueParse } from '../../../utils';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
 import { BigIntegerNumber } from '../../model/BigIntegerNumber';
 import { NodeTransformer } from '../../utils/NodeTransformer';
-import { createBlueInstance, ids } from '../../__tests__/repositoryVersioning/fixtures';
+import {
+  createBlueInstance,
+  ids,
+} from '../../__tests__/repositoryVersioning/fixtures';
 
 class MockNodeProvider extends NodeProvider {
   override fetchByBlueId() {

@@ -231,8 +231,7 @@ describe('RepositoryVersionSerializer', () => {
             ]),
         }),
     });
-    const containerBlueId =
-      Object.values(repository.packages.core.aliases)[0];
+    const containerBlueId = Object.values(repository.packages.core.aliases)[0];
     if (!containerBlueId) {
       throw new Error('Expected inline list container blueId');
     }
@@ -346,8 +345,7 @@ describe('RepositoryVersionSerializer', () => {
             }),
         }),
     });
-    const containerBlueId =
-      Object.values(repository.packages.core.aliases)[0];
+    const containerBlueId = Object.values(repository.packages.core.aliases)[0];
     if (!containerBlueId) {
       throw new Error('Expected inline dictionary container blueId');
     }
@@ -557,9 +555,7 @@ describe('RepositoryVersionSerializer', () => {
       targetRepoVersionIndexes: { 'repo.escape': 0 },
     });
 
-    const node = new BlueNode().setType(
-      new BlueNode().setBlueId('escaped@v1'),
-    );
+    const node = new BlueNode().setType(new BlueNode().setBlueId('escaped@v1'));
     node.setProperties({
       field: new BlueNode().setProperties({
         'a/b': textValue('drop'),
@@ -818,9 +814,7 @@ describe('RepositoryVersionSerializer', () => {
       targetRepoVersionIndexes: { 'repo.blue': 0 },
     });
 
-    const node = new BlueNode().setType(
-      new BlueNode().setBlueId(ids.message),
-    );
+    const node = new BlueNode().setType(new BlueNode().setBlueId(ids.message));
     const error = captureError(() => serializer.transform(node));
 
     expect(error.code).toEqual(
