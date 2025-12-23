@@ -1,3 +1,9 @@
+## 2.0.0-rc.22 (2025-12-23)
+
+### 🚀 Features
+
+- implement new types versioning ([#130](https://github.com/bluecontract/blue-js/pull/130))
+
 ## 2.0.0-rc.21 (2025-12-23)
 
 ### 🩹 Fixes
