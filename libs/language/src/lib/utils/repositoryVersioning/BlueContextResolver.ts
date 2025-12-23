@@ -1,11 +1,11 @@
-import { BlueNode } from '../model';
-import type { BlueIdMapper } from '../types/BlueIdMapper';
-import { BlueContext } from '../types/BlueContext';
-import { BlueError, BlueErrorCode } from '../errors/BlueError';
-import { RepositoryRegistry } from '../repository/RepositoryRuntime';
+import { BlueNode } from '../../model';
+import type { BlueIdMapper } from '../../types/BlueIdMapper';
+import { BlueContext } from '../../types/BlueContext';
+import { BlueError, BlueErrorCode } from '../../errors/BlueError';
+import { RepositoryRegistry } from '../../repository/RepositoryRuntime';
 import { normalizeBlueContextRepositories } from './BlueContextRepositoriesParser';
-import { RepositoryVersionSerializer } from './RepositoryVersionSerializer';
-import { normalizeNodeBlueIds } from './repositoryVersioning/normalizeNodeBlueIds';
+import { RepositoryVersionSerializer } from '../RepositoryVersionSerializer';
+import { normalizeNodeBlueIds } from './normalizeNodeBlueIds';
 
 interface BlueContextResolverOptions {
   registry: RepositoryRegistry;

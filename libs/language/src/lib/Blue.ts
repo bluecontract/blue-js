@@ -35,7 +35,7 @@ import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
 import { RepositoryRegistry } from './repository/RepositoryRuntime';
-import { BlueContextResolver } from './utils/BlueContextResolver';
+import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
 import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
 import {
   BlueContext,

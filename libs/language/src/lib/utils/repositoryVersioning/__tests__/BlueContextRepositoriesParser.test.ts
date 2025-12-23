@@ -3,7 +3,7 @@ import {
   normalizeBlueContextRepositories,
   parseBlueContextRepositories,
 } from '../BlueContextRepositoriesParser';
-import { BlueError, BlueErrorCode } from '../../errors/BlueError';
+import { BlueError, BlueErrorCode } from '../../../errors/BlueError';
 
 describe('BlueContextRepositoriesParser', () => {
   it('parses comma separated repositories with quotes', () => {

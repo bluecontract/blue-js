@@ -1,5 +1,5 @@
-import { BlueError, BlueErrorCode } from '../errors/BlueError';
-import { BlueContextRepositories } from '../types/BlueContext';
+import { BlueError, BlueErrorCode } from '../../errors/BlueError';
+import { BlueContextRepositories } from '../../types/BlueContext';
 
 const FORBIDDEN_REPOSITORY_KEYS = new Set([
   '__proto__',
