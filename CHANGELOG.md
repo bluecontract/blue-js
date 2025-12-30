@@ -1,3 +1,9 @@
+## 2.0.0-rc.23 (2025-12-30)
+
+### 🩹 Fixes
+
+- **document-processor:** fix peer dependency range on blue repo types ([abc4717](https://github.com/bluecontract/blue-js/commit/abc4717))
+
 ## 2.0.0-rc.22 (2025-12-23)
 
 ### 🚀 Features
