@@ -8,7 +8,7 @@
  * Adjust this value when recalibrating the gas schedule after QuickJS or
  * runtime upgrades. See `config/gas-schedule.md` for full documentation.
  */
-const WASM_FUEL_PER_HOST_GAS_UNIT_INTERNAL = 162_000;
+const WASM_FUEL_PER_HOST_GAS_UNIT_INTERNAL = 1_700;
 const WASM_FUEL_PER_HOST_GAS_UNIT_BIGINT = BigInt(
   WASM_FUEL_PER_HOST_GAS_UNIT_INTERNAL,
 );

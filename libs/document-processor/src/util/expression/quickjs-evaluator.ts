@@ -8,67 +8,20 @@ import { DV_LIMIT_DEFAULTS, validateDv, type DV } from '@blue-quickjs/dv';
 import { DEFAULT_WASM_GAS_LIMIT } from './quickjs-config.js';
 import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 
-const RESERVED_BINDINGS = new Set([
-  'event',
-  'eventCanonical',
-  'steps',
-  'document',
-  'emit',
-  'canon',
-  'console',
-]);
-
-const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
-const RESERVED_WORDS = new Set([
-  'await',
-  'break',
-  'case',
-  'catch',
-  'class',
-  'const',
-  'continue',
-  'debugger',
-  'default',
-  'delete',
-  'do',
-  'else',
-  'export',
-  'extends',
-  'finally',
-  'for',
-  'function',
-  'if',
-  'import',
-  'in',
-  'instanceof',
-  'new',
-  'return',
-  'super',
-  'switch',
-  'this',
-  'throw',
-  'try',
-  'typeof',
-  'var',
-  'void',
-  'while',
-  'with',
-  'yield',
-  'let',
-  'static',
-  'enum',
-  'implements',
-  'package',
-  'protected',
-  'interface',
-  'private',
-  'public',
-]);
-
 const HOST_CALL_UNITS = 1;
 
+type DocumentBinding = ((pointer?: unknown) => unknown) & {
+  canonical?: (pointer?: unknown) => unknown;
+};
+
+type EmitBinding = (value: unknown) => unknown;
+
 export interface QuickJSBindings {
-  readonly [key: string]: unknown;
+  readonly event?: unknown;
+  readonly eventCanonical?: unknown;
+  readonly steps?: unknown;
+  readonly document?: DocumentBinding;
+  readonly emit?: EmitBinding;
 }
 
 export interface QuickJSEvaluationOptions {
@@ -80,12 +33,6 @@ export interface QuickJSEvaluationOptions {
   readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
 }
 
-type DocumentBinding = ((pointer?: unknown) => unknown) & {
-  canonical?: (pointer?: unknown) => unknown;
-};
-
-type EmitBinding = (value: unknown) => unknown;
-
 type HostCallResult<T> =
   | { ok: T; units: number }
   | { err: { code: string; tag: string; details?: DV }; units: number };
@@ -96,10 +43,13 @@ interface HandlerState {
   emit: (value: DV) => HostCallResult<null>;
 }
 
-interface PreparedBindings {
-  input: InputEnvelope;
-  prelude: string;
-}
+const SUPPORTED_BINDING_KEYS = new Set([
+  'event',
+  'eventCanonical',
+  'steps',
+  'document',
+  'emit',
+]);
 
 export class QuickJSEvaluator {
   // Serialize evaluations to avoid races when updating host handler bindings.
@@ -133,11 +83,11 @@ export class QuickJSEvaluator {
     wasmGasLimit,
     onWasmGasUsed,
   }: QuickJSEvaluationOptions): Promise<unknown> {
-    const prepared = this.prepareBindings(bindings);
+    const input = this.prepareBindings(bindings);
     const gasLimit = wasmGasLimit ?? DEFAULT_WASM_GAS_LIMIT;
 
     const program: ProgramArtifact = {
-      code: this.wrapCode(code, prepared.prelude),
+      code: this.wrapCode(code),
       abiId: 'Host.v1',
       abiVersion: 1,
       abiManifestHash: HOST_V1_HASH,
@@ -146,7 +96,7 @@ export class QuickJSEvaluator {
     try {
       const result = await evaluate({
         program,
-        input: prepared.input,
+        input,
         gasLimit,
         manifest: HOST_V1_MANIFEST,
         handlers: this.handlers,
@@ -169,8 +119,9 @@ export class QuickJSEvaluator {
     }
   }
 
-  private prepareBindings(bindings?: QuickJSBindings): PreparedBindings {
+  private prepareBindings(bindings?: QuickJSBindings): InputEnvelope {
     const resolvedBindings = bindings ?? {};
+    assertSupportedBindings(resolvedBindings);
     const event = normalizeInputDv(resolvedBindings.event, null, 'event');
     const eventCanonical = normalizeInputDv(
       resolvedBindings.eventCanonical ?? event,
@@ -197,8 +148,7 @@ export class QuickJSEvaluator {
     const emitBinding = this.extractEmitBinding(resolvedBindings);
     this.handlerState.emit = createEmitHandler(emitBinding);
 
-    const prelude = buildPrelude(resolvedBindings);
-    return { input, prelude };
+    return input;
   }
 
   private extractDocumentBinding(
@@ -233,10 +183,16 @@ export class QuickJSEvaluator {
     return value as EmitBinding;
   }
 
-  private wrapCode(code: string, prelude: string): string {
-    const trimmedPrelude = prelude.trim();
-    const prefix = trimmedPrelude.length > 0 ? `${trimmedPrelude}\n` : '';
-    return `(() => {\n${prefix}return (() => {\n${code}\n})()\n})()`;
+  private wrapCode(code: string): string {
+    return `(() => {\nreturn (() => {\n${code}\n})()\n})()`;
+  }
+}
+
+function assertSupportedBindings(bindings: QuickJSBindings): void {
+  for (const key of Object.keys(bindings)) {
+    if (!SUPPORTED_BINDING_KEYS.has(key)) {
+      throw new TypeError(`Unsupported QuickJS binding: "${key}"`);
+    }
   }
 }
 
@@ -297,70 +253,6 @@ function createEmitHandler(
   };
 }
 
-function buildPrelude(bindings: QuickJSBindings): string {
-  const lines: string[] = [];
-
-  for (const [key, value] of Object.entries(bindings)) {
-    if (RESERVED_BINDINGS.has(key)) {
-      continue;
-    }
-    if (typeof value === 'function') {
-      throw new TypeError(
-        `QuickJS bindings do not support function values for "${key}"`,
-      );
-    }
-    const serialized = serializeBindingValue(value);
-    if (isSafeIdentifier(key)) {
-      lines.push(`const ${key} = ${serialized};`);
-    } else {
-      lines.push(`globalThis[${JSON.stringify(key)}] = ${serialized};`);
-    }
-  }
-
-  return lines.filter(Boolean).join('\n');
-}
-
-function serializeBindingValue(value: unknown): string {
-  if (value === undefined) {
-    return 'undefined';
-  }
-  if (value === null) {
-    return 'null';
-  }
-  if (typeof value === 'string') {
-    return JSON.stringify(value);
-  }
-  if (typeof value === 'number') {
-    if (Number.isNaN(value)) {
-      return 'NaN';
-    }
-    if (!Number.isFinite(value)) {
-      return value > 0 ? 'Infinity' : '-Infinity';
-    }
-    return String(value);
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
-  if (typeof value === 'bigint') {
-    return `BigInt("${value.toString()}")`;
-  }
-  if (typeof value === 'object') {
-    try {
-      const json = JSON.stringify(value);
-      if (json === undefined) {
-        throw new Error('JSON serialization failed');
-      }
-      return json;
-    } catch {
-      throw new TypeError('QuickJS bindings must be JSON-serializable values');
-    }
-  }
-  throw new TypeError(
-    `Unsupported QuickJS binding type: ${typeof value as string}`,
-  );
-}
-
 // DV decoding uses null-prototype maps; normalize to plain objects for JSON consumers.
 function normalizeDvValue(value: unknown): unknown {
   if (value === null || value === undefined) {
@@ -381,10 +273,6 @@ function normalizeDvValue(value: unknown): unknown {
     return normalized;
   }
   return value;
-}
-
-function isSafeIdentifier(value: string): boolean {
-  return IDENTIFIER_RE.test(value) && !RESERVED_WORDS.has(value);
 }
 
 function mapEvaluateError(result: Awaited<ReturnType<typeof evaluate>>): Error {

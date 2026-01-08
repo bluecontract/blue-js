@@ -44,10 +44,9 @@ describe('quickjs-expression-utils', () => {
     it('evaluates QuickJS expressions with provided bindings', async () => {
       const result = await evaluateQuickJSExpression(
         evaluator,
-        'steps.value * factor',
+        'steps.value * steps.factor',
         {
-          steps: { value: 6 },
-          factor: 7,
+          steps: { value: 6, factor: 7 },
         },
       );
 
@@ -63,10 +62,9 @@ describe('quickjs-expression-utils', () => {
     it('resolves template strings with multiple expressions', async () => {
       const result = await resolveTemplateString(
         evaluator,
-        'Hello ${person.name}, you have ${inbox.count} new messages.',
+        'Hello ${steps.person.name}, you have ${steps.inbox.count} new messages.',
         {
-          person: { name: 'Blue' },
-          inbox: { count: 3 },
+          steps: { person: { name: 'Blue' }, inbox: { count: 3 } },
         },
       );
 

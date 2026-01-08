@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { QuickJSEvaluator } from '../quickjs-evaluator.js';
+import {
+  QuickJSEvaluator,
+  type QuickJSBindings,
+} from '../quickjs-evaluator.js';
 
 describe('QuickJSEvaluator', () => {
   it('evaluates synchronous code and returns the host value', async () => {
@@ -30,27 +33,27 @@ describe('QuickJSEvaluator', () => {
     const evaluator = new QuickJSEvaluator();
 
     const result = await evaluator.evaluate({
-      code: 'return steps + factor;',
+      code: 'return steps + event.payload.value;',
       bindings: {
         steps: 7,
-        factor: 5,
+        event: { payload: { value: 5 } },
       },
     });
 
     expect(result).toBe(12);
   });
 
-  it('throws when bindings include unsupported function values', async () => {
+  it('rejects unsupported binding keys', async () => {
     const evaluator = new QuickJSEvaluator();
 
     await expect(
       evaluator.evaluate({
-        code: 'return add(1, 2);',
+        code: 'return 1;',
         bindings: {
           add: (a: number, b: number) => a + b,
-        },
+        } as unknown as QuickJSBindings,
       }),
-    ).rejects.toThrow(/function values/);
+    ).rejects.toThrow(/Unsupported QuickJS binding/);
   });
 
   it('can be reused across multiple evaluations', async () => {
@@ -132,7 +135,7 @@ describe('QuickJSEvaluator', () => {
         code: 'emit("test"); return 1;',
         bindings: {
           emit: 'not-a-function',
-        },
+        } as unknown as QuickJSBindings,
       }),
     ).rejects.toThrow(/emit binding must be a function/);
   });

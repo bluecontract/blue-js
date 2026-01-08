@@ -80,12 +80,12 @@ describe('QuickJS wasm fuel samples', () => {
         },
         {
           "fuel": "17474",
-          "hostFuel": "1",
+          "hostFuel": "11",
           "name": "loop-1k",
         },
         {
           "fuel": "170474",
-          "hostFuel": "2",
+          "hostFuel": "101",
           "name": "loop-10k",
         },
       ]
