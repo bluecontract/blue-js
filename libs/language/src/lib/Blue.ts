@@ -210,14 +210,14 @@ export class Blue {
 
   public jsonValueToNode(json: unknown) {
     const preprocessed = this.preprocess(NodeDeserializer.deserialize(json));
-    return this.normalizeTypeReferences(preprocessed);
+    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
   }
 
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
     const preprocessed = await this.preprocessAsync(
       NodeDeserializer.deserialize(json),
     );
-    return this.normalizeTypeReferences(preprocessed);
+    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
   }
 
   public yamlToNode(yaml: string) {
@@ -296,10 +296,6 @@ export class Blue {
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
     return processed;
-  }
-
-  public normalizeTypeReferences(node: BlueNode): BlueNode {
-    return normalizeNodeBlueIds(node, this.repositoryRegistry);
   }
 
   public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
@@ -522,55 +518,6 @@ export class Blue {
    */
   public getGlobalLimits(): Limits {
     return this.globalLimits;
-  }
-
-  public toCurrentBlueId(blueId: string): string {
-    return this.repositoryRegistry?.toCurrentBlueId(blueId) ?? blueId;
-  }
-
-  /**
-   * Returns the fully-qualified type alias (`<package>/<Type>`) for a given type reference.
-   *
-   * - For core primitives (Text/Integer/Double/Boolean/List/Dictionary), returns the bare name.
-   * - For repository types, resolves historical BlueIds to the current one and returns the canonical alias.
-   * - For inline alias type nodes (pre-preprocess), attempts to resolve the alias to a BlueId first.
-   */
-  public getTypeAlias(blueId: string | null | undefined): string | undefined;
-  public getTypeAlias(
-    typeNode: BlueNode | null | undefined,
-  ): string | undefined;
-  public getTypeAlias(
-    typeOrBlueId: string | BlueNode | null | undefined,
-  ): string | undefined {
-    if (!typeOrBlueId) {
-      return undefined;
-    }
-
-    if (typeof typeOrBlueId === 'string') {
-      return this.getTypeAliasFromBlueId(typeOrBlueId);
-    }
-
-    const typeNode = typeOrBlueId;
-
-    const blueId = typeNode.getBlueId();
-    if (blueId) {
-      return this.getTypeAliasFromBlueId(blueId);
-    }
-
-    if (!typeNode.isInlineValue()) {
-      return undefined;
-    }
-
-    const inlineValue = typeNode.getValue();
-    if (typeof inlineValue !== 'string') {
-      return undefined;
-    }
-
-    return inlineValue;
-  }
-
-  private getTypeAliasFromBlueId(blueId: string): string | undefined {
-    return this.repositoryRegistry.getTypeAlias(blueId);
   }
 
   private normalizeNodeToJsonOptions(

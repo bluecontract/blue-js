@@ -40,4 +40,4 @@ function merge(target, source, limits) {
 - Lists enforce same BlueId at the same index when overlaying.
 - Dictionaries enforce key/value types via `ListProcessor`/`DictionaryProcessor`.
 - `PathLimits.fromNode(typeNode)` lets `isTypeOfNode` and `resolve` reason with the target shape only.
-- Resolution assumes type references use current BlueIds. Use `yamlToNode/jsonValueToNode` (ingestion) or `blue.normalizeTypeReferences(node)` for manually constructed nodes.
+- Resolution assumes type references use current BlueIds. `yamlToNode/jsonValueToNode` normalize during ingestion; for manually constructed nodes, ensure the types are already current before resolving.

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { BlueNode } from '../../model';
-import { createBlueInstance, fixtureSchemas, ids } from './fixtures';
+import { RepositoryRegistry } from '../../repository/RepositoryRuntime';
+import { normalizeNodeBlueIds } from '../../utils/repositoryVersioning/normalizeNodeBlueIds';
+import {
+  createBlueInstance,
+  fixtureSchemas,
+  ids,
+  otherRepository,
+  repoBlue,
+} from './fixtures';
 
 describe('Repository versioning: historical id normalization', () => {
   it('normalizes historical BlueIds in jsonValueToNode', () => {
@@ -53,7 +61,8 @@ describe('Repository versioning: historical id normalization', () => {
         then: new BlueNode().setValue('then'),
       });
 
-    const normalizedRuleNode = blue.normalizeTypeReferences(ruleNode);
+    const registry = new RepositoryRegistry([repoBlue, otherRepository]);
+    const normalizedRuleNode = normalizeNodeBlueIds(ruleNode, registry);
     const output = blue.nodeToSchemaOutput(
       normalizedRuleNode,
       fixtureSchemas.ruleSchemaCurrent,
