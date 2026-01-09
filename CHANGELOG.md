@@ -1,3 +1,14 @@
+## 2.0.0-rc.24 (2026-01-09)
+
+### 🚀 Features
+
+- ⚠️  remove type alias and normalization methods from blue api ([a602293](https://github.com/bluecontract/blue-js/commit/a602293))
+- **language:** preserve data fields on serialization ([2cc5cd5](https://github.com/bluecontract/blue-js/commit/2cc5cd5))
+
+### ⚠️  Breaking Changes
+
+- ⚠️  remove type alias and normalization methods from blue api ([a602293](https://github.com/bluecontract/blue-js/commit/a602293))
+
 ## 2.0.0-rc.23 (2025-12-30)
 
 ### 🩹 Fixes
