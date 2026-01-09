@@ -6,12 +6,7 @@
 **How it fits**
 This allows writing Zod models for Blue types and obtaining typed DTOs from resolved graphs. You can also serialize JS values back to Blue-shaped JSON honoring Blue annotations.
 
-Type resolution expects current BlueIds. If you construct nodes manually (or load historical IDs without normalization), normalize first:
-
-```ts
-const normalized = blue.normalizeTypeReferences(node);
-const dto = blue.nodeToSchemaOutput(normalized, Person);
-```
+Type resolution expects current BlueIds. `yamlToNode/jsonValueToNode` normalize during ingestion; for manually constructed nodes, ensure the types are already current before conversion.
 
 **Snippets**
 

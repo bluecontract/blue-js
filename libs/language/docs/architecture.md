@@ -7,7 +7,7 @@
    - Map inline type names → BlueIds
    - Infer primitive types
    - (async) Fetch `blue:` URLs with allow-listed `UrlContentFetcher`
-3. Normalize historical type BlueIds to current (`yamlToNode/jsonValueToNode` or `normalizeTypeReferences`)
+3. Normalize historical type BlueIds to current (`yamlToNode/jsonValueToNode`)
 4. Resolve (`Merger`)
    - Provider chain (`NodeProviderWrapper`) = Bootstrap → Repositories → Your provider(s)
    - MergingProcessor pipeline to enforce consistency
