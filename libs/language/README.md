@@ -59,7 +59,7 @@ const official = blue.nodeToJson(resolved, 'official');
 
 ## Repository registration & versioned output
 
-Register a generated repository package to resolve types and aliases. Historical type BlueIds are normalized by the ingestion helpers (`yamlToNode/jsonValueToNode`) after preprocessing; when you create nodes manually, normalize explicitly before type checks or schema output.
+Register a generated repository package to resolve types and aliases. Historical type BlueIds are normalized by the ingestion helpers (`yamlToNode/jsonValueToNode`) after preprocessing; when you create nodes manually, ensure they already use current type BlueIds before type checks or schema output.
 
 ```ts
 import { Blue } from '@blue-labs/language';
@@ -72,9 +72,7 @@ const node = blue.jsonValueToNode({
   value: 'hello',
 });
 
-// For manually constructed nodes:
-const manual = new BlueNode().setType(new BlueNode().setBlueId('...historical-blue-id...'));
-const normalized = blue.normalizeTypeReferences(manual);
+// For manually constructed nodes, ensure current type BlueIds are used.
 ```
 
 Serialize to a specific repository version with BlueContext:
@@ -102,7 +100,6 @@ const json = blue.nodeToJson(node, {
 - `class Blue`
   - Parsing: `yamlToNode(_)/jsonValueToNode(_)` (+ async variants), which preprocess and normalize.
   - Preprocess: blue directive (`BlueDirectivePreprocessor`) + default pipeline (`Preprocessor`).
-  - Normalize: `normalizeTypeReferences(node)` to map historical type BlueIds to current.
   - Resolve: `resolve(node, limits)` → `ResolvedBlueNode`.
   - IDs: `calculateBlueId(_)/calculateBlueIdSync(_)`.
   - Mapping: `nodeToJson(node, 'official'|'simple'|'original'|{ format, blueContext })`, `nodeToSchemaOutput(node, zod)`.

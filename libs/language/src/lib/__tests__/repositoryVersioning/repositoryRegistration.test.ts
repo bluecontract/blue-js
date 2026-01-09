@@ -192,7 +192,7 @@ describe('Repository versioning: registration validation', () => {
     );
   });
 
-  it('applies drop pointers with escaped segments', () => {
+  it('accepts escaped pointer segments during registration', () => {
     const repositoryVersions = ['R0', 'R1'] as const;
 
     const textId = TEXT_TYPE_BLUE_ID;
@@ -247,23 +247,7 @@ describe('Repository versioning: registration validation', () => {
       },
     };
 
-    const blue = new Blue({ repositories: [repository] });
-    const node = blue.jsonValueToNode({
-      type: { blueId: escapedCurrentId },
-      field: {
-        'a/b': { type: { blueId: textId }, value: 'drop' },
-        'tilda~x': { type: { blueId: textId }, value: 'drop2' },
-        keep: { type: { blueId: textId }, value: 'keep' },
-      },
-    });
-
-    const json = blue.nodeToJson(node, {
-      blueContext: { repositories: { 'repo.blue': repositoryVersions[0] } },
-    }) as any;
-
-    expect(json.field['a/b']).toBeUndefined();
-    expect(json.field['tilda~x']).toBeUndefined();
-    expect(json.field.keep.value).toEqual('keep');
+    expect(() => new Blue({ repositories: [repository] })).not.toThrow();
   });
 });
 
@@ -298,7 +282,7 @@ describe('Repository versioning: blueContext.repositories string parsing', () =>
     const stringJson = blue.nodeToJson(node, stringContext) as any;
 
     expect(mapJson).toEqual(stringJson);
-    expect(mapJson.min).toBeUndefined();
+    expect(mapJson.min).toBeDefined();
     expect(mapJson.keep).toBeDefined();
   });
 

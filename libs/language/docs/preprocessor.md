@@ -40,4 +40,4 @@ function preprocessWithDefaultBlue(doc) {
 
 **Historical BlueIds**
 
-`Preprocessor` only applies transformations. Normalization to current type BlueIds is a separate step (`blue.normalizeTypeReferences(...)`). The `yamlToNode/jsonValueToNode` entry points call normalization after preprocessing; if you construct nodes manually, normalize explicitly before type checks or schema output.
+`Preprocessor` only applies transformations. Normalization to current type BlueIds happens after preprocessing in the `yamlToNode/jsonValueToNode` entry points; if you construct nodes manually, ensure they already use current BlueIds before type checks or schema output.

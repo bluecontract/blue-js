@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { Blue } from '../../Blue';
 import { BlueNode } from '../../model';
+import { RepositoryRegistry } from '../../repository/RepositoryRuntime';
+import { normalizeNodeBlueIds } from '../repositoryVersioning/normalizeNodeBlueIds';
 import { withTypeBlueId } from '../../../schema/annotations';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 import { NodeToMapListOrValue } from '../NodeToMapListOrValue';
@@ -116,8 +118,9 @@ requestId: abc-123`;
       new BlueNode().setBlueId(ids.typeAv1),
     );
 
-    const normalizedTypeBv0 = blue.normalizeTypeReferences(nodeTypeBv0);
-    const normalizedTypeAv0 = blue.normalizeTypeReferences(nodeTypeAv0);
+    const registry = new RepositoryRegistry([repository]);
+    const normalizedTypeBv0 = normalizeNodeBlueIds(nodeTypeBv0, registry);
+    const normalizedTypeAv0 = normalizeNodeBlueIds(nodeTypeAv0, registry);
 
     expect(
       blue.isTypeOf(normalizedTypeBv0, schemas.typeAv1, {

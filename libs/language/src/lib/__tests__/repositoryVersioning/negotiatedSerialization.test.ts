@@ -109,14 +109,14 @@ describe('Repository versioning: negotiated serialization', () => {
     expect((rule?.type as { blueId: string }).blueId).toEqual(ids.ruleCurrent);
   });
 
-  it('drops fields added after target version and maps BlueIds (R2)', () => {
+  it('keeps data fields and maps BlueIds (R2)', () => {
     const blue = createBlueInstance();
     const json = blue.nodeToJson(
       blue.jsonValueToNode(policyInstanceJson),
       blueContextFor(repositoryVersions[2]),
     ) as Record<string, any>;
 
-    expect(json.audit).toBeUndefined();
+    expect(json.audit).toBeDefined();
     const rules =
       (json.rules as { items?: unknown[] })?.items ?? (json.rules as any[]);
     const rule = Array.isArray(rules) ? rules[0] : undefined;
@@ -145,38 +145,38 @@ describe('Repository versioning: negotiated serialization', () => {
     expect((json.other as any)?.metadata?.notes?.value).toEqual('keep-notes');
   });
 
-  it('drops later fields deeply for older versions (R1)', () => {
+  it('keeps data fields for older versions while mapping BlueIds (R1)', () => {
     const blue = createBlueInstance();
     const json = blue.nodeToJson(
       blue.jsonValueToNode(policyInstanceJson),
       blueContextFor(repositoryVersions[1]),
     ) as Record<string, any>;
 
-    expect(json.audit).toBeUndefined();
+    expect(json.audit).toBeDefined();
     const rules =
       (json.rules as { items?: unknown[] })?.items ?? (json.rules as any[]);
-    expect(rules[0].severity).toBeUndefined();
-    expect(rules[1].severity).toBeUndefined();
+    expect(rules[0].severity).toBeDefined();
+    expect(rules[1].severity).toBeDefined();
     expect(json.type.blueId).toEqual(ids.policyHistoric);
     expect(rules[0].type.blueId).toEqual(ids.ruleHistoric);
-    expect(rules[0].metadata.flags).toBeUndefined();
+    expect(rules[0].metadata.flags).toBeDefined();
     expect(rules[0].metadata.notes).toBeDefined();
 
     const untypedRules = json.untypedRules as any;
     expect(untypedRules.itemType.blueId).toEqual(ids.ruleHistoric);
-    expect(untypedRules.items?.[0]?.severity).toBeUndefined();
-    expect(untypedRules.items?.[1]?.severity).toBeUndefined();
-    expect(untypedRules.items?.[0]?.metadata?.flags).toBeUndefined();
-    expect(untypedRules.items?.[1]?.metadata?.flags).toBeUndefined();
+    expect(untypedRules.items?.[0]?.severity).toBeDefined();
+    expect(untypedRules.items?.[1]?.severity).toBeDefined();
+    expect(untypedRules.items?.[0]?.metadata?.flags).toBeDefined();
+    expect(untypedRules.items?.[1]?.metadata?.flags).toBeDefined();
     expect(untypedRules.items?.[0]?.metadata?.notes).toBeDefined();
     expect(untypedRules.items?.[1]?.metadata?.notes).toBeDefined();
 
     const untypedMap = json.untypedMap as any;
     expect(untypedMap.valueType.blueId).toEqual(ids.ruleHistoric);
-    expect(untypedMap.first.severity).toBeUndefined();
-    expect(untypedMap.second.severity).toBeUndefined();
-    expect(untypedMap.first.metadata.flags).toBeUndefined();
-    expect(untypedMap.second.metadata.flags).toBeUndefined();
+    expect(untypedMap.first.severity).toBeDefined();
+    expect(untypedMap.second.severity).toBeDefined();
+    expect(untypedMap.first.metadata.flags).toBeDefined();
+    expect(untypedMap.second.metadata.flags).toBeDefined();
     expect(untypedMap.first.metadata.notes).toBeDefined();
 
     expect((json.other as any)?.metadata?.flags?.value).toEqual('keep-me');

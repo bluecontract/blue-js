@@ -8,6 +8,7 @@ import { BlueError, BlueErrorCode } from '../errors/BlueError';
 import {
   CORE_TYPE_BLUE_IDS,
   OBJECT_ITEM_TYPE,
+  OBJECT_KEY_TYPE,
   OBJECT_SPECIFIC_KEYS,
   OBJECT_TYPE,
   OBJECT_VALUE_TYPE,
@@ -81,25 +82,25 @@ export class RepositoryVersionSerializer {
     this.processTypeReference(node, {
       getter: () => node.getType(),
       setter: (value) => node.setType(value),
-      dropTargets: [node],
+      schemaTraversalTargets: [node],
     });
 
     this.processTypeReference(node, {
       getter: () => node.getItemType(),
       setter: (value) => node.setItemType(value),
-      dropTargets: node.getItems() ?? [],
+      schemaTraversalTargets: node.getItems() ?? [],
     });
 
     this.processTypeReference(node, {
       getter: () => node.getKeyType(),
       setter: (value) => node.setKeyType(value),
-      dropTargets: [],
+      schemaTraversalTargets: [],
     });
 
     this.processTypeReference(node, {
       getter: () => node.getValueType(),
       setter: (value) => node.setValueType(value),
-      dropTargets: this.getDictionaryValueTargets(node),
+      schemaTraversalTargets: this.getDictionaryValueTargets(node),
     });
 
     return node;
@@ -110,7 +111,7 @@ export class RepositoryVersionSerializer {
     options: {
       getter: () => BlueNode | undefined;
       setter: (value: BlueNode | undefined) => void;
-      dropTargets: BlueNode[];
+      schemaTraversalTargets: BlueNode[];
     },
   ) {
     const typeNode = options.getter();
@@ -128,7 +129,13 @@ export class RepositoryVersionSerializer {
         return;
       }
       case RESOLUTION_KIND.representable: {
-        this.applyDropPointers(options.dropTargets, resolution.dropPointers);
+        this.applyDropPointers([typeNode], resolution.dropPointers, {
+          rootIsSchema: true,
+        });
+        this.applyDropPointers(
+          options.schemaTraversalTargets,
+          resolution.dropPointers,
+        );
         typeNode.setBlueId(resolution.targetBlueId);
         return;
       }
@@ -277,10 +284,18 @@ export class RepositoryVersionSerializer {
     return collectDropPointers(meta.versions, targetRepoVersionIndex);
   }
 
-  private applyDropPointers(targets: BlueNode[], pointers: string[]) {
+  private applyDropPointers(
+    targets: BlueNode[],
+    pointers: string[],
+    options: { rootIsSchema?: boolean } = {},
+  ) {
+    if (targets.length === 0 || pointers.length === 0) {
+      return;
+    }
+    const rootIsSchema = options.rootIsSchema ?? false;
     for (const pointer of pointers) {
       for (const target of targets) {
-        this.deletePropertyAtPointer(target, pointer);
+        this.deletePropertyAtPointer(target, pointer, rootIsSchema);
       }
     }
   }
@@ -298,7 +313,11 @@ export class RepositoryVersionSerializer {
       .map(([, value]) => value as BlueNode);
   }
 
-  private deletePropertyAtPointer(target: BlueNode, pointer: string) {
+  private deletePropertyAtPointer(
+    target: BlueNode,
+    pointer: string,
+    rootIsSchema: boolean,
+  ) {
     let segments: string[];
     try {
       segments = parseRepositoryPointer(pointer);
@@ -306,24 +325,40 @@ export class RepositoryVersionSerializer {
       throw this.invalidPointerError(pointer);
     }
 
-    this.applyPointerSegments(target, segments);
+    this.applyPointerSegments(target, segments, rootIsSchema);
   }
 
-  private applyPointerSegments(node: BlueNode, segments: string[]) {
+  private applyPointerSegments(
+    node: BlueNode,
+    segments: string[],
+    inSchemaContext: boolean,
+  ) {
     if (segments.length === 0) {
       return;
     }
 
     const [segment, ...rest] = segments;
 
+    if (segment === OBJECT_TYPE) {
+      const type = node.getType();
+      if (type) {
+        this.applyPointerSegments(type, rest, true);
+      }
+      return;
+    }
+
     if (segment === OBJECT_ITEM_TYPE) {
       const itemType = node.getItemType();
       if (itemType) {
-        this.applyPointerSegments(itemType, rest);
+        this.applyPointerSegments(itemType, rest, true);
       }
-      const items = node.getItems();
-      if (items) {
-        items.forEach((item) => this.applyPointerSegments(item, rest));
+      return;
+    }
+
+    if (segment === OBJECT_KEY_TYPE) {
+      const keyType = node.getKeyType();
+      if (keyType) {
+        this.applyPointerSegments(keyType, rest, true);
       }
       return;
     }
@@ -331,10 +366,8 @@ export class RepositoryVersionSerializer {
     if (segment === OBJECT_VALUE_TYPE) {
       const valueType = node.getValueType();
       if (valueType) {
-        this.applyPointerSegments(valueType, rest);
+        this.applyPointerSegments(valueType, rest, true);
       }
-      const values = this.getDictionaryValueTargets(node);
-      values.forEach((value) => this.applyPointerSegments(value, rest));
       return;
     }
 
@@ -344,6 +377,10 @@ export class RepositoryVersionSerializer {
     }
 
     if (rest.length === 0) {
+      if (!inSchemaContext) {
+        // Drop pointers should only prune schema fields, not data.
+        return;
+      }
       if (!(segment in properties)) {
         return;
       }
@@ -355,7 +392,7 @@ export class RepositoryVersionSerializer {
 
     const child = properties[segment];
     if (child instanceof BlueNode) {
-      this.applyPointerSegments(child, rest);
+      this.applyPointerSegments(child, rest, inSchemaContext);
     }
   }
 
