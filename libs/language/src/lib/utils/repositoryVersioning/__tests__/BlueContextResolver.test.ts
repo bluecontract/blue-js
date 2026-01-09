@@ -82,7 +82,7 @@ describe('BlueContextResolver', () => {
     });
 
     expect(transformed.getType()?.getBlueId()).toEqual(ids.ruleHistoric);
-    expect(transformed.getProperties()?.severity).toBeUndefined();
+    expect(transformed.getProperties()?.severity).toBeDefined();
     expect(transformed.getProperties()?.when).toBeDefined();
     expect(transformed.getProperties()?.then).toBeDefined();
   });

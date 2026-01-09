@@ -3,6 +3,7 @@ import { RepositoryVersionSerializer } from '../RepositoryVersionSerializer';
 import { RepositoryRegistry } from '../../repository/RepositoryRuntime';
 import { BlueNode, NodeDeserializer } from '../../model';
 import { NodeToMapListOrValue } from '../NodeToMapListOrValue';
+import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { BlueError, BlueErrorCode } from '../../errors/BlueError';
 import type { BlueRepository } from '../../types/BlueRepository';
 import {
@@ -109,7 +110,7 @@ describe('RepositoryVersionSerializer', () => {
     expect(transformed.getType()?.getBlueId()).toEqual(TEXT_TYPE_BLUE_ID);
   });
 
-  it('maps stable types to the target version and drops new fields', () => {
+  it('maps stable types to the target version and preserves data fields', () => {
     const serializer = createSerializer({
       repositories: [repoBlue],
       targetRepoVersionIndexes: { 'repo.blue': 0 },
@@ -132,9 +133,9 @@ describe('RepositoryVersionSerializer', () => {
 
     expect(transformed.getType()?.getBlueId()).toEqual(ids.ruleHistoric);
     const props = transformed.getProperties();
-    expect(props?.severity).toBeUndefined();
+    expect(props?.severity).toBeDefined();
     const metadata = props?.metadata;
-    expect(metadata?.getProperties()?.flags).toBeUndefined();
+    expect(metadata?.getProperties()?.flags).toBeDefined();
     expect(metadata?.getProperties()?.notes).toBeDefined();
   });
 
@@ -187,10 +188,10 @@ describe('RepositoryVersionSerializer', () => {
     const transformed = serializer.transform(node);
 
     expect(transformed.getType()?.getBlueId()).toEqual(ids.ruleHistoric);
-    expect(transformed.getProperties()?.severity).toBeUndefined();
+    expect(transformed.getProperties()?.severity).toBeDefined();
   });
 
-  it('drops list item fields based on itemType versioning', () => {
+  it('maps list item types without dropping data fields', () => {
     const { repository, ids: dropIds } = buildDropRepository();
     const serializer = createSerializer({
       repositories: [repository],
@@ -211,7 +212,7 @@ describe('RepositoryVersionSerializer', () => {
     const item = transformed.getItems()?.[0];
 
     expect(transformed.getItemType()?.getBlueId()).toEqual(dropIds.itemOldId);
-    expect(item?.getProperties()?.extra).toBeUndefined();
+    expect(item?.getProperties()?.extra).toBeDefined();
     expect(item?.getProperties()?.keep).toBeDefined();
   });
 
@@ -267,11 +268,125 @@ describe('RepositoryVersionSerializer', () => {
     const items = listProp?.getItems();
 
     expect(itemType?.getProperties()?.prop2).toBeUndefined();
-    expect(items?.[0]?.getProperties()?.prop2).toBeUndefined();
+    expect(items?.[0]?.getProperties()?.prop2).toBeDefined();
     expect(items?.[0]?.getProperties()?.prop1).toBeDefined();
   });
 
-  it('drops dictionary value fields based on valueType versioning', () => {
+  it('maps inline list itemType blueIds when schemas include them', () => {
+    const repositoryVersions = ['R0', 'R1'] as const;
+    const baseField = () =>
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    const itemV0 = new BlueNode('ListItem').setProperties({
+      prop1: baseField(),
+    });
+    const itemV1 = itemV0.clone().addProperty('prop2', baseField());
+    const itemV0Id = BlueIdCalculator.calculateBlueIdSync(itemV0);
+    const itemV1Id = BlueIdCalculator.calculateBlueIdSync(itemV1);
+
+    const containerV0 = new BlueNode('InlineList').setProperties({
+      listProp: new BlueNode()
+        .setType(new BlueNode().setBlueId(LIST_TYPE_BLUE_ID))
+        .setItemType(itemV0.clone().setBlueId(itemV0Id)),
+    });
+    const containerV1 = new BlueNode('InlineList').setProperties({
+      listProp: new BlueNode()
+        .setType(new BlueNode().setBlueId(LIST_TYPE_BLUE_ID))
+        .setItemType(itemV1.clone().setBlueId(itemV1Id)),
+    });
+    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
+    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+
+    const repository: BlueRepository = {
+      name: 'repo.inline.item',
+      repositoryVersions,
+      packages: {
+        core: {
+          name: 'core',
+          aliases: {
+            'core/InlineList': containerV1Id,
+            'core/ListItem': itemV1Id,
+          },
+          typesMeta: {
+            [containerV1Id]: {
+              status: 'stable',
+              name: 'InlineList',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: containerV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: containerV1Id,
+                  attributesAdded: ['/listProp/itemType/prop2'],
+                },
+              ],
+            },
+            [itemV1Id]: {
+              status: 'stable',
+              name: 'ListItem',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: itemV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: itemV1Id,
+                  attributesAdded: ['/prop2'],
+                },
+              ],
+            },
+          },
+          contents: {
+            [containerV1Id]: NodeToMapListOrValue.get(containerV1),
+            [itemV1Id]: NodeToMapListOrValue.get(itemV1),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const serializer = createSerializer({
+      repositories: [repository],
+      targetRepoVersionIndexes: { 'repo.inline.item': 0 },
+    });
+
+    const rootType = containerV1.clone().setBlueId(containerV1Id);
+    const node = new BlueNode().setType(rootType);
+    node.setProperties({
+      listProp: new BlueNode()
+        .setType(new BlueNode().setBlueId(LIST_TYPE_BLUE_ID))
+        .setItemType(itemV1.clone().setBlueId(itemV1Id))
+        .setItems([
+          new BlueNode().setProperties({
+            prop1: textValue('v1'),
+            prop2: textValue('v2'),
+          }),
+        ]),
+    });
+
+    const transformed = serializer.transform(node);
+    const schemaItemType = transformed
+      .getType()
+      ?.getProperties()
+      ?.listProp?.getItemType();
+    const listProp = transformed.getProperties()?.listProp;
+    const itemType = listProp?.getItemType();
+    const items = listProp?.getItems();
+
+    expect(transformed.getType()?.getBlueId()).toEqual(containerV0Id);
+    expect(schemaItemType?.getBlueId()).toEqual(itemV0Id);
+    expect(itemType?.getBlueId()).toEqual(itemV0Id);
+    expect(schemaItemType?.getProperties()?.prop2).toBeUndefined();
+    expect(itemType?.getProperties()?.prop2).toBeUndefined();
+    expect(items?.[0]?.getProperties()?.prop2).toBeDefined();
+  });
+
+  it('maps dictionary value types without dropping data fields', () => {
     const { repository, ids: dropIds } = buildDropRepository();
     const serializer = createSerializer({
       repositories: [repository],
@@ -297,11 +412,11 @@ describe('RepositoryVersionSerializer', () => {
     const entry = props?.entry;
 
     expect(transformed.getValueType()?.getBlueId()).toEqual(dropIds.itemOldId);
-    expect(entry?.getProperties()?.extra).toBeUndefined();
+    expect(entry?.getProperties()?.extra).toBeDefined();
     expect(entry?.getProperties()?.keep).toBeDefined();
   });
 
-  it('drops nested fields for typed list of dictionaries', () => {
+  it('maps nested types without dropping data fields', () => {
     const fixture = buildTypedRepository();
     const serializer = createSerializer({
       repositories: [fixture.repository],
@@ -317,8 +432,8 @@ describe('RepositoryVersionSerializer', () => {
     const metadata = first?.getProperties()?.metadata;
     const field = first?.getProperties()?.field;
 
-    expect(metadata?.getProperties()?.flags).toBeUndefined();
-    expect(field?.getProperties()?.nested2).toBeUndefined();
+    expect(metadata?.getProperties()?.flags).toBeDefined();
+    expect(field?.getProperties()?.nested2).toBeDefined();
     expect(metadata?.getProperties()?.notes?.getValue()).toEqual('note');
     expect(field?.getProperties()?.nested?.getValue()).toEqual('keep');
 
@@ -382,13 +497,540 @@ describe('RepositoryVersionSerializer', () => {
     expect(dictProp?.getValueType()?.getProperties()?.prop2).toBeUndefined();
     expect(
       dictProp?.getProperties()?.first?.getProperties()?.prop2,
-    ).toBeUndefined();
+    ).toBeDefined();
     expect(
       dictProp?.getProperties()?.first?.getProperties()?.prop1,
     ).toBeDefined();
   });
 
-  it('drops inherited fields when a base type changes', () => {
+  it('maps inline dictionary valueType blueIds when schemas include them', () => {
+    const repositoryVersions = ['R0', 'R1'] as const;
+    const baseField = () =>
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    const valueV0 = new BlueNode('DictValue').setProperties({
+      prop1: baseField(),
+    });
+    const valueV1 = valueV0.clone().addProperty('prop2', baseField());
+    const valueV0Id = BlueIdCalculator.calculateBlueIdSync(valueV0);
+    const valueV1Id = BlueIdCalculator.calculateBlueIdSync(valueV1);
+
+    const containerV0 = new BlueNode('InlineDict').setProperties({
+      dictProp: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID))
+        .setValueType(valueV0.clone().setBlueId(valueV0Id)),
+    });
+    const containerV1 = new BlueNode('InlineDict').setProperties({
+      dictProp: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID))
+        .setValueType(valueV1.clone().setBlueId(valueV1Id)),
+    });
+    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
+    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+
+    const repository: BlueRepository = {
+      name: 'repo.inline.value',
+      repositoryVersions,
+      packages: {
+        core: {
+          name: 'core',
+          aliases: {
+            'core/InlineDict': containerV1Id,
+            'core/DictValue': valueV1Id,
+          },
+          typesMeta: {
+            [containerV1Id]: {
+              status: 'stable',
+              name: 'InlineDict',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: containerV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: containerV1Id,
+                  attributesAdded: ['/dictProp/valueType/prop2'],
+                },
+              ],
+            },
+            [valueV1Id]: {
+              status: 'stable',
+              name: 'DictValue',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: valueV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: valueV1Id,
+                  attributesAdded: ['/prop2'],
+                },
+              ],
+            },
+          },
+          contents: {
+            [containerV1Id]: NodeToMapListOrValue.get(containerV1),
+            [valueV1Id]: NodeToMapListOrValue.get(valueV1),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const serializer = createSerializer({
+      repositories: [repository],
+      targetRepoVersionIndexes: { 'repo.inline.value': 0 },
+    });
+
+    const rootType = containerV1.clone().setBlueId(containerV1Id);
+    const node = new BlueNode().setType(rootType);
+    node.setProperties({
+      dictProp: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID))
+        .setValueType(valueV1.clone().setBlueId(valueV1Id))
+        .setProperties({
+          first: new BlueNode().setProperties({
+            prop1: textValue('v1'),
+            prop2: textValue('v2'),
+          }),
+        }),
+    });
+
+    const transformed = serializer.transform(node);
+    const schemaValueType = transformed
+      .getType()
+      ?.getProperties()
+      ?.dictProp?.getValueType();
+    const dictProp = transformed.getProperties()?.dictProp;
+    const valueType = dictProp?.getValueType();
+
+    expect(transformed.getType()?.getBlueId()).toEqual(containerV0Id);
+    expect(schemaValueType?.getBlueId()).toEqual(valueV0Id);
+    expect(valueType?.getBlueId()).toEqual(valueV0Id);
+    expect(schemaValueType?.getProperties()?.prop2).toBeUndefined();
+    expect(valueType?.getProperties()?.prop2).toBeUndefined();
+    expect(
+      dictProp?.getProperties()?.first?.getProperties()?.prop2,
+    ).toBeDefined();
+  });
+
+  it('drops fields inside inline type definitions using /type pointers', () => {
+    const repositoryVersions = ['R0', 'R1'] as const;
+    const baseField = () =>
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    const inlineBase = new BlueNode().setProperties({ prop1: baseField() });
+    const inlineCurrent = inlineBase.clone().addProperty('prop2', baseField());
+
+    const containerV0 = new BlueNode('Container').setProperties({
+      field: new BlueNode().setType(inlineBase),
+      fieldNoType: new BlueNode().setType(inlineBase),
+    });
+    const containerV1 = new BlueNode('Container').setProperties({
+      field: new BlueNode().setType(inlineCurrent),
+      fieldNoType: new BlueNode().setType(inlineCurrent),
+    });
+
+    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
+    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+
+    const repository: BlueRepository = {
+      name: 'repo.type',
+      repositoryVersions,
+      packages: {
+        core: {
+          name: 'core',
+          aliases: { 'core/Container': containerV1Id },
+          typesMeta: {
+            [containerV1Id]: {
+              status: 'stable',
+              name: 'Container',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: containerV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: containerV1Id,
+                  attributesAdded: [
+                    '/field/type/prop2',
+                    '/fieldNoType/type/prop2',
+                  ],
+                },
+              ],
+            },
+          },
+          contents: {
+            [containerV1Id]: NodeToMapListOrValue.get(containerV1),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const serializer = createSerializer({
+      repositories: [repository],
+      targetRepoVersionIndexes: { 'repo.type': 0 },
+    });
+
+    const rootType = containerV1.clone().setBlueId(containerV1Id);
+    const node = new BlueNode().setType(rootType);
+    node.setProperties({
+      field: new BlueNode()
+        .setType(
+          new BlueNode().setProperties({
+            prop1: baseField(),
+            prop2: baseField(),
+          }),
+        )
+        .setProperties({
+          prop1: textValue('v1'),
+          prop2: textValue('v2'),
+        }),
+      fieldNoType: new BlueNode().setProperties({
+        prop1: textValue('v1'),
+        prop2: textValue('v2'),
+      }),
+    });
+
+    const transformed = serializer.transform(node);
+    const field = transformed.getProperties()?.field;
+    const fieldNoType = transformed.getProperties()?.fieldNoType;
+
+    expect(transformed.getType()?.getBlueId()).toEqual(containerV0Id);
+    expect(field?.getType()?.getProperties()?.prop2).toBeUndefined();
+    expect(field?.getProperties()?.prop2).toBeDefined();
+    expect(fieldNoType?.getType()).toBeUndefined();
+    expect(fieldNoType?.getProperties()?.prop2).toBeDefined();
+  });
+
+  it('drops root fields inside inline type definitions', () => {
+    const repositoryVersions = ['R0', 'R1'] as const;
+    const baseField = () =>
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    const test1V0 = new BlueNode('Test1').setProperties({
+      field1: baseField(),
+    });
+    const test1V1 = test1V0.clone().addProperty('field2', baseField());
+    const test1V0Id = BlueIdCalculator.calculateBlueIdSync(test1V0);
+    const test1V1Id = BlueIdCalculator.calculateBlueIdSync(test1V1);
+
+    const inlineTest1Schema = test1V1.clone().setBlueId(test1V1Id);
+    const containerType = new BlueNode('Container').setProperties({
+      fieldA: new BlueNode().setType(inlineTest1Schema),
+    });
+    const containerId = BlueIdCalculator.calculateBlueIdSync(containerType);
+
+    const repository: BlueRepository = {
+      name: 'repo.root',
+      repositoryVersions,
+      packages: {
+        core: {
+          name: 'core',
+          aliases: {
+            'core/Container': containerId,
+            'core/Test1': test1V1Id,
+          },
+          typesMeta: {
+            [containerId]: {
+              status: 'stable',
+              name: 'Container',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: containerId,
+                  attributesAdded: [],
+                },
+              ],
+            },
+            [test1V1Id]: {
+              status: 'stable',
+              name: 'Test1',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: test1V0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: test1V1Id,
+                  attributesAdded: ['/field2'],
+                },
+              ],
+            },
+          },
+          contents: {
+            [containerId]: NodeToMapListOrValue.get(containerType),
+            [test1V1Id]: NodeToMapListOrValue.get(test1V1),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const serializer = createSerializer({
+      repositories: [repository],
+      targetRepoVersionIndexes: { 'repo.root': 0 },
+    });
+
+    const rootType = containerType.clone().setBlueId(containerId);
+    const node = new BlueNode().setType(rootType);
+    node.setProperties({
+      fieldA: new BlueNode()
+        .setType(test1V1.clone().setBlueId(test1V1Id))
+        .setProperties({
+          field1: textValue('v1'),
+          field2: textValue('v2'),
+        }),
+    });
+
+    const transformed = serializer.transform(node);
+    const schemaFieldAType = transformed
+      .getType()
+      ?.getProperties()
+      ?.fieldA?.getType();
+    const dataFieldA = transformed.getProperties()?.fieldA;
+    const dataFieldAType = dataFieldA?.getType();
+
+    expect(schemaFieldAType?.getBlueId()).toEqual(test1V0Id);
+    expect(dataFieldAType?.getBlueId()).toEqual(test1V0Id);
+    expect(schemaFieldAType?.getProperties()?.field2).toBeUndefined();
+    expect(dataFieldAType?.getProperties()?.field2).toBeUndefined();
+    expect(dataFieldA?.getProperties()?.field2).toBeDefined();
+  });
+
+  it('drops fields inside inline keyType definitions using /keyType pointers', () => {
+    const repositoryVersions = ['R0', 'R1'] as const;
+    const baseField = () =>
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    const keyBase = new BlueNode().setProperties({ prop1: baseField() });
+    const keyCurrent = keyBase.clone().addProperty('prop2', baseField());
+
+    const containerV0 = new BlueNode('Container').setProperties({
+      map: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(keyBase)
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+      mapNoKey: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(keyBase)
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+    });
+    const containerV1 = new BlueNode('Container').setProperties({
+      map: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(keyCurrent)
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+      mapNoKey: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(keyCurrent)
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+    });
+
+    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
+    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+
+    const repository: BlueRepository = {
+      name: 'repo.key',
+      repositoryVersions,
+      packages: {
+        core: {
+          name: 'core',
+          aliases: { 'core/Container': containerV1Id },
+          typesMeta: {
+            [containerV1Id]: {
+              status: 'stable',
+              name: 'Container',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: containerV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: containerV1Id,
+                  attributesAdded: [
+                    '/map/keyType/prop2',
+                    '/mapNoKey/keyType/prop2',
+                  ],
+                },
+              ],
+            },
+          },
+          contents: {
+            [containerV1Id]: NodeToMapListOrValue.get(containerV1),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const serializer = createSerializer({
+      repositories: [repository],
+      targetRepoVersionIndexes: { 'repo.key': 0 },
+    });
+
+    const rootType = containerV1.clone().setBlueId(containerV1Id);
+    const node = new BlueNode().setType(rootType);
+    node.setProperties({
+      map: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(
+          new BlueNode().setProperties({
+            prop1: baseField(),
+            prop2: baseField(),
+          }),
+        )
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID))
+        .setProperties({
+          first: textValue('v1'),
+        }),
+      mapNoKey: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID))
+        .setProperties({
+          second: textValue('v2'),
+        }),
+    });
+
+    const transformed = serializer.transform(node);
+    const map = transformed.getProperties()?.map;
+    const mapNoKey = transformed.getProperties()?.mapNoKey;
+
+    expect(transformed.getType()?.getBlueId()).toEqual(containerV0Id);
+    expect(map?.getKeyType()?.getProperties()?.prop2).toBeUndefined();
+    expect(map?.getProperties()?.first?.getValue()).toEqual('v1');
+    expect(mapNoKey?.getKeyType()).toBeUndefined();
+    expect(mapNoKey?.getProperties()?.second?.getValue()).toEqual('v2');
+  });
+
+  it('maps inline dictionary keyType blueIds when schemas include them', () => {
+    const repositoryVersions = ['R0', 'R1'] as const;
+    const baseField = () =>
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    const keyV0 = new BlueNode('DictKey').setProperties({
+      prop1: baseField(),
+    });
+    const keyV1 = keyV0.clone().addProperty('prop2', baseField());
+    const keyV0Id = BlueIdCalculator.calculateBlueIdSync(keyV0);
+    const keyV1Id = BlueIdCalculator.calculateBlueIdSync(keyV1);
+
+    const containerV0 = new BlueNode('InlineKeyDict').setProperties({
+      map: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(keyV0.clone().setBlueId(keyV0Id))
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+    });
+    const containerV1 = new BlueNode('InlineKeyDict').setProperties({
+      map: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(keyV1.clone().setBlueId(keyV1Id))
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
+    });
+    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
+    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+
+    const repository: BlueRepository = {
+      name: 'repo.inline.key',
+      repositoryVersions,
+      packages: {
+        core: {
+          name: 'core',
+          aliases: {
+            'core/InlineKeyDict': containerV1Id,
+            'core/DictKey': keyV1Id,
+          },
+          typesMeta: {
+            [containerV1Id]: {
+              status: 'stable',
+              name: 'InlineKeyDict',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: containerV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: containerV1Id,
+                  attributesAdded: ['/map/keyType/prop2'],
+                },
+              ],
+            },
+            [keyV1Id]: {
+              status: 'stable',
+              name: 'DictKey',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: keyV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: keyV1Id,
+                  attributesAdded: ['/prop2'],
+                },
+              ],
+            },
+          },
+          contents: {
+            [containerV1Id]: NodeToMapListOrValue.get(containerV1),
+            [keyV1Id]: NodeToMapListOrValue.get(keyV1),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const serializer = createSerializer({
+      repositories: [repository],
+      targetRepoVersionIndexes: { 'repo.inline.key': 0 },
+    });
+
+    const rootType = containerV1.clone().setBlueId(containerV1Id);
+    const node = new BlueNode().setType(rootType);
+    node.setProperties({
+      map: new BlueNode()
+        .setType(new BlueNode().setBlueId(DICTIONARY_TYPE_BLUE_ID))
+        .setKeyType(keyV1.clone().setBlueId(keyV1Id))
+        .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID))
+        .setProperties({
+          first: textValue('v1'),
+        }),
+    });
+
+    const transformed = serializer.transform(node);
+    const schemaKeyType = transformed
+      .getType()
+      ?.getProperties()
+      ?.map?.getKeyType();
+    const map = transformed.getProperties()?.map;
+    const keyType = map?.getKeyType();
+
+    expect(transformed.getType()?.getBlueId()).toEqual(containerV0Id);
+    expect(schemaKeyType?.getBlueId()).toEqual(keyV0Id);
+    expect(keyType?.getBlueId()).toEqual(keyV0Id);
+    expect(schemaKeyType?.getProperties()?.prop2).toBeUndefined();
+    expect(keyType?.getProperties()?.prop2).toBeUndefined();
+    expect(map?.getProperties()?.first?.getValue()).toEqual('v1');
+  });
+
+  it('maps inherited types without dropping data fields', () => {
     const fixture = buildInheritanceRepository({ includeChildV0: true });
     const serializer = createSerializer({
       repositories: [fixture.repository],
@@ -407,7 +1049,7 @@ describe('RepositoryVersionSerializer', () => {
     const transformed = serializer.transform(node);
 
     expect(transformed.getType()?.getBlueId()).toEqual(fixture.ids.childV0);
-    expect(transformed.getProperties()?.extra).toBeUndefined();
+    expect(transformed.getProperties()?.extra).toBeDefined();
     expect(transformed.getProperties()?.keep?.getValue()).toEqual('keep');
     expect(transformed.getProperties()?.own?.getValue()).toEqual('own');
   });
@@ -443,7 +1085,7 @@ describe('RepositoryVersionSerializer', () => {
     expect(transformed.getProperties()?.own?.getValue()).toEqual('own');
   });
 
-  it('applies drops to schema entries inside dictionaries', () => {
+  it('applies drops to inline schema entries inside dictionaries', () => {
     const repository: BlueRepository = {
       name: 'repo.dict',
       repositoryVersions: ['R0', 'R1'],
@@ -511,14 +1153,109 @@ describe('RepositoryVersionSerializer', () => {
     expect(map?.getValueType()?.getProperties()?.keep).toBeDefined();
     expect(
       map?.getProperties()?.first?.getProperties()?.minFields,
-    ).toBeUndefined();
+    ).toBeDefined();
     expect(map?.getProperties()?.first?.getProperties()?.keep).toBeDefined();
     expect(
       map?.getProperties()?.schema?.getProperties()?.minFields,
-    ).toBeUndefined();
+    ).toBeDefined();
   });
 
-  it('drops fields using escaped pointer segments', () => {
+  it('drops escaped fields inside inline type definitions', () => {
+    const repositoryVersions = ['R0', 'R1'] as const;
+    const baseField = () =>
+      new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    const inlineBase = new BlueNode().setProperties({
+      keep: baseField(),
+    });
+    const inlineCurrent = inlineBase
+      .clone()
+      .addProperty('a/b', baseField())
+      .addProperty('tilda~x', baseField());
+
+    const containerV0 = new BlueNode('Container').setProperties({
+      field: new BlueNode().setType(inlineBase),
+    });
+    const containerV1 = new BlueNode('Container').setProperties({
+      field: new BlueNode().setType(inlineCurrent),
+    });
+
+    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
+    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+
+    const repository: BlueRepository = {
+      name: 'repo.escape.inline',
+      repositoryVersions,
+      packages: {
+        core: {
+          name: 'core',
+          aliases: { 'core/Container': containerV1Id },
+          typesMeta: {
+            [containerV1Id]: {
+              status: 'stable',
+              name: 'Container',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: containerV0Id,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: containerV1Id,
+                  attributesAdded: ['/field/type/a~1b', '/field/type/tilda~0x'],
+                },
+              ],
+            },
+          },
+          contents: {
+            [containerV1Id]: NodeToMapListOrValue.get(containerV1),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const serializer = createSerializer({
+      repositories: [repository],
+      targetRepoVersionIndexes: { 'repo.escape.inline': 0 },
+    });
+
+    const rootType = containerV1.clone().setBlueId(containerV1Id);
+    const node = new BlueNode().setType(rootType);
+    node.setProperties({
+      field: new BlueNode()
+        .setType(
+          new BlueNode().setProperties({
+            keep: baseField(),
+            'a/b': baseField(),
+            'tilda~x': baseField(),
+          }),
+        )
+        .setProperties({
+          keep: textValue('keep'),
+          'a/b': textValue('drop-a'),
+          'tilda~x': textValue('drop-tilde'),
+        }),
+    });
+
+    const transformed = serializer.transform(node);
+    const schemaFieldType = transformed
+      .getType()
+      ?.getProperties()
+      ?.field?.getType();
+    const dataField = transformed.getProperties()?.field;
+    const dataFieldType = dataField?.getType();
+    expect(schemaFieldType?.getProperties()?.['a/b']).toBeUndefined();
+    expect(schemaFieldType?.getProperties()?.['tilda~x']).toBeUndefined();
+    expect(schemaFieldType?.getProperties()?.keep).toBeDefined();
+    expect(dataFieldType?.getProperties()?.['a/b']).toBeUndefined();
+    expect(dataFieldType?.getProperties()?.['tilda~x']).toBeUndefined();
+    expect(dataField?.getProperties()?.['a/b']).toBeDefined();
+    expect(dataField?.getProperties()?.['tilda~x']).toBeDefined();
+  });
+
+  it('preserves data fields with escaped pointer segments', () => {
     const repository: BlueRepository = {
       name: 'repo.escape',
       repositoryVersions: ['R0', 'R1'],
@@ -567,8 +1304,8 @@ describe('RepositoryVersionSerializer', () => {
     const transformed = serializer.transform(node);
     const fieldProps = transformed.getProperties()?.field?.getProperties();
 
-    expect(fieldProps?.['a/b']).toBeUndefined();
-    expect(fieldProps?.['tilda~x']).toBeUndefined();
+    expect(fieldProps?.['a/b']).toBeDefined();
+    expect(fieldProps?.['tilda~x']).toBeDefined();
     expect(fieldProps?.keep?.getValue()).toEqual('keep');
   });
 
