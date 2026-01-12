@@ -27,8 +27,6 @@ export interface QuickJSBindings {
 export interface QuickJSEvaluationOptions {
   readonly code: string;
   readonly bindings?: QuickJSBindings;
-  readonly timeout?: number;
-  readonly memoryLimit?: number;
   readonly wasmGasLimit?: bigint | number;
   readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
 }
