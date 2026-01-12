@@ -1,418 +1,326 @@
 import {
-  getQuickJS,
-  type QuickJSContext,
-  type QuickJSHandle,
-  type QuickJSRuntime,
-  type QuickJSWASMModule,
-} from 'quickjs-emscripten';
-import {
-  getCanonicalPointerValue,
-  unwrapCanonicalValue,
-} from './canonical-json-utils.js';
+  evaluate,
+  type HostDispatcherHandlers,
+  type InputEnvelope,
+  type ProgramArtifact,
+} from '@blue-quickjs/quickjs-runtime';
+import { DV_LIMIT_DEFAULTS, validateDv, type DV } from '@blue-quickjs/dv';
+import { DEFAULT_WASM_GAS_LIMIT } from './quickjs-config.js';
+import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 
-const DEFAULT_TIMEOUT_MS = 500;
-const DEFAULT_MEMORY_LIMIT_BYTES = 32 * 1024 * 1024;
+const HOST_CALL_UNITS = 1;
+
+type DocumentBinding = ((pointer?: unknown) => unknown) & {
+  canonical?: (pointer?: unknown) => unknown;
+};
+
+type EmitBinding = (value: unknown) => unknown;
 
 export interface QuickJSBindings {
-  readonly [key: string]: unknown;
+  readonly event?: unknown;
+  readonly eventCanonical?: unknown;
+  readonly steps?: unknown;
+  readonly document?: DocumentBinding;
+  readonly emit?: EmitBinding;
 }
 
 export interface QuickJSEvaluationOptions {
   readonly code: string;
   readonly bindings?: QuickJSBindings;
-  readonly timeout?: number;
-  readonly memoryLimit?: number;
+  readonly wasmGasLimit?: bigint | number;
+  readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
 }
 
-export class QuickJSEvaluator {
-  private modulePromise?: Promise<QuickJSWASMModule>;
-  private moduleInstance?: QuickJSWASMModule;
+type HostCallResult<T> =
+  | { ok: T; units: number }
+  | { err: { code: string; tag: string; details?: DV }; units: number };
 
-  async evaluate({
+interface HandlerState {
+  documentGet: (path: string) => HostCallResult<DV>;
+  documentGetCanonical: (path: string) => HostCallResult<DV>;
+  emit: (value: DV) => HostCallResult<null>;
+}
+
+const SUPPORTED_BINDING_KEYS = new Set([
+  'event',
+  'eventCanonical',
+  'steps',
+  'document',
+  'emit',
+]);
+
+export class QuickJSEvaluator {
+  // Serialize evaluations to avoid races when updating host handler bindings.
+  private evaluationQueue: Promise<void> = Promise.resolve();
+  private readonly handlerState: HandlerState = {
+    documentGet: () => ({ ok: null, units: HOST_CALL_UNITS }),
+    documentGetCanonical: () => ({ ok: null, units: HOST_CALL_UNITS }),
+    emit: () => ({ ok: null, units: HOST_CALL_UNITS }),
+  };
+
+  private readonly handlers: HostDispatcherHandlers = {
+    document: {
+      get: (path) => this.handlerState.documentGet(path),
+      getCanonical: (path) => this.handlerState.documentGetCanonical(path),
+    },
+    emit: (value) => this.handlerState.emit(value),
+  };
+
+  async evaluate(options: QuickJSEvaluationOptions): Promise<unknown> {
+    const task = this.evaluationQueue.then(() => this.evaluateOnce(options));
+    this.evaluationQueue = task.then(
+      () => undefined,
+      () => undefined,
+    );
+    return task;
+  }
+
+  private async evaluateOnce({
     code,
     bindings,
-    timeout = DEFAULT_TIMEOUT_MS,
-    memoryLimit = DEFAULT_MEMORY_LIMIT_BYTES,
+    wasmGasLimit,
+    onWasmGasUsed,
   }: QuickJSEvaluationOptions): Promise<unknown> {
-    const quickJS = await this.ensureModule();
-    const runtime = quickJS.newRuntime();
-    runtime.setMemoryLimit(memoryLimit);
+    const input = this.prepareBindings(bindings);
+    const gasLimit = wasmGasLimit ?? DEFAULT_WASM_GAS_LIMIT;
 
-    const absoluteTimeout = Number.isFinite(timeout)
-      ? Date.now() + Math.max(timeout, 0)
-      : undefined;
-    if (absoluteTimeout !== undefined) {
-      runtime.setInterruptHandler(() => Date.now() > absoluteTimeout);
-    }
+    const program: ProgramArtifact = {
+      code: this.wrapCode(code),
+      abiId: 'Host.v1',
+      abiVersion: 1,
+      abiManifestHash: HOST_V1_HASH,
+    };
 
-    const context = runtime.newContext();
     try {
-      this.installConsole(context);
-      this.installDeterministicGlobals(context);
-      this.installCanonNamespace(context);
-      this.installBindings(context, bindings);
+      const result = await evaluate({
+        program,
+        input,
+        gasLimit,
+        manifest: HOST_V1_MANIFEST,
+        handlers: this.handlers,
+      });
 
-      const wrappedCode = this.wrapCode(code);
-      const evaluationResult = context.evalCode(wrappedCode);
-      const initialHandle = context.unwrapResult(evaluationResult);
-
-      let resolvedHandle: QuickJSHandle | null = null;
-      try {
-        resolvedHandle = await this.resolveHandle(
-          context,
-          runtime,
-          initialHandle,
-          absoluteTimeout,
-        );
-        const hostValue = context.dump(resolvedHandle);
-        return hostValue;
-      } finally {
-        if (resolvedHandle) {
-          resolvedHandle.dispose();
-        } else {
-          initialHandle.dispose();
-        }
+      if (wasmGasLimit !== undefined && onWasmGasUsed) {
+        onWasmGasUsed({
+          used: result.gasUsed,
+          remaining: result.gasRemaining,
+        });
       }
-    } finally {
-      context.dispose();
-      runtime.removeInterruptHandler?.();
-      runtime.dispose();
+
+      if (!result.ok) {
+        throw mapEvaluateError(result);
+      }
+
+      return normalizeDvValue(result.value);
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
-  private async ensureModule(): Promise<QuickJSWASMModule> {
-    if (this.moduleInstance) {
-      return this.moduleInstance;
+  private prepareBindings(bindings?: QuickJSBindings): InputEnvelope {
+    const resolvedBindings = bindings ?? {};
+    assertSupportedBindings(resolvedBindings);
+    const event = normalizeInputDv(resolvedBindings.event, null, 'event');
+    const eventCanonical = normalizeInputDv(
+      resolvedBindings.eventCanonical ?? event,
+      event,
+      'eventCanonical',
+    );
+    const steps = normalizeInputDv(resolvedBindings.steps, [], 'steps');
+    const input: InputEnvelope = {
+      event,
+      eventCanonical,
+      steps,
+    };
+
+    const documentBinding = this.extractDocumentBinding(resolvedBindings);
+    const canonicalBinding =
+      typeof documentBinding?.canonical === 'function'
+        ? documentBinding.canonical
+        : undefined;
+    this.handlerState.documentGet = createDocumentHandler(documentBinding);
+    this.handlerState.documentGetCanonical = createDocumentHandler(
+      canonicalBinding ?? documentBinding,
+    );
+
+    const emitBinding = this.extractEmitBinding(resolvedBindings);
+    this.handlerState.emit = createEmitHandler(emitBinding);
+
+    return input;
+  }
+
+  private extractDocumentBinding(
+    bindings: QuickJSBindings,
+  ): DocumentBinding | undefined {
+    if (!Object.prototype.hasOwnProperty.call(bindings, 'document')) {
+      return undefined;
     }
-    if (!this.modulePromise) {
-      this.modulePromise = getQuickJS().then((module) => {
-        this.moduleInstance = module;
-        return module;
-      });
+    const value = bindings.document;
+    if (value === undefined || value === null) {
+      return undefined;
     }
-    return this.modulePromise;
+    if (typeof value !== 'function') {
+      throw new TypeError('QuickJS document binding must be a function');
+    }
+    return value as DocumentBinding;
+  }
+
+  private extractEmitBinding(
+    bindings: QuickJSBindings,
+  ): EmitBinding | undefined {
+    if (!Object.prototype.hasOwnProperty.call(bindings, 'emit')) {
+      return undefined;
+    }
+    const value = bindings.emit;
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    if (typeof value !== 'function') {
+      throw new TypeError('QuickJS emit binding must be a function');
+    }
+    return value as EmitBinding;
   }
 
   private wrapCode(code: string): string {
-    return `(async () => {\n${code}\n})()`;
+    return `(() => {\nreturn (() => {\n${code}\n})()\n})()`;
   }
+}
 
-  private installConsole(context: QuickJSContext): void {
-    context.newObject().consume((consoleHandle) => {
-      const methods: Array<keyof Console> = ['log', 'info', 'warn', 'error'];
-      for (const method of methods) {
-        const hostMethod =
-          (console[method] as (...args: unknown[]) => void) ?? console.log;
-        context
-          .newFunction(method, (...args: QuickJSHandle[]) => {
-            const nativeArgs = args.map((arg) => context.dump(arg));
-            hostMethod.apply(console, nativeArgs);
-            return context.undefined;
-          })
-          .consume((handle) => context.setProp(consoleHandle, method, handle));
-      }
-      context.setProp(context.global, 'console', consoleHandle);
-    });
-  }
-
-  private installDeterministicGlobals(context: QuickJSContext): void {
-    // Hide non-deterministic and host-specific globals from user code
-    // Ensure typeof returns 'undefined' for these symbols
-    context.setProp(context.global, 'Date', context.undefined.dup());
-  }
-
-  private installCanonNamespace(context: QuickJSContext): void {
-    context.newObject().consume((canonHandle) => {
-      context
-        .newFunction('unwrap', (...args: readonly QuickJSHandle[]) => {
-          try {
-            const [targetHandle, deepHandle] = args;
-            const target =
-              targetHandle !== undefined
-                ? context.dump(targetHandle)
-                : undefined;
-            const deep =
-              deepHandle === undefined
-                ? true
-                : Boolean(context.dump(deepHandle));
-            const value = unwrapCanonicalValue(target, deep);
-            return this.createReturnHandle(context, value);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            return context.newError(message);
-          }
-        })
-        .consume((handle) => context.setProp(canonHandle, 'unwrap', handle));
-
-      context
-        .newFunction('at', (...args: readonly QuickJSHandle[]) => {
-          try {
-            const [targetHandle, pointerHandle] = args;
-            const target =
-              targetHandle !== undefined
-                ? context.dump(targetHandle)
-                : undefined;
-            if (pointerHandle === undefined) {
-              throw new TypeError(
-                'canon.at(target, pointer) requires a pointer argument',
-              );
-            }
-            const pointerValue = context.dump(pointerHandle);
-            if (typeof pointerValue !== 'string') {
-              throw new TypeError('canon.at pointer must be a string');
-            }
-            const resolved = getCanonicalPointerValue(target, pointerValue);
-            return this.createReturnHandle(context, resolved);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            return context.newError(message);
-          }
-        })
-        .consume((handle) => context.setProp(canonHandle, 'at', handle));
-
-      context.setProp(context.global, 'canon', canonHandle);
-    });
-  }
-
-  private installBindings(
-    context: QuickJSContext,
-    bindings: QuickJSBindings | undefined,
-  ): void {
-    if (!bindings) {
-      return;
-    }
-
-    for (const [key, value] of Object.entries(bindings)) {
-      if (typeof value === 'function') {
-        const fnHandle = this.createFunctionHandle(
-          context,
-          key,
-          value as (...args: unknown[]) => unknown,
-        );
-        fnHandle.consume((handle) =>
-          context.setProp(context.global, key, handle),
-        );
-      } else if (value !== undefined) {
-        const valueHandle = this.createOwnedHandle(context, value);
-        valueHandle.consume((handle) =>
-          context.setProp(context.global, key, handle),
-        );
-      }
+function assertSupportedBindings(bindings: QuickJSBindings): void {
+  for (const key of Object.keys(bindings)) {
+    if (!SUPPORTED_BINDING_KEYS.has(key)) {
+      throw new TypeError(`Unsupported QuickJS binding: "${key}"`);
     }
   }
+}
 
-  private createFunctionHandle(
-    context: QuickJSContext,
-    name: string,
-    fn: (...args: unknown[]) => unknown,
-  ): QuickJSHandle {
-    const fnHandle = context.newFunction(
-      name,
-      (...args: readonly QuickJSHandle[]) => {
-        try {
-          const hostArgs = args.map((arg) => context.dump(arg));
-          const result = fn(...hostArgs);
-          if (result instanceof Promise) {
-            throw new TypeError('Async bindings are not supported');
-          }
-          return this.createReturnHandle(context, result);
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          return context.newError(message);
-        }
-      },
-    );
-    this.applyFunctionProperties(context, fnHandle, fn);
-    return fnHandle;
-  }
-
-  /**
-   * Copies enumerable properties from a host function onto the QuickJS handle.
-   * Nested functions (e.g. `document.canonical = () => {}`) are recursively wrapped
-   * so they stay callable inside QuickJS; plain values are serialized via
-   * `createOwnedHandle`. This preserves helper namespaces on binding functions.
-   */
-  private applyFunctionProperties(
-    context: QuickJSContext,
-    targetHandle: QuickJSHandle,
-    source: unknown,
-  ): void {
-    if (
-      source === null ||
-      (typeof source !== 'object' && typeof source !== 'function')
-    ) {
-      return;
-    }
-    for (const [prop, propValue] of Object.entries(
-      source as Record<string, unknown>,
-    )) {
-      if (propValue === undefined) {
-        continue;
-      }
-      if (typeof propValue === 'function') {
-        const propertyHandle = this.createFunctionHandle(
-          context,
-          prop,
-          propValue as (...args: unknown[]) => unknown,
-        );
-        propertyHandle.consume((handle) =>
-          context.setProp(targetHandle, prop, handle),
-        );
-        continue;
-      }
-      const propertyHandle = this.createOwnedHandle(context, propValue);
-      propertyHandle.consume((handle) =>
-        context.setProp(targetHandle, prop, handle),
-      );
-    }
-  }
-
-  private createOwnedHandle(
-    context: QuickJSContext,
-    value: unknown,
-  ): QuickJSHandle {
-    if (value === undefined) {
-      return context.undefined.dup();
-    }
-    if (value === null) {
-      return context.null.dup();
-    }
-    if (typeof value === 'boolean') {
-      return (value ? context.true : context.false).dup();
-    }
-    if (typeof value === 'number') {
-      return context.newNumber(value);
-    }
-    if (typeof value === 'string') {
-      return context.newString(value);
-    }
-    if (typeof value === 'bigint') {
-      return context.newBigInt(value);
-    }
-    if (Array.isArray(value) || typeof value === 'object') {
-      const json = JSON.stringify(value);
-      if (json === undefined) {
-        return context.undefined.dup();
-      }
-      const evaluationResult = context.evalCode(`(${json})`);
-      return context.unwrapResult(evaluationResult);
-    }
+function normalizeInputDv(value: unknown, fallback: DV, label: string): DV {
+  const resolved = value === undefined ? fallback : value;
+  try {
+    validateDv(resolved, { limits: DV_LIMIT_DEFAULTS });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     throw new TypeError(
-      `Unsupported binding value type: ${typeof value as string}`,
+      `QuickJS ${label} binding must be valid DV: ${message}`,
     );
   }
+  return resolved;
+}
 
-  private createReturnHandle(
-    context: QuickJSContext,
-    value: unknown,
-  ): QuickJSHandle {
-    if (value === undefined) {
-      return context.undefined;
+function createDocumentHandler(
+  binding: DocumentBinding | undefined,
+): (path: string) => HostCallResult<DV> {
+  if (!binding) {
+    return () => ({ ok: null, units: HOST_CALL_UNITS });
+  }
+  return (path: string) => {
+    try {
+      const value = binding(path);
+      return {
+        ok: (value === undefined ? null : value) as DV,
+        units: HOST_CALL_UNITS,
+      };
+    } catch {
+      return {
+        err: { code: 'INVALID_PATH', tag: 'host/invalid_path' },
+        units: HOST_CALL_UNITS,
+      };
     }
-    if (value === null) {
-      return context.null;
-    }
-    if (typeof value === 'boolean') {
-      return value ? context.true : context.false;
-    }
-    if (typeof value === 'number') {
-      return context.newNumber(value);
-    }
-    if (typeof value === 'string') {
-      return context.newString(value);
-    }
-    if (typeof value === 'bigint') {
-      return context.newBigInt(value);
-    }
-    if (Array.isArray(value) || typeof value === 'object') {
-      const json = JSON.stringify(value);
-      if (json === undefined) {
-        return context.undefined;
+  };
+}
+
+function createEmitHandler(
+  binding: EmitBinding | undefined,
+): (value: DV) => HostCallResult<null> {
+  if (!binding) {
+    return () => ({ ok: null, units: HOST_CALL_UNITS });
+  }
+  return (value: DV) => {
+    try {
+      const result = binding(normalizeDvValue(value));
+      if (result instanceof Promise) {
+        throw new Error('Async emit handlers are not supported');
       }
-      const evaluationResult = context.evalCode(`(${json})`);
-      return context.unwrapResult(evaluationResult);
+      return { ok: null, units: HOST_CALL_UNITS };
+    } catch {
+      return {
+        err: { code: 'LIMIT_EXCEEDED', tag: 'host/limit' },
+        units: HOST_CALL_UNITS,
+      };
     }
-    throw new TypeError(
-      `Unsupported binding return type: ${typeof value as string}`,
+  };
+}
+
+// DV decoding uses null-prototype maps; normalize to plain objects for JSON consumers.
+function normalizeDvValue(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeDvValue(item));
+  }
+  if (typeof value === 'object') {
+    const proto = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) {
+      return value;
+    }
+    const normalized: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value)) {
+      normalized[key] = normalizeDvValue(nested);
+    }
+    return normalized;
+  }
+  return value;
+}
+
+function mapEvaluateError(result: Awaited<ReturnType<typeof evaluate>>): Error {
+  if (result.ok) {
+    return new Error('Unexpected evaluation result');
+  }
+
+  if (result.type === 'invalid-output') {
+    const invalid = new Error(result.message);
+    invalid.name = 'InvalidOutputError';
+    return invalid;
+  }
+
+  const detail = result.error;
+  if (detail.kind === 'out-of-gas') {
+    const outOfGasError = new Error(
+      `OutOfGas: ${detail.message || 'out of gas'}`,
     );
+    outOfGasError.name = 'OutOfGasError';
+    return outOfGasError;
   }
 
-  private async resolveHandle(
-    context: QuickJSContext,
-    runtime: QuickJSRuntime,
-    initialHandle: QuickJSHandle,
-    deadline: number | undefined,
-  ): Promise<QuickJSHandle> {
-    let current = initialHandle;
+  const message = detail.message || result.message;
+  const error = new Error(message);
 
-    while (true) {
-      const state = context.getPromiseState(current);
-
-      if (state.type === 'pending') {
-        if (deadline !== undefined && Date.now() > deadline) {
-          current.dispose();
-          throw new Error('QuickJS execution timed out while awaiting Promise');
-        }
-
-        const jobsResult = runtime.executePendingJobs();
-        let executed = 0;
-        try {
-          executed = context.unwrapResult(jobsResult);
-        } finally {
-          jobsResult.dispose();
-        }
-
-        if (executed === 0) {
-          if (deadline !== undefined && Date.now() > deadline) {
-            current.dispose();
-            throw new Error(
-              'QuickJS execution timed out while awaiting Promise',
-            );
-          }
-          // Yield to the event loop; prevents tight spin when promises never settle.
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-
-        continue;
-      }
-
-      if (state.type === 'fulfilled') {
-        if (state.notAPromise) {
-          return current;
-        }
-        current.dispose();
-        current = state.value;
-        continue;
-      }
-
-      if (state.type === 'rejected') {
-        try {
-          const errorValue = context.dump(state.error);
-          if (errorValue instanceof Error) {
-            throw errorValue;
-          }
-          if (
-            errorValue &&
-            typeof errorValue === 'object' &&
-            'message' in errorValue
-          ) {
-            throw new Error(
-              String((errorValue as { message: unknown }).message),
-            );
-          }
-          throw new Error(
-            typeof errorValue === 'string'
-              ? errorValue
-              : JSON.stringify(errorValue),
-          );
-        } finally {
-          state.error.dispose();
-          current.dispose();
-        }
-      }
-    }
+  if (detail.kind === 'js-exception') {
+    error.name = detail.name || 'Error';
+    return error;
   }
+
+  if (detail.kind === 'host-error') {
+    error.name = 'HostError';
+    return error;
+  }
+
+  if (detail.kind === 'manifest-error') {
+    error.name = 'ManifestError';
+    return error;
+  }
+
+  if (detail.kind === 'unknown' && detail.name) {
+    error.name = detail.name;
+  }
+
+  return error;
+}
+
+function normalizeError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error(String(error ?? 'Unknown error'));
 }

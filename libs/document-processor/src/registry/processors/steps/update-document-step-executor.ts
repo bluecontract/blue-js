@@ -22,9 +22,7 @@ type JsonPatchOperation = 'ADD' | 'REPLACE' | 'REMOVE';
 
 type ChangeInput = Required<UpdateDocument>['changeset'][number];
 
-export class UpdateDocumentStepExecutor
-  implements SequentialWorkflowStepExecutor
-{
+export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecutor {
   readonly supportedBlueIds = [
     conversationBlueIds['Conversation/Update Document'],
   ] as const;

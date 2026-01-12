@@ -1,9 +1,7 @@
 import type { HandlerProcessor } from '../../registry/types.js';
 import { removePropertySchema, type RemoveProperty } from '../models/index.js';
 
-export class RemovePropertyContractProcessor
-  implements HandlerProcessor<RemoveProperty>
-{
+export class RemovePropertyContractProcessor implements HandlerProcessor<RemoveProperty> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['RemoveProperty'] as const;
   readonly schema = removePropertySchema;

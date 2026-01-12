@@ -2,9 +2,7 @@ import type { HandlerProcessor } from '../../registry/types.js';
 import { BlueNode } from '@blue-labs/language';
 import { terminateScopeSchema, type TerminateScope } from '../models/index.js';
 
-export class TerminateScopeContractProcessor
-  implements HandlerProcessor<TerminateScope>
-{
+export class TerminateScopeContractProcessor implements HandlerProcessor<TerminateScope> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['TerminateScope'] as const;
   readonly schema = terminateScopeSchema;

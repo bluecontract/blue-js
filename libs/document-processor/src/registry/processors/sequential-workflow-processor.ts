@@ -11,9 +11,7 @@ import {
   type SequentialWorkflowStepExecutor,
 } from './workflow/step-runner.js';
 
-export class SequentialWorkflowHandlerProcessor
-  implements HandlerProcessor<SequentialWorkflow>
-{
+export class SequentialWorkflowHandlerProcessor implements HandlerProcessor<SequentialWorkflow> {
   readonly kind = 'handler' as const;
   readonly blueIds = [
     conversationBlueIds['Conversation/Sequential Workflow'],

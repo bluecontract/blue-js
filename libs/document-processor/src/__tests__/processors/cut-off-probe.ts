@@ -13,9 +13,7 @@ function emitIfKind(
   context.emitEvent(event);
 }
 
-export class CutOffProbeContractProcessor
-  implements HandlerProcessor<CutOffProbe>
-{
+export class CutOffProbeContractProcessor implements HandlerProcessor<CutOffProbe> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['CutOffProbe'] as const;
   readonly schema = cutOffProbeSchema;

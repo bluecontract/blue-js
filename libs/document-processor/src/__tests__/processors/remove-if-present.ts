@@ -4,9 +4,7 @@ import {
   type RemoveIfPresent,
 } from '../models/index.js';
 
-export class RemoveIfPresentContractProcessor
-  implements HandlerProcessor<RemoveIfPresent>
-{
+export class RemoveIfPresentContractProcessor implements HandlerProcessor<RemoveIfPresent> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['RemoveIfPresent'] as const;
   readonly schema = removeIfPresentSchema;

@@ -11,9 +11,7 @@ import {
 
 const DEFAULT_EVENT_TYPE = 'TestEvent';
 
-export class TestEventChannelProcessor
-  implements ChannelProcessor<TestEventChannel>
-{
+export class TestEventChannelProcessor implements ChannelProcessor<TestEventChannel> {
   readonly kind = 'channel' as const;
   readonly blueIds = ['TestEventChannel'] as const;
   readonly schema = testEventChannelSchema;

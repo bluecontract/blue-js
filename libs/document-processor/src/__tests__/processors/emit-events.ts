@@ -12,9 +12,7 @@ function shouldEmit(
   return value != null && String(value) === contract.expectedKind;
 }
 
-export class EmitEventsContractProcessor
-  implements HandlerProcessor<EmitEvents>
-{
+export class EmitEventsContractProcessor implements HandlerProcessor<EmitEvents> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['EmitEvents'] as const;
   readonly schema = emitEventsSchema;
