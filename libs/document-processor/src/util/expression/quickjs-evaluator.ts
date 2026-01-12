@@ -102,15 +102,15 @@ export class QuickJSEvaluator {
         handlers: this.handlers,
       });
 
-      if (!result.ok) {
-        throw mapEvaluateError(result);
-      }
-
       if (wasmGasLimit !== undefined && onWasmGasUsed) {
         onWasmGasUsed({
           used: result.gasUsed,
           remaining: result.gasRemaining,
         });
+      }
+
+      if (!result.ok) {
+        throw mapEvaluateError(result);
       }
 
       return normalizeDvValue(result.value);
