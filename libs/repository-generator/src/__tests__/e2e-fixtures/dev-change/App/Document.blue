@@ -1,0 +1,12 @@
+name: Document
+type: Conversation/Event
+id:
+  type: Core/Id
+title:
+  type: Text
+tags:
+  type: Core/Tag List
+status:
+  value: draft
+description: |
+  Minimal document type with cross-package references and a literal field.

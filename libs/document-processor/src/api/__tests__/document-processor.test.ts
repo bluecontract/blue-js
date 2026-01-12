@@ -21,7 +21,7 @@ function documentWithLifecycleAndEventHandlers(): string {
   return `name: Example
 contracts:
   lifecycleChannel:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onLifecycle:
     channel: lifecycleChannel
     type:
@@ -55,7 +55,7 @@ describe('DocumentProcessor', () => {
     expect(init.triggeredEvents).toHaveLength(1);
     const lifecycleEvent = init.triggeredEvents[0];
     expect(lifecycleEvent.getProperties()?.type?.getValue()).toBe(
-      'Document Processing Initiated',
+      'Core/Document Processing Initiated',
     );
   });
 

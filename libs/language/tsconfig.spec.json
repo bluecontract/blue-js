@@ -1,6 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
     "outDir": "../../dist/out-tsc/libs/language",
     "types": [
       "vitest/globals",
@@ -15,6 +20,10 @@
     "vite.config.mts",
     "vitest.config.ts",
     "vitest.config.mts",
+    "src/**/__tests__/**/*.ts",
+    "src/**/__tests__/**/*.tsx",
+    "src/**/__tests__/**/*.js",
+    "src/**/__tests__/**/*.jsx",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.test.tsx",

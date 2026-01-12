@@ -10,6 +10,8 @@ module.exports = [
   {
     ignores: [
       '**/dist',
+      '**/out-tsc',
+      '**/.yalc/**',
       '**/vite.config.*.timestamp*',
       '**/vitest.config.*.timestamp*',
     ],

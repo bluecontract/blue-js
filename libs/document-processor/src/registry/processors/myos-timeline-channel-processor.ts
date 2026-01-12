@@ -2,12 +2,12 @@ import { BlueNode } from '@blue-labs/language';
 import {
   TimelineEntrySchema,
   type TimelineEntry,
-} from '@blue-repository/conversation';
+} from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
 import {
   MyOSTimelineEntrySchema,
   type MyOSTimelineEntry,
-  blueIds as myosBlueIds,
-} from '@blue-repository/myos';
+} from '@blue-repository/types/packages/myos/schemas/MyOSTimelineEntry';
+import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 
 import {
   myosTimelineChannelSchema,
@@ -33,7 +33,7 @@ export class MyOSTimelineChannelProcessor
   implements ChannelProcessor<MyOSTimelineChannel>
 {
   readonly kind = 'channel' as const;
-  readonly blueIds = [myosBlueIds['MyOS Timeline Channel']] as const;
+  readonly blueIds = [myosBlueIds['MyOS/MyOS Timeline Channel']] as const;
   readonly schema = myosTimelineChannelSchema;
 
   matches(

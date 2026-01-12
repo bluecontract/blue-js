@@ -19,14 +19,14 @@ childA:
   count: 0
   contracts:
     alphaTimeline:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: alpha
     incrementA:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: alphaTimeline
       steps:
         - name: IncrementA
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /count
@@ -35,21 +35,21 @@ childB:
   count: 0
   contracts:
     betaTimeline:
-      type: Timeline Channel
+      type: Conversation/Timeline Channel
       timelineId: beta
     incrementB:
-      type: Sequential Workflow
+      type: Conversation/Sequential Workflow
       channel: betaTimeline
       steps:
         - name: IncrementB
-          type: Update Document
+          type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /count
               val: "\${document('count') + 1}"
 contracts:
   embedded:
-    type: Process Embedded
+    type: Core/Process Embedded
     paths:
       - /childA
       - /childB
@@ -91,14 +91,14 @@ describe('Process Embedded — Multi-paths: independent processing and protectio
     const assertRootTermination = async (target: 'childA' | 'childB') => {
       const processor = buildProcessor(blue);
       const yaml = `${MULTI_PATH_BASE_YAML}  rootTimeline:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: root
   rootWrite:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootTimeline
     steps:
       - name: RootWrite
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /${target}/count
@@ -128,14 +128,14 @@ describe('Process Embedded — Multi-paths: independent processing and protectio
   it('removes an embedded child root without terminating the parent', async () => {
     const processor = buildProcessor(blue);
     const yaml = `${MULTI_PATH_BASE_YAML}  rootTimeline:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: root
   rootWrite:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: rootTimeline
     steps:
       - name: RootRemoveChild
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REMOVE
             path: /childA

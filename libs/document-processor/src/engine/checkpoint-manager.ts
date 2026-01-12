@@ -1,5 +1,5 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/core';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
 import {
   relativeCheckpointLastEvent,
@@ -10,7 +10,8 @@ import { resolvePointer } from '../util/pointer-utils.js';
 import type { ContractBundle } from './contract-bundle.js';
 import type { ChannelEventCheckpoint, MarkerContract } from '../model/index.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
+  blueIds['Core/Channel Event Checkpoint'];
 
 function createEmptyCheckpointNode(blue: Blue): BlueNode {
   return blue.jsonValueToNode({

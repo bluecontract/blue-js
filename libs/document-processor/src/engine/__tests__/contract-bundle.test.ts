@@ -78,7 +78,7 @@ describe('ContractBundle', () => {
 
   it('validates checkpoint markers for reserved key', () => {
     const builder = ContractBundle.builder();
-    const checkpointId = blueIds['Channel Event Checkpoint'];
+    const checkpointId = blueIds['Core/Channel Event Checkpoint'];
     expect(() =>
       builder.addMarker('custom', checkpointMarker(), checkpointId),
     ).toThrow(/reserved key 'checkpoint'/i);

@@ -6,7 +6,7 @@ import {
   property,
   typeBlueId,
 } from '../../test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 const blue = createBlue();
 
@@ -17,32 +17,32 @@ describe('Trigger Event step — leakage into root flow', () => {
 counter: 0
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onInit:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: EmitStartWithChildDoc
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: start-session
           document:
             name: Child Session
             counter: 0
             contracts:
               increment:
-                type: Operation
+                type: Conversation/Operation
                 request:
                   type: Integer
               incrementImpl:
-                type: Sequential Workflow Operation
+                type: Conversation/Sequential Workflow Operation
                 operation: increment
                 steps:
                   - name: IncreaseCounter
-                    type: Update Document
+                    type: Conversation/Update Document
                     changeset:
                       - op: replace
                         path: /counter
@@ -56,7 +56,7 @@ contracts:
     const emissions = result.triggeredEvents;
     expect(emissions.length).toBeGreaterThan(0);
     const chatEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(chatEvents.length).toBe(1);
     const [event] = chatEvents;
@@ -79,37 +79,37 @@ contracts:
     const yaml = `name: Leakage Repro Doc With Root Event
 counter: 0
 eventToTrigger:
-  type: Chat Message
+  type: Conversation/Chat Message
   message: start-session
   document:
     name: Child Session
     counter: 0
     contracts:
       increment:
-        type: Operation
+        type: Conversation/Operation
         request:
           type: Integer
       incrementImpl:
-        type: Sequential Workflow Operation
+        type: Conversation/Sequential Workflow Operation
         operation: increment
         steps:
           - name: IncreaseCounter
-            type: Update Document
+            type: Conversation/Update Document
             changeset:
               - op: replace
                 path: /counter
                 val: "\${document('counter') + event.request.value}"
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onInit:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: EmitStartWithSnapshot
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event: "\${document('/eventToTrigger')}"
 `;
 
@@ -120,7 +120,7 @@ contracts:
     const emissions = result.triggeredEvents;
     expect(emissions.length).toBeGreaterThan(0);
     const chatEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(chatEvents.length).toBe(1);
     const [event] = chatEvents;

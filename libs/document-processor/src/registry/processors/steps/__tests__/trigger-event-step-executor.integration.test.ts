@@ -7,7 +7,7 @@ import {
   property,
   typeBlueId,
 } from '../../../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/conversation';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 const blue = createBlue();
 
@@ -18,17 +18,17 @@ describe('TriggerEventStepExecutor (integration)', () => {
     const yaml = `name: Trigger Event Workflow
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onInit:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: EmitWelcome
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: Welcome!`;
 
     const doc = blue.yamlToNode(yaml);
@@ -36,7 +36,7 @@ contracts:
 
     const emissions = result.triggeredEvents;
     const chatEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(chatEvents.length).toBe(1);
     const message = property(chatEvents[0], 'message').getValue();
@@ -49,29 +49,29 @@ contracts:
     const yaml = `name: Trigger Event produces and consumes triggered events
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   trig:
-    type: Triggered Event Channel
+    type: Core/Triggered Event Channel
   producer:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: EmitCompleted
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Status Completed
+          type: Conversation/Status Completed
   consumer:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: trig
     event:
-      type: Status Completed
+      type: Conversation/Status Completed
     steps:
       - name: EmitChat
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: Triggered via Triggered Event Channel`;
 
     const doc = blue.yamlToNode(yaml);
@@ -80,12 +80,13 @@ contracts:
     const emissions = result.triggeredEvents;
 
     const completedEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Status Completed'],
+      (e) =>
+        typeBlueId(e) === conversationBlueIds['Conversation/Status Completed'],
     );
     expect(completedEvents.length).toBe(1);
 
     const chatEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(chatEvents.length).toBe(1);
     const message = property(chatEvents[0], 'message').getValue();
@@ -98,24 +99,24 @@ contracts:
     const yaml = `name: Trigger Event resolves expressions
 contracts:
   life:
-    type: Lifecycle Event Channel
+    type: Core/Lifecycle Event Channel
   onInit:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Document Processing Initiated
+      type: Core/Document Processing Initiated
     steps:
       - name: PreparePayment
-        type: JavaScript Code
+        type: Conversation/JavaScript Code
         code: |
           return {
             amount: 125,
             description: 'Subscription renewal'
           };
       - name: EmitPayment
-        type: Trigger Event
+        type: Conversation/Trigger Event
         event:
-          type: Chat Message
+          type: Conversation/Chat Message
           message: \${steps.PreparePayment.description} for \${steps.PreparePayment.amount} USD`;
 
     const doc = blue.yamlToNode(yaml);
@@ -123,7 +124,7 @@ contracts:
 
     const emissions = result.triggeredEvents;
     const paymentEvents = emissions.filter(
-      (e) => typeBlueId(e) === conversationBlueIds['Chat Message'],
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
     );
     expect(paymentEvents.length).toBe(1);
     const message = property(paymentEvents[0], 'message').getValue();

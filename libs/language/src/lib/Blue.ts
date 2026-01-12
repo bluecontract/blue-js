@@ -10,6 +10,7 @@ import {
   NodeTypeMatcher,
   TypeSchemaResolver,
 } from './utils';
+import { NodeToYaml } from './utils/NodeToYaml';
 import { BlueNodeTypeSchema } from './utils/TypeSchema';
 import { NodeProviderWrapper } from './utils/NodeProviderWrapper';
 import { ZodTypeDef, ZodType, AnyZodObject } from 'zod';
@@ -33,6 +34,14 @@ import { createDefaultMergingProcessor } from './merge';
 import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
+import { RepositoryRegistry } from './repository/RepositoryRuntime';
+import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
+import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
+import {
+  BlueContext,
+  NodeToJsonFormat,
+  NodeToJsonOptions,
+} from './types/BlueContext';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -53,6 +62,8 @@ export class Blue {
   private globalLimits = NO_LIMITS;
   private mergingProcessor: MergingProcessor;
   private repositories?: BlueRepository[];
+  private repositoryRegistry: RepositoryRegistry;
+  private blueContextResolver: BlueContextResolver;
 
   constructor(options: BlueOptions = {}) {
     const {
@@ -65,6 +76,11 @@ export class Blue {
 
     // Store repositories for later use in setNodeProvider
     this.repositories = repositories;
+    this.repositoryRegistry = new RepositoryRegistry(repositories ?? []);
+    this.blueContextResolver = new BlueContextResolver({
+      registry: this.repositoryRegistry,
+      blueIdMapper: this.repositoryRegistry,
+    });
 
     // Use NodeProviderWrapper to create the provider chain with repositories
     const defaultProvider = createNodeProvider(() => []);
@@ -75,7 +91,9 @@ export class Blue {
 
     this.typeSchemaResolver =
       typeSchemaResolver ??
-      new TypeSchemaResolver([], { nodeProvider: this.nodeProvider });
+      new TypeSchemaResolver([], {
+        nodeProvider: this.nodeProvider,
+      });
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
@@ -86,12 +104,15 @@ export class Blue {
     );
 
     this.blueIdsMappingGenerator = new BlueIdsMappingGenerator();
+    this.blueIdsMappingGenerator.registerBlueIds(
+      this.repositoryRegistry.getAliases(),
+    );
 
-    if (repositories) {
-      for (const { schemas, blueIds } of repositories) {
-        this.typeSchemaResolver?.registerSchemas(schemas);
-        this.blueIdsMappingGenerator.registerBlueIds(blueIds);
-      }
+    const schemasToRegister = this.repositoryRegistry
+      .getRuntimes()
+      .flatMap((runtime) => runtime.schemas);
+    if (schemasToRegister.length > 0) {
+      this.typeSchemaResolver?.registerSchemas(schemasToRegister);
     }
   }
 
@@ -99,14 +120,37 @@ export class Blue {
    * Converts a BlueNode to a JSON representation based on the specified strategy.
    *
    * @param node - The BlueNode to convert.
-   * @param strategy - The conversion strategy to use. See {@link NodeToMapListOrValue.get} for detailed strategy descriptions.
+   * @param strategyOrOptions - The conversion strategy or options to use. See {@link NodeToMapListOrValue.get} for detailed strategy descriptions.
    * @returns A JSON representation of the node.
    */
   public nodeToJson(
     node: BlueNode,
-    strategy: Parameters<typeof NodeToMapListOrValue.get>[1] = 'official',
+    strategyOrOptions:
+      | Parameters<typeof NodeToMapListOrValue.get>[1]
+      | NodeToJsonOptions = 'official',
   ) {
-    return NodeToMapListOrValue.get(node, strategy);
+    const options = this.normalizeNodeToJsonOptions(strategyOrOptions);
+    const targetNode = options.blueContext
+      ? this.blueContextResolver.transform(node, options.blueContext)
+      : node;
+    return NodeToMapListOrValue.get(targetNode, options.format);
+  }
+
+  /**
+   * Converts a BlueNode to a deterministic YAML string. Uses nodeToJson under the hood
+   * and then applies stable key ordering (Blue fields first, then alpha) before dumping.
+   */
+  public nodeToYaml(
+    node: BlueNode,
+    strategy:
+      | Parameters<typeof NodeToMapListOrValue.get>[1]
+      | NodeToJsonOptions = 'official',
+  ) {
+    const options = this.normalizeNodeToJsonOptions(strategy);
+    const targetNode = options.blueContext
+      ? this.blueContextResolver.transform(node, options.blueContext)
+      : node;
+    return NodeToYaml.get(targetNode, { strategy: options.format });
   }
 
   public nodeToSchemaOutput<
@@ -165,11 +209,15 @@ export class Blue {
   }
 
   public jsonValueToNode(json: unknown) {
-    return this.preprocess(NodeDeserializer.deserialize(json));
+    const preprocessed = this.preprocess(NodeDeserializer.deserialize(json));
+    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
   }
 
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
-    return this.preprocessAsync(NodeDeserializer.deserialize(json));
+    const preprocessed = await this.preprocessAsync(
+      NodeDeserializer.deserialize(json),
+    );
+    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
   }
 
   public yamlToNode(yaml: string) {
@@ -243,19 +291,21 @@ export class Blue {
 
   public preprocess(node: BlueNode): BlueNode {
     const preprocessedNode = this.blueDirectivePreprocessor.process(node);
-    return new Preprocessor({
+    const processed = new Preprocessor({
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
+    return processed;
   }
 
   public async preprocessAsync(node: BlueNode): Promise<BlueNode> {
     const preprocessedNode =
       await this.blueDirectivePreprocessor.processAsync(node);
-    return new Preprocessor({
+    const processed = new Preprocessor({
       nodeProvider: this.nodeProvider,
       blueIdsMappingGenerator: this.blueIdsMappingGenerator,
     }).preprocessWithDefaultBlue(preprocessedNode);
+    return processed;
   }
 
   public transform(
@@ -468,6 +518,21 @@ export class Blue {
    */
   public getGlobalLimits(): Limits {
     return this.globalLimits;
+  }
+
+  private normalizeNodeToJsonOptions(
+    strategyOrOptions:
+      | Parameters<typeof NodeToMapListOrValue.get>[1]
+      | NodeToJsonOptions,
+  ): { format: NodeToJsonFormat; blueContext?: BlueContext } {
+    if (typeof strategyOrOptions === 'string') {
+      return { format: strategyOrOptions, blueContext: undefined };
+    }
+
+    return {
+      format: strategyOrOptions?.format ?? 'official',
+      blueContext: strategyOrOptions?.blueContext,
+    };
   }
 
   private combineWithGlobalLimits(methodLimits: Limits) {

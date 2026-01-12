@@ -14,11 +14,9 @@ import {
   propertyOptional,
   typeBlueId,
 } from '../../__tests__/test-utils.js';
-import { TimelineEntrySchema } from '@blue-repository/conversation';
-import {
-  MyOSTimelineEntrySchema,
-  blueIds as myosBlueIds,
-} from '@blue-repository/myos';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+import { MyOSTimelineEntrySchema } from '@blue-repository/types/packages/myos/schemas/MyOSTimelineEntry';
+import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 import type { ChannelEvaluationContext } from '../../registry/types.js';
 import type { MyOSTimelineChannel } from '../../model/index.js';
 
@@ -38,7 +36,7 @@ function myosTimelineEntryEvent(
   const timestamp = overrides?.timestamp ?? 1_700_000_000;
   const actorName = overrides?.actorName ?? 'System';
 
-  const yaml = `type: MyOS Timeline Entry
+  const yaml = `type: MyOS/MyOS Timeline Entry
 timeline:
   timelineId: ${timelineId}
 message:
@@ -68,7 +66,7 @@ function conversationTimelineEntryEvent(
   const timestamp = overrides?.timestamp ?? 1_700_000_000;
   const actorName = overrides?.actorName ?? 'System';
 
-  const yaml = `type: Timeline Entry
+  const yaml = `type: Conversation/Timeline Entry
 timeline:
   timelineId: ${timelineId}
 message:
@@ -94,7 +92,7 @@ async function initializeDocument() {
   const documentYaml = `name: MyOS Timeline Test
 contracts:
   myosTimelineChannel:
-    type: MyOS Timeline Channel
+    type: MyOS/MyOS Timeline Channel
     timelineId: alice-timeline
   setPrice:
     channel: myosTimelineChannel
@@ -120,12 +118,14 @@ describe('MyOSTimelineChannelProcessor', () => {
   it('processes MyOS timeline entry events when timeline ids align', async () => {
     const { processor, initialized } = await initializeDocument();
     expect(
-      processor.registry().lookupChannel(myosBlueIds['MyOS Timeline Channel']),
+      processor
+        .registry()
+        .lookupChannel(myosBlueIds['MyOS/MyOS Timeline Channel']),
     ).toBeDefined();
 
     const bundle = processor.contractLoader().load(initialized.clone(), '/');
     const channelBinding = bundle.channelsOfType(
-      myosBlueIds['MyOS Timeline Channel'],
+      myosBlueIds['MyOS/MyOS Timeline Channel'],
     )[0];
     expect(channelBinding).toBeDefined();
 
@@ -134,7 +134,7 @@ describe('MyOSTimelineChannelProcessor', () => {
 
     const processorInstance = processor
       .registry()
-      .lookupChannel(myosBlueIds['MyOS Timeline Channel']);
+      .lookupChannel(myosBlueIds['MyOS/MyOS Timeline Channel']);
     expect(processorInstance).toBeDefined();
 
     const myosEntry = myosTimelineEntryEvent('alice-timeline');
@@ -164,20 +164,22 @@ describe('MyOSTimelineChannelProcessor', () => {
     const checkpoint = property(contracts, 'checkpoint');
     const lastEvents = property(checkpoint, 'lastEvents');
     const storedEvent = property(lastEvents, 'myosTimelineChannel');
-    expect(typeBlueId(storedEvent)).toBe(myosBlueIds['MyOS Timeline Entry']);
+    expect(typeBlueId(storedEvent)).toBe(
+      myosBlueIds['MyOS/MyOS Timeline Entry'],
+    );
   });
 
   it('matches conversation timeline entries in addition to MyOS entries', async () => {
     const { processor, initialized } = await initializeDocument();
     const bundle = processor.contractLoader().load(initialized.clone(), '/');
     const channelBinding = bundle.channelsOfType(
-      myosBlueIds['MyOS Timeline Channel'],
+      myosBlueIds['MyOS/MyOS Timeline Channel'],
     )[0];
     const bindingContract = channelBinding.contract() as MyOSTimelineChannel;
 
     const processorInstance = processor
       .registry()
-      .lookupChannel(myosBlueIds['MyOS Timeline Channel']);
+      .lookupChannel(myosBlueIds['MyOS/MyOS Timeline Channel']);
     expect(processorInstance).toBeDefined();
 
     const conversationEntry = conversationTimelineEntryEvent('alice-timeline');

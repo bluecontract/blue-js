@@ -1,10 +1,11 @@
 import { PreloadedNodeProvider } from './PreloadedNodeProvider';
 import { NodeContentHandler } from './NodeContentHandler';
 import { BlueNode, NodeDeserializer } from '../model';
-import { Preprocessor } from '../preprocess/Preprocessor';
-import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
 import { JsonBlueValue } from '../../schema';
 import { BlueRepository } from '../types/BlueRepository';
+import { Preprocessor } from '../preprocess/Preprocessor';
+import { BlueIdsMappingGenerator } from '../preprocess/utils/BlueIdsMappingGenerator';
+import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
 
 /**
  * A NodeProvider that processes content from BlueRepository definitions.
@@ -13,13 +14,22 @@ import { BlueRepository } from '../types/BlueRepository';
 export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
-  private preprocessor: (node: BlueNode) => BlueNode;
+  private readonly preprocessor: (node: BlueNode) => BlueNode;
 
   constructor(repositories: BlueRepository[]) {
     super();
 
-    // Create preprocessor with parent provider if available
-    const defaultPreprocessor = new Preprocessor({ nodeProvider: this });
+    const blueIdsMappingGenerator = new BlueIdsMappingGenerator();
+    const aliasMappings =
+      RepositoryBasedNodeProvider.collectAliasMappings(repositories);
+    if (Object.keys(aliasMappings).length > 0) {
+      blueIdsMappingGenerator.registerBlueIds(aliasMappings);
+    }
+
+    const defaultPreprocessor = new Preprocessor({
+      nodeProvider: this,
+      blueIdsMappingGenerator,
+    });
     this.preprocessor = (node: BlueNode) =>
       defaultPreprocessor.preprocessWithDefaultBlue(node);
 
@@ -27,15 +37,31 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     this.loadRepositories(repositories);
   }
 
-  private loadRepositories(repositories: BlueRepository[]): void {
+  private static collectAliasMappings(
+    repositories: BlueRepository[],
+  ): Record<string, string> {
+    const aliases: Record<string, string> = {};
     for (const repository of repositories) {
-      if (repository.contents) {
-        for (const [providedBlueId, content] of Object.entries(
-          repository.contents,
-        )) {
-          this.processContent(content, providedBlueId);
+      for (const pkg of Object.values(repository.packages)) {
+        for (const [alias, blueId] of Object.entries(pkg.aliases)) {
+          const existing = aliases[alias];
+          if (existing && existing !== blueId) {
+            throw new Error(`Conflicting alias mapping for ${alias}`);
+          }
+          aliases[alias] = blueId;
         }
       }
+    }
+    return aliases;
+  }
+
+  private loadRepositories(repositories: BlueRepository[]): void {
+    for (const repository of repositories) {
+      Object.values(repository.packages).forEach((pkg) => {
+        for (const [providedBlueId, content] of Object.entries(pkg.contents)) {
+          this.processContent(content, providedBlueId);
+        }
+      });
     }
   }
 
@@ -43,7 +69,6 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     content: JsonBlueValue,
     providedBlueId?: string,
   ): void {
-    // Check if content is an array (multiple documents)
     if (Array.isArray(content)) {
       this.processMultipleDocuments(content, providedBlueId);
     } else {
@@ -61,13 +86,10 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       this.preprocessor,
     );
 
-    // Use provided blueId if available, otherwise use calculated one
     const blueId = providedBlueId || parsedContent.blueId;
-
     this.blueIdToContentMap.set(blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(blueId, false);
 
-    // Add name mapping if node has a name
     const nodeName = node.getName();
     if (nodeName) {
       this.addToNameMap(nodeName, blueId);
@@ -85,27 +107,21 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
 
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
       nodes,
-      (node) => node, // Already preprocessed above
+      (node) => node,
     );
 
-    // Use provided blueId if available, otherwise use calculated one
     const blueId = providedBlueId || parsedContent.blueId;
-
     this.blueIdToContentMap.set(blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(blueId, true);
 
-    // Process individual items and add name mappings
     nodes.forEach((node, index) => {
-      // Store individual items with their # reference
       const itemBlueId = `${blueId}#${index}`;
       const itemContent = NodeToMapListOrValue.get(node);
 
-      // Also calculate and store the individual item's own blueId
       const individualBlueId = BlueIdCalculator.calculateBlueIdSync(node);
       this.blueIdToContentMap.set(individualBlueId, itemContent);
       this.blueIdToMultipleDocumentsMap.set(individualBlueId, false);
 
-      // Add name mapping with # reference
       const nodeName = node.getName();
       if (nodeName) {
         this.addToNameMap(nodeName, itemBlueId);

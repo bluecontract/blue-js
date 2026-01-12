@@ -14,10 +14,8 @@ import {
   propertyOptional,
   typeBlueId,
 } from '../../__tests__/test-utils.js';
-import {
-  TimelineEntrySchema,
-  blueIds as conversationBlueIds,
-} from '@blue-repository/conversation';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import type { ChannelEvaluationContext } from '../../registry/types.js';
 import type { TimelineChannel } from '../../model/index.js';
 
@@ -37,7 +35,7 @@ function timelineEntryEvent(
   const timestamp = overrides?.timestamp ?? 1_700_000_000;
   const actorName = overrides?.actorName ?? 'System';
 
-  const yaml = `type: Timeline Entry
+  const yaml = `type: Conversation/Timeline Entry
 timeline:
   timelineId: ${timelineId}
 message:
@@ -64,7 +62,7 @@ async function initializeDocument() {
   const documentYaml = `name: Timeline Test
 contracts:
   timelineChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: alice-timeline
   setPrice:
     channel: timelineChannel
@@ -91,7 +89,7 @@ describe('TimelineChannelProcessor', () => {
     expect(
       processor
         .registry()
-        .lookupChannel(conversationBlueIds['Timeline Channel']),
+        .lookupChannel(conversationBlueIds['Conversation/Timeline Channel']),
     ).toBeDefined();
 
     const randomEvent = blue.yamlToNode(`type:
@@ -120,12 +118,12 @@ describe('TimelineChannelProcessor', () => {
     expect(
       processor
         .registry()
-        .lookupChannel(conversationBlueIds['Timeline Channel']),
+        .lookupChannel(conversationBlueIds['Conversation/Timeline Channel']),
     ).toBeDefined();
 
     const bundle = processor.contractLoader().load(initialized.clone(), '/');
     const timelineBinding = bundle.channelsOfType(
-      conversationBlueIds['Timeline Channel'],
+      conversationBlueIds['Conversation/Timeline Channel'],
     )[0];
     expect(timelineBinding).toBeDefined();
     const bindingContract = timelineBinding.contract() as TimelineChannel;
@@ -133,7 +131,7 @@ describe('TimelineChannelProcessor', () => {
 
     const timelineProcessor = processor
       .registry()
-      .lookupChannel(conversationBlueIds['Timeline Channel']);
+      .lookupChannel(conversationBlueIds['Conversation/Timeline Channel']);
     expect(timelineProcessor).toBeDefined();
 
     const matchingEntry = timelineEntryEvent('alice-timeline');
@@ -167,7 +165,9 @@ describe('TimelineChannelProcessor', () => {
     const storedEvent = property(lastEvents, 'timelineChannel');
 
     // checkpoint stores the original external event (Timeline Entry)
-    expect(typeBlueId(storedEvent)).toBe(conversationBlueIds['Timeline Entry']);
+    expect(typeBlueId(storedEvent)).toBe(
+      conversationBlueIds['Conversation/Timeline Entry'],
+    );
 
     const timeline = property(storedEvent, 'timeline');
     const timelineId = property(timeline, 'timelineId');
@@ -182,7 +182,7 @@ describe('TimelineChannelProcessor', () => {
     expect(
       processor
         .registry()
-        .lookupChannel(conversationBlueIds['Timeline Channel']),
+        .lookupChannel(conversationBlueIds['Conversation/Timeline Channel']),
     ).toBeDefined();
 
     const firstEntry = timelineEntryEvent('alice-timeline');
@@ -209,7 +209,7 @@ describe('TimelineChannelProcessor', () => {
     const documentYaml = `name: Timeline Channel Filter Test
 contracts:
   timelineChannel:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: alice-timeline
     event:
       message:

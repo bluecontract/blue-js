@@ -22,42 +22,42 @@ dynamicRan: 0
 staticRan: 0
 contracts:
   timeline:
-    type: Timeline Channel
+    type: Conversation/Timeline Channel
     timelineId: alpha
   counterUpdate:
-    type: Document Update Channel
+    type: Core/Document Update Channel
     path: /counter
   staticWatcher:
     channel: counterUpdate
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     steps:
       - name: SetStaticRan
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /staticRan
             val: 1
   mutateContracts:
-    type: Sequential Workflow
+    type: Conversation/Sequential Workflow
     channel: timeline
     steps:
       - name: AddDynamicWorkflow
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: ADD
             path: /contracts/newWorkflow
             val:
-              type: Sequential Workflow
+              type: Conversation/Sequential Workflow
               channel: counterUpdate
               steps:
                 - name: FlagDynamic
-                  type: Update Document
+                  type: Conversation/Update Document
                   changeset:
                     - op: REPLACE
                       path: /dynamicRan
                       val: 1
       - name: TouchCounter
-        type: Update Document
+        type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /counter

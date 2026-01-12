@@ -1,0 +1,36 @@
+{
+  "name": "repository-generator",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/repository-generator/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
+    }
+  },
+  "tags": [],
+  "targets": {
+    "yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["yalc push"]
+      }
+    },
+    "yalc-push-watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx watch --projects=repository-generator -- nx yalc-push repository-generator"
+        ]
+      }
+    },
+    "tsc": {
+      "executor": "@webpro/nx-tsc:tsc",
+      "options": {
+        "tsConfig": ["tsconfig.lib.json", "tsconfig.spec.json"]
+      }
+    }
+  }
+}

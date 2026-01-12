@@ -1,0 +1,37 @@
+{
+  "name": "@blue-labs/repository-generator",
+  "version": "2.0.0-rc.21",
+  "bin": {
+    "blue-repo-generator": "./dist/bin/blue-repo-generator.mjs"
+  },
+  "dependencies": {
+    "@blue-labs/language": "2.0.0-rc.21",
+    "@blue-labs/repository-contract": "2.0.0-rc.21",
+    "fast-json-patch": "3.1.1",
+    "js-yaml": "4.1.0",
+    "@blue-labs/shared-utils": "2.0.0-rc.21"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  }
+}

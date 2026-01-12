@@ -16,7 +16,6 @@ import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits';
 import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
 import { BlueIdsMappingGenerator } from './utils/BlueIdsMappingGenerator';
-
 export interface PreprocessorOptions {
   nodeProvider?: NodeProvider;
   processorProvider?: TransformationProcessorProvider;
@@ -34,7 +33,6 @@ export class Preprocessor {
   private nodeProvider: NodeProvider;
   private defaultSimpleBlue: BlueNode | null = null;
   private blueIdsMappingGenerator: BlueIdsMappingGenerator;
-
   /**
    * Creates a new Preprocessor with the specified options
    * @param options - Configuration options for the preprocessor
@@ -53,7 +51,6 @@ export class Preprocessor {
     this.processorProvider =
       processorProvider || Preprocessor.getStandardProvider();
 
-    // Set up BlueIds mapping generator (optional, creates new instance if not provided)
     this.blueIdsMappingGenerator =
       blueIdsMappingGenerator || new BlueIdsMappingGenerator();
 
@@ -172,8 +169,8 @@ ${dynamicMappings}
    * Loads the default simple Blue node
    */
   private loadDefaultSimpleBlue(): void {
-    const enrichedDefaultBlue = this.enrichDefaultBlue(DefaultBlueYaml);
     try {
+      const enrichedDefaultBlue = this.enrichDefaultBlue(DefaultBlueYaml);
       const parsedYaml = yamlBlueParse(enrichedDefaultBlue);
       if (parsedYaml) {
         this.defaultSimpleBlue = NodeDeserializer.deserialize(parsedYaml);

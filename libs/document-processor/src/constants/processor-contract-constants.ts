@@ -1,4 +1,4 @@
-import { blueIds } from '@blue-repository/core';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 const reservedContractKeysList = [
   'embedded',
@@ -8,10 +8,10 @@ const reservedContractKeysList = [
 ] as const;
 
 const processorManagedChannelBlueIdsList = [
-  blueIds['Document Update Channel'],
-  blueIds['Triggered Event Channel'],
-  blueIds['Lifecycle Event Channel'],
-  blueIds['Embedded Node Channel'],
+  blueIds['Core/Document Update Channel'],
+  blueIds['Core/Triggered Event Channel'],
+  blueIds['Core/Lifecycle Event Channel'],
+  blueIds['Core/Embedded Node Channel'],
 ] as const;
 
 export type ReservedContractKey = (typeof reservedContractKeysList)[number];

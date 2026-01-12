@@ -21,6 +21,7 @@ export {
   Merger,
   MergingProcessors,
 } from './lib';
+export * as Properties from './lib/utils/Properties';
 export * from './schema';
 export * from './schema/annotations';
 export * from './utils';

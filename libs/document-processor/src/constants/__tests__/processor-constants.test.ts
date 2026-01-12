@@ -1,4 +1,4 @@
-import { blueIds } from '@blue-repository/core';
+import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 import {
   KEY_CHECKPOINT,
   KEY_EMBEDDED,
@@ -35,7 +35,7 @@ describe('processor constants', () => {
 
   it('checks processor-managed channel blue ids', () => {
     expect(
-      isProcessorManagedChannelBlueId(blueIds['Lifecycle Event Channel']),
+      isProcessorManagedChannelBlueId(blueIds['Core/Lifecycle Event Channel']),
     ).toBe(true);
     expect(isProcessorManagedChannelBlueId('CustomChannel')).toBe(false);
   });

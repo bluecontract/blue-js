@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../shared/utils"
+    },
+    {
+      "path": "../repository-contract"
+    },
+    {
+      "path": "../language"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

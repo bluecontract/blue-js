@@ -1,3 +1,112 @@
+## 2.0.0-rc.21 (2025-12-23)
+
+### 🩹 Fixes
+
+- **repository-generator:** braking change detection bug fixed ([5fba6af](https://github.com/bluecontract/blue-js/commit/5fba6af))
+
+## 2.0.0-rc.20 (2025-12-23)
+
+### 🚀 Features
+
+- cleanup stale fields in blue error and legacy refs ([2bf16f6](https://github.com/bluecontract/blue-js/commit/2bf16f6))
+- simplify blue-context string parsing ([b2fe219](https://github.com/bluecontract/blue-js/commit/b2fe219))
+- bring back mapping generator - preprocessing in one place ([84219d3](https://github.com/bluecontract/blue-js/commit/84219d3))
+- normalize only at boundaries, assume normalized nodes ([84c188c](https://github.com/bluecontract/blue-js/commit/84c188c))
+- restore baseline behavior of RepositoryBasedNodeProvider ([a7e4f87](https://github.com/bluecontract/blue-js/commit/a7e4f87))
+- remove normalization from preprocessing ([a5b5257](https://github.com/bluecontract/blue-js/commit/a5b5257))
+- **language:** support historical blue ids for type schema checks ([1abcf92](https://github.com/bluecontract/blue-js/commit/1abcf92))
+- **language:** revert historical mapping in repository based node provider ([dd29c99](https://github.com/bluecontract/blue-js/commit/dd29c99))
+
+### 🩹 Fixes
+
+- **document-processor:** emit core-prefixed document processing initiatied event ([e80af73](https://github.com/bluecontract/blue-js/commit/e80af73))
+- **language:** to current blue id fixes ([50fcb2f](https://github.com/bluecontract/blue-js/commit/50fcb2f))
+- **language:** lint and ts fixes ([af31f2d](https://github.com/bluecontract/blue-js/commit/af31f2d))
+
+## 2.0.0-rc.19 (2025-12-21)
+
+### 🚀 Features
+
+- simplified types ([34da448](https://github.com/bluecontract/blue-js/commit/34da448))
+
+## 2.0.0-rc.18 (2025-12-21)
+
+### 🚀 Features
+
+- lint, build and deps fixes ([870b7e2](https://github.com/bluecontract/blue-js/commit/870b7e2))
+
+## 2.0.0-rc.17 (2025-12-21)
+
+### 🚀 Features
+
+- cr remarks ([4db6dc1](https://github.com/bluecontract/blue-js/commit/4db6dc1))
+
+### 🩹 Fixes
+
+- fix package-lock ([651b608](https://github.com/bluecontract/blue-js/commit/651b608))
+
+## 2.0.0-rc.16 (2025-12-19)
+
+### 🚀 Features
+
+- **blue-js:** implement blue.getTypeAlias ([67379a9](https://github.com/bluecontract/blue-js/commit/67379a9))
+
+## 2.0.0-rc.15 (2025-12-18)
+
+### 🚀 Features
+
+- update types package ([a97edcf](https://github.com/bluecontract/blue-js/commit/a97edcf))
+
+## 2.0.0-rc.14 (2025-12-18)
+
+### 🩹 Fixes
+
+- fix missing url ([effc032](https://github.com/bluecontract/blue-js/commit/effc032))
+
+## 2.0.0-rc.13 (2025-12-18)
+
+### 🚀 Features
+
+- fix publish config for repository-contract ([49bc8eb](https://github.com/bluecontract/blue-js/commit/49bc8eb))
+
+## 2.0.0-rc.12 (2025-12-18)
+
+### 🚀 Features
+
+- publish repository-contract as first release ([1e7718b](https://github.com/bluecontract/blue-js/commit/1e7718b))
+- publish repository-contract ([3817ac5](https://github.com/bluecontract/blue-js/commit/3817ac5))
+
+## 2.0.0-rc.11 (2025-12-18)
+
+This was a version bump only, there were no code changes.
+
+## 2.0.0-rc.10 (2025-12-18)
+
+### 🚀 Features
+
+- add repository-contract package ([438670e](https://github.com/bluecontract/blue-js/commit/438670e))
+- wip ([e27b73e](https://github.com/bluecontract/blue-js/commit/e27b73e))
+- migrate processor to single repository types ([aec9e86](https://github.com/bluecontract/blue-js/commit/aec9e86))
+- **repository-generator:** repository-generator esm only, use repository-contract ([eab59c4](https://github.com/bluecontract/blue-js/commit/eab59c4))
+
+### 🩹 Fixes
+
+- fix deps ([084650e](https://github.com/bluecontract/blue-js/commit/084650e))
+- try codex fix for hanging npm ci ([72ecac8](https://github.com/bluecontract/blue-js/commit/72ecac8))
+
+## 2.0.0-rc.9 (2025-12-17)
+
+### 🚀 Features
+
+- publish repository-generator with cli entrypoint ([92b1135](https://github.com/bluecontract/blue-js/commit/92b1135))
+
+## 2.0.0-rc.8 (2025-12-17)
+
+### 🚀 Features
+
+- add nodeToYaml serialization method ([7c1f0ed](https://github.com/bluecontract/blue-js/commit/7c1f0ed))
+- blue repository generator ([#119](https://github.com/bluecontract/blue-js/pull/119))
+
 # 2.0.0 (2025-12-12)
 
 ### 🚀 Features

@@ -57,6 +57,37 @@ const asObject = blue.nodeToSchemaOutput(resolved, Greeting);
 const official = blue.nodeToJson(resolved, 'official');
 ```
 
+## Repository registration & versioned output
+
+Register a generated repository package to resolve types and aliases. Historical type BlueIds are normalized by the ingestion helpers (`yamlToNode/jsonValueToNode`) after preprocessing; when you create nodes manually, ensure they already use current type BlueIds before type checks or schema output.
+
+```ts
+import { Blue } from '@blue-labs/language';
+import { repository } from '@blue-repository/types';
+
+const blue = new Blue({ repositories: [repository] });
+
+const node = blue.jsonValueToNode({
+  type: { blueId: '...historical-blue-id...' },
+  value: 'hello',
+});
+
+// For manually constructed nodes, ensure current type BlueIds are used.
+```
+
+Serialize to a specific repository version with BlueContext:
+
+```ts
+const json = blue.nodeToJson(node, {
+  format: 'official',
+  blueContext: {
+    repositories: {
+      myos: '...repo-blue-id...',
+    },
+  },
+});
+```
+
 ## API Overview (essentials)
 
 ### Core graph
@@ -67,11 +98,11 @@ const official = blue.nodeToJson(resolved, 'official');
 ### Entry point
 
 - `class Blue`
-  - Parsing: `yamlToNode(_)/jsonValueToNode(_)` (+ async variants).
+  - Parsing: `yamlToNode(_)/jsonValueToNode(_)` (+ async variants), which preprocess and normalize.
   - Preprocess: blue directive (`BlueDirectivePreprocessor`) + default pipeline (`Preprocessor`).
   - Resolve: `resolve(node, limits)` → `ResolvedBlueNode`.
   - IDs: `calculateBlueId(_)/calculateBlueIdSync(_)`.
-  - Mapping: `nodeToJson(node, 'official'|'simple'|'original')`, `nodeToSchemaOutput(node, zod)`.
+  - Mapping: `nodeToJson(node, 'official'|'simple'|'original'|{ format, blueContext })`, `nodeToSchemaOutput(node, zod)`.
   - Type checks: `isTypeOf(node, zod)`, `isTypeOfNode(node, typeNode)`.
   - Helpers: `extend(node, limits)`, `transform(node, fn)`, `reverse(node)`, `restoreInlineTypes(node)`.
   - Config: URL fetch allow-list (`enablePreprocessingDirectivesFetchForDomains([...])`), global limits, repositories.

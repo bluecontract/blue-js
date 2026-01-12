@@ -1,4 +1,9 @@
 // Properties.ts
+export {
+  OBJECT_SCHEMA,
+  OBJECT_MERGE_POLICY,
+  OBJECT_CONTRACTS,
+} from '@blue-labs/repository-contract';
 
 export const OBJECT_NAME = 'name';
 export const OBJECT_DESCRIPTION = 'description';

@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "2.0.0",
+  "version": "2.0.0-rc.21",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,9 +19,9 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "picomatch": "2.3.1",
-    "@blue-labs/language": "2.0.0",
-    "@blue-labs/shared-utils": "2.0.0",
+    "picomatch": "4.0.3",
+    "@blue-labs/language": "2.0.0-rc.21",
+    "@blue-labs/shared-utils": "2.0.0-rc.21",
     "quickjs-emscripten": "0.31.0"
   },
   "license": "MIT",
@@ -34,8 +34,6 @@
   },
   "peerDependencies": {
     "zod": "^3.20.0",
-    "@blue-repository/conversation": ">=0.2.0 <1.0.0",
-    "@blue-repository/core": ">=0.2.0 <1.0.0",
-    "@blue-repository/myos": ">=0.5.0 <1.0.0"
+    "@blue-repository/types": ">=0.1.0 <1"
   }
 }

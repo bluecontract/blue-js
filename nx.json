@@ -8,10 +8,12 @@
     "production": [
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/src/**/__tests__/**",
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/.eslintrc.json",
       "!{projectRoot}/eslint.config.js",
-      "!{projectRoot}/src/test-setup.[jt]s"
+      "!{projectRoot}/src/test-setup.[jt]s",
+      "!{projectRoot}/vitest-setup.[jt]s"
     ],
     "sharedGlobals": []
   },
