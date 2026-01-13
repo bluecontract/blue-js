@@ -1,3 +1,14 @@
+## 3.1.0 (2026-01-13)
+
+### 🚀 Features
+
+- update @blue-quickjs dependencies to version 0.2.4 in package.json and package-lock.json ([a88e061](https://github.com/bluecontract/blue-js/commit/a88e061))
+- **document-processor:** add gas metering support for QuickJS Wasm ([959197e](https://github.com/bluecontract/blue-js/commit/959197e))
+
+### 🩹 Fixes
+
+- **quickjs-evaluator:** reorder error handling for evaluation results ([575da8d](https://github.com/bluecontract/blue-js/commit/575da8d))
+
 # 3.0.0 (2026-01-12)
 
 ### 🚀 Features
