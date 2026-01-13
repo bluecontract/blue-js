@@ -9,9 +9,7 @@ import {
 } from '../../model/index.js';
 import { isTimelineEventNewer } from './shared/timeline-recency.js';
 
-export class TimelineChannelProcessor
-  implements ChannelProcessor<TimelineChannel>
-{
+export class TimelineChannelProcessor implements ChannelProcessor<TimelineChannel> {
   readonly kind = 'channel' as const;
   readonly blueIds = [blueIds['Conversation/Timeline Channel']] as const;
   readonly schema = timelineChannelSchema;

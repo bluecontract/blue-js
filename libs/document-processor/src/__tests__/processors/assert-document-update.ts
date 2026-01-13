@@ -37,9 +37,7 @@ function getRequiredProperty(event: BlueNode | null, key: string): BlueNode {
   return node;
 }
 
-export class AssertDocumentUpdateContractProcessor
-  implements HandlerProcessor<AssertDocumentUpdate>
-{
+export class AssertDocumentUpdateContractProcessor implements HandlerProcessor<AssertDocumentUpdate> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['AssertDocumentUpdate'] as const;
   readonly schema = assertDocumentUpdateSchema;

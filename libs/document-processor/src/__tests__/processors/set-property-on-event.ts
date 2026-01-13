@@ -18,9 +18,7 @@ function matchesEvent(
   return value != null && String(value) === contract.expectedKind;
 }
 
-export class SetPropertyOnEventContractProcessor
-  implements HandlerProcessor<SetPropertyOnEvent>
-{
+export class SetPropertyOnEventContractProcessor implements HandlerProcessor<SetPropertyOnEvent> {
   readonly kind = 'handler' as const;
   readonly blueIds = ['SetPropertyOnEvent'] as const;
   readonly schema = setPropertyOnEventSchema;

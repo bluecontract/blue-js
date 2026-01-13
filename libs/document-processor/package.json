@@ -19,10 +19,12 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "picomatch": "4.0.3",
     "@blue-labs/language": "3.0.0",
     "@blue-labs/shared-utils": "3.0.0",
-    "quickjs-emscripten": "0.31.0"
+    "@blue-quickjs/abi-manifest": "0.2.4",
+    "@blue-quickjs/dv": "0.2.4",
+    "@blue-quickjs/quickjs-runtime": "0.2.4",
+    "picomatch": "4.0.3"
   },
   "license": "MIT",
   "publishConfig": {
@@ -33,7 +35,7 @@
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
   "peerDependencies": {
-    "zod": "^3.20.0",
-    "@blue-repository/types": ">=0.1.0 <1"
+    "@blue-repository/types": ">=0.1.0 <1",
+    "zod": "^3.20.0"
   }
 }

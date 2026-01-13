@@ -29,9 +29,7 @@ function resolveTimelineEntry(
   return null;
 }
 
-export class MyOSTimelineChannelProcessor
-  implements ChannelProcessor<MyOSTimelineChannel>
-{
+export class MyOSTimelineChannelProcessor implements ChannelProcessor<MyOSTimelineChannel> {
   readonly kind = 'channel' as const;
   readonly blueIds = [myosBlueIds['MyOS/MyOS Timeline Channel']] as const;
   readonly schema = myosTimelineChannelSchema;

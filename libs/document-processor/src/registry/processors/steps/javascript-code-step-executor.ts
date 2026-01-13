@@ -9,20 +9,28 @@ import type {
   StepExecutionArgs,
 } from '../workflow/step-runner.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
+import { DEFAULT_WASM_GAS_LIMIT } from '../../../util/expression/quickjs-config.js';
 
 interface ResultWithEvents {
   readonly events: readonly unknown[];
   readonly [key: string]: unknown;
 }
 
-export class JavaScriptCodeStepExecutor
-  implements SequentialWorkflowStepExecutor
-{
+interface JavaScriptCodeStepExecutorOptions {
+  readonly wasmGasLimit?: bigint | number;
+}
+
+export class JavaScriptCodeStepExecutor implements SequentialWorkflowStepExecutor {
   readonly supportedBlueIds = [
     conversationBlueIds['Conversation/JavaScript Code'],
   ] as const;
 
   private readonly evaluator = new QuickJSEvaluator();
+  private readonly wasmGasLimit: bigint | number;
+
+  constructor(options: JavaScriptCodeStepExecutorOptions = {}) {
+    this.wasmGasLimit = options.wasmGasLimit ?? DEFAULT_WASM_GAS_LIMIT;
+  }
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { context, stepNode } = args;
@@ -44,13 +52,14 @@ export class JavaScriptCodeStepExecutor
       );
     }
 
-    context.gasMeter().chargeJavaScriptCodeBase(code);
     const bindings = createQuickJSStepBindings(args);
 
     try {
       const result = await this.evaluator.evaluate({
         code,
         bindings,
+        wasmGasLimit: this.wasmGasLimit,
+        onWasmGasUsed: ({ used }) => context.gasMeter().chargeWasmGas(used),
       });
 
       this.handleEvents(result, context);

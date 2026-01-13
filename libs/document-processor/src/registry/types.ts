@@ -32,8 +32,9 @@ export interface ContractProcessorContext {
   terminateFatally(reason: string | null): Promise<void>;
 }
 
-export interface HandlerProcessor<TContract>
-  extends ContractProcessor<TContract> {
+export interface HandlerProcessor<
+  TContract,
+> extends ContractProcessor<TContract> {
   readonly kind: 'handler';
   /**
    * Optional sync hook to compute channel key when contract omitted it.
@@ -73,8 +74,9 @@ export interface ChannelEvaluationContext {
   readonly bindingKey: string;
 }
 
-export interface ChannelProcessor<TContract>
-  extends ContractProcessor<TContract> {
+export interface ChannelProcessor<
+  TContract,
+> extends ContractProcessor<TContract> {
   readonly kind: 'channel';
   matches(
     contract: TContract,
@@ -100,8 +102,9 @@ export interface ChannelProcessor<TContract>
   ): boolean | Promise<boolean>;
 }
 
-export interface MarkerProcessor<TContract>
-  extends ContractProcessor<TContract> {
+export interface MarkerProcessor<
+  TContract,
+> extends ContractProcessor<TContract> {
   readonly kind: 'marker';
 }
 
