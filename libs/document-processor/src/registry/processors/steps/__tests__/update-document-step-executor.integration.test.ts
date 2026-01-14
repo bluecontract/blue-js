@@ -135,7 +135,8 @@ contracts:
 `;
 
     const doc = blue.yamlToNode(yaml);
-    const result = await expectOk(processor.initializeDocument(doc));
+    const resolvedDoc = blue.resolve(doc);
+    const result = await expectOk(processor.initializeDocument(resolvedDoc));
 
     const snapshot = blue.nodeToJson(result.document, 'simple') as {
       test?: string;

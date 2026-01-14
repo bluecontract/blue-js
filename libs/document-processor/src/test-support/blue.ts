@@ -2,6 +2,7 @@ import { Blue, Properties } from '@blue-labs/language';
 import type { BlueRepository } from '@blue-labs/language';
 import { repository as blueRepository } from '@blue-repository/types';
 import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 
 const FALLBACK_BLUE_IDS = [
   'AssertDocumentUpdate',
@@ -69,6 +70,7 @@ const testFallbackRepository: BlueRepository = {
 export function createBlue(): Blue {
   return new Blue({
     repositories: [blueRepository, testFallbackRepository],
+    mergingProcessor: createDefaultMergingProcessor(),
   });
 }
 
