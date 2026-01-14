@@ -36,6 +36,7 @@ import type {
 import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
+import { assertCompositeChannelIsAcyclic } from './composite-channel-validation.js';
 
 const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
 const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];
@@ -262,7 +263,7 @@ export class ContractLoader {
     node: BlueNode,
   ): void {
     try {
-      const embedded = this.convert(
+      const embedded = this.blue.nodeToSchemaOutput(
         node,
         processEmbeddedMarkerSchema,
       ) as ProcessEmbeddedMarker;
@@ -299,7 +300,10 @@ export class ContractLoader {
     scopeContracts: ScopeContractsIndex,
   ): void {
     try {
-      const contract = this.convert(node, schema) as ChannelContract;
+      const contract = this.blue.nodeToSchemaOutput(
+        node,
+        schema,
+      ) as ChannelContract;
       if (blueId === COMPOSITE_TIMELINE_CHANNEL_BLUE_ID) {
         this.validateCompositeChannel(
           key,
@@ -366,6 +370,15 @@ export class ContractLoader {
         );
       }
     }
+
+    assertCompositeChannelIsAcyclic({
+      compositeKey,
+      contract,
+      scopeContracts,
+      blueId,
+      blue: this.blue,
+      compositeChannelBlueId: COMPOSITE_TIMELINE_CHANNEL_BLUE_ID,
+    });
   }
 
   private isRegisteredChannel(nodeTypeBlueId: string): boolean {
@@ -383,7 +396,10 @@ export class ContractLoader {
     blueId: string,
   ): void {
     try {
-      const marker = this.convert(node, schema) as MarkerContract;
+      const marker = this.blue.nodeToSchemaOutput(
+        node,
+        schema,
+      ) as MarkerContract;
       builder.addMarker(key, marker, blueId);
     } catch (error) {
       if (isZodError(error)) {
@@ -421,10 +437,6 @@ export class ContractLoader {
       }
     }
     return map;
-  }
-
-  private convert<T>(node: BlueNode, schema: ZodType<T>): T {
-    return this.blue.nodeToSchemaOutput(node, schema);
   }
 }
 

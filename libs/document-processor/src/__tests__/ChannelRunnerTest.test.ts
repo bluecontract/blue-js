@@ -269,8 +269,6 @@ describe('ChannelRunnerTest', () => {
     ).document.clone();
     expect(Number(property(current, 'counter').getValue())).toBe(3);
 
-    console.log(blue.nodeToYaml(current));
-
     const checkpoint = property(property(current, 'contracts'), 'checkpoint');
     const lastEvents = property(checkpoint, 'lastEvents');
     const storedA = property(
