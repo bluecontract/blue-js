@@ -19,6 +19,7 @@ import type {
   TriggeredEventChannel,
   TimelineChannel,
   MyOSTimelineChannel,
+  CompositeTimelineChannel,
 } from './channels/index.js';
 import type { SequentialWorkflow } from './handlers/index.js';
 
@@ -50,6 +51,7 @@ export type ChannelContract =
   | TriggeredEventChannel
   | TimelineChannel
   | MyOSTimelineChannel
+  | CompositeTimelineChannel
   | GenericChannelContract;
 
 export type HandlerContract = SequentialWorkflow | GenericHandlerContract;

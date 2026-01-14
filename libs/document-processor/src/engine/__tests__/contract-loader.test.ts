@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { BlueNode } from '@blue-labs/language';
 import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { ContractLoader } from '../contract-loader.js';
 import { ContractProcessorRegistry } from '../../registry/contract-processor-registry.js';
+import { ContractProcessorRegistryBuilder } from '../../registry/contract-processor-registry-builder.js';
 import type { HandlerContract } from '../../model/index.js';
 import type { HandlerProcessor } from '../../registry/index.js';
 import { MustUnderstandFailure } from '../must-understand-failure.js';
@@ -15,6 +17,8 @@ const blueIdDocumentUpdate = blueIds['Core/Document Update Channel'];
 const blueIdInitialization = blueIds['Core/Processing Initialized Marker'];
 const blueIdProcessEmbedded = blueIds['Core/Process Embedded'];
 const blueIdCheckpoint = blueIds['Core/Channel Event Checkpoint'];
+const blueIdCompositeTimeline =
+  conversationBlueIds['Conversation/Composite Timeline Channel'];
 
 function buildScopeNode(
   blue: ReturnType<typeof createBlue>,
@@ -202,5 +206,77 @@ describe('ContractLoader', () => {
     });
 
     expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
+  });
+
+  it('rejects composite channels that reference themselves', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      compositeA: {
+        type: { blueId: blueIdCompositeTimeline },
+        channels: {
+          items: [{ value: 'compositeA' }],
+        },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(/cyclic/i);
+  });
+
+  it('rejects composite channels that create a cycle', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      compositeA: {
+        type: { blueId: blueIdCompositeTimeline },
+        channels: {
+          items: [{ value: 'compositeB' }],
+        },
+      },
+      compositeB: {
+        type: { blueId: blueIdCompositeTimeline },
+        channels: {
+          items: [{ value: 'compositeA' }],
+        },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(/cyclic/i);
+  });
+
+  it('loads composite channels with acyclic references', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      compositeA: {
+        type: { blueId: blueIdCompositeTimeline },
+        channels: {
+          items: [{ value: 'compositeB' }],
+        },
+      },
+      compositeB: {
+        type: { blueId: blueIdCompositeTimeline },
+        channels: {
+          items: [{ value: 'compositeC' }],
+        },
+      },
+      compositeC: {
+        type: { blueId: blueIdCompositeTimeline },
+        channels: {
+          items: [],
+        },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).not.toThrow();
   });
 });

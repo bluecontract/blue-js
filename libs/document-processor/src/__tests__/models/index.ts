@@ -9,5 +9,6 @@ export * from './remove-property.js';
 export * from './set-property.js';
 export * from './set-property-on-event.js';
 export * from './terminate-scope.js';
+export * from './recency-test-channel.js';
 export * from './test-event.js';
 export * from './test-event-channel.js';
