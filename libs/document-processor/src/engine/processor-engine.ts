@@ -366,7 +366,15 @@ export class ProcessorExecution implements ExecutionHooks {
       event: eventClone,
       markers: bundle.markers(),
       bindingKey: channel.key(),
+      resolveChannel: (key) => bundle.channelEntry(key),
+      channelProcessorFor: (blueId) =>
+        this.registry.lookupChannel(blueId) ?? null,
     };
+
+    const evaluateFn = processor.evaluate;
+    if (typeof evaluateFn === 'function') {
+      return await evaluateFn.call(processor, contract, evaluationContext);
+    }
 
     const matchesResult = await processor.matches(contract, evaluationContext);
     if (!matchesResult) {

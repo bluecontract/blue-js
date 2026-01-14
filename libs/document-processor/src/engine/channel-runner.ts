@@ -7,13 +7,9 @@ import type {
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import { CheckpointManager } from './checkpoint-manager.js';
 import type { ProcessorExecutionContext } from './processor-execution-context.js';
-import type { ChannelProcessor } from '../registry/types.js';
+import type { ChannelMatch, ChannelProcessor } from '../registry/types.js';
 
-export interface ChannelMatch {
-  readonly matches: boolean;
-  readonly eventId?: string | null;
-  readonly eventNode?: BlueNode | null;
-}
+export type { ChannelMatch } from '../registry/types.js';
 
 export interface ChannelRunnerDependencies {
   evaluateChannel(
@@ -75,6 +71,11 @@ export class ChannelRunner {
       return;
     }
 
+    if (match.deliveries && match.deliveries.length > 0) {
+      await this.runDeliveries(scopePath, bundle, channel, event, match);
+      return;
+    }
+
     const eventForHandlers = match.eventNode ?? event;
     this.checkpointManager.ensureCheckpointMarker(scopePath, bundle);
     const checkpoint = this.checkpointManager.findCheckpoint(
@@ -116,6 +117,69 @@ export class ChannelRunner {
       eventSignature ?? null,
       checkpointEvent,
     );
+  }
+
+  private async runDeliveries(
+    scopePath: string,
+    bundle: ContractBundle,
+    channel: ChannelBinding,
+    checkpointEvent: BlueNode,
+    match: ChannelMatch,
+  ): Promise<void> {
+    const deliveries = match.deliveries ?? [];
+    if (deliveries.length === 0) {
+      return;
+    }
+    this.checkpointManager.ensureCheckpointMarker(scopePath, bundle);
+    const fallbackSignature = this.deps.canonicalSignature(checkpointEvent);
+
+    for (const delivery of deliveries) {
+      if (this.deps.isScopeInactive(scopePath)) {
+        return;
+      }
+      const checkpointKey = delivery.checkpointKey ?? channel.key();
+      const checkpoint = this.checkpointManager.findCheckpoint(
+        bundle,
+        checkpointKey,
+      );
+      const eventSignature = delivery.eventId ?? fallbackSignature;
+      if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
+        continue;
+      }
+
+      const shouldProcess =
+        typeof delivery.shouldProcess === 'boolean'
+          ? delivery.shouldProcess
+          : await this.shouldProcessRelativeToCheckpoint(
+              scopePath,
+              bundle,
+              channel,
+              checkpointEvent,
+              checkpoint,
+            );
+      if (!shouldProcess) {
+        continue;
+      }
+
+      await this.runHandlers(
+        scopePath,
+        bundle,
+        channel.key(),
+        delivery.eventNode,
+        false,
+      );
+      if (this.deps.isScopeInactive(scopePath)) {
+        return;
+      }
+
+      this.checkpointManager.persist(
+        scopePath,
+        bundle,
+        checkpoint,
+        eventSignature ?? null,
+        checkpointEvent,
+      );
+    }
   }
 
   async runHandlers(

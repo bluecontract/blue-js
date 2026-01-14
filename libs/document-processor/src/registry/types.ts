@@ -6,6 +6,7 @@ import type { ScopeContractsIndex } from '../types/scope-contracts.js';
 
 import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { MarkerContract } from '../model/index.js';
+import type { ChannelContractEntry } from '../types/channel-contract-entry.js';
 import type { GasMeter } from '../runtime/gas-meter.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
@@ -72,6 +73,30 @@ export interface ChannelEvaluationContext {
    * Key assigned to the contract within the scope's contract map.
    */
   readonly bindingKey: string;
+  /**
+   * Optional resolver for channel contracts within the same scope.
+   */
+  readonly resolveChannel?: (key: string) => ChannelContractEntry | null;
+  /**
+   * Optional lookup for channel processors by BlueId.
+   */
+  readonly channelProcessorFor?: (
+    blueId: string,
+  ) => ChannelProcessor<unknown> | null;
+}
+
+export interface ChannelDelivery {
+  readonly eventNode: BlueNode;
+  readonly eventId?: string | null;
+  readonly checkpointKey?: string | null;
+  readonly shouldProcess?: boolean;
+}
+
+export interface ChannelMatch {
+  readonly matches: boolean;
+  readonly eventId?: string | null;
+  readonly eventNode?: BlueNode | null;
+  readonly deliveries?: readonly ChannelDelivery[];
 }
 
 export interface ChannelProcessor<
@@ -91,6 +116,14 @@ export interface ChannelProcessor<
     contract: TContract,
     context: ChannelEvaluationContext,
   ): BlueNode | null | undefined;
+  /**
+   * Optional: Provide custom evaluation details, including multi-delivery
+   * channel matches.
+   */
+  evaluate?(
+    contract: TContract,
+    context: ChannelEvaluationContext,
+  ): ChannelMatch | Promise<ChannelMatch>;
   /**
    * Optional: Determine whether an event should be processed relative to the
    * last checkpointed event for this channel.

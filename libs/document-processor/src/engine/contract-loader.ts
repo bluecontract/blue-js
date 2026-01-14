@@ -1,5 +1,6 @@
 import { Blue, BlueNode } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 import { ZodError, ZodType } from 'zod';
 
@@ -28,6 +29,7 @@ import type {
 } from '../types/scope-contracts.js';
 import type {
   ChannelContract,
+  CompositeTimelineChannel,
   MarkerContract,
   ProcessEmbeddedMarker,
 } from '../model/index.js';
@@ -53,6 +55,8 @@ const MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID =
 const MYOS_SESSION_INTERACTION_BLUE_ID =
   myosBlueIds['MyOS/MyOS Session Interaction'];
 const MYOS_WORKER_AGENCY_BLUE_ID = myosBlueIds['MyOS/MyOS Worker Agency'];
+const COMPOSITE_TIMELINE_CHANNEL_BLUE_ID =
+  conversationBlueIds['Conversation/Composite Timeline Channel'];
 
 const BUILTIN_CHANNEL_SCHEMAS: ReadonlyMap<
   string,
@@ -189,7 +193,14 @@ export class ContractLoader {
 
     const builtinChannelSchema = BUILTIN_CHANNEL_SCHEMAS.get(blueId);
     if (builtinChannelSchema) {
-      this.handleChannel(builder, key, node, builtinChannelSchema, blueId);
+      this.handleChannel(
+        builder,
+        key,
+        node,
+        builtinChannelSchema,
+        blueId,
+        scopeContracts,
+      );
       return;
     }
 
@@ -201,6 +212,7 @@ export class ContractLoader {
         node,
         channelProcessor.schema as ZodType<ChannelContract>,
         blueId,
+        scopeContracts,
       );
       return;
     }
@@ -284,9 +296,18 @@ export class ContractLoader {
     node: BlueNode,
     schema: ZodType<ChannelContract>,
     blueId: string,
+    scopeContracts: ScopeContractsIndex,
   ): void {
     try {
       const contract = this.convert(node, schema) as ChannelContract;
+      if (blueId === COMPOSITE_TIMELINE_CHANNEL_BLUE_ID) {
+        this.validateCompositeChannel(
+          key,
+          contract as CompositeTimelineChannel,
+          scopeContracts,
+          blueId,
+        );
+      }
       builder.addChannel(key, contract, blueId);
     } catch (error) {
       if (isZodError(error)) {
@@ -308,6 +329,50 @@ export class ContractLoader {
         ProcessorErrors.illegalState(reason),
       );
     }
+  }
+
+  private validateCompositeChannel(
+    compositeKey: string,
+    contract: CompositeTimelineChannel,
+    scopeContracts: ScopeContractsIndex,
+    blueId: string,
+  ): void {
+    const childKeys = contract.channels ?? [];
+    if (childKeys.length === 0) {
+      return;
+    }
+
+    for (const childKey of childKeys) {
+      const childEntry = scopeContracts.get(childKey);
+      if (!childEntry) {
+        throw new ProcessorFatalError(
+          `Composite channel ${compositeKey} references unknown channel '${childKey}'`,
+          ProcessorErrors.invalidContract(
+            blueId,
+            `Channel '${childKey}' is not declared in this scope`,
+            `/contracts/${childKey}`,
+          ),
+        );
+      }
+
+      if (!this.isRegisteredChannel(childEntry.nodeTypeBlueId)) {
+        throw new ProcessorFatalError(
+          `Contract '${childKey}' is not a channel`,
+          ProcessorErrors.invalidContract(
+            childEntry.nodeTypeBlueId,
+            `Contract '${childKey}' is not a channel`,
+            `/contracts/${childKey}`,
+          ),
+        );
+      }
+    }
+  }
+
+  private isRegisteredChannel(nodeTypeBlueId: string): boolean {
+    if (BUILTIN_CHANNEL_SCHEMAS.has(nodeTypeBlueId)) {
+      return true;
+    }
+    return this.registry.lookupChannel(nodeTypeBlueId) != null;
   }
 
   private handleMarker(

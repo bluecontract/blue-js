@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import {
   IncrementPropertyContractProcessor,
   NormalizingTestEventChannelProcessor,
+  RecencyTestChannelProcessor,
   SetPropertyOnEventContractProcessor,
   TestEventChannelProcessor,
 } from './processors/index.js';
@@ -12,8 +13,10 @@ import {
   property,
   propertyOptional,
   buildProcessor,
+  numericValue,
 } from './test-utils.js';
 import type { DocumentProcessor } from '../api/document-processor.js';
+import { compositeCheckpointKey } from '../registry/processors/composite-timeline-channel-processor.js';
 
 const blue = createBlue();
 
@@ -222,5 +225,65 @@ describe('ChannelRunnerTest', () => {
     // Channel delivered channelized event to handlers (verified by flag above),
     // but checkpoint should persist the original external event
     expect(storedEvent?.getProperties()?.kind?.getValue()).toBe('original');
+  });
+
+  it('delivers composite channel once per matching child and respects recency', async () => {
+    const processor = buildProcessor(
+      blue,
+      new RecencyTestChannelProcessor(),
+      new IncrementPropertyContractProcessor(),
+    );
+
+    const yaml = `contracts:
+  childA:
+    type:
+      blueId: RecencyTestChannel
+    minDelta: 0
+  childB:
+    type:
+      blueId: RecencyTestChannel
+    minDelta: 5
+  compositeChannel:
+    type: Conversation/Composite Timeline Channel
+    channels: [childA, childB]
+  increment:
+    channel: compositeChannel
+    type:
+      blueId: IncrementProperty
+    propertyKey: /counter
+`;
+
+    let current = await initialize(processor, yaml);
+
+    current = (
+      await expectOk(
+        processor.processDocument(current.clone(), eventNode({ value: 5 })),
+      )
+    ).document.clone();
+    expect(Number(property(current, 'counter').getValue())).toBe(2);
+
+    current = (
+      await expectOk(
+        processor.processDocument(current.clone(), eventNode({ value: 8 })),
+      )
+    ).document.clone();
+    expect(Number(property(current, 'counter').getValue())).toBe(3);
+
+    console.log(blue.nodeToYaml(current));
+
+    const checkpoint = property(property(current, 'contracts'), 'checkpoint');
+    const lastEvents = property(checkpoint, 'lastEvents');
+    const storedA = property(
+      lastEvents,
+      compositeCheckpointKey('compositeChannel', 'childA'),
+    );
+    const storedB = property(
+      lastEvents,
+      compositeCheckpointKey('compositeChannel', 'childB'),
+    );
+    const storedAValueNode = storedA.getProperties()?.value ?? storedA;
+    const storedBValueNode = storedB.getProperties()?.value ?? storedB;
+    expect(numericValue(storedAValueNode)).toBe(8);
+    expect(numericValue(storedBValueNode)).toBe(5);
   });
 });
