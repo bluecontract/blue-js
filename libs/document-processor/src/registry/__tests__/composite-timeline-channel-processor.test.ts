@@ -233,6 +233,73 @@ describe('CompositeTimelineChannelProcessor', () => {
     expect(shouldProcess).toEqual([true, false]);
   });
 
+  it('respects inner composite recency when nested', async () => {
+    const compositeProcessor = new CompositeTimelineChannelProcessor();
+    const recencyProcessor = new RecencyTestChannelProcessor();
+    const contract: CompositeTimelineChannel = {
+      channels: ['innerComposite'],
+    };
+
+    const entries: ChannelContractEntry[] = [
+      {
+        key: 'innerComposite',
+        contract: {
+          channels: ['childA', 'childB'],
+        } as CompositeTimelineChannel,
+        blueId: conversationBlueIds['Conversation/Composite Timeline Channel'],
+      },
+      {
+        key: 'childA',
+        contract: { minDelta: 5 } as ChannelContract,
+        blueId: 'RecencyTestChannel',
+      },
+      {
+        key: 'childB',
+        contract: { minDelta: 5 } as ChannelContract,
+        blueId: 'RecencyTestChannel',
+      },
+    ];
+
+    const compositeKey = 'outerComposite';
+    const checkpoint: ChannelEventCheckpoint = {
+      lastEvents: {
+        [compositeCheckpointKey(compositeKey, 'innerComposite')]: testEvent(8),
+        [compositeCheckpointKey('innerComposite', 'childA')]: testEvent(10),
+        [compositeCheckpointKey('innerComposite', 'childB')]: testEvent(10),
+      },
+      lastSignatures: {},
+    };
+    const markers = new Map<string, MarkerContract>([
+      [KEY_CHECKPOINT, checkpoint],
+    ]);
+
+    const result = await compositeProcessor.evaluate(
+      contract,
+      baseContext({
+        event: testEvent(12),
+        resolveChannel: resolveFrom(entries),
+        channelProcessorFor: (blueId) => {
+          if (
+            blueId ===
+            conversationBlueIds['Conversation/Composite Timeline Channel']
+          ) {
+            return compositeProcessor;
+          }
+          if (blueId === 'RecencyTestChannel') {
+            return recencyProcessor;
+          }
+          return null;
+        },
+        markers,
+        bindingKey: compositeKey,
+      }),
+    );
+
+    expect(result.matches).toBe(true);
+    expect(result.deliveries ?? []).toHaveLength(1);
+    expect(result.deliveries?.[0]?.shouldProcess).toBe(false);
+  });
+
   it('exposes composite source channel key to JS workflow steps', async () => {
     const processor = buildProcessor(blue, new TestEventChannelProcessor());
 

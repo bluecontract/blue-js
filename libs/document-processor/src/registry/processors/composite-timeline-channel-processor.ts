@@ -156,6 +156,23 @@ export class CompositeTimelineChannelProcessor implements ChannelProcessor<Compo
   }
 
   /**
+   * Determine recency by checking whether any child delivery should process.
+   */
+  async isNewerEvent(
+    contract: CompositeTimelineChannel,
+    context: ChannelEvaluationContext,
+    lastEvent: BlueNode,
+  ): Promise<boolean> {
+    void lastEvent;
+    const result = await this.evaluate(contract, context);
+    const deliveries = result.deliveries ?? [];
+    if (!result.matches || deliveries.length === 0) {
+      return false;
+    }
+    return deliveries.some((delivery) => delivery.shouldProcess !== false);
+  }
+
+  /**
    * Attach the source child channel key to event metadata for handler logic.
    */
   private enrichEvent(event: BlueNode, childKey: string): void {
