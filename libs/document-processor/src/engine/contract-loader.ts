@@ -314,6 +314,12 @@ export class ContractLoader {
       }
       builder.addChannel(key, contract, blueId);
     } catch (error) {
+      if (
+        error instanceof ProcessorFatalError ||
+        error instanceof MustUnderstandFailure
+      ) {
+        throw error;
+      }
       if (isZodError(error)) {
         throw new ProcessorFatalError(
           'Failed to parse channel contract',
