@@ -100,4 +100,49 @@ contracts:
     expect(snapshot.status).toBe('ready');
     expect(snapshot.history).toEqual(['booted']);
   });
+
+  it('applies changesets returned from a JavaScript step result', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Test Changeset Step Output
+contracts:
+  lifecycle:
+    type: Core/Lifecycle Event Channel
+  handler:
+    type: Conversation/Sequential Workflow
+    channel: lifecycle
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Prepare
+        type: Conversation/JavaScript Code
+        code: |
+          const changeset = [
+            {
+              op: 'add',
+              path: '/test',
+              val: 'test'
+            },
+            {
+              op: 'add',
+              path: '/test2',
+              val: 'test2'
+            }
+          ];
+          return { changeset };
+      - name: Apply
+        type: Conversation/Update Document
+        changeset: "\${steps.Prepare.changeset}"
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+      test?: string;
+      test2?: string;
+    };
+
+    expect(snapshot.test).toBe('test');
+    expect(snapshot.test2).toBe('test2');
+  });
 });
