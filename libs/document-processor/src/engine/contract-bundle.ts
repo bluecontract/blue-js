@@ -8,24 +8,15 @@ import type {
   ProcessEmbeddedMarker,
   ChannelEventCheckpoint,
 } from '../model/index.js';
+import type { ChannelContractEntry } from '../types/channel-contract-entry.js';
+import type { HandlerContractEntry } from '../types/handler-contract-entry.js';
+import type { MarkerContractEntry } from '../types/marker-contract-entry.js';
 
-type StoredChannel = {
-  readonly key: string;
-  readonly contract: ChannelContract;
-  readonly blueId: string;
-};
+type StoredChannel = ChannelContractEntry;
 
-type StoredMarker = {
-  readonly key: string;
-  readonly contract: MarkerContract;
-  readonly blueId: string;
-};
+type StoredMarker = MarkerContractEntry;
 
-type StoredHandler = {
-  readonly key: string;
-  readonly contract: HandlerContract;
-  readonly blueId: string;
-};
+type StoredHandler = HandlerContractEntry;
 
 const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
   blueIds['Core/Channel Event Checkpoint'];
@@ -177,6 +168,14 @@ export class ContractBundle {
         }
         return a.key().localeCompare(b.key());
       });
+  }
+
+  channelEntry(key: string): ChannelContractEntry | null {
+    const entry = this.channels.get(key);
+    if (!entry) {
+      return null;
+    }
+    return { key: entry.key, contract: entry.contract, blueId: entry.blueId };
   }
 
   channelsOfType(...blueIds: readonly string[]): ChannelBinding[] {
