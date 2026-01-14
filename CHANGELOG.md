@@ -1,3 +1,16 @@
+## 3.2.0 (2026-01-14)
+
+### 🚀 Features
+
+- **document-processor:** add composite timeline channel with per-child deliveries and recency ([87e7060](https://github.com/bluecontract/blue-js/commit/87e7060))
+
+### 🩹 Fixes
+
+- **document-processor:** prevent cyclic composite timeline channel references ([7d72fdc](https://github.com/bluecontract/blue-js/commit/7d72fdc))
+- **document-processor:** enhance error handling in contract loading ([f7986e8](https://github.com/bluecontract/blue-js/commit/f7986e8))
+- **document-processor:** honor nested composite recency when evaluating composites ([4035466](https://github.com/bluecontract/blue-js/commit/4035466))
+- **tests:** resolve document before initialization in integration test ([4c0ee66](https://github.com/bluecontract/blue-js/commit/4c0ee66))
+
 ## 3.1.0 (2026-01-13)
 
 ### 🚀 Features
