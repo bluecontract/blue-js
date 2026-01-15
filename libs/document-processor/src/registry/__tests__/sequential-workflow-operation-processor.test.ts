@@ -152,7 +152,7 @@ describe('SequentialWorkflowOperationProcessor', () => {
         buildOperationDocument({
           operationChannel: 'ownerChannel',
           handlerChannel: null,
-          stepExpression: 'currentContract.channel',
+          stepExpression: '${currentContract.channel}',
         }),
       ),
     );
