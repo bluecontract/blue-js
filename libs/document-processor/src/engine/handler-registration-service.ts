@@ -1,5 +1,6 @@
 import { ZodError, ZodType } from 'zod';
-import type { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode } from '@blue-labs/language';
+import type { Blue } from '@blue-labs/language';
 
 import type { ContractBundleBuilder } from './contract-bundle.js';
 import type { ChannelContract, HandlerContract } from '../model/index.js';
@@ -73,7 +74,14 @@ export class HandlerRegistrationService {
         );
       }
 
-      builder.addHandler(key, { ...contract, channel: channelKey }, blueId);
+      const contractNode = node.clone();
+      this.setContractChannel(contractNode, channelKey);
+      builder.addHandler(
+        key,
+        { ...contract, channel: channelKey },
+        blueId,
+        contractNode,
+      );
     } catch (error) {
       if (this.isZodError(error)) {
         throw new ProcessorFatalError(
@@ -144,6 +152,16 @@ export class HandlerRegistrationService {
       return true;
     }
     return this.registry.lookupChannel(nodeTypeBlueId) != null;
+  }
+
+  private setContractChannel(node: BlueNode, channelKey: string): void {
+    const properties = node.getProperties();
+    const existing = properties?.channel;
+    if (existing instanceof BlueNode) {
+      existing.setValue(channelKey);
+      return;
+    }
+    node.addProperty('channel', new BlueNode().setValue(channelKey));
   }
 
   private isZodError(error: unknown): error is ZodError {

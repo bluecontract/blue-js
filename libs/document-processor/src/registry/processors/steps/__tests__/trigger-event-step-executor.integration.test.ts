@@ -130,4 +130,36 @@ contracts:
     const message = property(paymentEvents[0], 'message').getValue();
     expect(message).toBe('Subscription renewal for 125 USD');
   });
+
+  it('exposes currentContract for Trigger Event expressions', async () => {
+    const processor = buildProcessor(blue);
+
+    const yaml = `name: Trigger Event uses current contract
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    description: Init workflow
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: EmitFromContract
+        type: Conversation/Trigger Event
+        event:
+          type: Conversation/Chat Message
+          message: \${currentContract.description}`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const emissions = result.triggeredEvents;
+    const chatEvents = emissions.filter(
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
+    );
+    expect(chatEvents.length).toBe(1);
+    const message = property(chatEvents[0], 'message').getValue();
+    expect(message).toBe('Init workflow');
+  });
 });

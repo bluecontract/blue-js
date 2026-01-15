@@ -145,6 +145,32 @@ describe('SequentialWorkflowOperationProcessor', () => {
     expect(result.triggeredEvents.length).toBe(0);
   });
 
+  it('exposes derived channel in currentContract bindings', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          operationChannel: 'ownerChannel',
+          handlerChannel: null,
+          stepExpression: '${currentContract.channel}',
+        }),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 1,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    const counterNode = property(result.document, 'counter');
+    expect(counterNode.getValue()).toBe('ownerChannel');
+  });
+
   it('skips workflow when request type does not match operation contract', async () => {
     const processor = buildProcessor(blue);
     const init = await expectOk(

@@ -4,7 +4,11 @@ import {
   sequentialWorkflowSchema,
   type SequentialWorkflow,
 } from '../../model/index.js';
-import type { HandlerProcessor, ContractProcessorContext } from '../types.js';
+import type {
+  ContractProcessorContext,
+  HandlerExecutionMetadata,
+  HandlerProcessor,
+} from '../types.js';
 import {
   WorkflowStepRunner,
   DEFAULT_STEP_EXECUTORS,
@@ -46,12 +50,18 @@ export class SequentialWorkflowHandlerProcessor implements HandlerProcessor<Sequ
   async execute(
     contract: SequentialWorkflow,
     context: ContractProcessorContext,
+    metadata?: HandlerExecutionMetadata,
   ): Promise<void> {
     const eventNode = context.event();
     if (!eventNode) {
       return;
     }
 
-    await this.runner.run({ workflow: contract, eventNode, context });
+    await this.runner.run({
+      workflow: contract,
+      eventNode,
+      context,
+      contractNode: metadata?.contractNode ?? null,
+    });
   }
 }

@@ -406,7 +406,10 @@ export class ProcessorExecution implements ExecutionHooks {
         ProcessorErrors.illegalState(reason),
       );
     }
-    await processor.execute(handler.contract(), context);
+    await processor.execute(handler.contract(), context, {
+      contractKey: handler.key(),
+      contractNode: handler.node(),
+    });
   }
 
   /**

@@ -1,3 +1,4 @@
+import { BlueNode } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
@@ -54,6 +55,7 @@ export class HandlerBinding {
     private readonly bindingKey: string,
     private readonly bindingContract: HandlerContract,
     private readonly bindingBlueId: string,
+    private readonly bindingNode: BlueNode,
   ) {}
 
   key(): string {
@@ -66,6 +68,10 @@ export class HandlerBinding {
 
   blueId(): string {
     return this.bindingBlueId;
+  }
+
+  node(): BlueNode {
+    return this.bindingNode.clone();
   }
 
   order(): number {
@@ -159,7 +165,13 @@ export class ContractBundle {
     }
     return [...handlers]
       .map(
-        (entry) => new HandlerBinding(entry.key, entry.contract, entry.blueId),
+        (entry) =>
+          new HandlerBinding(
+            entry.key,
+            entry.contract,
+            entry.blueId,
+            entry.node,
+          ),
       )
       .sort((a, b) => {
         const orderDiff = a.order() - b.order();
@@ -209,13 +221,18 @@ export class ContractBundleBuilder {
     return this;
   }
 
-  addHandler(key: string, contract: HandlerContract, blueId: string): this {
+  addHandler(
+    key: string,
+    contract: HandlerContract,
+    blueId: string,
+    node: BlueNode,
+  ): this {
     const channelKey = contract.channel;
     if (!channelKey) {
       throw new Error(`Handler ${key} must declare channel`);
     }
     const list = this.handlersByChannel.get(channelKey) ?? [];
-    list.push({ key, contract, blueId });
+    list.push({ key, contract, blueId, node });
     this.handlersByChannel.set(channelKey, list);
     return this;
   }
