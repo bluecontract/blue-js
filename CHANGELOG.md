@@ -1,3 +1,14 @@
+## 3.3.0 (2026-01-15)
+
+### 🚀 Features
+
+- **document-processor:** propagate currentContract bindings into QuickJS evaluation ([063d631](https://github.com/bluecontract/blue-js/commit/063d631))
+
+### 🩹 Fixes
+
+- **document-processor:** include derived channel in currentContract bindings ([f1944ec](https://github.com/bluecontract/blue-js/commit/f1944ec))
+- **tests:** update stepExpression syntax in sequential workflow tests ([0c8be0d](https://github.com/bluecontract/blue-js/commit/0c8be0d))
+
 ## 3.2.0 (2026-01-14)
 
 ### 🚀 Features
