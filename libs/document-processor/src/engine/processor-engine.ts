@@ -34,7 +34,11 @@ import {
 } from '../util/pointer-utils.js';
 import type { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
 import type { ChannelContract } from '../model/index.js';
-import type { ChannelEvaluationContext } from '../registry/types.js';
+import type {
+  ChannelEvaluationContext,
+  ChannelProcessor,
+  HandlerProcessor,
+} from '../registry/types.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
 import { ProcessorErrors } from '../types/errors.js';
 import { DocumentProcessingResult } from '../types/document-processing-result.js';
@@ -100,7 +104,7 @@ export class ProcessorExecution implements ExecutionHooks {
             false,
           ),
         shouldRunHandler: async (handler, context) => {
-          const processor = this.registry.lookupHandler(handler.blueId());
+          const processor = this.lookupHandlerProcessor(handler.blueId());
           if (!processor) {
             const reason = `No processor registered for handler contract ${handler.blueId()}`;
             throw new ProcessorFatalError(
@@ -120,7 +124,7 @@ export class ProcessorExecution implements ExecutionHooks {
           this.handleHandlerError(scope, bundle, error),
         canonicalSignature: signatureFn,
         channelProcessorFor: (blueId) =>
-          this.registry.lookupChannel(blueId) ?? null,
+          this.lookupChannelProcessor(blueId) ?? null,
       },
     );
     this.scopeExecutor = new ScopeExecutor({
@@ -338,13 +342,66 @@ export class ProcessorExecution implements ExecutionHooks {
     });
   }
 
+  private lookupHandlerProcessor(
+    blueId: string,
+  ): HandlerProcessor<unknown> | undefined {
+    return (
+      this.registry.lookupHandler(blueId) ??
+      this.findProcessorByTypeChain(blueId, (id) =>
+        this.registry.lookupHandler(id),
+      )
+    );
+  }
+
+  private lookupChannelProcessor(
+    blueId: string,
+  ): ChannelProcessor<unknown> | undefined {
+    return (
+      this.registry.lookupChannel(blueId) ??
+      this.findProcessorByTypeChain(blueId, (id) =>
+        this.registry.lookupChannel(id),
+      )
+    );
+  }
+
+  private findProcessorByTypeChain<T>(
+    blueId: string,
+    lookup: (id: string) => T | undefined,
+  ): T | undefined {
+    const nodeProvider = this.runtimeRef.blue().getNodeProvider();
+    const visited = new Set<string>();
+    let currentBlueId: string | null = blueId;
+    while (currentBlueId) {
+      if (visited.has(currentBlueId)) {
+        break;
+      }
+      visited.add(currentBlueId);
+      const processor = lookup(currentBlueId);
+      if (processor) {
+        return processor;
+      }
+      const fetched = nodeProvider.fetchByBlueId(currentBlueId);
+      if (!fetched || fetched.length === 0) {
+        break;
+      }
+      const superType = fetched[0].getType();
+      if (!superType) {
+        break;
+      }
+      currentBlueId =
+        superType.getBlueId() ??
+        this.runtimeRef.blue().calculateBlueIdSync(superType);
+    }
+    return undefined;
+  }
+
   private async evaluateChannel(
     channel: ChannelBinding,
     bundle: ContractBundle,
     scopePath: string,
     event: BlueNode,
   ): Promise<ChannelMatch> {
-    const processor = this.registry.lookupChannel(channel.blueId());
+    const processor = this.lookupChannelProcessor(channel.blueId());
     if (!processor) {
       return { matches: false };
     }
@@ -398,7 +455,7 @@ export class ProcessorExecution implements ExecutionHooks {
     handler: HandlerBinding,
     context: ProcessorExecutionContext,
   ): Promise<void> {
-    const processor = this.registry.lookupHandler(handler.blueId());
+    const processor = this.lookupHandlerProcessor(handler.blueId());
     if (!processor) {
       const reason = `No processor registered for handler contract ${handler.blueId()}`;
       throw new ProcessorFatalError(
