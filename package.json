@@ -49,9 +49,11 @@
     "libs/shared/*"
   ],
   "dependencies": {
-    "@blue-quickjs/abi-manifest": "0.2.4",
-    "@blue-quickjs/dv": "0.2.4",
-    "@blue-quickjs/quickjs-runtime": "0.2.4",
+    "@blue-quickjs/abi-manifest": "0.3.0",
+    "@blue-quickjs/dv": "0.3.0",
+    "@blue-quickjs/quickjs-runtime": "0.3.0",
+    "@blue-quickjs/quickjs-wasm": "0.3.0",
+    "@blue-quickjs/quickjs-wasm-constants": "0.3.0",
     "@blue-repository/types": "0.1.0",
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",

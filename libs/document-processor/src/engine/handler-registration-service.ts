@@ -73,7 +73,13 @@ export class HandlerRegistrationService {
         );
       }
 
-      builder.addHandler(key, { ...contract, channel: channelKey }, blueId);
+      const contractNode = node.clone();
+      builder.addHandler(
+        key,
+        { ...contract, channel: channelKey },
+        blueId,
+        contractNode,
+      );
     } catch (error) {
       if (this.isZodError(error)) {
         throw new ProcessorFatalError(

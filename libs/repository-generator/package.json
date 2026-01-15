@@ -5,11 +5,11 @@
     "blue-repo-generator": "./dist/bin/blue-repo-generator.mjs"
   },
   "dependencies": {
-    "@blue-labs/language": "3.2.0",
-    "@blue-labs/repository-contract": "3.2.0",
+    "@blue-labs/language": "*",
+    "@blue-labs/repository-contract": "*",
     "fast-json-patch": "3.1.1",
     "js-yaml": "4.1.0",
-    "@blue-labs/shared-utils": "3.2.0"
+    "@blue-labs/shared-utils": "*"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

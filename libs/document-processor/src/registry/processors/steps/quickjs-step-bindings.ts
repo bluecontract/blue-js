@@ -16,13 +16,23 @@ type JsonStrategy = Exclude<
 export function createQuickJSStepBindings(
   args: StepExecutionArgs,
 ): QuickJSBindings {
-  const { context, eventNode, stepResults } = args;
+  const { context, eventNode, stepResults, contractNode } = args;
   const documentBinding = createDocumentBinding(context);
+  const currentContract =
+    contractNode != null
+      ? context.blue.nodeToJson(contractNode, 'simple')
+      : null;
+  const currentContractCanonical =
+    contractNode != null
+      ? context.blue.nodeToJson(contractNode, 'official')
+      : currentContract;
   return {
     event: context.blue.nodeToJson(eventNode, 'simple'),
     eventCanonical: context.blue.nodeToJson(eventNode, 'official'),
     steps: stepResults,
     document: documentBinding,
+    currentContract,
+    currentContractCanonical,
   };
 }
 

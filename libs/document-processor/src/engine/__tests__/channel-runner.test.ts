@@ -49,8 +49,8 @@ describe('ChannelRunner', () => {
   function createBundle(): ContractBundle {
     return ContractBundle.builder()
       .addChannel('external', channelContract, 'Custom.Channel')
-      .addHandler('h1', handlerContract('h1'), 'Handler.One')
-      .addHandler('h2', handlerContract('h2'), 'Handler.Two')
+      .addHandler('h1', handlerContract('h1'), 'Handler.One', new BlueNode())
+      .addHandler('h2', handlerContract('h2'), 'Handler.Two', new BlueNode())
       .build();
   }
 

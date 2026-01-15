@@ -22,6 +22,8 @@ export interface QuickJSBindings {
   readonly steps?: unknown;
   readonly document?: DocumentBinding;
   readonly emit?: EmitBinding;
+  readonly currentContract?: unknown;
+  readonly currentContractCanonical?: unknown;
 }
 
 export interface QuickJSEvaluationOptions {
@@ -35,6 +37,11 @@ type HostCallResult<T> =
   | { ok: T; units: number }
   | { err: { code: string; tag: string; details?: DV }; units: number };
 
+type QuickJSInputEnvelope = InputEnvelope & {
+  currentContract: DV;
+  currentContractCanonical: DV;
+};
+
 interface HandlerState {
   documentGet: (path: string) => HostCallResult<DV>;
   documentGetCanonical: (path: string) => HostCallResult<DV>;
@@ -47,6 +54,8 @@ const SUPPORTED_BINDING_KEYS = new Set([
   'steps',
   'document',
   'emit',
+  'currentContract',
+  'currentContractCanonical',
 ]);
 
 export class QuickJSEvaluator {
@@ -127,10 +136,22 @@ export class QuickJSEvaluator {
       'eventCanonical',
     );
     const steps = normalizeInputDv(resolvedBindings.steps, [], 'steps');
-    const input: InputEnvelope = {
+    const currentContract = normalizeInputDv(
+      resolvedBindings.currentContract,
+      null,
+      'currentContract',
+    );
+    const currentContractCanonical = normalizeInputDv(
+      resolvedBindings.currentContractCanonical,
+      currentContract,
+      'currentContractCanonical',
+    );
+    const input: QuickJSInputEnvelope = {
       event,
       eventCanonical,
       steps,
+      currentContract,
+      currentContractCanonical,
     };
 
     const documentBinding = this.extractDocumentBinding(resolvedBindings);

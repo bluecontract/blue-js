@@ -33,6 +33,11 @@ export interface ContractProcessorContext {
   terminateFatally(reason: string | null): Promise<void>;
 }
 
+export interface HandlerExecutionMetadata {
+  readonly contractKey: string;
+  readonly contractNode: BlueNode;
+}
+
 export interface HandlerProcessor<
   TContract,
 > extends ContractProcessor<TContract> {
@@ -58,6 +63,7 @@ export interface HandlerProcessor<
   execute(
     contract: TContract,
     context: ContractProcessorContext,
+    metadata?: HandlerExecutionMetadata,
   ): void | Promise<void>;
 }
 

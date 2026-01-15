@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { blueIds } from '../../test-support/blue.js';
+import { BlueNode } from '@blue-labs/language';
 
 import { KEY_CHECKPOINT } from '../../constants/processor-contract-constants.js';
 import type {
@@ -52,9 +53,24 @@ describe('ContractBundle', () => {
 
   it('groups handlers by channel key and sorts consistently', () => {
     const bundle = ContractBundle.builder()
-      .addHandler('h2', baseHandler('channel-1', 2), handlerBlueId)
-      .addHandler('h1', baseHandler('channel-1', 1), handlerBlueId)
-      .addHandler('h3', baseHandler('channel-2', 1), handlerBlueId)
+      .addHandler(
+        'h2',
+        baseHandler('channel-1', 2),
+        handlerBlueId,
+        new BlueNode(),
+      )
+      .addHandler(
+        'h1',
+        baseHandler('channel-1', 1),
+        handlerBlueId,
+        new BlueNode(),
+      )
+      .addHandler(
+        'h3',
+        baseHandler('channel-2', 1),
+        handlerBlueId,
+        new BlueNode(),
+      )
       .build();
 
     const handlers = bundle.handlersFor('channel-1');
