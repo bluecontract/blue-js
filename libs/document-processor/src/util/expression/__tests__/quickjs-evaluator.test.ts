@@ -43,6 +43,26 @@ describe('QuickJSEvaluator', () => {
     expect(result).toBe(12);
   });
 
+  it('exposes current contract bindings to the evaluated code', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    const result = (await evaluator.evaluate({
+      code: `
+        return {
+          contract: currentContract,
+          canonical: currentContractCanonical
+        };
+      `,
+      bindings: {
+        currentContract: { foo: 1 },
+        currentContractCanonical: { foo: { value: 1 } },
+      },
+    })) as Record<string, unknown>;
+
+    expect(result.contract).toEqual({ foo: 1 });
+    expect(result.canonical).toEqual({ foo: { value: 1 } });
+  });
+
   it('rejects unsupported binding keys', async () => {
     const evaluator = new QuickJSEvaluator();
 

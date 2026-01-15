@@ -40,6 +40,7 @@ export function createArgs(options: {
   context: ContractProcessorContext;
   stepNode: BlueNode;
   eventNode: BlueNode;
+  contractNode?: BlueNode | null;
   stepResults?: Record<string, unknown>;
   stepIndex?: number;
 }): StepExecutionArgs {
@@ -47,6 +48,7 @@ export function createArgs(options: {
     context,
     stepNode,
     eventNode,
+    contractNode = null,
     stepResults = {},
     stepIndex = 0,
   } = options;
@@ -60,5 +62,6 @@ export function createArgs(options: {
     context,
     stepResults,
     stepIndex,
+    contractNode,
   };
 }

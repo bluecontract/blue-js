@@ -8,7 +8,11 @@ import {
   type SequentialWorkflow,
   type SequentialWorkflowOperation,
 } from '../../model/index.js';
-import type { ContractProcessorContext, HandlerProcessor } from '../types.js';
+import type {
+  ContractProcessorContext,
+  HandlerExecutionMetadata,
+  HandlerProcessor,
+} from '../types.js';
 import type { ScopeContractsIndex } from '../../types/scope-contracts.js';
 import {
   WorkflowStepRunner,
@@ -134,6 +138,7 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
   async execute(
     contract: SequentialWorkflowOperation,
     context: ContractProcessorContext,
+    metadata?: HandlerExecutionMetadata,
   ): Promise<void> {
     const eventNode = context.event();
     if (!eventNode) {
@@ -144,6 +149,7 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
       workflow: contract as SequentialWorkflow,
       eventNode,
       context,
+      contractNode: metadata?.contractNode ?? null,
     });
   }
 }

@@ -103,7 +103,7 @@ describe('quickjs-expression-utils', () => {
 
       const bindings = {
         steps: { answer: 42, flag: 'yes' },
-        document: (pointer: string) => {
+        document: (pointer: unknown) => {
           if (pointer === '/unit') {
             return 'points';
           }

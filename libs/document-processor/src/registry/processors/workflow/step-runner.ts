@@ -16,6 +16,7 @@ export interface StepExecutionArgs {
   readonly context: ContractProcessorContext;
   readonly stepResults: StepResultMap;
   readonly stepIndex: number;
+  readonly contractNode: BlueNode | null;
 }
 
 export interface SequentialWorkflowStepExecutor {
@@ -52,8 +53,9 @@ export class WorkflowStepRunner {
     workflow: SequentialWorkflow;
     eventNode: BlueNode;
     context: ContractProcessorContext;
+    contractNode: BlueNode | null;
   }): Promise<StepResultMap> {
-    const { workflow, eventNode, context } = args;
+    const { workflow, eventNode, context, contractNode } = args;
 
     const steps = workflow.steps ?? [];
     if (steps.length === 0) {
@@ -84,6 +86,7 @@ export class WorkflowStepRunner {
         context,
         stepResults: results,
         stepIndex: index,
+        contractNode,
       };
       const result = await executor.execute(stepArgs);
       if (result !== undefined) {
