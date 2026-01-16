@@ -88,7 +88,9 @@ export function loadOperation(
   const operationNode = context.documentAt(operationPointer);
   if (
     !operationNode ||
-    !context.blue.isTypeOf(operationNode, OperationSchema)
+    !context.blue.isTypeOf(operationNode, OperationSchema, {
+      checkSchemaExtensions: true,
+    })
   ) {
     return null;
   }
