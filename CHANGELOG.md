@@ -1,3 +1,9 @@
+## 3.3.1 (2026-01-19)
+
+### 🩹 Fixes
+
+- **deps:** bump @blue-quickjs packages to 0.3.1 ([5f3cb95](https://github.com/bluecontract/blue-js/commit/5f3cb95))
+
 ## 3.3.0 (2026-01-15)
 
 ### 🚀 Features
