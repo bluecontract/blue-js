@@ -17,6 +17,27 @@
         "cwd": "{projectRoot}",
         "commands": ["yalc push"]
       }
+    },
+    "bench": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "parallel": false,
+        "commands": [
+          "mkdir -p ../../tmp",
+          "npx vitest bench --config vite.config.ts",
+          "node src/__bench__/compare-benchmarks.cjs --baseline src/__bench__/benchmarks.baseline.json --current ../../tmp/document-processor.bench.json"
+        ]
+      }
+    },
+    "memcheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": [
+          "NODE_OPTIONS=--expose-gc MEMCHECK=1 npx vitest run --config vite.config.ts src/__bench__/document-processor.memory.test.ts"
+        ]
+      }
     }
   }
 }
