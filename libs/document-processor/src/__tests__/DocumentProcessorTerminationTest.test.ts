@@ -1,6 +1,12 @@
 import { blueIds, createBlue } from '../test-support/blue.js';
 import { beforeEach, describe, it, expect } from 'vitest';
 
+import { DocumentProcessor } from '../api/document-processor.js';
+import { SequentialWorkflowHandlerProcessor } from '../registry/processors/sequential-workflow-processor.js';
+import { JavaScriptCodeStepExecutor } from '../registry/processors/steps/javascript-code-step-executor.js';
+import { TriggerEventStepExecutor } from '../registry/processors/steps/trigger-event-step-executor.js';
+import { UpdateDocumentStepExecutor } from '../registry/processors/steps/update-document-step-executor.js';
+import { hostGasToWasmFuel } from '../runtime/gas-schedule.js';
 import {
   SetPropertyContractProcessor,
   TerminateScopeContractProcessor,
@@ -178,6 +184,60 @@ contracts:
     );
     expect(terminationEvents.length).toBe(1);
     expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');
+
+    expect(result.totalGas).toBeGreaterThan(0);
+  });
+
+  it('terminates when JS execution exceeds the gas limit', async () => {
+    const gasLimitedProcessor = new DocumentProcessor({ blue });
+    gasLimitedProcessor.registerContractProcessor(
+      new SequentialWorkflowHandlerProcessor([
+        new TriggerEventStepExecutor(),
+        new JavaScriptCodeStepExecutor({
+          wasmGasLimit: hostGasToWasmFuel(1000),
+        }),
+        new UpdateDocumentStepExecutor(),
+      ]),
+    );
+
+    const yaml = `name: JS Out Of Gas
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Spin
+        type: Conversation/JavaScript Code
+        code: |
+          while (true) {}
+`;
+
+    const document = blue.yamlToNode(yaml);
+    const result = await expectOk(
+      gasLimitedProcessor.initializeDocument(document),
+    );
+
+    console.log('result', blue.nodeToJson(result.document));
+
+    const contracts = property(result.document, 'contracts');
+    const terminated = property(contracts, 'terminated');
+    expect(stringProperty(terminated, 'cause')).toBe('fatal');
+    const reason = stringProperty(terminated, 'reason');
+    expect(reason).toMatch(/Failed to evaluate code block/i);
+    expect(reason).toMatch(/while \(true\)/i);
+
+    const terminationEvents = result.triggeredEvents.filter(
+      (e) => typeBlueId(e) === blueIds['Core/Document Processing Terminated'],
+    );
+    expect(terminationEvents.length).toBe(1);
+    expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');
+    expect(stringProperty(terminationEvents[0], 'reason')).toMatch(
+      /Failed to evaluate code block/i,
+    );
 
     expect(result.totalGas).toBeGreaterThan(0);
   });
