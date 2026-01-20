@@ -1,4 +1,4 @@
-import type { Blue, BlueNode } from '@blue-labs/language';
+import { BlueNode, type Blue } from '@blue-labs/language';
 
 import {
   AnyContractProcessor,
@@ -125,21 +125,28 @@ export class ContractProcessorRegistry {
     node: BlueNode,
     processors: Map<string, T>,
   ): T | undefined {
-    const blueId = node.getType()?.getBlueId();
-    if (blueId) {
-      const exact = processors.get(blueId);
+    const nodeType = node.getType();
+    if (!nodeType) {
+      return undefined;
+    }
+
+    const nodeBlueId = nodeType.getBlueId();
+    if (nodeBlueId) {
+      const exact = processors.get(nodeBlueId);
       if (exact) {
         return exact;
       }
     }
 
+    const entries: Array<[string, T]> = [];
     for (const processor of this.uniqueProcessors(processors)) {
-      if (this.matchesProcessorType(blue, node, processor.blueIds)) {
-        return processor;
+      for (const processorBlueId of processor.blueIds) {
+        entries.push([processorBlueId, processor]);
       }
     }
 
-    return undefined;
+    const match = this.matchByTypeChain(blue, node, entries);
+    return match?.value;
   }
 
   private *uniqueProcessors<T extends AnyContractProcessor>(
@@ -155,16 +162,38 @@ export class ContractProcessorRegistry {
     }
   }
 
-  private matchesProcessorType(
+  private matchByTypeChain<T>(
     blue: Blue,
     node: BlueNode,
-    blueIds: readonly string[],
-  ): boolean {
-    for (const blueId of blueIds) {
-      if (blue.isTypeOfBlueId(node, blueId)) {
-        return true;
+    entries: Iterable<[string, T]>,
+  ): { blueId: string; value: T } | null {
+    const matches: Array<{ blueId: string; value: T; baseNode: BlueNode }> = [];
+    for (const [blueId, value] of entries) {
+      if (!blue.isTypeOfBlueId(node, blueId)) {
+        continue;
       }
+      matches.push({
+        blueId,
+        value,
+        baseNode: new BlueNode().setType(new BlueNode().setBlueId(blueId)),
+      });
     }
-    return false;
+    if (matches.length === 0) {
+      return null;
+    }
+    if (matches.length === 1) {
+      const match = matches[0];
+      return { blueId: match.blueId, value: match.value };
+    }
+
+    const best = matches.find((candidate) =>
+      matches.every(
+        (other) =>
+          candidate === other ||
+          blue.isTypeOfBlueId(candidate.baseNode, other.blueId),
+      ),
+    );
+    const selected = best ?? matches[0];
+    return { blueId: selected.blueId, value: selected.value };
   }
 }

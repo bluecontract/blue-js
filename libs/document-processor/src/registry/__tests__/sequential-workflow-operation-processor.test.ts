@@ -10,6 +10,7 @@ import {
   typeBlueId,
 } from '../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 const blue = createBlue();
 
@@ -441,5 +442,56 @@ entries:
       ),
     );
     expect(numericValue(property(skippedResult.document, 'counter'))).toBe(2);
+  });
+
+  it('executes derived Change Operation workflow and updates document', async () => {
+    const processor = buildProcessor(blue);
+    const operationKey = 'changeByAlice';
+    const yaml = `name: Change Workflow Doc
+counter: 0
+contracts:
+  ownerChannel:
+    type: Conversation/Timeline Channel
+    timelineId: ${TIMELINE_ID}
+  ${operationKey}:
+    type: Conversation/Change Operation
+    channel: ownerChannel
+    request:
+      type: Conversation/Change Request
+  ${operationKey}Handler:
+    type: Conversation/Change Workflow
+    operation: ${operationKey}
+    steps:
+      - name: ApplyChange
+        type: Conversation/Update Document
+        changeset: "\${event.message.request.changeset}"
+`;
+    const init = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: {
+        type: { blueId: conversationBlueIds['Conversation/Change Request'] },
+        changesetDescription: 'Update counter',
+        changeset: [
+          {
+            type: { blueId: coreBlueIds['Core/Json Patch Entry'] },
+            op: 'replace',
+            path: '/counter',
+            val: 7,
+          },
+        ],
+      },
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      operation: operationKey,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 });
