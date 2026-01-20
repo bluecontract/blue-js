@@ -12,6 +12,7 @@ export function createDefaultMergingProcessor(): MergingProcessor {
     new MergingProcessors.TypeAssigner(),
     new MergingProcessors.ListProcessor(),
     new MergingProcessors.DictionaryProcessor(),
+    new MergingProcessors.MetadataPropagator(),
     new MergingProcessors.BasicTypesVerifier(),
   ]);
 }
