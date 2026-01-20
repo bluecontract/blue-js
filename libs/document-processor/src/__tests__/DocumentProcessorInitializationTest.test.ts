@@ -91,6 +91,28 @@ contracts:
     expect(propertyOptional(original, 'x')).toBeUndefined();
   });
 
+  it('initializesDocumentWithDerivedOperationContracts', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Change Operation Doc
+contracts:
+  aliceTimeline:
+    type: MyOS/MyOS Timeline Channel
+  changeByAlice:
+    type: Conversation/Change Operation
+    channel: aliceTimeline
+  changeByAliceImpl:
+    type: Conversation/Change Workflow
+    operation: changeByAlice
+`;
+
+    const resolved = blue.resolve(blue.yamlToNode(yaml));
+    const initResult = await expectOk(
+      processor.initializeDocument(resolved.clone()),
+    );
+
+    expect(processor.isInitialized(initResult.document)).toBe(true);
+  });
+
   it('initializationHandlesCustomPaths', async () => {
     const processor = buildProcessor(blue, new SetPropertyContractProcessor());
     const yaml = `name: Custom Path Doc
