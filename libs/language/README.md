@@ -103,7 +103,7 @@ const json = blue.nodeToJson(node, {
   - Resolve: `resolve(node, limits)` → `ResolvedBlueNode`.
   - IDs: `calculateBlueId(_)/calculateBlueIdSync(_)`.
   - Mapping: `nodeToJson(node, 'official'|'simple'|'original'|{ format, blueContext })`, `nodeToSchemaOutput(node, zod)`.
-  - Type checks: `isTypeOf(node, zod)`, `isTypeOfNode(node, typeNode)`.
+  - Type checks: `isTypeOf(node, zod)`, `isTypeOfNode(node, typeNode)`, `isTypeOfBlueId(node, blueId)`.
   - Helpers: `extend(node, limits)`, `transform(node, fn)`, `reverse(node)`, `restoreInlineTypes(node)`.
   - Config: URL fetch allow-list (`enablePreprocessingDirectivesFetchForDomains([...])`), global limits, repositories.
 
