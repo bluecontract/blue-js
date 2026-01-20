@@ -39,7 +39,7 @@ export interface ChannelRunnerDependencies {
     error: unknown,
   ): Promise<void>;
   canonicalSignature(node: BlueNode | null): string | null;
-  channelProcessorFor(blueId: string): ChannelProcessor<unknown> | null;
+  channelProcessorFor(node: BlueNode): ChannelProcessor<unknown> | null;
 }
 
 export class ChannelRunner {
@@ -231,7 +231,7 @@ export class ChannelRunner {
     if (!checkpoint?.lastEventNode) {
       return true;
     }
-    const processor = this.deps.channelProcessorFor(channel.blueId());
+    const processor = this.deps.channelProcessorFor(channel.node());
     if (!processor || typeof processor.isNewerEvent !== 'function') {
       return true;
     }

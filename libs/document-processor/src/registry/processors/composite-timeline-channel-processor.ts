@@ -93,7 +93,7 @@ export class CompositeTimelineChannelProcessor implements ChannelProcessor<Compo
         );
       }
 
-      const childProcessor = channelProcessorFor(resolved.blueId);
+      const childProcessor = channelProcessorFor(resolved.node);
       if (!childProcessor) {
         throw new Error(
           `No processor registered for child channel '${childKey}' (${resolved.blueId})`,

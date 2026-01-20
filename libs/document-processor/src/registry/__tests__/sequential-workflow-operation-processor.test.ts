@@ -10,6 +10,7 @@ import {
   typeBlueId,
 } from '../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 const blue = createBlue();
 
@@ -22,6 +23,9 @@ type DocumentBuildOptions = {
   handlerEventYaml?: string;
   stepExpression?: string;
   handlerChannel?: string | null;
+  operationType?: string;
+  handlerType?: string;
+  changesetYaml?: string;
 };
 
 function indentBlock(block: string, spaces: number): string {
@@ -42,6 +46,9 @@ function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
     handlerEventYaml,
     stepExpression = DEFAULT_STEP_EXPRESSION,
     handlerChannel = 'ownerChannel',
+    operationType = 'Conversation/Operation',
+    handlerType = 'Conversation/Sequential Workflow Operation',
+    changesetYaml,
   } = options ?? {};
 
   const operationChannelLine =
@@ -58,6 +65,12 @@ function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
     ? `    event:\n${indentBlock(handlerEventYaml.trim(), 6)}\n`
     : '';
 
+  const resolvedChangesetYaml =
+    changesetYaml?.trim() ??
+    `- op: replace
+  path: /counter
+  val: "${stepExpression}"`;
+
   const yaml = `name: Operation Workflow Doc
 counter: 0
 contracts:
@@ -65,19 +78,17 @@ contracts:
     type: Conversation/Timeline Channel
     timelineId: ${TIMELINE_ID}
   ${OPERATION_KEY}:
-    type: Conversation/Operation
+    type: ${operationType}
 ${operationChannelLine}    request:
 ${indentBlock(requestTypeYaml.trim(), 6)}
   ${OPERATION_KEY}Handler:
-    type: Conversation/Sequential Workflow Operation
+    type: ${handlerType}
 ${handlerChannelLine}    operation: ${OPERATION_KEY}
 ${handlerEventSection}    steps:
       - name: ApplyIncrement
         type: Conversation/Update Document
         changeset:
-          - op: replace
-            path: /counter
-            val: "${stepExpression}"
+${indentBlock(resolvedChangesetYaml, 10)}
 `;
   return blue.yamlToNode(yaml);
 }
@@ -269,6 +280,36 @@ contracts:
     expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 
+  it('executes derived change workflow with change request payloads', async () => {
+    const processor = buildProcessor(blue);
+    const derivedChangesetYaml = `- op: "\${event.message.request.changeset[0].op}"
+  path: "\${event.message.request.changeset[0].path}"
+  val: "\${event.message.request.changeset[0].val}"`;
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          operationType: 'Conversation/Change Operation',
+          handlerType: 'Conversation/Change Workflow',
+          requestTypeYaml: 'type: Conversation/Change Request',
+          changesetYaml: derivedChangesetYaml,
+        }),
+      ),
+    );
+
+    const event = operationRequestEvent({
+      request: {
+        type: 'Conversation/Change Request',
+        changeset: [{ op: 'replace', path: '/counter', val: 11 }],
+      },
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(11);
+  });
+
   it('derives channel from Operation when handler omits channel', async () => {
     const processor = buildProcessor(blue);
     const doc = buildOperationDocument({
@@ -401,5 +442,56 @@ entries:
       ),
     );
     expect(numericValue(property(skippedResult.document, 'counter'))).toBe(2);
+  });
+
+  it('executes derived Change Operation workflow and updates document', async () => {
+    const processor = buildProcessor(blue);
+    const operationKey = 'changeByAlice';
+    const yaml = `name: Change Workflow Doc
+counter: 0
+contracts:
+  ownerChannel:
+    type: Conversation/Timeline Channel
+    timelineId: ${TIMELINE_ID}
+  ${operationKey}:
+    type: Conversation/Change Operation
+    channel: ownerChannel
+    request:
+      type: Conversation/Change Request
+  ${operationKey}Handler:
+    type: Conversation/Change Workflow
+    operation: ${operationKey}
+    steps:
+      - name: ApplyChange
+        type: Conversation/Update Document
+        changeset: "\${event.message.request.changeset}"
+`;
+    const init = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: {
+        type: { blueId: conversationBlueIds['Conversation/Change Request'] },
+        changesetDescription: 'Update counter',
+        changeset: [
+          {
+            type: { blueId: coreBlueIds['Core/Json Patch Entry'] },
+            op: 'replace',
+            path: '/counter',
+            val: 7,
+          },
+        ],
+      },
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      operation: operationKey,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 });

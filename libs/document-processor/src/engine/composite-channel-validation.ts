@@ -1,13 +1,20 @@
 import { Blue } from '@blue-labs/language';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { ZodError } from 'zod';
 
 import {
   compositeTimelineChannelSchema,
   type CompositeTimelineChannel,
 } from '../model/index.js';
-import type { ScopeContractsIndex } from '../types/scope-contracts.js';
+import type {
+  ScopeContractEntry,
+  ScopeContractsIndex,
+} from '../types/scope-contracts.js';
 import { ProcessorErrors } from '../types/errors.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
+
+const COMPOSITE_TIMELINE_CHANNEL_BLUE_ID =
+  conversationBlueIds['Conversation/Composite Timeline Channel'];
 
 type CompositeCycleValidationArgs = {
   readonly compositeKey: string;
@@ -15,26 +22,20 @@ type CompositeCycleValidationArgs = {
   readonly scopeContracts: ScopeContractsIndex;
   readonly blueId: string;
   readonly blue: Blue;
-  readonly compositeChannelBlueId: string;
 };
 
 export function assertCompositeChannelIsAcyclic(
   args: CompositeCycleValidationArgs,
 ): void {
-  const {
-    compositeKey,
-    contract,
-    scopeContracts,
-    blueId,
-    blue,
-    compositeChannelBlueId,
-  } = args;
+  const { compositeKey, contract, scopeContracts, blueId, blue } = args;
   const visited = new Set<string>();
   const visiting = new Set<string>();
   const stack: string[] = [];
   const contractCache = new Map<string, CompositeTimelineChannel | null>([
     [compositeKey, contract],
   ]);
+  const isCompositeChannel = (entry: ScopeContractEntry): boolean =>
+    blue.isTypeOfBlueId(entry.node, COMPOSITE_TIMELINE_CHANNEL_BLUE_ID);
 
   const loadCompositeContract = (
     key: string,
@@ -43,7 +44,7 @@ export function assertCompositeChannelIsAcyclic(
       return contractCache.get(key) ?? null;
     }
     const entry = scopeContracts.get(key);
-    if (!entry || entry.nodeTypeBlueId !== compositeChannelBlueId) {
+    if (!entry || !isCompositeChannel(entry)) {
       contractCache.set(key, null);
       return null;
     }
@@ -102,10 +103,7 @@ export function assertCompositeChannelIsAcyclic(
     if (composite) {
       for (const childKey of composite.channels ?? []) {
         const childEntry = scopeContracts.get(childKey);
-        if (
-          childEntry &&
-          childEntry.nodeTypeBlueId === compositeChannelBlueId
-        ) {
+        if (childEntry && isCompositeChannel(childEntry)) {
           visit(childKey);
         }
       }

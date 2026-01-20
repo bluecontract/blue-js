@@ -37,6 +37,7 @@ import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { assertCompositeChannelIsAcyclic } from './composite-channel-validation.js';
+import { findSchemaMatch } from '../util/schema-match.js';
 
 const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
 const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];
@@ -181,18 +182,26 @@ export class ContractLoader {
       return;
     }
 
-    if (blueId === PROCESS_EMBEDDED_BLUE_ID) {
+    if (this.blue.isTypeOfBlueId(node, PROCESS_EMBEDDED_BLUE_ID)) {
       this.handleProcessEmbedded(builder, key, node);
       return;
     }
 
-    const builtinMarkerSchema = BUILTIN_MARKER_SCHEMAS.get(blueId);
+    const builtinMarkerSchema = findSchemaMatch(
+      this.blue,
+      node,
+      BUILTIN_MARKER_SCHEMAS,
+    );
     if (builtinMarkerSchema) {
       this.handleMarker(builder, key, node, builtinMarkerSchema, blueId);
       return;
     }
 
-    const builtinChannelSchema = BUILTIN_CHANNEL_SCHEMAS.get(blueId);
+    const builtinChannelSchema = findSchemaMatch(
+      this.blue,
+      node,
+      BUILTIN_CHANNEL_SCHEMAS,
+    );
     if (builtinChannelSchema) {
       this.handleChannel(
         builder,
@@ -205,7 +214,10 @@ export class ContractLoader {
       return;
     }
 
-    const channelProcessor = this.registry.lookupChannel(blueId);
+    const channelProcessor = this.registry.lookupChannelForNode(
+      this.blue,
+      node,
+    );
     if (channelProcessor) {
       this.handleChannel(
         builder,
@@ -218,7 +230,10 @@ export class ContractLoader {
       return;
     }
 
-    const handlerProcessor = this.registry.lookupHandler(blueId);
+    const handlerProcessor = this.registry.lookupHandlerForNode(
+      this.blue,
+      node,
+    );
     if (handlerProcessor) {
       this.handlerRegistration.register({
         builder,
@@ -231,7 +246,7 @@ export class ContractLoader {
       return;
     }
 
-    const markerProcessor = this.registry.lookupMarker(blueId);
+    const markerProcessor = this.registry.lookupMarkerForNode(this.blue, node);
     if (markerProcessor) {
       this.handleMarker(
         builder,
@@ -304,7 +319,7 @@ export class ContractLoader {
         node,
         schema,
       ) as ChannelContract;
-      if (blueId === COMPOSITE_TIMELINE_CHANNEL_BLUE_ID) {
+      if (this.blue.isTypeOfBlueId(node, COMPOSITE_TIMELINE_CHANNEL_BLUE_ID)) {
         this.validateCompositeChannel(
           key,
           contract as CompositeTimelineChannel,
@@ -312,7 +327,7 @@ export class ContractLoader {
           blueId,
         );
       }
-      builder.addChannel(key, contract, blueId);
+      builder.addChannel(key, contract, blueId, node);
     } catch (error) {
       if (
         error instanceof ProcessorFatalError ||
@@ -365,7 +380,7 @@ export class ContractLoader {
         );
       }
 
-      if (!this.isRegisteredChannel(childEntry.nodeTypeBlueId)) {
+      if (!this.isRegisteredChannel(childEntry)) {
         throw new ProcessorFatalError(
           `Contract '${childKey}' is not a channel`,
           ProcessorErrors.invalidContract(
@@ -383,15 +398,14 @@ export class ContractLoader {
       scopeContracts,
       blueId,
       blue: this.blue,
-      compositeChannelBlueId: COMPOSITE_TIMELINE_CHANNEL_BLUE_ID,
     });
   }
 
-  private isRegisteredChannel(nodeTypeBlueId: string): boolean {
-    if (BUILTIN_CHANNEL_SCHEMAS.has(nodeTypeBlueId)) {
+  private isRegisteredChannel(entry: ScopeContractEntry): boolean {
+    if (findSchemaMatch(this.blue, entry.node, BUILTIN_CHANNEL_SCHEMAS)) {
       return true;
     }
-    return this.registry.lookupChannel(nodeTypeBlueId) != null;
+    return this.registry.lookupChannelForNode(this.blue, entry.node) != null;
   }
 
   private handleMarker(
