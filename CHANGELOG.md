@@ -1,3 +1,13 @@
+## 3.4.0 (2026-01-20)
+
+### 🚀 Features
+
+- **document-processor:** resolve derived contract processors via sch… ([#146](https://github.com/bluecontract/blue-js/pull/146))
+
+### 🩹 Fixes
+
+- **document-processor:** add MetadataPropagator to default merging processor ([e0f1461](https://github.com/bluecontract/blue-js/commit/e0f1461))
+
 ## 3.3.1 (2026-01-19)
 
 ### 🩹 Fixes
