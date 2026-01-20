@@ -1,3 +1,5 @@
+import type { Blue, BlueNode } from '@blue-labs/language';
+
 import {
   AnyContractProcessor,
   ChannelProcessor,
@@ -81,12 +83,33 @@ export class ContractProcessorRegistry {
     return this.handlerProcessors.get(blueId);
   }
 
+  lookupHandlerForNode(
+    blue: Blue,
+    node: BlueNode,
+  ): HandlerProcessor<unknown> | undefined {
+    return this.lookupProcessorForNode(blue, node, this.handlerProcessors);
+  }
+
   lookupChannel(blueId: string): ChannelProcessor<unknown> | undefined {
     return this.channelProcessors.get(blueId);
   }
 
+  lookupChannelForNode(
+    blue: Blue,
+    node: BlueNode,
+  ): ChannelProcessor<unknown> | undefined {
+    return this.lookupProcessorForNode(blue, node, this.channelProcessors);
+  }
+
   lookupMarker(blueId: string): MarkerProcessor<unknown> | undefined {
     return this.markerProcessors.get(blueId);
+  }
+
+  lookupMarkerForNode(
+    blue: Blue,
+    node: BlueNode,
+  ): MarkerProcessor<unknown> | undefined {
+    return this.lookupProcessorForNode(blue, node, this.markerProcessors);
   }
 
   processors(): Map<string, AnyContractProcessor> {
@@ -95,5 +118,53 @@ export class ContractProcessorRegistry {
 
   private registerProcessorMap(processor: AnyContractProcessor): void {
     registerBlueIds(processor, this.processorsByBlueId);
+  }
+
+  private lookupProcessorForNode<T extends AnyContractProcessor>(
+    blue: Blue,
+    node: BlueNode,
+    processors: Map<string, T>,
+  ): T | undefined {
+    const blueId = node.getType()?.getBlueId();
+    if (blueId) {
+      const exact = processors.get(blueId);
+      if (exact) {
+        return exact;
+      }
+    }
+
+    for (const processor of this.uniqueProcessors(processors)) {
+      if (this.matchesProcessorType(blue, node, processor.blueIds)) {
+        return processor;
+      }
+    }
+
+    return undefined;
+  }
+
+  private *uniqueProcessors<T extends AnyContractProcessor>(
+    processors: Map<string, T>,
+  ): Iterable<T> {
+    const seen = new Set<T>();
+    for (const processor of processors.values()) {
+      if (seen.has(processor)) {
+        continue;
+      }
+      seen.add(processor);
+      yield processor;
+    }
+  }
+
+  private matchesProcessorType(
+    blue: Blue,
+    node: BlueNode,
+    blueIds: readonly string[],
+  ): boolean {
+    for (const blueId of blueIds) {
+      if (blue.isTypeOfBlueId(node, blueId)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

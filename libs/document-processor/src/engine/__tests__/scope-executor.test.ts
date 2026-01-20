@@ -17,6 +17,10 @@ function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
 }
 
+function channelNode(blueId: string): BlueNode {
+  return new BlueNode().setType(new BlueNode().setBlueId(blueId));
+}
+
 function getNode(
   runtime: DocumentProcessingRuntime,
   path: string,
@@ -34,6 +38,7 @@ function lifecycleBundle(): ContractBundle {
       'lifecycle',
       { order: 0 } as LifecycleChannel,
       blueIds['Core/Lifecycle Event Channel'],
+      channelNode(blueIds['Core/Lifecycle Event Channel']),
     )
     .build();
 }
@@ -44,6 +49,7 @@ function externalBundle(): ContractBundle {
       'external',
       { order: 0, path: '/events' } as ChannelContract,
       'ExternalChannel',
+      channelNode('ExternalChannel'),
     )
     .build();
 }

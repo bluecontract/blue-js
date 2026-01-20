@@ -84,10 +84,10 @@ export interface ChannelEvaluationContext {
    */
   readonly resolveChannel?: (key: string) => ChannelContractEntry | null;
   /**
-   * Optional lookup for channel processors by BlueId.
+   * Optional lookup for channel processors by node.
    */
   readonly channelProcessorFor?: (
-    blueId: string,
+    node: BlueNode,
   ) => ChannelProcessor<unknown> | null;
 }
 

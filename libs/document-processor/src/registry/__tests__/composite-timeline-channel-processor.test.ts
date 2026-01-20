@@ -34,6 +34,10 @@ function testEvent(value: number): BlueNode {
   });
 }
 
+function channelNode(blueId: string): BlueNode {
+  return new BlueNode().setType(new BlueNode().setBlueId(blueId));
+}
+
 function resolveFrom(
   entries: ChannelContractEntry[],
 ): ChannelEvaluationContext['resolveChannel'] {
@@ -70,7 +74,7 @@ describe('CompositeTimelineChannelProcessor', () => {
     const context = baseContext({
       event: testEvent(1),
       resolveChannel: () => null,
-      channelProcessorFor: () => channelProcessor,
+      channelProcessorFor: (_node) => channelProcessor,
     });
 
     await expect(processor.evaluate(contract, context)).rejects.toThrow(
@@ -88,6 +92,7 @@ describe('CompositeTimelineChannelProcessor', () => {
       key: 'child',
       contract: {} as ChannelContract,
       blueId: 'RecencyTestChannel',
+      node: channelNode('RecencyTestChannel'),
     };
 
     const randomEvent = blue.jsonValueToNode({
@@ -99,7 +104,7 @@ describe('CompositeTimelineChannelProcessor', () => {
       baseContext({
         event: randomEvent,
         resolveChannel: resolveFrom([entry]),
-        channelProcessorFor: () => channelProcessor,
+        channelProcessorFor: (_node) => channelProcessor,
       }),
     );
 
@@ -117,6 +122,7 @@ describe('CompositeTimelineChannelProcessor', () => {
       key: 'child',
       contract: { minDelta: 0 } as ChannelContract,
       blueId: 'RecencyTestChannel',
+      node: channelNode('RecencyTestChannel'),
     };
 
     const result = await processor.evaluate(
@@ -124,7 +130,7 @@ describe('CompositeTimelineChannelProcessor', () => {
       baseContext({
         event: testEvent(5),
         resolveChannel: resolveFrom([entry]),
-        channelProcessorFor: () => channelProcessor,
+        channelProcessorFor: (_node) => channelProcessor,
       }),
     );
 
@@ -154,11 +160,13 @@ describe('CompositeTimelineChannelProcessor', () => {
         key: 'childA',
         contract: { minDelta: 0 } as ChannelContract,
         blueId: 'RecencyTestChannel',
+        node: channelNode('RecencyTestChannel'),
       },
       {
         key: 'childB',
         contract: { minDelta: 0 } as ChannelContract,
         blueId: 'RecencyTestChannel',
+        node: channelNode('RecencyTestChannel'),
       },
     ];
 
@@ -167,7 +175,7 @@ describe('CompositeTimelineChannelProcessor', () => {
       baseContext({
         event: testEvent(7),
         resolveChannel: resolveFrom(entries),
-        channelProcessorFor: () => channelProcessor,
+        channelProcessorFor: (_node) => channelProcessor,
       }),
     );
 
@@ -195,11 +203,13 @@ describe('CompositeTimelineChannelProcessor', () => {
         key: 'childA',
         contract: { minDelta: 0 } as ChannelContract,
         blueId: 'RecencyTestChannel',
+        node: channelNode('RecencyTestChannel'),
       },
       {
         key: 'childB',
         contract: { minDelta: 5 } as ChannelContract,
         blueId: 'RecencyTestChannel',
+        node: channelNode('RecencyTestChannel'),
       },
     ];
 
@@ -220,7 +230,7 @@ describe('CompositeTimelineChannelProcessor', () => {
       baseContext({
         event: testEvent(12),
         resolveChannel: resolveFrom(entries),
-        channelProcessorFor: () => channelProcessor,
+        channelProcessorFor: (_node) => channelProcessor,
         markers,
         bindingKey: compositeKey,
       }),
@@ -247,16 +257,21 @@ describe('CompositeTimelineChannelProcessor', () => {
           channels: ['childA', 'childB'],
         } as CompositeTimelineChannel,
         blueId: conversationBlueIds['Conversation/Composite Timeline Channel'],
+        node: channelNode(
+          conversationBlueIds['Conversation/Composite Timeline Channel'],
+        ),
       },
       {
         key: 'childA',
         contract: { minDelta: 5 } as ChannelContract,
         blueId: 'RecencyTestChannel',
+        node: channelNode('RecencyTestChannel'),
       },
       {
         key: 'childB',
         contract: { minDelta: 5 } as ChannelContract,
         blueId: 'RecencyTestChannel',
+        node: channelNode('RecencyTestChannel'),
       },
     ];
 
@@ -278,7 +293,8 @@ describe('CompositeTimelineChannelProcessor', () => {
       baseContext({
         event: testEvent(12),
         resolveChannel: resolveFrom(entries),
-        channelProcessorFor: (blueId) => {
+        channelProcessorFor: (node) => {
+          const blueId = node.getType()?.getBlueId();
           if (
             blueId ===
             conversationBlueIds['Conversation/Composite Timeline Channel']

@@ -17,6 +17,9 @@ const handlerBlueId = 'TestHandler';
 const baseChannel = (order: number, path: string): ChannelContract =>
   ({ order, path }) as ChannelContract;
 
+const channelNode = (blueId: string): BlueNode =>
+  new BlueNode().setType(new BlueNode().setBlueId(blueId));
+
 const baseHandler = (channel: string, order: number): HandlerContract =>
   ({ channel, order }) as HandlerContract;
 
@@ -30,9 +33,24 @@ const checkpointMarker = (): ChannelEventCheckpoint =>
 describe('ContractBundle', () => {
   it('sorts channels by order then key', () => {
     const bundle = ContractBundle.builder()
-      .addChannel('b', baseChannel(2, '/b'), channelBlueId)
-      .addChannel('a', baseChannel(1, '/a'), channelBlueId)
-      .addChannel('c', baseChannel(1, '/c'), channelBlueId)
+      .addChannel(
+        'b',
+        baseChannel(2, '/b'),
+        channelBlueId,
+        channelNode(channelBlueId),
+      )
+      .addChannel(
+        'a',
+        baseChannel(1, '/a'),
+        channelBlueId,
+        channelNode(channelBlueId),
+      )
+      .addChannel(
+        'c',
+        baseChannel(1, '/c'),
+        channelBlueId,
+        channelNode(channelBlueId),
+      )
       .build();
 
     const channels = bundle.channelsOfType(channelBlueId);
@@ -42,8 +60,8 @@ describe('ContractBundle', () => {
 
   it('filters channels by BlueId when requested', () => {
     const bundle = ContractBundle.builder()
-      .addChannel('alpha', baseChannel(0, '/a'), 'A')
-      .addChannel('beta', baseChannel(0, '/b'), 'B')
+      .addChannel('alpha', baseChannel(0, '/a'), 'A', channelNode('A'))
+      .addChannel('beta', baseChannel(0, '/b'), 'B', channelNode('B'))
       .build();
 
     expect(bundle.channelsOfType('B').map((binding) => binding.key())).toEqual([

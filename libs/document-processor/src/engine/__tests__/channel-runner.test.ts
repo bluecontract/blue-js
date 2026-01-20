@@ -48,7 +48,12 @@ describe('ChannelRunner', () => {
 
   function createBundle(): ContractBundle {
     return ContractBundle.builder()
-      .addChannel('external', channelContract, 'Custom.Channel')
+      .addChannel(
+        'external',
+        channelContract,
+        'Custom.Channel',
+        new BlueNode().setType(new BlueNode().setBlueId('Custom.Channel')),
+      )
       .addHandler('h1', handlerContract('h1'), 'Handler.One', new BlueNode())
       .addHandler('h2', handlerContract('h2'), 'Handler.Two', new BlueNode())
       .build();
@@ -127,7 +132,7 @@ describe('ChannelRunner', () => {
         await overrides.handleHandlerError?.(error);
       },
       canonicalSignature: signatureFn,
-      channelProcessorFor: () => null,
+      channelProcessorFor: (_node) => null,
     };
 
     const runner = new ChannelRunner(runtime, checkpointManager, deps);
