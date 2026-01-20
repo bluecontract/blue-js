@@ -2,6 +2,7 @@ import {
   Blue,
   BlueIdCalculator,
   BlueNode,
+  NodeTypes,
   Properties,
 } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
@@ -37,6 +38,7 @@ import type { ChannelContract } from '../model/index.js';
 import type {
   ChannelEvaluationContext,
   ChannelProcessor,
+  ContractProcessorKind,
   HandlerProcessor,
 } from '../registry/types.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
@@ -347,9 +349,7 @@ export class ProcessorExecution implements ExecutionHooks {
   ): HandlerProcessor<unknown> | undefined {
     return (
       this.registry.lookupHandler(blueId) ??
-      this.findProcessorByTypeChain(blueId, (id) =>
-        this.registry.lookupHandler(id),
-      )
+      this.findProcessorByKind(blueId, 'handler')
     );
   }
 
@@ -358,41 +358,49 @@ export class ProcessorExecution implements ExecutionHooks {
   ): ChannelProcessor<unknown> | undefined {
     return (
       this.registry.lookupChannel(blueId) ??
-      this.findProcessorByTypeChain(blueId, (id) =>
-        this.registry.lookupChannel(id),
-      )
+      this.findProcessorByKind(blueId, 'channel')
     );
   }
 
-  private findProcessorByTypeChain<T>(
-    blueId: string,
-    lookup: (id: string) => T | undefined,
-  ): T | undefined {
+  private findProcessorByKind<
+    T extends HandlerProcessor<unknown> | ChannelProcessor<unknown>,
+  >(blueId: string, kind: ContractProcessorKind): T | undefined {
+    const entries = Array.from(this.registry.processors()).filter(
+      ([, processor]) => processor.kind === kind,
+    ) as Array<[string, T]>;
+    const typeNode = new BlueNode().setBlueId(blueId);
+    const match = this.matchByTypeChain(typeNode, entries);
+    return match?.value;
+  }
+
+  private matchByTypeChain<T>(
+    nodeType: BlueNode,
+    entries: Iterable<[string, T]>,
+  ): { blueId: string; value: T } | null {
     const nodeProvider = this.runtimeRef.blue().getNodeProvider();
-    const visited = new Set<string>();
-    let currentBlueId: string | null = blueId;
-    while (currentBlueId) {
-      if (visited.has(currentBlueId)) {
-        break;
+    const matches: Array<{ blueId: string; value: T; baseType: BlueNode }> = [];
+    for (const [candidateBlueId, value] of entries) {
+      const baseType = new BlueNode().setBlueId(candidateBlueId);
+      if (NodeTypes.isSubtype(nodeType, baseType, nodeProvider)) {
+        matches.push({ blueId: candidateBlueId, value, baseType });
       }
-      visited.add(currentBlueId);
-      const processor = lookup(currentBlueId);
-      if (processor) {
-        return processor;
-      }
-      const fetched = nodeProvider.fetchByBlueId(currentBlueId);
-      if (!fetched || fetched.length === 0) {
-        break;
-      }
-      const superType = fetched[0].getType();
-      if (!superType) {
-        break;
-      }
-      currentBlueId =
-        superType.getBlueId() ??
-        this.runtimeRef.blue().calculateBlueIdSync(superType);
     }
-    return undefined;
+    if (matches.length === 0) {
+      return null;
+    }
+    if (matches.length === 1) {
+      const match = matches[0];
+      return { blueId: match.blueId, value: match.value };
+    }
+    const best = matches.find((candidate) =>
+      matches.every(
+        (other) =>
+          candidate === other ||
+          NodeTypes.isSubtype(candidate.baseType, other.baseType, nodeProvider),
+      ),
+    );
+    const selected = best ?? matches[0];
+    return { blueId: selected.blueId, value: selected.value };
   }
 
   private async evaluateChannel(

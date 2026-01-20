@@ -1,8 +1,8 @@
-import { Blue, BlueNode } from '@blue-labs/language';
+import { Blue, BlueNode, NodeTypes } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
-import { AnyZodObject, ZodError, ZodType, ZodTypeAny } from 'zod';
+import { ZodError, ZodType } from 'zod';
 
 import {
   documentUpdateChannelSchema,
@@ -33,6 +33,10 @@ import type {
   MarkerContract,
   ProcessEmbeddedMarker,
 } from '../model/index.js';
+import type {
+  AnyContractProcessor,
+  ContractProcessorKind,
+} from '../registry/types.js';
 import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
@@ -231,15 +235,14 @@ export class ContractLoader {
         node,
         derivedChannelSchema.schema,
         derivedChannelSchema.blueId,
+        scopeContracts,
       );
       return;
     }
 
     const channelProcessor =
       this.registry.lookupChannel(blueId) ??
-      this.findProcessorByTypeChain(node, (id) =>
-        this.registry.lookupChannel(id),
-      );
+      this.findProcessorByKind(node, 'channel');
     if (channelProcessor) {
       this.handleChannel(
         builder,
@@ -254,9 +257,7 @@ export class ContractLoader {
 
     const handlerProcessor =
       this.registry.lookupHandler(blueId) ??
-      this.findProcessorByTypeChain(node, (id) =>
-        this.registry.lookupHandler(id),
-      );
+      this.findProcessorByKind(node, 'handler');
     if (handlerProcessor) {
       this.handlerRegistration.register({
         builder,
@@ -271,9 +272,7 @@ export class ContractLoader {
 
     const markerProcessor =
       this.registry.lookupMarker(blueId) ??
-      this.findProcessorByTypeChain(node, (id) =>
-        this.registry.lookupMarker(id),
-      );
+      this.findProcessorByKind(node, 'marker');
     if (markerProcessor) {
       this.handleMarker(
         builder,
@@ -299,91 +298,64 @@ export class ContractLoader {
     throw new MustUnderstandFailure(`Unsupported contract type: ${blueId}`);
   }
 
-  private matchesSchema(node: BlueNode, schema: ZodTypeAny): boolean {
-    return this.blue.isTypeOf(node, schema as AnyZodObject, {
-      checkSchemaExtensions: true,
-    });
-  }
-
   private findSchemaMatch<T>(
     schemas: ReadonlyMap<string, ZodType<T>>,
     node: BlueNode,
   ): { blueId: string; schema: ZodType<T> } | null {
     const nodeType = node.getType();
-    if (nodeType) {
-      const nodeProvider = this.blue.getNodeProvider();
-      const visited = new Set<string>();
-      let currentType: BlueNode | null = nodeType;
-      while (currentType) {
-        const blueId =
-          currentType.getBlueId() ?? this.blue.calculateBlueIdSync(currentType);
-        if (blueId) {
-          if (visited.has(blueId)) {
-            break;
-          }
-          visited.add(blueId);
-          const schema = schemas.get(blueId);
-          if (schema) {
-            return { blueId, schema };
-          }
-        }
-        currentType = this.resolveSuperType(currentType, nodeProvider);
-      }
+    if (!nodeType) {
+      return null;
     }
-    for (const [blueId, schema] of schemas.entries()) {
-      if (this.matchesSchema(node, schema)) {
-        return { blueId, schema };
-      }
+    const match = this.matchByTypeChain(nodeType, schemas.entries());
+    if (!match) {
+      return null;
     }
-    return null;
+    return { blueId: match.blueId, schema: match.value };
   }
 
-  private findProcessorByTypeChain<T>(
+  private findProcessorByKind<T extends AnyContractProcessor>(
     node: BlueNode,
-    lookup: (blueId: string) => T | undefined,
+    kind: ContractProcessorKind,
   ): T | undefined {
     const nodeType = node.getType();
     if (!nodeType) {
       return undefined;
     }
-    const nodeProvider = this.blue.getNodeProvider();
-    const visited = new Set<string>();
-    let currentType: BlueNode | null = nodeType;
-    while (currentType) {
-      const blueId =
-        currentType.getBlueId() ?? this.blue.calculateBlueIdSync(currentType);
-      if (blueId) {
-        if (visited.has(blueId)) {
-          break;
-        }
-        visited.add(blueId);
-        const processor = lookup(blueId);
-        if (processor) {
-          return processor;
-        }
-      }
-      currentType = this.resolveSuperType(currentType, nodeProvider);
-    }
-    return undefined;
+    const entries = Array.from(this.registry.processors()).filter(
+      ([, processor]) => processor.kind === kind,
+    ) as Array<[string, T]>;
+    const match = this.matchByTypeChain(nodeType, entries);
+    return match?.value;
   }
 
-  private resolveSuperType(
-    typeNode: BlueNode,
-    nodeProvider: ReturnType<Blue['getNodeProvider']>,
-  ): BlueNode | null {
-    const directType = typeNode.getType();
-    if (directType) {
-      return directType;
+  private matchByTypeChain<T>(
+    nodeType: BlueNode,
+    entries: Iterable<[string, T]>,
+  ): { blueId: string; value: T } | null {
+    const nodeProvider = this.blue.getNodeProvider();
+    const matches: Array<{ blueId: string; value: T; baseType: BlueNode }> = [];
+    for (const [blueId, value] of entries) {
+      const baseType = new BlueNode().setBlueId(blueId);
+      if (NodeTypes.isSubtype(nodeType, baseType, nodeProvider)) {
+        matches.push({ blueId, value, baseType });
+      }
     }
-    const blueId = typeNode.getBlueId();
-    if (!blueId) {
+    if (matches.length === 0) {
       return null;
     }
-    const fetched = nodeProvider.fetchByBlueId(blueId);
-    if (!fetched || fetched.length === 0) {
-      return null;
+    if (matches.length === 1) {
+      const match = matches[0];
+      return { blueId: match.blueId, value: match.value };
     }
-    return fetched[0].getType() ?? null;
+    const best = matches.find((candidate) =>
+      matches.every(
+        (other) =>
+          candidate === other ||
+          NodeTypes.isSubtype(candidate.baseType, other.baseType, nodeProvider),
+      ),
+    );
+    const selected = best ?? matches[0];
+    return { blueId: selected.blueId, value: selected.value };
   }
 
   private handleProcessEmbedded(

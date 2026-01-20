@@ -25,5 +25,6 @@ export * as Properties from './lib/utils/Properties';
 export * from './schema';
 export * from './schema/annotations';
 export * from './utils';
+export * as NodeTypes from './lib/utils/NodeTypes';
 
 export { ResolvedBlueNode } from './lib/model/ResolvedNode';
