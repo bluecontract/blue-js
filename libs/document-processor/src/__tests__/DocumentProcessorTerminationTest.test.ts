@@ -221,8 +221,6 @@ contracts:
       gasLimitedProcessor.initializeDocument(document),
     );
 
-    console.log('result', blue.nodeToJson(result.document));
-
     const contracts = property(result.document, 'contracts');
     const terminated = property(contracts, 'terminated');
     expect(stringProperty(terminated, 'cause')).toBe('fatal');
