@@ -1,7 +1,7 @@
 import { BlueNode, ResolvedBlueNode } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
-import { ContractBundle } from './contract-bundle.js';
+import { ContractBundle, type ChannelBinding } from './contract-bundle.js';
 import type { ChannelRunner } from './channel-runner.js';
 import type { ContractLoader } from './contract-loader.js';
 import type {
@@ -12,8 +12,8 @@ import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { DocumentUpdateData } from '../runtime/document-processing-runtime.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import {
+  PROCESSOR_MANAGED_CHANNEL_BLUE_IDS,
   RESERVED_CONTRACT_KEYS,
-  isProcessorManagedChannelBlueId,
 } from '../constants/processor-contract-constants.js';
 import {
   RELATIVE_INITIALIZED,
@@ -230,7 +230,7 @@ export class ScopeExecutor {
       if (this.hooks.isScopeInactive(normalizedScope)) {
         break;
       }
-      if (isProcessorManagedChannelBlueId(channel.blueId())) {
+      if (this.isProcessorManagedChannel(channel)) {
         continue;
       }
       await this.channelRunner.runExternalChannel(
@@ -297,7 +297,8 @@ export class ScopeExecutor {
         }
 
         const updateEvent = this.createDocumentUpdateEvent(data, cascadeScope);
-        const updateChannels = targetBundle.channelsOfType(
+        const updateChannels = this.channelsMatching(
+          targetBundle,
           DOCUMENT_UPDATE_CHANNEL_BLUE_ID,
         );
         for (const channel of updateChannels) {
@@ -352,7 +353,8 @@ export class ScopeExecutor {
     if (!bundle) {
       return;
     }
-    const lifecycleChannels = bundle.channelsOfType(
+    const lifecycleChannels = this.channelsMatching(
+      bundle,
       LIFECYCLE_EVENT_CHANNEL_BLUE_ID,
     );
     for (const channel of lifecycleChannels) {
@@ -488,7 +490,8 @@ export class ScopeExecutor {
     ) {
       return;
     }
-    const embeddedChannels = bundle.channelsOfType(
+    const embeddedChannels = this.channelsMatching(
+      bundle,
       EMBEDDED_NODE_CHANNEL_BLUE_ID,
     );
     if (embeddedChannels.length === 0) {
@@ -534,7 +537,8 @@ export class ScopeExecutor {
       return;
     }
     const context = this.runtime.scope(scopePath);
-    const triggeredChannels = bundle.channelsOfType(
+    const triggeredChannels = this.channelsMatching(
+      bundle,
       TRIGGERED_EVENT_CHANNEL_BLUE_ID,
     );
     if (triggeredChannels.length === 0) {
@@ -565,6 +569,31 @@ export class ScopeExecutor {
         }
       }
     }
+  }
+
+  private channelsMatching(
+    bundle: ContractBundle,
+    ...blueIds: readonly string[]
+  ): ChannelBinding[] {
+    if (blueIds.length === 0) {
+      return bundle.channelsOfType();
+    }
+    const blue = this.runtime.blue();
+    return bundle.channelsOfType().filter((channel) => {
+      const node = channel.node();
+      return blueIds.some((blueId) => blue.isTypeOfBlueId(node, blueId));
+    });
+  }
+
+  private isProcessorManagedChannel(channel: ChannelBinding): boolean {
+    const blue = this.runtime.blue();
+    const node = channel.node();
+    for (const blueId of PROCESSOR_MANAGED_CHANNEL_BLUE_IDS) {
+      if (blue.isTypeOfBlueId(node, blueId)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private validatePatchBoundary(

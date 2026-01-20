@@ -31,6 +31,7 @@ export class ChannelBinding {
     private readonly bindingKey: string,
     private readonly bindingContract: ChannelContract,
     private readonly bindingBlueId: string,
+    private readonly bindingNode: BlueNode,
   ) {}
 
   key(): string {
@@ -43,6 +44,10 @@ export class ChannelBinding {
 
   blueId(): string {
     return this.bindingBlueId;
+  }
+
+  node(): BlueNode {
+    return this.bindingNode.clone();
   }
 
   order(): number {
@@ -187,7 +192,12 @@ export class ContractBundle {
     if (!entry) {
       return null;
     }
-    return { key: entry.key, contract: entry.contract, blueId: entry.blueId };
+    return {
+      key: entry.key,
+      contract: entry.contract,
+      blueId: entry.blueId,
+      node: entry.node.clone(),
+    };
   }
 
   channelsOfType(...blueIds: readonly string[]): ChannelBinding[] {
@@ -195,7 +205,13 @@ export class ContractBundle {
     const bindings = Array.from(this.channels.values())
       .filter((entry) => !filter || filter.has(entry.blueId))
       .map(
-        (entry) => new ChannelBinding(entry.key, entry.contract, entry.blueId),
+        (entry) =>
+          new ChannelBinding(
+            entry.key,
+            entry.contract,
+            entry.blueId,
+            entry.node,
+          ),
       );
     bindings.sort((a, b) => {
       const orderDiff = a.order() - b.order();
@@ -216,8 +232,13 @@ export class ContractBundleBuilder {
   private embeddedDeclared = false;
   private checkpointDeclared = false;
 
-  addChannel(key: string, contract: ChannelContract, blueId: string): this {
-    this.channels.set(key, { key, contract, blueId });
+  addChannel(
+    key: string,
+    contract: ChannelContract,
+    blueId: string,
+    node: BlueNode,
+  ): this {
+    this.channels.set(key, { key, contract, blueId, node });
     return this;
   }
 

@@ -1,3 +1,5 @@
+import { BlueNode, type Blue } from '@blue-labs/language';
+
 import {
   AnyContractProcessor,
   ChannelProcessor,
@@ -81,12 +83,33 @@ export class ContractProcessorRegistry {
     return this.handlerProcessors.get(blueId);
   }
 
+  lookupHandlerForNode(
+    blue: Blue,
+    node: BlueNode,
+  ): HandlerProcessor<unknown> | undefined {
+    return this.lookupProcessorForNode(blue, node, this.handlerProcessors);
+  }
+
   lookupChannel(blueId: string): ChannelProcessor<unknown> | undefined {
     return this.channelProcessors.get(blueId);
   }
 
+  lookupChannelForNode(
+    blue: Blue,
+    node: BlueNode,
+  ): ChannelProcessor<unknown> | undefined {
+    return this.lookupProcessorForNode(blue, node, this.channelProcessors);
+  }
+
   lookupMarker(blueId: string): MarkerProcessor<unknown> | undefined {
     return this.markerProcessors.get(blueId);
+  }
+
+  lookupMarkerForNode(
+    blue: Blue,
+    node: BlueNode,
+  ): MarkerProcessor<unknown> | undefined {
+    return this.lookupProcessorForNode(blue, node, this.markerProcessors);
   }
 
   processors(): Map<string, AnyContractProcessor> {
@@ -95,5 +118,82 @@ export class ContractProcessorRegistry {
 
   private registerProcessorMap(processor: AnyContractProcessor): void {
     registerBlueIds(processor, this.processorsByBlueId);
+  }
+
+  private lookupProcessorForNode<T extends AnyContractProcessor>(
+    blue: Blue,
+    node: BlueNode,
+    processors: Map<string, T>,
+  ): T | undefined {
+    const nodeType = node.getType();
+    if (!nodeType) {
+      return undefined;
+    }
+
+    const nodeBlueId = nodeType.getBlueId();
+    if (nodeBlueId) {
+      const exact = processors.get(nodeBlueId);
+      if (exact) {
+        return exact;
+      }
+    }
+
+    const entries: Array<[string, T]> = [];
+    for (const processor of this.uniqueProcessors(processors)) {
+      for (const processorBlueId of processor.blueIds) {
+        entries.push([processorBlueId, processor]);
+      }
+    }
+
+    const match = this.matchByTypeChain(blue, node, entries);
+    return match?.value;
+  }
+
+  private *uniqueProcessors<T extends AnyContractProcessor>(
+    processors: Map<string, T>,
+  ): Iterable<T> {
+    const seen = new Set<T>();
+    for (const processor of processors.values()) {
+      if (seen.has(processor)) {
+        continue;
+      }
+      seen.add(processor);
+      yield processor;
+    }
+  }
+
+  private matchByTypeChain<T>(
+    blue: Blue,
+    node: BlueNode,
+    entries: Iterable<[string, T]>,
+  ): { blueId: string; value: T } | null {
+    const matches: Array<{ blueId: string; value: T; baseNode: BlueNode }> = [];
+    for (const [blueId, value] of entries) {
+      if (!blue.isTypeOfBlueId(node, blueId)) {
+        continue;
+      }
+      matches.push({
+        blueId,
+        value,
+        baseNode: new BlueNode().setType(new BlueNode().setBlueId(blueId)),
+      });
+    }
+    if (matches.length === 0) {
+      return null;
+    }
+    if (matches.length === 1) {
+      const match = matches[0];
+      return { blueId: match.blueId, value: match.value };
+    }
+
+    const best = matches.find((candidate) =>
+      matches.every(
+        (other) =>
+          candidate === other ||
+          blue.isTypeOfBlueId(candidate.baseNode, other.blueId),
+      ),
+    );
+    const selected = best ?? matches[0];
+    return { blueId: selected.blueId, value: selected.value };
   }
 }

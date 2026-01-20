@@ -100,7 +100,7 @@ export class ProcessorExecution implements ExecutionHooks {
             false,
           ),
         shouldRunHandler: async (handler, context) => {
-          const processor = this.registry.lookupHandler(handler.blueId());
+          const processor = this.lookupHandlerProcessor(handler);
           if (!processor) {
             const reason = `No processor registered for handler contract ${handler.blueId()}`;
             throw new ProcessorFatalError(
@@ -119,8 +119,7 @@ export class ProcessorExecution implements ExecutionHooks {
         handleHandlerError: async (scope, bundle, error) =>
           this.handleHandlerError(scope, bundle, error),
         canonicalSignature: signatureFn,
-        channelProcessorFor: (blueId) =>
-          this.registry.lookupChannel(blueId) ?? null,
+        channelProcessorFor: (node) => this.lookupChannelProcessor(node),
       },
     );
     this.scopeExecutor = new ScopeExecutor({
@@ -344,7 +343,7 @@ export class ProcessorExecution implements ExecutionHooks {
     scopePath: string,
     event: BlueNode,
   ): Promise<ChannelMatch> {
-    const processor = this.registry.lookupChannel(channel.blueId());
+    const processor = this.lookupChannelProcessor(channel.node());
     if (!processor) {
       return { matches: false };
     }
@@ -367,8 +366,7 @@ export class ProcessorExecution implements ExecutionHooks {
       markers: bundle.markers(),
       bindingKey: channel.key(),
       resolveChannel: (key) => bundle.channelEntry(key),
-      channelProcessorFor: (blueId) =>
-        this.registry.lookupChannel(blueId) ?? null,
+      channelProcessorFor: (node) => this.lookupChannelProcessor(node),
     };
 
     const evaluateFn = processor.evaluate;
@@ -398,7 +396,7 @@ export class ProcessorExecution implements ExecutionHooks {
     handler: HandlerBinding,
     context: ProcessorExecutionContext,
   ): Promise<void> {
-    const processor = this.registry.lookupHandler(handler.blueId());
+    const processor = this.lookupHandlerProcessor(handler);
     if (!processor) {
       const reason = `No processor registered for handler contract ${handler.blueId()}`;
       throw new ProcessorFatalError(
@@ -437,6 +435,19 @@ export class ProcessorExecution implements ExecutionHooks {
       return error.message;
     }
     return label;
+  }
+
+  private lookupHandlerProcessor(handler: HandlerBinding) {
+    return this.registry.lookupHandlerForNode(
+      this.runtimeRef.blue(),
+      handler.node(),
+    );
+  }
+
+  private lookupChannelProcessor(node: BlueNode) {
+    return (
+      this.registry.lookupChannelForNode(this.runtimeRef.blue(), node) ?? null
+    );
   }
 
   private createDocumentUpdateEvent(

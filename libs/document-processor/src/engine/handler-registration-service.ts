@@ -8,7 +8,11 @@ import { ProcessorErrors } from '../types/errors.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import type { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
 import type { HandlerProcessor } from '../registry/types.js';
-import type { ScopeContractsIndex } from '../types/scope-contracts.js';
+import { findSchemaMatch } from '../util/schema-match.js';
+import type {
+  ScopeContractEntry,
+  ScopeContractsIndex,
+} from '../types/scope-contracts.js';
 
 interface RegisterHandlerArgs {
   builder: ContractBundleBuilder;
@@ -63,7 +67,7 @@ export class HandlerRegistrationService {
         );
       }
 
-      if (!this.isRegisteredChannel(channelEntry.nodeTypeBlueId)) {
+      if (!this.isRegisteredChannel(channelEntry)) {
         throw new ProcessorFatalError(
           `Contract '${channelKey}' is not a channel`,
           ProcessorErrors.invalidContract(
@@ -147,11 +151,11 @@ export class HandlerRegistrationService {
     return channelKey;
   }
 
-  private isRegisteredChannel(nodeTypeBlueId: string): boolean {
-    if (this.builtinChannelSchemas.has(nodeTypeBlueId)) {
+  private isRegisteredChannel(entry: ScopeContractEntry): boolean {
+    if (findSchemaMatch(this.blue, entry.node, this.builtinChannelSchemas)) {
       return true;
     }
-    return this.registry.lookupChannel(nodeTypeBlueId) != null;
+    return this.registry.lookupChannelForNode(this.blue, entry.node) != null;
   }
 
   private setContractChannel(node: BlueNode, channelKey: string): void {

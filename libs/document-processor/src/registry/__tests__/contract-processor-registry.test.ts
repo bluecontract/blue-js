@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+import { createBlue } from '../../test-support/blue.js';
 import {
   ContractProcessorRegistry,
   ContractProcessorRegistryBuilder,
@@ -8,6 +9,7 @@ import {
   ChannelProcessor,
   MarkerProcessor,
 } from '../index.js';
+import { TimelineChannelProcessor } from '../processors/timeline-channel-processor.js';
 
 const handlerSchema = z.object({ name: z.string() });
 const handler: HandlerProcessor<{ readonly name: string }> = {
@@ -62,6 +64,19 @@ describe('ContractProcessorRegistry', () => {
 
     processors.set('Handler.Contracts.Test', marker); // mutate copy
     expect(registry.lookupHandler('Handler.Contracts.Test')).toBe(handler);
+  });
+
+  it('resolves derived channel processors by schema extension', () => {
+    const blue = createBlue();
+    const registry = new ContractProcessorRegistry();
+    const timelineProcessor = new TimelineChannelProcessor();
+
+    registry.registerChannel(timelineProcessor);
+
+    const derivedNode = blue.yamlToNode('type: MyOS/MyOS Timeline Channel');
+    const resolved = registry.lookupChannelForNode(blue, derivedNode);
+
+    expect(resolved).toBe(timelineProcessor);
   });
 
   it('throws when processors lack BlueIds', () => {

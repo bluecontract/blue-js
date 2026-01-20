@@ -7,6 +7,7 @@ import {
   BlueIdCalculator,
   NodeToMapListOrValue,
   NodeTransformer,
+  NodeTypes,
   NodeTypeMatcher,
   TypeSchemaResolver,
 } from './utils';
@@ -486,6 +487,26 @@ export class Blue {
       checkSchemaExtensions: options?.checkSchemaExtensions,
       typeSchemaResolver: this.typeSchemaResolver,
     });
+  }
+
+  /**
+   * Checks if a BlueNode's type matches or extends a type BlueId.
+   *
+   * @param node - The BlueNode to check.
+   * @param blueId - The base type BlueId to compare against.
+   * @returns true if the node matches or extends the BlueId type.
+   */
+  public isTypeOfBlueId(node: BlueNode, blueId: string): boolean {
+    const trimmed = blueId.trim();
+    if (trimmed.length === 0) {
+      return false;
+    }
+    const nodeType = node.getType();
+    if (!nodeType) {
+      return false;
+    }
+    const targetType = new BlueNode().setBlueId(trimmed);
+    return NodeTypes.isSubtype(nodeType, targetType, this.nodeProvider);
   }
 
   /**
