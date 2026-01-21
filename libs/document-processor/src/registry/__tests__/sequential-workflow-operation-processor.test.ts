@@ -461,19 +461,16 @@ contracts:
   ${operationKey}Handler:
     type: Conversation/Change Workflow
     operation: ${operationKey}
-    steps:
-      - name: ApplyChange
-        type: Conversation/Update Document
-        changeset: "\${event.message.request.changeset}"
 `;
     const init = await expectOk(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
+      processor.initializeDocument(blue.resolve(blue.yamlToNode(yaml))),
     );
+    expect(processor.isInitialized(init.document)).toBe(true);
     const storedBlueId = storedDocumentBlueId(init.document);
     const event = operationRequestEvent({
       request: {
         type: { blueId: conversationBlueIds['Conversation/Change Request'] },
-        changesetDescription: 'Update counter',
+        changeDescription: 'Update counter',
         changeset: [
           {
             type: { blueId: coreBlueIds['Core/Json Patch Entry'] },
