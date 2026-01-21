@@ -1,3 +1,9 @@
+## 3.4.1 (2026-01-21)
+
+### 🚀 Features
+
+- **deps:** update @blue-repository/types to version 0.9.0 ([9e8ae2c](https://github.com/bluecontract/blue-js/commit/9e8ae2c))
+
 ## 3.4.0 (2026-01-20)
 
 ### 🚀 Features
