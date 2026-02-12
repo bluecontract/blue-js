@@ -61,6 +61,29 @@ describe('Merger', () => {
     );
   });
 
+  it('should not mutate merge target when processor mutates target in place', () => {
+    const mutatingProcessor: MergingProcessor = {
+      process: vi.fn((target: BlueNode, source: BlueNode) => {
+        const sourceValue = source.getValue();
+        if (sourceValue !== undefined) {
+          target.setValue(sourceValue);
+        }
+        return target;
+      }),
+    };
+    const mockProvider = createNodeProvider(() => []);
+    const merger = new Merger(mutatingProcessor, mockProvider);
+
+    const target = new BlueNode().setValue('target-value');
+    const source = new BlueNode().setValue('source-value');
+
+    const merged = merger.merge(target, source, NO_LIMITS);
+
+    expect(target.getValue()).toBe('target-value');
+    expect(merged.getValue()).toBe('source-value');
+    expect(merged).not.toBe(target);
+  });
+
   it('should merge properties', () => {
     const mockProcessor: MergingProcessor = {
       process: vi.fn(basicMergingProcessor),
@@ -78,6 +101,29 @@ describe('Merger', () => {
     expect(resolved.getProperties()).toBeDefined();
     expect(resolved.getProperties()?.prop1?.getValue()).toBe('value1');
     expect(resolved.getProperties()?.prop2?.getValue()).toBe('value2');
+  });
+
+  it('should merge source properties without mutating target properties map', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn(basicMergingProcessor),
+    };
+    const mockProvider = createNodeProvider(() => []);
+    const merger = new Merger(mockProcessor, mockProvider);
+
+    const targetProperties = {
+      existing: new BlueNode().setValue('existing-value'),
+    };
+    const target = new BlueNode().setProperties(targetProperties);
+    const source = new BlueNode().setProperties({
+      added: new BlueNode().setValue('added-value'),
+    });
+
+    const merged = merger.merge(target, source, NO_LIMITS);
+
+    expect(target.getProperties()).toBe(targetProperties);
+    expect(target.getProperties()?.added).toBeUndefined();
+    expect(merged.getProperties()?.existing?.getValue()).toBe('existing-value');
+    expect(merged.getProperties()?.added?.getValue()).toBe('added-value');
   });
 
   it('should merge contracts', () => {

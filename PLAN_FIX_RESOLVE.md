@@ -169,6 +169,8 @@ W procesorach z `libs/language/src/lib/merge/processors/*` (np. `ValuePropagator
 
 ## Krok 4 — Największy zysk: przebuduj merge properties tak, by nie klonować targeta dla każdego pola
 
+**Status:** ✅ Zrealizowane (`mergeProperties` copy-on-write, jedno `cloneShallow()` przy finalnym `setProperties`, izolacja `target.cloneShallow()` przed `mergingProcessor.process`).
+
 **Cel:** zdjąć O(n²) na obiektach z dużą liczbą properties (to jest zwykle “killer”).
 
 ### Problem dziś

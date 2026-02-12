@@ -76,8 +76,9 @@ export class Merger extends NodeResolver {
     source: BlueNode,
     limits: Limits,
   ): BlueNode {
+    const workingTarget = target.cloneShallow();
     let newTarget = this.mergingProcessor.process(
-      target,
+      workingTarget,
       source,
       this.nodeProvider,
     );
@@ -89,13 +90,7 @@ export class Merger extends NodeResolver {
 
     const properties = source.getProperties();
     if (isNonNullable(properties)) {
-      Object.entries(properties).forEach(([key, value]) => {
-        if (limits.shouldMergePathSegment(key, value)) {
-          limits.enterPathSegment(key, value);
-          newTarget = this.mergeProperty(newTarget, key, value, limits);
-          limits.exitPathSegment();
-        }
-      });
+      newTarget = this.mergeProperties(newTarget, properties, limits);
     }
 
     if (isNonNullable(source.getBlueId())) {
@@ -173,39 +168,50 @@ export class Merger extends NodeResolver {
   }
 
   /**
-   * Merges a property from source into target
+   * Merges source properties into target using copy-on-write for properties map
    * @param target - The target node
-   * @param sourceKey - The property key
-   * @param sourceValue - The property value to merge
+   * @param sourceProperties - The properties to merge from source
    * @param limits - The limits to apply
-   * @returns A new BlueNode with the merged property
+   * @returns A new BlueNode with merged properties
    */
-  private mergeProperty(
+  private mergeProperties(
     target: BlueNode,
-    sourceKey: string,
-    sourceValue: BlueNode,
+    sourceProperties: Record<string, BlueNode>,
     limits: Limits,
   ): BlueNode {
-    const node = this.resolve(sourceValue, limits);
-    const newTarget = target.clone();
+    const baseProperties = target.getProperties() ?? {};
+    let mergedProperties = baseProperties;
+    let hasChanges = false;
 
-    if (isNullable(newTarget.getProperties())) {
-      newTarget.setProperties({});
+    for (const [key, value] of Object.entries(sourceProperties)) {
+      if (!limits.shouldMergePathSegment(key, value)) {
+        continue;
+      }
+
+      limits.enterPathSegment(key, value);
+      const resolvedValue = this.resolve(value, limits);
+      const existingValue = mergedProperties[key];
+      const nextValue =
+        existingValue === undefined
+          ? resolvedValue
+          : this.mergeObject(existingValue, resolvedValue, limits);
+
+      if (nextValue !== existingValue) {
+        if (!hasChanges) {
+          mergedProperties = { ...baseProperties };
+          hasChanges = true;
+        }
+        mergedProperties[key] = nextValue;
+      }
+
+      limits.exitPathSegment();
     }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const targetValue = newTarget.getProperties()![sourceKey];
-    if (targetValue === undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newTarget.getProperties()![sourceKey] = node;
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newTarget.getProperties()![sourceKey] = this.mergeObject(
-        targetValue,
-        node,
-        limits,
-      );
+
+    if (!hasChanges) {
+      return target;
     }
-    return newTarget;
+
+    return target.cloneShallow().setProperties(mergedProperties);
   }
 
   /**
