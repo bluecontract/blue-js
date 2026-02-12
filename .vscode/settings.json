@@ -3,5 +3,6 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "vitest.nodeEnv": {
     "NODE_OPTIONS": "--no-node-snapshot"
-  }
+  },
+  "vitest.disableWorkspaceWarning": true
 }

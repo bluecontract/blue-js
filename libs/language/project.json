@@ -62,6 +62,16 @@
           "command -v clinic >/dev/null 2>&1 && clinic flame -- node scripts/benchmark/calculateBlueId.mjs || node scripts/benchmark/calculateBlueId.mjs"
         ]
       }
+    },
+    "benchmark:resolve": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "libs/language",
+        "commands": [
+          "command -v clinic >/dev/null 2>&1 && clinic flame -- node scripts/benchmark/resolve.mjs || node scripts/benchmark/resolve.mjs"
+        ]
+      }
     }
   }
 }
