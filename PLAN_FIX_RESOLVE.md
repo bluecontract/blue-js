@@ -101,6 +101,8 @@ Dodaj testy w `libs/language/src/lib/model/__tests__/Node.test.ts`:
 
 ## Krok 3 — Zamień “deep clone do ustawienia jednego pola” na `cloneShallow`
 
+**Status:** ✅ Zrealizowane (`Merger.ts` i procesory merge używają `cloneShallow()` w ścieżkach top-level update).
+
 **Cel:** zbić koszty w wielu miejscach bez dużej przebudowy.
 
 ### 3A. Merger.merge: uniknij deep clone source przy podmianie type

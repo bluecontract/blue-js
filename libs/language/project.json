@@ -68,9 +68,7 @@
       "dependsOn": ["build"],
       "options": {
         "cwd": "libs/language",
-        "commands": [
-          "command -v clinic >/dev/null 2>&1 && clinic flame -- node scripts/benchmark/resolve.mjs || node scripts/benchmark/resolve.mjs"
-        ]
+        "commands": ["node scripts/benchmark/resolve.mjs"]
       }
     }
   }

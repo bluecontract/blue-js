@@ -16,7 +16,7 @@ export class ValuePropagator implements MergingProcessor {
     if (isNonNullable(sourceValue)) {
       const targetValue = target.getValue();
       if (isNullable(targetValue)) {
-        return target.clone().setValue(sourceValue);
+        return target.cloneShallow().setValue(sourceValue);
       } else if (!isEqualValue(sourceValue, targetValue)) {
         throw new Error(
           `Node values conflict. Source node value: ${sourceValue}, target node value: ${targetValue}`,

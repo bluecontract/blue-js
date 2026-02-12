@@ -61,7 +61,7 @@ export class DictionaryProcessor implements MergingProcessor {
     if (targetKeyType === undefined) {
       if (sourceKeyType !== undefined) {
         this.validateBasicKeyType(sourceKeyType, nodeProvider);
-        return target.clone().setKeyType(sourceKeyType);
+        return target.cloneShallow().setKeyType(sourceKeyType);
       }
     } else if (sourceKeyType !== undefined) {
       this.validateBasicKeyType(sourceKeyType, nodeProvider);
@@ -81,7 +81,7 @@ export class DictionaryProcessor implements MergingProcessor {
           )}'.`,
         );
       }
-      return target.clone().setKeyType(sourceKeyType);
+      return target.cloneShallow().setKeyType(sourceKeyType);
     }
     return target;
   }
@@ -96,7 +96,7 @@ export class DictionaryProcessor implements MergingProcessor {
 
     if (targetValueType === undefined) {
       if (sourceValueType !== undefined) {
-        return target.clone().setValueType(sourceValueType);
+        return target.cloneShallow().setValueType(sourceValueType);
       }
     } else if (sourceValueType !== undefined) {
       const isSubtypeResult = NodeTypes.isSubtype(
@@ -115,7 +115,7 @@ export class DictionaryProcessor implements MergingProcessor {
           )}'.`,
         );
       }
-      return target.clone().setValueType(sourceValueType);
+      return target.cloneShallow().setValueType(sourceValueType);
     }
     return target;
   }

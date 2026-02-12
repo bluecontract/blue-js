@@ -55,7 +55,9 @@ export class Merger extends NodeResolver {
       }
 
       const resolvedType = this.resolve(clonedTypeNode, limits);
-      const sourceWithResolvedType = source.clone().setType(resolvedType);
+      const sourceWithResolvedType = source
+        .cloneShallow()
+        .setType(resolvedType);
       newTarget = this.merge(newTarget, clonedTypeNode, limits);
       return this.mergeObject(newTarget, sourceWithResolvedType, limits);
     }
@@ -97,7 +99,7 @@ export class Merger extends NodeResolver {
     }
 
     if (isNonNullable(source.getBlueId())) {
-      newTarget = newTarget.clone().setBlueId(source.getBlueId());
+      newTarget = newTarget.cloneShallow().setBlueId(source.getBlueId());
     }
 
     if (this.mergingProcessor.postProcess) {
@@ -136,7 +138,7 @@ export class Merger extends NodeResolver {
         limits.exitPathSegment();
         filteredChildren.push(resolvedChild);
       }
-      return target.clone().setItems(filteredChildren);
+      return target.cloneShallow().setItems(filteredChildren);
     } else if (sourceChildren.length < targetChildren.length) {
       throw new Error(
         `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`,
@@ -167,7 +169,7 @@ export class Merger extends NodeResolver {
       }
       limits.exitPathSegment();
     }
-    return target.clone().setItems(newTargetChildren);
+    return target.cloneShallow().setItems(newTargetChildren);
   }
 
   /**

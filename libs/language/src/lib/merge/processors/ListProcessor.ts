@@ -28,7 +28,7 @@ export class ListProcessor implements MergingProcessor {
 
     if (targetItemType === undefined) {
       if (sourceItemType !== undefined) {
-        newTarget = target.clone().setItemType(sourceItemType);
+        newTarget = target.cloneShallow().setItemType(sourceItemType);
       }
     } else if (sourceItemType !== undefined) {
       const isSubtypeResult = NodeTypes.isSubtype(
@@ -47,7 +47,7 @@ export class ListProcessor implements MergingProcessor {
           )}'.`,
         );
       }
-      newTarget = target.clone().setItemType(sourceItemType);
+      newTarget = target.cloneShallow().setItemType(sourceItemType);
     }
 
     // Validate items against itemType

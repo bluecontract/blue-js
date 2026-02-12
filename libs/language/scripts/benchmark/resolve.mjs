@@ -103,22 +103,42 @@ const createBenchmarkSource = (typeBlueId) => {
 
 const installCloneCounter = () => {
   const originalClone = BlueNode.prototype.clone;
+  const originalCloneShallow = BlueNode.prototype.cloneShallow;
+  if (typeof originalCloneShallow !== 'function') {
+    throw new Error(
+      'BlueNode.prototype.cloneShallow is not available. Build libs/language first.',
+    );
+  }
+
   let cloneCount = 0;
+  let cloneShallowCount = 0;
 
   BlueNode.prototype.clone = function cloneWithCounter() {
     cloneCount += 1;
     return originalClone.call(this);
   };
+  BlueNode.prototype.cloneShallow = function cloneShallowWithCounter() {
+    cloneShallowCount += 1;
+    return originalCloneShallow.call(this);
+  };
 
   return {
     reset() {
       cloneCount = 0;
+      cloneShallowCount = 0;
     },
-    value() {
+    deepValue() {
       return cloneCount;
+    },
+    shallowValue() {
+      return cloneShallowCount;
+    },
+    totalValue() {
+      return cloneCount + cloneShallowCount;
     },
     restore() {
       BlueNode.prototype.clone = originalClone;
+      BlueNode.prototype.cloneShallow = originalCloneShallow;
     },
   };
 };
@@ -151,6 +171,8 @@ const compareWithBaseline = async (result) => {
 
     const baselineTimeAvg = baseline?.metrics?.timeMs?.avg;
     const baselineCloneAvg = baseline?.metrics?.cloneCalls?.avg;
+    const baselineCloneShallowAvg = baseline?.metrics?.cloneShallowCalls?.avg;
+    const baselineCloneTotalAvg = baseline?.metrics?.cloneTotalCalls?.avg;
     if (
       !Number.isFinite(baselineTimeAvg) ||
       !Number.isFinite(baselineCloneAvg)
@@ -169,6 +191,8 @@ const compareWithBaseline = async (result) => {
 
     const timeDelta = result.metrics.timeMs.avg - baselineTimeAvg;
     const cloneDelta = result.metrics.cloneCalls.avg - baselineCloneAvg;
+    const hasShallowBaseline = Number.isFinite(baselineCloneShallowAvg);
+    const hasTotalBaseline = Number.isFinite(baselineCloneTotalAvg);
 
     console.log(
       `- resolve avg delta: ${timeDelta >= 0 ? '+' : ''}${timeDelta.toFixed(
@@ -183,6 +207,39 @@ const compareWithBaseline = async (result) => {
         baselineCloneAvg,
       )})`,
     );
+    if (hasShallowBaseline) {
+      const cloneShallowDelta =
+        result.metrics.cloneShallowCalls.avg - baselineCloneShallowAvg;
+      console.log(
+        `- cloneShallow avg delta: ${
+          cloneShallowDelta >= 0 ? '+' : ''
+        }${cloneShallowDelta.toFixed(2)} (${calculatePercentDelta(
+          result.metrics.cloneShallowCalls.avg,
+          baselineCloneShallowAvg,
+        )})`,
+      );
+    } else {
+      console.log(
+        '- cloneShallow avg delta: n/a (baseline does not contain cloneShallowCalls)',
+      );
+    }
+
+    if (hasTotalBaseline) {
+      const cloneTotalDelta =
+        result.metrics.cloneTotalCalls.avg - baselineCloneTotalAvg;
+      console.log(
+        `- total clone avg delta: ${
+          cloneTotalDelta >= 0 ? '+' : ''
+        }${cloneTotalDelta.toFixed(2)} (${calculatePercentDelta(
+          result.metrics.cloneTotalCalls.avg,
+          baselineCloneTotalAvg,
+        )})`,
+      );
+    } else {
+      console.log(
+        '- total clone avg delta: n/a (baseline does not contain cloneTotalCalls)',
+      );
+    }
   } catch (error) {
     if (error && typeof error === 'object' && error.code === 'ENOENT') {
       console.log(
@@ -216,6 +273,8 @@ const runBenchmark = async () => {
   const cloneCounter = installCloneCounter();
   const durations = [];
   const cloneCounts = [];
+  const cloneShallowCounts = [];
+  const cloneTotalCounts = [];
 
   console.log('Resolve benchmark configuration:');
   console.log(`- warmup iterations: ${config.warmupIterations}`);
@@ -244,14 +303,18 @@ const runBenchmark = async () => {
         throw new Error('Expected resolve() to return ResolvedBlueNode');
       }
 
-      const cloneCount = cloneCounter.value();
+      const cloneCount = cloneCounter.deepValue();
+      const cloneShallowCount = cloneCounter.shallowValue();
+      const cloneTotalCount = cloneCounter.totalValue();
       durations.push(durationMs);
       cloneCounts.push(cloneCount);
+      cloneShallowCounts.push(cloneShallowCount);
+      cloneTotalCounts.push(cloneTotalCount);
 
       console.log(
         `Iteration ${String(i + 1).padStart(2, '0')}: ${durationMs.toFixed(
           2,
-        )} ms | clone() calls: ${cloneCount}`,
+        )} ms | clone() calls: ${cloneCount} | cloneShallow() calls: ${cloneShallowCount} | clone(total): ${cloneTotalCount}`,
       );
     }
   } finally {
@@ -260,6 +323,8 @@ const runBenchmark = async () => {
 
   const timeStats = calculateStats(durations);
   const cloneStats = calculateStats(cloneCounts);
+  const cloneShallowStats = calculateStats(cloneShallowCounts);
+  const cloneTotalStats = calculateStats(cloneTotalCounts);
 
   console.log('\nSummary');
   console.log(
@@ -267,6 +332,12 @@ const runBenchmark = async () => {
   );
   console.log(
     `- clone() calls: avg=${cloneStats.avg.toFixed(2)} min=${cloneStats.min} max=${cloneStats.max}`,
+  );
+  console.log(
+    `- cloneShallow() calls: avg=${cloneShallowStats.avg.toFixed(2)} min=${cloneShallowStats.min} max=${cloneShallowStats.max}`,
+  );
+  console.log(
+    `- clone(total) calls: avg=${cloneTotalStats.avg.toFixed(2)} min=${cloneTotalStats.min} max=${cloneTotalStats.max}`,
   );
 
   const result = {
@@ -276,6 +347,8 @@ const runBenchmark = async () => {
     metrics: {
       timeMs: timeStats,
       cloneCalls: cloneStats,
+      cloneShallowCalls: cloneShallowStats,
+      cloneTotalCalls: cloneTotalStats,
     },
   };
 
