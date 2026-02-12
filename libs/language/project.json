@@ -70,6 +70,16 @@
         "cwd": "libs/language",
         "commands": ["node scripts/benchmark/resolve.mjs"]
       }
+    },
+    "benchmark:resolve:unique": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "libs/language",
+        "commands": [
+          "BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs"
+        ]
+      }
     }
   }
 }

@@ -299,6 +299,8 @@ W 2 miejscach:
 
 ## Krok 7 — Cache resolved typów w obrębie jednego `resolve()` (duży zysk na dokumentach z powtarzalnymi typami)
 
+**Status:** ✅ Zrealizowane (dodany `ResolutionContext` z cache typów, path-sensitive cache key dla limitów ścieżkowych i usunięta podwójna ścieżka `merge(..., clonedTypeNode, ...)`).
+
 **Cel:** jeśli dokument ma 1000 węzłów `type.blueId = X`, to typ `X` powinien zostać zrezolwowany **raz**, a nie 1000 razy.
 
 ### Jak to zrobić bez ryzykownej zmiany API

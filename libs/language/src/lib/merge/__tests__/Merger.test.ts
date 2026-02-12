@@ -4,7 +4,7 @@ import { MergingProcessor } from '../MergingProcessor';
 import { BlueNode } from '../../model';
 import { ResolvedBlueNode } from '../../model/ResolvedNode';
 import { createNodeProvider } from '../../NodeProvider';
-import { NO_LIMITS } from '../../utils/limits';
+import { NO_LIMITS, PathLimitsBuilder } from '../../utils/limits';
 import { BasicNodeProvider } from '../../provider';
 import { createDefaultMergingProcessor } from '../utils/default';
 import { Blue } from '../../Blue';
@@ -165,6 +165,81 @@ describe('Merger', () => {
     expect(target.getProperties()?.added).toBeUndefined();
     expect(merged.getProperties()?.existing?.getValue()).toBe('existing-value');
     expect(merged.getProperties()?.added?.getValue()).toBe('added-value');
+  });
+
+  it('should cache resolved type by blueId for repeated typed nodes in one resolve', () => {
+    const typeBlueId = 'shared-type-blue-id';
+    const sharedType = new BlueNode('SharedType').setProperties({
+      fromType: new BlueNode().setValue('from-type'),
+    });
+    const fetchByBlueId = vi.fn((blueId: string) =>
+      blueId === typeBlueId ? [sharedType] : [],
+    );
+    const mockProvider = createNodeProvider(fetchByBlueId);
+    const merger = new Merger(
+      {
+        process: vi.fn(basicMergingProcessor),
+      },
+      mockProvider,
+    );
+
+    const source = new BlueNode().setProperties({
+      first: new BlueNode().setType(new BlueNode().setBlueId(typeBlueId)),
+      second: new BlueNode().setType(new BlueNode().setBlueId(typeBlueId)),
+    });
+
+    const resolved = merger.resolve(source, NO_LIMITS);
+
+    expect(fetchByBlueId).toHaveBeenCalledTimes(1);
+    expect(
+      resolved.getProperties()?.first?.getProperties()?.fromType?.getValue(),
+    ).toBe('from-type');
+    expect(
+      resolved.getProperties()?.second?.getProperties()?.fromType?.getValue(),
+    ).toBe('from-type');
+  });
+
+  it('should keep type cache path-sensitive when using path limits', () => {
+    const typeBlueId = 'path-sensitive-type-blue-id';
+    const sharedType = new BlueNode('SharedType').setProperties({
+      firstOnly: new BlueNode().setValue('first-only-value'),
+      secondOnly: new BlueNode().setValue('second-only-value'),
+    });
+    const fetchByBlueId = vi.fn((blueId: string) =>
+      blueId === typeBlueId ? [sharedType] : [],
+    );
+    const mockProvider = createNodeProvider(fetchByBlueId);
+    const merger = new Merger(
+      {
+        process: vi.fn(basicMergingProcessor),
+      },
+      mockProvider,
+    );
+
+    const source = new BlueNode().setProperties({
+      first: new BlueNode().setType(new BlueNode().setBlueId(typeBlueId)),
+      second: new BlueNode().setType(new BlueNode().setBlueId(typeBlueId)),
+    });
+    const limits = new PathLimitsBuilder()
+      .addPath('/first/firstOnly')
+      .addPath('/second/secondOnly')
+      .build();
+
+    const resolved = merger.resolve(source, limits);
+
+    expect(fetchByBlueId).toHaveBeenCalledTimes(2);
+    expect(
+      resolved.getProperties()?.first?.getProperties()?.firstOnly?.getValue(),
+    ).toBe('first-only-value');
+    expect(
+      resolved.getProperties()?.first?.getProperties()?.secondOnly,
+    ).toBeUndefined();
+    expect(
+      resolved.getProperties()?.second?.getProperties()?.secondOnly?.getValue(),
+    ).toBe('second-only-value');
+    expect(
+      resolved.getProperties()?.second?.getProperties()?.firstOnly,
+    ).toBeUndefined();
   });
 
   it('should merge contracts', () => {
