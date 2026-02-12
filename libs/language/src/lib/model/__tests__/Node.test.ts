@@ -289,4 +289,73 @@ describe('Node Contract Methods', () => {
       expect(node.getContracts()).toBeUndefined();
     });
   });
+
+  describe('cloneShallow', () => {
+    it('should shallow copy containers and keep child node references', () => {
+      const typeNode = new BlueNode().setName('TypeNode');
+      const itemTypeNode = new BlueNode().setName('ItemTypeNode');
+      const keyTypeNode = new BlueNode().setName('KeyTypeNode');
+      const valueTypeNode = new BlueNode().setName('ValueTypeNode');
+      const blueNode = new BlueNode().setName('BlueNode');
+      const itemChild = new BlueNode().setValue('item-child');
+      const propertyChild = new BlueNode().setValue('property-child');
+
+      const source = new BlueNode('SourceNode')
+        .setDescription('description')
+        .setType(typeNode)
+        .setItemType(itemTypeNode)
+        .setKeyType(keyTypeNode)
+        .setValueType(valueTypeNode)
+        .setValue('value')
+        .setItems([itemChild])
+        .setProperties({ p: propertyChild })
+        .setBlueId('source-blue-id')
+        .setBlue(blueNode)
+        .setInlineValue(true);
+
+      const cloned = source.cloneShallow();
+
+      expect(cloned).not.toBe(source);
+      expect(cloned.getName()).toBe(source.getName());
+      expect(cloned.getDescription()).toBe(source.getDescription());
+      expect(cloned.getValue()).toBe(source.getValue());
+      expect(cloned.getBlueId()).toBe(source.getBlueId());
+      expect(cloned.isInlineValue()).toBe(source.isInlineValue());
+
+      expect(cloned.getType()).toBe(typeNode);
+      expect(cloned.getItemType()).toBe(itemTypeNode);
+      expect(cloned.getKeyType()).toBe(keyTypeNode);
+      expect(cloned.getValueType()).toBe(valueTypeNode);
+      expect(cloned.getBlue()).toBe(blueNode);
+
+      expect(cloned.getItems()).not.toBe(source.getItems());
+      expect(cloned.getProperties()).not.toBe(source.getProperties());
+      expect(cloned.getItems()?.[0]).toBe(itemChild);
+      expect(cloned.getProperties()?.['p']).toBe(propertyChild);
+    });
+
+    it('should isolate array/map structure changes between source and clone', () => {
+      const sharedItem = new BlueNode().setValue('shared-item');
+      const sharedProperty = new BlueNode().setValue('shared-property');
+      const source = new BlueNode()
+        .setItems([sharedItem])
+        .setProperties({ shared: sharedProperty });
+
+      const cloned = source.cloneShallow();
+      cloned.addItems(new BlueNode().setValue('clone-only-item'));
+      cloned.addProperty('clone-only', new BlueNode().setValue('clone-only'));
+
+      expect(source.getItems()).toHaveLength(1);
+      expect(source.getProperties()?.['clone-only']).toBeUndefined();
+
+      // Child nodes are intentionally shared in shallow clone mode.
+      cloned.getItems()?.[0]?.setValue('mutated-shared-item');
+      cloned.getProperties()?.['shared']?.setValue('mutated-shared-property');
+
+      expect(source.getItems()?.[0]?.getValue()).toBe('mutated-shared-item');
+      expect(source.getProperties()?.['shared']?.getValue()).toBe(
+        'mutated-shared-property',
+      );
+    });
+  });
 });

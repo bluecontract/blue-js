@@ -66,6 +66,8 @@ zrób pętlę `for (let i=0; i<sourceChildren.length; i++)` i używaj `i` jako i
 
 ## Krok 2 — Dodaj tani klon: `BlueNode.cloneShallow()` (bez deep rekurencji)
 
+**Status:** ✅ Zrealizowane (dodana metoda `cloneShallow()` i testy semantyki shallow w `Node.test.ts`).
+
 **Cel:** móc zastępować “deep clone do ustawienia jednego pola”.
 
 ### Gdzie
