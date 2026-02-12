@@ -251,6 +251,8 @@ To daje Ci gwarancję, że nawet jeśli ktoś ma custom `MergingProcessor` któr
 
 ## Krok 5 — Uporządkuj merge items analogicznie (bez zbędnych klonów + bez `resolve` jeśli już resolved)
 
+**Status:** ✅ Zrealizowane (`mergeChildren`: pętla `for`, `cloneShallow()`, fast-path `child.isResolved()` + test regresyjny).
+
 **Cel:** zejść z kosztów na listach i uniknąć podwójnej pracy.
 
 ### Co zrobić
@@ -271,6 +273,8 @@ To daje Ci gwarancję, że nawet jeśli ktoś ma custom `MergingProcessor` któr
 
 ## Krok 6 — Fast path globalny: jeśli node już jest `ResolvedBlueNode`, nie rezolwuj go drugi raz w głąb
 
+**Status:** ✅ Zrealizowane (`mergeChildren` + `mergeProperties` mają fast-path `isResolved()`, testy regresyjne i benchmark `resolve` przechodzą).
+
 **Cel:** przyspieszyć przypadki typu:
 
 - `resolve` na dokumencie, w którym część subdrzew już jest resolved
@@ -286,7 +290,7 @@ W miejscach, gdzie robisz:
 
 W 2 miejscach:
 
-- `mergeProperty`
+- `mergeProperties`
 - `mergeChildren`
 
 ✅ To nie zmienia wyniku, tylko unika zbędnej rekurencji.

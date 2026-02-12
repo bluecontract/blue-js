@@ -129,7 +129,9 @@ export class Merger extends NodeResolver {
         }
 
         limits.enterPathSegment(String(i), child);
-        const resolvedChild = this.resolve(child, limits);
+        const resolvedChild = child.isResolved()
+          ? child
+          : this.resolve(child, limits);
         limits.exitPathSegment();
         filteredChildren.push(resolvedChild);
       }
@@ -189,7 +191,9 @@ export class Merger extends NodeResolver {
       }
 
       limits.enterPathSegment(key, value);
-      const resolvedValue = this.resolve(value, limits);
+      const resolvedValue = value.isResolved()
+        ? (value as ResolvedBlueNode)
+        : this.resolve(value, limits);
       const existingValue = mergedProperties[key];
       const nextValue =
         existingValue === undefined

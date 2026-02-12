@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { Merger } from '../Merger';
 import { MergingProcessor } from '../MergingProcessor';
 import { BlueNode } from '../../model';
+import { ResolvedBlueNode } from '../../model/ResolvedNode';
 import { createNodeProvider } from '../../NodeProvider';
 import { NO_LIMITS } from '../../utils/limits';
 import { BasicNodeProvider } from '../../provider';
@@ -101,6 +102,46 @@ describe('Merger', () => {
     expect(resolved.getProperties()).toBeDefined();
     expect(resolved.getProperties()?.prop1?.getValue()).toBe('value1');
     expect(resolved.getProperties()?.prop2?.getValue()).toBe('value2');
+  });
+
+  it('should skip resolve for children that are already resolved', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn((target: BlueNode) => target),
+    };
+    const mockProvider = createNodeProvider(() => []);
+    const merger = new Merger(mockProcessor, mockProvider);
+
+    const resolvedChild = new ResolvedBlueNode(
+      new BlueNode().setValue('resolved-child'),
+    );
+    const source = new BlueNode().setItems([resolvedChild]);
+    const resolveSpy = vi.spyOn(merger, 'resolve');
+
+    const merged = merger.merge(new BlueNode(), source, NO_LIMITS);
+
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(merged.getItems()?.[0]).toBe(resolvedChild);
+  });
+
+  it('should skip resolve for properties that are already resolved', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn((target: BlueNode) => target),
+    };
+    const mockProvider = createNodeProvider(() => []);
+    const merger = new Merger(mockProcessor, mockProvider);
+
+    const resolvedProperty = new ResolvedBlueNode(
+      new BlueNode().setValue('resolved-property'),
+    );
+    const source = new BlueNode().setProperties({
+      resolved: resolvedProperty,
+    });
+    const resolveSpy = vi.spyOn(merger, 'resolve');
+
+    const merged = merger.merge(new BlueNode(), source, NO_LIMITS);
+
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(merged.getProperties()?.resolved).toBe(resolvedProperty);
   });
 
   it('should merge source properties without mutating target properties map', () => {
