@@ -47,3 +47,4 @@ vitest.config.*.timestamp*
 .github/instructions/nx.instructions.md
 
 .yalc
+.repomix
