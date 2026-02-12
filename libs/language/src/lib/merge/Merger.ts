@@ -124,16 +124,18 @@ export class Merger extends NodeResolver {
   ): BlueNode {
     const targetChildren = target.getItems();
     if (isNullable(targetChildren)) {
-      const filteredChildren = sourceChildren
-        .filter((child, index) =>
-          limits.shouldMergePathSegment(String(index), child),
-        )
-        .map((child) => {
-          limits.enterPathSegment(String(sourceChildren.indexOf(child)), child);
-          const resolvedChild = this.resolve(child, limits);
-          limits.exitPathSegment();
-          return resolvedChild;
-        });
+      const filteredChildren: BlueNode[] = [];
+      for (let i = 0; i < sourceChildren.length; i++) {
+        const child = sourceChildren[i];
+        if (!limits.shouldMergePathSegment(String(i), child)) {
+          continue;
+        }
+
+        limits.enterPathSegment(String(i), child);
+        const resolvedChild = this.resolve(child, limits);
+        limits.exitPathSegment();
+        filteredChildren.push(resolvedChild);
+      }
       return target.clone().setItems(filteredChildren);
     } else if (sourceChildren.length < targetChildren.length) {
       throw new Error(
