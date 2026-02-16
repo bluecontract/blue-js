@@ -104,7 +104,7 @@ describe('Merger', () => {
     expect(resolved.getProperties()?.prop2?.getValue()).toBe('value2');
   });
 
-  it('should reuse already resolved children when limits are not restrictive', () => {
+  it('should clone already resolved children when limits are not restrictive', () => {
     const mockProcessor: MergingProcessor = {
       process: vi.fn(basicMergingProcessor),
     };
@@ -117,8 +117,14 @@ describe('Merger', () => {
     const source = new BlueNode().setItems([resolvedChild]);
 
     const merged = merger.merge(new BlueNode(), source, NO_LIMITS);
+    const mergedChild = merged.getItems()?.[0];
 
-    expect(merged.getItems()?.[0]).toBe(resolvedChild);
+    expect(mergedChild).not.toBe(resolvedChild);
+    expect(mergedChild?.isResolved()).toBe(true);
+    expect(mergedChild?.getValue()).toBe('resolved-child');
+
+    mergedChild?.setValue('changed');
+    expect(resolvedChild.getValue()).toBe('resolved-child');
   });
 
   it('should re-resolve already resolved children when path limits are used', () => {
@@ -145,7 +151,7 @@ describe('Merger', () => {
     expect(mergedChild?.getProperties()?.blocked).toBeUndefined();
   });
 
-  it('should reuse already resolved properties for NoLimits and re-resolve for PathLimits', () => {
+  it('should clone already resolved properties for NoLimits and re-resolve for PathLimits', () => {
     const mockProcessor: MergingProcessor = {
       process: vi.fn(basicMergingProcessor),
     };
@@ -163,7 +169,17 @@ describe('Merger', () => {
     });
 
     const noLimitsMerged = merger.merge(new BlueNode(), source, NO_LIMITS);
-    expect(noLimitsMerged.getProperties()?.resolved).toBe(resolvedProperty);
+    const clonedProperty = noLimitsMerged.getProperties()?.resolved;
+
+    expect(clonedProperty).not.toBe(resolvedProperty);
+    expect(clonedProperty?.isResolved()).toBe(true);
+    expect(clonedProperty?.getProperties()?.allowed?.getValue()).toBe(
+      'allowed',
+    );
+    clonedProperty?.getProperties()?.allowed?.setValue('changed');
+    expect(resolvedProperty.getProperties()?.allowed?.getValue()).toBe(
+      'allowed',
+    );
 
     const pathLimitsMerged = merger.merge(
       new BlueNode(),
@@ -177,6 +193,46 @@ describe('Merger', () => {
       'allowed',
     );
     expect(limitedProperty?.getProperties()?.blocked).toBeUndefined();
+  });
+
+  it('should not share merged inherited node with merged type subtree', () => {
+    const typeBlueId = 'no-alias-typed-node';
+    const sharedType = new BlueNode('SharedType').setProperties({
+      inherited: new BlueNode().setValue('initial'),
+    });
+    const mockProvider = createNodeProvider((blueId) =>
+      blueId === typeBlueId ? [sharedType] : [],
+    );
+    const merger = new Merger(
+      {
+        process: vi.fn((target: BlueNode, source: BlueNode) => {
+          let newTarget = target;
+          if (source.getType() !== undefined) {
+            newTarget = newTarget.cloneShallow().setType(source.getType());
+          }
+          if (source.getValue() !== undefined) {
+            newTarget = newTarget.cloneShallow().setValue(source.getValue()!);
+          }
+          return newTarget;
+        }),
+      },
+      mockProvider,
+    );
+
+    const merged = merger.merge(
+      new BlueNode(),
+      new BlueNode().setType(new BlueNode().setBlueId(typeBlueId)),
+      NO_LIMITS,
+    );
+    const mergedInherited = merged.getProperties()?.inherited;
+    const mergedTypeInherited = merged.getType()?.getProperties()?.inherited;
+
+    expect(mergedInherited?.getValue()).toBe('initial');
+    expect(mergedTypeInherited?.getValue()).toBe('initial');
+    expect(mergedInherited).not.toBe(mergedTypeInherited);
+
+    mergedInherited?.setValue('changed');
+    expect(mergedTypeInherited?.getValue()).toBe('initial');
   });
 
   it('should merge source properties without mutating target properties map', () => {

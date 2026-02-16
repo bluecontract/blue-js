@@ -27,7 +27,7 @@ function merge(target, source, limits) {
       const child = source.items[i];
       const childNode =
         child.isResolved() && limits.isNoLimits()
-          ? child
+          ? clone(child)
           : resolve(child, limits);
       processed.items[i] = childNode;
     }
@@ -35,7 +35,7 @@ function merge(target, source, limits) {
   for (const [k, v] of Object.entries(source.properties ?? {})) {
     if (limits.allow(k)) {
       const valueNode =
-        v.isResolved() && limits.isNoLimits() ? v : resolve(v, limits);
+        v.isResolved() && limits.isNoLimits() ? clone(v) : resolve(v, limits);
       processed.properties[k] = merge(processed.properties?.[k] ?? {}, valueNode, limits);
     }
   }
@@ -50,6 +50,6 @@ function merge(target, source, limits) {
 - Lists enforce same BlueId at the same index when overlaying.
 - Dictionaries enforce key/value types via `ListProcessor`/`DictionaryProcessor`.
 - `PathLimits.fromNode(typeNode)` lets `isTypeOfNode` and `resolve` reason with the target shape only.
-- Already-resolved subtrees are reused only for unrestricted resolution (`NoLimits`); with path-based limits they are re-merged to preserve path filtering.
+- Already-resolved subtrees are not re-resolved only for unrestricted resolution (`NoLimits`), but they are cloned to keep branch isolation; with path-based limits they are re-merged to preserve path filtering.
 - Type resolution cache is scoped to one `resolve()` call, so repeated `type.blueId` references avoid repeated extension/resolution work.
 - Resolution assumes type references use current BlueIds. `yamlToNode/jsonValueToNode` normalize during ingestion; for manually constructed nodes, ensure the types are already current before resolving.
