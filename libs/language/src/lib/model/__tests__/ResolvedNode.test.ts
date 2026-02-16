@@ -58,6 +58,23 @@ value: test
     expect(cloned).not.toBe(resolvedNode); // Different instances
   });
 
+  it('should properly shallow-clone resolved nodes and preserve resolved marker', () => {
+    const resolvedNode = new ResolvedBlueNode(
+      new BlueNode()
+        .setProperties({ key: new BlueNode().setValue('value') })
+        .setItems([new BlueNode().setValue('item')]),
+    );
+
+    const cloned = resolvedNode.cloneShallow();
+
+    expect(cloned).toBeInstanceOf(ResolvedBlueNode);
+    expect(cloned.isResolved()).toBe(true);
+    expect(cloned.getProperties()).not.toBe(resolvedNode.getProperties());
+    expect(cloned.getItems()).not.toBe(resolvedNode.getItems());
+    expect(cloned.getProperties()?.key).toBe(resolvedNode.getProperties()?.key);
+    expect(cloned.getItems()?.[0]).toBe(resolvedNode.getItems()?.[0]);
+  });
+
   it('should get minimal node after type resolution using MergeReverser', () => {
     const nodeProvider = new BasicNodeProvider();
 
