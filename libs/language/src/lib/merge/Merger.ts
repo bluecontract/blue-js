@@ -8,7 +8,15 @@ import { NodeProviderWrapper } from '../utils/NodeProviderWrapper';
 import { Limits } from '../utils/limits/Limits';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { PathLimits } from '../utils/limits/PathLimits';
+import { NoLimits } from '../utils/limits';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
+
+interface ResolutionContext {
+  limits: Limits;
+  nodeProvider: NodeProvider;
+  resolvedTypeCache: Map<string, ResolvedBlueNode>;
+  pathStack: string[];
+}
 
 /**
  * Merger class that implements NodeResolver for merging nodes
@@ -36,6 +44,18 @@ export class Merger extends NodeResolver {
    * @returns A new BlueNode with the merged content
    */
   public merge(target: BlueNode, source: BlueNode, limits: Limits): BlueNode {
+    return this.mergeWithContext(
+      target,
+      source,
+      this.createResolutionContext(limits),
+    );
+  }
+
+  private mergeWithContext(
+    target: BlueNode,
+    source: BlueNode,
+    context: ResolutionContext,
+  ): BlueNode {
     if (isNonNullable(source.getBlue())) {
       throw new Error(
         'Document contains "blue" attribute. Preprocess document before merging.',
@@ -46,20 +66,15 @@ export class Merger extends NodeResolver {
     const typeNode = source.getType();
 
     if (isNonNullable(typeNode)) {
-      const clonedTypeNode = typeNode.clone();
-      if (isNonNullable(clonedTypeNode.getBlueId())) {
-        new NodeExtender(this.nodeProvider).extend(
-          clonedTypeNode,
-          PathLimits.withSinglePath('/'),
-        );
-      }
-
-      const resolvedType = this.resolve(clonedTypeNode, limits);
-      const sourceWithResolvedType = source.clone().setType(resolvedType);
-      newTarget = this.merge(newTarget, clonedTypeNode, limits);
-      return this.mergeObject(newTarget, sourceWithResolvedType, limits);
+      const resolvedType = this.resolveTypeNode(typeNode, context);
+      const typeOverlay = resolvedType.cloneShallow().setType(undefined);
+      newTarget = this.mergeObject(newTarget, typeOverlay, context);
+      const sourceWithResolvedType = source
+        .cloneShallow()
+        .setType(resolvedType);
+      return this.mergeObject(newTarget, sourceWithResolvedType, context);
     }
-    return this.mergeObject(newTarget, source, limits);
+    return this.mergeObject(newTarget, source, context);
   }
 
   /**
@@ -72,39 +87,34 @@ export class Merger extends NodeResolver {
   private mergeObject(
     target: BlueNode,
     source: BlueNode,
-    limits: Limits,
+    context: ResolutionContext,
   ): BlueNode {
+    const workingTarget = target.cloneShallow();
     let newTarget = this.mergingProcessor.process(
-      target,
+      workingTarget,
       source,
-      this.nodeProvider,
+      context.nodeProvider,
     );
 
     const children = source.getItems();
     if (isNonNullable(children)) {
-      newTarget = this.mergeChildren(newTarget, children, limits);
+      newTarget = this.mergeChildren(newTarget, children, context);
     }
 
     const properties = source.getProperties();
     if (isNonNullable(properties)) {
-      Object.entries(properties).forEach(([key, value]) => {
-        if (limits.shouldMergePathSegment(key, value)) {
-          limits.enterPathSegment(key, value);
-          newTarget = this.mergeProperty(newTarget, key, value, limits);
-          limits.exitPathSegment();
-        }
-      });
+      newTarget = this.mergeProperties(newTarget, properties, context);
     }
 
     if (isNonNullable(source.getBlueId())) {
-      newTarget = newTarget.clone().setBlueId(source.getBlueId());
+      newTarget = newTarget.cloneShallow().setBlueId(source.getBlueId());
     }
 
     if (this.mergingProcessor.postProcess) {
       newTarget = this.mergingProcessor.postProcess(
         newTarget,
         source,
-        this.nodeProvider,
+        context.nodeProvider,
       );
     }
     return newTarget;
@@ -120,21 +130,29 @@ export class Merger extends NodeResolver {
   private mergeChildren(
     target: BlueNode,
     sourceChildren: BlueNode[],
-    limits: Limits,
+    context: ResolutionContext,
   ): BlueNode {
     const targetChildren = target.getItems();
     if (isNullable(targetChildren)) {
-      const filteredChildren = sourceChildren
-        .filter((child, index) =>
-          limits.shouldMergePathSegment(String(index), child),
-        )
-        .map((child) => {
-          limits.enterPathSegment(String(sourceChildren.indexOf(child)), child);
-          const resolvedChild = this.resolve(child, limits);
-          limits.exitPathSegment();
-          return resolvedChild;
-        });
-      return target.clone().setItems(filteredChildren);
+      const filteredChildren: BlueNode[] = [];
+      for (let i = 0; i < sourceChildren.length; i++) {
+        const child = sourceChildren[i];
+        if (!context.limits.shouldMergePathSegment(String(i), child)) {
+          continue;
+        }
+
+        this.enterPathSegment(context, String(i), child);
+        try {
+          const resolvedChild =
+            child.isResolved() && this.canReuseResolvedSubtree(context)
+              ? child
+              : this.resolveWithContext(child, context);
+          filteredChildren.push(resolvedChild);
+        } finally {
+          this.exitPathSegment(context);
+        }
+      }
+      return target.cloneShallow().setItems(filteredChildren);
     } else if (sourceChildren.length < targetChildren.length) {
       throw new Error(
         `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`,
@@ -143,65 +161,85 @@ export class Merger extends NodeResolver {
 
     const newTargetChildren = [...targetChildren];
     for (let i = 0; i < sourceChildren.length; i++) {
-      if (!limits.shouldMergePathSegment(String(i), sourceChildren[i])) {
+      if (
+        !context.limits.shouldMergePathSegment(String(i), sourceChildren[i])
+      ) {
         continue;
       }
-      limits.enterPathSegment(String(i), sourceChildren[i]);
-      if (i >= newTargetChildren.length) {
-        newTargetChildren.push(sourceChildren[i]);
-        limits.exitPathSegment();
-        continue;
-      }
-      const sourceBlueId = BlueIdCalculator.calculateBlueIdSync(
-        sourceChildren[i],
-      );
-      const targetBlueId = BlueIdCalculator.calculateBlueIdSync(
-        newTargetChildren[i],
-      );
-      if (sourceBlueId !== targetBlueId) {
-        throw new Error(
-          `Mismatched items at index ${i}: source item has blueId '${sourceBlueId}', but target item has blueId '${targetBlueId}'.`,
+      this.enterPathSegment(context, String(i), sourceChildren[i]);
+      try {
+        if (i >= newTargetChildren.length) {
+          newTargetChildren.push(sourceChildren[i]);
+          continue;
+        }
+        const sourceBlueId = BlueIdCalculator.calculateBlueIdSync(
+          sourceChildren[i],
         );
+        const targetBlueId = BlueIdCalculator.calculateBlueIdSync(
+          newTargetChildren[i],
+        );
+        if (sourceBlueId !== targetBlueId) {
+          throw new Error(
+            `Mismatched items at index ${i}: source item has blueId '${sourceBlueId}', but target item has blueId '${targetBlueId}'.`,
+          );
+        }
+      } finally {
+        this.exitPathSegment(context);
       }
-      limits.exitPathSegment();
     }
-    return target.clone().setItems(newTargetChildren);
+    return target.cloneShallow().setItems(newTargetChildren);
   }
 
   /**
-   * Merges a property from source into target
+   * Merges source properties into target using copy-on-write for properties map
    * @param target - The target node
-   * @param sourceKey - The property key
-   * @param sourceValue - The property value to merge
+   * @param sourceProperties - The properties to merge from source
    * @param limits - The limits to apply
-   * @returns A new BlueNode with the merged property
+   * @returns A new BlueNode with merged properties
    */
-  private mergeProperty(
+  private mergeProperties(
     target: BlueNode,
-    sourceKey: string,
-    sourceValue: BlueNode,
-    limits: Limits,
+    sourceProperties: Record<string, BlueNode>,
+    context: ResolutionContext,
   ): BlueNode {
-    const node = this.resolve(sourceValue, limits);
-    const newTarget = target.clone();
+    const baseProperties = target.getProperties() ?? {};
+    let mergedProperties = baseProperties;
+    let hasChanges = false;
 
-    if (isNullable(newTarget.getProperties())) {
-      newTarget.setProperties({});
+    for (const [key, value] of Object.entries(sourceProperties)) {
+      if (!context.limits.shouldMergePathSegment(key, value)) {
+        continue;
+      }
+
+      this.enterPathSegment(context, key, value);
+      try {
+        const resolvedValue =
+          value.isResolved() && this.canReuseResolvedSubtree(context)
+            ? (value as ResolvedBlueNode)
+            : this.resolveWithContext(value, context);
+        const existingValue = mergedProperties[key];
+        const nextValue =
+          existingValue === undefined
+            ? resolvedValue
+            : this.mergeObject(existingValue, resolvedValue, context);
+
+        if (nextValue !== existingValue) {
+          if (!hasChanges) {
+            mergedProperties = { ...baseProperties };
+            hasChanges = true;
+          }
+          mergedProperties[key] = nextValue;
+        }
+      } finally {
+        this.exitPathSegment(context);
+      }
     }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const targetValue = newTarget.getProperties()![sourceKey];
-    if (targetValue === undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newTarget.getProperties()![sourceKey] = node;
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newTarget.getProperties()![sourceKey] = this.mergeObject(
-        targetValue,
-        node,
-        limits,
-      );
+
+    if (!hasChanges) {
+      return target;
     }
-    return newTarget;
+
+    return target.cloneShallow().setProperties(mergedProperties);
   }
 
   /**
@@ -211,8 +249,15 @@ export class Merger extends NodeResolver {
    * @returns A ResolvedBlueNode containing the resolved content
    */
   public resolve(node: BlueNode, limits: Limits): ResolvedBlueNode {
+    return this.resolveWithContext(node, this.createResolutionContext(limits));
+  }
+
+  private resolveWithContext(
+    node: BlueNode,
+    context: ResolutionContext,
+  ): ResolvedBlueNode {
     const resultNode = new BlueNode();
-    const mergedNode = this.merge(resultNode, node, limits);
+    const mergedNode = this.mergeWithContext(resultNode, node, context);
     const finalNode = mergedNode
       .clone()
       .setName(node.getName())
@@ -220,5 +265,86 @@ export class Merger extends NodeResolver {
       .setBlueId(node.getBlueId());
 
     return new ResolvedBlueNode(finalNode);
+  }
+
+  private createResolutionContext(limits: Limits): ResolutionContext {
+    return {
+      limits,
+      nodeProvider: this.nodeProvider,
+      resolvedTypeCache: new Map<string, ResolvedBlueNode>(),
+      pathStack: [],
+    };
+  }
+
+  private resolveTypeNode(
+    typeNode: BlueNode,
+    context: ResolutionContext,
+  ): ResolvedBlueNode {
+    const typeBlueId = typeNode.getBlueId();
+    if (isNonNullable(typeBlueId)) {
+      const cacheKey = this.createResolvedTypeCacheKey(typeBlueId, context);
+      const cachedType = context.resolvedTypeCache.get(cacheKey);
+      if (isNonNullable(cachedType)) {
+        return cachedType;
+      }
+
+      const resolvedType = this.resolveAndExtendTypeNode(typeNode, context);
+      context.resolvedTypeCache.set(cacheKey, resolvedType);
+      return resolvedType;
+    }
+
+    return this.resolveAndExtendTypeNode(typeNode, context);
+  }
+
+  private resolveAndExtendTypeNode(
+    typeNode: BlueNode,
+    context: ResolutionContext,
+  ): ResolvedBlueNode {
+    const clonedTypeNode = typeNode.clone();
+    if (isNonNullable(clonedTypeNode.getBlueId())) {
+      new NodeExtender(context.nodeProvider).extend(
+        clonedTypeNode,
+        PathLimits.withSinglePath('/'),
+      );
+    }
+
+    return this.resolveWithContext(clonedTypeNode, context);
+  }
+
+  private createResolvedTypeCacheKey(
+    typeBlueId: string,
+    context: ResolutionContext,
+  ): string {
+    if (context.limits instanceof NoLimits) {
+      return typeBlueId;
+    }
+
+    return `${typeBlueId}|${this.getCurrentPointer(context)}`;
+  }
+
+  private canReuseResolvedSubtree(context: ResolutionContext): boolean {
+    return context.limits instanceof NoLimits;
+  }
+
+  private getCurrentPointer(context: ResolutionContext): string {
+    if (context.pathStack.length === 0) {
+      return '/';
+    }
+
+    return `/${context.pathStack.join('/')}`;
+  }
+
+  private enterPathSegment(
+    context: ResolutionContext,
+    pathSegment: string,
+    currentNode?: BlueNode,
+  ): void {
+    context.pathStack.push(pathSegment);
+    context.limits.enterPathSegment(pathSegment, currentNode);
+  }
+
+  private exitPathSegment(context: ResolutionContext): void {
+    context.pathStack.pop();
+    context.limits.exitPathSegment();
   }
 }

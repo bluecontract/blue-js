@@ -15,13 +15,13 @@ export class MetadataPropagator implements MergingProcessor {
     const sourceName = source.getName();
     const targetName = target.getName();
     if (sourceName !== undefined && targetName === undefined) {
-      newTarget = newTarget.clone().setName(sourceName);
+      newTarget = newTarget.cloneShallow().setName(sourceName);
     }
 
     const sourceDescription = source.getDescription();
     const targetDescription = newTarget.getDescription();
     if (sourceDescription !== undefined && targetDescription === undefined) {
-      newTarget = newTarget.clone().setDescription(sourceDescription);
+      newTarget = newTarget.cloneShallow().setDescription(sourceDescription);
     }
 
     return newTarget;
