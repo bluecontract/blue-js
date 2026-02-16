@@ -67,11 +67,11 @@ export class Merger extends NodeResolver {
 
     if (isNonNullable(typeNode)) {
       const resolvedType = this.resolveTypeNode(typeNode, context);
-      const typeOverlay = resolvedType.cloneShallow().setType(undefined);
+      const typeOverlay = resolvedType.clone().setType(undefined);
       newTarget = this.mergeObject(newTarget, typeOverlay, context);
       const sourceWithResolvedType = source
         .cloneShallow()
-        .setType(resolvedType);
+        .setType(resolvedType.clone());
       return this.mergeObject(newTarget, sourceWithResolvedType, context);
     }
     return this.mergeObject(newTarget, source, context);
@@ -145,7 +145,7 @@ export class Merger extends NodeResolver {
         try {
           const resolvedChild =
             child.isResolved() && this.canReuseResolvedSubtree(context)
-              ? child
+              ? child.clone()
               : this.resolveWithContext(child, context);
           filteredChildren.push(resolvedChild);
         } finally {
@@ -215,7 +215,7 @@ export class Merger extends NodeResolver {
       try {
         const resolvedValue =
           value.isResolved() && this.canReuseResolvedSubtree(context)
-            ? (value as ResolvedBlueNode)
+            ? (value.clone() as ResolvedBlueNode)
             : this.resolveWithContext(value, context);
         const existingValue = mergedProperties[key];
         const nextValue =
