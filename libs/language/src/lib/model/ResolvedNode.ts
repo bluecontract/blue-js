@@ -51,6 +51,16 @@ export class ResolvedBlueNode extends BlueNode {
   }
 
   /**
+   * Creates a shallow clone of this ResolvedBlueNode while preserving
+   * the resolved marker type.
+   * @returns A new ResolvedBlueNode with shallow-copied containers
+   */
+  public override cloneShallow(): ResolvedBlueNode {
+    const clonedBase = super.cloneShallow();
+    return new ResolvedBlueNode(clonedBase);
+  }
+
+  /**
    * Copies all properties from another BlueNode
    * @param source - The node to copy properties from
    */

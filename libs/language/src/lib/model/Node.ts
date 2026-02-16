@@ -328,6 +328,22 @@ export class BlueNode {
     return cloned;
   }
 
+  cloneShallow(): BlueNode {
+    const cloned = new BlueNode(this.name);
+    cloned.description = this.description;
+    cloned.type = this.type;
+    cloned.itemType = this.itemType;
+    cloned.keyType = this.keyType;
+    cloned.valueType = this.valueType;
+    cloned.value = this.value;
+    cloned.items = this.items ? [...this.items] : undefined;
+    cloned.properties = this.properties ? { ...this.properties } : undefined;
+    cloned.blueId = this.blueId;
+    cloned.blue = this.blue;
+    cloned.inlineValue = this.inlineValue;
+    return cloned;
+  }
+
   toString(): string {
     return `BlueNode{name='${this.name}', description='${this.description}', type=${this.type}, itemType=${this.itemType}, keyType=${this.keyType}, valueType=${this.valueType}, value=${this.value}, items=${this.items}, properties=${this.properties}, blueId='${this.blueId}', blue=${this.blue}, inlineValue=${this.inlineValue}}`;
   }

@@ -18,7 +18,7 @@ export class TypeAssigner implements MergingProcessor {
     let newTarget = target;
 
     if (targetType === undefined) {
-      newTarget = target.clone().setType(sourceType);
+      newTarget = target.cloneShallow().setType(sourceType);
     } else if (sourceType !== undefined) {
       const isSubtypeResult = NodeTypes.isSubtype(
         sourceType,
@@ -36,7 +36,7 @@ export class TypeAssigner implements MergingProcessor {
           )}'.`,
         );
       }
-      newTarget = target.clone().setType(sourceType);
+      newTarget = target.cloneShallow().setType(sourceType);
     }
     return newTarget;
   }

@@ -68,8 +68,16 @@
       "dependsOn": ["build"],
       "options": {
         "cwd": "libs/language",
+        "commands": ["node scripts/benchmark/resolve.mjs"]
+      }
+    },
+    "benchmark:resolve:unique": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "libs/language",
         "commands": [
-          "command -v clinic >/dev/null 2>&1 && clinic flame -- node scripts/benchmark/resolve.mjs || node scripts/benchmark/resolve.mjs"
+          "BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs"
         ]
       }
     }
