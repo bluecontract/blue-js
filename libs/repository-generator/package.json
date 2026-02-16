@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/repository-generator",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "bin": {
     "blue-repo-generator": "./dist/bin/blue-repo-generator.mjs"
   },

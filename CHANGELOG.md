@@ -1,3 +1,23 @@
+## 3.4.2 (2026-02-16)
+
+### 🚀 Features
+
+- **benchmark:** add resolve benchmark script and configuration ([edede7e](https://github.com/bluecontract/blue-js/commit/edede7e))
+- **merge:** refactor mergeChildren to improve performance and add regression tests ([c13db25](https://github.com/bluecontract/blue-js/commit/c13db25))
+- **node:** implement shallow cloning with `cloneShallow()` method and add corresponding tests ([323d02f](https://github.com/bluecontract/blue-js/commit/323d02f))
+
+### 🩹 Fixes
+
+- **language:** preserve resolved marker in cloneShallow ([265f068](https://github.com/bluecontract/blue-js/commit/265f068))
+- **language:** re-resolve already-resolved subtrees under PathLimits ([76d27bb](https://github.com/bluecontract/blue-js/commit/76d27bb))
+
+### 🔥 Performance
+
+- **language:** use cloneShallow in merge top-level updates ([303b7ba](https://github.com/bluecontract/blue-js/commit/303b7ba))
+- **language:** make mergeProperties copy-on-write ([8ee5b39](https://github.com/bluecontract/blue-js/commit/8ee5b39))
+- **language:** skip resolve for already-resolved children and properties ([3139e8a](https://github.com/bluecontract/blue-js/commit/3139e8a))
+- **language:** cache resolved types within a single resolve ([2dfd309](https://github.com/bluecontract/blue-js/commit/2dfd309))
+
 ## 3.4.1 (2026-01-21)
 
 ### 🚀 Features
