@@ -104,9 +104,9 @@ describe('Merger', () => {
     expect(resolved.getProperties()?.prop2?.getValue()).toBe('value2');
   });
 
-  it('should skip resolve for children that are already resolved', () => {
+  it('should reuse already resolved children when limits are not restrictive', () => {
     const mockProcessor: MergingProcessor = {
-      process: vi.fn((target: BlueNode) => target),
+      process: vi.fn(basicMergingProcessor),
     };
     const mockProvider = createNodeProvider(() => []);
     const merger = new Merger(mockProcessor, mockProvider);
@@ -115,33 +115,68 @@ describe('Merger', () => {
       new BlueNode().setValue('resolved-child'),
     );
     const source = new BlueNode().setItems([resolvedChild]);
-    const resolveSpy = vi.spyOn(merger, 'resolve');
 
     const merged = merger.merge(new BlueNode(), source, NO_LIMITS);
 
-    expect(resolveSpy).not.toHaveBeenCalled();
     expect(merged.getItems()?.[0]).toBe(resolvedChild);
   });
 
-  it('should skip resolve for properties that are already resolved', () => {
+  it('should re-resolve already resolved children when path limits are used', () => {
     const mockProcessor: MergingProcessor = {
-      process: vi.fn((target: BlueNode) => target),
+      process: vi.fn(basicMergingProcessor),
+    };
+    const mockProvider = createNodeProvider(() => []);
+    const merger = new Merger(mockProcessor, mockProvider);
+
+    const resolvedChild = new ResolvedBlueNode(
+      new BlueNode().setProperties({
+        allowed: new BlueNode().setValue('allowed'),
+        blocked: new BlueNode().setValue('blocked'),
+      }),
+    );
+    const source = new BlueNode().setItems([resolvedChild]);
+    const limits = new PathLimitsBuilder().addPath('/0/allowed').build();
+
+    const merged = merger.merge(new BlueNode(), source, limits);
+    const mergedChild = merged.getItems()?.[0];
+
+    expect(mergedChild).not.toBe(resolvedChild);
+    expect(mergedChild?.getProperties()?.allowed?.getValue()).toBe('allowed');
+    expect(mergedChild?.getProperties()?.blocked).toBeUndefined();
+  });
+
+  it('should reuse already resolved properties for NoLimits and re-resolve for PathLimits', () => {
+    const mockProcessor: MergingProcessor = {
+      process: vi.fn(basicMergingProcessor),
     };
     const mockProvider = createNodeProvider(() => []);
     const merger = new Merger(mockProcessor, mockProvider);
 
     const resolvedProperty = new ResolvedBlueNode(
-      new BlueNode().setValue('resolved-property'),
+      new BlueNode().setProperties({
+        allowed: new BlueNode().setValue('allowed'),
+        blocked: new BlueNode().setValue('blocked'),
+      }),
     );
     const source = new BlueNode().setProperties({
       resolved: resolvedProperty,
     });
-    const resolveSpy = vi.spyOn(merger, 'resolve');
 
-    const merged = merger.merge(new BlueNode(), source, NO_LIMITS);
+    const noLimitsMerged = merger.merge(new BlueNode(), source, NO_LIMITS);
+    expect(noLimitsMerged.getProperties()?.resolved).toBe(resolvedProperty);
 
-    expect(resolveSpy).not.toHaveBeenCalled();
-    expect(merged.getProperties()?.resolved).toBe(resolvedProperty);
+    const pathLimitsMerged = merger.merge(
+      new BlueNode(),
+      source,
+      new PathLimitsBuilder().addPath('/resolved/allowed').build(),
+    );
+    const limitedProperty = pathLimitsMerged.getProperties()?.resolved;
+
+    expect(limitedProperty).not.toBe(resolvedProperty);
+    expect(limitedProperty?.getProperties()?.allowed?.getValue()).toBe(
+      'allowed',
+    );
+    expect(limitedProperty?.getProperties()?.blocked).toBeUndefined();
   });
 
   it('should merge source properties without mutating target properties map', () => {

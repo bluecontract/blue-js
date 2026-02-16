@@ -358,6 +358,58 @@ To jest zwykle “ostatnie 20%” zysku po usunięciu deep clone O(n²).
 
 ---
 
+## Krok 9 — Hotfix semantyki: `ResolvedBlueNode` + `PathLimits`
+
+**Status:** ✅ Zrealizowane (`Merger.ts`: fast-path reuse tylko dla `NoLimits`, przy limitach ścieżkowych wymuszone re-resolve poddrzewa).
+
+**Problem, który wyszedł po Krokach 5–7**
+
+Fast-path `isResolved()` omijał ponowne przejście przez merge z aktualnym limitem.
+W efekcie przy `PathLimits` do wyniku mogły trafiać pola spoza dozwolonej ścieżki.
+
+### Co poprawić
+
+W `mergeChildren` i `mergeProperties`:
+
+- reuse `ResolvedBlueNode` tylko gdy `limits` jest bez ograniczeń (`NoLimits`)
+- gdy są limity ścieżkowe (`PathLimits` / `CompositeLimits`), użyć `resolveWithContext(...)`
+
+### Jak zweryfikować
+
+- regresyjne testy z already-resolved subtree + `PathLimits` (pozytywny i negatywny path)
+- brak zmiany zachowania dla `NoLimits`
+
+---
+
+## Krok 10 — Utwardź testy fast-path (behawior, nie implementacja)
+
+**Status:** ✅ Zrealizowane (`Merger.test.ts`: testy sprawdzają wynik i referencje, zamiast `spy` na publiczne `resolve()`).
+
+**Cel:** uniknąć testów fałszywie zielonych, które przypadkiem nie obejmują prywatnej ścieżki `resolveWithContext`.
+
+### Co zmienić
+
+- testy “skip resolve for already resolved” przepisać na:
+  - `NoLimits`: referencja resolved child/property jest współdzielona (reuse)
+  - `PathLimits`: subtree jest przycięte do ścieżki i nie przecieka poza limit
+
+---
+
+## Krok 11 — Update dokumentacji resolve
+
+**Status:** ✅ Zrealizowane (`docs/resolve.md`: doprecyzowana semantyka cache i reguła fast-path vs path limits).
+
+**Cel:** dokumentacja ma opisywać realne zachowanie algorytmu po optymalizacjach.
+
+### Zakres
+
+- dopisać cache resolved typów w obrębie jednego `resolve()` (path-sensitive key dla limitów ścieżkowych)
+- doprecyzować, że:
+  - already-resolved subtree jest reużywany tylko przy `NoLimits`
+  - przy `PathLimits` subtree jest ponownie przepuszczane przez merge, żeby zachować ograniczenia ścieżek
+
+---
+
 # Co bym zrobił _od zera_ (zostawiam jako zajawka do v4.0)
 
 Skoro chcesz to w kolejnym majorze, to tylko w punktach:
@@ -381,5 +433,6 @@ Jeśli chcesz maksymalny zysk jak najszybciej, robiłbym dokładnie tak:
 4. **Krok 2+3** `cloneShallow` + podmiany w kluczowych miejscach
 5. **Krok 6** fast path “już resolved”
 6. **Krok 7** cache typów (mega win przy powtarzalnych typach)
+7. **Krok 9** hotfix `ResolvedBlueNode` + `PathLimits` (semantyka)
 
 Jeśli chcesz, mogę Ci też dopisać **konkretny szkic patchy** (diff-podobny) dla kroków 1–4, żebyś mógł praktycznie kopiować fragmenty do repo.

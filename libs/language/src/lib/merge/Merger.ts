@@ -143,9 +143,10 @@ export class Merger extends NodeResolver {
 
         this.enterPathSegment(context, String(i), child);
         try {
-          const resolvedChild = child.isResolved()
-            ? child
-            : this.resolveWithContext(child, context);
+          const resolvedChild =
+            child.isResolved() && this.canReuseResolvedSubtree(context)
+              ? child
+              : this.resolveWithContext(child, context);
           filteredChildren.push(resolvedChild);
         } finally {
           this.exitPathSegment(context);
@@ -212,9 +213,10 @@ export class Merger extends NodeResolver {
 
       this.enterPathSegment(context, key, value);
       try {
-        const resolvedValue = value.isResolved()
-          ? (value as ResolvedBlueNode)
-          : this.resolveWithContext(value, context);
+        const resolvedValue =
+          value.isResolved() && this.canReuseResolvedSubtree(context)
+            ? (value as ResolvedBlueNode)
+            : this.resolveWithContext(value, context);
         const existingValue = mergedProperties[key];
         const nextValue =
           existingValue === undefined
@@ -318,6 +320,10 @@ export class Merger extends NodeResolver {
     }
 
     return `${typeBlueId}|${this.getCurrentPointer(context)}`;
+  }
+
+  private canReuseResolvedSubtree(context: ResolutionContext): boolean {
+    return context.limits instanceof NoLimits;
   }
 
   private getCurrentPointer(context: ResolutionContext): string {
