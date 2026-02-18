@@ -1,3 +1,9 @@
+## 3.4.3 (2026-02-18)
+
+### 🩹 Fixes
+
+- **language:** clone resolved subtrees during merge ([57c3dea](https://github.com/bluecontract/blue-js/commit/57c3dea))
+
 ## 3.4.2 (2026-02-16)
 
 ### 🚀 Features
