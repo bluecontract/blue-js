@@ -9,12 +9,14 @@ import { Limits } from '../utils/limits/Limits';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { PathLimits } from '../utils/limits/PathLimits';
 import { NoLimits } from '../utils/limits';
+import { Nodes } from '../utils/Nodes';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 
 interface ResolutionContext {
   limits: Limits;
   nodeProvider: NodeProvider;
   resolvedTypeCache: Map<string, ResolvedBlueNode>;
+  inheritedItemsPrefixByPath: Map<string, { blueId: string; length: number }>;
   pathStack: string[];
 }
 
@@ -134,6 +136,7 @@ export class Merger extends NodeResolver {
   ): BlueNode {
     const targetChildren = target.getItems();
     if (isNullable(targetChildren)) {
+      this.rememberInheritedItemsPrefix(sourceChildren, context);
       const filteredChildren: BlueNode[] = [];
       for (let i = 0; i < sourceChildren.length; i++) {
         const child = sourceChildren[i];
@@ -153,7 +156,24 @@ export class Merger extends NodeResolver {
         }
       }
       return target.cloneShallow().setItems(filteredChildren);
-    } else if (sourceChildren.length < targetChildren.length) {
+    }
+
+    const inheritedItemsPrefixLength = this.getInheritedItemsPrefixLength(
+      sourceChildren,
+      targetChildren,
+      context,
+    );
+    if (isNonNullable(inheritedItemsPrefixLength)) {
+      const mergedChildren = this.mergeChildrenWithInheritedItemsPrefix(
+        sourceChildren,
+        targetChildren,
+        inheritedItemsPrefixLength,
+        context,
+      );
+      return target.cloneShallow().setItems(mergedChildren);
+    }
+
+    if (sourceChildren.length < targetChildren.length) {
       throw new Error(
         `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`,
       );
@@ -188,6 +208,101 @@ export class Merger extends NodeResolver {
       }
     }
     return target.cloneShallow().setItems(newTargetChildren);
+  }
+
+  /**
+   * `reverse()` may encode an inherited list as:
+   *   [ { blueId: BlueId(inheritedItems[]) }, ...appendedItems ]
+   * When that marker is present, `resolve` should keep all inherited target
+   * items and append only explicit source suffix items.
+   */
+  private getInheritedItemsPrefixLength(
+    sourceChildren: BlueNode[],
+    targetChildren: BlueNode[],
+    context: ResolutionContext,
+  ): number | undefined {
+    const firstSourceChild = sourceChildren[0];
+    const firstSourceBlueId = firstSourceChild?.getBlueId();
+    if (isNullable(firstSourceBlueId)) {
+      return undefined;
+    }
+
+    let inheritedItemsPrefixLength: number | undefined;
+    if (targetChildren.length > 0) {
+      const inheritedItemsBlueId =
+        BlueIdCalculator.calculateBlueIdSync(targetChildren);
+      if (firstSourceBlueId === inheritedItemsBlueId) {
+        inheritedItemsPrefixLength = targetChildren.length;
+      }
+    }
+
+    if (isNullable(inheritedItemsPrefixLength)) {
+      const rememberedPrefix = context.inheritedItemsPrefixByPath.get(
+        this.getCurrentPointer(context),
+      );
+      if (
+        isNonNullable(rememberedPrefix) &&
+        rememberedPrefix.blueId === firstSourceBlueId
+      ) {
+        inheritedItemsPrefixLength = rememberedPrefix.length;
+      }
+    }
+
+    if (isNullable(inheritedItemsPrefixLength)) {
+      return undefined;
+    }
+
+    if (
+      isNullable(firstSourceChild) ||
+      !Nodes.hasBlueIdOnly(firstSourceChild)
+    ) {
+      if (sourceChildren.length > 1) {
+        throw new Error(
+          'Invalid inherited-list marker: first list item must contain only blueId.',
+        );
+      }
+      return undefined;
+    }
+
+    return inheritedItemsPrefixLength;
+  }
+
+  private rememberInheritedItemsPrefix(
+    sourceChildren: BlueNode[],
+    context: ResolutionContext,
+  ): void {
+    const pointer = this.getCurrentPointer(context);
+    if (sourceChildren.length === 0) {
+      return;
+    }
+
+    context.inheritedItemsPrefixByPath.set(pointer, {
+      blueId: BlueIdCalculator.calculateBlueIdSync(sourceChildren),
+      length: sourceChildren.length,
+    });
+  }
+
+  private mergeChildrenWithInheritedItemsPrefix(
+    sourceChildren: BlueNode[],
+    targetChildren: BlueNode[],
+    inheritedItemsPrefixLength: number,
+    context: ResolutionContext,
+  ): BlueNode[] {
+    const mergedChildren = [...targetChildren];
+    for (let i = 1; i < sourceChildren.length; i++) {
+      const sourceChild = sourceChildren[i];
+      const mergedIndex = String(inheritedItemsPrefixLength + i - 1);
+      if (!context.limits.shouldMergePathSegment(mergedIndex, sourceChild)) {
+        continue;
+      }
+      this.enterPathSegment(context, mergedIndex, sourceChild);
+      try {
+        mergedChildren.push(sourceChild);
+      } finally {
+        this.exitPathSegment(context);
+      }
+    }
+    return mergedChildren;
   }
 
   /**
@@ -272,6 +387,10 @@ export class Merger extends NodeResolver {
       limits,
       nodeProvider: this.nodeProvider,
       resolvedTypeCache: new Map<string, ResolvedBlueNode>(),
+      inheritedItemsPrefixByPath: new Map<
+        string,
+        { blueId: string; length: number }
+      >(),
       pathStack: [],
     };
   }
