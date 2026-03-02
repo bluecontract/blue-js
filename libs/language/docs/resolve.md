@@ -203,6 +203,10 @@ For each source property allowed by limits:
 2. If target property does not exist: set resolved value.
 3. If target property exists: recursively `mergeObject(existing, resolved, ctx)`.
 
+For child-node metadata (`name`, `description`), explicit source values override
+inherited type values on that same child path. Missing source metadata keeps the
+inherited value.
+
 Copy-on-write map update is used to avoid unnecessary object recreation.
 
 ## Interaction with `reverse()` and official roundtrip
