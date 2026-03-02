@@ -146,10 +146,10 @@ export class Merger extends NodeResolver {
 
         this.enterPathSegment(context, String(i), child);
         try {
-          const resolvedChild =
-            child.isResolved() && this.canReuseResolvedSubtree(context)
-              ? child.clone()
-              : this.resolveWithContext(child, context);
+          const resolvedChild = this.materializeForCurrentContext(
+            child,
+            context,
+          );
           filteredChildren.push(resolvedChild);
         } finally {
           this.exitPathSegment(context);
@@ -189,11 +189,10 @@ export class Merger extends NodeResolver {
       this.enterPathSegment(context, String(i), sourceChildren[i]);
       try {
         if (i >= newTargetChildren.length) {
-          const resolvedAppendedChild =
-            sourceChildren[i].isResolved() &&
-            this.canReuseResolvedSubtree(context)
-              ? sourceChildren[i].clone()
-              : this.resolveWithContext(sourceChildren[i], context);
+          const resolvedAppendedChild = this.materializeForCurrentContext(
+            sourceChildren[i],
+            context,
+          );
           newTargetChildren.push(resolvedAppendedChild);
           continue;
         }
@@ -305,10 +304,10 @@ export class Merger extends NodeResolver {
       }
       this.enterPathSegment(context, mergedIndex, sourceChild);
       try {
-        const resolvedChild =
-          sourceChild.isResolved() && this.canReuseResolvedSubtree(context)
-            ? sourceChild.clone()
-            : this.resolveWithContext(sourceChild, context);
+        const resolvedChild = this.materializeForCurrentContext(
+          sourceChild,
+          context,
+        );
         mergedChildren.push(resolvedChild);
       } finally {
         this.exitPathSegment(context);
@@ -341,19 +340,20 @@ export class Merger extends NodeResolver {
       this.enterPathSegment(context, key, value);
       try {
         const existingValue = mergedProperties[key];
-        const shouldMergeUnresolvedListValue =
-          isNonNullable(existingValue) &&
-          !(context.limits instanceof NoLimits) &&
-          (isNonNullable(value.getItems()) ||
-            isNonNullable(existingValue.getItems()));
+        const shouldMergeUnresolvedValue =
+          this.shouldMergePropertyWithoutPreResolve(
+            existingValue,
+            value,
+            context,
+          );
 
-        const nextValue = shouldMergeUnresolvedListValue
+        const nextValue = shouldMergeUnresolvedValue
           ? this.mergeObject(existingValue, value, context)
           : (() => {
-              const resolvedValue =
-                value.isResolved() && this.canReuseResolvedSubtree(context)
-                  ? (value.clone() as ResolvedBlueNode)
-                  : this.resolveWithContext(value, context);
+              const resolvedValue = this.materializeForCurrentContext(
+                value,
+                context,
+              );
               return existingValue === undefined
                 ? resolvedValue
                 : this.mergeObject(existingValue, resolvedValue, context);
@@ -376,6 +376,26 @@ export class Merger extends NodeResolver {
     }
 
     return target.cloneShallow().setProperties(mergedProperties);
+  }
+
+  /**
+   * Under path-limited resolution, pre-resolving list-like source properties
+   * compacts indexes and may overwrite inherited-prefix metadata for the current
+   * pointer. Merge directly from unresolved source to preserve index semantics.
+   */
+  private shouldMergePropertyWithoutPreResolve(
+    existingValue: BlueNode | undefined,
+    sourceValue: BlueNode,
+    context: ResolutionContext,
+  ): boolean {
+    if (isNullable(existingValue) || context.limits instanceof NoLimits) {
+      return false;
+    }
+
+    return (
+      isNonNullable(sourceValue.getItems()) ||
+      isNonNullable(existingValue.getItems())
+    );
   }
 
   /**
@@ -460,6 +480,15 @@ export class Merger extends NodeResolver {
     }
 
     return `${typeBlueId}|${this.getCurrentPointer(context)}`;
+  }
+
+  private materializeForCurrentContext(
+    node: BlueNode,
+    context: ResolutionContext,
+  ): BlueNode {
+    return node.isResolved() && this.canReuseResolvedSubtree(context)
+      ? node.clone()
+      : this.resolveWithContext(node, context);
   }
 
   private canReuseResolvedSubtree(context: ResolutionContext): boolean {
