@@ -297,7 +297,11 @@ export class Merger extends NodeResolver {
       }
       this.enterPathSegment(context, mergedIndex, sourceChild);
       try {
-        mergedChildren.push(sourceChild);
+        const resolvedChild =
+          sourceChild.isResolved() && this.canReuseResolvedSubtree(context)
+            ? sourceChild.clone()
+            : this.resolveWithContext(sourceChild, context);
+        mergedChildren.push(resolvedChild);
       } finally {
         this.exitPathSegment(context);
       }

@@ -450,6 +450,69 @@ describe('MergeReverser', () => {
     );
   });
 
+  it('resolves marker-appended item types before applying nested PathLimits', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const memberTemplate = `
+      name: MemberTemplate
+      role: member
+      hidden: hidden-from-type
+    `;
+    nodeProvider.addSingleDocs(memberTemplate);
+
+    const base = `
+      name: Base
+      list:
+        - id: A
+        - id: B
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - id: A
+        - id: B
+        - type:
+            blueId: ${nodeProvider.getBlueIdByName('MemberTemplate')}
+          id: C
+          localOnly: should-be-pruned
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+    const reversed = new MergeReverser().reverse(loaded);
+
+    const limits = new PathLimitsBuilder()
+      .addPath('/list/0/id')
+      .addPath('/list/1/id')
+      .addPath('/list/2/role')
+      .build();
+
+    const limitedOriginal = blue.resolve(derivedNode, limits);
+    const limitedReversed = blue.resolve(reversed, limits);
+
+    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
+      blue.nodeToJson(limitedOriginal, 'official'),
+    );
+
+    const limitedReversedSimple = blue.nodeToJson(
+      limitedReversed,
+      'simple',
+    ) as { list?: Array<Record<string, unknown>> };
+    expect(limitedReversedSimple.list?.[0]).toMatchObject({ id: 'A' });
+    expect(limitedReversedSimple.list?.[1]).toMatchObject({ id: 'B' });
+    expect(limitedReversedSimple.list?.[2]).toMatchObject({ role: 'member' });
+    expect(limitedReversedSimple.list?.[2]?.id).toBeUndefined();
+    expect(limitedReversedSimple.list?.[2]?.localOnly).toBeUndefined();
+  });
+
   it('keeps reverse->resolve stable for root items marker with appended-only PathLimits', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
