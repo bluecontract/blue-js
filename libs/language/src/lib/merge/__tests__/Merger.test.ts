@@ -531,6 +531,53 @@ message:
       );
     });
 
+    it('should keep type-derived list property fields under path limits', () => {
+      const listType = new BlueNode('ListType').setProperties({
+        fromType: new BlueNode().setValue('from-type'),
+      });
+
+      const baseDoc = new BlueNode('BaseDoc').setProperties({
+        list: new BlueNode().setItems([
+          new BlueNode().setProperties({
+            id: new BlueNode().setValue('base-a'),
+          }),
+        ]),
+      });
+
+      nodeProvider.addSingleNodes(listType, baseDoc);
+
+      const derivedDoc = new BlueNode('DerivedDoc')
+        .setType(
+          new BlueNode().setBlueId(nodeProvider.getBlueIdByName('BaseDoc')),
+        )
+        .setProperties({
+          list: new BlueNode()
+            .setType(
+              new BlueNode().setBlueId(
+                nodeProvider.getBlueIdByName('ListType'),
+              ),
+            )
+            .setItems([
+              new BlueNode().setProperties({
+                id: new BlueNode().setValue('base-a'),
+              }),
+              new BlueNode().setProperties({
+                id: new BlueNode().setValue('derived-b'),
+              }),
+            ]),
+        });
+
+      const blue = new Blue({ nodeProvider });
+      const noLimitsResolved = blue.resolve(derivedDoc);
+      expect(noLimitsResolved.get('/list/fromType')).toBe('from-type');
+
+      const limits = new PathLimitsBuilder().addPath('/list/fromType').build();
+      const limitedResolved = blue.resolve(derivedDoc, limits);
+
+      expect(limitedResolved.get('/list/fromType')).toBe('from-type');
+      expect(limitedResolved.get('/list/0/id')).toBeUndefined();
+    });
+
     it('should be idempotent when resolving the same node twice', () => {
       nodeProvider.addSingleDocs(`
 name: Document Anchor

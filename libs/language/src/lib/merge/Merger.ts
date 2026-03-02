@@ -366,7 +366,7 @@ export class Merger extends NodeResolver {
           );
 
         const nextValue = shouldMergeUnresolvedValue
-          ? this.mergeObject(existingValue, value, context)
+          ? this.mergeWithContext(existingValue, value, context)
           : (() => {
               const resolvedValue = this.materializeForCurrentContext(
                 value,
@@ -399,7 +399,8 @@ export class Merger extends NodeResolver {
   /**
    * Under path-limited resolution, pre-resolving list-like source properties
    * compacts indexes and may overwrite inherited-prefix metadata for the current
-   * pointer. Merge directly from unresolved source to preserve index semantics.
+   * pointer. Merge unresolved source to preserve index semantics, but still
+   * through mergeWithContext so source type overlays are resolved.
    */
   private shouldMergePropertyWithoutPreResolve(
     existingValue: BlueNode | undefined,
