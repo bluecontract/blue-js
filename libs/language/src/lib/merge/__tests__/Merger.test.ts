@@ -576,6 +576,9 @@ message:
 
       expect(limitedResolved.get('/list/fromType')).toBe('from-type');
       expect(limitedResolved.get('/list/0/id')).toBeUndefined();
+      expect(
+        limitedResolved.getProperties()?.list?.getBlueId(),
+      ).toBeUndefined();
     });
 
     it('should be idempotent when resolving the same node twice', () => {

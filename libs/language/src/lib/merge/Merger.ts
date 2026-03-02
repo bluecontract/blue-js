@@ -69,7 +69,10 @@ export class Merger extends NodeResolver {
 
     if (isNonNullable(typeNode)) {
       const resolvedType = this.resolveTypeNode(typeNode, context);
-      const typeOverlay = resolvedType.clone().setType(undefined);
+      const typeOverlay = resolvedType
+        .clone()
+        .setType(undefined)
+        .setBlueId(undefined);
       newTarget = this.mergeObject(newTarget, typeOverlay, context);
       const sourceWithResolvedType = source
         .cloneShallow()
