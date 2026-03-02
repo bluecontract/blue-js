@@ -366,6 +366,57 @@ describe('MergeReverser', () => {
     );
   });
 
+  it('applies PathLimits to marker-appended items using merged index', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - A
+        - B
+        - C
+        - D
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+    const reversed = new MergeReverser().reverse(loaded);
+
+    const limits = new PathLimitsBuilder()
+      .addPath('/list/0')
+      .addPath('/list/1')
+      .addPath('/list/2')
+      .build();
+
+    const limitedOriginal = blue.resolve(derivedNode, limits);
+    const limitedReversed = blue.resolve(reversed, limits);
+
+    const limitedOriginalSimple = blue.nodeToJson(
+      limitedOriginal,
+      'simple',
+    ) as {
+      list?: unknown[];
+    };
+    expect(limitedOriginalSimple.list).toEqual(['A', 'B', 'C']);
+    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
+      blue.nodeToJson(limitedOriginal, 'official'),
+    );
+  });
+
   it('roundtrips when base list is empty and derived adds first items', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });

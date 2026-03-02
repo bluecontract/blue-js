@@ -238,14 +238,14 @@ export class Merger extends NodeResolver {
   ): BlueNode[] {
     const mergedChildren = [...targetChildren];
     for (let i = 1; i < sourceChildren.length; i++) {
-      if (
-        !context.limits.shouldMergePathSegment(String(i), sourceChildren[i])
-      ) {
+      const sourceChild = sourceChildren[i];
+      const mergedIndex = String(mergedChildren.length);
+      if (!context.limits.shouldMergePathSegment(mergedIndex, sourceChild)) {
         continue;
       }
-      this.enterPathSegment(context, String(i), sourceChildren[i]);
+      this.enterPathSegment(context, mergedIndex, sourceChild);
       try {
-        mergedChildren.push(sourceChildren[i]);
+        mergedChildren.push(sourceChild);
       } finally {
         this.exitPathSegment(context);
       }
