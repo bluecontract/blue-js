@@ -189,7 +189,12 @@ export class Merger extends NodeResolver {
       this.enterPathSegment(context, String(i), sourceChildren[i]);
       try {
         if (i >= newTargetChildren.length) {
-          newTargetChildren.push(sourceChildren[i]);
+          const resolvedAppendedChild =
+            sourceChildren[i].isResolved() &&
+            this.canReuseResolvedSubtree(context)
+              ? sourceChildren[i].clone()
+              : this.resolveWithContext(sourceChildren[i], context);
+          newTargetChildren.push(resolvedAppendedChild);
           continue;
         }
         const sourceBlueId = BlueIdCalculator.calculateBlueIdSync(
@@ -275,6 +280,9 @@ export class Merger extends NodeResolver {
     if (sourceChildren.length === 0) {
       return;
     }
+    if (context.inheritedItemsPrefixByPath.has(pointer)) {
+      return;
+    }
 
     context.inheritedItemsPrefixByPath.set(pointer, {
       blueId: BlueIdCalculator.calculateBlueIdSync(sourceChildren),
@@ -332,15 +340,13 @@ export class Merger extends NodeResolver {
 
       this.enterPathSegment(context, key, value);
       try {
-        const resolvedValue =
-          value.isResolved() && this.canReuseResolvedSubtree(context)
-            ? (value.clone() as ResolvedBlueNode)
-            : this.resolveWithContext(value, context);
         const existingValue = mergedProperties[key];
         const nextValue =
           existingValue === undefined
-            ? resolvedValue
-            : this.mergeObject(existingValue, resolvedValue, context);
+            ? value.isResolved() && this.canReuseResolvedSubtree(context)
+              ? (value.clone() as ResolvedBlueNode)
+              : this.resolveWithContext(value, context)
+            : this.mergeObject(existingValue, value, context);
 
         if (nextValue !== existingValue) {
           if (!hasChanges) {

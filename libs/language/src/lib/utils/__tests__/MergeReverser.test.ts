@@ -450,6 +450,53 @@ describe('MergeReverser', () => {
     );
   });
 
+  it('keeps marker classification for mixed PathLimits with inherited and appended indexes', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - A
+        - B
+        - C
+        - D
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+    const reversed = new MergeReverser().reverse(loaded);
+
+    const limits = new PathLimitsBuilder()
+      .addPath('/list/0')
+      .addPath('/list/2')
+      .build();
+
+    const limitedOriginal = blue.resolve(derivedNode, limits);
+    const limitedReversed = blue.resolve(reversed, limits);
+
+    console.log(
+      JSON.stringify(blue.nodeToJson(limitedReversed, 'official'), null, 2),
+    );
+
+    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
+      blue.nodeToJson(limitedOriginal, 'official'),
+    );
+  });
+
   it('resolves marker-appended item types before applying nested PathLimits', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
