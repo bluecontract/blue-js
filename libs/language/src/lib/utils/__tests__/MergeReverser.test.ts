@@ -488,10 +488,6 @@ describe('MergeReverser', () => {
     const limitedOriginal = blue.resolve(derivedNode, limits);
     const limitedReversed = blue.resolve(reversed, limits);
 
-    console.log(
-      JSON.stringify(blue.nodeToJson(limitedReversed, 'official'), null, 2),
-    );
-
     expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
       blue.nodeToJson(limitedOriginal, 'official'),
     );

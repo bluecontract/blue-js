@@ -341,12 +341,23 @@ export class Merger extends NodeResolver {
       this.enterPathSegment(context, key, value);
       try {
         const existingValue = mergedProperties[key];
-        const nextValue =
-          existingValue === undefined
-            ? value.isResolved() && this.canReuseResolvedSubtree(context)
-              ? (value.clone() as ResolvedBlueNode)
-              : this.resolveWithContext(value, context)
-            : this.mergeObject(existingValue, value, context);
+        const shouldMergeUnresolvedListValue =
+          isNonNullable(existingValue) &&
+          !(context.limits instanceof NoLimits) &&
+          (isNonNullable(value.getItems()) ||
+            isNonNullable(existingValue.getItems()));
+
+        const nextValue = shouldMergeUnresolvedListValue
+          ? this.mergeObject(existingValue, value, context)
+          : (() => {
+              const resolvedValue =
+                value.isResolved() && this.canReuseResolvedSubtree(context)
+                  ? (value.clone() as ResolvedBlueNode)
+                  : this.resolveWithContext(value, context);
+              return existingValue === undefined
+                ? resolvedValue
+                : this.mergeObject(existingValue, resolvedValue, context);
+            })();
 
         if (nextValue !== existingValue) {
           if (!hasChanges) {
