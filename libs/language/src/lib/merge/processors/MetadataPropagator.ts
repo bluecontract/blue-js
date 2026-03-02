@@ -2,25 +2,25 @@ import { BlueNode } from '../../model';
 import { MergingProcessor } from '../MergingProcessor';
 
 /**
- * Propagates metadata (name, description) from source to target when target is missing it.
+ * Propagates metadata (name, description) from source to target.
  *
- * This ensures that when a source node provides metadata (e.g., payload-provided
- * `name`), it is preserved after merging with type-provided nodes which typically
- * carry descriptions but not names.
+ * Child nodes inherit metadata from their type, but explicit metadata set on the
+ * source node should override inherited values for the same field.
  */
 export class MetadataPropagator implements MergingProcessor {
   process(target: BlueNode, source: BlueNode): BlueNode {
     let newTarget = target;
 
     const sourceName = source.getName();
-    const targetName = target.getName();
-    if (sourceName !== undefined && targetName === undefined) {
+    if (sourceName !== undefined && sourceName !== target.getName()) {
       newTarget = newTarget.cloneShallow().setName(sourceName);
     }
 
     const sourceDescription = source.getDescription();
-    const targetDescription = newTarget.getDescription();
-    if (sourceDescription !== undefined && targetDescription === undefined) {
+    if (
+      sourceDescription !== undefined &&
+      sourceDescription !== newTarget.getDescription()
+    ) {
       newTarget = newTarget.cloneShallow().setDescription(sourceDescription);
     }
 

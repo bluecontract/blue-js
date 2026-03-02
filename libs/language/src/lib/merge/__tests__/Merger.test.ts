@@ -442,7 +442,7 @@ message:
       expect(resolved.getProperties()?.message?.getName()).toBe('Start');
     });
 
-    it('should prefer type message name over source message name', () => {
+    it('should prefer source message name over inherited type message name', () => {
       nodeProvider.addSingleDocs(`
 name: Timeline Entry
 message:
@@ -467,7 +467,68 @@ message:
 
       const resolved = merger.resolve(myEntry, NO_LIMITS);
 
-      expect(resolved.getProperties()?.message?.getName()).toBe('Type Start');
+      expect(resolved.getProperties()?.message?.getName()).toBe('Start');
+    });
+
+    it('should prefer source message description over inherited type message description', () => {
+      nodeProvider.addSingleDocs(`
+name: Timeline Entry
+message:
+  name: Type Start
+  description: Type description
+`);
+
+      nodeProvider.addSingleDocs(`
+name: My Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Timeline Entry')}
+message:
+  description: Source description
+`);
+
+      const merger = new Merger(defaultMergingProcessor, nodeProvider);
+      const myEntry = nodeProvider.findNodeByName('My Entry');
+
+      if (!myEntry) {
+        throw new Error('My Entry not found');
+      }
+
+      const resolved = merger.resolve(myEntry, NO_LIMITS);
+
+      expect(resolved.getProperties()?.message?.getDescription()).toBe(
+        'Source description',
+      );
+    });
+
+    it('should keep inherited description when source overrides only message name', () => {
+      nodeProvider.addSingleDocs(`
+name: Timeline Entry
+message:
+  name: Type Start
+  description: Type description
+`);
+
+      nodeProvider.addSingleDocs(`
+name: My Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Timeline Entry')}
+message:
+  name: Source Start
+`);
+
+      const merger = new Merger(defaultMergingProcessor, nodeProvider);
+      const myEntry = nodeProvider.findNodeByName('My Entry');
+
+      if (!myEntry) {
+        throw new Error('My Entry not found');
+      }
+
+      const resolved = merger.resolve(myEntry, NO_LIMITS);
+
+      expect(resolved.getProperties()?.message?.getName()).toBe('Source Start');
+      expect(resolved.getProperties()?.message?.getDescription()).toBe(
+        'Type description',
+      );
     });
 
     it('should be idempotent when resolving the same node twice', () => {
