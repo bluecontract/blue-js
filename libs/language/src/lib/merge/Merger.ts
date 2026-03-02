@@ -16,6 +16,7 @@ interface ResolutionContext {
   limits: Limits;
   nodeProvider: NodeProvider;
   resolvedTypeCache: Map<string, ResolvedBlueNode>;
+  inheritedItemsPrefixByPath: Map<string, { blueId: string; length: number }>;
   pathStack: string[];
 }
 
@@ -135,6 +136,7 @@ export class Merger extends NodeResolver {
   ): BlueNode {
     const targetChildren = target.getItems();
     if (isNullable(targetChildren)) {
+      this.rememberInheritedItemsPrefix(sourceChildren, context);
       const filteredChildren: BlueNode[] = [];
       for (let i = 0; i < sourceChildren.length; i++) {
         const child = sourceChildren[i];
@@ -156,12 +158,16 @@ export class Merger extends NodeResolver {
       return target.cloneShallow().setItems(filteredChildren);
     }
 
-    if (
-      this.sourceReferencesInheritedItemsPrefix(sourceChildren, targetChildren)
-    ) {
+    const inheritedItemsPrefixLength = this.getInheritedItemsPrefixLength(
+      sourceChildren,
+      targetChildren,
+      context,
+    );
+    if (isNonNullable(inheritedItemsPrefixLength)) {
       const mergedChildren = this.mergeChildrenWithInheritedItemsPrefix(
         sourceChildren,
         targetChildren,
+        inheritedItemsPrefixLength,
         context,
       );
       return target.cloneShallow().setItems(mergedChildren);
@@ -210,24 +216,40 @@ export class Merger extends NodeResolver {
    * When that marker is present, `resolve` should keep all inherited target
    * items and append only explicit source suffix items.
    */
-  private sourceReferencesInheritedItemsPrefix(
+  private getInheritedItemsPrefixLength(
     sourceChildren: BlueNode[],
     targetChildren: BlueNode[],
-  ): boolean {
-    if (targetChildren.length === 0) {
-      return false;
-    }
-
+    context: ResolutionContext,
+  ): number | undefined {
     const firstSourceChild = sourceChildren[0];
     const firstSourceBlueId = firstSourceChild?.getBlueId();
     if (isNullable(firstSourceBlueId)) {
-      return false;
+      return undefined;
     }
 
-    const inheritedItemsBlueId =
-      BlueIdCalculator.calculateBlueIdSync(targetChildren);
-    if (firstSourceBlueId !== inheritedItemsBlueId) {
-      return false;
+    let inheritedItemsPrefixLength: number | undefined;
+    if (targetChildren.length > 0) {
+      const inheritedItemsBlueId =
+        BlueIdCalculator.calculateBlueIdSync(targetChildren);
+      if (firstSourceBlueId === inheritedItemsBlueId) {
+        inheritedItemsPrefixLength = targetChildren.length;
+      }
+    }
+
+    if (isNullable(inheritedItemsPrefixLength)) {
+      const rememberedPrefix = context.inheritedItemsPrefixByPath.get(
+        this.getCurrentPointer(context),
+      );
+      if (
+        isNonNullable(rememberedPrefix) &&
+        rememberedPrefix.blueId === firstSourceBlueId
+      ) {
+        inheritedItemsPrefixLength = rememberedPrefix.length;
+      }
+    }
+
+    if (isNullable(inheritedItemsPrefixLength)) {
+      return undefined;
     }
 
     if (
@@ -239,21 +261,37 @@ export class Merger extends NodeResolver {
           'Invalid inherited-list marker: first list item must contain only blueId.',
         );
       }
-      return false;
+      return undefined;
     }
 
-    return true;
+    return inheritedItemsPrefixLength;
+  }
+
+  private rememberInheritedItemsPrefix(
+    sourceChildren: BlueNode[],
+    context: ResolutionContext,
+  ): void {
+    const pointer = this.getCurrentPointer(context);
+    if (sourceChildren.length === 0) {
+      return;
+    }
+
+    context.inheritedItemsPrefixByPath.set(pointer, {
+      blueId: BlueIdCalculator.calculateBlueIdSync(sourceChildren),
+      length: sourceChildren.length,
+    });
   }
 
   private mergeChildrenWithInheritedItemsPrefix(
     sourceChildren: BlueNode[],
     targetChildren: BlueNode[],
+    inheritedItemsPrefixLength: number,
     context: ResolutionContext,
   ): BlueNode[] {
     const mergedChildren = [...targetChildren];
     for (let i = 1; i < sourceChildren.length; i++) {
       const sourceChild = sourceChildren[i];
-      const mergedIndex = String(mergedChildren.length);
+      const mergedIndex = String(inheritedItemsPrefixLength + i - 1);
       if (!context.limits.shouldMergePathSegment(mergedIndex, sourceChild)) {
         continue;
       }
@@ -349,6 +387,10 @@ export class Merger extends NodeResolver {
       limits,
       nodeProvider: this.nodeProvider,
       resolvedTypeCache: new Map<string, ResolvedBlueNode>(),
+      inheritedItemsPrefixByPath: new Map<
+        string,
+        { blueId: string; length: number }
+      >(),
       pathStack: [],
     };
   }

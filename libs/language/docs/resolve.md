@@ -115,6 +115,8 @@ Each top-level `resolve()` call creates one context:
 - `limits` (`NO_LIMITS` or path-based limits),
 - wrapped `nodeProvider`,
 - `resolvedTypeCache` (scoped to this call),
+- `inheritedItemsPrefixByPath` (scoped to this call; per-pointer inherited list
+  metadata used by marker-aware list merge under path limits),
 - `pathStack` (for path-aware cache keys and limits traversal).
 
 ### 2) Resolve a node by merging into a fresh target
@@ -178,6 +180,15 @@ There are three modes:
      `source.items[0].blueId === BlueId(target.items[])` (aggregated list BlueId).
    - Meaning: "keep inherited target prefix, then append source items from index 1".
    - Resolver copies all target items and appends `source[1..]` (respecting limits).
+   - With `PathLimits`, marker-appended items are checked against logical merged
+     list indexes (`inheritedPrefixLength + appendedOffset`), not raw encoded
+     source indexes (`[marker, ...]`).
+   - If path limits filtered inherited target prefix away (`target.items[]` may
+     be empty at that point), resolver can still recognize marker by using
+     inherited prefix metadata remembered earlier for the same pointer.
+   - Example: base `[A, B]`, marker form `[marker(A,B), C, D]`, limits
+     `/2` and `/3` -> result contains `C` and `D` (indexes `0` and `1` were
+     not requested).
 
 3. **Standard overlay**
    - If source is shorter than target: throw.
@@ -211,6 +222,10 @@ for both:
 
 - inherited list with appended elements,
 - inherited list with no override in derived node.
+
+This remains true under `PathLimits` that select only appended indices
+(for example `/list/2` and `/list/3` in a logical `[A, B, C, D]` list),
+because marker resolution uses logical merged indexes.
 
 ## Notes
 
