@@ -9,6 +9,7 @@ import { Limits } from '../utils/limits/Limits';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { PathLimits } from '../utils/limits/PathLimits';
 import { NoLimits } from '../utils/limits';
+import { Nodes } from '../utils/Nodes';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 
 interface ResolutionContext {
@@ -225,10 +226,23 @@ export class Merger extends NodeResolver {
 
     const inheritedItemsBlueId =
       BlueIdCalculator.calculateBlueIdSync(targetChildren);
-    return (
-      isNonNullable(firstSourceChild) &&
-      firstSourceBlueId === inheritedItemsBlueId
-    );
+    if (firstSourceBlueId !== inheritedItemsBlueId) {
+      return false;
+    }
+
+    if (
+      isNullable(firstSourceChild) ||
+      !Nodes.hasBlueIdOnly(firstSourceChild)
+    ) {
+      if (sourceChildren.length > 1) {
+        throw new Error(
+          'Invalid inherited-list marker: first list item must contain only blueId.',
+        );
+      }
+      return false;
+    }
+
+    return true;
   }
 
   private mergeChildrenWithInheritedItemsPrefix(

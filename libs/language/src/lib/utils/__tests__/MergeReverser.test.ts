@@ -323,6 +323,39 @@ describe('MergeReverser', () => {
     expect(resolvedMarkerOnly.get('/list/1/value')).toEqual('B');
   });
 
+  it('throws when marker-shaped inherited list item contains extra fields', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const baseNode = nodeProvider.getNodeByName('Base');
+    const resolvedBase = blue.resolve(baseNode);
+    const inheritedItemsBlueId = BlueIdCalculator.calculateBlueIdSync(
+      resolvedBase.getAsNode('/list')?.getItems() || [],
+    );
+
+    const invalidMarkerDerived = blue.yamlToNode(`
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - blueId: ${inheritedItemsBlueId}
+          value: should-fail
+        - C
+    `);
+
+    expect(() => blue.resolve(invalidMarkerDerived)).toThrow(
+      'Invalid inherited-list marker: first list item must contain only blueId.',
+    );
+  });
+
   it('keeps reverse->resolve stable with marker list under PathLimits', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
