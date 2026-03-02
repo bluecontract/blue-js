@@ -134,9 +134,10 @@ export class Merger extends NodeResolver {
     sourceChildren: BlueNode[],
     context: ResolutionContext,
   ): BlueNode {
+    this.rememberInheritedItemsPrefix(sourceChildren, context);
+
     const targetChildren = target.getItems();
     if (isNullable(targetChildren)) {
-      this.rememberInheritedItemsPrefix(sourceChildren, context);
       const filteredChildren: BlueNode[] = [];
       for (let i = 0; i < sourceChildren.length; i++) {
         const child = sourceChildren[i];
@@ -256,10 +257,7 @@ export class Merger extends NodeResolver {
       return undefined;
     }
 
-    if (
-      isNullable(firstSourceChild) ||
-      !Nodes.hasBlueIdOnly(firstSourceChild)
-    ) {
+    if (!this.isInheritedListMarkerNode(firstSourceChild)) {
       if (sourceChildren.length > 1) {
         throw new Error(
           'Invalid inherited-list marker: first list item must contain only blueId.',
@@ -279,14 +277,34 @@ export class Merger extends NodeResolver {
     if (sourceChildren.length === 0) {
       return;
     }
-    if (context.inheritedItemsPrefixByPath.has(pointer)) {
+    const firstSourceChild = sourceChildren[0];
+    if (this.isInheritedListMarkerNode(firstSourceChild)) {
+      // Marker-encoded lists are compact overlays, not inherited prefixes.
       return;
     }
 
-    context.inheritedItemsPrefixByPath.set(pointer, {
+    const nextPrefix = {
       blueId: BlueIdCalculator.calculateBlueIdSync(sourceChildren),
       length: sourceChildren.length,
-    });
+    };
+    const currentPrefix = context.inheritedItemsPrefixByPath.get(pointer);
+    if (
+      isNonNullable(currentPrefix) &&
+      currentPrefix.length >= nextPrefix.length
+    ) {
+      // Keep the longest inherited prefix observed at this pointer.
+      return;
+    }
+
+    context.inheritedItemsPrefixByPath.set(pointer, nextPrefix);
+  }
+
+  private isInheritedListMarkerNode(node: BlueNode | undefined): boolean {
+    return (
+      isNonNullable(node) &&
+      isNonNullable(node.getBlueId()) &&
+      Nodes.hasBlueIdOnly(node)
+    );
   }
 
   private mergeChildrenWithInheritedItemsPrefix(

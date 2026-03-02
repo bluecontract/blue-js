@@ -399,6 +399,62 @@ describe('MergeReverser', () => {
     );
   });
 
+  it('keeps reverse->resolve stable for marker list in multi-level inheritance with appended-only PathLimits', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const mid = `
+      name: Mid
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - A
+        - B
+        - C
+    `;
+    nodeProvider.addSingleDocs(mid);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Mid')}
+      list:
+        - A
+        - B
+        - C
+        - D
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+    const reversed = new MergeReverser().reverse(loaded);
+
+    const limits = new PathLimitsBuilder().addPath('/list/3').build();
+
+    const limitedOriginal = blue.resolve(derivedNode, limits);
+    const limitedReversed = blue.resolve(reversed, limits);
+
+    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
+      blue.nodeToJson(limitedOriginal, 'official'),
+    );
+
+    const limitedSimple = blue.nodeToJson(limitedReversed, 'simple') as {
+      list?: unknown[];
+    };
+    expect(limitedSimple.list).toEqual(['D']);
+  });
+
   it('applies PathLimits to marker-appended items using merged index', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
