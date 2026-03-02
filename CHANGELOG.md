@@ -1,3 +1,26 @@
+## 3.5.0 (2026-03-02)
+
+### 🚀 Features
+
+- **language:** add BlueId to type alias resolver ([5c67153](https://github.com/bluecontract/blue-js/commit/5c67153))
+- **language:** allow source metadata to override inherited type values ([a3b6974](https://github.com/bluecontract/blue-js/commit/a3b6974))
+
+### 🩹 Fixes
+
+- **language:** stabilize resolve/reverse inherited-list roundtrip and clarify resolve docs ([3d20b21](https://github.com/bluecontract/blue-js/commit/3d20b21))
+- **language:** handle inherited list marker edge cases in resolve ([a2224a4](https://github.com/bluecontract/blue-js/commit/a2224a4))
+- **language:** apply PathLimits using merged index for marker-appended list items ([d0b78a5](https://github.com/bluecontract/blue-js/commit/d0b78a5))
+- **language:** validate inherited-list marker shape in resolver ([2a3d933](https://github.com/bluecontract/blue-js/commit/2a3d933))
+- **language:** resolve inherited list marker under PathLimits ([ae858a2](https://github.com/bluecontract/blue-js/commit/ae858a2))
+- **language:** resolve merged child nodes with context ([ed4a042](https://github.com/bluecontract/blue-js/commit/ed4a042))
+- **language:** preserve inherited marker prefix under path limits ([3b4ef25](https://github.com/bluecontract/blue-js/commit/3b4ef25))
+- **language:** fix merging of unresolved list values when limits are active ([2a52489](https://github.com/bluecontract/blue-js/commit/2a52489))
+- **language:** stabilize list prefix tracking in multi-level inheritance ([94e5f65](https://github.com/bluecontract/blue-js/commit/94e5f65))
+- **language:** preserve type-derived list properties under path limits ([5ea9d3d](https://github.com/bluecontract/blue-js/commit/5ea9d3d))
+- **language:** fix inherited list item tracking for marker-encoded overlays ([2f6403f](https://github.com/bluecontract/blue-js/commit/2f6403f))
+- **language:** clear blueId from type overlay during merge ([1ac11b1](https://github.com/bluecontract/blue-js/commit/1ac11b1))
+- **repository-contract:** remove duplicated Vitest config ([459d1ab](https://github.com/bluecontract/blue-js/commit/459d1ab))
+
 ## 3.4.3 (2026-02-18)
 
 ### 🩹 Fixes
