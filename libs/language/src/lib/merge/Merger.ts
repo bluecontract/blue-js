@@ -213,13 +213,21 @@ export class Merger extends NodeResolver {
     sourceChildren: BlueNode[],
     targetChildren: BlueNode[],
   ): boolean {
+    if (targetChildren.length === 0) {
+      return false;
+    }
+
+    const firstSourceChild = sourceChildren[0];
+    const firstSourceBlueId = firstSourceChild?.getBlueId();
+    if (isNullable(firstSourceBlueId)) {
+      return false;
+    }
+
     const inheritedItemsBlueId =
       BlueIdCalculator.calculateBlueIdSync(targetChildren);
-    const firstSourceChild = sourceChildren[0];
     return (
-      targetChildren.length > 0 &&
       isNonNullable(firstSourceChild) &&
-      firstSourceChild.getBlueId() === inheritedItemsBlueId
+      firstSourceBlueId === inheritedItemsBlueId
     );
   }
 

@@ -4,6 +4,7 @@ import { MergeReverser } from '../MergeReverser';
 import { TEXT_TYPE_BLUE_ID } from '../Properties';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 import { BlueNode } from '../../model';
+import { PathLimitsBuilder } from '../limits/PathLimits';
 
 describe('MergeReverser', () => {
   it('testBasic1', () => {
@@ -284,6 +285,152 @@ describe('MergeReverser', () => {
 
     const resolvedAgain = blue.resolve(reversed);
 
+    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+  });
+
+  it('resolves marker-only inherited list shape', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+      map:
+        key1: value1
+        key2: value2
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const baseNode = nodeProvider.getNodeByName('Base');
+    const resolvedBase = blue.resolve(baseNode);
+    const inheritedItemsBlueId = BlueIdCalculator.calculateBlueIdSync(
+      resolvedBase.getAsNode('/list')?.getItems() || [],
+    );
+
+    const markerOnlyDerived = blue.yamlToNode(`
+      name: LegacyDerived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - blueId: ${inheritedItemsBlueId}
+    `);
+
+    const resolvedMarkerOnly = blue.resolve(markerOnlyDerived);
+    expect(resolvedMarkerOnly.getAsNode('/list')?.getItems()).toHaveLength(2);
+    expect(resolvedMarkerOnly.get('/list/0/value')).toEqual('A');
+    expect(resolvedMarkerOnly.get('/list/1/value')).toEqual('B');
+  });
+
+  it('keeps reverse->resolve stable with marker list under PathLimits', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - A
+        - B
+        - C
+        - D
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+    const reversed = new MergeReverser().reverse(loaded);
+
+    const limits = new PathLimitsBuilder()
+      .addPath('/list/2')
+      .addPath('/list/3')
+      .build();
+
+    const limitedOriginal = blue.resolve(derivedNode, limits);
+    const limitedReversed = blue.resolve(reversed, limits);
+
+    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
+      blue.nodeToJson(limitedOriginal, 'official'),
+    );
+  });
+
+  it('roundtrips when base list is empty and derived adds first items', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list: []
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - C
+        - D
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+    const reversed = new MergeReverser().reverse(loaded);
+
+    const reversedItems = reversed.getAsNode('/list')?.getItems() || [];
+    expect(reversedItems).toHaveLength(2);
+    expect(reversedItems[0].getBlueId()).toBeUndefined();
+
+    const resolvedAgain = blue.resolve(reversed);
+    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+  });
+
+  it('omits explicit list override when derived list is identical to inherited', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - A
+        - B
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+    const reversed = new MergeReverser().reverse(loaded);
+
+    expect(reversed.getProperties()?.list).toBeUndefined();
+
+    const resolvedAgain = blue.resolve(reversed);
     expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
   });
 });
