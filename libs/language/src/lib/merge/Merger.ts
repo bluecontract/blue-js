@@ -134,9 +134,23 @@ export class Merger extends NodeResolver {
     sourceChildren: BlueNode[],
     context: ResolutionContext,
   ): BlueNode {
-    this.rememberInheritedItemsPrefix(sourceChildren, context);
-
     const targetChildren = target.getItems();
+    const inheritedItemsPrefixLength =
+      isNonNullable(targetChildren) ||
+      this.isInheritedListMarkerNode(sourceChildren[0])
+        ? this.getInheritedItemsPrefixLength(
+            sourceChildren,
+            targetChildren ?? [],
+            context,
+          )
+        : undefined;
+
+    this.rememberInheritedItemsPrefix(
+      sourceChildren,
+      inheritedItemsPrefixLength,
+      context,
+    );
+
     if (isNullable(targetChildren)) {
       const filteredChildren: BlueNode[] = [];
       for (let i = 0; i < sourceChildren.length; i++) {
@@ -159,11 +173,6 @@ export class Merger extends NodeResolver {
       return target.cloneShallow().setItems(filteredChildren);
     }
 
-    const inheritedItemsPrefixLength = this.getInheritedItemsPrefixLength(
-      sourceChildren,
-      targetChildren,
-      context,
-    );
     if (isNonNullable(inheritedItemsPrefixLength)) {
       const mergedChildren = this.mergeChildrenWithInheritedItemsPrefix(
         sourceChildren,
@@ -271,21 +280,30 @@ export class Merger extends NodeResolver {
 
   private rememberInheritedItemsPrefix(
     sourceChildren: BlueNode[],
+    inheritedItemsPrefixLength: number | undefined,
     context: ResolutionContext,
   ): void {
     const pointer = this.getCurrentPointer(context);
     if (sourceChildren.length === 0) {
       return;
     }
+
     const firstSourceChild = sourceChildren[0];
-    if (this.isInheritedListMarkerNode(firstSourceChild)) {
-      // Marker-encoded lists are compact overlays, not inherited prefixes.
+    const isMarkerEncodedSource =
+      this.isInheritedListMarkerNode(firstSourceChild);
+    const fullSourceLength = isMarkerEncodedSource
+      ? isNonNullable(inheritedItemsPrefixLength)
+        ? inheritedItemsPrefixLength + sourceChildren.length - 1
+        : undefined
+      : sourceChildren.length;
+    if (isNullable(fullSourceLength)) {
+      // Marker overlays without a known inherited prefix cannot advance tracking.
       return;
     }
 
     const nextPrefix = {
       blueId: BlueIdCalculator.calculateBlueIdSync(sourceChildren),
-      length: sourceChildren.length,
+      length: fullSourceLength,
     };
     const currentPrefix = context.inheritedItemsPrefixByPath.get(pointer);
     if (

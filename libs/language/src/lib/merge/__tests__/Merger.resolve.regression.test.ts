@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '../../Blue';
+import { BlueNode } from '../../model';
 import { BasicNodeProvider } from '../../provider';
+import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
+import { PathLimitsBuilder } from '../../utils/limits/PathLimits';
 
 describe('Merger resolve regression', () => {
   it('keeps resolve behavior stable for typed trees with repeated type references', () => {
@@ -133,5 +136,57 @@ items:
     expect(() => blue.resolve(invalidBasicTypeNode)).toThrow(
       'must not have items, properties or contracts.',
     );
+  });
+
+  it('keeps appended list items when intermediate inheritance is stored as marker overlay under PathLimits', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const itemA = new BlueNode().setValue('A');
+    const itemB = new BlueNode().setValue('B');
+    const itemC = new BlueNode().setValue('C');
+    const itemD = new BlueNode().setValue('D');
+
+    const basePrefixBlueId = BlueIdCalculator.calculateBlueIdSync([
+      itemA.clone(),
+      itemB.clone(),
+    ]);
+    const midPrefixBlueId = BlueIdCalculator.calculateBlueIdSync([
+      itemA.clone(),
+      itemB.clone(),
+      itemC.clone(),
+    ]);
+
+    const base = new BlueNode('Base').setProperties({
+      list: new BlueNode().setItems([itemA.clone(), itemB.clone()]),
+    });
+    nodeProvider.addSingleNodes(base);
+
+    const mid = new BlueNode('Mid')
+      .setType(new BlueNode().setBlueId(nodeProvider.getBlueIdByName('Base')))
+      .setProperties({
+        list: new BlueNode().setItems([
+          new BlueNode().setBlueId(basePrefixBlueId),
+          itemC.clone(),
+        ]),
+      });
+    nodeProvider.addSingleNodes(mid);
+
+    const derived = new BlueNode('Derived')
+      .setType(new BlueNode().setBlueId(nodeProvider.getBlueIdByName('Mid')))
+      .setProperties({
+        list: new BlueNode().setItems([
+          new BlueNode().setBlueId(midPrefixBlueId),
+          itemD.clone(),
+        ]),
+      });
+
+    const limits = new PathLimitsBuilder().addPath('/list/3').build();
+    const limitedResolved = blue.resolve(derived, limits);
+    const limitedSimple = blue.nodeToJson(limitedResolved, 'simple') as {
+      list?: unknown[];
+    };
+
+    expect(limitedSimple.list).toEqual(['D']);
   });
 });
