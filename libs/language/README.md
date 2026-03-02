@@ -104,6 +104,7 @@ const json = blue.nodeToJson(node, {
   - IDs: `calculateBlueId(_)/calculateBlueIdSync(_)`.
   - Mapping: `nodeToJson(node, 'official'|'simple'|'original'|{ format, blueContext })`, `nodeToSchemaOutput(node, zod)`.
   - Type checks: `isTypeOf(node, zod)`, `isTypeOfNode(node, typeNode)`, `isTypeOfBlueId(node, blueId)`.
+  - Type aliases: `getTypeAliasByBlueId(blueId)` (returns inline aliases like `Text` for core types and `Package/Type` for repository types, including historical `blueId` values resolved to current aliases; `undefined` for empty/unknown ids).
   - Helpers: `extend(node, limits)`, `transform(node, fn)`, `reverse(node)`, `restoreInlineTypes(node)`.
   - Config: URL fetch allow-list (`enablePreprocessingDirectivesFetchForDomains([...])`), global limits, repositories.
 

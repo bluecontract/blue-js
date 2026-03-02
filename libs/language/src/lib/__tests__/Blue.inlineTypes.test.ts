@@ -232,6 +232,11 @@ describe('Blue.restoreInlineTypes', () => {
           label: 'Marketing',
           code: 'marketing',
         },
+        {
+          type: 'Option',
+          label: 'Sales',
+          code: 'sales',
+        },
       ],
       attributes: {
         required: 'true',
@@ -255,9 +260,12 @@ describe('Blue.restoreInlineTypes', () => {
     expect(optionsItemType?.isInlineValue()).toBe(true);
     expect(optionsItemType?.getValue()).toBe('Option');
 
-    const firstOptionType = optionsNode?.getItems()?.[0]?.getType();
-    expect(firstOptionType?.isInlineValue()).toBe(true);
-    expect(firstOptionType?.getValue()).toBe('Option');
+    const optionItems = optionsNode?.getItems() ?? [];
+    expect(optionItems).toHaveLength(2);
+    optionItems.forEach((optionItem) => {
+      expect(optionItem.getType()?.isInlineValue()).toBe(true);
+      expect(optionItem.getType()?.getValue()).toBe('Option');
+    });
 
     const attributesNode = restoredResolved.getProperties()?.attributes;
     expect(attributesNode).toBeDefined();
@@ -278,95 +286,121 @@ describe('Blue.restoreInlineTypes', () => {
 
     expect(blue.nodeToJson(restoredResolved, 'official'))
       .toMatchInlineSnapshot(`
-      {
-        "attributes": {
-          "keyType": {
-            "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+        {
+          "attributes": {
+            "keyType": {
+              "type": {
+                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              },
+              "value": "Text",
             },
-            "value": "Text",
+            "required": {
+              "type": {
+                "type": {
+                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                },
+                "value": "Text",
+              },
+              "value": "true",
+            },
+            "type": {
+              "type": {
+                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              },
+              "value": "Dictionary",
+            },
+            "valueType": {
+              "type": {
+                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              },
+              "value": "Text",
+            },
           },
-          "required": {
+          "name": "Registration",
+          "options": {
+            "itemType": {
+              "type": {
+                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              },
+              "value": "Option",
+            },
+            "items": [
+              {
+                "code": {
+                  "type": {
+                    "type": {
+                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                    },
+                    "value": "Text",
+                  },
+                  "value": "marketing",
+                },
+                "label": {
+                  "type": {
+                    "type": {
+                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                    },
+                    "value": "Text",
+                  },
+                  "value": "Marketing",
+                },
+                "type": {
+                  "type": {
+                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                  },
+                  "value": "Option",
+                },
+              },
+              {
+                "code": {
+                  "type": {
+                    "type": {
+                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                    },
+                    "value": "Text",
+                  },
+                  "value": "sales",
+                },
+                "label": {
+                  "type": {
+                    "type": {
+                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                    },
+                    "value": "Text",
+                  },
+                  "value": "Sales",
+                },
+                "type": {
+                  "type": {
+                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                  },
+                  "value": "Option",
+                },
+              },
+            ],
+            "type": {
+              "type": {
+                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              },
+              "value": "List",
+            },
+          },
+          "title": {
             "type": {
               "type": {
                 "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
               },
               "value": "Text",
             },
-            "value": "true",
           },
           "type": {
             "type": {
               "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
             },
-            "value": "Dictionary",
+            "value": "Form",
           },
-          "valueType": {
-            "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-            },
-            "value": "Text",
-          },
-        },
-        "name": "Registration",
-        "options": {
-          "itemType": {
-            "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-            },
-            "value": "Option",
-          },
-          "items": [
-            {
-              "code": {
-                "type": {
-                  "type": {
-                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-                  },
-                  "value": "Text",
-                },
-                "value": "marketing",
-              },
-              "label": {
-                "type": {
-                  "type": {
-                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-                  },
-                  "value": "Text",
-                },
-                "value": "Marketing",
-              },
-              "type": {
-                "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-                },
-                "value": "Option",
-              },
-            },
-          ],
-          "type": {
-            "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-            },
-            "value": "List",
-          },
-        },
-        "title": {
-          "type": {
-            "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-            },
-            "value": "Text",
-          },
-        },
-        "type": {
-          "type": {
-            "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-          },
-          "value": "Form",
-        },
-      }
-    `);
+        }
+      `);
 
     expect(blue.nodeToJson(restoredResolved, 'simple')).toMatchInlineSnapshot(`
       {
@@ -381,6 +415,11 @@ describe('Blue.restoreInlineTypes', () => {
           {
             "code": "marketing",
             "label": "Marketing",
+            "type": "Option",
+          },
+          {
+            "code": "sales",
+            "label": "Sales",
             "type": "Option",
           },
         ],

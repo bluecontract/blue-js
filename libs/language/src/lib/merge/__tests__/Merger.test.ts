@@ -442,7 +442,7 @@ message:
       expect(resolved.getProperties()?.message?.getName()).toBe('Start');
     });
 
-    it('should prefer type message name over source message name', () => {
+    it('should prefer source message name over inherited type message name', () => {
       nodeProvider.addSingleDocs(`
 name: Timeline Entry
 message:
@@ -467,7 +467,118 @@ message:
 
       const resolved = merger.resolve(myEntry, NO_LIMITS);
 
-      expect(resolved.getProperties()?.message?.getName()).toBe('Type Start');
+      expect(resolved.getProperties()?.message?.getName()).toBe('Start');
+    });
+
+    it('should prefer source message description over inherited type message description', () => {
+      nodeProvider.addSingleDocs(`
+name: Timeline Entry
+message:
+  name: Type Start
+  description: Type description
+`);
+
+      nodeProvider.addSingleDocs(`
+name: My Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Timeline Entry')}
+message:
+  description: Source description
+`);
+
+      const merger = new Merger(defaultMergingProcessor, nodeProvider);
+      const myEntry = nodeProvider.findNodeByName('My Entry');
+
+      if (!myEntry) {
+        throw new Error('My Entry not found');
+      }
+
+      const resolved = merger.resolve(myEntry, NO_LIMITS);
+
+      expect(resolved.getProperties()?.message?.getDescription()).toBe(
+        'Source description',
+      );
+    });
+
+    it('should keep inherited description when source overrides only message name', () => {
+      nodeProvider.addSingleDocs(`
+name: Timeline Entry
+message:
+  name: Type Start
+  description: Type description
+`);
+
+      nodeProvider.addSingleDocs(`
+name: My Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Timeline Entry')}
+message:
+  name: Source Start
+`);
+
+      const merger = new Merger(defaultMergingProcessor, nodeProvider);
+      const myEntry = nodeProvider.findNodeByName('My Entry');
+
+      if (!myEntry) {
+        throw new Error('My Entry not found');
+      }
+
+      const resolved = merger.resolve(myEntry, NO_LIMITS);
+
+      expect(resolved.getProperties()?.message?.getName()).toBe('Source Start');
+      expect(resolved.getProperties()?.message?.getDescription()).toBe(
+        'Type description',
+      );
+    });
+
+    it('should keep type-derived list property fields under path limits', () => {
+      const listType = new BlueNode('ListType').setProperties({
+        fromType: new BlueNode().setValue('from-type'),
+      });
+
+      const baseDoc = new BlueNode('BaseDoc').setProperties({
+        list: new BlueNode().setItems([
+          new BlueNode().setProperties({
+            id: new BlueNode().setValue('base-a'),
+          }),
+        ]),
+      });
+
+      nodeProvider.addSingleNodes(listType, baseDoc);
+
+      const derivedDoc = new BlueNode('DerivedDoc')
+        .setType(
+          new BlueNode().setBlueId(nodeProvider.getBlueIdByName('BaseDoc')),
+        )
+        .setProperties({
+          list: new BlueNode()
+            .setType(
+              new BlueNode().setBlueId(
+                nodeProvider.getBlueIdByName('ListType'),
+              ),
+            )
+            .setItems([
+              new BlueNode().setProperties({
+                id: new BlueNode().setValue('base-a'),
+              }),
+              new BlueNode().setProperties({
+                id: new BlueNode().setValue('derived-b'),
+              }),
+            ]),
+        });
+
+      const blue = new Blue({ nodeProvider });
+      const noLimitsResolved = blue.resolve(derivedDoc);
+      expect(noLimitsResolved.get('/list/fromType')).toBe('from-type');
+
+      const limits = new PathLimitsBuilder().addPath('/list/fromType').build();
+      const limitedResolved = blue.resolve(derivedDoc, limits);
+
+      expect(limitedResolved.get('/list/fromType')).toBe('from-type');
+      expect(limitedResolved.get('/list/0/id')).toBeUndefined();
+      expect(
+        limitedResolved.getProperties()?.list?.getBlueId(),
+      ).toBeUndefined();
     });
 
     it('should be idempotent when resolving the same node twice', () => {

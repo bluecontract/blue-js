@@ -286,6 +286,25 @@ export class Blue {
     return BlueIdCalculator.calculateBlueIdSync(prepared);
   }
 
+  /**
+   * Resolves a type alias by BlueId.
+   *
+   * For core types this returns inline aliases such as `Text`.
+   * For repository-backed types this resolves historical BlueIds to current aliases
+   * and returns values in `Package/Type` format.
+   *
+   * @param blueId - Type BlueId to resolve.
+   * @returns The resolved type alias or `undefined` when the input is empty or unknown.
+   */
+  public getTypeAliasByBlueId(blueId: string | undefined): string | undefined {
+    const normalizedBlueId = blueId?.trim();
+    if (!normalizedBlueId) {
+      return undefined;
+    }
+
+    return this.repositoryRegistry.getTypeAlias(normalizedBlueId);
+  }
+
   public addPreprocessingAliases(aliases: Map<string, string>): void {
     this.blueDirectivePreprocessor.addPreprocessingAliases(aliases);
   }

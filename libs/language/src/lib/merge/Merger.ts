@@ -9,12 +9,14 @@ import { Limits } from '../utils/limits/Limits';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { PathLimits } from '../utils/limits/PathLimits';
 import { NoLimits } from '../utils/limits';
+import { Nodes } from '../utils/Nodes';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 
 interface ResolutionContext {
   limits: Limits;
   nodeProvider: NodeProvider;
   resolvedTypeCache: Map<string, ResolvedBlueNode>;
+  inheritedItemsPrefixByPath: Map<string, { blueId: string; length: number }>;
   pathStack: string[];
 }
 
@@ -67,7 +69,10 @@ export class Merger extends NodeResolver {
 
     if (isNonNullable(typeNode)) {
       const resolvedType = this.resolveTypeNode(typeNode, context);
-      const typeOverlay = resolvedType.clone().setType(undefined);
+      const typeOverlay = resolvedType
+        .clone()
+        .setType(undefined)
+        .setBlueId(undefined);
       newTarget = this.mergeObject(newTarget, typeOverlay, context);
       const sourceWithResolvedType = source
         .cloneShallow()
@@ -133,6 +138,22 @@ export class Merger extends NodeResolver {
     context: ResolutionContext,
   ): BlueNode {
     const targetChildren = target.getItems();
+    const inheritedItemsPrefixLength =
+      isNonNullable(targetChildren) ||
+      this.isInheritedListMarkerNode(sourceChildren[0])
+        ? this.getInheritedItemsPrefixLength(
+            sourceChildren,
+            targetChildren ?? [],
+            context,
+          )
+        : undefined;
+
+    this.rememberInheritedItemsPrefix(
+      sourceChildren,
+      inheritedItemsPrefixLength,
+      context,
+    );
+
     if (isNullable(targetChildren)) {
       const filteredChildren: BlueNode[] = [];
       for (let i = 0; i < sourceChildren.length; i++) {
@@ -143,17 +164,29 @@ export class Merger extends NodeResolver {
 
         this.enterPathSegment(context, String(i), child);
         try {
-          const resolvedChild =
-            child.isResolved() && this.canReuseResolvedSubtree(context)
-              ? child.clone()
-              : this.resolveWithContext(child, context);
+          const resolvedChild = this.materializeForCurrentContext(
+            child,
+            context,
+          );
           filteredChildren.push(resolvedChild);
         } finally {
           this.exitPathSegment(context);
         }
       }
       return target.cloneShallow().setItems(filteredChildren);
-    } else if (sourceChildren.length < targetChildren.length) {
+    }
+
+    if (isNonNullable(inheritedItemsPrefixLength)) {
+      const mergedChildren = this.mergeChildrenWithInheritedItemsPrefix(
+        sourceChildren,
+        targetChildren,
+        inheritedItemsPrefixLength,
+        context,
+      );
+      return target.cloneShallow().setItems(mergedChildren);
+    }
+
+    if (sourceChildren.length < targetChildren.length) {
       throw new Error(
         `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`,
       );
@@ -169,7 +202,11 @@ export class Merger extends NodeResolver {
       this.enterPathSegment(context, String(i), sourceChildren[i]);
       try {
         if (i >= newTargetChildren.length) {
-          newTargetChildren.push(sourceChildren[i]);
+          const resolvedAppendedChild = this.materializeForCurrentContext(
+            sourceChildren[i],
+            context,
+          );
+          newTargetChildren.push(resolvedAppendedChild);
           continue;
         }
         const sourceBlueId = BlueIdCalculator.calculateBlueIdSync(
@@ -188,6 +225,134 @@ export class Merger extends NodeResolver {
       }
     }
     return target.cloneShallow().setItems(newTargetChildren);
+  }
+
+  /**
+   * `reverse()` may encode an inherited list as:
+   *   [ { blueId: BlueId(inheritedItems[]) }, ...appendedItems ]
+   * When that marker is present, `resolve` should keep all inherited target
+   * items and append only explicit source suffix items.
+   */
+  private getInheritedItemsPrefixLength(
+    sourceChildren: BlueNode[],
+    targetChildren: BlueNode[],
+    context: ResolutionContext,
+  ): number | undefined {
+    const firstSourceChild = sourceChildren[0];
+    const firstSourceBlueId = firstSourceChild?.getBlueId();
+    if (isNullable(firstSourceBlueId)) {
+      return undefined;
+    }
+
+    let inheritedItemsPrefixLength: number | undefined;
+    if (targetChildren.length > 0) {
+      const inheritedItemsBlueId =
+        BlueIdCalculator.calculateBlueIdSync(targetChildren);
+      if (firstSourceBlueId === inheritedItemsBlueId) {
+        inheritedItemsPrefixLength = targetChildren.length;
+      }
+    }
+
+    if (isNullable(inheritedItemsPrefixLength)) {
+      const rememberedPrefix = context.inheritedItemsPrefixByPath.get(
+        this.getCurrentPointer(context),
+      );
+      if (
+        isNonNullable(rememberedPrefix) &&
+        rememberedPrefix.blueId === firstSourceBlueId
+      ) {
+        inheritedItemsPrefixLength = rememberedPrefix.length;
+      }
+    }
+
+    if (isNullable(inheritedItemsPrefixLength)) {
+      return undefined;
+    }
+
+    if (!this.isInheritedListMarkerNode(firstSourceChild)) {
+      if (sourceChildren.length > 1) {
+        throw new Error(
+          'Invalid inherited-list marker: first list item must contain only blueId.',
+        );
+      }
+      return undefined;
+    }
+
+    return inheritedItemsPrefixLength;
+  }
+
+  private rememberInheritedItemsPrefix(
+    sourceChildren: BlueNode[],
+    inheritedItemsPrefixLength: number | undefined,
+    context: ResolutionContext,
+  ): void {
+    const pointer = this.getCurrentPointer(context);
+    if (sourceChildren.length === 0) {
+      return;
+    }
+
+    const firstSourceChild = sourceChildren[0];
+    const isMarkerEncodedSource =
+      this.isInheritedListMarkerNode(firstSourceChild);
+    const fullSourceLength = isMarkerEncodedSource
+      ? isNonNullable(inheritedItemsPrefixLength)
+        ? inheritedItemsPrefixLength + sourceChildren.length - 1
+        : undefined
+      : sourceChildren.length;
+    if (isNullable(fullSourceLength)) {
+      // Marker overlays without a known inherited prefix cannot advance tracking.
+      return;
+    }
+
+    const nextPrefix = {
+      blueId: BlueIdCalculator.calculateBlueIdSync(sourceChildren),
+      length: fullSourceLength,
+    };
+    const currentPrefix = context.inheritedItemsPrefixByPath.get(pointer);
+    if (
+      isNonNullable(currentPrefix) &&
+      currentPrefix.length >= nextPrefix.length
+    ) {
+      // Keep the longest inherited prefix observed at this pointer.
+      return;
+    }
+
+    context.inheritedItemsPrefixByPath.set(pointer, nextPrefix);
+  }
+
+  private isInheritedListMarkerNode(node: BlueNode | undefined): boolean {
+    return (
+      isNonNullable(node) &&
+      isNonNullable(node.getBlueId()) &&
+      Nodes.hasBlueIdOnly(node)
+    );
+  }
+
+  private mergeChildrenWithInheritedItemsPrefix(
+    sourceChildren: BlueNode[],
+    targetChildren: BlueNode[],
+    inheritedItemsPrefixLength: number,
+    context: ResolutionContext,
+  ): BlueNode[] {
+    const mergedChildren = [...targetChildren];
+    for (let i = 1; i < sourceChildren.length; i++) {
+      const sourceChild = sourceChildren[i];
+      const mergedIndex = String(inheritedItemsPrefixLength + i - 1);
+      if (!context.limits.shouldMergePathSegment(mergedIndex, sourceChild)) {
+        continue;
+      }
+      this.enterPathSegment(context, mergedIndex, sourceChild);
+      try {
+        const resolvedChild = this.materializeForCurrentContext(
+          sourceChild,
+          context,
+        );
+        mergedChildren.push(resolvedChild);
+      } finally {
+        this.exitPathSegment(context);
+      }
+    }
+    return mergedChildren;
   }
 
   /**
@@ -213,15 +378,25 @@ export class Merger extends NodeResolver {
 
       this.enterPathSegment(context, key, value);
       try {
-        const resolvedValue =
-          value.isResolved() && this.canReuseResolvedSubtree(context)
-            ? (value.clone() as ResolvedBlueNode)
-            : this.resolveWithContext(value, context);
         const existingValue = mergedProperties[key];
-        const nextValue =
-          existingValue === undefined
-            ? resolvedValue
-            : this.mergeObject(existingValue, resolvedValue, context);
+        const shouldMergeUnresolvedValue =
+          this.shouldMergePropertyWithoutPreResolve(
+            existingValue,
+            value,
+            context,
+          );
+
+        const nextValue = shouldMergeUnresolvedValue
+          ? this.mergeWithContext(existingValue, value, context)
+          : (() => {
+              const resolvedValue = this.materializeForCurrentContext(
+                value,
+                context,
+              );
+              return existingValue === undefined
+                ? resolvedValue
+                : this.mergeObject(existingValue, resolvedValue, context);
+            })();
 
         if (nextValue !== existingValue) {
           if (!hasChanges) {
@@ -240,6 +415,27 @@ export class Merger extends NodeResolver {
     }
 
     return target.cloneShallow().setProperties(mergedProperties);
+  }
+
+  /**
+   * Under path-limited resolution, pre-resolving list-like source properties
+   * compacts indexes and may overwrite inherited-prefix metadata for the current
+   * pointer. Merge unresolved source to preserve index semantics, but still
+   * through mergeWithContext so source type overlays are resolved.
+   */
+  private shouldMergePropertyWithoutPreResolve(
+    existingValue: BlueNode | undefined,
+    sourceValue: BlueNode,
+    context: ResolutionContext,
+  ): boolean {
+    if (isNullable(existingValue) || context.limits instanceof NoLimits) {
+      return false;
+    }
+
+    return (
+      isNonNullable(sourceValue.getItems()) ||
+      isNonNullable(existingValue.getItems())
+    );
   }
 
   /**
@@ -272,6 +468,10 @@ export class Merger extends NodeResolver {
       limits,
       nodeProvider: this.nodeProvider,
       resolvedTypeCache: new Map<string, ResolvedBlueNode>(),
+      inheritedItemsPrefixByPath: new Map<
+        string,
+        { blueId: string; length: number }
+      >(),
       pathStack: [],
     };
   }
@@ -320,6 +520,15 @@ export class Merger extends NodeResolver {
     }
 
     return `${typeBlueId}|${this.getCurrentPointer(context)}`;
+  }
+
+  private materializeForCurrentContext(
+    node: BlueNode,
+    context: ResolutionContext,
+  ): BlueNode {
+    return node.isResolved() && this.canReuseResolvedSubtree(context)
+      ? node.clone()
+      : this.resolveWithContext(node, context);
   }
 
   private canReuseResolvedSubtree(context: ResolutionContext): boolean {
