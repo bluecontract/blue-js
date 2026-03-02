@@ -153,7 +153,20 @@ export class Merger extends NodeResolver {
         }
       }
       return target.cloneShallow().setItems(filteredChildren);
-    } else if (sourceChildren.length < targetChildren.length) {
+    }
+
+    if (
+      this.sourceReferencesInheritedItemsPrefix(sourceChildren, targetChildren)
+    ) {
+      const mergedChildren = this.mergeChildrenWithInheritedItemsPrefix(
+        sourceChildren,
+        targetChildren,
+        context,
+      );
+      return target.cloneShallow().setItems(mergedChildren);
+    }
+
+    if (sourceChildren.length < targetChildren.length) {
       throw new Error(
         `Subtype of element must not have more items (${targetChildren.length}) than the element itself (${sourceChildren.length}).`,
       );
@@ -188,6 +201,48 @@ export class Merger extends NodeResolver {
       }
     }
     return target.cloneShallow().setItems(newTargetChildren);
+  }
+
+  /**
+   * `reverse()` may encode an inherited list as:
+   *   [ { blueId: BlueId(inheritedItems[]) }, ...appendedItems ]
+   * When that marker is present, `resolve` should keep all inherited target
+   * items and append only explicit source suffix items.
+   */
+  private sourceReferencesInheritedItemsPrefix(
+    sourceChildren: BlueNode[],
+    targetChildren: BlueNode[],
+  ): boolean {
+    const inheritedItemsBlueId =
+      BlueIdCalculator.calculateBlueIdSync(targetChildren);
+    const firstSourceChild = sourceChildren[0];
+    return (
+      targetChildren.length > 0 &&
+      isNonNullable(firstSourceChild) &&
+      firstSourceChild.getBlueId() === inheritedItemsBlueId
+    );
+  }
+
+  private mergeChildrenWithInheritedItemsPrefix(
+    sourceChildren: BlueNode[],
+    targetChildren: BlueNode[],
+    context: ResolutionContext,
+  ): BlueNode[] {
+    const mergedChildren = [...targetChildren];
+    for (let i = 1; i < sourceChildren.length; i++) {
+      if (
+        !context.limits.shouldMergePathSegment(String(i), sourceChildren[i])
+      ) {
+        continue;
+      }
+      this.enterPathSegment(context, String(i), sourceChildren[i]);
+      try {
+        mergedChildren.push(sourceChildren[i]);
+      } finally {
+        this.exitPathSegment(context);
+      }
+    }
+    return mergedChildren;
   }
 
   /**

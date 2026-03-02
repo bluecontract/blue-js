@@ -124,8 +124,14 @@ export class MergeReverser {
 
     const fromTypeItems = fromType?.getItems();
     const minimalItems: BlueNode[] = [];
+    const hasAppendedItems =
+      isNonNullable(fromTypeItems) && mergedItems.length > fromTypeItems.length;
 
-    if (isNonNullable(fromTypeItems) && fromTypeItems.length > 0) {
+    if (
+      hasAppendedItems &&
+      isNonNullable(fromTypeItems) &&
+      fromTypeItems.length > 0
+    ) {
       const itemsBlueId = BlueIdCalculator.calculateBlueIdSync(fromTypeItems);
       minimalItems.push(new BlueNode().setBlueId(itemsBlueId));
     }

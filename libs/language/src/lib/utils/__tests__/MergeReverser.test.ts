@@ -203,4 +203,87 @@ describe('MergeReverser', () => {
     ).toEqual(1);
     expect(reversed.get('/map/key3/value')).toEqual('value3');
   });
+
+  it('resolves reversed inherited list after official roundtrip', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+      map:
+        key1: value1
+        key2: value2
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      list:
+        - A
+        - B
+        - C
+        - D
+      map:
+        key3: value3
+        key4: value4
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+
+    const reverser = new MergeReverser();
+    const reversed = reverser.reverse(loaded);
+    expect(reversed.getProperties()?.list).toBeDefined();
+    expect(reversed.getProperties()?.list.getItems()).toHaveLength(3);
+
+    const resolvedAgain = blue.resolve(reversed);
+
+    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+  });
+
+  it('resolves reversed marker-only inherited list after official roundtrip', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    const base = `
+      name: Base
+      list:
+        - A
+        - B
+      map:
+        key1: value1
+        key2: value2
+    `;
+    nodeProvider.addSingleDocs(base);
+
+    const derived = `
+      name: Derived
+      type:
+        blueId: ${nodeProvider.getBlueIdByName('Base')}
+      map:
+        key3: value3
+    `;
+    nodeProvider.addSingleDocs(derived);
+
+    const derivedNode = nodeProvider.getNodeByName('Derived');
+    const resolved = blue.resolve(derivedNode);
+    const official = blue.nodeToJson(resolved, 'official');
+    const loaded = blue.jsonValueToNode(official);
+
+    const reverser = new MergeReverser();
+    const reversed = reverser.reverse(loaded);
+    expect(reversed.getProperties()?.list).toBeUndefined();
+
+    const resolvedAgain = blue.resolve(reversed);
+
+    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+  });
 });

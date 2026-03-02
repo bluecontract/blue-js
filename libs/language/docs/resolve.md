@@ -1,55 +1,221 @@
 ### Resolve: from minimal input to a fully-typed Blue graph
 
-**What it does**
-Resolution takes a (possibly minimal) `BlueNode` and merges it with all referenced types and documents (via `blueId`, `type`, `itemType`, etc.), producing a `ResolvedBlueNode`. The process is deterministic and driven by a pluggable MergingProcessor pipeline.
+`Blue.resolve(node, limits)` turns a minimal (or partial) `BlueNode` into a
+`ResolvedBlueNode` by recursively merging:
 
-**How it fits**
-`Blue.resolve(node, limits)` creates a fresh node and repeatedly merges source into target. If a node references a type (`type.blueId`) the type is first extended (fetch provider → expand references) and then merged. Resolved type definitions are cached within a single `resolve()` call (path-sensitive key when using path limits). Items and properties are merged respecting path limits to avoid over-expansion.
+- node-level data (`value`, metadata, type refs),
+- inherited content from `type.blueId`,
+- children (`items`, `properties`),
+- merge-processor constraints (list/dictionary/type rules).
 
-**Key algorithm (simplified)**
+The implementation is in `Merger` and is deterministic for a given input + provider set.
 
-```ts
-function resolve(node, limits) {
-  const target = {};
-  return asResolved(merge(target, node, limits));
-}
+## Quick version (simple)
 
-function merge(target, source, limits) {
-  // type blueId -> resolved type cache (scoped to current resolve context)
-  // cache key is path-sensitive when limits are path-based
+`resolve` does this, in practice:
 
-  // 1) apply processors sequentially (value, type, list/dict, metadata, basic checks)
-  const processed = pipeline.process(target, source, provider);
+1. Starts from an empty node.
+2. If source has `type`, it first resolves that type and applies inherited fields.
+3. Then it applies source node values. Source can fill inherited typed fields, but conflicting concrete values are rejected.
+4. Recursively resolves `items` and `properties`.
+5. Enforces consistency checks (types, list item compatibility, dictionary rules).
+6. Returns a `ResolvedBlueNode`.
 
-  // 2) merge children (items & properties) with path-aware checks and ID consistency
-  for (let i = 0; i < (source.items?.length ?? 0); i++) {
-    if (limits.allow(i)) {
-      const child = source.items[i];
-      const childNode =
-        child.isResolved() && limits.isNoLimits()
-          ? clone(child)
-          : resolve(child, limits);
-      processed.items[i] = childNode;
-    }
-  }
-  for (const [k, v] of Object.entries(source.properties ?? {})) {
-    if (limits.allow(k)) {
-      const valueNode =
-        v.isResolved() && limits.isNoLimits() ? clone(v) : resolve(v, limits);
-      processed.properties[k] = merge(processed.properties?.[k] ?? {}, valueNode, limits);
-    }
-  }
+For most readers, this is enough.
 
-  // 3) postProcess (final checks)
-  return pipeline.postProcess?.(processed, source, provider) ?? processed;
-}
+## Quick examples
+
+### Example 1: extending object fields (inherit + value fill)
+
+Base definition (`<BasePreferencesBlueId>`):
+
+```yaml
+name: Base Preferences
+enabled: true
+retries:
+  type: Integer
 ```
 
-**Notes**
+Input node:
 
-- Lists enforce same BlueId at the same index when overlaying.
-- Dictionaries enforce key/value types via `ListProcessor`/`DictionaryProcessor`.
-- `PathLimits.fromNode(typeNode)` lets `isTypeOfNode` and `resolve` reason with the target shape only.
-- Already-resolved subtrees are not re-resolved only for unrestricted resolution (`NoLimits`), but they are cloned to keep branch isolation; with path-based limits they are re-merged to preserve path filtering.
-- Type resolution cache is scoped to one `resolve()` call, so repeated `type.blueId` references avoid repeated extension/resolution work.
-- Resolution assumes type references use current BlueIds. `yamlToNode/jsonValueToNode` normalize during ingestion; for manually constructed nodes, ensure the types are already current before resolving.
+```yaml
+name: Runtime Preferences
+type:
+  blueId: <BasePreferencesBlueId>
+retries: 5
+notes: customized
+```
+
+After `resolve`:
+
+```yaml
+name: Runtime Preferences
+type:
+  blueId: <BasePreferencesBlueId>
+enabled: true
+retries: 5
+notes: customized
+```
+
+So object fields are inherited from type (`enabled`), and local values fill inherited typed fields (`retries`).
+
+### Example 2: extending list of objects (append in derived)
+
+Base definition (`<BaseWorkflowBlueId>`):
+
+```yaml
+name: Base Workflow
+steps:
+  - code: draft
+    label: Draft
+  - code: sign
+    label: Sign
+```
+
+Input node:
+
+```yaml
+name: Sales Workflow
+type:
+  blueId: <BaseWorkflowBlueId>
+steps:
+  - code: draft
+    label: Draft
+  - code: sign
+    label: Sign
+  - code: archive
+    label: Archive
+```
+
+After `resolve`, `steps` has all three objects (`draft`, `sign`, `archive`).
+
+### Example 3: `resolve -> official -> reverse -> resolve` for inherited lists
+
+Flow:
+
+1. `resolved = blue.resolve(node)`
+2. `official = blue.nodeToJson(resolved, 'official')`
+3. `loaded = blue.jsonValueToNode(official)`
+4. `minimal = blue.reverse(loaded)`
+5. `resolvedAgain = blue.resolve(minimal)`
+
+Rules for list fields in `minimal`:
+
+- If derived appended list items, `reverse` may emit inherited-list marker + appended items.
+- If derived did not override list at all, `reverse` now leaves that list absent.
+
+In both cases above, `resolvedAgain` should be semantically equivalent to `resolved`.
+
+## Extended algorithm (optional deep dive)
+
+### 1) Create resolution context
+
+Each top-level `resolve()` call creates one context:
+
+- `limits` (`NO_LIMITS` or path-based limits),
+- wrapped `nodeProvider`,
+- `resolvedTypeCache` (scoped to this call),
+- `pathStack` (for path-aware cache keys and limits traversal).
+
+### 2) Resolve a node by merging into a fresh target
+
+`resolveWithContext(node, ctx)`:
+
+1. Create empty `resultNode`.
+2. `mergeWithContext(resultNode, node, ctx)`.
+3. Copy top-level `name`, `description`, and `blueId` from original source
+   back to the final node.
+4. Wrap as `ResolvedBlueNode`.
+
+### 3) Handle source `type` first
+
+`mergeWithContext(target, source, ctx)`:
+
+1. Rejects nodes that still contain `blue:` directives (must be preprocessed first).
+2. If `source.type` exists:
+   - Resolve type node (`resolveTypeNode`).
+   - Build `typeOverlay = resolvedType.clone().setType(undefined)` and merge it into target.
+   - Merge original `source` after replacing its `type` with resolved type clone.
+3. If `source.type` is absent: merge `source` directly.
+
+This keeps type inheritance applied before source additions and compatible updates.
+
+### 4) Resolve type references with cache
+
+`resolveTypeNode(typeNode, ctx)`:
+
+1. If `typeNode.blueId` exists, check `resolvedTypeCache` first.
+2. Cache key:
+   - `NoLimits`: `typeBlueId`
+   - path-based limits: `typeBlueId|/current/pointer`
+3. On cache miss:
+   - clone type node,
+   - `NodeExtender.extend(..., PathLimits.withSinglePath('/'))` when type has `blueId`,
+   - recursively resolve extended type node,
+   - store in cache.
+
+### 5) Merge object content
+
+`mergeObject(target, source, ctx)`:
+
+1. Clone target shallowly.
+2. Run `mergingProcessor.process(...)` pipeline.
+3. Merge `items` (`mergeChildren`) if present.
+4. Merge `properties` (`mergeProperties`) if present.
+5. Copy `source.blueId` when present.
+6. Run optional `postProcess`.
+
+### 6) Merge list items (`mergeChildren`)
+
+There are three modes:
+
+1. **Target has no items yet**
+   - Resolve each source child (or clone resolved child under `NoLimits`),
+   - append in order (respecting limits).
+
+2. **Source uses inherited-prefix marker**
+   - Marker is recognized when:
+     `source.items[0].blueId === BlueId(target.items[])` (aggregated list BlueId).
+   - Meaning: "keep inherited target prefix, then append source items from index 1".
+   - Resolver copies all target items and appends `source[1..]` (respecting limits).
+
+3. **Standard overlay**
+   - If source is shorter than target: throw.
+   - For overlapping indexes: BlueId must match item-by-item.
+   - Extra source items are appended.
+
+### 7) Merge properties (`mergeProperties`)
+
+For each source property allowed by limits:
+
+1. Resolve/cloned-resolve source property node.
+2. If target property does not exist: set resolved value.
+3. If target property exists: recursively `mergeObject(existing, resolved, ctx)`.
+
+Copy-on-write map update is used to avoid unnecessary object recreation.
+
+## Interaction with `reverse()` and official roundtrip
+
+`reverse()` can emit a compact representation for inherited lists. Current behavior:
+
+- If a derived list appends items, reverse emits inherited-prefix marker:
+  first list item is `blueId` of inherited list, followed by appended items.
+- If derived does not override list at all, reverse now leaves list absent
+  (no marker-only list).
+
+Resolver (`mergeChildren`) understands this marker format, so this roundtrip is valid:
+
+`resolve -> nodeToJson('official') -> jsonValueToNode -> reverse -> resolve`
+
+for both:
+
+- inherited list with appended elements,
+- inherited list with no override in derived node.
+
+## Notes
+
+- Dictionaries enforce key/value type constraints via merge processors.
+- Already-resolved subtrees are cloned (not re-resolved) only with `NoLimits`.
+- With path-based limits, subtrees are re-resolved to keep path filtering correct.
+- Type resolution cache is local to one `resolve()` call.
+- Resolution expects current type BlueIds; ingestion helpers normalize historical IDs.
