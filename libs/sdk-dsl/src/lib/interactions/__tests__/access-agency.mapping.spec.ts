@@ -481,4 +481,49 @@ describe('interaction builders mapping', () => {
       `type: MyOS/Linked Documents Permission Revoke Requested`,
     );
   });
+
+  it('maps agency permission target override helpers', () => {
+    const document = DocBuilder.doc()
+      .name('Agency Permission Override Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('default-target')
+      .done()
+      .operation(
+        'overrideAgencyPermissions',
+        'ownerChannel',
+        Number,
+        'override agency permission target',
+        (steps) =>
+          steps
+            .viaAgency('workerAgency')
+            .requestPermission(
+              {
+                type: 'MyOS/Worker Agency Permission',
+                workerType: 'MyOS/MyOS Admin Base',
+                permissions: {
+                  read: true,
+                },
+              },
+              'override-target',
+            )
+            .viaAgency('workerAgency')
+            .revokePermission('override-target'),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`targetSessionId: override-target`);
+    expect(yaml).toContain(
+      `type: MyOS/Worker Agency Permission Grant Requested`,
+    );
+    expect(yaml).toContain(
+      `type: MyOS/Worker Agency Permission Revoke Requested`,
+    );
+  });
 });

@@ -1196,4 +1196,75 @@ describe('access step helpers execution', () => {
       ]),
     );
   });
+
+  it('emits agency permission and revoke requests with explicit target override', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Permission Override Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('default-target')
+      .done()
+      .operation(
+        'overrideAgencyPermissions',
+        'ownerChannel',
+        Number,
+        'override agency permission target',
+        (steps) =>
+          steps
+            .viaAgency('workerAgency')
+            .requestPermission(
+              {
+                type: 'MyOS/Worker Agency Permission',
+                workerType: 'MyOS/MyOS Admin Base',
+                permissions: {
+                  read: true,
+                },
+              },
+              'override-target',
+            )
+            .viaAgency('workerAgency')
+            .revokePermission('override-target'),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency permission override initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'overrideAgencyPermissions',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'agency permission override operation failed',
+    );
+
+    const events = processed.triggeredEvents.map((event) =>
+      toOfficialJson(event),
+    );
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'MyOS/Worker Agency Permission Grant Requested',
+          targetSessionId: 'override-target',
+        }),
+        expect.objectContaining({
+          type: 'MyOS/Worker Agency Permission Revoke Requested',
+          targetSessionId: 'override-target',
+        }),
+      ]),
+    );
+  });
 });
