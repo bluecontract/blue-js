@@ -161,4 +161,88 @@ describe('steps-builder mapping', () => {
     expect(yaml).toContain(`amount: \${event.message.request.amount}`);
     expect(yaml).toContain(`type: PayNote/Reservation Release Requested`);
   });
+
+  it('maps all payment rail helpers and payload validation guards', () => {
+    const steps = new StepsBuilder()
+      .triggerPayment(
+        'PayAcrossRails',
+        'PayNote/Reserve Funds Requested',
+        (payload) =>
+          payload
+            .processor('stripe')
+            .from('payer')
+            .to('payee')
+            .currency('USD')
+            .amountMinor(12345)
+            .viaSepa()
+            .put('ibanFrom', 'DE123')
+            .put('ibanTo', 'DE456')
+            .put('bicTo', 'BICCODE')
+            .put('remittanceInformation', 'invoice-1')
+            .done()
+            .viaWire()
+            .put('bankSwift', 'BOFAUS3N')
+            .put('bankName', 'Bank Of Test')
+            .put('accountNumber', '1234567890')
+            .put('beneficiaryName', 'Ada Lovelace')
+            .put('beneficiaryAddress', '42 Main St')
+            .done()
+            .viaCard()
+            .put('cardOnFileRef', 'cof_123')
+            .put('merchantDescriptor', 'BLUE-LABS')
+            .done()
+            .viaTokenizedCard()
+            .put('networkToken', 'tok_123')
+            .put('tokenProvider', 'network')
+            .put('cryptogram', 'crypt')
+            .done()
+            .viaCreditLine()
+            .put('creditLineId', 'line_1')
+            .put('merchantAccountId', 'merchant_1')
+            .put('cardholderAccountId', 'cardholder_1')
+            .done()
+            .viaLedger()
+            .put('ledgerAccountFrom', 'ops')
+            .put('ledgerAccountTo', 'settlement')
+            .put('memo', 'internal transfer')
+            .done()
+            .viaCrypto()
+            .put('asset', 'USDC')
+            .put('chain', 'BASE')
+            .put('fromWalletRef', 'wallet_1')
+            .put('toAddress', '0xabc')
+            .put('txPolicy', 'fast')
+            .done()
+            .putCustom('idempotencyKey', 'payment-1')
+            .putCustomExpression('merchantRef', "document('/merchant/ref')"),
+      )
+      .build();
+
+    const yaml = dump({ steps }, { noRefs: true, lineWidth: -1 });
+    expect(yaml).toContain(`name: PayAcrossRails`);
+    expect(yaml).toContain(`type: PayNote/Reserve Funds Requested`);
+    expect(yaml).toContain(`ibanFrom: DE123`);
+    expect(yaml).toContain(`bankSwift: BOFAUS3N`);
+    expect(yaml).toContain(`cardOnFileRef: cof_123`);
+    expect(yaml).toContain(`networkToken: tok_123`);
+    expect(yaml).toContain(`creditLineId: line_1`);
+    expect(yaml).toContain(`ledgerAccountFrom: ops`);
+    expect(yaml).toContain(`asset: USDC`);
+    expect(yaml).toContain(`idempotencyKey: payment-1`);
+    expect(yaml).toContain(`merchantRef: \${document('/merchant/ref')}`);
+
+    expect(() =>
+      new StepsBuilder().triggerPayment(
+        'PayNote/Reserve Funds Requested',
+        (payload) => payload.from('payer').to('payee'),
+      ),
+    ).toThrow('payment payload requires processor');
+
+    expect(() =>
+      new StepsBuilder().triggerPayment(
+        'PayNote/Reserve Funds Requested',
+        (payload) => payload.processor('stripe').putCustom('processor', 'bad'),
+      ),
+    ).toThrow('use processor(...) to set processor');
+  });
 });

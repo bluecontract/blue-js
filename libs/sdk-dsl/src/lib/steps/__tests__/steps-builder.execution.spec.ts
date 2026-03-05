@@ -369,4 +369,82 @@ describe('steps-builder execution', () => {
     );
     expect(partialCapture).toBeDefined();
   });
+
+  it('emits reserve payment requests with custom rail payload fields', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step Payment Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'emitPaymentEvent',
+        'ownerChannel',
+        Number,
+        'Emit payment request event',
+        (steps) =>
+          steps.triggerPayment(
+            'PayAcrossRails',
+            'PayNote/Reserve Funds Requested',
+            (payload) =>
+              payload
+                .processor('stripe')
+                .from('payer')
+                .to('payee')
+                .currency('USD')
+                .amountMinor(12345)
+                .viaCrypto()
+                .put('asset', 'USDC')
+                .put('chain', 'BASE')
+                .put('fromWalletRef', 'wallet_1')
+                .put('toAddress', '0xabc')
+                .put('txPolicy', 'fast')
+                .done()
+                .putCustom('idempotencyKey', 'payment-1'),
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'step payment runtime document initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'emitPaymentEvent',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'step payment runtime operation failed',
+    );
+
+    const paymentEvent = processed.triggeredEvents
+      .map((triggeredEvent) => toOfficialJson(triggeredEvent))
+      .find(
+        (triggeredEvent) =>
+          triggeredEvent.type === 'PayNote/Reserve Funds Requested',
+      );
+    expect(paymentEvent).toBeDefined();
+    expect(paymentEvent).toMatchObject({
+      processor: 'stripe',
+      from: 'payer',
+      to: 'payee',
+      currency: 'USD',
+      amountMinor: 12345,
+      asset: 'USDC',
+      chain: 'BASE',
+      fromWalletRef: 'wallet_1',
+      toAddress: '0xabc',
+      txPolicy: 'fast',
+      idempotencyKey: 'payment-1',
+    });
+  });
 });
