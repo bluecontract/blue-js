@@ -303,4 +303,70 @@ describe('steps-builder execution', () => {
         .buildDocument(),
     ).toThrow('PayNote/Backward Payment Requested');
   });
+
+  it('emits capture lock-state and release events from capture helpers', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step Capture Runtime')
+      .field('/amount/total', 2000)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'emitCaptureHelpers',
+        'ownerChannel',
+        Number,
+        'Emit capture helper events',
+        (steps) =>
+          steps
+            .capture()
+            .markLocked()
+            .capture()
+            .markUnlocked()
+            .capture()
+            .requestPartial('event.message.request')
+            .capture()
+            .releaseFull(),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'step capture helper document initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'emitCaptureHelpers',
+      request: 450,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'step capture helper operation failed',
+    );
+
+    const triggeredEvents = processed.triggeredEvents.map((triggeredEvent) =>
+      toOfficialJson(triggeredEvent),
+    );
+    const eventTypes = triggeredEvents.map(
+      (triggeredEvent) => triggeredEvent.type,
+    );
+    expect(eventTypes).toContain('PayNote/Card Transaction Capture Locked');
+    expect(eventTypes).toContain('PayNote/Card Transaction Capture Unlocked');
+    expect(eventTypes).toContain('PayNote/Capture Funds Requested');
+    expect(eventTypes).toContain('PayNote/Reservation Release Requested');
+
+    const partialCapture = triggeredEvents.find(
+      (triggeredEvent) =>
+        triggeredEvent.type === 'PayNote/Capture Funds Requested' &&
+        triggeredEvent.amount === 450,
+    );
+    expect(partialCapture).toBeDefined();
+  });
 });

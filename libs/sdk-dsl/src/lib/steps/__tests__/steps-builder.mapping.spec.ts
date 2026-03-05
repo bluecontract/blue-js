@@ -140,4 +140,25 @@ describe('steps-builder mapping', () => {
     expect(yaml).toContain(`name: raw-event`);
     expect(yaml).toContain(`source: raw-step`);
   });
+
+  it('maps capture helper variants for lock-state and release flows', () => {
+    const steps = new StepsBuilder()
+      .capture()
+      .markLocked()
+      .capture()
+      .markUnlocked()
+      .capture()
+      .requestPartial('event.message.request.amount')
+      .capture()
+      .releaseFull()
+      .build();
+
+    const yaml = dump({ steps }, { noRefs: true, lineWidth: -1 });
+    expect(yaml).toContain(`name: CaptureLocked`);
+    expect(yaml).toContain(`type: PayNote/Card Transaction Capture Locked`);
+    expect(yaml).toContain(`name: CaptureUnlocked`);
+    expect(yaml).toContain(`type: PayNote/Card Transaction Capture Unlocked`);
+    expect(yaml).toContain(`amount: \${event.message.request.amount}`);
+    expect(yaml).toContain(`type: PayNote/Reservation Release Requested`);
+  });
 });
