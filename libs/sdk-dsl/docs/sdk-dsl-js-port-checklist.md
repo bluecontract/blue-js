@@ -46,9 +46,9 @@ Legend:
 
 ## Interaction builders
 
-- ⚠️ `access(...)` (config + permission/revoke/subscribe/call + explicit-target helper coverage, including target-override permission/revoke variants; parity expansion ongoing)
-- ⚠️ `accessLinked(...)` (config + permission/revoke/subscribe/call + explicit-target helper coverage, including target-override permission/revoke variants; parity expansion ongoing)
-- ⚠️ `agency(...)` (config + permission/revoke/start-worker/call/subscribe + explicit-target helper coverage, including explicit permission/revoke variants; parity expansion ongoing)
+- ✅ `access(...)` (config + permission/revoke/subscribe/call + explicit-target helper coverage, including target-override permission/revoke variants)
+- ✅ `accessLinked(...)` (config + permission/revoke/subscribe/call + explicit-target helper coverage, including target-override permission/revoke variants)
+- ✅ `agency(...)` (config + permission/revoke/start-worker/call/subscribe + explicit-target helper coverage, including explicit permission/revoke variants)
 
 ## Docs and parity artifacts
 

@@ -2,31 +2,7 @@
 
 This file tracks currently known parity gaps between the TypeScript SDK DSL and the Java POC DSL.
 
-## 1) Access/LinkedAccess/Agency interaction builders are baseline-only
-
-- **Status**: Partial
-- **Repro**:
-  ```ts
-  DocBuilder.doc().access('provider')
-  ```
-- **Expected (Java parity)**:
-  - `access(...)`, `accessLinked(...)`, `agency(...)` fluent builders
-  - generated request/grant/revoke workflows and listener helpers
-- **Actual**:
-  - baseline config builders + listener helpers are implemented.
-  - access helper coverage now includes `requestPermission`, `requestPermissionForTarget`, `revokePermission`, `revokePermissionForTarget`, `subscribe`, `call`, `subscribeForTarget`, and `callOnTarget`.
-  - linked-access helper coverage now includes `requestPermission`, `requestPermissionForTarget`, `revokePermission`, `revokePermissionForTarget`, `subscribe`, `call`, `subscribeForTarget`, and `callOnTarget`.
-  - linked/agency listener helper coverage now includes `onLinkedUpdate(...)`, `onLinkedDocRejected(...)`, and `onAgencyUpdate(...)`.
-  - agency helper coverage now includes `requestPermission`, `requestPermissionForTarget`, `revokePermission`, `revokePermissionForTarget`, `startWorkerSession`, `call`, `callOnTarget`, `subscribe`, and `subscribeForTarget`.
-  - mapping suite now covers grant/reject/revoke + session/participant lifecycle listener variants.
-  - execution suite now covers request/revoke helper flows and broad listener-triggered state transitions (access/linked/agency/session/call/participant) across interaction namespaces.
-  - full Java parity surface (complete step wrappers + all lifecycle helpers) is still incomplete.
-- **Likely cause**:
-  - Initial port focused on runtime-backed core scenarios first.
-- **Next actions**:
-  - Expand to full parity for linked-doc and worker session orchestration variants.
-
-## 2) Named event type alias divergence
+## 1) Named event type alias divergence
 
 - **Status**: Open
 - **Repro**:
@@ -44,7 +20,7 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
 - **Next actions**:
   - Switch back to `Common/Named Event` when alias is available in repository models.
 
-## 3) PayNote default channels adjusted for processor compatibility
+## 2) PayNote default channels adjusted for processor compatibility
 
 - **Status**: Open
 - **Repro**:
@@ -60,7 +36,7 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
 - **Next actions**:
   - Revisit once processor supports generic channel execution for this flow.
 
-## 4) Backward payment requested type availability
+## 3) Backward payment requested type availability
 
 - **Status**: Open
 - **Repro**:
