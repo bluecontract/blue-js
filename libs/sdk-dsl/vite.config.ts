@@ -33,7 +33,9 @@ export default defineConfig(() => ({
     rollupOptions: {
       external: (id: string) => {
         const dependencies = Object.keys(packageJson.dependencies ?? {});
-        const peerDependencies = Object.keys(packageJson.peerDependencies ?? {});
+        const peerDependencies = Object.keys(
+          packageJson.peerDependencies ?? {},
+        );
         const devDependencies = Object.keys(packageJson.devDependencies ?? {});
         return (
           dependencies.some((dependency) => id === dependency) ||
