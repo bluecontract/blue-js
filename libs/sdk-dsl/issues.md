@@ -2,22 +2,23 @@
 
 This file tracks currently known parity gaps between the TypeScript SDK DSL and the Java POC DSL.
 
-## 1) Access/LinkedAccess/Agency interaction builders not yet implemented
+## 1) Access/LinkedAccess/Agency interaction builders are baseline-only
 
-- **Status**: Open
+- **Status**: Partial
 - **Repro**:
   ```ts
-  DocBuilder.doc().access('provider') // not implemented
+  DocBuilder.doc().access('provider')
   ```
 - **Expected (Java parity)**:
   - `access(...)`, `accessLinked(...)`, `agency(...)` fluent builders
   - generated request/grant/revoke workflows and listener helpers
 - **Actual**:
-  - APIs are currently missing from `DocBuilder`.
+  - baseline config builders + listener helpers are implemented.
+  - full Java parity surface (complete step wrappers + all lifecycle helpers) is still incomplete.
 - **Likely cause**:
-  - Interaction builder module family has not been ported yet.
+  - Initial port focused on runtime-backed core scenarios first.
 - **Next actions**:
-  - Port `AccessBuilder`, `LinkedAccessBuilder`, `AgencyBuilder`, and step helpers.
+  - Expand to full parity for linked-doc and worker session orchestration variants.
 
 ## 2) Named event type alias divergence
 

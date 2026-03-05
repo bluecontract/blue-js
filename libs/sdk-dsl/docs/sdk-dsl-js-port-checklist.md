@@ -46,9 +46,9 @@ Legend:
 
 ## Interaction builders
 
-- ❌ `access(...)`
-- ❌ `accessLinked(...)`
-- ❌ `agency(...)`
+- ⚠️ `access(...)` (baseline)
+- ⚠️ `accessLinked(...)` (baseline)
+- ⚠️ `agency(...)` (baseline)
 
 ## Docs and parity artifacts
 

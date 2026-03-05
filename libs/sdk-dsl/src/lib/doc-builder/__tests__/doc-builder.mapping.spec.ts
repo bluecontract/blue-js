@@ -91,4 +91,26 @@ counter: 0
       },
     });
   });
+
+  it('maps document anchors and link wrappers', () => {
+    const document = DocBuilder.doc()
+      .name('Anchors and Links')
+      .documentAnchors(['anchorA'])
+      .sessionLink('sessionLink', 'anchorA', 'SESSION_1')
+      .buildDocument();
+
+    expect(toOfficialYaml(document)).toBe(`name: Anchors and Links
+contracts:
+  anchors:
+    type: MyOS/Document Anchors
+    anchorA:
+      type: MyOS/Document Anchor
+  links:
+    type: MyOS/Document Links
+    sessionLink:
+      type: MyOS/MyOS Session Link
+      anchor: anchorA
+      sessionId: SESSION_1
+`);
+  });
 });

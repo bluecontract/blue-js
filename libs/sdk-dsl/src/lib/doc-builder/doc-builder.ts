@@ -4,6 +4,14 @@ import type {
   AIIntegrationConfig,
   AiIntegrationDefinition,
 } from '../ai/ai-types.js';
+import { AccessBuilder } from '../interactions/access-builder.js';
+import { AgencyBuilder } from '../interactions/agency-builder.js';
+import { LinkedAccessBuilder } from '../interactions/linked-access-builder.js';
+import type {
+  AccessConfig,
+  AgencyConfig,
+  LinkedAccessConfig,
+} from '../interactions/types.js';
 import { DocJsonState } from '../core/doc-json-state.js';
 import {
   ensureExpression,
@@ -52,6 +60,9 @@ function aiToken(name: string): string {
 export class DocBuilder {
   protected readonly state: DocJsonState;
   private readonly aiIntegrations = new Map<string, AIIntegrationConfig>();
+  private readonly accessConfigs = new Map<string, AccessConfig>();
+  private readonly linkedAccessConfigs = new Map<string, LinkedAccessConfig>();
+  private readonly agencyConfigs = new Map<string, AgencyConfig>();
 
   protected constructor(initial?: JsonObject) {
     this.state = new DocJsonState(initial);
@@ -446,6 +457,30 @@ export class DocBuilder {
     return new AiIntegrationBuilder<this>(this, integrationName);
   }
 
+  access(accessName: string): AccessBuilder<this> {
+    this.myOsAdmin();
+    return new AccessBuilder<this>(
+      this,
+      requireText(accessName, 'access name'),
+    );
+  }
+
+  accessLinked(linkedAccessName: string): LinkedAccessBuilder<this> {
+    this.myOsAdmin();
+    return new LinkedAccessBuilder<this>(
+      this,
+      requireText(linkedAccessName, 'linked access name'),
+    );
+  }
+
+  agency(agencyName: string): AgencyBuilder<this> {
+    this.myOsAdmin();
+    return new AgencyBuilder<this>(
+      this,
+      requireText(agencyName, 'agency name'),
+    );
+  }
+
   onAIResponse(
     integrationName: string,
     workflowKey: string,
@@ -490,6 +525,145 @@ export class DocBuilder {
         );
         customizerMaybe(steps);
       },
+    );
+  }
+
+  onAccessGranted(
+    accessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Single Document Permission Granted',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAccessRejected(
+    accessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Single Document Permission Rejected',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAccessRevoked(
+    accessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Single Document Permission Revoked',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onUpdate(
+    accessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    return this.onSubscriptionUpdate(
+      workflowKey,
+      config.subscriptionId,
+      customizer,
+    );
+  }
+
+  onLinkedAccessGranted(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Linked Documents Permission Granted',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onLinkedAccessRejected(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Linked Documents Permission Rejected',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onLinkedAccessRevoked(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Linked Documents Permission Revoked',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAgencyGranted(
+    agencyName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireAgencyConfig(agencyName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Worker Agency Permission Granted',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAgencyRejected(
+    agencyName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireAgencyConfig(agencyName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Worker Agency Permission Rejected',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAgencyRevoked(
+    agencyName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const config = this.requireAgencyConfig(agencyName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Worker Agency Permission Revoked',
+      config.requestId,
+      customizer,
     );
   }
 
@@ -597,6 +771,21 @@ export class DocBuilder {
     return this;
   }
 
+  registerAccessConfig(config: AccessConfig): this {
+    this.accessConfigs.set(config.name, structuredClone(config));
+    return this;
+  }
+
+  registerLinkedAccessConfig(config: LinkedAccessConfig): this {
+    this.linkedAccessConfigs.set(config.name, structuredClone(config));
+    return this;
+  }
+
+  registerAgencyConfig(config: AgencyConfig): this {
+    this.agencyConfigs.set(config.name, structuredClone(config));
+    return this;
+  }
+
   canEmit(channelKey: string, ...allowedEventTypes: TypeLike[]): this {
     const normalizedChannel = requireText(channelKey, 'channel key');
     const operationKey = normalizedChannel.replace(/Channel$/u, 'Update');
@@ -698,6 +887,103 @@ export class DocBuilder {
     return this;
   }
 
+  documentAnchors(
+    anchors:
+      | string[]
+      | Record<string, JsonObject>
+      | ((anchors: JsonObject) => void),
+    contractKey = 'anchors',
+  ): this {
+    const contract: JsonObject = {
+      type: 'MyOS/Document Anchors',
+    };
+    if (Array.isArray(anchors)) {
+      for (const anchorName of anchors) {
+        const key = requireText(anchorName, 'anchor name');
+        contract[key] = { type: 'MyOS/Document Anchor' };
+      }
+    } else if (typeof anchors === 'function') {
+      anchors(contract);
+    } else {
+      for (const [anchorName, anchorDef] of Object.entries(anchors)) {
+        const key = requireText(anchorName, 'anchor name');
+        contract[key] = cloneObject(anchorDef);
+      }
+    }
+    this.state.setContract(contractKey, contract);
+    return this;
+  }
+
+  documentLinks(
+    links: Record<string, JsonObject>,
+    contractKey = 'links',
+  ): this {
+    const contract: JsonObject = {
+      type: 'MyOS/Document Links',
+    };
+    for (const [linkName, linkDef] of Object.entries(links)) {
+      contract[requireText(linkName, 'link name')] = cloneObject(linkDef);
+    }
+    this.state.setContract(contractKey, contract);
+    return this;
+  }
+
+  sessionLink(
+    linkName: string,
+    anchor: string,
+    sessionId: string,
+    contractKey = 'links',
+  ): this {
+    return this.documentLinks(
+      {
+        [linkName]: {
+          type: 'MyOS/MyOS Session Link',
+          anchor,
+          sessionId,
+        },
+      },
+      contractKey,
+    );
+  }
+
+  documentLink(
+    linkName: string,
+    anchor: string,
+    documentId: string,
+    contractKey = 'links',
+  ): this {
+    return this.documentLinks(
+      {
+        [linkName]: {
+          type: 'MyOS/Document Link',
+          anchor,
+          documentId,
+        },
+      },
+      contractKey,
+    );
+  }
+
+  documentTypeLink(
+    linkName: string,
+    anchor: string,
+    documentTypeBlueId: string,
+    contractKey = 'links',
+  ): this {
+    return this.documentLinks(
+      {
+        [linkName]: {
+          type: 'MyOS/Document Type Link',
+          anchor,
+          documentType: {
+            blueId: documentTypeBlueId,
+          },
+        },
+      },
+      contractKey,
+    );
+  }
+
   buildJson(): JsonObject {
     return this.state.build();
   }
@@ -788,9 +1074,14 @@ export class DocBuilder {
   }
 
   protected buildSteps(customizer: StepsCustomizer): JsonObject[] {
-    const steps = new StepsBuilder(
-      Object.fromEntries(this.aiIntegrations.entries()),
-    );
+    const steps = new StepsBuilder({
+      aiIntegrations: Object.fromEntries(this.aiIntegrations.entries()),
+      accessConfigs: Object.fromEntries(this.accessConfigs.entries()),
+      linkedAccessConfigs: Object.fromEntries(
+        this.linkedAccessConfigs.entries(),
+      ),
+      agencyConfigs: Object.fromEntries(this.agencyConfigs.entries()),
+    });
     customizer(steps);
     return steps.build();
   }
@@ -802,6 +1093,30 @@ export class DocBuilder {
       throw new Error(`Unknown AI integration: ${name}`);
     }
     return integration;
+  }
+
+  private requireAccessConfig(name: string): AccessConfig {
+    const config = this.accessConfigs.get(name.trim());
+    if (!config) {
+      throw new Error(`Unknown access: ${name}`);
+    }
+    return config;
+  }
+
+  private requireLinkedAccessConfig(name: string): LinkedAccessConfig {
+    const config = this.linkedAccessConfigs.get(name.trim());
+    if (!config) {
+      throw new Error(`Unknown linked access: ${name}`);
+    }
+    return config;
+  }
+
+  private requireAgencyConfig(name: string): AgencyConfig {
+    const config = this.agencyConfigs.get(name.trim());
+    if (!config) {
+      throw new Error(`Unknown agency: ${name}`);
+    }
+    return config;
   }
 
   private ensureTriggeredEventChannel(): void {

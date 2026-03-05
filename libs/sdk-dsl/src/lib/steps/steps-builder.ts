@@ -2,6 +2,13 @@ import { ensureExpression } from '../core/serialization.js';
 import { toTypeAlias, type TypeLike } from '../core/type-alias.js';
 import type { JsonObject, JsonValue } from '../core/types.js';
 import type { AIIntegrationConfig } from '../ai/ai-types.js';
+import type {
+  AccessConfig,
+  AgencyConfig,
+  LinkedAccessConfig,
+} from '../interactions/types.js';
+import { AccessSteps, LinkedAccessSteps } from './access-steps.js';
+import { AgencySteps } from './agency-steps.js';
 import { MyOsSteps } from './myos-steps.js';
 import { MyOsPermissions } from './myos-permissions.js';
 
@@ -479,12 +486,27 @@ export class AISteps {
   }
 }
 
+export interface StepsBuilderOptions {
+  readonly aiIntegrations?: Record<string, AIIntegrationConfig>;
+  readonly accessConfigs?: Record<string, AccessConfig>;
+  readonly linkedAccessConfigs?: Record<string, LinkedAccessConfig>;
+  readonly agencyConfigs?: Record<string, AgencyConfig>;
+}
+
 export class StepsBuilder {
   private readonly steps: JsonObject[] = [];
   private readonly aiIntegrations: Record<string, AIIntegrationConfig>;
+  private readonly accessConfigs: Record<string, AccessConfig>;
+  private readonly linkedAccessConfigs: Record<string, LinkedAccessConfig>;
+  private readonly agencyConfigs: Record<string, AgencyConfig>;
 
-  constructor(aiIntegrations: Record<string, AIIntegrationConfig> = {}) {
-    this.aiIntegrations = structuredClone(aiIntegrations);
+  constructor(options: StepsBuilderOptions = {}) {
+    this.aiIntegrations = structuredClone(options.aiIntegrations ?? {});
+    this.accessConfigs = structuredClone(options.accessConfigs ?? {});
+    this.linkedAccessConfigs = structuredClone(
+      options.linkedAccessConfigs ?? {},
+    );
+    this.agencyConfigs = structuredClone(options.agencyConfigs ?? {});
   }
 
   jsRaw(name: string, code: string): this {
@@ -703,6 +725,21 @@ export class StepsBuilder {
     return new AISteps(this, this.requireAiIntegration(aiName));
   }
 
+  access(accessName: string): AccessSteps {
+    return new AccessSteps(this, this.requireAccessConfig(accessName));
+  }
+
+  accessLinked(linkedAccessName: string): LinkedAccessSteps {
+    return new LinkedAccessSteps(
+      this,
+      this.requireLinkedAccessConfig(linkedAccessName),
+    );
+  }
+
+  viaAgency(agencyName: string): AgencySteps {
+    return new AgencySteps(this, this.requireAgencyConfig(agencyName));
+  }
+
   raw(stepNode: JsonObject): this {
     this.steps.push(structuredClone(stepNode));
     return this;
@@ -734,5 +771,32 @@ export class StepsBuilder {
       throw new Error(`Unknown AI integration: ${aiName}`);
     }
     return integration;
+  }
+
+  private requireAccessConfig(accessName: string): AccessConfig {
+    const key = accessName.trim();
+    const config = this.accessConfigs[key];
+    if (!config) {
+      throw new Error(`Unknown access: ${accessName}`);
+    }
+    return config;
+  }
+
+  private requireLinkedAccessConfig(accessName: string): LinkedAccessConfig {
+    const key = accessName.trim();
+    const config = this.linkedAccessConfigs[key];
+    if (!config) {
+      throw new Error(`Unknown linked access: ${accessName}`);
+    }
+    return config;
+  }
+
+  private requireAgencyConfig(agencyName: string): AgencyConfig {
+    const key = agencyName.trim();
+    const config = this.agencyConfigs[key];
+    if (!config) {
+      throw new Error(`Unknown agency: ${agencyName}`);
+    }
+    return config;
   }
 }
