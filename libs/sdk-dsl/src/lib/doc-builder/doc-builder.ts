@@ -840,6 +840,42 @@ export class DocBuilder {
     );
   }
 
+  onAgencyUpdate(
+    agencyName: string,
+    workflowKey: string,
+    subscriptionId: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onAgencyUpdate(
+    agencyName: string,
+    workflowKey: string,
+    subscriptionId: string,
+    updateType: TypeLike,
+    customizer: StepsCustomizer,
+  ): this;
+  onAgencyUpdate(
+    agencyName: string,
+    workflowKey: string,
+    subscriptionId: string,
+    updateTypeOrCustomizer: TypeLike | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    if (customizerMaybe === undefined) {
+      return this.onSubscriptionUpdate(
+        workflowKey,
+        subscriptionId,
+        updateTypeOrCustomizer as StepsCustomizer,
+      );
+    }
+    return this.onSubscriptionUpdate(
+      workflowKey,
+      subscriptionId,
+      updateTypeOrCustomizer as TypeLike,
+      customizerMaybe,
+    );
+  }
+
   onLinkedDocGranted(
     linkedAccessName: string,
     workflowKey: string,

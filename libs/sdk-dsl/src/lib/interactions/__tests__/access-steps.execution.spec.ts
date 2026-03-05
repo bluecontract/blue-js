@@ -687,4 +687,69 @@ describe('access step helpers execution', () => {
     expect(processedJson.sessionState).toBe('starting');
     expect(processedJson.participantsReady).toBe(true);
   });
+
+  it('handles agency subscription updates through onAgencyUpdate listener helper', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Update Runtime')
+      .field('/agencyStatus', 'idle')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('target-session')
+      .done()
+      .onAgencyUpdate(
+        'workerAgency',
+        'markAgencyUpdate',
+        'SUB_AGENCY',
+        'Conversation/Response',
+        (steps) =>
+          steps.replaceValue('SetAgencyUpdated', '/agencyStatus', 'updated'),
+      )
+      .operation(
+        'emitAgencyUpdate',
+        'ownerChannel',
+        Number,
+        'emit agency subscription update',
+        (steps) =>
+          steps.emitType(
+            'EmitAgencySubscriptionUpdate',
+            'MyOS/Subscription Update',
+            (payload) => {
+              payload.put('subscriptionId', 'SUB_AGENCY');
+              payload.put('update', {
+                type: 'Conversation/Response',
+                payload: {
+                  source: 'runtime',
+                },
+              });
+            },
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency update listener initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'emitAgencyUpdate',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'agency update listener operation failed',
+    );
+
+    expect(toOfficialJson(processed.document).agencyStatus).toBe('updated');
+  });
 });

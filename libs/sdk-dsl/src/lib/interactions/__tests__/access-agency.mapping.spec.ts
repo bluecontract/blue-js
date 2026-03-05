@@ -228,6 +228,14 @@ describe('interaction builders mapping', () => {
       .onSessionFailed('workerAgency', 'onSessionFailedWF', (steps) =>
         steps.replaceValue('SetSessionFailed', '/status', 'session-failed'),
       )
+      .onAgencyUpdate(
+        'workerAgency',
+        'onAgencyUpdateWF',
+        'SUB_AGENCY',
+        'Conversation/Response',
+        (steps) =>
+          steps.replaceValue('SetAgencyUpdated', '/status', 'agency-updated'),
+      )
       .onAllParticipantsReady('onAllParticipantsReadyWF', (steps) =>
         steps.replaceValue(
           'SetParticipantsReady',
@@ -269,6 +277,9 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`onSessionFailedWF:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Bootstrap Failed`);
+    expect(yaml).toContain(`onAgencyUpdateWF:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`subscriptionId: SUB_AGENCY`);
     expect(yaml).toContain(`onAllParticipantsReadyWF:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/All Participants Ready`);
