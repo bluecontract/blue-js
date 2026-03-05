@@ -5,6 +5,8 @@ import {
   createTestBlue,
   createTestDocumentProcessor,
   expectSuccess,
+  operationRequestEvent,
+  storedDocumentBlueId,
 } from '../../../test-harness/runtime.js';
 
 describe('doc-builder composite channel execution', () => {
@@ -28,6 +30,7 @@ describe('doc-builder composite channel execution', () => {
       .operation(
         'compositeOperation',
         'compositeChannel',
+        Number,
         'Composite invocation recorder',
         (steps) =>
           steps.replaceExpression(
@@ -99,8 +102,21 @@ describe('doc-builder composite channel execution', () => {
     expect(toOfficialJson(processedAllowed.document).lastCompositeSource).toBe(
       'allowedChannel',
     );
+    const documentBlueId = storedDocumentBlueId(processedAllowed.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'compositeOperation',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processedOperation = await expectSuccess(
+      processor.processDocument(processedAllowed.document.clone(), request),
+      'composite operation request processing failed',
+    );
+
     expect(
-      toOfficialJson(processedAllowed.document).lastCompositeInvocation,
-    ).toBe(null);
+      toOfficialJson(processedOperation.document).lastCompositeInvocation,
+    ).toBe('compositeOperation');
   });
 });
