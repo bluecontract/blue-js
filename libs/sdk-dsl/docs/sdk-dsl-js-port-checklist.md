@@ -23,7 +23,7 @@ Legend:
 - ✅ capture namespace (`lock`, `unlock`, `markLocked`, `markUnlocked`, `requestNow`, `requestPartial`, `releaseFull`)
 - ✅ payment payload builder (`triggerPayment`, `requestBackwardPayment`, rail builders)
 - ✅ MyOS step helpers (`request/revoke permission`, participant helpers, call, subscribe, worker agency helpers)
-- ⚠️ advanced extension hooks parity with Java POC
+- ⚠️ advanced extension hooks parity with Java POC (raw-step extension hook mapped/executed; broader Java POC extension set still pending)
 
 ## AI DSL
 

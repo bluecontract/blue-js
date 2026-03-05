@@ -214,4 +214,67 @@ describe('steps-builder execution', () => {
       targetSessionId: 'target-session',
     });
   });
+
+  it('emits events from raw extension hook steps', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step Raw Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'emitRawEvent',
+        'ownerChannel',
+        Number,
+        'Emit raw helper event',
+        (steps) =>
+          steps.raw({
+            name: 'CustomRawStep',
+            type: 'Conversation/Trigger Event',
+            event: {
+              type: 'Conversation/Event',
+              name: 'raw-event',
+              payload: {
+                source: 'raw-step',
+              },
+            },
+          }),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'step raw document initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'emitRawEvent',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'step raw operation failed',
+    );
+
+    const rawEvent = processed.triggeredEvents
+      .map((triggeredEvent) => toOfficialJson(triggeredEvent))
+      .find(
+        (triggeredEvent) =>
+          triggeredEvent.type === 'Conversation/Event' &&
+          triggeredEvent.name === 'raw-event',
+      );
+    expect(rawEvent).toBeDefined();
+    expect(rawEvent).toMatchObject({
+      payload: {
+        source: 'raw-step',
+      },
+    });
+  });
 });

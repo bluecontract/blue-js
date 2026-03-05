@@ -118,4 +118,26 @@ describe('steps-builder mapping', () => {
     type: Conversation/Trigger Event`);
     expect(yaml).toContain(`document: \${document('/childDocument')}`);
   });
+
+  it('maps raw extension hook steps', () => {
+    const steps = new StepsBuilder()
+      .raw({
+        name: 'CustomRawStep',
+        type: 'Conversation/Trigger Event',
+        event: {
+          type: 'Conversation/Event',
+          name: 'raw-event',
+          payload: {
+            source: 'raw-step',
+          },
+        },
+      })
+      .build();
+
+    const yaml = dump({ steps }, { noRefs: true, lineWidth: -1 });
+    expect(yaml).toContain(`name: CustomRawStep`);
+    expect(yaml).toContain(`type: Conversation/Trigger Event`);
+    expect(yaml).toContain(`name: raw-event`);
+    expect(yaml).toContain(`source: raw-step`);
+  });
 });
