@@ -79,4 +79,43 @@ describe('steps-builder mapping', () => {
           - increment
 `);
   });
+
+  it('maps bootstrap document and expression-based helpers', () => {
+    const steps = new StepsBuilder()
+      .updateDocumentFromExpression(
+        'ApplyDynamicChanges',
+        'event.message.request',
+      )
+      .bootstrapDocument(
+        'BootstrapChild',
+        {
+          name: 'Child Document',
+          type: 'Conversation/Conversation',
+        },
+        {
+          ownerChannel: 'target-session',
+        },
+        (payload) => payload.put('bootstrapAssignee', 'myOsAdminChannel'),
+      )
+      .bootstrapDocumentExpr(
+        'BootstrapFromExpression',
+        "document('/childDocument')",
+        {
+          ownerChannel: 'target-session',
+        },
+      )
+      .build();
+
+    const yaml = dump({ steps }, { noRefs: true, lineWidth: -1 });
+    expect(yaml).toContain(`name: ApplyDynamicChanges
+    type: Conversation/Update Document`);
+    expect(yaml).toContain(`changeset: \${event.message.request}`);
+    expect(yaml).toContain(`name: BootstrapChild
+    type: Conversation/Trigger Event`);
+    expect(yaml).toContain(`type: Conversation/Document Bootstrap Requested`);
+    expect(yaml).toContain(`bootstrapAssignee: myOsAdminChannel`);
+    expect(yaml).toContain(`name: BootstrapFromExpression
+    type: Conversation/Trigger Event`);
+    expect(yaml).toContain(`document: \${document('/childDocument')}`);
+  });
 });

@@ -73,4 +73,71 @@ describe('steps-builder execution', () => {
       },
     ]);
   });
+
+  it('emits bootstrap document requests from helper steps', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step Bootstrap Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'bootstrapChild',
+        'ownerChannel',
+        Number,
+        'Emit bootstrap request',
+        (steps) =>
+          steps.bootstrapDocument(
+            'Bootstrap',
+            {
+              name: 'Child Runtime',
+              summary: 'child bootstrap payload',
+            },
+            {
+              ownerChannel: 'target-session',
+            },
+            (payload) => payload.put('bootstrapAssignee', 'myOsAdminChannel'),
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'step bootstrap document initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'bootstrapChild',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'step bootstrap operation failed',
+    );
+
+    const bootstrapEvent = processed.triggeredEvents
+      .map((triggeredEvent) => toOfficialJson(triggeredEvent))
+      .find(
+        (triggeredEvent) =>
+          triggeredEvent.type === 'Conversation/Document Bootstrap Requested',
+      );
+    expect(bootstrapEvent).toBeDefined();
+    expect(bootstrapEvent).toMatchObject({
+      channelBindings: {
+        ownerChannel: 'target-session',
+      },
+      bootstrapAssignee: 'myOsAdminChannel',
+      document: {
+        name: 'Child Runtime',
+        summary: 'child bootstrap payload',
+      },
+    });
+  });
 });
