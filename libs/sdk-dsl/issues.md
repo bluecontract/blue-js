@@ -87,8 +87,10 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
 - **Expected**:
   - operation bound to `Conversation/Composite Timeline Channel` executes via member channels.
 - **Actual**:
-  - mapping is covered; runtime invocation path is currently inconclusive in local integration tests.
+  - mapping is covered.
+  - runtime coverage now validates composite-channel workflow execution and `event.meta.compositeSourceChannelKey` propagation.
+  - operation invocation path bound directly to composite channels is still inconclusive in local integration tests.
 - **Likely cause**:
   - event-shape/channel-matching semantics for composite invocation differ from current test harness assumptions.
 - **Next actions**:
-  - add dedicated composite-channel runtime harness scenarios aligned with document-processor internals.
+  - add dedicated operation-focused composite-channel runtime harness scenarios aligned with document-processor internals.
