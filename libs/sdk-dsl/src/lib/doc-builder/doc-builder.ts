@@ -574,12 +574,32 @@ export class DocBuilder {
     accessName: string,
     workflowKey: string,
     customizer: StepsCustomizer,
+  ): this;
+  onUpdate(
+    accessName: string,
+    workflowKey: string,
+    updateType: TypeLike,
+    customizer: StepsCustomizer,
+  ): this;
+  onUpdate(
+    accessName: string,
+    workflowKey: string,
+    updateTypeOrCustomizer: TypeLike | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
   ): this {
     const config = this.requireAccessConfig(accessName);
+    if (customizerMaybe === undefined) {
+      return this.onSubscriptionUpdate(
+        workflowKey,
+        config.subscriptionId,
+        updateTypeOrCustomizer as StepsCustomizer,
+      );
+    }
     return this.onSubscriptionUpdate(
       workflowKey,
       config.subscriptionId,
-      customizer,
+      updateTypeOrCustomizer as TypeLike,
+      customizerMaybe,
     );
   }
 
@@ -665,6 +685,126 @@ export class DocBuilder {
       config.requestId,
       customizer,
     );
+  }
+
+  onCallResponse(
+    accessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onCallResponse(
+    accessName: string,
+    workflowKey: string,
+    responseType: TypeLike,
+    customizer: StepsCustomizer,
+  ): this;
+  onCallResponse(
+    accessName: string,
+    workflowKey: string,
+    responseTypeOrCustomizer: TypeLike | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    this.requireAccessConfig(accessName);
+    if (customizerMaybe === undefined) {
+      return this.onEvent(
+        workflowKey,
+        'MyOS/Call Operation Responded',
+        responseTypeOrCustomizer as StepsCustomizer,
+      );
+    }
+    return this.onEvent(
+      workflowKey,
+      responseTypeOrCustomizer as TypeLike,
+      customizerMaybe,
+    );
+  }
+
+  onSessionCreated(
+    accessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    this.requireAccessConfig(accessName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Subscription to Session Initiated',
+      customizer,
+    );
+  }
+
+  onLinkedDocGranted(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Single Document Permission Granted',
+      customizer,
+    );
+  }
+
+  onLinkedDocRevoked(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Single Document Permission Revoked',
+      customizer,
+    );
+  }
+
+  onSessionStarting(
+    agencyName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Worker Session Starting',
+      customizer,
+    );
+  }
+
+  onSessionStarted(
+    agencyName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Target Document Session Started',
+      customizer,
+    );
+  }
+
+  onSessionFailed(
+    agencyName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(workflowKey, 'MyOS/Bootstrap Failed', customizer);
+  }
+
+  onParticipantResolved(
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    return this.onEvent(workflowKey, 'MyOS/Participant Resolved', customizer);
+  }
+
+  onAllParticipantsReady(
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    return this.onEvent(workflowKey, 'MyOS/All Participants Ready', customizer);
   }
 
   myOsAdmin(channelKey = 'myOsAdminChannel'): this {

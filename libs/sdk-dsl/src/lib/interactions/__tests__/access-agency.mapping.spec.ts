@@ -15,6 +15,10 @@ describe('interaction builders mapping', () => {
       .permissionFrom('ownerChannel')
       .targetSessionId('target-session')
       .done()
+      .accessLinked('linkedCounterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
       .done()
@@ -23,6 +27,23 @@ describe('interaction builders mapping', () => {
       )
       .onAgencyGranted('workerAgency', 'markAgencyGranted', (steps) =>
         steps.replaceValue('SetGrantedFromAgency', '/granted', true),
+      )
+      .onCallResponse('counterAccess', 'captureCallResponse', (steps) =>
+        steps.replaceValue('SetCallResponse', '/granted', true),
+      )
+      .onSessionCreated('counterAccess', 'captureSessionCreated', (steps) =>
+        steps.replaceValue('SetSessionCreated', '/granted', true),
+      )
+      .onLinkedDocGranted(
+        'linkedCounterAccess',
+        'captureLinkedDocGranted',
+        (steps) => steps.replaceValue('SetLinkedDocGranted', '/granted', true),
+      )
+      .onSessionStarted('workerAgency', 'captureSessionStarted', (steps) =>
+        steps.replaceValue('SetSessionStarted', '/granted', true),
+      )
+      .onParticipantResolved('captureParticipantResolved', (steps) =>
+        steps.replaceValue('SetParticipantResolved', '/granted', true),
       )
       .buildDocument();
 
@@ -33,5 +54,19 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`markAgencyGranted:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Worker Agency Permission Granted`);
+    expect(yaml).toContain(`captureCallResponse:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`type: MyOS/Call Operation Responded`);
+    expect(yaml).toContain(`captureSessionCreated:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`type: MyOS/Subscription to Session Initiated`);
+    expect(yaml).toContain(`captureLinkedDocGranted:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`captureSessionStarted:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`type: MyOS/Target Document Session Started`);
+    expect(yaml).toContain(`captureParticipantResolved:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`type: MyOS/Participant Resolved`);
   });
 });

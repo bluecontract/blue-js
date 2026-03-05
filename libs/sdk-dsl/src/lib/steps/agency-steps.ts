@@ -31,4 +31,11 @@ export class AgencySteps {
         targetSessionId ?? this.config.targetSessionId,
       );
   }
+
+  startWorkerSession(
+    agentChannelKey: string,
+    document: JsonObject,
+  ): StepsBuilder {
+    return this.parent.myOs().startWorkerSession(agentChannelKey, document);
+  }
 }

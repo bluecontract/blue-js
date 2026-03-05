@@ -63,4 +63,69 @@ describe('access step helpers execution', () => {
     );
     expect(eventTypes).toContain('MyOS/Subscribe to Session Requested');
   });
+
+  it('emits linked and agency permission requests through helper namespaces', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Access Linked Agency Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_LINKED')
+      .done()
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .done()
+      .operation(
+        'bootstrapAgency',
+        'ownerChannel',
+        Number,
+        'bootstrap linked and agency',
+        (steps) =>
+          steps
+            .accessLinked('linkedAccess')
+            .requestPermission({ anchorA: { read: true } })
+            .viaAgency('workerAgency')
+            .requestPermission({
+              type: 'MyOS/Worker Agency Permission',
+              workerType: 'MyOS/MyOS Admin Base',
+              permissions: {
+                read: true,
+              },
+            }),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'access linked agency initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'bootstrapAgency',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'access linked agency bootstrap operation failed',
+    );
+    const eventTypes = processed.triggeredEvents.map(
+      (event) => toOfficialJson(event).type as string,
+    );
+    expect(eventTypes).toContain(
+      'MyOS/Linked Documents Permission Grant Requested',
+    );
+    expect(eventTypes).toContain(
+      'MyOS/Worker Agency Permission Grant Requested',
+    );
+  });
 });
