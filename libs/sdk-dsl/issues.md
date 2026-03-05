@@ -54,3 +54,24 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
 - **Next actions**:
   - Validate against target repository version used in CI/runtime.
 
+## 4) Release lock/unlock event type availability
+
+- **Status**: Open
+- **Repro**:
+  ```ts
+  PayNotes.payNote('Release Lock Unsupported')
+    .release()
+    .lockOnInit()
+    .done()
+    .buildDocument();
+  ```
+- **Expected (Java mapping reference)**:
+  - `PayNote/Reservation Release Lock Requested`
+  - `PayNote/Reservation Release Unlock Requested`
+- **Actual**:
+  - Current workspace repository models reject `PayNote/Reservation Release Lock Requested` during validation (`Unknown type "...Release Lock Requested"...`).
+- **Likely cause**:
+  - Alias/type coverage differs across `@blue-repository/types` versions.
+- **Next actions**:
+  - Revalidate release lock/unlock aliases against the target repository model version and re-enable full runtime coverage once available.
+

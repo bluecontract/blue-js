@@ -49,3 +49,14 @@ This document records intentional or currently unresolved differences between th
 - **Reason**:
   - Alias availability differs across `@blue-repository/types` versions; current workspace version does not expose this type mapping.
 
+## Release lock/unlock type availability
+
+- **Java audit reference**:
+  - `type: PayNote/Reservation Release Lock Requested`
+  - `type: PayNote/Reservation Release Unlock Requested`
+- **TypeScript port**:
+  - API surface exposes `release().lockOnInit()` / `release().unlockOnOperation(...)`,
+    but current workspace repository models reject release-lock type aliases during validation.
+- **Reason**:
+  - Alias availability differs across `@blue-repository/types` versions in this workspace.
+

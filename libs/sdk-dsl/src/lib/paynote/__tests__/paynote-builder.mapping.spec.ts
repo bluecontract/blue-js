@@ -141,4 +141,63 @@ amount:
       `type: PayNote/Card Transaction Capture Unlock Requested`,
     );
   });
+
+  it('maps capture request and release partial operation helpers', () => {
+    const payNote = PayNotes.payNote('Release Advanced Mapping')
+      .currency('USD')
+      .amountMinor(4100)
+      .capture()
+      .requestOnOperation(
+        'requestCapture',
+        'guarantorChannel',
+        'Request capture funds',
+      )
+      .done()
+      .release()
+      .requestOnOperation(
+        'requestRelease',
+        'guarantorChannel',
+        'Request release flow',
+      )
+      .requestPartialOnOperation(
+        'requestPartialRelease',
+        'guarantorChannel',
+        'event.message.request',
+        'Request partial release',
+      )
+      .done()
+      .buildDocument();
+
+    const yaml = toOfficialYaml(payNote);
+    expect(yaml).toContain(`requestCapture:
+    description: Request capture funds
+    type: Conversation/Operation
+    channel: guarantorChannel`);
+    expect(yaml).toContain(`requestCaptureImpl:
+    type: Conversation/Sequential Workflow Operation`);
+    expect(yaml).toContain(`type: PayNote/Capture Funds Requested`);
+    expect(yaml).toContain(`amount: \${document('/amount/total')}`);
+    expect(yaml).toContain(`requestRelease:
+    description: Request release flow
+    type: Conversation/Operation
+    channel: guarantorChannel`);
+    expect(yaml).toContain(`type: PayNote/Reservation Release Requested`);
+    expect(yaml).toContain(`requestPartialRelease:
+    description: Request partial release
+    type: Conversation/Operation
+    channel: guarantorChannel`);
+    expect(yaml).toContain(`amount: \${event.message.request}`);
+  });
+
+  it('surfaces type-availability failure for release lock helpers', () => {
+    expect(() =>
+      PayNotes.payNote('Release Lock Unsupported')
+        .currency('USD')
+        .amountMinor(5100)
+        .release()
+        .lockOnInit()
+        .done()
+        .buildDocument(),
+    ).toThrow('PayNote/Reservation Release Lock Requested');
+  });
 });

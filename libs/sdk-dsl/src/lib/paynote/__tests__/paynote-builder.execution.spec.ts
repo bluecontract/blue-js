@@ -156,4 +156,114 @@ describe('paynote execution', () => {
       'PayNote/Reservation Release Requested',
     );
   });
+
+  it('emits capture request and release partial flows for operation helpers', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const payNote = PayNotes.payNote('Release Advanced Runtime')
+      .currency('USD')
+      .amountMinor(4100)
+      .capture()
+      .requestOnOperation(
+        'requestCapture',
+        'guarantorChannel',
+        'Request capture funds',
+      )
+      .done()
+      .release()
+      .requestOnOperation(
+        'requestRelease',
+        'guarantorChannel',
+        'Request release flow',
+      )
+      .requestPartialOnOperation(
+        'requestPartialRelease',
+        'guarantorChannel',
+        'event.message.request',
+        'Request partial release',
+      )
+      .done()
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(payNote),
+      'advanced release paynote initialization failed',
+    );
+
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const captureResponse = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'requestCapture',
+          request: 1,
+          timelineId: 'guarantor-timeline',
+          allowNewerVersion: false,
+          documentBlueId,
+        }),
+      ),
+      'capture request operation failed',
+    );
+    const captureEvent = captureResponse.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'PayNote/Capture Funds Requested');
+    expect(captureEvent).toBeDefined();
+    expect(captureEvent).toMatchObject({
+      amount: 4100,
+    });
+
+    const releaseResponse = await expectSuccess(
+      processor.processDocument(
+        captureResponse.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'requestRelease',
+          request: 1,
+          timelineId: 'guarantor-timeline',
+          allowNewerVersion: false,
+          documentBlueId,
+        }),
+      ),
+      'release request operation failed',
+    );
+    const releaseEvent = releaseResponse.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'PayNote/Reservation Release Requested');
+    expect(releaseEvent).toBeDefined();
+    expect(releaseEvent).toMatchObject({
+      amount: 4100,
+    });
+
+    const partialRelease = await expectSuccess(
+      processor.processDocument(
+        releaseResponse.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'requestPartialRelease',
+          request: '650',
+          timelineId: 'guarantor-timeline',
+          allowNewerVersion: false,
+          documentBlueId,
+        }),
+      ),
+      'partial release operation failed',
+    );
+    const partialReleaseEvent = partialRelease.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'PayNote/Reservation Release Requested');
+    expect(partialReleaseEvent).toBeDefined();
+    expect(partialReleaseEvent).toMatchObject({
+      amount: '650',
+    });
+  });
+
+  it('surfaces type-availability failure for release lock helpers', async () => {
+    expect(() =>
+      PayNotes.payNote('Release Lock Unsupported Runtime')
+        .currency('USD')
+        .amountMinor(5100)
+        .release()
+        .lockOnInit()
+        .done()
+        .buildDocument(),
+    ).toThrow('PayNote/Reservation Release Lock Requested');
+  });
 });
