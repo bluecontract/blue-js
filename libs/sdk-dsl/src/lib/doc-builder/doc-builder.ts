@@ -902,6 +902,19 @@ export class DocBuilder {
     );
   }
 
+  onLinkedDocRejected(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this {
+    this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Single Document Permission Rejected',
+      customizer,
+    );
+  }
+
   onSessionStarting(
     agencyName: string,
     workflowKey: string,

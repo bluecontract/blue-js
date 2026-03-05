@@ -39,6 +39,11 @@ describe('interaction builders mapping', () => {
         'captureLinkedDocGranted',
         (steps) => steps.replaceValue('SetLinkedDocGranted', '/granted', true),
       )
+      .onLinkedDocRejected(
+        'linkedCounterAccess',
+        'captureLinkedDocRejected',
+        (steps) => steps.replaceValue('SetLinkedDocRejected', '/granted', true),
+      )
       .onSessionStarted('workerAgency', 'captureSessionStarted', (steps) =>
         steps.replaceValue('SetSessionStarted', '/granted', true),
       )
@@ -61,6 +66,8 @@ describe('interaction builders mapping', () => {
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Subscription to Session Initiated`);
     expect(yaml).toContain(`captureLinkedDocGranted:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`captureLinkedDocRejected:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`captureSessionStarted:
     type: Conversation/Sequential Workflow`);
