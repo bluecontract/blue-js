@@ -40,3 +40,12 @@ This document records intentional or currently unresolved differences between th
 - **Reason**:
   - `Common/Named Event` alias is not present in the currently installed repository package.
 
+## Backward-payment requested type availability
+
+- **Java audit reference**:
+  - `type: PayNote/Backward Payment Requested` is available and executable.
+- **TypeScript port**:
+  - DSL emits `type: PayNote/Backward Payment Requested`, but current workspace repository models reject this type during node validation.
+- **Reason**:
+  - Alias availability differs across `@blue-repository/types` versions; current workspace version does not expose this type mapping.
+
