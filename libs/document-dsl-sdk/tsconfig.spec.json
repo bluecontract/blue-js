@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "composite": false,
+    "rootDir": "../../",
     "outDir": "../../dist/out-tsc/libs/document-dsl-sdk",
+    "paths": {},
     "types": [
       "vitest/globals",
       "vitest/importMeta",
