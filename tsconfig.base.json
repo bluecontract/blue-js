@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "allowJs": false,
     "allowSyntheticDefaultImports": true,
     "composite": true,
@@ -29,6 +30,20 @@
     "sourceMap": false,
     "strict": true,
     "target": "es2022",
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@blue-labs/shared-utils": ["libs/shared/utils/src/index.ts"],
+      "@blue-labs/repository-contract": [
+        "libs/repository-contract/src/index.ts"
+      ],
+      "@blue-labs/language": ["libs/language/src/index.ts"],
+      "@blue-labs/document-processor": [
+        "libs/document-processor/src/index.ts"
+      ],
+      "@blue-labs/repository-generator": [
+        "libs/repository-generator/src/index.ts"
+      ],
+      "@blue-labs/document-dsl-sdk": ["libs/document-dsl-sdk/src/index.ts"]
+    }
   }
 }
