@@ -71,3 +71,19 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
   - Alias availability differs across `@blue-repository/types` versions.
 - **Next actions**:
   - Validate against target repository version used in CI/runtime.
+
+## 5) Composite channel runtime execution coverage
+
+- **Status**: Open
+- **Repro**:
+  ```ts
+  // composite channel operation invocation test in sdk-dsl suite
+  ```
+- **Expected**:
+  - operation bound to `Conversation/Composite Timeline Channel` executes via member channels.
+- **Actual**:
+  - mapping is covered; runtime invocation path is currently inconclusive in local integration tests.
+- **Likely cause**:
+  - event-shape/channel-matching semantics for composite invocation differ from current test harness assumptions.
+- **Next actions**:
+  - add dedicated composite-channel runtime harness scenarios aligned with document-processor internals.
