@@ -40,11 +40,3 @@ This document records intentional or currently unresolved differences between th
 - **Reason**:
   - `Common/Named Event` alias is not present in the currently installed repository package.
 
-## AI response matcher strictness
-
-- **Java audit reference**:
-  - AI response matcher includes `update.inResponseTo.incomingEvent.requester`.
-- **TypeScript port**:
-  - Current matcher requires `subscriptionId` and `update.type`; requester-specific matcher is planned follow-up.
-- **Reason**:
-  - Simplified matcher currently provides more stable runtime behavior in integration tests.

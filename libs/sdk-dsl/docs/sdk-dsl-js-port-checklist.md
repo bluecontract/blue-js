@@ -30,7 +30,7 @@ Legend:
 - ✅ `ai(name)` integration builder with task templates
 - ✅ permission timing modes (`onInit`, `onEvent`, `onDocChange`, `manual`)
 - ✅ `steps.askAI(...)` and `steps.ai(name).requestPermission()/subscribe()`
-- ⚠️ `onAIResponse(...)` implemented with simplified matcher (requester correlation strictness pending)
+- ✅ `onAIResponse(...)` matcher includes requester + task/name correlation helpers
 
 ## PayNote DSL
 
