@@ -1,4 +1,9 @@
 import { BlueNode } from '@blue-labs/language';
+import { AiIntegrationBuilder } from '../ai/ai-builder.js';
+import type {
+  AIIntegrationConfig,
+  AiIntegrationDefinition,
+} from '../ai/ai-types.js';
 import { DocJsonState } from '../core/doc-json-state.js';
 import {
   ensureExpression,
@@ -37,8 +42,16 @@ function defaultOperationImplementation(steps: StepsBuilder): void {
   steps.jsRaw('EmitEvents', 'return { events: event };');
 }
 
+function aiToken(name: string): string {
+  return name
+    .replace(/[^A-Za-z0-9]+/gu, '_')
+    .replace(/^_+|_+$/gu, '')
+    .toUpperCase();
+}
+
 export class DocBuilder {
   protected readonly state: DocJsonState;
+  private readonly aiIntegrations = new Map<string, AIIntegrationConfig>();
 
   protected constructor(initial?: JsonObject) {
     this.state = new DocJsonState(initial);
@@ -428,9 +441,159 @@ export class DocBuilder {
     );
   }
 
+  ai(integrationName: string): AiIntegrationBuilder<this> {
+    this.myOsAdmin();
+    return new AiIntegrationBuilder<this>(this, integrationName);
+  }
+
+  onAIResponse(
+    integrationName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onAIResponse(
+    integrationName: string,
+    workflowKey: string,
+    responseType: TypeLike,
+    customizer: StepsCustomizer,
+  ): this;
+  onAIResponse(
+    integrationName: string,
+    workflowKey: string,
+    responseTypeOrCustomizer: TypeLike | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    const integration = this.requireAiIntegration(integrationName);
+    if (customizerMaybe === undefined) {
+      return this.onAIResponse(
+        integrationName,
+        workflowKey,
+        'Conversation/Response',
+        responseTypeOrCustomizer as StepsCustomizer,
+      );
+    }
+
+    return this.onTriggeredWithMatcher(
+      workflowKey,
+      'MyOS/Subscription Update',
+      {
+        subscriptionId: integration.subscriptionId,
+        update: {
+          type: toTypeAlias(responseTypeOrCustomizer as TypeLike),
+        },
+      },
+      (steps) => {
+        steps.replaceExpression(
+          '_SaveAIContext',
+          integration.contextPath,
+          'event.update.context',
+        );
+        customizerMaybe(steps);
+      },
+    );
+  }
+
   myOsAdmin(channelKey = 'myOsAdminChannel'): this {
     this.channel(channelKey, { type: 'MyOS/MyOS Timeline Channel' });
     this.canEmit(channelKey);
+    return this;
+  }
+
+  registerAiIntegration(definition: AiIntegrationDefinition): this {
+    const name = definition.name.trim();
+    const sessionId = (definition.sessionId ?? '').trim();
+    const permissionFrom = (definition.permissionFrom ?? '').trim();
+    if (!sessionId || !permissionFrom) {
+      throw new Error(`ai('${name}') requires sessionId and permissionFrom`);
+    }
+
+    const config: AIIntegrationConfig = {
+      name,
+      sessionId,
+      permissionFrom,
+      statusPath: definition.statusPath,
+      contextPath: definition.contextPath,
+      requesterId: definition.requesterId,
+      requestId: definition.requestId,
+      subscriptionId: definition.subscriptionId,
+      permissionTiming: definition.permissionTiming,
+      permissionTriggerEventType: definition.permissionTriggerEventType,
+      permissionTriggerDocPath: definition.permissionTriggerDocPath,
+      tasks: structuredClone(definition.tasks),
+    };
+    this.aiIntegrations.set(name, config);
+    this.state.setValue(config.statusPath, 'idle');
+    this.state.setValue(config.contextPath, {});
+
+    const token = aiToken(name);
+    const requestPermissionWorkflow = (steps: StepsBuilder): void => {
+      steps
+        .myOs()
+        .requestSingleDocPermission(
+          config.permissionFrom,
+          config.requestId,
+          config.sessionId,
+          {
+            read: true,
+            singleOps: ['provideInstructions'],
+          },
+        )
+        .replaceValue(
+          'SetAIPermissionStatusPending',
+          config.statusPath,
+          'pending',
+        );
+    };
+
+    switch (config.permissionTiming) {
+      case 'onInit':
+        this.onInit(`request${token}Permission`, requestPermissionWorkflow);
+        break;
+      case 'onEvent':
+        this.onEvent(
+          `request${token}Permission`,
+          config.permissionTriggerEventType ?? 'Conversation/Event',
+          requestPermissionWorkflow,
+        );
+        break;
+      case 'onDocChange':
+        this.onDocChange(
+          `request${token}Permission`,
+          config.permissionTriggerDocPath ?? '/',
+          requestPermissionWorkflow,
+        );
+        break;
+      case 'manual':
+      default:
+        break;
+    }
+
+    if (config.permissionTiming !== 'manual') {
+      this.onMyOsResponse(
+        `subscribe${token}OnGranted`,
+        'MyOS/Single Document Permission Granted',
+        config.requestId,
+        (steps) =>
+          steps
+            .myOs()
+            .subscribeToSession(
+              config.permissionFrom,
+              config.sessionId,
+              config.subscriptionId,
+              'Conversation/Response',
+            ),
+      );
+    }
+
+    this.onTriggeredWithId(
+      `mark${token}SubscriptionReady`,
+      'MyOS/Subscription to Session Initiated',
+      'subscriptionId',
+      config.subscriptionId,
+      (steps) =>
+        steps.replaceValue('SetAIStatusReady', config.statusPath, 'ready'),
+    );
+
     return this;
   }
 
@@ -625,9 +788,20 @@ export class DocBuilder {
   }
 
   protected buildSteps(customizer: StepsCustomizer): JsonObject[] {
-    const steps = new StepsBuilder();
+    const steps = new StepsBuilder(
+      Object.fromEntries(this.aiIntegrations.entries()),
+    );
     customizer(steps);
     return steps.build();
+  }
+
+  private requireAiIntegration(name: string): AIIntegrationConfig {
+    const key = name.trim();
+    const integration = this.aiIntegrations.get(key);
+    if (!integration) {
+      throw new Error(`Unknown AI integration: ${name}`);
+    }
+    return integration;
   }
 
   private ensureTriggeredEventChannel(): void {

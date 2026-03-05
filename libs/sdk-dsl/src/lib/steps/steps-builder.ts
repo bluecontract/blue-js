@@ -1,7 +1,9 @@
 import { ensureExpression } from '../core/serialization.js';
 import { toTypeAlias, type TypeLike } from '../core/type-alias.js';
 import type { JsonObject, JsonValue } from '../core/types.js';
+import type { AIIntegrationConfig } from '../ai/ai-types.js';
 import { MyOsSteps } from './myos-steps.js';
+import { MyOsPermissions } from './myos-permissions.js';
 
 export class ChangesetBuilder {
   private readonly entries: JsonObject[] = [];
@@ -360,8 +362,130 @@ export class CaptureStepBuilder {
   }
 }
 
+type AskAICustomizer = (ask: AskAIBuilder) => void;
+
+class AskAIBuilder {
+  private readonly instructions: string[] = [];
+  private readonly expectedResponses: string[] = [];
+  private taskName: string | undefined;
+
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly integration: AIIntegrationConfig,
+    private readonly stepName: string,
+  ) {}
+
+  task(taskName: string): this {
+    this.taskName = taskName.trim();
+    return this;
+  }
+
+  instruction(instruction: string): this {
+    const normalized = instruction.trim();
+    if (normalized.length > 0) {
+      this.instructions.push(normalized);
+    }
+    return this;
+  }
+
+  expects(typeLike: TypeLike): this {
+    this.expectedResponses.push(toTypeAlias(typeLike));
+    return this;
+  }
+
+  done(): StepsBuilder {
+    const taskTemplate = this.taskName
+      ? this.integration.tasks[this.taskName]
+      : undefined;
+    const mergedInstructions = [
+      ...(taskTemplate?.instructions ?? []),
+      ...this.instructions,
+    ];
+    if (mergedInstructions.length === 0) {
+      throw new Error(
+        `askAI('${this.integration.name}') requires instructions`,
+      );
+    }
+    const mergedResponses = [
+      ...(taskTemplate?.expectedResponses ?? []),
+      ...this.expectedResponses,
+    ];
+
+    return this.parent.emitType(
+      this.stepName,
+      'MyOS/Call Operation Requested',
+      (payload) => {
+        payload.put('onBehalfOf', this.integration.permissionFrom);
+        payload.put('targetSessionId', this.integration.sessionId);
+        payload.put('operation', 'provideInstructions');
+        payload.put('request', {
+          requester: this.integration.requesterId,
+          instructions: mergedInstructions.join('\n'),
+          context: ensureExpression(
+            `document('${this.integration.contextPath}')`,
+          ),
+          ...(this.taskName ? { taskName: this.taskName } : {}),
+          ...(mergedResponses.length > 0
+            ? {
+                expectedResponses: mergedResponses.map((response) => ({
+                  type: response,
+                })),
+              }
+            : {}),
+        });
+      },
+    );
+  }
+}
+
+export class AISteps {
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly integration: AIIntegrationConfig,
+  ) {}
+
+  requestPermission(stepName = 'RequestPermission'): StepsBuilder {
+    return this.parent.emitType(
+      stepName,
+      'MyOS/Single Document Permission Grant Requested',
+      (payload) => {
+        payload.put('onBehalfOf', this.integration.permissionFrom);
+        payload.put('requestId', this.integration.requestId);
+        payload.put('targetSessionId', this.integration.sessionId);
+        payload.put(
+          'permissions',
+          MyOsPermissions.create()
+            .read(true)
+            .singleOps('provideInstructions')
+            .build(),
+        );
+      },
+    );
+  }
+
+  subscribe(stepName = 'Subscribe'): StepsBuilder {
+    return this.parent.emitType(
+      stepName,
+      'MyOS/Subscribe to Session Requested',
+      (payload) => {
+        payload.put('onBehalfOf', this.integration.permissionFrom);
+        payload.put('targetSessionId', this.integration.sessionId);
+        payload.put('subscription', {
+          id: this.integration.subscriptionId,
+          events: [],
+        });
+      },
+    );
+  }
+}
+
 export class StepsBuilder {
   private readonly steps: JsonObject[] = [];
+  private readonly aiIntegrations: Record<string, AIIntegrationConfig>;
+
+  constructor(aiIntegrations: Record<string, AIIntegrationConfig> = {}) {
+    this.aiIntegrations = structuredClone(aiIntegrations);
+  }
 
   jsRaw(name: string, code: string): this {
     this.steps.push(step(name, 'Conversation/JavaScript Code', { code }));
@@ -548,6 +672,37 @@ export class StepsBuilder {
     return new MyOsSteps(this, adminChannelKey);
   }
 
+  askAI(aiName: string, stepName: string, askCustomizer: AskAICustomizer): this;
+  askAI(aiName: string, askCustomizer: AskAICustomizer): this;
+  askAI(
+    aiName: string,
+    stepNameOrCustomizer: string | AskAICustomizer,
+    askCustomizerMaybe?: AskAICustomizer,
+  ): this {
+    if (typeof stepNameOrCustomizer === 'function') {
+      const askBuilder = new AskAIBuilder(
+        this,
+        this.requireAiIntegration(aiName),
+        'AskAI',
+      );
+      stepNameOrCustomizer(askBuilder);
+      askBuilder.done();
+      return this;
+    }
+    const askBuilder = new AskAIBuilder(
+      this,
+      this.requireAiIntegration(aiName),
+      stepNameOrCustomizer,
+    );
+    (askCustomizerMaybe as AskAICustomizer)(askBuilder);
+    askBuilder.done();
+    return this;
+  }
+
+  ai(aiName: string): AISteps {
+    return new AISteps(this, this.requireAiIntegration(aiName));
+  }
+
   raw(stepNode: JsonObject): this {
     this.steps.push(structuredClone(stepNode));
     return this;
@@ -570,5 +725,14 @@ export class StepsBuilder {
         payload.put(key, value as JsonValue);
       }
     });
+  }
+
+  private requireAiIntegration(aiName: string): AIIntegrationConfig {
+    const key = aiName.trim();
+    const integration = this.aiIntegrations[key];
+    if (!integration) {
+      throw new Error(`Unknown AI integration: ${aiName}`);
+    }
+    return integration;
   }
 }
