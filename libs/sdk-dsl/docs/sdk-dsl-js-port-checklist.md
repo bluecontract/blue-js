@@ -37,7 +37,7 @@ Legend:
 - ✅ `PayNotes.payNote(name)` + `PayNoteBuilder`
 - ✅ amount/currency helpers
 - ✅ capture/reserve/release action builders (including operation unlock/partial-request variants)
-- ⚠️ full Java parity for all paynote operation trigger variants (release lock/unlock aliases unavailable in current repository models)
+- ⚠️ full Java parity for all paynote operation trigger variants (reserve/release lock/unlock aliases unavailable in current repository models)
 
 ## Structure + patch
 

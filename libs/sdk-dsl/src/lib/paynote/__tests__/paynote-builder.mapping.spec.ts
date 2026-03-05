@@ -200,4 +200,16 @@ amount:
         .buildDocument(),
     ).toThrow('PayNote/Reservation Release Lock Requested');
   });
+
+  it('surfaces type-availability failure for reserve lock helpers', () => {
+    expect(() =>
+      PayNotes.payNote('Reserve Lock Unsupported')
+        .currency('USD')
+        .amountMinor(5100)
+        .reserve()
+        .lockOnInit()
+        .done()
+        .buildDocument(),
+    ).toThrow('PayNote/Reserve Lock Requested');
+  });
 });

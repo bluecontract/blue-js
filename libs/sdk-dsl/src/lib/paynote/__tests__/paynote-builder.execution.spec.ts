@@ -266,4 +266,16 @@ describe('paynote execution', () => {
         .buildDocument(),
     ).toThrow('PayNote/Reservation Release Lock Requested');
   });
+
+  it('surfaces type-availability failure for reserve lock helpers', async () => {
+    expect(() =>
+      PayNotes.payNote('Reserve Lock Unsupported Runtime')
+        .currency('USD')
+        .amountMinor(5100)
+        .reserve()
+        .lockOnInit()
+        .done()
+        .buildDocument(),
+    ).toThrow('PayNote/Reserve Lock Requested');
+  });
 });
