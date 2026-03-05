@@ -117,7 +117,9 @@ export class PayNoteActionBuilder {
     this.parent.operationTrigger(
       operationKey,
       channelKey,
-      undefined,
+      {
+        type: 'Integer',
+      },
       description,
       {
         type: eventType(this.mode, 'unlock'),
@@ -134,7 +136,9 @@ export class PayNoteActionBuilder {
     this.parent.operationTrigger(
       operationKey,
       channelKey,
-      undefined,
+      {
+        type: 'Integer',
+      },
       description,
       {
         type: eventType(this.mode, 'request'),

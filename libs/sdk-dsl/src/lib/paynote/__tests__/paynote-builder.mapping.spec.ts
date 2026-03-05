@@ -53,4 +53,41 @@ amount:
   total: 10000
 `);
   });
+
+  it('maps reserve and release operation-triggered flows', () => {
+    const payNote = PayNotes.payNote('Reserve/Release')
+      .currency('USD')
+      .amountMinor(2500)
+      .reserve()
+      .requestOnOperation(
+        'requestReserve',
+        'payerChannel',
+        'Request reserve funds',
+      )
+      .done()
+      .release()
+      .requestOnOperation(
+        'requestRelease',
+        'guarantorChannel',
+        'Request release flow',
+      )
+      .done()
+      .buildDocument();
+
+    const yaml = toOfficialYaml(payNote);
+    expect(yaml).toContain(`requestReserve:
+    description: Request reserve funds
+    type: Conversation/Operation
+    channel: payerChannel`);
+    expect(yaml).toContain(`request:
+      type: Integer`);
+    expect(yaml).toContain(`requestReserveImpl:
+    type: Conversation/Sequential Workflow Operation`);
+    expect(yaml).toContain(`type: PayNote/Reserve Funds Requested`);
+    expect(yaml).toContain(`requestRelease:
+    description: Request release flow
+    type: Conversation/Operation
+    channel: guarantorChannel`);
+    expect(yaml).toContain(`type: PayNote/Reservation Release Requested`);
+  });
 });

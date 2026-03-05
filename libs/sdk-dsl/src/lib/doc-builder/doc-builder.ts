@@ -507,24 +507,96 @@ export class DocBuilder {
         responseTypeOrCustomizer as StepsCustomizer,
       );
     }
-
-    return this.onTriggeredWithMatcher(
+    return this.onAIResponseWithMatcher(
+      integration,
       workflowKey,
-      'MyOS/Subscription Update',
-      {
-        subscriptionId: integration.subscriptionId,
-        update: {
-          type: toTypeAlias(responseTypeOrCustomizer as TypeLike),
-        },
-      },
-      (steps) => {
-        steps.replaceExpression(
-          '_SaveAIContext',
-          integration.contextPath,
-          'event.update.context',
-        );
-        customizerMaybe(steps);
-      },
+      toTypeAlias(responseTypeOrCustomizer as TypeLike),
+      undefined,
+      undefined,
+      customizerMaybe,
+    );
+  }
+
+  onAIResponseForTask(
+    integrationName: string,
+    workflowKey: string,
+    taskName: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onAIResponseForTask(
+    integrationName: string,
+    workflowKey: string,
+    responseType: TypeLike,
+    taskName: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onAIResponseForTask(
+    integrationName: string,
+    workflowKey: string,
+    responseTypeOrTaskName: TypeLike | string,
+    taskNameOrCustomizer: string | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    const integration = this.requireAiIntegration(integrationName);
+    if (customizerMaybe === undefined) {
+      const taskName = taskNameOrCustomizer as string;
+      return this.onAIResponseWithMatcher(
+        integration,
+        workflowKey,
+        'Conversation/Response',
+        taskName,
+        undefined,
+        responseTypeOrTaskName as StepsCustomizer,
+      );
+    }
+    return this.onAIResponseWithMatcher(
+      integration,
+      workflowKey,
+      toTypeAlias(responseTypeOrTaskName as TypeLike),
+      taskNameOrCustomizer as string,
+      undefined,
+      customizerMaybe,
+    );
+  }
+
+  onAINamedResponse(
+    integrationName: string,
+    workflowKey: string,
+    namedEventName: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onAINamedResponse(
+    integrationName: string,
+    workflowKey: string,
+    namedEventName: string,
+    taskName: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onAINamedResponse(
+    integrationName: string,
+    workflowKey: string,
+    namedEventName: string,
+    taskNameOrCustomizer: string | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    const integration = this.requireAiIntegration(integrationName);
+    if (customizerMaybe === undefined) {
+      return this.onAIResponseWithMatcher(
+        integration,
+        workflowKey,
+        'Conversation/Event',
+        undefined,
+        namedEventName,
+        taskNameOrCustomizer as StepsCustomizer,
+      );
+    }
+    return this.onAIResponseWithMatcher(
+      integration,
+      workflowKey,
+      'Conversation/Event',
+      taskNameOrCustomizer as string,
+      namedEventName,
+      customizerMaybe,
     );
   }
 
@@ -1226,6 +1298,44 @@ export class DocBuilder {
     return steps.build();
   }
 
+  private onAIResponseWithMatcher(
+    integration: AIIntegrationConfig,
+    workflowKey: string,
+    responseType: string,
+    taskName: string | undefined,
+    namedEventName: string | undefined,
+    customizer: StepsCustomizer,
+  ): this {
+    if (taskName) {
+      this.assertAiTaskExists(integration, taskName);
+    }
+    return this.onTriggeredWithMatcher(
+      workflowKey,
+      'MyOS/Subscription Update',
+      {
+        subscriptionId: integration.subscriptionId,
+        update: {
+          type: responseType,
+          ...(namedEventName ? { name: namedEventName } : {}),
+          inResponseTo: {
+            incomingEvent: {
+              requester: integration.requesterId,
+              ...(taskName ? { taskName } : {}),
+            },
+          },
+        },
+      },
+      (steps) => {
+        steps.replaceExpression(
+          '_SaveAIContext',
+          integration.contextPath,
+          'event.update.context',
+        );
+        customizer(steps);
+      },
+    );
+  }
+
   private requireAiIntegration(name: string): AIIntegrationConfig {
     const key = name.trim();
     const integration = this.aiIntegrations.get(key);
@@ -1233,6 +1343,18 @@ export class DocBuilder {
       throw new Error(`Unknown AI integration: ${name}`);
     }
     return integration;
+  }
+
+  private assertAiTaskExists(
+    integration: AIIntegrationConfig,
+    taskName: string,
+  ): void {
+    const normalized = taskName.trim();
+    if (!integration.tasks[normalized]) {
+      throw new Error(
+        `Unknown AI task '${normalized}' for integration '${integration.name}'`,
+      );
+    }
   }
 
   private requireAccessConfig(name: string): AccessConfig {
