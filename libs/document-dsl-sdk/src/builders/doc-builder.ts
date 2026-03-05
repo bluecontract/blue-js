@@ -14,14 +14,21 @@ import type {
   WorkflowConfig,
 } from '../types.js';
 import { OperationBuilder } from './operation-builder.js';
+import { SectionContext } from './section-context.js';
 import { StepsBuilder } from './steps-builder.js';
-
-interface SectionState {
-  key: string;
-  config: SectionConfig;
-  relatedFields: Set<string>;
-  relatedContracts: Set<string>;
-}
+import {
+  createChangeOperationContract,
+  createChangeWorkflowContract,
+  createContractsPolicyContract,
+} from './helpers/change-helpers.js';
+import {
+  createChannelContract,
+  createCompositeChannelContract,
+} from './helpers/channel-helpers.js';
+import {
+  createDocumentAnchorsContract,
+  createDocumentLinksContract,
+} from './helpers/anchors-links-helpers.js';
 
 const clone = <T>(value: T): T => structuredClone(value);
 
@@ -47,7 +54,7 @@ const toSteps = (
 };
 
 export class DocBuilder {
-  private currentSection: SectionState | null = null;
+  private currentSection: SectionContext | null = null;
   public static readonly expr = expr;
 
   private constructor(private readonly docNode: BlueDocument) {}
@@ -115,10 +122,7 @@ export class DocBuilder {
     const channelType = config?.type ?? 'Core/Channel';
     const rest = { ...(config ?? {}) } as Record<string, BlueValue>;
     delete rest.type;
-    this.contract(key, {
-      type: resolveTypeInput(channelType) as BlueValue,
-      ...rest,
-    });
+    this.contract(key, createChannelContract(channelType, rest));
     return this;
   }
 
@@ -137,10 +141,7 @@ export class DocBuilder {
       channelsOrList.length === 1 && Array.isArray(channelsOrList[0])
         ? channelsOrList[0]
         : (channelsOrList as string[]);
-    this.contract(key, {
-      type: 'Conversation/Composite Timeline Channel',
-      channels,
-    });
+    this.contract(key, createCompositeChannelContract(channels));
     return this;
   }
 
@@ -155,12 +156,7 @@ export class DocBuilder {
       typeof titleOrConfig === 'string'
         ? { title: titleOrConfig, summary }
         : (titleOrConfig ?? {});
-    this.currentSection = {
-      key,
-      config,
-      relatedFields: new Set(),
-      relatedContracts: new Set(),
-    };
+    this.currentSection = new SectionContext(key, config);
     return this;
   }
 
@@ -428,18 +424,21 @@ export class DocBuilder {
     channelKey: string,
     description = 'Direct contract changes',
   ): this {
-    this.contract(operationKey, {
-      type: 'Conversation/Change Operation',
-      channel: channelKey,
-      description,
-      request: {
-        type: 'Conversation/Change Request',
-      },
-    });
-    this.workflow(`${operationKey}Impl`, {
-      type: 'Conversation/Change Workflow',
-      operation: operationKey,
-    });
+    this.contract(
+      operationKey,
+      createChangeOperationContract(
+        'Conversation/Change Operation',
+        channelKey,
+        description,
+      ),
+    );
+    this.contract(
+      `${operationKey}Impl`,
+      createChangeWorkflowContract(
+        'Conversation/Change Workflow',
+        operationKey,
+      ),
+    );
     return this;
   }
 
@@ -447,10 +446,10 @@ export class DocBuilder {
     config: { requireSectionChanges?: boolean },
     key = 'contractsPolicy',
   ): this {
-    this.contract(key, {
-      type: 'Conversation/Contracts Change Policy',
-      requireSectionChanges: config.requireSectionChanges ?? true,
-    });
+    this.contract(
+      key,
+      createContractsPolicyContract(config.requireSectionChanges ?? true),
+    );
     return this;
   }
 
@@ -460,19 +459,22 @@ export class DocBuilder {
     postfix: string,
     description = 'Propose change',
   ): this {
-    this.contract(operationKey, {
-      type: 'Conversation/Propose Change Operation',
-      channel: channelKey,
-      description,
-      request: {
-        type: 'Conversation/Change Request',
-      },
-    });
-    this.workflow(`${operationKey}Impl`, {
-      type: 'Conversation/Propose Change Workflow',
-      operation: operationKey,
-      postfix,
-    });
+    this.contract(
+      operationKey,
+      createChangeOperationContract(
+        'Conversation/Propose Change Operation',
+        channelKey,
+        description,
+      ),
+    );
+    this.contract(
+      `${operationKey}Impl`,
+      createChangeWorkflowContract(
+        'Conversation/Propose Change Workflow',
+        operationKey,
+        postfix,
+      ),
+    );
     return this;
   }
 
@@ -482,19 +484,22 @@ export class DocBuilder {
     postfix: string,
     description = 'Accept change',
   ): this {
-    this.contract(operationKey, {
-      type: 'Conversation/Accept Change Operation',
-      channel: channelKey,
-      description,
-      request: {
-        type: 'Conversation/Change Request',
-      },
-    });
-    this.workflow(`${operationKey}Impl`, {
-      type: 'Conversation/Accept Change Workflow',
-      operation: operationKey,
-      postfix,
-    });
+    this.contract(
+      operationKey,
+      createChangeOperationContract(
+        'Conversation/Accept Change Operation',
+        channelKey,
+        description,
+      ),
+    );
+    this.contract(
+      `${operationKey}Impl`,
+      createChangeWorkflowContract(
+        'Conversation/Accept Change Workflow',
+        operationKey,
+        postfix,
+      ),
+    );
     return this;
   }
 
@@ -504,19 +509,22 @@ export class DocBuilder {
     postfix: string,
     description = 'Reject change',
   ): this {
-    this.contract(operationKey, {
-      type: 'Conversation/Reject Change Operation',
-      channel: channelKey,
-      description,
-      request: {
-        type: 'Conversation/Change Request',
-      },
-    });
-    this.workflow(`${operationKey}Impl`, {
-      type: 'Conversation/Reject Change Workflow',
-      operation: operationKey,
-      postfix,
-    });
+    this.contract(
+      operationKey,
+      createChangeOperationContract(
+        'Conversation/Reject Change Operation',
+        channelKey,
+        description,
+      ),
+    );
+    this.contract(
+      `${operationKey}Impl`,
+      createChangeWorkflowContract(
+        'Conversation/Reject Change Workflow',
+        operationKey,
+        postfix,
+      ),
+    );
     return this;
   }
 
@@ -528,10 +536,7 @@ export class DocBuilder {
       typeof keyOrAnchors === 'string' ? keyOrAnchors : 'documentAnchors';
     const anchors =
       typeof keyOrAnchors === 'string' ? (maybeAnchors ?? {}) : keyOrAnchors;
-    this.contract(key, {
-      type: 'MyOS/Document Anchors',
-      ...anchors,
-    });
+    this.contract(key, createDocumentAnchorsContract(anchors));
     return this;
   }
 
@@ -542,10 +547,7 @@ export class DocBuilder {
     const key = typeof keyOrLinks === 'string' ? keyOrLinks : 'documentLinks';
     const links =
       typeof keyOrLinks === 'string' ? (maybeLinks ?? {}) : keyOrLinks;
-    this.contract(key, {
-      type: 'MyOS/Document Links',
-      ...links,
-    });
+    this.contract(key, createDocumentLinksContract(links));
     return this;
   }
 
@@ -597,13 +599,13 @@ export class DocBuilder {
 
   private trackField(pointer: string): void {
     if (this.currentSection) {
-      this.currentSection.relatedFields.add(pointer);
+      this.currentSection.trackField(pointer);
     }
   }
 
   private trackContract(key: string): void {
-    if (this.currentSection && key !== this.currentSection.key) {
-      this.currentSection.relatedContracts.add(key);
+    if (this.currentSection) {
+      this.currentSection.trackContract(key);
     }
   }
 
