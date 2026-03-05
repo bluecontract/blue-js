@@ -60,17 +60,11 @@ describe('ai steps execution', () => {
 
     const callRequests = processed.triggeredEvents
       .map((event) => toOfficialJson(event))
-      .filter(
-        (
-          event,
-        ): event is {
-          type: string;
-          request?: Record<string, unknown>;
-        } => event.type === 'MyOS/Call Operation Requested',
-      );
+      .filter((event) => event.type === 'MyOS/Call Operation Requested');
 
     expect(callRequests).toHaveLength(1);
-    expect(callRequests[0].request).toMatchObject({
+    const callRequest = callRequests[0] as Record<string, unknown>;
+    expect(callRequest.request).toMatchObject({
       requester: 'PROVIDER',
       taskName: 'summarize',
     });

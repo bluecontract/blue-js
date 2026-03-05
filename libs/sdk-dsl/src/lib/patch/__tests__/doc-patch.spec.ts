@@ -125,7 +125,8 @@ describe('DocPatch', () => {
       role: 'admin',
     });
     expect(mutated.profile).not.toHaveProperty('name');
-    expect(mutated.contracts?.auditChannel).toMatchObject({
+    const contracts = mutated.contracts as Record<string, unknown> | undefined;
+    expect(contracts?.auditChannel).toMatchObject({
       type: 'Conversation/Timeline Channel',
       timelineId: 'audit-timeline',
     });
