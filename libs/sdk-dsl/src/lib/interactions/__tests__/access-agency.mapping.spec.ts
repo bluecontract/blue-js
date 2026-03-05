@@ -205,6 +205,17 @@ describe('interaction builders mapping', () => {
             'linked-access-revoked',
           ),
       )
+      .onLinkedUpdate(
+        'linkedCounterAccess',
+        'onLinkedUpdateWF',
+        'Conversation/Response',
+        (steps) =>
+          steps.replaceValue(
+            'SetLinkedUpdated',
+            '/status',
+            'linked-update-received',
+          ),
+      )
       .onAgencyRejected('workerAgency', 'onAgencyRejectedWF', (steps) =>
         steps.replaceValue('SetAgencyRejected', '/status', 'agency-rejected'),
       )
@@ -242,6 +253,10 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`onLinkedAccessRevokedWF:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Linked Documents Permission Revoked`);
+    expect(yaml).toContain(`onLinkedUpdateWF:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`subscriptionId: SUB_LINKED`);
+    expect(yaml).toContain(`type: Conversation/Response`);
     expect(yaml).toContain(`onAgencyRejectedWF:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Worker Agency Permission Rejected`);

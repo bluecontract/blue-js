@@ -424,4 +424,75 @@ describe('access step helpers execution', () => {
       },
     });
   });
+
+  it('handles linked subscription updates through onLinkedUpdate listener helper', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Linked Update Runtime')
+      .field('/linkedStatus', 'pending')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .operation(
+        'emitLinkedUpdate',
+        'ownerChannel',
+        Number,
+        'emit linked subscription update',
+        (steps) =>
+          steps.emitType(
+            'EmitLinkedSubscriptionUpdate',
+            'MyOS/Subscription Update',
+            (payload) => {
+              payload.put('subscriptionId', 'SUB_LINKED');
+              payload.put('update', {
+                type: 'Conversation/Response',
+                payload: {
+                  source: 'runtime',
+                },
+              });
+            },
+          ),
+      )
+      .onLinkedUpdate(
+        'linkedAccess',
+        'markLinkedUpdate',
+        'Conversation/Response',
+        (steps) =>
+          steps.replaceValue('SetLinkedUpdated', '/linkedStatus', 'updated'),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'linked update listener initialization failed',
+    );
+
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'emitLinkedUpdate',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'linked subscription update processing failed',
+    );
+
+    const triggeredTypes = processed.triggeredEvents.map(
+      (event) => toOfficialJson(event).type as string,
+    );
+    expect(triggeredTypes).toContain('MyOS/Subscription Update');
+    expect(toOfficialJson(processed.document).linkedStatus).toBe('updated');
+  });
 });

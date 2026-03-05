@@ -678,6 +678,39 @@ export class DocBuilder {
     );
   }
 
+  onLinkedUpdate(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: StepsCustomizer,
+  ): this;
+  onLinkedUpdate(
+    linkedAccessName: string,
+    workflowKey: string,
+    updateType: TypeLike,
+    customizer: StepsCustomizer,
+  ): this;
+  onLinkedUpdate(
+    linkedAccessName: string,
+    workflowKey: string,
+    updateTypeOrCustomizer: TypeLike | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    if (customizerMaybe === undefined) {
+      return this.onSubscriptionUpdate(
+        workflowKey,
+        config.subscriptionId,
+        updateTypeOrCustomizer as StepsCustomizer,
+      );
+    }
+    return this.onSubscriptionUpdate(
+      workflowKey,
+      config.subscriptionId,
+      updateTypeOrCustomizer as TypeLike,
+      customizerMaybe,
+    );
+  }
+
   onLinkedAccessGranted(
     linkedAccessName: string,
     workflowKey: string,

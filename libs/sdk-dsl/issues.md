@@ -15,6 +15,7 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
 - **Actual**:
   - baseline config builders + listener helpers are implemented.
   - linked-access helper coverage now includes `requestPermission`, `revokePermission`, `subscribe`, and `call`.
+  - linked-access listener helper coverage now includes `onLinkedUpdate(...)`.
   - agency helper coverage now includes `requestPermission`, `revokePermission`, `startWorkerSession`, `call`, and `subscribe`.
   - mapping suite now covers grant/reject/revoke + session/participant lifecycle listener variants.
   - execution suite now covers request + revoke helper flows across access/linked/agency namespaces.
