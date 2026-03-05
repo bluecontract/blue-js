@@ -203,6 +203,8 @@ export class MyOsSteps {
   startWorkerSession(
     agentChannelKey: string,
     document: JsonObject,
+    channelBindings?: Record<string, JsonObject>,
+    options?: JsonObject,
   ): StepsBuilder {
     return this.parent.emitType(
       'StartWorkerSession',
@@ -213,6 +215,12 @@ export class MyOsSteps {
           requireText(agentChannelKey, 'agentChannelKey is required'),
         );
         payload.put('document', structuredClone(document));
+        if (channelBindings && Object.keys(channelBindings).length > 0) {
+          payload.put('channelBindings', structuredClone(channelBindings));
+        }
+        if (options && Object.keys(options).length > 0) {
+          payload.put('options', structuredClone(options));
+        }
       },
     );
   }

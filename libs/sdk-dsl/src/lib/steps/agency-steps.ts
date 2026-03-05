@@ -1,5 +1,7 @@
 import type { AgencyConfig } from '../interactions/types.js';
 import type { JsonObject } from '../core/types.js';
+import { AgencyBindingsBuilder } from '../interactions/agency-bindings-builder.js';
+import { AgencyOptionsBuilder } from '../interactions/agency-options-builder.js';
 import type { StepsBuilder } from './steps-builder.js';
 
 export class AgencySteps {
@@ -37,5 +39,26 @@ export class AgencySteps {
     document: JsonObject,
   ): StepsBuilder {
     return this.parent.myOs().startWorkerSession(agentChannelKey, document);
+  }
+
+  startWorkerSessionWith(
+    agentChannelKey: string,
+    document: JsonObject,
+    configureBindings?: (bindings: AgencyBindingsBuilder) => void,
+    configureOptions?: (options: AgencyOptionsBuilder) => void,
+  ): StepsBuilder {
+    const bindingsBuilder = new AgencyBindingsBuilder();
+    configureBindings?.(bindingsBuilder);
+    const optionsBuilder = new AgencyOptionsBuilder();
+    configureOptions?.(optionsBuilder);
+
+    return this.parent
+      .myOs()
+      .startWorkerSession(
+        agentChannelKey,
+        document,
+        bindingsBuilder.build(),
+        optionsBuilder.build(),
+      );
   }
 }

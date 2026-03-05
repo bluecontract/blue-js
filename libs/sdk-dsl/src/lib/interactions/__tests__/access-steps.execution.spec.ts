@@ -128,4 +128,77 @@ describe('access step helpers execution', () => {
       'MyOS/Worker Agency Permission Grant Requested',
     );
   });
+
+  it('emits start worker session requests with bindings and options', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Worker Start Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .done()
+      .operation(
+        'startWorker',
+        'ownerChannel',
+        Number,
+        'start worker session',
+        (steps) =>
+          steps.viaAgency('workerAgency').startWorkerSessionWith(
+            'ownerChannel',
+            {
+              name: 'Child Worker',
+              type: 'MyOS/MyOS Admin Base',
+            },
+            (bindings) =>
+              bindings.bind('ownerChannel', {
+                accountId: 'acc-owner',
+              }),
+            (options) =>
+              options
+                .bootstrapAssignee('myOsAdminChannel')
+                .defaultMessage('Worker start'),
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency worker start initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'startWorker',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'agency worker start operation failed',
+    );
+
+    const startEvent = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'MyOS/Start Worker Session Requested');
+    expect(startEvent).toBeDefined();
+    expect(startEvent).toMatchObject({
+      channelBindings: {
+        ownerChannel: {
+          accountId: 'acc-owner',
+        },
+      },
+      options: {
+        bootstrapAssignee: 'myOsAdminChannel',
+        initialMessages: {
+          defaultMessage: 'Worker start',
+        },
+      },
+    });
+  });
 });
