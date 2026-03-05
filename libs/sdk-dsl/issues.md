@@ -14,6 +14,7 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
   - generated request/grant/revoke workflows and listener helpers
 - **Actual**:
   - baseline config builders + listener helpers are implemented.
+  - linked-access helper coverage now includes `requestPermission`, `revokePermission`, `subscribe`, and `call`.
   - full Java parity surface (complete step wrappers + all lifecycle helpers) is still incomplete.
 - **Likely cause**:
   - Initial port focused on runtime-backed core scenarios first.

@@ -3,6 +3,8 @@ import type {
   LinkedAccessConfig,
 } from '../interactions/types.js';
 import type { JsonObject, JsonValue } from '../core/types.js';
+import type { TypeLike } from '../core/type-alias.js';
+import { MyOsPermissions } from './myos-permissions.js';
 import type { StepsBuilder } from './steps-builder.js';
 
 export class AccessSteps {
@@ -11,16 +13,18 @@ export class AccessSteps {
     private readonly config: AccessConfig,
   ) {}
 
-  requestPermission(): StepsBuilder {
+  requestPermission(
+    permissions: JsonValue | MyOsPermissions | JsonObject = { read: true },
+    grantSessionSubscriptionOnResult = false,
+  ): StepsBuilder {
     return this.parent
       .myOs()
       .requestSingleDocPermission(
         this.config.permissionFrom,
         this.config.requestId,
         this.config.targetSessionId,
-        {
-          read: true,
-        },
+        permissions,
+        grantSessionSubscriptionOnResult,
       );
   }
 
@@ -34,14 +38,16 @@ export class AccessSteps {
       );
   }
 
-  subscribe(): StepsBuilder {
+  subscribe(...eventTypes: TypeLike[]): StepsBuilder {
+    const resolvedEventTypes =
+      eventTypes.length > 0 ? eventTypes : ['Conversation/Event'];
     return this.parent
       .myOs()
       .subscribeToSession(
         this.config.permissionFrom,
         this.config.targetSessionId,
         this.config.subscriptionId,
-        'Conversation/Event',
+        ...resolvedEventTypes,
       );
   }
 
@@ -83,6 +89,30 @@ export class LinkedAccessSteps {
         this.config.permissionFrom,
         this.config.requestId,
         this.config.targetSessionId,
+      );
+  }
+
+  subscribe(...eventTypes: TypeLike[]): StepsBuilder {
+    const resolvedEventTypes =
+      eventTypes.length > 0 ? eventTypes : ['Conversation/Event'];
+    return this.parent
+      .myOs()
+      .subscribeToSession(
+        this.config.permissionFrom,
+        this.config.targetSessionId,
+        this.config.subscriptionId,
+        ...resolvedEventTypes,
+      );
+  }
+
+  call(operation: string, request?: JsonValue): StepsBuilder {
+    return this.parent
+      .myOs()
+      .callOperation(
+        this.config.permissionFrom,
+        this.config.targetSessionId,
+        operation,
+        request,
       );
   }
 }

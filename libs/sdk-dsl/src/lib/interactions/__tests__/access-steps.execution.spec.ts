@@ -77,6 +77,7 @@ describe('access step helpers execution', () => {
       .permissionFrom('ownerChannel')
       .targetSessionId('target-session')
       .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
@@ -91,6 +92,12 @@ describe('access step helpers execution', () => {
           steps
             .accessLinked('linkedAccess')
             .requestPermission({ anchorA: { read: true } })
+            .accessLinked('linkedAccess')
+            .subscribe('Conversation/Event')
+            .accessLinked('linkedAccess')
+            .call('syncState', {
+              type: 'Conversation/Event',
+            })
             .viaAgency('workerAgency')
             .requestPermission({
               type: 'MyOS/Worker Agency Permission',
@@ -124,6 +131,8 @@ describe('access step helpers execution', () => {
     expect(eventTypes).toContain(
       'MyOS/Linked Documents Permission Grant Requested',
     );
+    expect(eventTypes).toContain('MyOS/Subscribe to Session Requested');
+    expect(eventTypes).toContain('MyOS/Call Operation Requested');
     expect(eventTypes).toContain(
       'MyOS/Worker Agency Permission Grant Requested',
     );

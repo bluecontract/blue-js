@@ -22,6 +22,7 @@ export class LinkedAccessBuilder<P> {
   private permissionFromValue = 'ownerChannel';
   private targetSessionIdValue: string | undefined;
   private requestIdValue: string | undefined;
+  private subscriptionIdValue: string | undefined;
 
   constructor(
     private readonly parent: LinkedAccessConfigRegistrationHost<P>,
@@ -43,6 +44,11 @@ export class LinkedAccessBuilder<P> {
     return this;
   }
 
+  subscriptionId(subscriptionId: string): this {
+    this.subscriptionIdValue = requireText(subscriptionId, 'subscriptionId');
+    return this;
+  }
+
   done(): P {
     const baseToken = token(this.name);
     const config: LinkedAccessConfig = {
@@ -53,6 +59,7 @@ export class LinkedAccessBuilder<P> {
         'targetSessionId',
       ),
       requestId: this.requestIdValue ?? `REQ_LINKED_${baseToken}`,
+      subscriptionId: this.subscriptionIdValue ?? `SUB_LINKED_${baseToken}`,
     };
     return this.parent.registerLinkedAccessConfig(config);
   }

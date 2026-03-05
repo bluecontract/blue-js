@@ -11,6 +11,7 @@ export interface LinkedAccessConfig {
   readonly permissionFrom: string;
   readonly targetSessionId: string;
   readonly requestId: string;
+  readonly subscriptionId: string;
 }
 
 export interface AgencyConfig {

@@ -69,4 +69,40 @@ describe('interaction builders mapping', () => {
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Participant Resolved`);
   });
+
+  it('maps linked access subscribe and call helper steps', () => {
+    const document = DocBuilder.doc()
+      .name('Linked Access Steps Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .accessLinked('linkedCounterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_LINKED_COUNTER')
+      .subscriptionId('SUB_LINKED_COUNTER')
+      .done()
+      .operation(
+        'bootstrapLinkedAccess',
+        'ownerChannel',
+        Number,
+        'bootstrap linked access helpers',
+        (steps) =>
+          steps
+            .accessLinked('linkedCounterAccess')
+            .subscribe('Conversation/Event')
+            .accessLinked('linkedCounterAccess')
+            .call('syncLinkedState', {
+              type: 'Conversation/Event',
+            }),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`id: SUB_LINKED_COUNTER`);
+    expect(yaml).toContain(`operation: syncLinkedState`);
+    expect(yaml).toContain(`type: MyOS/Subscribe to Session Requested`);
+    expect(yaml).toContain(`type: MyOS/Call Operation Requested`);
+  });
 });
