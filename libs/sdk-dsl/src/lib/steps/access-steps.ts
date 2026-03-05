@@ -28,6 +28,22 @@ export class AccessSteps {
       );
   }
 
+  requestPermissionForTarget(
+    targetSessionId: JsonValue,
+    permissions: JsonValue | MyOsPermissions | JsonObject = { read: true },
+    grantSessionSubscriptionOnResult = false,
+  ): StepsBuilder {
+    return this.parent
+      .myOs()
+      .requestSingleDocPermission(
+        this.config.permissionFrom,
+        this.config.requestId,
+        targetSessionId,
+        permissions,
+        grantSessionSubscriptionOnResult,
+      );
+  }
+
   revokePermission(): StepsBuilder {
     return this.parent
       .myOs()
@@ -35,6 +51,16 @@ export class AccessSteps {
         this.config.permissionFrom,
         this.config.requestId,
         this.config.targetSessionId,
+      );
+  }
+
+  revokePermissionForTarget(targetSessionId: JsonValue): StepsBuilder {
+    return this.parent
+      .myOs()
+      .revokeSingleDocPermission(
+        this.config.permissionFrom,
+        this.config.requestId,
+        targetSessionId,
       );
   }
 
@@ -114,6 +140,20 @@ export class LinkedAccessSteps {
       );
   }
 
+  requestPermissionForTarget(
+    targetSessionId: JsonValue,
+    links: Record<string, JsonObject | JsonValue>,
+  ): StepsBuilder {
+    return this.parent
+      .myOs()
+      .requestLinkedDocsPermission(
+        this.config.permissionFrom,
+        this.config.requestId,
+        targetSessionId,
+        links,
+      );
+  }
+
   revokePermission(): StepsBuilder {
     return this.parent
       .myOs()
@@ -121,6 +161,16 @@ export class LinkedAccessSteps {
         this.config.permissionFrom,
         this.config.requestId,
         this.config.targetSessionId,
+      );
+  }
+
+  revokePermissionForTarget(targetSessionId: JsonValue): StepsBuilder {
+    return this.parent
+      .myOs()
+      .revokeLinkedDocsPermission(
+        this.config.permissionFrom,
+        this.config.requestId,
+        targetSessionId,
       );
   }
 

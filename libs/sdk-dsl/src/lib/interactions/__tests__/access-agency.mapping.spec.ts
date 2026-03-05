@@ -420,4 +420,65 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`operation: syncAccess`);
     expect(yaml).toContain(`operation: syncLinked`);
   });
+
+  it('maps access and linked-access permission/revoke target override helpers', () => {
+    const document = DocBuilder.doc()
+      .name('Access Permission Override Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('default-access-target')
+      .requestId('REQ_ACCESS')
+      .subscriptionId('SUB_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('default-linked-target')
+      .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .operation(
+        'overridePermissions',
+        'ownerChannel',
+        Number,
+        'override permission targets',
+        (steps) =>
+          steps
+            .access('counterAccess')
+            .requestPermissionForTarget(
+              'override-access-target',
+              { read: true, write: true },
+              true,
+            )
+            .access('counterAccess')
+            .revokePermissionForTarget('override-access-target')
+            .accessLinked('linkedAccess')
+            .requestPermissionForTarget('override-linked-target', {
+              anchorA: { read: true },
+            })
+            .accessLinked('linkedAccess')
+            .revokePermissionForTarget('override-linked-target'),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`targetSessionId: override-access-target`);
+    expect(yaml).toContain(`targetSessionId: override-linked-target`);
+    expect(yaml).toContain(`grantSessionSubscriptionOnResult: true`);
+    expect(yaml).toContain(
+      `type: MyOS/Single Document Permission Grant Requested`,
+    );
+    expect(yaml).toContain(
+      `type: MyOS/Single Document Permission Revoke Requested`,
+    );
+    expect(yaml).toContain(
+      `type: MyOS/Linked Documents Permission Grant Requested`,
+    );
+    expect(yaml).toContain(
+      `type: MyOS/Linked Documents Permission Revoke Requested`,
+    );
+  });
 });
