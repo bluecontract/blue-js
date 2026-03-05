@@ -33,9 +33,15 @@ describe('access step helpers execution', () => {
         (steps) =>
           steps
             .access('counterAccess')
-            .requestPermission()
+            .requestPermission(
+              {
+                read: true,
+                write: true,
+              },
+              true,
+            )
             .access('counterAccess')
-            .subscribe(),
+            .subscribe('Conversation/Response'),
       )
       .buildDocument();
 
@@ -62,6 +68,30 @@ describe('access step helpers execution', () => {
       'MyOS/Single Document Permission Grant Requested',
     );
     expect(eventTypes).toContain('MyOS/Subscribe to Session Requested');
+
+    const permissionRequest = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find(
+        (event) =>
+          event.type === 'MyOS/Single Document Permission Grant Requested',
+      );
+    expect(permissionRequest).toMatchObject({
+      grantSessionSubscriptionOnResult: true,
+      permissions: {
+        read: true,
+        write: true,
+      },
+    });
+
+    const subscriptionRequest = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'MyOS/Subscribe to Session Requested');
+    expect(subscriptionRequest).toMatchObject({
+      subscription: {
+        id: 'SUB_ACCESS',
+        events: [{ type: 'Conversation/Response' }],
+      },
+    });
   });
 
   it('emits linked and agency permission requests through helper namespaces', async () => {

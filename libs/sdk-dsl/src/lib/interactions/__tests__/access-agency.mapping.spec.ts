@@ -105,4 +105,44 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`type: MyOS/Subscribe to Session Requested`);
     expect(yaml).toContain(`type: MyOS/Call Operation Requested`);
   });
+
+  it('maps access helper permission and subscription options', () => {
+    const document = DocBuilder.doc()
+      .name('Access Steps Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_COUNTER')
+      .subscriptionId('SUB_COUNTER')
+      .done()
+      .operation(
+        'bootstrapAccess',
+        'ownerChannel',
+        Number,
+        'bootstrap access',
+        (steps) =>
+          steps
+            .access('counterAccess')
+            .requestPermission(
+              {
+                read: true,
+                write: true,
+              },
+              true,
+            )
+            .access('counterAccess')
+            .subscribe('Conversation/Response'),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`grantSessionSubscriptionOnResult: true`);
+    expect(yaml).toContain(`write: true`);
+    expect(yaml).toContain(`id: SUB_COUNTER`);
+    expect(yaml).toContain(`type: Conversation/Response`);
+  });
 });

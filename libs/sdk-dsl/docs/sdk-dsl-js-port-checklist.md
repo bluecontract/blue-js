@@ -46,8 +46,8 @@ Legend:
 
 ## Interaction builders
 
-- ⚠️ `access(...)` (baseline)
-- ⚠️ `accessLinked(...)` (baseline)
+- ⚠️ `access(...)` (config + permission/revoke/subscribe/call helper coverage; parity expansion ongoing)
+- ⚠️ `accessLinked(...)` (config + permission/revoke/subscribe/call helper coverage; parity expansion ongoing)
 - ⚠️ `agency(...)` (baseline)
 
 ## Docs and parity artifacts
