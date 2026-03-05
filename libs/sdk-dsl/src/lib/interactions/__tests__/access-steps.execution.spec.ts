@@ -240,4 +240,105 @@ describe('access step helpers execution', () => {
       },
     });
   });
+
+  it('emits revoke requests through access, linked access, and agency helpers', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Interaction Revoke Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_ACCESS')
+      .subscriptionId('SUB_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('target-session')
+      .done()
+      .operation(
+        'revokeAll',
+        'ownerChannel',
+        Number,
+        'revoke all integration permissions',
+        (steps) =>
+          steps
+            .access('counterAccess')
+            .revokePermission()
+            .accessLinked('linkedAccess')
+            .revokePermission()
+            .viaAgency('workerAgency')
+            .revokePermission(),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'interaction revoke initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'revokeAll',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'interaction revoke operation failed',
+    );
+
+    const events = processed.triggeredEvents.map((event) =>
+      toOfficialJson(event),
+    );
+    const eventTypes = events.map((event) => event.type as string);
+    expect(eventTypes).toContain(
+      'MyOS/Single Document Permission Revoke Requested',
+    );
+    expect(eventTypes).toContain(
+      'MyOS/Linked Documents Permission Revoke Requested',
+    );
+    expect(eventTypes).toContain(
+      'MyOS/Worker Agency Permission Revoke Requested',
+    );
+
+    const accessRevoke = events.find(
+      (event) =>
+        event.type === 'MyOS/Single Document Permission Revoke Requested',
+    );
+    expect(accessRevoke).toMatchObject({
+      requestId: 'REQ_ACCESS',
+      targetSessionId: 'target-session',
+    });
+
+    const linkedRevoke = events.find(
+      (event) =>
+        event.type === 'MyOS/Linked Documents Permission Revoke Requested',
+    );
+    expect(linkedRevoke).toMatchObject({
+      requestId: 'REQ_LINKED',
+      targetSessionId: 'target-session',
+    });
+
+    const agencyRevoke = events.find(
+      (event) =>
+        event.type === 'MyOS/Worker Agency Permission Revoke Requested',
+    );
+    expect(agencyRevoke).toMatchObject({
+      requestId: 'REQ_AGENCY',
+      targetSessionId: 'target-session',
+    });
+  });
 });
