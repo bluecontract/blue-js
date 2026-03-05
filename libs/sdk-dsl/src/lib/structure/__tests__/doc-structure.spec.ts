@@ -45,4 +45,53 @@ describe('DocStructure', () => {
       structure.unclassifiedContracts.map((contract) => contract.key).sort(),
     ).toEqual(['increment', 'incrementImpl', 'ownerChannel']);
   });
+
+  it('extracts nested field pointers and section metadata from complex documents', () => {
+    const document = DocBuilder.doc()
+      .name('Complex Structure')
+      .description('Nested field extraction')
+      .field('/profile/name', 'Alice')
+      .field('/profile/preferences/notifications', true)
+      .field('/scores', [1, 2, 3])
+      .section('profileSection', 'Profile Section', 'Profile related data')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'syncProfile',
+        'ownerChannel',
+        Number,
+        'Sync profile',
+        (steps) => steps.replaceValue('MarkSynced', '/profile/synced', true),
+      )
+      .endSection()
+      .buildDocument();
+
+    const structure = DocStructure.from(document);
+    expect(structure.fields).toEqual(
+      expect.arrayContaining([
+        { path: '/profile/name', value: 'Alice' },
+        { path: '/profile/preferences/notifications', value: true },
+        { path: '/scores', value: [1, 2, 3] },
+      ]),
+    );
+    expect(structure.sections).toEqual([
+      {
+        key: 'profileSection',
+        title: 'Profile Section',
+        summary: 'Profile related data',
+        relatedFields: [],
+        relatedContracts: ['ownerChannel', 'syncProfile', 'syncProfileImpl'],
+      },
+    ]);
+    expect(structure.contracts.map((contract) => contract.key)).toEqual(
+      expect.arrayContaining([
+        'profileSection',
+        'ownerChannel',
+        'syncProfile',
+        'syncProfileImpl',
+      ]),
+    );
+  });
 });

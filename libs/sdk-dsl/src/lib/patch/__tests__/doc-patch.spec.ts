@@ -77,4 +77,57 @@ describe('DocPatch', () => {
       },
     ]);
   });
+
+  it('supports nested pointer updates and mutateOriginal application mode', () => {
+    const original = DocBuilder.doc()
+      .name('Patch Nested')
+      .field('/profile/name', 'Alice')
+      .field('/profile/active', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .buildDocument();
+
+    const patch = DocPatch.from(original)
+      .field('/profile/active', true)
+      .field('/profile/role', 'admin')
+      .remove('/profile/name')
+      .contract('auditChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'audit-timeline',
+      });
+
+    const operations = patch.build();
+    expect(operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          op: 'replace',
+          path: '/profile/active',
+          val: true,
+        }),
+        expect.objectContaining({
+          op: 'remove',
+          path: '/profile/name',
+        }),
+        expect.objectContaining({
+          op: 'add',
+          path: '/profile/role',
+          val: 'admin',
+        }),
+      ]),
+    );
+
+    patch.applyTo(original, true);
+    const mutated = toOfficialJson(original);
+    expect(mutated.profile).toMatchObject({
+      active: true,
+      role: 'admin',
+    });
+    expect(mutated.profile).not.toHaveProperty('name');
+    expect(mutated.contracts?.auditChannel).toMatchObject({
+      type: 'Conversation/Timeline Channel',
+      timelineId: 'audit-timeline',
+    });
+  });
 });
