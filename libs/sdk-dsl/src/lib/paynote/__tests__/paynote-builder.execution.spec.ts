@@ -132,4 +132,28 @@ describe('paynote execution', () => {
       amount: '900',
     });
   });
+
+  it('emits release request on initialization when configured', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const payNote = PayNotes.payNote('Release Init Runtime')
+      .currency('USD')
+      .amountMinor(1700)
+      .release()
+      .requestOnInit()
+      .done()
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(payNote),
+      'release init paynote initialization failed',
+    );
+
+    const triggeredEventTypes = initialized.triggeredEvents.map(
+      (triggeredEvent) => toOfficialJson(triggeredEvent).type as string,
+    );
+    expect(triggeredEventTypes).toContain(
+      'PayNote/Reservation Release Requested',
+    );
+  });
 });

@@ -122,4 +122,23 @@ amount:
       type: Text`);
     expect(yaml).toContain(`amount: \${event.message.request}`);
   });
+
+  it('maps capture unlock-on-event workflow helper', () => {
+    const payNote = PayNotes.payNote('Capture Unlock On Event')
+      .currency('USD')
+      .amountMinor(3300)
+      .capture()
+      .unlockOnEvent('Conversation/Event')
+      .done()
+      .buildDocument();
+
+    const yaml = toOfficialYaml(payNote);
+    expect(yaml).toContain(`captureUnlockOnConversationEvent:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`event:
+      type: Conversation/Event`);
+    expect(yaml).toContain(
+      `type: PayNote/Card Transaction Capture Unlock Requested`,
+    );
+  });
 });
