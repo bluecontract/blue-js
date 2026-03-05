@@ -67,4 +67,69 @@ describe('paynote execution', () => {
     );
     expect(eventTypes).toContain('PayNote/Reserve Funds Requested');
   });
+
+  it('emits capture unlock and partial capture events from advanced operation flows', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const payNote = PayNotes.payNote('Advanced Runtime')
+      .currency('USD')
+      .amountMinor(2200)
+      .capture()
+      .unlockOnOperation('unlockCapture', 'guarantorChannel', 'Unlock capture')
+      .requestPartialOnOperation(
+        'capturePartial',
+        'guarantorChannel',
+        'event.message.request',
+        'Request partial capture',
+      )
+      .done()
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(payNote),
+      'advanced paynote initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const unlockResponse = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'unlockCapture',
+          request: 1,
+          timelineId: 'guarantor-timeline',
+          allowNewerVersion: false,
+          documentBlueId,
+        }),
+      ),
+      'unlock capture operation failed',
+    );
+    const unlockTypes = unlockResponse.triggeredEvents.map(
+      (event) => toOfficialJson(event).type as string,
+    );
+    expect(unlockTypes).toContain(
+      'PayNote/Card Transaction Capture Unlock Requested',
+    );
+
+    const partialResponse = await expectSuccess(
+      processor.processDocument(
+        unlockResponse.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'capturePartial',
+          request: '900',
+          timelineId: 'guarantor-timeline',
+          allowNewerVersion: false,
+          documentBlueId,
+        }),
+      ),
+      'capture partial operation failed',
+    );
+    const partialEvent = partialResponse.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'PayNote/Capture Funds Requested');
+    expect(partialEvent).toBeDefined();
+    expect(partialEvent).toMatchObject({
+      amount: '900',
+    });
+  });
 });

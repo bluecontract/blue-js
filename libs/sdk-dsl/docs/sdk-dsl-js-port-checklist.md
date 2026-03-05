@@ -36,7 +36,7 @@ Legend:
 
 - ✅ `PayNotes.payNote(name)` + `PayNoteBuilder`
 - ✅ amount/currency helpers
-- ✅ capture/reserve/release action builders (baseline)
+- ✅ capture/reserve/release action builders (including operation unlock/partial-request variants)
 - ⚠️ full Java parity for all paynote operation trigger variants
 
 ## Structure + patch

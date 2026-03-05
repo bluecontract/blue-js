@@ -90,4 +90,36 @@ amount:
     channel: guarantorChannel`);
     expect(yaml).toContain(`type: PayNote/Reservation Release Requested`);
   });
+
+  it('maps capture unlock and partial-request operation helpers', () => {
+    const payNote = PayNotes.payNote('Advanced Actions')
+      .currency('USD')
+      .amountMinor(1250)
+      .capture()
+      .unlockOnOperation('unlockCapture', 'guarantorChannel', 'Unlock capture')
+      .requestPartialOnOperation(
+        'capturePartial',
+        'guarantorChannel',
+        'event.message.request',
+        'Request partial capture',
+      )
+      .done()
+      .buildDocument();
+
+    const yaml = toOfficialYaml(payNote);
+    expect(yaml).toContain(`unlockCapture:
+    description: Unlock capture
+    type: Conversation/Operation
+    channel: guarantorChannel`);
+    expect(yaml).toContain(
+      `type: PayNote/Card Transaction Capture Unlock Requested`,
+    );
+    expect(yaml).toContain(`capturePartial:
+    description: Request partial capture
+    type: Conversation/Operation
+    channel: guarantorChannel`);
+    expect(yaml).toContain(`request:
+      type: Text`);
+    expect(yaml).toContain(`amount: \${event.message.request}`);
+  });
 });
