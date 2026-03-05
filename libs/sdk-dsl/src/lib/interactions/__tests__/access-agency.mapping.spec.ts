@@ -311,4 +311,44 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`operation: syncState`);
     expect(yaml).toContain(`type: MyOS/Call Operation Requested`);
   });
+
+  it('maps agency target override helper steps', () => {
+    const document = DocBuilder.doc()
+      .name('Agency Override Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('default-target')
+      .done()
+      .operation(
+        'syncAgencyOverride',
+        'ownerChannel',
+        Number,
+        'sync agency with override target',
+        (steps) =>
+          steps
+            .viaAgency('workerAgency')
+            .subscribeForTarget(
+              'override-target',
+              'SUB_AGENCY_OVERRIDE',
+              'Conversation/Response',
+            )
+            .viaAgency('workerAgency')
+            .callOnTarget('override-target', 'syncOverride', {
+              type: 'Conversation/Event',
+            }),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`id: SUB_AGENCY_OVERRIDE`);
+    expect(yaml).toContain(`targetSessionId: override-target`);
+    expect(yaml).toContain(`operation: syncOverride`);
+    expect(yaml).toContain(`type: MyOS/Subscribe to Session Requested`);
+    expect(yaml).toContain(`type: MyOS/Call Operation Requested`);
+  });
 });

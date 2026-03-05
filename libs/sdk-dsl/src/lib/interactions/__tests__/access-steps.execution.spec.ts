@@ -495,4 +495,80 @@ describe('access step helpers execution', () => {
     expect(triggeredTypes).toContain('MyOS/Subscription Update');
     expect(toOfficialJson(processed.document).linkedStatus).toBe('updated');
   });
+
+  it('emits agency helper requests with explicit target override', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Override Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('default-target')
+      .done()
+      .operation(
+        'syncAgencyOverride',
+        'ownerChannel',
+        Number,
+        'sync agency with override',
+        (steps) =>
+          steps
+            .viaAgency('workerAgency')
+            .subscribeForTarget(
+              'override-target',
+              'SUB_AGENCY_OVERRIDE',
+              'Conversation/Response',
+            )
+            .viaAgency('workerAgency')
+            .callOnTarget('override-target', 'syncOverride', {
+              type: 'Conversation/Event',
+              payload: {
+                source: 'runtime',
+              },
+            }),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency override initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'syncAgencyOverride',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'agency override operation failed',
+    );
+
+    const events = processed.triggeredEvents.map((event) =>
+      toOfficialJson(event),
+    );
+    const subscribeRequest = events.find(
+      (event) => event.type === 'MyOS/Subscribe to Session Requested',
+    );
+    expect(subscribeRequest).toMatchObject({
+      targetSessionId: 'override-target',
+      subscription: {
+        id: 'SUB_AGENCY_OVERRIDE',
+      },
+    });
+
+    const callRequest = events.find(
+      (event) => event.type === 'MyOS/Call Operation Requested',
+    );
+    expect(callRequest).toMatchObject({
+      targetSessionId: 'override-target',
+      operation: 'syncOverride',
+    });
+  });
 });
