@@ -7,8 +7,8 @@ export const BasicBlueTypes = {
   Dictionary: 'Dictionary',
 } as const;
 
-export type BasicBlueType = (typeof BasicBlueTypes)[keyof typeof BasicBlueTypes];
+export type BasicBlueType =
+  (typeof BasicBlueTypes)[keyof typeof BasicBlueTypes];
 
-export const BasicBlueTypeValues: readonly BasicBlueType[] = Object.values(
-  BasicBlueTypes,
-);
+export const BasicBlueTypeValues: readonly BasicBlueType[] =
+  Object.values(BasicBlueTypes);

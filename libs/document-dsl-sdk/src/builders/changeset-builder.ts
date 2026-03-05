@@ -12,7 +12,7 @@ export class ChangesetBuilder {
     this.operations.push({
       op: 'add',
       path,
-      value,
+      val: value,
     });
     return this;
   }
@@ -21,7 +21,7 @@ export class ChangesetBuilder {
     this.operations.push({
       op: 'replace',
       path,
-      value,
+      val: value,
     });
     return this;
   }
@@ -30,7 +30,7 @@ export class ChangesetBuilder {
     this.operations.push({
       op: 'replace',
       path,
-      value: expr(expression),
+      val: expr(expression),
     });
     return this;
   }

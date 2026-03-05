@@ -48,6 +48,7 @@ const toSteps = (
 
 export class DocBuilder {
   private currentSection: SectionState | null = null;
+  public static readonly expr = expr;
 
   private constructor(private readonly docNode: BlueDocument) {}
 
@@ -111,8 +112,9 @@ export class DocBuilder {
   }
 
   public channel(key: string, config?: ChannelConfig): this {
-    const channelType = config?.type ?? 'MyOS/MyOS Timeline Channel';
-    const { type: _type, ...rest } = config ?? {};
+    const channelType = config?.type ?? 'Core/Channel';
+    const rest = { ...(config ?? {}) } as Record<string, BlueValue>;
+    delete rest.type;
     this.contract(key, {
       type: resolveTypeInput(channelType) as BlueValue,
       ...rest,
@@ -125,7 +127,16 @@ export class DocBuilder {
     return this;
   }
 
-  public compositeChannel(key: string, channels: string[]): this {
+  public compositeChannel(key: string, channels: string[]): this;
+  public compositeChannel(key: string, ...channels: string[]): this;
+  public compositeChannel(
+    key: string,
+    ...channelsOrList: string[] | [string[]]
+  ): this {
+    const channels =
+      channelsOrList.length === 1 && Array.isArray(channelsOrList[0])
+        ? channelsOrList[0]
+        : (channelsOrList as string[]);
     this.contract(key, {
       type: 'Conversation/Composite Timeline Channel',
       channels,
@@ -135,7 +146,11 @@ export class DocBuilder {
 
   public section(key: string, title?: string, summary?: string): this;
   public section(key: string, config: SectionConfig): this;
-  public section(key: string, titleOrConfig?: string | SectionConfig, summary?: string): this {
+  public section(
+    key: string,
+    titleOrConfig?: string | SectionConfig,
+    summary?: string,
+  ): this {
     const config: SectionConfig =
       typeof titleOrConfig === 'string'
         ? { title: titleOrConfig, summary }
@@ -169,19 +184,66 @@ export class DocBuilder {
     return this;
   }
 
-  public operation(key: string, config?: OperationConfig): OperationBuilder {
-    const operation = new OperationBuilder(this, key);
-    if (config) {
-      if (config.type) {
+  public operation(key: string): OperationBuilder;
+  public operation(
+    key: string,
+    channel: string,
+    description: string,
+    stepsFactory: (steps: StepsBuilder) => void,
+  ): this;
+  public operation(
+    key: string,
+    channel: string,
+    requestType: BlueTypeInput,
+    description: string,
+    stepsFactory: (steps: StepsBuilder) => void,
+  ): this;
+  public operation(key: string, config: OperationConfig): OperationBuilder;
+  public operation(
+    key: string,
+    configOrChannel?: OperationConfig | string,
+    requestTypeOrDescription?: BlueTypeInput | string,
+    descriptionOrSteps?: string | ((steps: StepsBuilder) => void),
+    maybeStepsFactory?: (steps: StepsBuilder) => void,
+  ): this | OperationBuilder {
+    if (typeof configOrChannel === 'string') {
+      if (typeof requestTypeOrDescription === 'string') {
+        const builder = this.operation(key) as OperationBuilder;
+        builder
+          .channel(configOrChannel)
+          .description(requestTypeOrDescription)
+          .steps(
+            (descriptionOrSteps as
+              | ((steps: StepsBuilder) => void)
+              | undefined) ?? (() => undefined),
+          )
+          .done();
+        return this;
+      }
+      const builder = this.operation(key) as OperationBuilder;
+      builder
+        .channel(configOrChannel)
+        .requestType(requestTypeOrDescription as BlueTypeInput)
+        .description((descriptionOrSteps as string) ?? '')
+        .steps(maybeStepsFactory ?? (() => undefined))
+        .done();
+      return this;
+    }
+
+    const existingContract = this.getContract(key);
+    const operation = new OperationBuilder(this, key, existingContract);
+    const config = configOrChannel;
+    if (config && typeof config === 'object') {
+      if (config.type != null) {
         operation.type(config.type);
       }
-      if (config.channel) {
+      if (config.channel != null) {
         operation.channel(config.channel);
       }
-      if (config.description) {
+      if (config.description != null) {
         operation.description(config.description);
       }
-      if (config.request) {
+      if (config.request != null) {
         operation.request(config.request);
       }
       if (config.steps) {
@@ -216,7 +278,10 @@ export class DocBuilder {
     return this;
   }
 
-  public onInit(key: string, stepsFactory: (steps: StepsBuilder) => void): this {
+  public onInit(
+    key: string,
+    stepsFactory: (steps: StepsBuilder) => void,
+  ): this {
     this.contract('initLifecycleChannel', {
       type: 'Core/Lifecycle Event Channel',
       event: { type: 'Core/Document Processing Initiated' },
@@ -230,15 +295,15 @@ export class DocBuilder {
 
   public onEvent(
     key: string,
-    event: BlueValue,
+    event: BlueTypeInput | BlueValue,
     stepsFactory: (steps: StepsBuilder) => void,
   ): this {
     this.contract('triggeredEventChannel', {
       type: 'Core/Triggered Event Channel',
-      event,
     });
     this.workflow(key, {
       channel: 'triggeredEventChannel',
+      event: this.toEventMatcher(event),
       steps: toSteps(stepsFactory),
     });
     return this;
@@ -249,7 +314,11 @@ export class DocBuilder {
     name: string,
     stepsFactory: (steps: StepsBuilder) => void,
   ): this {
-    return this.onEvent(key, { type: 'Common/Named Event', name }, stepsFactory);
+    return this.onEvent(
+      key,
+      { type: 'Conversation/Event', name },
+      stepsFactory,
+    );
   }
 
   public onChannelEvent(
@@ -274,13 +343,84 @@ export class DocBuilder {
     const channelKey = `${key}DocUpdateChannel`;
     this.contract(channelKey, {
       type: 'Core/Document Update Channel',
-      fieldPath,
+      path: fieldPath,
     });
     this.workflow(key, {
       channel: channelKey,
+      event: { type: 'Core/Document Update' },
       steps: toSteps(stepsFactory),
     });
     return this;
+  }
+
+  public onMyOsResponse(
+    key: string,
+    eventType: BlueTypeInput | BlueValue,
+    requestIdOrFactory: string | ((steps: StepsBuilder) => void),
+    maybeStepsFactory?: (steps: StepsBuilder) => void,
+  ): this {
+    if (typeof requestIdOrFactory === 'string') {
+      return this.onEvent(
+        key,
+        {
+          ...this.toEventMatcherObject(eventType),
+          requestId: requestIdOrFactory,
+          inResponseTo: {
+            requestId: requestIdOrFactory,
+          },
+        },
+        maybeStepsFactory ?? (() => undefined),
+      );
+    }
+    return this.onEvent(key, eventType, requestIdOrFactory);
+  }
+
+  public onTriggeredWithId(
+    key: string,
+    eventType: BlueTypeInput | BlueValue,
+    fieldName: string,
+    idValue: string,
+    stepsFactory: (steps: StepsBuilder) => void,
+  ): this {
+    return this.onEvent(
+      key,
+      {
+        ...this.toEventMatcherObject(eventType),
+        [fieldName]: idValue,
+      },
+      stepsFactory,
+    );
+  }
+
+  public onSubscriptionUpdate(
+    key: string,
+    subscriptionId: string,
+    updateTypeOrFactory:
+      | BlueTypeInput
+      | BlueValue
+      | ((steps: StepsBuilder) => void),
+    maybeStepsFactory?: (steps: StepsBuilder) => void,
+  ): this {
+    if (typeof updateTypeOrFactory === 'function') {
+      return this.onEvent(
+        key,
+        {
+          type: 'MyOS/Subscription Update',
+          subscriptionId,
+        },
+        updateTypeOrFactory,
+      );
+    }
+
+    return this.onEvent(
+      key,
+      {
+        type: 'MyOS/Subscription Update',
+        subscriptionId,
+        update: this.toEventMatcher(updateTypeOrFactory),
+      },
+      maybeStepsFactory ?? (() => undefined),
+    );
   }
 
   public directChange(
@@ -292,6 +432,9 @@ export class DocBuilder {
       type: 'Conversation/Change Operation',
       channel: channelKey,
       description,
+      request: {
+        type: 'Conversation/Change Request',
+      },
     });
     this.workflow(`${operationKey}Impl`, {
       type: 'Conversation/Change Workflow',
@@ -300,8 +443,11 @@ export class DocBuilder {
     return this;
   }
 
-  public contractsPolicy(config: { requireSectionChanges?: boolean }): this {
-    this.contract('contractsPolicy', {
+  public contractsPolicy(
+    config: { requireSectionChanges?: boolean },
+    key = 'contractsPolicy',
+  ): this {
+    this.contract(key, {
       type: 'Conversation/Contracts Change Policy',
       requireSectionChanges: config.requireSectionChanges ?? true,
     });
@@ -318,6 +464,9 @@ export class DocBuilder {
       type: 'Conversation/Propose Change Operation',
       channel: channelKey,
       description,
+      request: {
+        type: 'Conversation/Change Request',
+      },
     });
     this.workflow(`${operationKey}Impl`, {
       type: 'Conversation/Propose Change Workflow',
@@ -337,6 +486,9 @@ export class DocBuilder {
       type: 'Conversation/Accept Change Operation',
       channel: channelKey,
       description,
+      request: {
+        type: 'Conversation/Change Request',
+      },
     });
     this.workflow(`${operationKey}Impl`, {
       type: 'Conversation/Accept Change Workflow',
@@ -356,6 +508,9 @@ export class DocBuilder {
       type: 'Conversation/Reject Change Operation',
       channel: channelKey,
       description,
+      request: {
+        type: 'Conversation/Change Request',
+      },
     });
     this.workflow(`${operationKey}Impl`, {
       type: 'Conversation/Reject Change Workflow',
@@ -366,9 +521,13 @@ export class DocBuilder {
   }
 
   public documentAnchors(
-    key: string,
-    anchors: Record<string, BlueContract>,
+    keyOrAnchors: string | Record<string, BlueContract>,
+    maybeAnchors?: Record<string, BlueContract>,
   ): this {
+    const key =
+      typeof keyOrAnchors === 'string' ? keyOrAnchors : 'documentAnchors';
+    const anchors =
+      typeof keyOrAnchors === 'string' ? (maybeAnchors ?? {}) : keyOrAnchors;
     this.contract(key, {
       type: 'MyOS/Document Anchors',
       ...anchors,
@@ -377,9 +536,12 @@ export class DocBuilder {
   }
 
   public documentLinks(
-    key: string,
-    links: Record<string, BlueContract>,
+    keyOrLinks: string | Record<string, BlueContract>,
+    maybeLinks?: Record<string, BlueContract>,
   ): this {
+    const key = typeof keyOrLinks === 'string' ? keyOrLinks : 'documentLinks';
+    const links =
+      typeof keyOrLinks === 'string' ? (maybeLinks ?? {}) : keyOrLinks;
     this.contract(key, {
       type: 'MyOS/Document Links',
       ...links,
@@ -417,12 +579,20 @@ export class DocBuilder {
   }
 
   public buildObject(): BlueDocument {
+    this.endSection();
     return clone(this.docNode);
   }
 
+  public buildDocument(): BlueDocument {
+    return this.buildObject();
+  }
+
   public toYaml(): string {
-    this.endSection();
-    return toYaml(this.docNode);
+    return toYaml(this.buildObject());
+  }
+
+  public getContract(key: string): BlueContract | undefined {
+    return asContracts(this.docNode)[key];
   }
 
   private trackField(pointer: string): void {
@@ -435,5 +605,33 @@ export class DocBuilder {
     if (this.currentSection && key !== this.currentSection.key) {
       this.currentSection.relatedContracts.add(key);
     }
+  }
+
+  private toEventMatcher(event: BlueTypeInput | BlueValue): BlueValue {
+    if (typeof event === 'string') {
+      return { type: resolveTypeInput(event) as BlueValue };
+    }
+    if (typeof event === 'object' && event !== null) {
+      if ('blueId' in event) {
+        return { type: resolveTypeInput(event as BlueTypeInput) as BlueValue };
+      }
+      if ('_def' in event && 'parse' in event) {
+        return { type: resolveTypeInput(event as BlueTypeInput) as BlueValue };
+      }
+      return event as BlueValue;
+    }
+    return event as BlueValue;
+  }
+
+  private toEventMatcherObject(event: BlueTypeInput | BlueValue): BlueObject {
+    const resolved = this.toEventMatcher(event);
+    if (
+      typeof resolved === 'object' &&
+      resolved !== null &&
+      !Array.isArray(resolved)
+    ) {
+      return resolved as BlueObject;
+    }
+    return { value: resolved };
   }
 }

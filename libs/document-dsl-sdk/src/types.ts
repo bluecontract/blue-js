@@ -14,7 +14,9 @@ export type BlueTypeInput = string | { blueId: string } | z.ZodTypeAny;
 export interface ChannelConfig {
   type?: BlueTypeInput;
   timelineId?: string;
-  [key: string]: BlueValue | BlueTypeInput | undefined;
+  accountId?: string;
+  email?: string;
+  [key: string]: unknown;
 }
 
 export interface SectionConfig {

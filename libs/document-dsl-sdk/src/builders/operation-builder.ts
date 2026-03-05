@@ -7,14 +7,15 @@ export class OperationBuilder {
   private readonly contract: BlueObject;
   private readonly implementationSteps = new StepsBuilder();
   private implementationKey: string;
+  private hasExplicitImplementation = false;
 
   public constructor(
     private readonly parent: DocBuilder,
     private readonly operationKey: string,
+    initialContract?: BlueObject,
   ) {
-    this.contract = {
+    this.contract = initialContract ?? {
       type: 'Conversation/Operation',
-      channel: operationKey,
     };
     this.implementationKey = `${operationKey}Impl`;
   }
@@ -35,7 +36,14 @@ export class OperationBuilder {
   }
 
   public requestType(typeInput: BlueTypeInput): this {
+    const request =
+      (this.contract.request &&
+      typeof this.contract.request === 'object' &&
+      !Array.isArray(this.contract.request)
+        ? (this.contract.request as Record<string, unknown>)
+        : {}) ?? {};
     this.contract.request = {
+      ...request,
       type: resolveTypeInput(typeInput),
     };
     return this;
@@ -46,23 +54,49 @@ export class OperationBuilder {
     return this;
   }
 
-  public implementation(keyOrFactory: string | ((steps: StepsBuilder) => void)): this {
+  public requestDescription(description: string): this {
+    const request =
+      (this.contract.request &&
+      typeof this.contract.request === 'object' &&
+      !Array.isArray(this.contract.request)
+        ? (this.contract.request as Record<string, unknown>)
+        : {}) ?? {};
+    this.contract.request = {
+      ...request,
+      description,
+    };
+    return this;
+  }
+
+  public noRequest(): this {
+    delete this.contract.request;
+    return this;
+  }
+
+  public implementation(
+    keyOrFactory: string | ((steps: StepsBuilder) => void),
+  ): this {
     if (typeof keyOrFactory === 'string') {
       this.implementationKey = keyOrFactory;
       return this;
     }
+    this.hasExplicitImplementation = true;
     keyOrFactory(this.implementationSteps);
     return this;
   }
 
   public steps(factory: (steps: StepsBuilder) => void): this {
+    this.hasExplicitImplementation = true;
     factory(this.implementationSteps);
     return this;
   }
 
   public done(): DocBuilder {
     this.parent.contract(this.operationKey, this.contract);
-    if (this.implementationSteps.build().length > 0) {
+    if (
+      this.hasExplicitImplementation ||
+      this.implementationSteps.build().length > 0
+    ) {
       this.parent.workflow(this.implementationKey, {
         type: 'Conversation/Sequential Workflow Operation',
         operation: this.operationKey,

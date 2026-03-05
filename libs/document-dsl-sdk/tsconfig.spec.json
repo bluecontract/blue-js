@@ -22,14 +22,7 @@
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx",
     "src/**/*.d.ts",
-    "src/__tests__/**/*.ts"
-  ],
-  "references": [
-    {
-      "path": "./tsconfig.lib.json"
-    },
-    {
-      "path": "../document-processor/tsconfig.lib.json"
-    }
+    "src/__tests__/**/*.ts",
+    "src/test-support/**/*.ts"
   ]
 }

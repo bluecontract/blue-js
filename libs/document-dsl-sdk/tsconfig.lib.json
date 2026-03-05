@@ -6,17 +6,15 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "types": [
-      "node",
-      "vite/client"
-    ]
+    "types": ["node", "vite/client"]
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../language/tsconfig.lib.json"
+    },
+    {
+      "path": "../document-processor/tsconfig.lib.json"
     }
   ],
   "exclude": [
@@ -31,6 +29,7 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx",
+    "src/test-support/**",
     "dist/**/*"
   ]
 }

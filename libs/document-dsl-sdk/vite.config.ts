@@ -9,6 +9,18 @@ import packageJson from './package.json';
 export default {
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/document-dsl-sdk',
+  resolve: {
+    alias: {
+      '@blue-labs/language': path.resolve(
+        __dirname,
+        '../language/src/index.ts',
+      ),
+      '@blue-labs/document-processor': path.resolve(
+        __dirname,
+        '../document-processor/src/index.ts',
+      ),
+    },
+  },
 
   plugins: [
     nxViteTsPaths(),
@@ -34,7 +46,9 @@ export default {
     rollupOptions: {
       external: (id: string) => {
         const dependencies = Object.keys(packageJson.dependencies || {});
-        const peerDependencies = Object.keys(packageJson.peerDependencies || {});
+        const peerDependencies = Object.keys(
+          packageJson.peerDependencies || {},
+        );
         return (
           dependencies.some((dependency) => id === dependency) ||
           peerDependencies.some((dependency) => id === dependency)
