@@ -1,0 +1,72 @@
+# SDK DSL Known Gaps and Follow-ups
+
+This file tracks currently known parity gaps between the TypeScript SDK DSL and the Java POC DSL.
+
+## 1) Access/LinkedAccess/Agency interaction builders not yet implemented
+
+- **Status**: Open
+- **Repro**:
+  ```ts
+  DocBuilder.doc().access('provider') // not implemented
+  ```
+- **Expected (Java parity)**:
+  - `access(...)`, `accessLinked(...)`, `agency(...)` fluent builders
+  - generated request/grant/revoke workflows and listener helpers
+- **Actual**:
+  - APIs are currently missing from `DocBuilder`.
+- **Likely cause**:
+  - Interaction builder module family has not been ported yet.
+- **Next actions**:
+  - Port `AccessBuilder`, `LinkedAccessBuilder`, `AgencyBuilder`, and step helpers.
+
+## 2) Named event type alias divergence
+
+- **Status**: Open
+- **Repro**:
+  ```ts
+  new StepsBuilder().namedEvent('EmitNamed', 'event-x', (payload) =>
+    payload.put('foo', 'bar'),
+  );
+  ```
+- **Expected (Java parity)**:
+  - `type: Common/Named Event`
+- **Actual**:
+  - Emits `type: Conversation/Event` with `name` + optional `payload`.
+- **Likely cause**:
+  - `Common/Named Event` alias is unavailable in `@blue-repository/types@0.9.0`.
+- **Next actions**:
+  - Switch back to `Common/Named Event` when alias is available in repository models.
+
+## 3) PayNote default channels adjusted for processor compatibility
+
+- **Status**: Open
+- **Repro**:
+  ```ts
+  PayNotes.payNote('Armchair').buildJson();
+  ```
+- **Expected (Java mapping reference)**:
+  - `payerChannel`, `payeeChannel`, `guarantorChannel` typed as `Core/Channel`.
+- **Actual**:
+  - These channels are emitted as `Conversation/Timeline Channel` with deterministic timeline ids.
+- **Likely cause**:
+  - `Core/Channel` is not executable in `document-processor` default registry for runtime tests.
+- **Next actions**:
+  - Revisit once processor supports generic channel execution for this flow.
+
+## 4) Backward payment requested type availability
+
+- **Status**: Open
+- **Repro**:
+  ```ts
+  new StepsBuilder().requestBackwardPayment((payload) =>
+    payload.processor('voucher'),
+  );
+  ```
+- **Expected (Java mapping reference)**:
+  - `type: PayNote/Backward Payment Requested`
+- **Actual**:
+  - API emits the same type string, but runtime typing support depends on repository version.
+- **Likely cause**:
+  - Alias availability differs across `@blue-repository/types` versions.
+- **Next actions**:
+  - Validate against target repository version used in CI/runtime.
