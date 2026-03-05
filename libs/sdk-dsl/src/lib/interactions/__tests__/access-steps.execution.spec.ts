@@ -752,4 +752,156 @@ describe('access step helpers execution', () => {
 
     expect(toOfficialJson(processed.document).agencyStatus).toBe('updated');
   });
+
+  it('reacts to additional interaction listener helper events at runtime', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Interaction Listener Runtime Extras')
+      .field('/accessGranted', false)
+      .field('/callResponded', false)
+      .field('/sessionCreated', false)
+      .field('/linkedDocGranted', false)
+      .field('/linkedDocRevoked', false)
+      .field('/agencyGranted', false)
+      .field('/sessionStarted', false)
+      .field('/sessionFailed', false)
+      .field('/participantResolved', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_ACCESS')
+      .subscriptionId('SUB_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('target-session')
+      .done()
+      .onAccessGranted('counterAccess', 'markAccessGranted', (steps) =>
+        steps.replaceValue('SetAccessGranted', '/accessGranted', true),
+      )
+      .onCallResponse('counterAccess', 'markCallResponded', (steps) =>
+        steps.replaceValue('SetCallResponded', '/callResponded', true),
+      )
+      .onSessionCreated('counterAccess', 'markSessionCreated', (steps) =>
+        steps.replaceValue('SetSessionCreated', '/sessionCreated', true),
+      )
+      .onLinkedDocGranted('linkedAccess', 'markLinkedDocGranted', (steps) =>
+        steps.replaceValue('SetLinkedDocGranted', '/linkedDocGranted', true),
+      )
+      .onLinkedDocRevoked('linkedAccess', 'markLinkedDocRevoked', (steps) =>
+        steps.replaceValue('SetLinkedDocRevoked', '/linkedDocRevoked', true),
+      )
+      .onAgencyGranted('workerAgency', 'markAgencyGranted', (steps) =>
+        steps.replaceValue('SetAgencyGranted', '/agencyGranted', true),
+      )
+      .onSessionStarted('workerAgency', 'markSessionStarted', (steps) =>
+        steps.replaceValue('SetSessionStarted', '/sessionStarted', true),
+      )
+      .onSessionFailed('workerAgency', 'markSessionFailed', (steps) =>
+        steps.replaceValue('SetSessionFailed', '/sessionFailed', true),
+      )
+      .onParticipantResolved('markParticipantResolved', (steps) =>
+        steps.replaceValue(
+          'SetParticipantResolved',
+          '/participantResolved',
+          true,
+        ),
+      )
+      .operation(
+        'emitExtraListenerEvents',
+        'ownerChannel',
+        Number,
+        'emit extra interaction listener events',
+        (steps) =>
+          steps
+            .emitType(
+              'EmitAccessGranted',
+              'MyOS/Single Document Permission Granted',
+              (payload) => {
+                payload.put('requestId', 'REQ_ACCESS');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_ACCESS',
+                });
+              },
+            )
+            .emitType(
+              'EmitCallResponse',
+              'MyOS/Call Operation Responded',
+              (payload) => {
+                payload.put('response', {
+                  type: 'Conversation/Response',
+                });
+              },
+            )
+            .emitType(
+              'EmitSessionCreated',
+              'MyOS/Subscription to Session Initiated',
+            )
+            .emitType(
+              'EmitLinkedDocGranted',
+              'MyOS/Single Document Permission Granted',
+            )
+            .emitType(
+              'EmitLinkedDocRevoked',
+              'MyOS/Single Document Permission Revoked',
+            )
+            .emitType(
+              'EmitAgencyGranted',
+              'MyOS/Worker Agency Permission Granted',
+              (payload) => {
+                payload.put('requestId', 'REQ_AGENCY');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_AGENCY',
+                });
+              },
+            )
+            .emitType(
+              'EmitSessionStarted',
+              'MyOS/Target Document Session Started',
+            )
+            .emitType('EmitSessionFailed', 'MyOS/Bootstrap Failed')
+            .emitType('EmitParticipantResolved', 'MyOS/Participant Resolved'),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'interaction listener extras initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'emitExtraListenerEvents',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'interaction listener extras operation failed',
+    );
+
+    const processedJson = toOfficialJson(processed.document);
+    expect(processedJson.accessGranted).toBe(true);
+    expect(processedJson.callResponded).toBe(true);
+    expect(processedJson.sessionCreated).toBe(true);
+    expect(processedJson.linkedDocGranted).toBe(true);
+    expect(processedJson.linkedDocRevoked).toBe(true);
+    expect(processedJson.agencyGranted).toBe(true);
+    expect(processedJson.sessionStarted).toBe(true);
+    expect(processedJson.sessionFailed).toBe(true);
+    expect(processedJson.participantResolved).toBe(true);
+  });
 });
