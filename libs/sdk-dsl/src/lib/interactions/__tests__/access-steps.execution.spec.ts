@@ -761,9 +761,14 @@ describe('access step helpers execution', () => {
       .field('/accessGranted', false)
       .field('/callResponded', false)
       .field('/sessionCreated', false)
+      .field('/accessRevoked', false)
+      .field('/linkedAccessGranted', false)
+      .field('/linkedAccessRejected', false)
+      .field('/linkedAccessRevoked', false)
       .field('/linkedDocGranted', false)
       .field('/linkedDocRevoked', false)
       .field('/agencyGranted', false)
+      .field('/agencyRevoked', false)
       .field('/sessionStarted', false)
       .field('/sessionFailed', false)
       .field('/participantResolved', false)
@@ -797,6 +802,39 @@ describe('access step helpers execution', () => {
       .onSessionCreated('counterAccess', 'markSessionCreated', (steps) =>
         steps.replaceValue('SetSessionCreated', '/sessionCreated', true),
       )
+      .onAccessRevoked('counterAccess', 'markAccessRevoked', (steps) =>
+        steps.replaceValue('SetAccessRevoked', '/accessRevoked', true),
+      )
+      .onLinkedAccessGranted(
+        'linkedAccess',
+        'markLinkedAccessGranted',
+        (steps) =>
+          steps.replaceValue(
+            'SetLinkedAccessGranted',
+            '/linkedAccessGranted',
+            true,
+          ),
+      )
+      .onLinkedAccessRejected(
+        'linkedAccess',
+        'markLinkedAccessRejected',
+        (steps) =>
+          steps.replaceValue(
+            'SetLinkedAccessRejected',
+            '/linkedAccessRejected',
+            true,
+          ),
+      )
+      .onLinkedAccessRevoked(
+        'linkedAccess',
+        'markLinkedAccessRevoked',
+        (steps) =>
+          steps.replaceValue(
+            'SetLinkedAccessRevoked',
+            '/linkedAccessRevoked',
+            true,
+          ),
+      )
       .onLinkedDocGranted('linkedAccess', 'markLinkedDocGranted', (steps) =>
         steps.replaceValue('SetLinkedDocGranted', '/linkedDocGranted', true),
       )
@@ -805,6 +843,9 @@ describe('access step helpers execution', () => {
       )
       .onAgencyGranted('workerAgency', 'markAgencyGranted', (steps) =>
         steps.replaceValue('SetAgencyGranted', '/agencyGranted', true),
+      )
+      .onAgencyRevoked('workerAgency', 'markAgencyRevoked', (steps) =>
+        steps.replaceValue('SetAgencyRevoked', '/agencyRevoked', true),
       )
       .onSessionStarted('workerAgency', 'markSessionStarted', (steps) =>
         steps.replaceValue('SetSessionStarted', '/sessionStarted', true),
@@ -854,6 +895,46 @@ describe('access step helpers execution', () => {
               'MyOS/Single Document Permission Granted',
             )
             .emitType(
+              'EmitAccessRevoked',
+              'MyOS/Single Document Permission Revoked',
+              (payload) => {
+                payload.put('requestId', 'REQ_ACCESS');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_ACCESS',
+                });
+              },
+            )
+            .emitType(
+              'EmitLinkedAccessGranted',
+              'MyOS/Linked Documents Permission Granted',
+              (payload) => {
+                payload.put('requestId', 'REQ_LINKED');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_LINKED',
+                });
+              },
+            )
+            .emitType(
+              'EmitLinkedAccessRejected',
+              'MyOS/Linked Documents Permission Rejected',
+              (payload) => {
+                payload.put('requestId', 'REQ_LINKED');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_LINKED',
+                });
+              },
+            )
+            .emitType(
+              'EmitLinkedAccessRevoked',
+              'MyOS/Linked Documents Permission Revoked',
+              (payload) => {
+                payload.put('requestId', 'REQ_LINKED');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_LINKED',
+                });
+              },
+            )
+            .emitType(
               'EmitLinkedDocRevoked',
               'MyOS/Single Document Permission Revoked',
             )
@@ -870,6 +951,16 @@ describe('access step helpers execution', () => {
             .emitType(
               'EmitSessionStarted',
               'MyOS/Target Document Session Started',
+            )
+            .emitType(
+              'EmitAgencyRevoked',
+              'MyOS/Worker Agency Permission Revoked',
+              (payload) => {
+                payload.put('requestId', 'REQ_AGENCY');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_AGENCY',
+                });
+              },
             )
             .emitType('EmitSessionFailed', 'MyOS/Bootstrap Failed')
             .emitType('EmitParticipantResolved', 'MyOS/Participant Resolved'),
@@ -897,9 +988,14 @@ describe('access step helpers execution', () => {
     expect(processedJson.accessGranted).toBe(true);
     expect(processedJson.callResponded).toBe(true);
     expect(processedJson.sessionCreated).toBe(true);
+    expect(processedJson.accessRevoked).toBe(true);
+    expect(processedJson.linkedAccessGranted).toBe(true);
+    expect(processedJson.linkedAccessRejected).toBe(true);
+    expect(processedJson.linkedAccessRevoked).toBe(true);
     expect(processedJson.linkedDocGranted).toBe(true);
     expect(processedJson.linkedDocRevoked).toBe(true);
     expect(processedJson.agencyGranted).toBe(true);
+    expect(processedJson.agencyRevoked).toBe(true);
     expect(processedJson.sessionStarted).toBe(true);
     expect(processedJson.sessionFailed).toBe(true);
     expect(processedJson.participantResolved).toBe(true);
