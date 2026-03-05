@@ -526,4 +526,46 @@ describe('interaction builders mapping', () => {
       `type: MyOS/Worker Agency Permission Revoke Requested`,
     );
   });
+
+  it('maps agency explicit target permission/revoke helper variants', () => {
+    const document = DocBuilder.doc()
+      .name('Agency Explicit Permission Override Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('default-target')
+      .done()
+      .operation(
+        'overrideAgencyPermissionsExplicit',
+        'ownerChannel',
+        Number,
+        'override agency permissions explicit helpers',
+        (steps) =>
+          steps
+            .viaAgency('workerAgency')
+            .requestPermissionForTarget('explicit-target', {
+              type: 'MyOS/Worker Agency Permission',
+              workerType: 'MyOS/MyOS Admin Base',
+              permissions: {
+                read: true,
+              },
+            })
+            .viaAgency('workerAgency')
+            .revokePermissionForTarget('explicit-target'),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`targetSessionId: explicit-target`);
+    expect(yaml).toContain(
+      `type: MyOS/Worker Agency Permission Grant Requested`,
+    );
+    expect(yaml).toContain(
+      `type: MyOS/Worker Agency Permission Revoke Requested`,
+    );
+  });
 });

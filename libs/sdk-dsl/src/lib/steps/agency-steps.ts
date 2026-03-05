@@ -25,6 +25,13 @@ export class AgencySteps {
       );
   }
 
+  requestPermissionForTarget(
+    targetSessionId: string,
+    workerAgencyPermissions: JsonObject,
+  ): StepsBuilder {
+    return this.requestPermission(workerAgencyPermissions, targetSessionId);
+  }
+
   revokePermission(targetSessionId?: string): StepsBuilder {
     return this.parent
       .myOs()
@@ -33,6 +40,10 @@ export class AgencySteps {
         this.config.requestId,
         targetSessionId ?? this.config.targetSessionId,
       );
+  }
+
+  revokePermissionForTarget(targetSessionId: string): StepsBuilder {
+    return this.revokePermission(targetSessionId);
   }
 
   call(operation: string, request?: JsonValue): StepsBuilder {

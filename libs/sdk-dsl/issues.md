@@ -17,7 +17,7 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
   - access helper coverage now includes `requestPermission`, `requestPermissionForTarget`, `revokePermission`, `revokePermissionForTarget`, `subscribe`, `call`, `subscribeForTarget`, and `callOnTarget`.
   - linked-access helper coverage now includes `requestPermission`, `requestPermissionForTarget`, `revokePermission`, `revokePermissionForTarget`, `subscribe`, `call`, `subscribeForTarget`, and `callOnTarget`.
   - linked/agency listener helper coverage now includes `onLinkedUpdate(...)` and `onAgencyUpdate(...)`.
-  - agency helper coverage now includes `requestPermission`, `revokePermission`, `startWorkerSession`, `call`, `callOnTarget`, `subscribe`, and `subscribeForTarget`.
+  - agency helper coverage now includes `requestPermission`, `requestPermissionForTarget`, `revokePermission`, `revokePermissionForTarget`, `startWorkerSession`, `call`, `callOnTarget`, `subscribe`, and `subscribeForTarget`.
   - mapping suite now covers grant/reject/revoke + session/participant lifecycle listener variants.
   - execution suite now covers request/revoke helper flows and broad listener-triggered state transitions (access/linked/agency/session/call/participant) across interaction namespaces.
   - full Java parity surface (complete step wrappers + all lifecycle helpers) is still incomplete.
