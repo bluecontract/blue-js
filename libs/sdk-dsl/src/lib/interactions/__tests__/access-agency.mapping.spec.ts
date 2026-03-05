@@ -362,4 +362,62 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`type: MyOS/Subscribe to Session Requested`);
     expect(yaml).toContain(`type: MyOS/Call Operation Requested`);
   });
+
+  it('maps access and linked-access explicit target override helper steps', () => {
+    const document = DocBuilder.doc()
+      .name('Access Override Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('default-access-target')
+      .requestId('REQ_ACCESS')
+      .subscriptionId('SUB_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('default-linked-target')
+      .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .operation(
+        'syncOverrides',
+        'ownerChannel',
+        Number,
+        'sync with override targets',
+        (steps) =>
+          steps
+            .access('counterAccess')
+            .subscribeForTarget(
+              'override-access-target',
+              'SUB_ACCESS_OVERRIDE',
+              'Conversation/Response',
+            )
+            .access('counterAccess')
+            .callOnTarget('override-access-target', 'syncAccess', {
+              type: 'Conversation/Event',
+            })
+            .accessLinked('linkedAccess')
+            .subscribeForTarget(
+              'override-linked-target',
+              'SUB_LINKED_OVERRIDE',
+              'Conversation/Event',
+            )
+            .accessLinked('linkedAccess')
+            .callOnTarget('override-linked-target', 'syncLinked', {
+              type: 'Conversation/Event',
+            }),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`id: SUB_ACCESS_OVERRIDE`);
+    expect(yaml).toContain(`id: SUB_LINKED_OVERRIDE`);
+    expect(yaml).toContain(`targetSessionId: override-access-target`);
+    expect(yaml).toContain(`targetSessionId: override-linked-target`);
+    expect(yaml).toContain(`operation: syncAccess`);
+    expect(yaml).toContain(`operation: syncLinked`);
+  });
 });

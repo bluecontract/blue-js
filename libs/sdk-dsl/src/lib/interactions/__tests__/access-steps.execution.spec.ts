@@ -1000,4 +1000,112 @@ describe('access step helpers execution', () => {
     expect(processedJson.sessionFailed).toBe(true);
     expect(processedJson.participantResolved).toBe(true);
   });
+
+  it('emits access and linked-access helper requests with explicit target overrides', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Access Override Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('default-access-target')
+      .requestId('REQ_ACCESS')
+      .subscriptionId('SUB_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('default-linked-target')
+      .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .operation(
+        'syncOverrides',
+        'ownerChannel',
+        Number,
+        'sync override targets',
+        (steps) =>
+          steps
+            .access('counterAccess')
+            .subscribeForTarget(
+              'override-access-target',
+              'SUB_ACCESS_OVERRIDE',
+              'Conversation/Response',
+            )
+            .access('counterAccess')
+            .callOnTarget('override-access-target', 'syncAccess', {
+              type: 'Conversation/Event',
+            })
+            .accessLinked('linkedAccess')
+            .subscribeForTarget(
+              'override-linked-target',
+              'SUB_LINKED_OVERRIDE',
+              'Conversation/Event',
+            )
+            .accessLinked('linkedAccess')
+            .callOnTarget('override-linked-target', 'syncLinked', {
+              type: 'Conversation/Event',
+            }),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'access override initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'syncOverrides',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'access override operation failed',
+    );
+
+    const events = processed.triggeredEvents.map((event) =>
+      toOfficialJson(event),
+    );
+    const subscribeRequests = events.filter(
+      (event) => event.type === 'MyOS/Subscribe to Session Requested',
+    );
+    expect(subscribeRequests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          targetSessionId: 'override-access-target',
+          subscription: expect.objectContaining({
+            id: 'SUB_ACCESS_OVERRIDE',
+          }),
+        }),
+        expect.objectContaining({
+          targetSessionId: 'override-linked-target',
+          subscription: expect.objectContaining({
+            id: 'SUB_LINKED_OVERRIDE',
+          }),
+        }),
+      ]),
+    );
+
+    const callRequests = events.filter(
+      (event) => event.type === 'MyOS/Call Operation Requested',
+    );
+    expect(callRequests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          targetSessionId: 'override-access-target',
+          operation: 'syncAccess',
+        }),
+        expect.objectContaining({
+          targetSessionId: 'override-linked-target',
+          operation: 'syncLinked',
+        }),
+      ]),
+    );
+  });
 });

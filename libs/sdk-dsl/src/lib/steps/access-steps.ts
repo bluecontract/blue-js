@@ -61,6 +61,38 @@ export class AccessSteps {
         request,
       );
   }
+
+  callOnTarget(
+    targetSessionId: JsonValue,
+    operation: string,
+    request?: JsonValue,
+  ): StepsBuilder {
+    return this.parent
+      .myOs()
+      .callOperation(
+        this.config.permissionFrom,
+        targetSessionId,
+        operation,
+        request,
+      );
+  }
+
+  subscribeForTarget(
+    targetSessionId: JsonValue,
+    subscriptionId: string,
+    ...eventTypes: TypeLike[]
+  ): StepsBuilder {
+    const resolvedEventTypes =
+      eventTypes.length > 0 ? eventTypes : ['Conversation/Event'];
+    return this.parent
+      .myOs()
+      .subscribeToSession(
+        this.config.permissionFrom,
+        targetSessionId,
+        subscriptionId,
+        ...resolvedEventTypes,
+      );
+  }
 }
 
 export class LinkedAccessSteps {
@@ -113,6 +145,38 @@ export class LinkedAccessSteps {
         this.config.targetSessionId,
         operation,
         request,
+      );
+  }
+
+  callOnTarget(
+    targetSessionId: JsonValue,
+    operation: string,
+    request?: JsonValue,
+  ): StepsBuilder {
+    return this.parent
+      .myOs()
+      .callOperation(
+        this.config.permissionFrom,
+        targetSessionId,
+        operation,
+        request,
+      );
+  }
+
+  subscribeForTarget(
+    targetSessionId: JsonValue,
+    subscriptionId: string,
+    ...eventTypes: TypeLike[]
+  ): StepsBuilder {
+    const resolvedEventTypes =
+      eventTypes.length > 0 ? eventTypes : ['Conversation/Event'];
+    return this.parent
+      .myOs()
+      .subscribeToSession(
+        this.config.permissionFrom,
+        targetSessionId,
+        subscriptionId,
+        ...resolvedEventTypes,
       );
   }
 }
