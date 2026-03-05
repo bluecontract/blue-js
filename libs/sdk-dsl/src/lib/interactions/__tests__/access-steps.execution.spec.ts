@@ -571,4 +571,120 @@ describe('access step helpers execution', () => {
       operation: 'syncOverride',
     });
   });
+
+  it('reacts to interaction lifecycle events through listener helpers', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Interaction Listener Runtime Matrix')
+      .field('/accessRejected', false)
+      .field('/linkedRevoked', false)
+      .field('/agencyRejected', false)
+      .field('/sessionState', 'idle')
+      .field('/participantsReady', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_ACCESS')
+      .subscriptionId('SUB_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_LINKED')
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('target-session')
+      .done()
+      .onAccessRejected('counterAccess', 'markAccessRejected', (steps) =>
+        steps.replaceValue('SetAccessRejected', '/accessRejected', true),
+      )
+      .onLinkedAccessRevoked('linkedAccess', 'markLinkedRevoked', (steps) =>
+        steps.replaceValue('SetLinkedRevoked', '/linkedRevoked', true),
+      )
+      .onAgencyRejected('workerAgency', 'markAgencyRejected', (steps) =>
+        steps.replaceValue('SetAgencyRejected', '/agencyRejected', true),
+      )
+      .onSessionStarting('workerAgency', 'markSessionStarting', (steps) =>
+        steps.replaceValue('SetSessionStarting', '/sessionState', 'starting'),
+      )
+      .onAllParticipantsReady('markAllParticipantsReady', (steps) =>
+        steps.replaceValue('SetParticipantsReady', '/participantsReady', true),
+      )
+      .operation(
+        'emitLifecycleEvents',
+        'ownerChannel',
+        Number,
+        'emit lifecycle events for listeners',
+        (steps) =>
+          steps
+            .emitType(
+              'EmitAccessRejected',
+              'MyOS/Single Document Permission Rejected',
+              (payload) => {
+                payload.put('requestId', 'REQ_ACCESS');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_ACCESS',
+                });
+              },
+            )
+            .emitType(
+              'EmitLinkedRevoked',
+              'MyOS/Linked Documents Permission Revoked',
+              (payload) => {
+                payload.put('requestId', 'REQ_LINKED');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_LINKED',
+                });
+              },
+            )
+            .emitType(
+              'EmitAgencyRejected',
+              'MyOS/Worker Agency Permission Rejected',
+              (payload) => {
+                payload.put('requestId', 'REQ_AGENCY');
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_AGENCY',
+                });
+              },
+            )
+            .emitType('EmitSessionStarting', 'MyOS/Worker Session Starting')
+            .emitType(
+              'EmitAllParticipantsReady',
+              'MyOS/All Participants Ready',
+            ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'interaction listener runtime initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'emitLifecycleEvents',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'interaction listener runtime operation failed',
+    );
+
+    const processedJson = toOfficialJson(processed.document);
+    expect(processedJson.accessRejected).toBe(true);
+    expect(processedJson.linkedRevoked).toBe(true);
+    expect(processedJson.agencyRejected).toBe(true);
+    expect(processedJson.sessionState).toBe('starting');
+    expect(processedJson.participantsReady).toBe(true);
+  });
 });
