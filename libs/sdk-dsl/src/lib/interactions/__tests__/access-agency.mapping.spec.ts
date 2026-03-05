@@ -575,4 +575,35 @@ describe('interaction builders mapping', () => {
       `type: MyOS/Worker Agency Permission Revoke Requested`,
     );
   });
+
+  it('maps agency startWorkerSession basic helper variant', () => {
+    const document = DocBuilder.doc()
+      .name('Agency Start Worker Basic Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .done()
+      .operation(
+        'startWorkerBasic',
+        'ownerChannel',
+        Number,
+        'start worker basic',
+        (steps) =>
+          steps.viaAgency('workerAgency').startWorkerSession('ownerChannel', {
+            name: 'Basic Worker',
+            type: 'MyOS/MyOS Admin Base',
+          }),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`operation: startWorkerBasic`);
+    expect(yaml).toContain(`type: MyOS/Start Worker Session Requested`);
+    expect(yaml).toContain(`agentChannelKey: ownerChannel`);
+    expect(yaml).toContain(`name: Basic Worker`);
+  });
 });

@@ -1344,4 +1344,61 @@ describe('access step helpers execution', () => {
       ]),
     );
   });
+
+  it('emits basic start worker session request through agency helper', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Start Worker Basic Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .done()
+      .operation(
+        'startWorkerBasic',
+        'ownerChannel',
+        Number,
+        'start worker basic',
+        (steps) =>
+          steps.viaAgency('workerAgency').startWorkerSession('ownerChannel', {
+            name: 'Basic Worker',
+            type: 'MyOS/MyOS Admin Base',
+          }),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency start worker basic initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'startWorkerBasic',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'agency start worker basic operation failed',
+    );
+
+    const startEvent = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'MyOS/Start Worker Session Requested');
+    expect(startEvent).toBeDefined();
+    expect(startEvent).toMatchObject({
+      agentChannelKey: 'ownerChannel',
+      document: {
+        name: 'Basic Worker',
+      },
+    });
+    expect(startEvent).not.toHaveProperty('channelBindings');
+    expect(startEvent).not.toHaveProperty('options');
+  });
 });
