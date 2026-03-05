@@ -317,6 +317,21 @@ export class DocBuilder {
     return this;
   }
 
+  workflow(
+    workflowKey: string,
+    channelKey: string,
+    customizer: StepsCustomizer,
+    event?: JsonObject,
+  ): this {
+    this.state.setContract(requireText(workflowKey, 'workflow key'), {
+      type: 'Conversation/Sequential Workflow',
+      channel: requireText(channelKey, 'channel key'),
+      ...(event ? { event: cloneObject(event) } : {}),
+      steps: this.buildSteps(customizer),
+    });
+    return this;
+  }
+
   onTriggeredWithId(
     workflowKey: string,
     eventType: TypeLike,
