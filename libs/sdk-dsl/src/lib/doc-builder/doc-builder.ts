@@ -47,7 +47,10 @@ function requireText(value: string, field: string): string {
 }
 
 function defaultOperationImplementation(steps: StepsBuilder): void {
-  steps.jsRaw('EmitEvents', 'return { events: event };');
+  steps.jsRaw(
+    'EmitEvents',
+    'return { events: (event && event.message && event.message.request) || [] };',
+  );
 }
 
 function aiToken(name: string): string {
