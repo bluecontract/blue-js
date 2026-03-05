@@ -212,4 +212,30 @@ amount:
         .buildDocument(),
     ).toThrow('PayNote/Reserve Lock Requested');
   });
+
+  it('surfaces type-availability failure for reserve/release unlock helpers', () => {
+    expect(() =>
+      PayNotes.payNote('Reserve Unlock Unsupported')
+        .currency('USD')
+        .amountMinor(5100)
+        .reserve()
+        .unlockOnEvent('Conversation/Event')
+        .done()
+        .buildDocument(),
+    ).toThrow('PayNote/Reserve Unlock Requested');
+
+    expect(() =>
+      PayNotes.payNote('Release Unlock Unsupported')
+        .currency('USD')
+        .amountMinor(5100)
+        .release()
+        .unlockOnOperation(
+          'unlockRelease',
+          'guarantorChannel',
+          'Unlock release flow',
+        )
+        .done()
+        .buildDocument(),
+    ).toThrow('PayNote/Reservation Release Unlock Requested');
+  });
 });

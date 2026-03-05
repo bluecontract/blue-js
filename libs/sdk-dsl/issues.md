@@ -71,10 +71,12 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
   - `PayNote/Reservation Release Lock Requested`
   - `PayNote/Reservation Release Unlock Requested`
 - **Actual**:
-  - Current workspace repository models reject lock aliases during validation:
+  - Current workspace repository models reject lock/unlock aliases during validation:
     - `PayNote/Reserve Lock Requested`
+    - `PayNote/Reserve Unlock Requested`
     - `PayNote/Reservation Release Lock Requested`
-  - (`Unknown type "...Lock Requested"...` validation errors).
+    - `PayNote/Reservation Release Unlock Requested`
+  - (`Unknown type "...Lock/Unlock Requested"...` validation errors).
 - **Likely cause**:
   - Alias/type coverage differs across `@blue-repository/types` versions.
 - **Next actions**:

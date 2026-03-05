@@ -58,7 +58,7 @@ This document records intentional or currently unresolved differences between th
   - `type: PayNote/Reservation Release Unlock Requested`
 - **TypeScript port**:
   - API surface exposes reserve/release lock + unlock helper variants,
-    but current workspace repository models reject lock alias validation for reserve/release flows.
+    but current workspace repository models reject lock/unlock alias validation for reserve/release flows.
 - **Reason**:
   - Alias availability differs across `@blue-repository/types` versions in this workspace.
 
