@@ -1,0 +1,630 @@
+import { BlueNode } from '@blue-labs/language';
+import { DocJsonState } from '../core/doc-json-state.js';
+import {
+  ensureExpression,
+  fromJsonDocument,
+  toOfficialJson,
+} from '../core/serialization.js';
+import { toTypeAlias, type TypeLike } from '../core/type-alias.js';
+import type { JsonObject, JsonValue } from '../core/types.js';
+import { FieldBuilder, type FieldMetadata } from './field-builder.js';
+import {
+  OperationBuilder,
+  type OperationDefinition,
+} from './operation-builder.js';
+import { StepsBuilder } from '../steps/steps-builder.js';
+
+type ExistingDoc = JsonObject | BlueNode;
+type StepsCustomizer = (steps: StepsBuilder) => void;
+
+function isObject(value: JsonValue | undefined): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function cloneObject(value: JsonObject): JsonObject {
+  return structuredClone(value);
+}
+
+function requireText(value: string, field: string): string {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    throw new Error(`${field} is required`);
+  }
+  return normalized;
+}
+
+function defaultOperationImplementation(steps: StepsBuilder): void {
+  steps.jsRaw('EmitEvents', 'return { events: event };');
+}
+
+export class DocBuilder {
+  protected readonly state: DocJsonState;
+
+  protected constructor(initial?: JsonObject) {
+    this.state = new DocJsonState(initial);
+  }
+
+  static doc(): DocBuilder {
+    return new DocBuilder();
+  }
+
+  static edit(existingDocument: ExistingDoc): DocBuilder {
+    return new DocBuilder(DocBuilder.documentToJson(existingDocument));
+  }
+
+  static from(existingDocument: ExistingDoc): DocBuilder {
+    return new DocBuilder(DocBuilder.documentToJson(existingDocument));
+  }
+
+  static expr(expression: string): string {
+    return ensureExpression(expression);
+  }
+
+  protected static documentToJson(existingDocument: ExistingDoc): JsonObject {
+    if (existingDocument instanceof BlueNode) {
+      return toOfficialJson(existingDocument);
+    }
+    return cloneObject(existingDocument);
+  }
+
+  name(name: string): this {
+    this.state.setName(name);
+    return this;
+  }
+
+  description(description: string): this {
+    this.state.setDescription(description);
+    return this;
+  }
+
+  type(typeLike: TypeLike): this {
+    this.state.setType(toTypeAlias(typeLike));
+    return this;
+  }
+
+  field(path: string): FieldBuilder<this>;
+  field(path: string, value: JsonValue): this;
+  field(path: string, value?: JsonValue): FieldBuilder<this> | this {
+    if (arguments.length === 1) {
+      this.state.trackField(path);
+      return new FieldBuilder<this>(this, path);
+    }
+    this.state.setValue(path, value as JsonValue);
+    return this;
+  }
+
+  replace(path: string, value: JsonValue): this {
+    this.state.setValue(path, value);
+    return this;
+  }
+
+  remove(path: string): this {
+    this.state.removeValue(path);
+    return this;
+  }
+
+  section(key: string, title: string, summary?: string): this;
+  section(key: string): this;
+  section(key: string, title?: string, summary?: string): this {
+    this.state.section(key, title, summary);
+    return this;
+  }
+
+  endSection(): this {
+    this.state.endSection();
+    return this;
+  }
+
+  channel(channelKey: string, contract?: JsonObject): this {
+    const key = requireText(channelKey, 'channel key');
+    const channelContract = contract
+      ? { ...cloneObject(contract), type: contract.type ?? 'Core/Channel' }
+      : { type: 'Core/Channel' };
+    this.state.setContract(key, channelContract);
+    return this;
+  }
+
+  channels(...channelKeys: string[]): this {
+    for (const channelKey of channelKeys) {
+      this.channel(channelKey);
+    }
+    return this;
+  }
+
+  compositeChannel(compositeKey: string, ...channelKeys: string[]): this {
+    this.state.setContract(requireText(compositeKey, 'composite channel key'), {
+      type: 'Conversation/Composite Timeline Channel',
+      channels: channelKeys.map((channelKey) =>
+        requireText(channelKey, 'channel key'),
+      ),
+    });
+    return this;
+  }
+
+  operation(key: string): OperationBuilder<this>;
+  operation(
+    key: string,
+    channelKey: string,
+    description: string,
+    implementation?: StepsCustomizer,
+  ): this;
+  operation(
+    key: string,
+    channelKey: string,
+    requestType: TypeLike,
+    description: string,
+    implementation?: StepsCustomizer,
+  ): this;
+  operation(
+    key: string,
+    channelKey?: string,
+    requestOrDescription?: TypeLike | string,
+    descriptionOrImplementation?: string | StepsCustomizer,
+    implementationMaybe?: StepsCustomizer,
+  ): OperationBuilder<this> | this {
+    if (channelKey === undefined) {
+      return new OperationBuilder<this>(
+        this,
+        requireText(key, 'operation key'),
+      );
+    }
+
+    if (requestOrDescription === undefined) {
+      const implementation =
+        typeof descriptionOrImplementation === 'function'
+          ? descriptionOrImplementation
+          : implementationMaybe;
+      return this.applyOperationDefinition({
+        key,
+        channelKey,
+        clearRequest: false,
+        steps: implementation ? this.buildSteps(implementation) : undefined,
+      });
+    }
+
+    if (typeof requestOrDescription === 'string') {
+      if (typeof descriptionOrImplementation === 'string') {
+        return this.applyOperationDefinition({
+          key,
+          channelKey,
+          description: descriptionOrImplementation,
+          request: { type: requestOrDescription },
+          clearRequest: false,
+          steps: implementationMaybe
+            ? this.buildSteps(implementationMaybe)
+            : undefined,
+        });
+      }
+
+      const description = requestOrDescription;
+      const implementation =
+        typeof descriptionOrImplementation === 'function'
+          ? descriptionOrImplementation
+          : implementationMaybe;
+      return this.applyOperationDefinition({
+        key,
+        channelKey,
+        description,
+        clearRequest: false,
+        steps: implementation ? this.buildSteps(implementation) : undefined,
+      });
+    }
+
+    const requestType = requestOrDescription as TypeLike;
+    const description =
+      typeof descriptionOrImplementation === 'string'
+        ? descriptionOrImplementation
+        : undefined;
+    const implementation =
+      typeof descriptionOrImplementation === 'function'
+        ? descriptionOrImplementation
+        : implementationMaybe;
+    return this.applyOperationDefinition({
+      key,
+      channelKey,
+      description,
+      request: { type: toTypeAlias(requestType) },
+      clearRequest: false,
+      steps: implementation ? this.buildSteps(implementation) : undefined,
+    });
+  }
+
+  requestDescription(operationKey: string, requestDescription: string): this {
+    const contracts = this.state.ensureContractsRoot();
+    const existing = contracts[operationKey];
+    if (!isObject(existing)) {
+      return this;
+    }
+    const request = isObject(existing.request)
+      ? cloneObject(existing.request)
+      : {};
+    request.description = requestDescription;
+    existing.request = request;
+    this.state.setContract(operationKey, existing);
+    return this;
+  }
+
+  onInit(workflowKey: string, customizer: StepsCustomizer): this {
+    this.ensureInitLifecycleChannel();
+    this.state.setContract(requireText(workflowKey, 'workflow key'), {
+      type: 'Conversation/Sequential Workflow',
+      channel: 'initLifecycleChannel',
+      steps: this.buildSteps(customizer),
+    });
+    return this;
+  }
+
+  onEvent(
+    workflowKey: string,
+    eventType: TypeLike,
+    customizer: StepsCustomizer,
+  ): this {
+    this.ensureTriggeredEventChannel();
+    this.state.setContract(requireText(workflowKey, 'workflow key'), {
+      type: 'Conversation/Sequential Workflow',
+      channel: 'triggeredEventChannel',
+      event: { type: toTypeAlias(eventType) },
+      steps: this.buildSteps(customizer),
+    });
+    return this;
+  }
+
+  onNamedEvent(
+    workflowKey: string,
+    eventName: string,
+    customizer: StepsCustomizer,
+  ): this {
+    return this.onTriggeredWithMatcher(
+      workflowKey,
+      'Common/Named Event',
+      { name: eventName },
+      customizer,
+    );
+  }
+
+  onChannelEvent(
+    workflowKey: string,
+    channelKey: string,
+    eventType: TypeLike,
+    customizer: StepsCustomizer,
+  ): this {
+    this.state.setContract(requireText(workflowKey, 'workflow key'), {
+      type: 'Conversation/Sequential Workflow',
+      channel: requireText(channelKey, 'channel key'),
+      event: { type: toTypeAlias(eventType) },
+      steps: this.buildSteps(customizer),
+    });
+    return this;
+  }
+
+  onDocChange(
+    workflowKey: string,
+    path: string,
+    customizer: StepsCustomizer,
+  ): this {
+    const workflow = requireText(workflowKey, 'workflow key');
+    const channelKey = `${workflow}DocUpdateChannel`;
+    this.state.setContract(channelKey, {
+      type: 'Core/Document Update Channel',
+      path,
+    });
+    this.state.setContract(workflow, {
+      type: 'Conversation/Sequential Workflow',
+      channel: channelKey,
+      event: { type: 'Core/Document Update' },
+      steps: this.buildSteps(customizer),
+    });
+    return this;
+  }
+
+  onTriggeredWithId(
+    workflowKey: string,
+    eventType: TypeLike,
+    idFieldName: 'requestId' | 'subscriptionId',
+    idValue: string,
+    customizer: StepsCustomizer,
+  ): this {
+    if (idFieldName === 'requestId') {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        eventType,
+        {
+          requestId: idValue,
+          inResponseTo: { requestId: idValue },
+        },
+        customizer,
+      );
+    }
+    return this.onTriggeredWithMatcher(
+      workflowKey,
+      eventType,
+      { subscriptionId: idValue },
+      customizer,
+    );
+  }
+
+  onTriggeredWithMatcher(
+    workflowKey: string,
+    eventType: TypeLike,
+    matcher: JsonObject,
+    customizer: StepsCustomizer,
+  ): this {
+    this.ensureTriggeredEventChannel();
+    this.state.setContract(requireText(workflowKey, 'workflow key'), {
+      type: 'Conversation/Sequential Workflow',
+      channel: 'triggeredEventChannel',
+      event: {
+        type: toTypeAlias(eventType),
+        ...cloneObject(matcher),
+      },
+      steps: this.buildSteps(customizer),
+    });
+    return this;
+  }
+
+  onMyOsResponse(
+    workflowKey: string,
+    responseType: TypeLike,
+    requestIdOrCustomizer: string | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    if (customizerMaybe === undefined) {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        responseType,
+        {},
+        requestIdOrCustomizer as StepsCustomizer,
+      );
+    }
+    return this.onTriggeredWithId(
+      workflowKey,
+      responseType,
+      'requestId',
+      requestIdOrCustomizer as string,
+      customizerMaybe,
+    );
+  }
+
+  onSubscriptionUpdate(
+    workflowKey: string,
+    subscriptionId: string,
+    updateTypeOrCustomizer: TypeLike | StepsCustomizer,
+    customizerMaybe?: StepsCustomizer,
+  ): this {
+    const matcher: JsonObject = {
+      subscriptionId: requireText(subscriptionId, 'subscription id'),
+    };
+    if (customizerMaybe === undefined) {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        'MyOS/Subscription Update',
+        matcher,
+        updateTypeOrCustomizer as StepsCustomizer,
+      );
+    }
+    return this.onTriggeredWithMatcher(
+      workflowKey,
+      'MyOS/Subscription Update',
+      {
+        ...matcher,
+        update: { type: toTypeAlias(updateTypeOrCustomizer as TypeLike) },
+      },
+      customizerMaybe,
+    );
+  }
+
+  myOsAdmin(channelKey = 'myOsAdminChannel'): this {
+    this.channel(channelKey, { type: 'MyOS/MyOS Timeline Channel' });
+    this.canEmit(channelKey);
+    return this;
+  }
+
+  canEmit(channelKey: string, ...allowedEventTypes: TypeLike[]): this {
+    const normalizedChannel = requireText(channelKey, 'channel key');
+    const operationKey = normalizedChannel.replace(/Channel$/u, 'Update');
+    const request: JsonObject = { type: 'List' };
+    if (allowedEventTypes.length > 0) {
+      request.events = allowedEventTypes.map((typeLike) => ({
+        type: toTypeAlias(typeLike),
+      }));
+    }
+
+    this.applyOperationDefinition({
+      key: operationKey,
+      channelKey: normalizedChannel,
+      description: 'Operation for emitting events through channel',
+      request,
+      clearRequest: false,
+      steps: this.buildSteps(defaultOperationImplementation),
+    });
+    return this;
+  }
+
+  contractsPolicy(requireSectionChanges = true, key = 'contractsPolicy'): this {
+    this.state.setContract(key, {
+      type: 'Conversation/Contracts Change Policy',
+      requireSectionChanges,
+    });
+    return this;
+  }
+
+  directChange(
+    operationKey = 'changeDocument',
+    channelKey = 'ownerChannel',
+    description = 'Apply Conversation/Change Request directly',
+  ): this {
+    this.contractsPolicy(true);
+    this.state.setContract(operationKey, {
+      type: 'Conversation/Change Operation',
+      channel: channelKey,
+      description,
+    });
+    this.state.setContract(`${operationKey}Impl`, {
+      type: 'Conversation/Change Workflow',
+      operation: operationKey,
+    });
+    return this;
+  }
+
+  proposeChange(
+    operationKey = 'proposeChange',
+    channelKey = 'ownerChannel',
+    postfix = '',
+  ): this {
+    this.contractsPolicy(true);
+    this.state.setContract(operationKey, {
+      type: 'Conversation/Propose Change Operation',
+      channel: channelKey,
+    });
+    this.state.setContract(`${operationKey}Impl`, {
+      type: 'Conversation/Propose Change Workflow',
+      operation: operationKey,
+      ...(postfix ? { postfix } : {}),
+    });
+    return this;
+  }
+
+  acceptChange(
+    operationKey = 'acceptChange',
+    channelKey = 'ownerChannel',
+    postfix = '',
+  ): this {
+    this.contractsPolicy(true);
+    this.state.setContract(operationKey, {
+      type: 'Conversation/Accept Change Operation',
+      channel: channelKey,
+    });
+    this.state.setContract(`${operationKey}Impl`, {
+      type: 'Conversation/Accept Change Workflow',
+      operation: operationKey,
+      ...(postfix ? { postfix } : {}),
+    });
+    return this;
+  }
+
+  rejectChange(
+    operationKey = 'rejectChange',
+    channelKey = 'ownerChannel',
+    postfix = '',
+  ): this {
+    this.contractsPolicy(true);
+    this.state.setContract(operationKey, {
+      type: 'Conversation/Reject Change Operation',
+      channel: channelKey,
+    });
+    this.state.setContract(`${operationKey}Impl`, {
+      type: 'Conversation/Reject Change Workflow',
+      operation: operationKey,
+      ...(postfix ? { postfix } : {}),
+    });
+    return this;
+  }
+
+  buildJson(): JsonObject {
+    return this.state.build();
+  }
+
+  buildDocument(): BlueNode {
+    return fromJsonDocument(this.buildJson());
+  }
+
+  applyFieldMetadata(field: FieldMetadata): this {
+    const existing = this.state.getValue(field.path);
+    const next: JsonObject = isObject(existing) ? cloneObject(existing) : {};
+
+    if (
+      !isObject(existing) &&
+      existing !== undefined &&
+      !field.hasExplicitValue
+    ) {
+      next.value = existing;
+    }
+    if (field.hasExplicitValue) {
+      next.value = field.value as JsonValue;
+    }
+    if (field.typeAlias) {
+      next.type = field.typeAlias;
+    }
+    if (field.description) {
+      next.description = field.description;
+    }
+
+    const constraints: JsonObject = {};
+    if (field.required !== undefined) {
+      constraints.required = field.required;
+    }
+    if (field.minimum !== undefined) {
+      constraints.minimum = field.minimum;
+    }
+    if (field.maximum !== undefined) {
+      constraints.maximum = field.maximum;
+    }
+    if (Object.keys(constraints).length > 0) {
+      next.constraints = constraints;
+    }
+
+    if (Object.keys(next).length === 0) {
+      return this;
+    }
+    this.state.setValue(field.path, next);
+    return this;
+  }
+
+  applyOperationDefinition(definition: OperationDefinition): this {
+    const key = requireText(definition.key, 'operation key');
+    const contracts = this.state.ensureContractsRoot();
+    const existing = contracts[key];
+    const operation = isObject(existing) ? cloneObject(existing) : {};
+    operation.type = 'Conversation/Operation';
+    operation.channel = definition.channelKey ?? operation.channel;
+    if (!operation.channel) {
+      throw new Error(
+        `Operation '${key}' has no channel. Set it via operation(...channel...)`,
+      );
+    }
+    if (definition.description !== undefined) {
+      operation.description = definition.description;
+    }
+    if (definition.request !== undefined) {
+      const existingRequest = isObject(operation.request)
+        ? cloneObject(operation.request)
+        : {};
+      operation.request = {
+        ...existingRequest,
+        ...cloneObject(definition.request),
+      };
+    } else if (definition.clearRequest) {
+      delete operation.request;
+    }
+
+    this.state.setContract(key, operation);
+
+    if (definition.steps !== undefined) {
+      this.state.setContract(`${key}Impl`, {
+        type: 'Conversation/Sequential Workflow Operation',
+        operation: key,
+        steps: structuredClone(definition.steps),
+      });
+    }
+    return this;
+  }
+
+  protected buildSteps(customizer: StepsCustomizer): JsonObject[] {
+    const steps = new StepsBuilder();
+    customizer(steps);
+    return steps.build();
+  }
+
+  private ensureTriggeredEventChannel(): void {
+    this.state.setContract('triggeredEventChannel', {
+      type: 'Core/Triggered Event Channel',
+    });
+  }
+
+  private ensureInitLifecycleChannel(): void {
+    this.state.setContract('initLifecycleChannel', {
+      type: 'Core/Lifecycle Event Channel',
+      event: { type: 'Core/Document Processing Initiated' },
+    });
+  }
+}

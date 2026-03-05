@@ -11,11 +11,13 @@ export function fromJsonDocument(document: JsonObject): BlueNode {
 }
 
 export function toOfficialJson(node: BlueNode): JsonObject {
-  return sdkBlue.nodeToJson(node, 'official') as JsonObject;
+  const inlineTypesNode = sdkBlue.restoreInlineTypes(node);
+  return sdkBlue.nodeToJson(inlineTypesNode, 'simple') as JsonObject;
 }
 
 export function toOfficialYaml(node: BlueNode): string {
-  return sdkBlue.nodeToYaml(node, 'official');
+  const inlineTypesNode = sdkBlue.restoreInlineTypes(node);
+  return sdkBlue.nodeToYaml(inlineTypesNode, 'simple');
 }
 
 export function ensureExpression(value: string): string {
