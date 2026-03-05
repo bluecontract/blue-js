@@ -140,4 +140,78 @@ describe('steps-builder execution', () => {
       },
     });
   });
+
+  it('emits MyOS helper events from operation steps', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step MyOS Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'emitMyOsEvents',
+        'ownerChannel',
+        Number,
+        'Emit MyOS helper events',
+        (steps) =>
+          steps
+            .myOs()
+            .addParticipant('ownerChannel', 'user@example.com')
+            .myOs()
+            .removeParticipant('ownerChannel')
+            .myOs()
+            .callOperation('ownerChannel', 'target-session', 'syncState', {
+              type: 'Conversation/Event',
+            })
+            .myOs()
+            .subscribeToSession(
+              'ownerChannel',
+              'target-session',
+              'SUB_MYOS',
+              'Conversation/Response',
+            ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'step myos document initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'emitMyOsEvents',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'step myos operation failed',
+    );
+
+    const triggeredEvents = processed.triggeredEvents.map((triggeredEvent) =>
+      toOfficialJson(triggeredEvent),
+    );
+    const eventTypes = triggeredEvents.map(
+      (triggeredEvent) => triggeredEvent.type,
+    );
+    expect(eventTypes).toContain('MyOS/Adding Participant Requested');
+    expect(eventTypes).toContain('MyOS/Removing Participant Requested');
+    expect(eventTypes).toContain('MyOS/Call Operation Requested');
+    expect(eventTypes).toContain('MyOS/Subscribe to Session Requested');
+
+    const callRequest = triggeredEvents.find(
+      (triggeredEvent) =>
+        triggeredEvent.type === 'MyOS/Call Operation Requested',
+    );
+    expect(callRequest).toMatchObject({
+      operation: 'syncState',
+      targetSessionId: 'target-session',
+    });
+  });
 });
