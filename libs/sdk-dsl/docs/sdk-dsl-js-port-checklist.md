@@ -48,7 +48,7 @@ Legend:
 
 - ⚠️ `access(...)` (config + permission/revoke/subscribe/call helper coverage; parity expansion ongoing)
 - ⚠️ `accessLinked(...)` (config + permission/revoke/subscribe/call helper coverage; parity expansion ongoing)
-- ⚠️ `agency(...)` (baseline)
+- ⚠️ `agency(...)` (config + permission/revoke/start-worker/call/subscribe helper coverage; parity expansion ongoing)
 
 ## Docs and parity artifacts
 

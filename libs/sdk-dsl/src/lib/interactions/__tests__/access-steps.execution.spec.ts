@@ -341,4 +341,87 @@ describe('access step helpers execution', () => {
       targetSessionId: 'target-session',
     });
   });
+
+  it('emits call and subscription requests through agency helper namespace', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Call Subscribe Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('target-session')
+      .done()
+      .operation(
+        'syncAgency',
+        'ownerChannel',
+        Number,
+        'sync agency session',
+        (steps) =>
+          steps
+            .viaAgency('workerAgency')
+            .subscribe('SUB_AGENCY', 'Conversation/Response')
+            .viaAgency('workerAgency')
+            .call('syncState', {
+              type: 'Conversation/Event',
+              payload: {
+                source: 'runtime',
+              },
+            }),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency call/subscribe initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'syncAgency',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'agency call/subscribe operation failed',
+    );
+
+    const events = processed.triggeredEvents.map((event) =>
+      toOfficialJson(event),
+    );
+    const eventTypes = events.map((event) => event.type as string);
+    expect(eventTypes).toContain('MyOS/Subscribe to Session Requested');
+    expect(eventTypes).toContain('MyOS/Call Operation Requested');
+
+    const subscribeRequest = events.find(
+      (event) => event.type === 'MyOS/Subscribe to Session Requested',
+    );
+    expect(subscribeRequest).toMatchObject({
+      targetSessionId: 'target-session',
+      subscription: {
+        id: 'SUB_AGENCY',
+        events: [{ type: 'Conversation/Response' }],
+      },
+    });
+
+    const callRequest = events.find(
+      (event) => event.type === 'MyOS/Call Operation Requested',
+    );
+    expect(callRequest).toMatchObject({
+      targetSessionId: 'target-session',
+      operation: 'syncState',
+      request: {
+        type: 'Conversation/Event',
+        payload: {
+          source: 'runtime',
+        },
+      },
+    });
+  });
 });

@@ -258,4 +258,42 @@ describe('interaction builders mapping', () => {
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/All Participants Ready`);
   });
+
+  it('maps agency call and subscription helper steps', () => {
+    const document = DocBuilder.doc()
+      .name('Agency Steps Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .targetSessionId('target-session')
+      .done()
+      .operation(
+        'syncAgency',
+        'ownerChannel',
+        Number,
+        'sync agency target',
+        (steps) =>
+          steps
+            .viaAgency('workerAgency')
+            .subscribe('SUB_AGENCY', 'Conversation/Response')
+            .viaAgency('workerAgency')
+            .call('syncState', {
+              type: 'Conversation/Event',
+              payload: {
+                source: 'mapping',
+              },
+            }),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`id: SUB_AGENCY`);
+    expect(yaml).toContain(`type: MyOS/Subscribe to Session Requested`);
+    expect(yaml).toContain(`operation: syncState`);
+    expect(yaml).toContain(`type: MyOS/Call Operation Requested`);
+  });
 });
