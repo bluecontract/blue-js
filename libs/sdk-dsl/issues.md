@@ -48,7 +48,7 @@ This file tracks currently known parity gaps between the TypeScript SDK DSL and 
 - **Expected (Java mapping reference)**:
   - `type: PayNote/Backward Payment Requested`
 - **Actual**:
-  - API emits the same type string, but runtime typing support depends on repository version.
+  - API emits the same type string, but current workspace repository models reject it at build/runtime validation (`Unknown type "PayNote/Backward Payment Requested"...`).
 - **Likely cause**:
   - Alias availability differs across `@blue-repository/types` versions.
 - **Next actions**:

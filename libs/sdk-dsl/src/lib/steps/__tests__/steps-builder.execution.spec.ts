@@ -277,4 +277,30 @@ describe('steps-builder execution', () => {
       },
     });
   });
+
+  it('surfaces runtime type-availability failure for backward payment requests', async () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Step Backward Payment Runtime')
+        .channel('ownerChannel', {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        })
+        .operation(
+          'emitBackwardPayment',
+          'ownerChannel',
+          Number,
+          'Emit backward payment event',
+          (steps) =>
+            steps.requestBackwardPayment((payload) =>
+              payload
+                .processor('voucher')
+                .from('merchant')
+                .to('customer')
+                .reason('refund-request'),
+            ),
+        )
+        .buildDocument(),
+    ).toThrow('PayNote/Backward Payment Requested');
+  });
 });
