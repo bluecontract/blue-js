@@ -1,60 +1,84 @@
 # BLUE TS DSL SDK — Testing Strategy
 
 ## Purpose
-The test suite is the operational definition of done for the DSL SDK.
-Because implementation is being driven by an agent, tests must be explicit, close to the Java reference, and strong enough to prevent semantic drift.
+The test suite is the definition of done for stage 1.
+Implementation is accepted only when Java-derived parity and current TypeScript runtime execution both hold for the covered slice.
 
-## Test philosophy
-Use a dual-layer validation model:
-- **Layer 1 — Java-derived parity** for builder behavior and mapping intent in the stage-1 scope.
-- **Layer 2 — TypeScript runtime correctness** for actual executability in the current public runtime.
+## Validation model
+- Layer 1: Java-derived parity for public builder behavior and BLUE document mapping.
+- Layer 2: focused unit and guardrail tests for helper behavior and edge cases.
+- Layer 3: processor-backed integration for executable runtime correctness.
 
-Java is the reference target.
-The current public TypeScript runtime is the final gate.
-When they conflict for an in-scope feature, keep runtime-correct behavior, document the deviation, and cover it with a regression test.
+Java remains the public API reference.
+The current TypeScript runtime remains the execution gate.
 
-## Test layers
+## Implemented stage-1 test files
+- `libs/sdk-dsl/src/__tests__/DocBuilder.general.parity.test.ts`
+- `libs/sdk-dsl/src/__tests__/DocBuilder.channels.parity.test.ts`
+- `libs/sdk-dsl/src/__tests__/DocBuilder.sections.parity.test.ts`
+- `libs/sdk-dsl/src/__tests__/DocBuilder.operations.parity.test.ts`
+- `libs/sdk-dsl/src/__tests__/DocBuilder.core.test.ts`
+- `libs/sdk-dsl/src/__tests__/StepsBuilder.core.test.ts`
+- `libs/sdk-dsl/src/__tests__/DocBuilder.counter.integration.test.ts`
+- `libs/sdk-dsl/src/__tests__/dsl-parity.ts`
+- `libs/sdk-dsl/src/__tests__/processor-harness.ts`
 
-### 1. Parity tests
-Use inline YAML fixtures as the expected readable source and compare against documents built from the TypeScript DSL.
-The primary oracle is structural equality after preprocessing, not raw YAML text.
+Every test file starts with Java reference comments for traceability.
 
-### 2. Direct unit tests
-Use focused unit tests for small helpers where this increases confidence and debuggability:
-- expression wrapping
-- type input resolution
-- pointer write/remove helper
-- in-scope `StepsBuilder` step node construction
+## Parity helper
+`dsl-parity.ts` mirrors Java `DslParityAssertions` with TypeScript runtime constraints:
+1. build the document from the TS DSL
+2. parse expected YAML with `Blue`
+3. preprocess both nodes
+4. compare structural JSON from `nodeToJson(..., 'official')`
+5. compare `calculateBlueIdSync(...)`
+6. print expected and actual YAML plus JSON on mismatch
 
-### 3. Guardrail tests
-Explicitly test error and mutability semantics such as:
-- `edit(existing)` returns the same instance
-- `from(existing)` returns a clone
-- unclosed section throws on `buildDocument()`
-- invalid/unsupported type inputs throw clear errors
+### Harness note
+The parity helper uses `createBlue()` from `processor-harness.ts`.
+That helper includes:
+- the public `@blue-repository/types` repository
+- a small test-only repository entry for `Custom/Type`
 
-### 4. Runtime integration tests
-Use `document-processor` to prove that representative documents are not just structurally correct but operationally valid.
-Stage 1 requires at least the counter document integration flow.
+The extra alias keeps the parity helper faithful to the Java string-type fixture while leaving runtime behavior documented in `stage-1-deviations.md`.
 
-## Java traceability
-Every stage-1 TypeScript test file should start with a short comment showing which Java test file(s) it ports or adapts.
-This keeps parity work auditable.
+## Unit and guardrail coverage
+`DocBuilder.core.test.ts` covers:
+- `DocBuilder.expr(...)`
+- type-input resolution, including unresolved custom aliases
+- pointer write/remove helpers
+- public `.replace(...)` and `.remove(...)`
 
-## Required stage-1 TypeScript test files
-A good minimum set is:
-- `DocBuilder.general.parity.test.ts`
-- `DocBuilder.channels.parity.test.ts`
-- `DocBuilder.sections.parity.test.ts`
-- `DocBuilder.operations.parity.test.ts`
-- `StepsBuilder.core.test.ts`
-- `DocBuilder.counter.integration.test.ts`
-- a shared parity helper file such as `dslParity.ts`
-- a small processor test harness file
+`StepsBuilder.core.test.ts` covers:
+- `jsRaw`
+- `replaceValue`
+- `replaceExpression`
+- `triggerEvent`
+- `emit`
+- `emitType`
+- `raw`
 
-Exact names may vary, but coverage must remain equivalent.
+Guardrails covered across parity and unit tests:
+- `edit(existing)` preserves identity
+- `from(existing)` clones
+- `buildDocument()` rejects unclosed sections
+- missing Zod `typeBlueId` annotations throw
 
-## Required Java sources to port or faithfully reproduce
+## Processor-backed integration harness
+`processor-harness.ts` uses only public package APIs and provides:
+- `createBlue()`
+- `createDocumentProcessor()`
+- marker registration for:
+  - `Conversation/Document Section`
+  - `Conversation/Contracts Change Policy`
+- `initializeDocument(...)`
+- `processOperationRequest(...)`
+- `makeOperationRequestEvent(...)`
+
+No cross-library deep `src/...` imports are used from consumer code.
+Test-time Vite aliases point package imports at local source to avoid stale built artifacts.
+
+## Java sources ported or reproduced
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java`
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java`
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java`
@@ -62,65 +86,24 @@ Exact names may vary, but coverage must remain equivalent.
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderOperationsDslParityTest.java`
 - `references/java-sdk/src/test/java/blue/language/sdk/DocBuilderCounterIntegrationTest.java`
 
-## Parity helper requirements
-The parity helper should mirror the intent of Java `DslParityAssertions`:
-1. build the node from the TS DSL
-2. parse the expected YAML into a `BlueNode`
-3. preprocess both nodes
-4. compare canonical structural JSON
-5. compare `calculateBlueIdSync(...)` where practical
-6. print useful YAML or JSON on failures
-
-## Processor test harness requirements
-Use only public package APIs.
-The test harness should:
-1. create a `Blue` runtime aligned with current workspace patterns
-2. create a `DocumentProcessor` using public package imports
-3. register markers for:
-   - `Conversation/Document Section`
-   - `Conversation/Contracts Change Policy`
-4. expose helpers for:
-   - document initialization
-   - representative operation processing
-
-Do not use deep relative imports into `src/...` across libraries.
-
-## Coverage matrix requirement
-Keep `docs/ts-dsl-sdk/stage-1-coverage-matrix.md` updated.
-For every in-scope feature, list:
-- feature name
-- Java reference file(s)
-- mapping/parity test file
-- unit/guardrail test file if relevant
-- processor integration coverage
-- status
-- deviation link if any
-
 ## Deviations policy
-A Java test may be adapted when:
-- Java uses `Class<?>` and TS uses a stage-1 `typeInput`
-- Java uses bean serialization and TS uses Blue-shaped objects or `BlueNode`
-- a runtime conflict is proven in the current public TS runtime
+Accepted stage-1 deviations must be recorded when they come from:
+- Java `Class<?>` APIs translated to TS `typeInput`
+- Java bean/reflection serialization replaced by `BlueNode` or plain-object inputs
+- proven runtime conflicts in the current TS BLUE runtime
 
-Every such deviation must be documented in `docs/ts-dsl-sdk/stage-1-deviations.md` with:
+Each deviation entry must include:
 - title
 - status
-- Java source reference
 - minimal DSL repro
 - Java/reference expectation
 - runtime/actual behavior
 - implementation decision
-- reason
-- confirming TS test(s)
+- rationale
+- confirming tests
 
-## What is not acceptable
-- snapshot-only testing as the primary oracle
-- passing tests that validate only YAML substrings
-- silently skipping Java reference coverage without documenting it
-- claiming completion without running typecheck, lint, tests, and build
-- changing the processor to make DSL tests pass
-
-## Required verification commands
+## Verification commands
+Required:
 - `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
 - `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
 - `npx eslint libs/sdk-dsl`

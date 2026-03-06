@@ -1,23 +1,22 @@
 # BLUE TS DSL SDK — Stage 1 Specification
 
 ## Goal
-Implement the first production-meaningful slice of the TypeScript DSL SDK from scratch in `libs/sdk-dsl`.
-The stage-1 library should generate valid BLUE documents for the covered authoring flows and stay behaviorally close to the Java reference for those flows.
+Implement the first production-meaningful TypeScript BLUE DSL library in `libs/sdk-dsl`.
+Stage 1 is complete when the library is behaviorally close to the Java SDK for the in-scope flows and produces BLUE documents that execute in the current public TypeScript runtime for the covered integration path.
 
 ## Source of truth
-Use these sources in this order:
 1. `AGENTS.md`
 2. `.cursor/rules/*.mdc` relevant to the DSL work
-3. this document and the stage-1 testing strategy
+3. this document and `testing-strategy.md`
 4. Java docs and code under `references/java-sdk/**`
 5. public APIs of `libs/language` and `libs/document-processor`
 
 ### Source-of-truth policy
-- Java is the primary behavioral reference for all stage-1 in-scope features.
-- The public TypeScript runtime is the final execution gate.
-- If a proven conflict appears between Java parity and current runtime behavior, keep the runtime-correct behavior, document the mismatch in `stage-1-deviations.md`, and add a focused regression test.
+- Java is the primary reference for public API shape, naming, and fluent behavior.
+- The public TypeScript runtime is the execution gate.
+- When Java parity conflicts with the current runtime for an in-scope feature, keep the runtime-correct behavior, document the mismatch in `stage-1-deviations.md`, and lock it with a test.
 
-## In scope
+## Implemented scope
 ### Entry points
 - `DocBuilder.doc()`
 - `DocBuilder.edit(existingNode)`
@@ -60,7 +59,7 @@ Use these sources in this order:
   - `.operation(key, channel, description, steps => ...)`
   - `.operation(key, channel, requestType, description, steps => ...)`
 - builder form:
-  - `.operation(key)` with builder methods:
+  - `.operation(key)` with:
     - `.channel(channelKey)`
     - `.description(text)`
     - `.requestType(typeInput)`
@@ -70,7 +69,7 @@ Use these sources in this order:
     - `.steps(steps => ...)`
     - `.done()`
 
-### StepsBuilder (stage 1)
+### StepsBuilder
 - `.jsRaw(name, code)`
 - `.replaceValue(name, path, value)`
 - `.replaceExpression(name, path, expression)`
@@ -83,7 +82,7 @@ Use these sources in this order:
 - `.buildDocument()`
 
 ## Out of scope
-- document-level handler methods (`onInit`, `onEvent`, `onNamedEvent`, `onDocChange`, `onChannelEvent`)
+- `onInit`, `onEvent`, `onNamedEvent`, `onDocChange`, `onChannelEvent`
 - `canEmit`
 - MyOS / interactions
 - access / linked access / agency
@@ -92,45 +91,65 @@ Use these sources in this order:
 - patch / structure / generator pipeline
 - dependency upgrades
 
-## Required semantics
-- `edit(existing)` mutates and returns the same `BlueNode`
-- `from(existing)` clones before editing
-- `expr('x')` -> `${x}`
-- `expr('${x}')` remains unchanged
-- unclosed section throws on `buildDocument()`
-- section tracking records related fields and contracts and writes a `Conversation/Document Section` contract on `endSection()`
-- operation implementation contract key is `<operationKey>Impl`
-- operation builder can edit an existing operation and later add an implementation
-- `.channel(name, contractLike)` can specialize or replace an existing channel contract
-- `.noRequest()` removes request from an existing operation
-- `.replaceExpression(...)` stores wrapped expressions
-- `buildDocument()` returns the built node directly
+## Preserved semantics
+- `DocBuilder.edit(existing)` mutates and returns the same `BlueNode`.
+- `DocBuilder.from(existing)` clones before editing and returns a different `BlueNode`.
+- `DocBuilder.expr('x')` returns `${x}`.
+- `DocBuilder.expr('${x}')` remains `${x}`.
+- `buildDocument()` throws when a section is still open with the Java-equivalent message.
+- Section tracking records related field pointers and contract keys and materializes `Conversation/Document Section` on `endSection()`.
+- `.channel(name, contractLike)` can specialize an existing channel contract at the same key.
+- Operation implementation contract keys use the `<operationKey>Impl` suffix.
+- Operation builder editing supports existing operation contracts and later implementation creation.
+- `.request(...)` stores the request schema under `contracts/<operation>/request`.
+- `.noRequest()` removes the request when editing an existing operation.
+- `.replaceExpression(...)` stores a wrapped `${...}` expression.
+- `.emitType(...)` creates a `Conversation/Trigger Event` step with a typed event node.
+- `buildDocument()` returns the working `BlueNode` directly.
 
-## Type input model
-Stage-1 type inputs must support:
-- string alias
+## Type and value model
+### Supported `typeInput`
+- string aliases such as `Integer` or `Conversation/Event`
 - `{ blueId: string }`
 - `BlueNode`
-- Zod schema with `typeBlueId` annotation from the public language annotation helpers
+- Zod schemas annotated with public `typeBlueId` helpers
 
-Stage-1 ordinary values and payload shapes must support:
+### Implemented resolution behavior
+- Known string aliases are normalized through a repository-backed `Blue` instance.
+- Unknown string aliases are preserved as inline type nodes and are not rejected by the DSL.
+- Runtime preprocessing still requires repository support for unknown aliases. See `stage-1-deviations.md`.
+
+### Supported values
 - primitives
 - arrays
-- plain Blue-shaped objects
+- plain objects
 - `BlueNode`
 
-Reflection-style Java bean serialization is explicitly out of scope in stage 1.
+### Conversion notes
+- General value conversion uses public `Blue` JSON-like conversion so processor-facing documents keep runtime-compatible scalar and contract typing.
+- Operation request-schema objects use a local schema converter so Java shapes like `{ type: 'List', items: [...] }` become `request.type` plus an `items` property, matching Java request-schema parity.
+- Field constraints are serialized as a `constraints` child node because the public TS node API does not expose Java’s `Constraints` model mutators directly.
+
+## Implemented internal kernel
+- repository-backed type resolver
+- supported value-to-node conversion helpers
+- request-schema conversion helper
+- JSON pointer write/remove helpers
+- contracts map helper
+- section tracker
+- operation state applicator
+- parity helper
+- processor-backed test harness
 
 ## Design constraints
-- implement as a new library `libs/sdk-dsl`
-- runtime must not depend on `document-processor`
-- tests may use `document-processor`
-- use only public imports from `@blue-labs/language`
-- do not import from internal paths such as `@blue-labs/language/lib/...`
-- keep workspace changes minimal
-- do not upgrade dependency versions
+- The library lives in `libs/sdk-dsl`.
+- Runtime code does not depend on `document-processor`.
+- Tests may use `document-processor`.
+- Only public `@blue-labs/language` imports are used.
+- No dependency versions were upgraded.
+- Workspace changes stay local to the new library and stage-1 docs.
 
-## Java references to read first
+## Java references used
 ### Main Java code
 - `references/java-sdk/src/main/java/blue/language/sdk/DocBuilder.java`
 - `references/java-sdk/src/main/java/blue/language/sdk/internal/StepsBuilder.java`
@@ -139,7 +158,7 @@ Reflection-style Java bean serialization is explicitly out of scope in stage 1.
 - `references/java-sdk/docs/sdk-dsl-developers.md`
 - `references/java-sdk/docs/sdk-dsl-mapping-audit-reference.md`
 
-### Java tests for stage 1
+### Java tests
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java`
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java`
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java`
@@ -148,20 +167,17 @@ Reflection-style Java bean serialization is explicitly out of scope in stage 1.
 - `references/java-sdk/src/test/java/blue/language/sdk/DocBuilderCounterIntegrationTest.java`
 
 ## Deliverables
-- new library package in `libs/sdk-dsl`
-- clean public export surface in `libs/sdk-dsl/src/index.ts`
-- stage-1 docs updated to match implementation
-- parity test helper
-- stage-1 parity tests, guardrail tests, and counter integration test
-- `docs/ts-dsl-sdk/stage-1-deviations.md` updated with any justified deviations
-- `docs/ts-dsl-sdk/stage-1-coverage-matrix.md` updated with actual coverage
+- `libs/sdk-dsl` library package with public exports in `src/index.ts`
+- internal stage-1 kernel helpers
+- parity helper and processor harness
+- parity, unit, and integration tests for stage 1
+- updated mapping, testing, deviation, and coverage docs
 
 ## Acceptance criteria
-The stage is accepted only when:
-1. stage-1 API is implemented
-2. stage-1 tests pass
-3. parity helper compares preprocessed canonical trees
-4. counter integration test passes with TS `DocumentProcessor`
-5. no internal `@blue-labs/language` imports were used
-6. no dependency versions were upgraded
-7. any deviation from Java is documented, justified, and covered by tests
+1. The stage-1 public API is implemented.
+2. Stage-1 parity, unit, and counter integration tests pass.
+3. The parity helper preprocesses both documents and compares canonical structural JSON.
+4. Counter integration passes through the public TypeScript `DocumentProcessor`.
+5. No internal `@blue-labs/language` imports are used.
+6. No dependency versions were upgraded.
+7. Any justified deviation is documented and covered by tests.

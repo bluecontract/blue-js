@@ -13,6 +13,9 @@
       "path": "./libs/document-processor"
     },
     {
+      "path": "./libs/sdk-dsl"
+    },
+    {
       "path": "./libs/repository-generator"
     },
     {
