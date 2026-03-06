@@ -1,0 +1,120 @@
+---
+description: BLUE TS DSL SDK stage 1 scope, source-of-truth, and design guardrails
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+  - package.json
+  - tsconfig.base.json
+  - vitest.workspace.ts
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 1
+
+## Mission
+Implement stage 1 of a new TypeScript DSL SDK in `libs/sdk-dsl`.
+The public API should stay behaviorally close to the Java SDK for the stage-1 feature set.
+
+## Source-of-truth policy
+1. `AGENTS.md`
+2. `docs/ts-dsl-sdk/stage-1-spec.md`
+3. `docs/ts-dsl-sdk/testing-strategy.md`
+4. `docs/ts-dsl-sdk/stage-1-mapping-matrix.md`
+5. `docs/ts-dsl-sdk/stage-1-coverage-matrix.md`
+6. Java SDK files under `references/java-sdk/**`
+7. Current public APIs in `libs/language` and `libs/document-processor`
+
+For in-scope stage-1 features:
+- Java is the primary reference for API shape, naming, builder behavior, and intended mappings.
+- The public TypeScript runtime is the execution correctness gate.
+- If a proven conflict appears between Java parity and current runtime behavior, keep runtime-correct behavior, document the deviation in `docs/ts-dsl-sdk/stage-1-deviations.md`, and add a focused regression test.
+
+The old preliminary TypeScript SDK attempts are NOT a source of truth for this stage.
+
+## Scope in
+- `DocBuilder.doc/edit/from/expr`
+- document identity: `name`, `description`, `type`
+- field writes: `field(path, value)`, field builder with `type/description/value/required/minimum/maximum/done`
+- direct writes: `replace`, `remove`
+- contracts: `channel`, `channel(name, contractLike)`, `channels`, `compositeChannel`
+- sections: `section`, `endSection`
+- operations: inline overloads + operation builder form
+- operation builder methods: `channel`, `description`, `requestType`, `request`, `requestDescription`, `noRequest`, `steps`, `done`
+- stage-1 `StepsBuilder`: `jsRaw`, `replaceValue`, `replaceExpression`, `triggerEvent`, `emit`, `emitType`, `raw`
+- `buildDocument`
+- parity helper
+- stage-1 parity tests, guardrail tests, and counter integration test
+- stage-1 docs: spec, mapping matrix, deviations, coverage matrix
+
+## Scope out
+- `onInit`, `onEvent`, `onNamedEvent`, `onDocChange`, `onChannelEvent`
+- `canEmit`
+- MyOS / interactions
+- access / linked access / agency
+- AI
+- PayNote
+- patch / structure / generator pipeline
+- dependency upgrades
+- unrelated refactors
+
+## Design guardrails
+- Create a new library: `libs/sdk-dsl`
+- Keep runtime implementation self-contained inside `sdk-dsl`
+- Runtime must not depend on `document-processor`
+- Test code may use `document-processor`
+- Use only public imports from `@blue-labs/language`
+- Do not import internal helpers from `@blue-labs/language/lib/...`
+- If a helper is missing, implement a small local helper instead of reaching into internals
+- Keep root/workspace changes minimal
+- Do not upgrade dependency versions
+- Do not change `@blue-repository/types` version
+- Do not add stage-2+ concepts “just because Java has them”
+
+## Type model guardrails
+For stage-1 type inputs, support:
+- string alias
+- `{ blueId: string }`
+- `BlueNode`
+- Zod schema with public `typeBlueId` annotation
+
+For ordinary stage-1 values and payload shapes, support:
+- primitives
+- arrays
+- plain Blue-shaped objects
+- `BlueNode`
+
+Do not implement Java-style reflection or bean serialization in stage 1.
+
+## Behavioral guardrails
+- `edit(existing)` mutates and returns the same `BlueNode`
+- `from(existing)` clones first
+- `expr('x')` wraps to `${x}`
+- `expr('${x}')` stays unchanged
+- unclosed section throws on `buildDocument()`
+- operation implementation key is `<operationKey>Impl`
+- `.channel(name, contractLike)` specializes or replaces the contract at that key
+- `.noRequest()` removes request when editing an existing operation
+- parity comparison must use canonical/preprocessed Blue trees, not raw YAML equality
+
+## Documentation guardrails
+Keep these docs accurate as implementation proceeds:
+- `docs/ts-dsl-sdk/stage-1-spec.md`
+- `docs/ts-dsl-sdk/testing-strategy.md`
+- `docs/ts-dsl-sdk/stage-1-mapping-matrix.md`
+- `docs/ts-dsl-sdk/stage-1-deviations.md`
+- `docs/ts-dsl-sdk/stage-1-coverage-matrix.md`
+
+Document every justified Java-to-TS or Java-to-runtime deviation.
+
+## Formatting guardrails
+- Keep fluent builder chains indented across lines.
+- Prefer:
+  ```ts
+  .capture()
+    .lockOnInit()
+    .done()
+  ```
+- Keep tests readable, with short comments describing:
+  1. what is being built,
+  2. what mapping shape is expected,
+  3. what runtime behavior is expected.

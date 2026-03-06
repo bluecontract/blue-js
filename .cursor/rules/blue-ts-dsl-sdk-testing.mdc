@@ -1,0 +1,98 @@
+---
+description: BLUE TS DSL SDK stage 1 testing, parity, and runtime verification requirements
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Testing and Parity
+
+## Quality bar
+Implementation is not done until tests, typecheck, and lint are green.
+Tests are part of the feature, not an optional follow-up.
+
+## Mandatory test layers
+1. direct unit tests for focused helpers where useful
+2. parity tests against expected YAML for the implemented DSL surface
+3. guardrail tests for errors and mutability semantics
+4. processor integration test for the counter vertical slice
+
+## Java test traceability
+Each TypeScript test file should start with a short comment listing the Java source file(s) it ports or adapts.
+Preserve intent and coverage even where TypeScript API shape differs.
+Do not replace Java behavioral coverage with unrelated TS-only scenarios.
+
+## Stage-1 Java tests to port fully or partially
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java`
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java`
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java`
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderSectionsDslParityTest.java`
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderOperationsDslParityTest.java`
+- `references/java-sdk/src/test/java/blue/language/sdk/DocBuilderCounterIntegrationTest.java`
+
+## Acceptable stage-1 exclusions
+These features are out of scope and should not be implemented just to satisfy unrelated Java tests:
+- `canEmit`
+- document-level event handlers
+- MyOS / interactions
+- access / linked access / agency
+- AI
+- PayNote
+- patch / structure / generator pipeline
+
+When skipping a Java test or adapting it materially due to stage-1 scope or Java/TS/runtime differences, document that in `docs/ts-dsl-sdk/stage-1-deviations.md`.
+
+## Runtime-gate rule
+For in-scope features, Java parity is the target, but the current public TypeScript runtime is the final execution gate.
+If a runtime conflict is proven:
+- keep the runtime-correct behavior,
+- document it in `stage-1-deviations.md`,
+- add a regression test,
+- and keep the mismatch visible in `stage-1-mapping-matrix.md` and `stage-1-coverage-matrix.md`.
+
+## Parity harness rules
+A TypeScript equivalent of `DslParityAssertions` is required.
+The helper must:
+- preprocess both expected YAML and built DSL nodes
+- compare structural JSON trees, not raw YAML strings
+- compare BlueIds where practical
+- print useful YAML or JSON on mismatch for debugging
+
+Inline YAML fixtures are encouraged.
+Raw snapshot comparison is not enough.
+Exact YAML assertions may be used as secondary fixtures or debugging aids, not as the primary oracle.
+
+## Processor-backed harness rules
+Integration tests must use only public package APIs.
+Build a reusable test harness for:
+- Blue runtime creation
+- default `ContractProcessorRegistryBuilder` registry
+- marker registration for:
+  - `Conversation/Document Section`
+  - `Conversation/Contracts Change Policy`
+- document initialization
+- counter operation processing
+
+Do not use deep relative `src/...` imports across libraries.
+
+## Documentation and coverage requirements
+Update these docs as part of the implementation:
+- `docs/ts-dsl-sdk/stage-1-mapping-matrix.md`
+- `docs/ts-dsl-sdk/stage-1-deviations.md`
+- `docs/ts-dsl-sdk/stage-1-coverage-matrix.md`
+
+Every documented deviation must be covered by a focused regression test.
+Every in-scope feature must have an entry in the coverage matrix.
+
+## Required verification before completion
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+Recommended extra regression check:
+- `npx vitest run --config libs/document-processor/vite.config.ts`
+
+Do not report completion unless these commands were run and passed, or failures are reported explicitly.
