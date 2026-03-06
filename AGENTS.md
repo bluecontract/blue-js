@@ -19,3 +19,9 @@ Example commands (adjust to your workspace):
 - **Tests (preferred)**: `nx test document-processor --skip-nx-cache`
   - If the Nx daemon or plugin worker fails, run `nx reset` and retry with `NX_DAEMON=false nx test document-processor --skip-nx-cache`.
   - As a fallback, execute the Vitest suite directly with `npx vitest run --config libs/document-processor/vite.config.ts`.
+
+
+### Important rules
+Read and adhere to defined cursor rules:
+- .cursor/rules/blue-ts-dsl-sdk-stage1.mdc
+- .cursor/rules/blue-ts-dsl-sdk-testing.mdc
