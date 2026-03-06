@@ -30,6 +30,9 @@
   ],
   "references": [
     {
+      "path": "../document-processor/tsconfig.lib.json"
+    },
+    {
       "path": "../language/tsconfig.lib.json"
     }
   ]

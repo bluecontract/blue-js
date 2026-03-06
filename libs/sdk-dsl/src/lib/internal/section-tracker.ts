@@ -2,6 +2,7 @@ import { BlueNode } from '@blue-labs/language';
 
 import { ensureContracts, TYPE_ALIASES } from './contracts.js';
 import { normalizePointer } from './pointer.js';
+import { resolveTypeInput } from './type-input.js';
 
 function readStringList(node: BlueNode | undefined): string[] {
   return (
@@ -38,12 +39,14 @@ export class SectionTracker {
     const existingSummary = existing.getProperties()?.summary?.getValue();
     const tracker = new SectionTracker(
       key,
-      typeof existingTitle === 'string' ? existingTitle : title ?? key,
+      typeof existingTitle === 'string' ? existingTitle : (title ?? key),
       summary ??
         (typeof existingSummary === 'string' ? existingSummary : undefined),
     );
 
-    for (const field of readStringList(existing.getProperties()?.relatedFields)) {
+    for (const field of readStringList(
+      existing.getProperties()?.relatedFields,
+    )) {
       tracker.fields.add(field);
     }
     for (const contract of readStringList(
@@ -66,7 +69,9 @@ export class SectionTracker {
   }
 
   buildNode(): BlueNode {
-    const section = new BlueNode().setType(TYPE_ALIASES.documentSection);
+    const section = new BlueNode().setType(
+      resolveTypeInput(TYPE_ALIASES.documentSection),
+    );
     section.addProperty('title', new BlueNode().setValue(this.title));
     if (this.summary) {
       section.addProperty('summary', new BlueNode().setValue(this.summary));
@@ -83,7 +88,9 @@ export class SectionTracker {
       section.addProperty(
         'relatedContracts',
         new BlueNode().setItems(
-          [...this.contracts].map((contract) => new BlueNode().setValue(contract)),
+          [...this.contracts].map((contract) =>
+            new BlueNode().setValue(contract),
+          ),
         ),
       );
     }

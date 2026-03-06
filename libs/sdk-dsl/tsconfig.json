@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "../document-processor"
+    },
+    {
       "path": "../language"
     },
     {

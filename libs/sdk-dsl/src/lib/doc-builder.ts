@@ -124,7 +124,9 @@ export class DocBuilder {
   compositeChannel(name: string, ...channelKeys: string[]): this {
     const key = requireNonBlank(name, 'Composite channel name');
     ensureContracts(this.document)[key] = buildCompositeChannelContract(
-      channelKeys.map((channelKey) => requireNonBlank(channelKey, 'Channel key')),
+      channelKeys.map((channelKey) =>
+        requireNonBlank(channelKey, 'Channel key'),
+      ),
     );
     this.trackContract(key);
     return this;
@@ -205,10 +207,7 @@ export class DocBuilder {
         stepsCustomizer = arg4;
       } else {
         requestType = arg3 as TypeInput;
-        description = requireNonBlank(
-          arg4 as string,
-          'Operation description',
-        );
+        description = requireNonBlank(arg4 as string, 'Operation description');
       }
     } else {
       requestType = arg3 as TypeInput;
@@ -262,7 +261,10 @@ export class DocBuilder {
       throw new Error(`Operation '${config.key}' requires a channel.`);
     }
 
-    setOperationChannel(operation, requireNonBlank(channelKey, 'Operation channel'));
+    setOperationChannel(
+      operation,
+      requireNonBlank(channelKey, 'Operation channel'),
+    );
 
     if (config.description !== undefined) {
       setOperationDescription(operation, config.description);
@@ -284,11 +286,7 @@ export class DocBuilder {
     if (config.stepsCustomizer) {
       const steps = new StepsBuilder();
       config.stepsCustomizer(steps);
-      appendOperationImplementationSteps(
-        contracts,
-        config.key,
-        steps.build(),
-      );
+      appendOperationImplementationSteps(contracts, config.key, steps.build());
       this.trackContract(getImplementationContractKey(config.key));
     }
 
@@ -379,13 +377,22 @@ export class FieldBuilder {
       fieldNode.setDescription(this.fieldDescription);
     }
     if (this.requiredValue !== undefined) {
-      fieldNode.addProperty('required', new BlueNode().setValue(this.requiredValue));
+      fieldNode.addProperty(
+        'required',
+        new BlueNode().setValue(this.requiredValue),
+      );
     }
     if (this.minimumValue !== undefined) {
-      fieldNode.addProperty('minimum', new BlueNode().setValue(this.minimumValue));
+      fieldNode.addProperty(
+        'minimum',
+        new BlueNode().setValue(this.minimumValue),
+      );
     }
     if (this.maximumValue !== undefined) {
-      fieldNode.addProperty('maximum', new BlueNode().setValue(this.maximumValue));
+      fieldNode.addProperty(
+        'maximum',
+        new BlueNode().setValue(this.maximumValue),
+      );
     }
 
     return this.parent.applyFieldBuilder(this.path, fieldNode);

@@ -1,4 +1,5 @@
-import { BlueNode, getTypeBlueIdAnnotation } from '@blue-labs/language';
+import { Blue, BlueNode, getTypeBlueIdAnnotation } from '@blue-labs/language';
+import { repository as blueRepository } from '@blue-repository/types';
 import { z } from 'zod';
 
 import type { BlueIdLike, TypeInput } from '../types.js';
@@ -12,13 +13,24 @@ function isBlueIdLike(value: unknown): value is BlueIdLike {
   );
 }
 
+const blue = new Blue({
+  repositories: [blueRepository],
+});
+
 export function resolveTypeInput(typeInput: TypeInput): BlueNode {
   if (typeof typeInput === 'string') {
     const normalized = typeInput.trim();
     if (normalized.length === 0) {
       throw new Error('Type input cannot be empty.');
     }
-    return new BlueNode().setValue(normalized).setInlineValue(true);
+    try {
+      return (
+        blue.yamlToNode(`type: ${normalized}`).getType()?.clone() ??
+        new BlueNode().setValue(normalized).setInlineValue(true)
+      );
+    } catch {
+      return new BlueNode().setValue(normalized).setInlineValue(true);
+    }
   }
 
   if (typeInput instanceof BlueNode) {

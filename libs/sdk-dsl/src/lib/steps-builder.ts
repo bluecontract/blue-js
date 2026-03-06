@@ -17,7 +17,7 @@ function requireNonBlank(value: string, label: string): string {
 function buildNamedStep(name: string, typeAlias: string): BlueNode {
   return new BlueNode()
     .setName(requireNonBlank(name, 'Step name'))
-    .setType(typeAlias);
+    .setType(resolveTypeInput(typeAlias));
 }
 
 function buildReplaceChangesetEntry(path: string, value: BlueNode): BlueNode {
@@ -44,7 +44,9 @@ export class StepsBuilder {
   replaceValue(name: string, path: string, value: BlueValue): this {
     const step = buildNamedStep(name, TYPE_ALIASES.updateDocument).addProperty(
       'changeset',
-      new BlueNode().setItems([buildReplaceChangesetEntry(path, toBlueNode(value))]),
+      new BlueNode().setItems([
+        buildReplaceChangesetEntry(path, toBlueNode(value)),
+      ]),
     );
     this.steps.push(step);
     return this;

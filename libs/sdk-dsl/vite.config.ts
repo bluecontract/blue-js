@@ -28,7 +28,7 @@ export default defineConfig(() => ({
       entry: 'src/index.ts',
       name: 'sdk-dsl',
       fileName: 'index',
-      formats: ['es', 'cjs'],
+      formats: ['es' as const, 'cjs' as const],
     },
     rollupOptions: {
       external: (id: string) => {
@@ -51,7 +51,7 @@ export default defineConfig(() => ({
     reporters: ['default'],
     coverage: {
       reportsDirectory: '../../coverage/libs/sdk-dsl',
-      provider: 'v8',
+      provider: 'v8' as const,
     },
     passWithNoTests: true,
   },

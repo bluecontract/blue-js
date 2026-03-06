@@ -36,12 +36,12 @@ export function ensureContracts(document: BlueNode): Record<string, BlueNode> {
 }
 
 export function buildDefaultChannelContract(): BlueNode {
-  return new BlueNode().setType(TYPE_ALIASES.defaultChannel);
+  return new BlueNode().setType(resolveTypeInput(TYPE_ALIASES.defaultChannel));
 }
 
 export function buildCompositeChannelContract(channelKeys: string[]): BlueNode {
   return new BlueNode()
-    .setType(TYPE_ALIASES.compositeChannel)
+    .setType(resolveTypeInput(TYPE_ALIASES.compositeChannel))
     .addProperty(
       'channels',
       new BlueNode().setItems(
@@ -114,11 +114,13 @@ export function ensureOperationContract(
 ): BlueNode {
   const existing = contracts[operationKey];
   if (existing) {
-    existing.setType(TYPE_ALIASES.operation);
+    existing.setType(resolveTypeInput(TYPE_ALIASES.operation));
     return existing;
   }
 
-  const created = new BlueNode().setType(TYPE_ALIASES.operation);
+  const created = new BlueNode().setType(
+    resolveTypeInput(TYPE_ALIASES.operation),
+  );
   contracts[operationKey] = created;
   return created;
 }
@@ -139,7 +141,7 @@ export function setOperationDescription(
   operation: BlueNode,
   description: string,
 ): void {
-  ensureProperties(operation).description = new BlueNode().setValue(description);
+  operation.setDescription(description);
 }
 
 export function setOperationRequestType(
@@ -147,7 +149,7 @@ export function setOperationRequestType(
   requestType: TypeInput,
 ): void {
   const request = ensureOperationRequest(operation);
-  ensureProperties(request).type = resolveTypeInput(requestType);
+  request.setType(resolveTypeInput(requestType));
 }
 
 export function setOperationRequestNode(
@@ -180,7 +182,7 @@ export function setOperationRequestDescription(
   description: string,
 ): void {
   const request = ensureOperationRequest(operation);
-  ensureProperties(request).description = new BlueNode().setValue(description);
+  request.setDescription(description);
 }
 
 export function appendOperationImplementationSteps(
@@ -192,8 +194,12 @@ export function appendOperationImplementationSteps(
   const existing = contracts[implementationKey];
   const implementation =
     existing ??
-    new BlueNode().setType(TYPE_ALIASES.sequentialWorkflowOperation);
-  implementation.setType(TYPE_ALIASES.sequentialWorkflowOperation);
+    new BlueNode().setType(
+      resolveTypeInput(TYPE_ALIASES.sequentialWorkflowOperation),
+    );
+  implementation.setType(
+    resolveTypeInput(TYPE_ALIASES.sequentialWorkflowOperation),
+  );
   ensureProperties(implementation).operation = new BlueNode().setValue(
     operationKey,
   );

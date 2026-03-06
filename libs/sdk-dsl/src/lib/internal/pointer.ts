@@ -82,7 +82,8 @@ function ensureChildContainer(
     const existing = items[index];
     if (
       existing &&
-      (existing.getProperties() !== undefined || existing.getItems() !== undefined)
+      (existing.getProperties() !== undefined ||
+        existing.getItems() !== undefined)
     ) {
       return existing;
     }
@@ -95,7 +96,8 @@ function ensureChildContainer(
   const existing = properties[segment];
   if (
     existing &&
-    (existing.getProperties() !== undefined || existing.getItems() !== undefined)
+    (existing.getProperties() !== undefined ||
+      existing.getItems() !== undefined)
   ) {
     return existing;
   }

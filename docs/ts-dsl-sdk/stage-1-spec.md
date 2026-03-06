@@ -76,7 +76,7 @@ Use these sources in this order:
 - `.replaceExpression(name, path, expression)`
 - `.triggerEvent(name, eventNode)`
 - `.emit(name, blueShapedEventOrNode)`
-- `.emitType(name, typeInput, payloadCustomizer?)`
+- `.emitType(name, typeInput, payloadCustomizer?)` where the customizer mutates the event `BlueNode`
 - `.raw(stepNode)`
 
 ### Build
@@ -112,6 +112,10 @@ Stage-1 type inputs must support:
 - `{ blueId: string }`
 - `BlueNode`
 - Zod schema with `typeBlueId` annotation from the public language annotation helpers
+
+Implementation note:
+- known repository-backed aliases such as `Integer`, `Conversation/Operation`, `Conversation/Event`, and `Conversation/Timeline Channel` are resolved to repository BlueIds during sdk-dsl authoring
+- unknown custom aliases are preserved inline in the built node, but the current public runtime may reject them during preprocess; see `stage-1-deviations.md`
 
 Stage-1 ordinary values and payload shapes must support:
 - primitives
