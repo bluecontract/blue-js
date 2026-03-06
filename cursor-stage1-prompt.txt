@@ -1,0 +1,285 @@
+You are implementing stage 1 of a new TypeScript BLUE DSL SDK from scratch in this repository.
+
+Work autonomously end-to-end. Do not use Plan Mode. Do not ask broad questions. Make grounded decisions, keep scope tight, and finish with green verification commands.
+
+This prompt is stored in blue-js/cursor-stage1-prompt.txt for future reference.
+
+Read these files first, in this order:
+1. `AGENTS.md`
+2. `.cursor/rules/blue-ts-dsl-sdk-stage1.mdc`
+3. `.cursor/rules/blue-ts-dsl-sdk-testing.mdc`
+4. `docs/ts-dsl-sdk/implementation-plan.md`
+5. `docs/ts-dsl-sdk/stage-1-spec.md`
+6. `docs/ts-dsl-sdk/testing-strategy.md`
+7. `docs/ts-dsl-sdk/stage-1-mapping-matrix.md`
+8. `docs/ts-dsl-sdk/stage-1-deviations.md`
+9. `docs/ts-dsl-sdk/stage-1-coverage-matrix.md`
+10. Java references under `references/java-sdk/**`, especially:
+   - `references/java-sdk/docs/sdk-dsl-developers.md`
+   - `references/java-sdk/docs/sdk-dsl-mapping-audit-reference.md`
+   - `references/java-sdk/src/main/java/blue/language/sdk/DocBuilder.java`
+   - `references/java-sdk/src/main/java/blue/language/sdk/internal/StepsBuilder.java`
+   - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java`
+   - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java`
+   - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java`
+   - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderSectionsDslParityTest.java`
+   - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderOperationsDslParityTest.java`
+   - `references/java-sdk/src/test/java/blue/language/sdk/DocBuilderCounterIntegrationTest.java`
+11. Current public TypeScript workspace APIs and conventions:
+   - `libs/language/**`
+   - `libs/document-processor/**`
+   - existing library configs in `libs/*`
+
+Source-of-truth policy for stage 1:
+- `references/java-sdk/**` is the primary reference for public API shape, naming, builder behavior, and expected mappings for all in-scope features.
+- Existing public TypeScript runtime behavior in `libs/language` and `libs/document-processor` is the execution correctness gate.
+- If a proven conflict appears between Java parity and current runtime behavior for an in-scope feature, preserve runtime-correct behavior, document the mismatch in `docs/ts-dsl-sdk/stage-1-deviations.md`, and add a focused regression test.
+- Do not silently drift from Java just because TypeScript would allow a different design.
+
+Mission
+Build stage 1 of a new library `libs/sdk-dsl` that is behaviorally close to the Java SDK for the in-scope features and produces valid BLUE documents that pass representative `document-processor` integration tests.
+
+Stage 1 scope — implement now
+Public entry points and builders:
+- `DocBuilder.doc()`
+- `DocBuilder.edit(existingNode)`
+- `DocBuilder.from(existingNode)`
+- `DocBuilder.expr(expression)`
+- `DocBuilder` fluent methods:
+  - `.name(...)`
+  - `.description(...)`
+  - `.type(typeInput)`
+  - `.field(path, value)`
+  - `.field(path)` returning a field builder with:
+    - `.type(typeInput)`
+    - `.description(text)`
+    - `.value(value)`
+    - `.required(boolean)`
+    - `.minimum(number)`
+    - `.maximum(number)`
+    - `.done()`
+  - `.replace(path, value)`
+  - `.remove(path)`
+  - `.channel(name)`
+  - `.channel(name, contractLike)`
+  - `.channels(...names)`
+  - `.compositeChannel(name, ...channelKeys)`
+  - `.section(key)`
+  - `.section(key, title, summary)`
+  - `.endSection()`
+  - inline operation overloads:
+    - `.operation(key, channel, description)`
+    - `.operation(key, channel, requestType, description)`
+    - `.operation(key, channel, description, steps => ...)`
+    - `.operation(key, channel, requestType, description, steps => ...)`
+  - builder operation:
+    - `.operation(key)` returning an operation builder with:
+      - `.channel(channelKey)`
+      - `.description(text)`
+      - `.requestType(typeInput)`
+      - `.request(requestSchemaNodeOrBlueShapedObject)`
+      - `.requestDescription(text)`
+      - `.noRequest()`
+      - `.steps(steps => ...)`
+      - `.done()`
+  - `.buildDocument()`
+- `StepsBuilder` stage 1 methods:
+  - `.jsRaw(name, code)`
+  - `.replaceValue(name, path, value)`
+  - `.replaceExpression(name, path, expression)`
+  - `.triggerEvent(name, eventNode)`
+  - `.emit(name, blueShapedEventOrNode)`
+  - `.emitType(name, typeInput, payloadCustomizer?)`
+  - `.raw(stepNode)`
+
+Stage 1 scope — do NOT implement now
+- `onInit`, `onEvent`, `onNamedEvent`, `onDocChange`, `onChannelEvent`
+- `canEmit`
+- MyOS / interactions
+- access / linked access / agency
+- AI DSL
+- PayNote DSL
+- patch / structure / generator pipeline
+- broad repository-wide refactors
+- dependency upgrades
+
+Behavioral requirements that must be preserved
+- `DocBuilder.edit(existing)` must mutate and return the same `BlueNode` instance.
+- `DocBuilder.from(existing)` must clone before editing and return a different instance.
+- `DocBuilder.expr('x')` must return `${x}`.
+- `DocBuilder.expr('${x}')` must remain `${x}` and must not double-wrap.
+- `buildDocument()` must throw when a section is still open, with a clear message equivalent to Java intent.
+- Section tracking must collect related field pointers and related contract keys and materialize a `Conversation/Document Section` contract on `endSection()`.
+- `.channel(name, contractLike)` must overwrite or specialize an existing channel contract at the same key.
+- Operation implementation contract key is `<operationKey>Impl`.
+- Operation builder must support editing an existing operation contract and later adding an implementation contract.
+- `.request(requestSchema...)` must accept a request schema already expressed as a `BlueNode` or Blue-shaped object and store it under `contracts/<operation>/request`.
+- `.noRequest()` must remove the request from the operation when editing an existing operation.
+- `.replaceExpression(...)` must store a wrapped `${...}` expression.
+- `.emitType(...)` must create a `Conversation/Trigger Event` step with an event node whose `type` is derived from the provided type input.
+- `buildDocument()` should return the built `BlueNode` directly without extra post-processing unless a public runtime helper is required.
+
+Type model for stage 1
+For `.type(...)`, field builder `.type(...)`, operation builder `.requestType(...)`, and `emitType(...)`, support these inputs:
+- a string type alias such as `'Integer'` or `'Conversation/Event'`
+- a `{ blueId: string }` object
+- a `BlueNode` representing a type node
+- a Zod schema with `typeBlueId` annotation available through public language annotation helpers
+
+For ordinary values and channel/request/event payload shapes in stage 1, support:
+- primitives
+- arrays
+- plain Blue-shaped JSON-like objects
+- `BlueNode`
+
+Do not import non-public internals such as `@blue-labs/language/lib/...`.
+If schema/type conversion needs a helper, implement a small local helper inside `libs/sdk-dsl` using only public APIs.
+
+Package and dependency constraints
+- Create a new library package at `libs/sdk-dsl`.
+- Follow existing monorepo conventions for `package.json`, `project.json`, `tsconfig*`, `vite.config.ts`, `eslint.config.*`, and `src/index.ts`.
+- Runtime implementation must not depend on `document-processor`.
+- `document-processor` may be used in tests only.
+- Do not upgrade dependency versions.
+- Do not change `@blue-repository/types` version.
+- Keep root/workspace changes minimal and justified.
+
+Implementation guidance
+1. Keep these docs accurate as implementation proceeds:
+   - `docs/ts-dsl-sdk/stage-1-spec.md`
+   - `docs/ts-dsl-sdk/stage-1-mapping-matrix.md`
+   - `docs/ts-dsl-sdk/stage-1-deviations.md`
+   - `docs/ts-dsl-sdk/stage-1-coverage-matrix.md`
+2. Implement a small internal kernel first:
+   - type input resolver
+   - conversion of supported input values into `BlueNode`
+   - pointer write/remove helper
+   - contracts helper
+   - section tracker
+   - operation builder state
+   - parity test helper
+3. Then implement the public API.
+4. Then port/add tests and drive the implementation to green.
+5. Keep the public API close to Java, but adapt method overloads and typing naturally for TypeScript where necessary.
+6. Format fluent chains readably with hanging indentation, for example:
+   ```ts
+   .capture()
+     .lockOnInit()
+     .done()
+   ```
+
+Testing is mandatory and is part of the task, not a follow-up.
+You must port or faithfully reproduce the relevant Java tests for stage 1 and make them pass.
+Do not replace Java behavioral coverage with ad-hoc TypeScript-only scenarios.
+
+Required stage 1 test coverage
+Create TypeScript/Vitest tests with traceability back to the Java source. Put a short comment at the top of each test file listing the Java reference file(s).
+
+At minimum, cover these behaviors from Java:
+- From `DocBuilderGeneralDslParityTest.java`:
+  - identity and string type parity
+  - edit mutates provided node
+  - from clones provided node
+  - inline operation with request type parity
+  - inline operation without request type parity
+  - operation builder with no request parity
+  - operation builder request description parity
+- From `DocBuilderChannelsDslParityTest.java`:
+  - default channel parity
+  - provided/specialized channel parity
+  - `channels(...)` parity
+  - composite channel parity
+  - specializing a template channel via `from(existing)`
+- From `DocBuilderSectionsDslParityTest.java`:
+  - section tracks related fields and contracts
+  - unclosed section throws
+  - field builder supports type/description/value/constraints and plain-object/BlueNode values
+- From `DocBuilderOperationsDslParityTest.java`:
+  - operation without steps then edit adds implementation contract
+  - operation with step then edit can append another operation
+  - operation builder request accepts object schema
+  - stage-1-in-scope operation builder behavior only
+- From `DocBuilderCounterIntegrationTest.java`:
+  - build the counter document in TypeScript
+  - initialize it with TS `DocumentProcessor`
+  - process an increment operation request event
+  - assert the counter value changes as expected
+
+Add direct unit tests where helpful for:
+- `DocBuilder.expr()`
+- type input resolution
+- pointer write/remove helper
+- `StepsBuilder` step node construction for in-scope methods
+
+Processor-backed test harness requirements
+Build a reusable test harness using only public package APIs.
+Use `@blue-labs/document-processor` in tests and configure it consistently with the current workspace runtime.
+The harness should include:
+- Blue runtime creation
+- default processor registry
+- marker registration for:
+  - `Conversation/Document Section`
+  - `Conversation/Contracts Change Policy`
+- document initialization helper
+- operation-processing helper for the counter vertical slice
+Do not use deep relative imports into `src/...` across libraries.
+
+Parity harness requirements
+Create a TypeScript equivalent of Java `DslParityAssertions`.
+The parity helper must:
+- build the actual document from the TS DSL
+- parse expected YAML with `Blue`
+- preprocess both nodes
+- compare canonical JSON trees structurally, not raw YAML text
+- compare BlueIds where practical
+- print useful YAML or JSON on mismatch for debugging
+
+Exact YAML fixtures are welcome as readable expected artifacts, but canonical structural comparison after preprocess is the primary oracle.
+Do not use raw snapshot-only testing as the main correctness mechanism.
+
+Documentation requirements
+Update these files during implementation:
+- `docs/ts-dsl-sdk/stage-1-spec.md`
+- `docs/ts-dsl-sdk/testing-strategy.md`
+- `docs/ts-dsl-sdk/stage-1-mapping-matrix.md`
+- `docs/ts-dsl-sdk/stage-1-deviations.md`
+- `docs/ts-dsl-sdk/stage-1-coverage-matrix.md`
+
+Every documented deviation must include:
+- title
+- status
+- minimal DSL repro
+- Java/reference expectation
+- runtime/actual behavior
+- implementation decision
+- rationale
+- confirming tests
+
+Coverage matrix expectations
+For every in-scope feature, update the coverage matrix with:
+- feature name
+- Java reference file(s)
+- mapping/parity test file
+- unit/guardrail test file if relevant
+- processor integration coverage
+- status
+- deviation link if any
+
+Required verification before completion
+Run and fix issues until green:
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+Recommended extra regression check before claiming success:
+- `npx vitest run --config libs/document-processor/vite.config.ts`
+
+When finished, report:
+1. exact files created or modified
+2. verification commands actually run
+3. any remaining gaps honestly
+4. any deviations recorded
+
+Do not claim completion unless the required verification commands were run and passed, or any failures are reported explicitly.
