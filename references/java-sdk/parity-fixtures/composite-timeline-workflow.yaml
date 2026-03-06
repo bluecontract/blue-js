@@ -1,0 +1,45 @@
+name: composite-timeline-workflow
+document: |
+  name: Composite Timeline Workflow Fixture
+  observed: 0
+  contracts:
+    primary:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    secondary:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-43
+    composite:
+      type:
+        blueId: Conversation/Composite Timeline Channel
+      channels:
+        - primary
+        - secondary
+    workflow:
+      channel: composite
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /observed
+              val: 1
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-composite
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    text: hi
+expected:
+  paths:
+    /observed: 1
+  triggeredEventsCount: 0
+  capabilityFailure: false

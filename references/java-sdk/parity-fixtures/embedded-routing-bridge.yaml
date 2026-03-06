@@ -1,0 +1,105 @@
+name: embedded-routing-bridge
+document: |
+  name: Timeline Routing Doc
+  x: 0
+  sub1:
+    name: Sub Workflow Doc
+    x: 1
+    contracts:
+      alice:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: alice
+      subWorkflow:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: alice
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /x
+                val: 2
+          - type:
+              blueId: Conversation/Trigger Event
+            event:
+              type:
+                blueId: Conversation/Chat Message
+              message: Payment Succeeded for Alice
+  sub2:
+    y: 1
+  contracts:
+    embeddedSub1:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /sub1
+    sub1Bridge:
+      type:
+        blueId: Embedded Node Channel
+      childPath: /sub1
+    alice:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: alice
+    workflowRootSetOne:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: alice
+      order: 0
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /x
+              val: 1
+    workflowRootSetFive:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: alice
+      order: 1
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /x
+              val: 5
+    workflowFromSub:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: sub1Bridge
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /x
+              val: 10
+        - type:
+            blueId: Conversation/Trigger Event
+          event:
+            type:
+              blueId: Conversation/Chat Message
+            message: Payment Succeeded for Alice
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-embedded-routing
+  timeline:
+    timelineId: alice
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    message: External trigger for alice
+expected:
+  paths:
+    /x: 10
+    /sub1/x: 2
+    /sub2/y: 1
+  triggeredEventsCount: 1
+  triggeredPathValues:
+    "0:/message": Payment Succeeded for Alice
+  capabilityFailure: false

@@ -1,0 +1,343 @@
+package blue.language.utils.limits;
+
+import blue.language.Blue;
+import blue.language.model.Node;
+import blue.language.provider.BasicNodeProvider;
+import blue.language.utils.NodeTypeMatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import static blue.language.blueid.legacy.LegacyBlueIdCalculator.calculateBlueId;
+import static blue.language.utils.UncheckedObjectMapper.YAML_MAPPER;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class PathLimitsTest {
+
+    private PathLimits pathLimits;
+    private final Node mockNode = new Node();
+
+    @BeforeEach
+    public void setup() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/x/*")
+                .addPath("/y")
+                .addPath("/a/b/*/c")
+                .addPath("/d/0/*")
+                .addPath("/e/*/*")
+                .addPath("/forX/d/0")
+                .addPath("/f/*/*")
+                .setMaxDepth(4)
+                .build();
+    }
+
+    @Test
+    public void testShouldProcessPathSegment() {
+        assertTrue(pathLimits.shouldExtendPathSegment("x", mockNode));
+        pathLimits.enterPathSegment("x");
+        assertTrue(pathLimits.shouldExtendPathSegment("a", mockNode));
+        pathLimits.enterPathSegment("a");
+        assertFalse(pathLimits.shouldExtendPathSegment("d", mockNode));
+        pathLimits.exitPathSegment();
+        assertTrue(pathLimits.shouldExtendPathSegment("y", mockNode));
+        pathLimits.exitPathSegment();
+
+        pathLimits.enterPathSegment("y");
+        assertFalse(pathLimits.shouldExtendPathSegment("c", mockNode));
+        pathLimits.exitPathSegment();
+
+        pathLimits.enterPathSegment("a");
+        pathLimits.enterPathSegment("b");
+        assertTrue(pathLimits.shouldExtendPathSegment("d", mockNode));
+        pathLimits.enterPathSegment("d");
+        assertTrue(pathLimits.shouldExtendPathSegment("c", mockNode));
+    }
+
+    @Test
+    public void testWithMaxDepthAllowsAnySegmentsUpToDepth() {
+        PathLimits limits = PathLimits.withMaxDepth(3);
+
+        assertTrue(limits.shouldExtendPathSegment("any", mockNode));
+        limits.enterPathSegment("any", mockNode);
+        assertTrue(limits.shouldExtendPathSegment("branch", mockNode));
+        limits.enterPathSegment("branch", mockNode);
+        assertTrue(limits.shouldExtendPathSegment("leaf", mockNode));
+        limits.enterPathSegment("leaf", mockNode);
+        assertFalse(limits.shouldExtendPathSegment("tooDeep", mockNode));
+    }
+
+    @Test
+    public void testWithMaxDepthZeroDisallowsTraversal() {
+        PathLimits limits = PathLimits.withMaxDepth(0);
+        assertFalse(limits.shouldExtendPathSegment("any", mockNode));
+    }
+
+    @Test
+    public void testBuilderRejectsNegativeMaxDepth() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new PathLimits.Builder().setMaxDepth(-1));
+    }
+
+    @Test
+    public void testWithMaxDepthRejectsNegativeDepth() {
+        assertThrows(IllegalArgumentException.class,
+                () -> PathLimits.withMaxDepth(-1));
+    }
+
+    @Test
+    public void testMaxDepth() {
+        pathLimits.enterPathSegment("a");
+        pathLimits.enterPathSegment("b");
+        assertTrue(pathLimits.shouldExtendPathSegment("any", mockNode));
+        pathLimits.enterPathSegment("any");
+        assertTrue(pathLimits.shouldExtendPathSegment("c", mockNode));
+        pathLimits.enterPathSegment("c");
+        assertFalse(pathLimits.shouldExtendPathSegment("e", mockNode));
+    }
+
+    @Test
+    public void testWildcardSingle() {
+        pathLimits.enterPathSegment("a");
+        pathLimits.enterPathSegment("b");
+        assertTrue(pathLimits.shouldExtendPathSegment("any", mockNode));
+        pathLimits.enterPathSegment("any");
+        assertTrue(pathLimits.shouldExtendPathSegment("c", mockNode));
+    }
+
+    @Test
+    public void testComplexPath() {
+        pathLimits.enterPathSegment("a");
+        pathLimits.enterPathSegment("b");
+        assertTrue(pathLimits.shouldExtendPathSegment("c", mockNode));
+        pathLimits.enterPathSegment("c");
+        assertFalse(pathLimits.shouldExtendPathSegment("e", mockNode));
+    }
+
+    @Test
+    public void testInvalidPath() {
+        pathLimits.enterPathSegment("z");
+        assertFalse(pathLimits.shouldExtendPathSegment("a", mockNode));
+    }
+
+    @Test
+    public void testPathWithIndex() {
+        pathLimits.enterPathSegment("d");
+        assertTrue(pathLimits.shouldExtendPathSegment("0", mockNode));
+        pathLimits.enterPathSegment("0");
+        assertTrue(pathLimits.shouldExtendPathSegment("any", mockNode));
+        pathLimits.exitPathSegment();
+        assertFalse(pathLimits.shouldExtendPathSegment("1", mockNode));
+    }
+
+    @Test
+    public void testMultipleWildcards() {
+        pathLimits.enterPathSegment("e");
+        assertTrue(pathLimits.shouldExtendPathSegment("0", mockNode));
+        pathLimits.enterPathSegment("0");
+        assertTrue(pathLimits.shouldExtendPathSegment("1", mockNode));
+    }
+
+    @Test
+    public void testSpecificIndexPath() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/forX/d/0")
+                .build();
+
+        assertTrue(pathLimits.shouldExtendPathSegment("forX", mockNode));
+        pathLimits.enterPathSegment("forX");
+
+        assertTrue(pathLimits.shouldExtendPathSegment("d", mockNode));
+        pathLimits.enterPathSegment("d");
+
+        assertTrue(pathLimits.shouldExtendPathSegment("0", mockNode));
+        pathLimits.enterPathSegment("0");
+
+        assertFalse(pathLimits.shouldExtendPathSegment("any", mockNode));
+
+        pathLimits.exitPathSegment();
+
+        assertFalse(pathLimits.shouldExtendPathSegment("1", mockNode));
+    }
+
+    @Test
+    public void testTwoLevelWildcard() {
+        assertTrue(pathLimits.shouldExtendPathSegment("f", mockNode));
+        pathLimits.enterPathSegment("f");
+
+        assertTrue(pathLimits.shouldExtendPathSegment("anySegment", mockNode));
+        pathLimits.enterPathSegment("anySegment");
+
+        assertTrue(pathLimits.shouldExtendPathSegment("anotherSegment", mockNode));
+        pathLimits.enterPathSegment("anotherSegment");
+
+        assertFalse(pathLimits.shouldExtendPathSegment("tooDeep", mockNode));
+
+        pathLimits.exitPathSegment();
+        pathLimits.exitPathSegment();
+        assertTrue(pathLimits.shouldExtendPathSegment("differentSegment", mockNode));
+        pathLimits.enterPathSegment("differentSegment");
+
+        assertTrue(pathLimits.shouldExtendPathSegment("lastSegment", mockNode));
+        pathLimits.enterPathSegment("lastSegment");
+
+        assertFalse(pathLimits.shouldExtendPathSegment("tooDeepAgain", mockNode));
+
+        pathLimits.exitPathSegment();
+        pathLimits.exitPathSegment();
+        pathLimits.exitPathSegment();
+        assertFalse(pathLimits.shouldExtendPathSegment("g", mockNode));
+    }
+
+    @Test
+    public void testJsonPointerEscapedAllowedPathMatchesRawSegment() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/a~1b/x~0y")
+                .build();
+
+        assertTrue(pathLimits.shouldExtendPathSegment("a/b", mockNode));
+        pathLimits.enterPathSegment("a/b", mockNode);
+        assertTrue(pathLimits.shouldExtendPathSegment("x~y", mockNode));
+        assertFalse(pathLimits.shouldExtendPathSegment("x/y", mockNode));
+    }
+
+    @Test
+    public void testBuilderNormalizesMissingLeadingSlashAndWhitespace() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("  x/*  ")
+                .build();
+
+        assertTrue(pathLimits.shouldExtendPathSegment("x", mockNode));
+        pathLimits.enterPathSegment("x", mockNode);
+        assertTrue(pathLimits.shouldExtendPathSegment("leaf", mockNode));
+    }
+
+    @Test
+    public void testBuilderRejectsMalformedPointerEscapes() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new PathLimits.Builder().addPath("/x~").build());
+        assertThrows(IllegalArgumentException.class,
+                () -> new PathLimits.Builder().addPath("/x~2").build());
+    }
+
+    @Test
+    public void testShouldExtendRejectsMalformedAbsolutePointerSegments() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/x/*")
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pathLimits.shouldExtendPathSegment("/x~2", mockNode));
+        assertThrows(IllegalArgumentException.class,
+                () -> pathLimits.shouldExtendPathSegment("/x~", mockNode));
+    }
+
+    @Test
+    public void testEnterPathSegmentRejectsMalformedAbsolutePointerSegments() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/x/*")
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pathLimits.enterPathSegment("/x~2", mockNode));
+        assertThrows(IllegalArgumentException.class,
+                () -> pathLimits.enterPathSegment("/x~", mockNode));
+    }
+
+    @Test
+    public void testEnterPathSegmentAcceptsValidEscapedAbsolutePointerSegments() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/a~1b/x")
+                .build();
+
+        pathLimits.enterPathSegment("/a~1b", mockNode);
+        assertTrue(pathLimits.shouldExtendPathSegment("x", mockNode));
+    }
+
+    @Test
+    public void testAbsoluteSegmentsPreserveLeadingEmptyPointerSegments() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("//a/x")
+                .build();
+
+        assertTrue(pathLimits.shouldExtendPathSegment("//a", mockNode));
+        assertFalse(pathLimits.shouldExtendPathSegment("/a", mockNode));
+
+        pathLimits.enterPathSegment("//a", mockNode);
+        assertTrue(pathLimits.shouldExtendPathSegment("x", mockNode));
+    }
+
+    @Test
+    public void testTrailingEmptyAllowedPathSegmentIsDistinctFromParentPath() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/scope/")
+                .build();
+
+        assertTrue(pathLimits.shouldExtendPathSegment("scope", mockNode));
+        pathLimits.enterPathSegment("scope", mockNode);
+        assertTrue(pathLimits.shouldExtendPathSegment("", mockNode));
+        assertFalse(pathLimits.shouldExtendPathSegment("child", mockNode));
+    }
+
+    @Test
+    public void testParentAllowedPathDoesNotImplicitlyAllowEmptyChildSegment() {
+        pathLimits = new PathLimits.Builder()
+                .addPath("/scope")
+                .build();
+
+        assertTrue(pathLimits.shouldExtendPathSegment("scope", mockNode));
+        pathLimits.enterPathSegment("scope", mockNode);
+        assertFalse(pathLimits.shouldExtendPathSegment("", mockNode));
+    }
+
+    @Test
+    public void testConstraintsAndBlueId() throws Exception {
+        BasicNodeProvider nodeProvider = new BasicNodeProvider();
+        Blue blue = new Blue(nodeProvider);
+
+        String a = "name: A\n" +
+                   "x:\n" +
+                   "  description: aa\n" +
+                   "  constraints:\n" +
+                   "    maxLength: 4\n" +
+                   "y:\n" +
+                   "  constraints:\n" +
+                   "    maxLength: 4";
+        Node aNode = blue.yamlToNode(a);
+        nodeProvider.addSingleNodes(aNode);
+
+        String b = "name: B\n" +
+                   "type:\n" +
+                   "  blueId: " + calculateBlueId(aNode) + "\n" +
+                   "x:\n" +
+                   "  blueId: some-blue-id\n" +
+                   "y: abcd";
+        Node bNode = blue.yamlToNode(b);
+        nodeProvider.addSingleNodes(bNode);
+
+        String bInst = "name: B Inst\n" +
+                       "type:\n" +
+                       "  blueId: " + calculateBlueId(bNode) + "\n" +
+                       "x:\n" +
+                       "  blueId: some-blue-id\n" +
+                       "y: abcd";
+        Node bInstNode = blue.yamlToNode(bInst);
+        nodeProvider.addSingleNodes(bInstNode);
+
+        String typeBlueId = calculateBlueId(bNode);
+        Set<String> ignoredProperties = new HashSet<>(Collections.singletonList("x"));
+        Limits globalLimits = new TypeSpecificPropertyFilter(typeBlueId, ignoredProperties);
+
+        boolean result = new NodeTypeMatcher(blue).matchesType(bInstNode, bNode, globalLimits);
+
+        if (!result) {
+            System.out.println("bInstNode: \n" + YAML_MAPPER.writeValueAsString(bInstNode));
+            System.out.println("bNode: \n" + YAML_MAPPER.writeValueAsString(bNode));
+        }
+
+        assertTrue(result);
+    }
+
+}

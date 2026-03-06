@@ -1,0 +1,38 @@
+name: Counter
+counter: 0
+contracts:
+  ownerChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: "timeline-demo-001"
+  increment:
+    type: Conversation/Operation
+    description: Increment the counter by the given number
+    channel: ownerChannel
+    request:
+      description: Represents a value by which counter will be incremented
+      type: Integer
+  incrementImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: increment
+    steps:
+      - type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: ${event.message.request + document('/counter')}
+  decrement:
+    type: Conversation/Operation
+    description: Decrement the counter by the given number
+    channel: ownerChannel
+    request:
+      type: Integer
+      description: Value to subtract
+  decrementImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: decrement
+    steps:
+      - type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: ${document('/counter') - event.message.request}

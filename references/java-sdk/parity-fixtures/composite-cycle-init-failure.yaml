@@ -1,0 +1,17 @@
+name: composite-cycle-init-failure
+document: |
+  name: Composite Cycle Failure Fixture
+  contracts:
+    first:
+      type:
+        blueId: Conversation/Composite Timeline Channel
+      channels:
+        - second
+    second:
+      type:
+        blueId: Conversation/Composite Timeline Channel
+      channels:
+        - first
+expected:
+  initFailure: true
+  initFailureMessageContains: Cyclic composite timeline channel dependency detected

@@ -1,0 +1,38 @@
+name: provider-derived-direct-workflow-event-filter-blueid-value-chain
+providerNodes:
+  - blueId: Custom/Derived Payload
+    value: Custom/Base Payload
+document: |
+  name: Provider Derived Direct Workflow Event Filter BlueId Value Chain Fixture
+  observed: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      event:
+        payload:
+          blueId: Custom/Base Payload
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /observed
+              val: "${event.payload}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-direct-workflow-event-filter-blueid-value-chain
+  kind: TestEvent
+  payload:
+    blueId: Custom/Derived Payload
+    value: 12
+expected:
+  paths:
+    /observed: 12
+  triggeredEventsCount: 0
+  capabilityFailure: false

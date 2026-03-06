@@ -1,0 +1,37 @@
+name: provider-derived-javascript-step-blueid-value-chain
+providerNodes:
+  - blueId: Custom/Derived JavaScript Code
+    value: Conversation/JavaScript Code
+document: |
+  name: Provider Derived JavaScript Step BlueId Value Chain Fixture
+  observed: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - name: compute
+          type:
+            blueId: Custom/Derived JavaScript Code
+          code: |
+            return ({ value: 14 });
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /observed
+              val: "${steps.compute.value}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-javascript-step-blueid-value-chain
+  kind: TestEvent
+expected:
+  paths:
+    /observed: 14
+  triggeredEventsCount: 0
+  capabilityFailure: false

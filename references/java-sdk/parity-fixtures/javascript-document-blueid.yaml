@@ -1,0 +1,27 @@
+name: javascript-document-blueid
+document: |
+  name: JavaScript Document BlueId Fixture
+  prop:
+    value: 7
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/JavaScript Code
+          code: "return ({ changeset: [{ op: 'ADD', path: '/propBlueId', val: document('/prop/blueId') }] });"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-blueid
+  kind: TestEvent
+expected:
+  notNullPaths:
+    - /propBlueId
+  triggeredEventsCount: 0
+  capabilityFailure: false

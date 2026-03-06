@@ -1,0 +1,117 @@
+name: shared-timeline-checkpoint-reset-replay
+document: |
+  name: Shared Timeline Checkpoint Reset Replay Fixture
+  counter: 0
+  contracts:
+    timelineChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: replay-timeline
+    counterWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: timelineChannel
+      event:
+        message:
+          text: count
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${document('/counter') + 1}"
+    resetWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: timelineChannel
+      event:
+        message:
+          text: reset
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REMOVE
+              path: /contracts/checkpoint/lastEvents/timelineChannel
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REMOVE
+              path: /contracts/checkpoint/lastSignatures/timelineChannel
+events:
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: replay-entry-0
+    timeline:
+      timelineId: replay-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: count
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: replay-entry-1
+    timeline:
+      timelineId: replay-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: count
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: replay-entry-2
+    timeline:
+      timelineId: replay-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: count
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: replay-reset
+    timeline:
+      timelineId: replay-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: reset
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: replay-entry-0
+    timeline:
+      timelineId: replay-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: count
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: replay-entry-1
+    timeline:
+      timelineId: replay-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: count
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: replay-entry-2
+    timeline:
+      timelineId: replay-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: count
+expected:
+  paths:
+    /counter: 6
+  triggeredEventsCount: 0
+  capabilityFailure: false

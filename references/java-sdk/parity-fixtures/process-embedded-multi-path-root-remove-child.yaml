@@ -1,0 +1,80 @@
+name: process-embedded-multi-path-root-remove-child
+document: |
+  name: Multi Path Root Remove Child
+  childA:
+    count: 0
+    contracts:
+      alphaTimeline:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: alpha
+      incrementA:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: alphaTimeline
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /count
+                val: "${document('count') + 1}"
+  childB:
+    count: 0
+    contracts:
+      betaTimeline:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: beta
+      incrementB:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: betaTimeline
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /count
+                val: "${document('count') + 1}"
+  contracts:
+    embedded:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /childA
+        - /childB
+    rootTimeline:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: root
+    rootWrite:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: rootTimeline
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REMOVE
+              path: /childA
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-multi-path-remove-child
+  timeline:
+    timelineId: root
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    text: remove childA
+expected:
+  paths:
+    /childB/count: 0
+  presentPaths:
+    - /childB
+  absentPaths:
+    - /childA
+    - /contracts/terminated
+  triggeredEventsCount: 0
+  capabilityFailure: false

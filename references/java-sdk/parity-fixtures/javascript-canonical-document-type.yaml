@@ -1,0 +1,26 @@
+name: javascript-canonical-document-type
+document: |
+  name: JavaScript Canonical Document Type Fixture
+  base: 5
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/JavaScript Code
+          code: "return ({ changeset: [{ op: 'ADD', path: '/canonicalType', val: document.canonical('/base').type.blueId }] });"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-canonical-type
+  kind: TestEvent
+expected:
+  paths:
+    /canonicalType: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1
+  triggeredEventsCount: 0
+  capabilityFailure: false

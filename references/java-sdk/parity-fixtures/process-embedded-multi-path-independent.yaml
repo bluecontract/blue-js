@@ -1,0 +1,75 @@
+name: process-embedded-multi-path-independent
+document: |
+  name: Multi Path Protected
+  childA:
+    count: 0
+    contracts:
+      alphaTimeline:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: alpha
+      incrementA:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: alphaTimeline
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /count
+                val: "${document('count') + 1}"
+  childB:
+    count: 0
+    contracts:
+      betaTimeline:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: beta
+      incrementB:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: betaTimeline
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /count
+                val: "${document('count') + 1}"
+  contracts:
+    embedded:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /childA
+        - /childB
+events:
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: fixture-multi-path-alpha
+    timeline:
+      timelineId: alpha
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: event for childA
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: fixture-multi-path-beta
+    timeline:
+      timelineId: beta
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: event for childB
+expected:
+  paths:
+    /childA/count: 1
+    /childB/count: 1
+  absentPaths:
+    - /contracts/terminated
+  triggeredEventsCount: 0
+  capabilityFailure: false

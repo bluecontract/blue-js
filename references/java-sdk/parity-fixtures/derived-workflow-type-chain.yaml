@@ -1,0 +1,31 @@
+name: derived-workflow-type-chain
+document: |
+  name: Derived Workflow Type Chain Fixture
+  count: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Custom/Derived Sequential Workflow
+        type:
+          blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /count
+              val: 9
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-derived-workflow-type
+  kind: TestEvent
+expected:
+  paths:
+    /count: 9
+  triggeredEventsCount: 0
+  capabilityFailure: false

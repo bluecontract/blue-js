@@ -1,0 +1,29 @@
+name: provider-derived-trigger-step-blueid-property-entry-chain
+providerNodes:
+  - blueId: Custom/Derived Trigger Event
+    propertyBlueId: Conversation/Trigger Event
+document: |
+  name: Provider Derived Trigger Step BlueId Property Entry Chain Fixture
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Custom/Derived Trigger Event
+          event:
+            kind: fixture-derived-trigger-property-entry
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-trigger-step-blueid-property-entry-chain
+  kind: TestEvent
+expected:
+  triggeredEventsCount: 1
+  triggeredPathValues:
+    0:/kind: fixture-derived-trigger-property-entry
+  capabilityFailure: false

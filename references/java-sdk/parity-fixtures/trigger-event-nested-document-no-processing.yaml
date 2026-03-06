@@ -1,0 +1,56 @@
+name: trigger-event-nested-document-no-processing
+document: |
+  name: Trigger Event Nested Document No Processing Fixture
+  contracts:
+    timeline:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: admin
+    triggered:
+      type:
+        blueId: Triggered Event Channel
+    onTimeline:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: timeline
+      event:
+        message:
+          type:
+            blueId: Conversation/Chat Message
+      steps:
+        - type:
+            blueId: Conversation/Trigger Event
+          event:
+            type:
+              blueId: Conversation/Chat Message
+            kind: start
+            message: start
+            document:
+              name: Child Worker Session
+              contracts:
+                nestedTimeline:
+                  type:
+                    blueId: Conversation/Timeline Channel
+                  timelineId: child
+                nestedWorkflow:
+                  type:
+                    blueId: Conversation/Sequential Workflow
+                  channel: nestedTimeline
+                  steps: []
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-trigger-admin
+  timeline:
+    timelineId: admin
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    message: hello
+expected:
+  triggeredEventsCount: 1
+  triggeredKinds:
+    - start
+  triggeredPathValues:
+    "0:/document/contracts/nestedWorkflow/channel": "nestedTimeline"
+  capabilityFailure: false

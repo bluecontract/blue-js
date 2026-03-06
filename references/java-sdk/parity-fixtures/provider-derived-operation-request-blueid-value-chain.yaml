@@ -1,0 +1,50 @@
+name: provider-derived-operation-request-blueid-value-chain
+providerNodes:
+  - blueId: Custom/Derived Request
+    value: Custom/Base Request
+document: |
+  name: Provider Derived Operation Request BlueId Value Chain Fixture
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type:
+          blueId: Custom/Base Request
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request.payload}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-provider-derived-operation-request-blueid-value-chain
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: true
+    request:
+      type:
+        blueId: Custom/Derived Request
+      payload: 18
+expected:
+  paths:
+    /counter: 18
+  triggeredEventsCount: 0
+  capabilityFailure: false

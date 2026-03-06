@@ -1,0 +1,37 @@
+name: operation-direct-request-mismatch
+document: |
+  name: Operation Direct Request Mismatch Fixture
+  counter: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: testChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.request}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-direct-op-mismatch
+  kind: TestEvent
+  operation: otherOperation
+  request: 9
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

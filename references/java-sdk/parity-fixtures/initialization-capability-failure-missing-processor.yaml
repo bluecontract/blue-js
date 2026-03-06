@@ -1,0 +1,20 @@
+name: initialization-capability-failure-missing-processor
+document: |
+  name: Initialization Capability Failure Fixture
+  contracts:
+    lifecycleChannel:
+      type:
+        blueId: LifecycleChannel
+    setX:
+      channel: lifecycleChannel
+      type:
+        blueId: SetProperty
+      propertyKey: /x
+      propertyValue: 5
+expected:
+  absentPaths:
+    - /contracts/initialized
+  triggeredEventsCount: 0
+  capabilityFailure: true
+  failureReasonContains: Unsupported contract type
+  totalGas: 0

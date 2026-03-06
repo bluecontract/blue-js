@@ -1,0 +1,10 @@
+{
+  "name": "blue-language-quickjs-sidecar",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@blue-quickjs/abi-manifest": "0.4.0",
+    "@blue-quickjs/dv": "0.4.0",
+    "@blue-quickjs/quickjs-runtime": "0.4.0"
+  }
+}

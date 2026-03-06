@@ -1,0 +1,35 @@
+name: myos-timeline-workflow
+document: |
+  name: MyOS Timeline Workflow Fixture
+  count: 0
+  contracts:
+    myos:
+      type:
+        blueId: MyOS/MyOS Timeline Channel
+      timelineId: owner-42
+    workflow:
+      channel: myos
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /count
+              val: 5
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-myos
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    text: hello
+expected:
+  paths:
+    /count: 5
+  triggeredEventsCount: 0
+  capabilityFailure: false

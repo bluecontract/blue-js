@@ -1,0 +1,171 @@
+buildscript {
+    dependencies {
+        classpath 'org.apache.groovy:groovy-toml:4.0.22'
+    }
+}
+
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'signing'
+    id 'org.jreleaser' version '1.13.1'
+}
+
+group = "blue.language"
+version = determineProjectVersion()
+archivesBaseName = "blue-language-java"
+
+repositories {
+    if (!System.getenv('CI')) {
+        mavenLocal()
+    }
+    mavenCentral()
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
+
+compileTestJava {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+
+dependencies {
+    // JUnit Jupiter (JUnit 5)
+    testImplementation(platform("org.junit:junit-bom:5.10.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.mockito:mockito-core:3.12.4")
+
+    // Jackson
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
+
+    implementation("commons-codec:commons-codec:1.15")
+
+    implementation("org.apache.httpcomponents:httpclient:4.5.14")
+
+    implementation("org.reflections:reflections:0.10.2")
+
+    implementation("io.github.erdtman:java-json-canonicalization:1.1")
+
+}
+
+test {
+    useJUnitPlatform()
+    reports {
+        junitXml.required = false
+        html.required = true
+    }
+    testLogging {
+        events 'PASSED', 'FAILED', 'SKIPPED'
+        showStandardStreams = true
+    }
+}
+
+ext.genResourcesDir = file("$buildDir/generated-resources")
+task generateBuildProperties {
+    ext.buildPropertiesFile = file("$genResourcesDir/blue/language/build.properties")
+    outputs.file(buildPropertiesFile)
+    doLast {
+        buildPropertiesFile.text = """\
+                |blue-language-java.build.version=$project.version
+                |blue-language-java.build.timestamp=${new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")}
+        """.stripMargin().trim()
+    }
+}
+sourceSets.main.output.dir genResourcesDir, builtBy: generateBuildProperties
+
+
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
+publishing {
+  publications {
+      maven(MavenPublication) {
+          groupId = "blue.language"
+          artifactId = 'blue-language-java'
+
+          from components.java
+
+          pom {
+              name = 'Blue Language Java Library'
+              description = 'Java client library for Blue Language'
+              url = 'https://timeline.blue'
+              licenses {
+                  license {
+                      name = 'MIT license'
+                      url = 'https://github.com/bluecontract/blue-language-java/blob/master/LICENSE'
+                  }
+              }
+              developers {
+                  developer {
+                      name = 'Blue'
+                      email = 'devsupport@timeline.blue'
+                  }
+              }
+              scm {
+                  url = 'https://github.com/bluecontract/blue-language-java.git'
+                  connection = 'scm:git:git@github.com:bluecontract/blue-language-java.git'
+                  developerConnection = 'scm:git:git@github.com:bluecontract/blue-language-java.git'
+              }
+          }
+      }
+  }
+
+  repositories {
+      maven {
+          url = layout.buildDirectory.dir('staging-deploy')
+      }
+      if (!System.getenv('CI')) {
+        maven {
+            name = 'local'
+            url = uri('file:///' + new File(System.getProperty("user.home"), ".m2/repository").absolutePath)
+        }
+      }
+  }
+}
+
+if (System.getenv('CI')) {
+    jreleaser {
+        signing {
+            active = 'ALWAYS'
+            armored = true
+        }
+        project {
+            description = 'Java client library for Blue Language'
+            copyright = '© 2024 Blue Company. Licensed under the MIT License'
+        }
+
+        deploy {
+            maven {
+            mavenCentral {
+                sonatype {
+                active = 'ALWAYS'
+                url = 'https://central.sonatype.com/api/v1/publisher'
+                applyMavenCentralRules = true
+                snapshotSupported = true
+                stagingRepository('build/staging-deploy')
+                }
+            }
+            }
+        }
+    }
+}
+
+def determineProjectVersion() {
+    def tomlFile = file('.cz.toml')
+    if (tomlFile.exists()) {
+        def toml = new groovy.toml.TomlSlurper().parse(tomlFile)
+        return toml.tool.commitizen.version + (!System.getenv('CI') ? '-SNAPSHOT' : '')
+    } else {
+        throw new GradleException(".cz.toml file not found")
+    }
+}

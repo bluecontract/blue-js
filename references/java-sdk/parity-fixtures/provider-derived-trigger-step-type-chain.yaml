@@ -1,0 +1,43 @@
+name: provider-derived-trigger-step-type-chain
+providerNodes:
+  - blueId: Custom/Derived Trigger Event
+    type:
+      blueId: Conversation/Trigger Event
+document: |
+  name: Provider Derived Trigger Step Type Chain Fixture
+  observed: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    triggered:
+      type:
+        blueId: TriggeredEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Custom/Derived Trigger Event
+          event:
+            kind: derived-trigger
+    observer:
+      channel: triggered
+      type:
+        blueId: SetPropertyOnEvent
+      expectedKind: derived-trigger
+      propertyKey: /observed
+      propertyValue: 1
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-trigger-step
+  kind: TestEvent
+expected:
+  paths:
+    /observed: 1
+  triggeredEventsCount: 1
+  triggeredKinds:
+    - derived-trigger
+  capabilityFailure: false

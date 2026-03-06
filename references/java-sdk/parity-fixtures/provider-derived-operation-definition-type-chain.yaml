@@ -1,0 +1,47 @@
+name: provider-derived-operation-definition-type-chain
+providerNodes:
+  - blueId: Custom/Derived Operation
+    type:
+      blueId: Conversation/Operation
+document: |
+  name: Provider Derived Operation Definition Type Chain Fixture
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Custom/Derived Operation
+      channel: ownerChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-provider-derived-operation-definition-type
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: true
+    request: 14
+expected:
+  paths:
+    /counter: 14
+  triggeredEventsCount: 0
+  capabilityFailure: false

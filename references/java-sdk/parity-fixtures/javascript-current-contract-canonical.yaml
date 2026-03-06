@@ -1,0 +1,26 @@
+name: javascript-current-contract-canonical
+document: |
+  name: JavaScript Current Contract Canonical Fixture
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/JavaScript Code
+          code: "return ({ changeset: [{ op: 'ADD', path: '/contractSimple', val: currentContract.channel }, { op: 'ADD', path: '/contractCanonical', val: currentContractCanonical.channel.value }] });"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-contract-canonical
+  kind: TestEvent
+expected:
+  paths:
+    /contractSimple: testChannel
+    /contractCanonical: testChannel
+  triggeredEventsCount: 0
+  capabilityFailure: false

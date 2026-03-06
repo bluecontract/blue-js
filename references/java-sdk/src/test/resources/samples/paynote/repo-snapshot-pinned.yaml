@@ -1,0 +1,31 @@
+types:
+  - packageName: blue.language.samples.paynote.generated.core
+    className: CoreChannel
+    alias: Core/Channel
+    blueId: CORE_CHANNEL_BLUE_ID_PINNED
+    fields:
+      - name: timelineId
+        javaType: String
+  - packageName: blue.language.samples.paynote.generated.conversation
+    className: SequentialWorkflow
+    alias: Conversation/Sequential Workflow
+    blueId: 7X3LkN54Yp88JgZbppPhP6hM3Jqiqv8Z2i4kS7phXtQe
+    fields:
+      - name: steps
+        javaType: java.util.List<blue.language.model.Node>
+  - packageName: blue.language.samples.paynote.generated.myos
+    className: DocumentSessionBootstrap
+    alias: MyOS/Document Session Bootstrap
+    blueId: 84xMEnEYr3DPBuYZL3JtcsZBBTtRH9fEEJiPnk7ASj1o
+    fields:
+      - name: document
+        javaType: blue.language.model.Node
+      - name: channelBindings
+        javaType: java.util.Map<String, blue.language.model.Node>
+  - packageName: blue.language.samples.paynote.generated.paynote
+    className: ReserveFundsRequested
+    alias: PayNote/Reserve Funds Requested
+    blueId: 3Y3TYmSfZMmPYKmF5i3eR8YcVPNP5Sic2bZN8xRnvMWm
+    fields:
+      - name: amount
+        javaType: Integer

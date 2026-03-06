@@ -1,0 +1,33 @@
+name: provider-derived-update-step-type-chain
+providerNodes:
+  - blueId: Custom/Derived Update Document
+    type:
+      blueId: Conversation/Update Document
+document: |
+  name: Provider Derived Update Step Type Chain Fixture
+  count: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Custom/Derived Update Document
+          changeset:
+            - op: REPLACE
+              path: /count
+              val: 4
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-update-step
+  kind: TestEvent
+expected:
+  paths:
+    /count: 4
+  triggeredEventsCount: 0
+  capabilityFailure: false

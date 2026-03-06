@@ -1,0 +1,226 @@
+name: embedded-shared-timeline-multi-counter
+document: |
+  name: Shared Timeline Multi Counter Fixture
+  counter-1: 0
+  counter-3: 0
+  emb1:
+    name: emb-1
+    counter-0: 0
+    contracts:
+      incrementChannel0:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: shared-timeline-0
+      counterWorkflow:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: incrementChannel0
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /counter-0
+                val: "${document('counter-0') + parseInt(event.message.message)}"
+  emb2:
+    name: emb-2
+    counter-1: 0
+    counter-2: 0
+    contracts:
+      incrementChannel1:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: shared-timeline-1
+      incrementChannel2:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: shared-timeline-2
+      counterWorkflow1:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: incrementChannel1
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /counter-1
+                val: "${document('counter-1') + parseInt(event.message.message)}"
+      counterWorkflow2:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: incrementChannel2
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /counter-2
+                val: "${document('counter-2') + parseInt(event.message.message)}"
+  contracts:
+    processEmbedded:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /emb1
+        - /emb2
+    incrementChannel1:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: shared-timeline-1
+    incrementChannel3:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: shared-timeline-3
+    counterWorkflow1:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: incrementChannel1
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter-1
+              val: "${document('counter-1') + parseInt(event.message.message)}"
+    counterWorkflow2:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: incrementChannel3
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter-3
+              val: "${document('counter-3') + parseInt(event.message.message)}"
+events:
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t0-0
+    timeline:
+      timelineId: shared-timeline-0
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "1"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t0-1
+    timeline:
+      timelineId: shared-timeline-0
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "1"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t0-2
+    timeline:
+      timelineId: shared-timeline-0
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "1"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t1-0
+    timeline:
+      timelineId: shared-timeline-1
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "2"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t1-1
+    timeline:
+      timelineId: shared-timeline-1
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "2"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t1-2
+    timeline:
+      timelineId: shared-timeline-1
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "2"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t2-0
+    timeline:
+      timelineId: shared-timeline-2
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "3"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t2-1
+    timeline:
+      timelineId: shared-timeline-2
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "3"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t2-2
+    timeline:
+      timelineId: shared-timeline-2
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "3"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t3-0
+    timeline:
+      timelineId: shared-timeline-3
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "4"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t3-1
+    timeline:
+      timelineId: shared-timeline-3
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "4"
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-t3-2
+    timeline:
+      timelineId: shared-timeline-3
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      message: "4"
+expected:
+  paths:
+    /counter-1: 6
+    /counter-3: 12
+    /emb1/counter-0: 3
+    /emb2/counter-1: 6
+    /emb2/counter-2: 9
+  triggeredEventsCount: 0
+  capabilityFailure: false

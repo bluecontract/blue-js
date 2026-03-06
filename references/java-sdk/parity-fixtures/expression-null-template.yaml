@@ -1,0 +1,28 @@
+name: expression-null-template
+document: |
+  name: Expression Null Template Fixture
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: ADD
+              path: /rendered
+              val: "Hello ${event.missing}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-expression-null
+  kind: TestEvent
+expected:
+  paths:
+    /rendered: "Hello "
+  triggeredEventsCount: 0
+  capabilityFailure: false

@@ -1,0 +1,21 @@
+name: operation-missing-channel-init-failure
+document: |
+  name: Missing Channel Operation Fixture
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps: []
+expected:
+  initFailure: true
+  initFailureMessageContains: must declare channel

@@ -1,0 +1,83 @@
+name: dynamic-workflow-deferred-execution
+document: |
+  name: Dynamic Workflow Deferred Execution Fixture
+  counter: 0
+  dynamicRan: 0
+  staticRan: 0
+  contracts:
+    timeline:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: alpha
+    counterUpdate:
+      type:
+        blueId: Document Update Channel
+      path: /counter
+    staticWatcher:
+      channel: counterUpdate
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /staticRan
+              val: 1
+    mutateContracts:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: timeline
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: ADD
+              path: /contracts/newWorkflow
+              val:
+                type:
+                  blueId: Conversation/Sequential Workflow
+                channel: counterUpdate
+                steps:
+                  - type:
+                      blueId: Conversation/Update Document
+                    changeset:
+                      - op: REPLACE
+                        path: /dynamicRan
+                        val: 1
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${document('/counter') + 1}"
+events:
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: fixture-dynamic-workflow-1
+    timeline:
+      timelineId: alpha
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: mutate contracts
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: fixture-dynamic-workflow-2
+    timeline:
+      timelineId: alpha
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: mutate contracts again
+expected:
+  paths:
+    /counter: 2
+    /staticRan: 1
+    /dynamicRan: 1
+  presentPaths:
+    - /contracts/newWorkflow
+  triggeredEventsCount: 0
+  capabilityFailure: false

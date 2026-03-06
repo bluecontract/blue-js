@@ -1,0 +1,25 @@
+name: operation-marker-type-preserved
+document: |
+  name: Operation Marker Type Preserved Fixture
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps: []
+expected:
+  presentPaths:
+    - /contracts/increment/type
+  triggeredEventsCount: 1
+  capabilityFailure: false

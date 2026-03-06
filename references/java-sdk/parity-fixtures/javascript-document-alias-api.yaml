@@ -1,0 +1,27 @@
+name: javascript-document-alias-api
+document: |
+  name: JavaScript Document Alias API Fixture
+  base: 5
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/JavaScript Code
+          code: "return ({ changeset: [{ op: 'ADD', path: '/plainAlias', val: document.get('/base') }, { op: 'ADD', path: '/canonicalAlias', val: document.getCanonical('/base').type.blueId }] });"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-document-alias-api
+  kind: TestEvent
+expected:
+  paths:
+    /plainAlias: 5
+    /canonicalAlias: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1
+  triggeredEventsCount: 0
+  capabilityFailure: false

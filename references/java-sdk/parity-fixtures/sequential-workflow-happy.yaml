@@ -1,0 +1,46 @@
+name: sequential-workflow-happy
+document: |
+  name: Fixture Workflow Doc
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    triggered:
+      type:
+        blueId: TriggeredEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: ADD
+              path: /count
+              val: 3
+        - type:
+            blueId: Conversation/Trigger Event
+          event:
+            kind: emitted
+    observer:
+      channel: triggered
+      type:
+        blueId: SetPropertyOnEvent
+      expectedKind: emitted
+      propertyKey: /emitted
+      propertyValue: 1
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-1
+  kind: TestEvent
+expected:
+  paths:
+    /count: 3
+    /emitted: 1
+  triggeredEventsCount: 1
+  totalGasMin: 1
+  triggeredKinds:
+    - emitted
+  capabilityFailure: false

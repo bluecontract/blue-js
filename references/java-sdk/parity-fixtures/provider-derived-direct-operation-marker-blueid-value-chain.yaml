@@ -1,0 +1,40 @@
+name: provider-derived-direct-operation-marker-blueid-value-chain
+providerNodes:
+  - blueId: Custom/Derived Operation Marker
+    value: Conversation/Operation
+document: |
+  name: Provider Derived Direct Operation Marker BlueId Value Chain Fixture
+  counter: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    increment:
+      type:
+        blueId: Custom/Derived Operation Marker
+      channel: testChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${currentContract.channel}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-direct-operation-marker-blueid-value-chain
+  kind: TestEvent
+  operation: increment
+  request: 1
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

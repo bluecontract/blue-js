@@ -1,0 +1,134 @@
+{
+  "name": "CounterWebhookDocument",
+  "type": {
+    "blueId": "CounterWebhookType-BlueId",
+    "name": "CounterWebhookType",
+    "description": "Resolved webhook root type carrying fully expanded defaults",
+    "counter": {
+      "name": "Counter",
+      "description": "A mutable numeric counter",
+      "type": {
+        "name": "Integer",
+        "blueId": "5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1"
+      },
+      "value": 0
+    },
+    "status": {
+      "name": "Status",
+      "type": {
+        "name": "Text",
+        "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+      },
+      "value": "running"
+    },
+    "meta": {
+      "name": "Meta",
+      "version": {
+        "name": "Version",
+        "type": {
+          "name": "Text",
+          "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+        },
+        "value": "v1"
+      },
+      "owner": {
+        "name": "Owner",
+        "type": {
+          "name": "Text",
+          "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+        },
+        "value": "ops-team"
+      },
+      "flags": {
+        "name": "Flags",
+        "type": {
+          "name": "List",
+          "blueId": "6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY"
+        },
+        "itemType": {
+          "name": "Text",
+          "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+        },
+        "items": [
+          {
+            "type": {
+              "name": "Text",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+            },
+            "value": "debug"
+          },
+          {
+            "type": {
+              "name": "Text",
+              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+            },
+            "value": "audit"
+          }
+        ]
+      }
+    }
+  },
+  "counter": {
+    "name": "Counter",
+    "description": "A mutable numeric counter",
+    "type": {
+      "name": "Integer",
+      "blueId": "5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1"
+    },
+    "value": 0
+  },
+  "status": {
+    "name": "Status",
+    "type": {
+      "name": "Text",
+      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+    },
+    "value": "running"
+  },
+  "meta": {
+    "name": "Meta",
+    "version": {
+      "name": "Version",
+      "type": {
+        "name": "Text",
+        "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+      },
+      "value": "v1"
+    },
+    "owner": {
+      "name": "Owner",
+      "type": {
+        "name": "Text",
+        "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+      },
+      "value": "ops-team"
+    },
+    "flags": {
+      "name": "Flags",
+      "type": {
+        "name": "List",
+        "blueId": "6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY"
+      },
+      "itemType": {
+        "name": "Text",
+        "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+      },
+      "items": [
+        {
+          "type": {
+            "name": "Text",
+            "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+          },
+          "value": "debug"
+        },
+        {
+          "type": {
+            "name": "Text",
+            "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"
+          },
+          "value": "audit"
+        }
+      ]
+    }
+  }
+}

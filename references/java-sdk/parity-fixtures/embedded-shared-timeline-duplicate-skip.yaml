@@ -1,0 +1,80 @@
+name: embedded-shared-timeline-duplicate-skip
+document: |
+  name: Shared Timeline Duplicate Skip Fixture
+  rootCounter: 0
+  child:
+    childCounter: 0
+    contracts:
+      childChannel:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: shared-timeline
+      childWorkflow:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: childChannel
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /childCounter
+                val: "${document('childCounter') + 1}"
+  contracts:
+    processEmbedded:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /child
+    rootChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: shared-timeline
+    rootWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: rootChannel
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /rootCounter
+              val: "${document('rootCounter') + 1}"
+events:
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-entry-0
+    timeline:
+      timelineId: shared-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: duplicate-check
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-entry-0
+    timeline:
+      timelineId: shared-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: duplicate-check
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: shared-entry-1
+    timeline:
+      timelineId: shared-timeline
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: duplicate-check
+expected:
+  paths:
+    /rootCounter: 2
+    /child/childCounter: 2
+  triggeredEventsCount: 0
+  capabilityFailure: false

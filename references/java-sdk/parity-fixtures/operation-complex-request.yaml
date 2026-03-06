@@ -1,0 +1,54 @@
+name: operation-complex-request
+document: |
+  name: Complex Operation Request Fixture
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type: Dictionary
+        entries:
+          amount:
+            type: Integer
+          metadata:
+            type: Dictionary
+            entries:
+              note:
+                type: Text
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request.amount}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-op-complex
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: true
+    request:
+      amount: 4
+      metadata:
+        note: boosted
+expected:
+  paths:
+    /counter: 4
+  triggeredEventsCount: 0
+  capabilityFailure: false

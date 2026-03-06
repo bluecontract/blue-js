@@ -1,0 +1,32 @@
+name: timeline-channel-non-entry-ignored
+document: |
+  name: Timeline Channel Non-Entry Ignored Fixture
+  observed: 0
+  contracts:
+    timeline:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    workflow:
+      channel: timeline
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /observed
+              val: 1
+event: |
+  type:
+    blueId: Conversation/Chat Message
+  timeline:
+    timelineId: owner-42
+  message:
+    text: should-not-match
+expected:
+  paths:
+    /observed: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

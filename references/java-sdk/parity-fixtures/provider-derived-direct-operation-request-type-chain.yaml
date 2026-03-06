@@ -1,0 +1,45 @@
+name: provider-derived-direct-operation-request-type-chain
+providerNodes:
+  - blueId: Custom/Derived Request
+    type:
+      blueId: Custom/Base Request
+document: |
+  name: Provider Derived Direct Operation Request Type Chain Fixture
+  counter: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: testChannel
+      request:
+        type:
+          blueId: Custom/Base Request
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.request.payload}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-direct-operation-request-type
+  kind: TestEvent
+  operation: increment
+  request:
+    type:
+      blueId: Custom/Derived Request
+    payload: 12
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

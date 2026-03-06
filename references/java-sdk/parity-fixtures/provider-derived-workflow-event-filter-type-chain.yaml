@@ -1,0 +1,43 @@
+name: provider-derived-workflow-event-filter-type-chain
+providerNodes:
+  - blueId: Custom/Derived Message
+    type:
+      blueId: Custom/Base Message
+document: |
+  name: Provider Derived Workflow Event Filter Type Chain Fixture
+  observed: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    workflow:
+      channel: ownerChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      event:
+        message:
+          type:
+            blueId: Custom/Base Message
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /observed
+              val: 1
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-provider-derived-workflow-event-filter
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Custom/Derived Message
+    text: hello
+expected:
+  paths:
+    /observed: 1
+  triggeredEventsCount: 0
+  capabilityFailure: false

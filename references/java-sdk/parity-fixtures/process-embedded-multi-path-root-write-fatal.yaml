@@ -1,0 +1,79 @@
+name: process-embedded-multi-path-root-write-fatal
+document: |
+  name: Multi Path Root Write Fatal
+  childA:
+    count: 0
+    contracts:
+      alphaTimeline:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: alpha
+      incrementA:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: alphaTimeline
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /count
+                val: "${document('count') + 1}"
+  childB:
+    count: 0
+    contracts:
+      betaTimeline:
+        type:
+          blueId: Conversation/Timeline Channel
+        timelineId: beta
+      incrementB:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: betaTimeline
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /count
+                val: "${document('count') + 1}"
+  contracts:
+    embedded:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /childA
+        - /childB
+    rootTimeline:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: root
+    rootWrite:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: rootTimeline
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /childA/count
+              val: "${document('/childA/count') + 1}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-multi-path-root-write
+  timeline:
+    timelineId: root
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    text: write childA
+expected:
+  paths:
+    /childA/count: 0
+    /contracts/terminated/cause: fatal
+  triggeredEventsCount: 1
+  triggeredPathValues:
+    "0:/cause": fatal
+  capabilityFailure: false

@@ -1,0 +1,43 @@
+name: operation-timeline-entry-alias-envelope
+document: |
+  name: Fixture Operation Timeline Entry Alias Envelope Doc
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request}"
+event: |
+  type:
+    blueId: TimelineEntry
+  eventId: fixture-op-timeline-alias-envelope
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: false
+    request: 8
+expected:
+  paths:
+    /counter: 8
+  triggeredEventsCount: 0
+  capabilityFailure: false

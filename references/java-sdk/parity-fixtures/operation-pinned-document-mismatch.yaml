@@ -1,0 +1,45 @@
+name: operation-pinned-document-mismatch
+document: |
+  name: Operation Pinned Document Mismatch Fixture
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-op-pinned-mismatch
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: false
+    document:
+      blueId: stale-document-id
+    request: 5
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

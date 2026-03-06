@@ -1,0 +1,36 @@
+name: provider-derived-javascript-step-type-chain
+providerNodes:
+  - blueId: Custom/Derived JavaScript Code
+    type:
+      blueId: Conversation/JavaScript Code
+document: |
+  name: Provider Derived JavaScript Step Type Chain Fixture
+  counter: 2
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - name: Prepare
+          type:
+            blueId: Custom/Derived JavaScript Code
+          code: |
+            return { changeset: [{ op: 'REPLACE', path: '/counter', val: document('/counter') + 5 }] };
+        - name: Apply
+          type:
+            blueId: Conversation/Update Document
+          changeset: "${steps.Prepare.changeset}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-javascript-step
+  kind: TestEvent
+expected:
+  paths:
+    /counter: 7
+  triggeredEventsCount: 0
+  capabilityFailure: false

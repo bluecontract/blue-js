@@ -1,0 +1,50 @@
+name: trigger-event-nested-document-expression-preserved
+document: |
+  name: Trigger Event Nested Document Expression Preserved Fixture
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/Trigger Event
+          event:
+            type:
+              blueId: Conversation/Chat Message
+            kind: start-session
+            document:
+              name: Child Session
+              counter: 0
+              contracts:
+                increment:
+                  type:
+                    blueId: Conversation/Operation
+                  request:
+                    type: Integer
+                incrementImpl:
+                  type:
+                    blueId: Conversation/Sequential Workflow Operation
+                  operation: increment
+                  steps:
+                    - type:
+                        blueId: Conversation/Update Document
+                      changeset:
+                        - op: REPLACE
+                          path: /counter
+                          val: "${document('counter') + event.request.value}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-trigger-leakage
+  kind: TestEvent
+expected:
+  triggeredEventsCount: 1
+  triggeredKinds:
+    - start-session
+  triggeredPathValues:
+    "0:/document/contracts/incrementImpl/steps/0/changeset/0/val": "${document('counter') + event.request.value}"
+  capabilityFailure: false

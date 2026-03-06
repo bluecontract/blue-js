@@ -1,0 +1,26 @@
+name: javascript-deterministic-globals
+document: |
+  name: JavaScript Deterministic Globals Fixture
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/JavaScript Code
+          code: "return ({ changeset: [{ op: 'ADD', path: '/dateType', val: typeof Date }, { op: 'ADD', path: '/processType', val: typeof process }] });"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-deterministic
+  kind: TestEvent
+expected:
+  paths:
+    /dateType: undefined
+    /processType: undefined
+  triggeredEventsCount: 0
+  capabilityFailure: false

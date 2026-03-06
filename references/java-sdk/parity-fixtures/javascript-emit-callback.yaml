@@ -1,0 +1,38 @@
+name: javascript-emit-callback
+document: |
+  name: JavaScript Emit Callback Fixture
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    triggered:
+      type:
+        blueId: TriggeredEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/JavaScript Code
+          code: "emit({ kind: 'fixture-js-callback' }); return ({ changeset: [{ op: 'ADD', path: '/callbackCount', val: 1 }] });"
+    observer:
+      channel: triggered
+      type:
+        blueId: SetPropertyOnEvent
+      expectedKind: fixture-js-callback
+      propertyKey: /observed
+      propertyValue: 1
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-js
+  kind: TestEvent
+expected:
+  paths:
+    /callbackCount: 1
+    /observed: 1
+  triggeredEventsCount: 1
+  triggeredKinds:
+    - fixture-js-callback
+  capabilityFailure: false

@@ -1,0 +1,42 @@
+name: operation-timeline-message-type-scalar
+document: |
+  name: Fixture Operation Timeline Message Type Scalar Doc
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-op-msg-type-scalar
+  timeline:
+    timelineId: owner-42
+  message:
+    type: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: false
+    request: 3
+expected:
+  paths:
+    /counter: 3
+  triggeredEventsCount: 0
+  capabilityFailure: false

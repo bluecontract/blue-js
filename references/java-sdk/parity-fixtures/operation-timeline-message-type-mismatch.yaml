@@ -1,0 +1,42 @@
+name: operation-timeline-message-type-mismatch
+document: |
+  name: Fixture Operation Timeline Message Type Mismatch Doc
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: 9
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-op-msg-type-mismatch
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    operation: increment
+    request: 7
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

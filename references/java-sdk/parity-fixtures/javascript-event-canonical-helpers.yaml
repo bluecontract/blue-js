@@ -1,0 +1,32 @@
+name: javascript-event-canonical-helpers
+document: |
+  name: JavaScript Event Canonical Helpers Fixture
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      steps:
+        - type:
+            blueId: Conversation/JavaScript Code
+          code: |
+            return ({ changeset: [
+              { op: 'ADD', path: '/eventPlain', val: event.payload.id },
+              { op: 'ADD', path: '/eventCanonical', val: canon.unwrap(canon.at(eventCanonical, '/payload/id')) }
+            ] });
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-event-canonical
+  kind: TestEvent
+  payload:
+    id: evt-123
+expected:
+  paths:
+    /eventPlain: evt-123
+    /eventCanonical: evt-123
+  triggeredEventsCount: 0
+  capabilityFailure: false

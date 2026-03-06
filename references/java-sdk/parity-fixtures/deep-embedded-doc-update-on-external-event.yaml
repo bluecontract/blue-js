@@ -1,0 +1,188 @@
+name: deep-embedded-doc-update-on-external-event
+document: |
+  name: Deep Embedded External Update Doc
+  observed: 0
+  lastPath: none
+  lastOp: none
+  branch:
+    observed: 0
+    lastPath: none
+    lastOp: none
+    sub:
+      observed: 0
+      lastPath: none
+      lastOp: none
+      leaf:
+        observed: 0
+        lastPath: none
+        lastOp: none
+        value: 0
+        contracts:
+          leafTimeline:
+            type:
+              blueId: Conversation/Timeline Channel
+            timelineId: deep-leaf
+          bumpValue:
+            type:
+              blueId: Conversation/Sequential Workflow
+            channel: leafTimeline
+            steps:
+              - type:
+                  blueId: Conversation/Update Document
+                changeset:
+                  - op: REPLACE
+                    path: /value
+                    val: "${(document('value') ?? 0) + 1}"
+          leafUpdates:
+            type:
+              blueId: Document Update Channel
+            path: /value
+          leafWatcher:
+            type:
+              blueId: Conversation/Sequential Workflow
+            channel: leafUpdates
+            steps:
+              - type:
+                  blueId: Conversation/Update Document
+                changeset:
+                  - op: REPLACE
+                    path: /observed
+                    val: "${(document('observed') ?? 0) + 1}"
+              - type:
+                  blueId: Conversation/Update Document
+                changeset:
+                  - op: REPLACE
+                    path: /lastPath
+                    val: "${event.path}"
+              - type:
+                  blueId: Conversation/Update Document
+                changeset:
+                  - op: REPLACE
+                    path: /lastOp
+                    val: "${event.op}"
+      contracts:
+        embedded:
+          type:
+            blueId: Process Embedded
+          paths:
+            - /leaf
+        subLeafUpdates:
+          type:
+            blueId: Document Update Channel
+          path: /leaf/value
+        subWatcher:
+          type:
+            blueId: Conversation/Sequential Workflow
+          channel: subLeafUpdates
+          steps:
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /observed
+                  val: "${(document('observed') ?? 0) + 1}"
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /lastPath
+                  val: "${event.path}"
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /lastOp
+                  val: "${event.op}"
+    contracts:
+      embedded:
+        type:
+          blueId: Process Embedded
+        paths:
+          - /sub
+      branchLeafUpdates:
+        type:
+          blueId: Document Update Channel
+        path: /sub/leaf/value
+      branchWatcher:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: branchLeafUpdates
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /observed
+                val: "${(document('observed') ?? 0) + 1}"
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /lastPath
+                val: "${event.path}"
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /lastOp
+                val: "${event.op}"
+  contracts:
+    embedded:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /branch
+    rootLeafUpdates:
+      type:
+        blueId: Document Update Channel
+      path: /branch/sub/leaf/value
+    rootWatcher:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: rootLeafUpdates
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /observed
+              val: "${(document('observed') ?? 0) + 1}"
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /lastPath
+              val: "${event.path}"
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /lastOp
+              val: "${event.op}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: deep-leaf-entry-1
+  timeline:
+    timelineId: deep-leaf
+  message:
+    type:
+      blueId: Conversation/Chat Message
+    text: trigger
+expected:
+  paths:
+    /observed: 1
+    /lastPath: /branch/sub/leaf/value
+    /lastOp: replace
+    /branch/observed: 1
+    /branch/lastPath: /sub/leaf/value
+    /branch/lastOp: replace
+    /branch/sub/observed: 1
+    /branch/sub/lastPath: /leaf/value
+    /branch/sub/lastOp: replace
+    /branch/sub/leaf/observed: 1
+    /branch/sub/leaf/value: 1
+    /branch/sub/leaf/lastPath: /value
+    /branch/sub/leaf/lastOp: replace
+  triggeredEventsCount: 0
+  capabilityFailure: false

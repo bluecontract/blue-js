@@ -1,0 +1,39 @@
+name: operation-non-timeline-envelope-message-ignored
+document: |
+  name: Fixture Operation Non Timeline Envelope Message Ignored Doc
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: ownerChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: 9
+event: |
+  type:
+    blueId: RandomEvent
+  eventId: fixture-op-non-timeline-envelope
+  message:
+    type: Conversation/Operation Request
+    operation: increment
+    request: 7
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

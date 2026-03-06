@@ -1,0 +1,49 @@
+name: operation-derived-change-workflow
+document: |
+  name: Derived Change Workflow Fixture
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    increment:
+      type:
+        blueId: Conversation/Change Operation
+      channel: ownerChannel
+      request:
+        type: Conversation/Change Request
+    operationWorkflow:
+      type:
+        blueId: Conversation/Change Workflow
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request.changeset[0].val}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-op-derived
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: true
+    request:
+      type:
+        blueId: Conversation/Change Request
+      changeset:
+        - op: REPLACE
+          path: /counter
+          val: 12
+expected:
+  paths:
+    /counter: 12
+  triggeredEventsCount: 0
+  capabilityFailure: false

@@ -1,0 +1,41 @@
+name: provider-derived-direct-operation-marker-type-chain
+providerNodes:
+  - blueId: Custom/Derived Operation Marker
+    type:
+      blueId: Conversation/Operation
+document: |
+  name: Provider Derived Direct Operation Marker Type Chain Fixture
+  counter: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    increment:
+      type:
+        blueId: Custom/Derived Operation Marker
+      channel: testChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.request}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-direct-operation-marker
+  kind: TestEvent
+  operation: increment
+  request: 11
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

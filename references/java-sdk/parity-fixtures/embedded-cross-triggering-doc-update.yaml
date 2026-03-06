@@ -1,0 +1,199 @@
+name: embedded-cross-triggering-doc-update
+document: |
+  name: Cross Trigger Doc
+  rootCounter: 0
+  rootLastPath: none
+  groupA:
+    counter: 0
+    lastTriggered: none
+    subA:
+      score: 2
+      lastEvent: none
+      contracts:
+        subTimeline:
+          type:
+            blueId: Conversation/Timeline Channel
+          timelineId: sub-a
+        subWorkflow:
+          type:
+            blueId: Conversation/Sequential Workflow
+          channel: subTimeline
+          steps:
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /score
+                  val: "${document('score') + 2}"
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /lastEvent
+                  val: handled
+    contracts:
+      embeddedSubA:
+        type:
+          blueId: Process Embedded
+        paths:
+          - /subA
+      subAScoreUpdates:
+        type:
+          blueId: Document Update Channel
+        path: /subA/score
+      onSubAScoreUpdate:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: subAScoreUpdates
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /counter
+                val: "${(document('counter') ?? 0) + 1}"
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /lastTriggered
+                val: "${event.path}"
+  groupB:
+    totalUpdates: 0
+    lastFromNested: none
+    nestedB:
+      x: 1
+      y: 0
+      yChanges: 0
+      contracts:
+        nestedTimeline:
+          type:
+            blueId: Conversation/Timeline Channel
+          timelineId: nested-b
+        nestedWorkflow:
+          type:
+            blueId: Conversation/Sequential Workflow
+          channel: nestedTimeline
+          steps:
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /x
+                  val: "${document('x') + 1}"
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /y
+                  val: "${document('y') + document('x')}"
+        nestedYUpdates:
+          type:
+            blueId: Document Update Channel
+          path: /y
+        onNestedYUpdate:
+          type:
+            blueId: Conversation/Sequential Workflow
+          channel: nestedYUpdates
+          steps:
+            - type:
+                blueId: Conversation/Update Document
+              changeset:
+                - op: REPLACE
+                  path: /yChanges
+                  val: "${(document('yChanges') ?? 0) + 1}"
+    contracts:
+      embeddedNestedB:
+        type:
+          blueId: Process Embedded
+        paths:
+          - /nestedB
+      nestedBXUpdates:
+        type:
+          blueId: Document Update Channel
+        path: /nestedB/x
+      onNestedBXUpdate:
+        type:
+          blueId: Conversation/Sequential Workflow
+        channel: nestedBXUpdates
+        steps:
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /totalUpdates
+                val: "${(document('totalUpdates') ?? 0) + 1}"
+          - type:
+              blueId: Conversation/Update Document
+            changeset:
+              - op: REPLACE
+                path: /lastFromNested
+                val: "${event.path}"
+  contracts:
+    embedded:
+      type:
+        blueId: Process Embedded
+      paths:
+        - /groupA
+        - /groupB
+    rootNestedBXUpdates:
+      type:
+        blueId: Document Update Channel
+      path: /groupB/nestedB/x
+    onRootNestedBXUpdate:
+      type:
+        blueId: Conversation/Sequential Workflow
+      channel: rootNestedBXUpdates
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /rootCounter
+              val: "${(document('rootCounter') ?? 0) + 1}"
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /rootLastPath
+              val: "${event.path}"
+events:
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: fixture-cross-trigger-sub-a
+    timeline:
+      timelineId: sub-a
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: update group A
+  - |
+    type:
+      blueId: Conversation/Timeline Entry
+    eventId: fixture-cross-trigger-nested-b
+    timeline:
+      timelineId: nested-b
+    message:
+      type:
+        blueId: Conversation/Chat Message
+      text: update group B
+expected:
+  paths:
+    /rootCounter: 1
+    /rootLastPath: /groupB/nestedB/x
+    /groupA/counter: 1
+    /groupA/lastTriggered: /subA/score
+    /groupA/subA/score: 4
+    /groupA/subA/lastEvent: handled
+    /groupB/totalUpdates: 1
+    /groupB/lastFromNested: /nestedB/x
+    /groupB/nestedB/x: 2
+    /groupB/nestedB/y: 2
+    /groupB/nestedB/yChanges: 1
+  absentPaths:
+    - /contracts/terminated
+    - /groupA/contracts/terminated
+    - /groupB/contracts/terminated
+  triggeredEventsCount: 0
+  capabilityFailure: false

@@ -1,0 +1,48 @@
+name: operation-channel-conflict
+document: |
+  name: Operation Channel Conflict Fixture
+  counter: 0
+  contracts:
+    ownerChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-42
+    otherChannel:
+      type:
+        blueId: Conversation/Timeline Channel
+      timelineId: owner-43
+    increment:
+      type:
+        blueId: Conversation/Operation
+      channel: otherChannel
+      request:
+        type: Integer
+    operationWorkflow:
+      type:
+        blueId: Conversation/Sequential Workflow Operation
+      channel: ownerChannel
+      operation: increment
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /counter
+              val: "${event.message.request}"
+event: |
+  type:
+    blueId: Conversation/Timeline Entry
+  eventId: fixture-op-channel-conflict
+  timeline:
+    timelineId: owner-42
+  message:
+    type:
+      blueId: Conversation/Operation Request
+    operation: increment
+    allowNewerVersion: true
+    request: 5
+expected:
+  paths:
+    /counter: 0
+  triggeredEventsCount: 0
+  capabilityFailure: false

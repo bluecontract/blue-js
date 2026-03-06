@@ -1,0 +1,41 @@
+name: provider-derived-direct-workflow-event-filter-type-chain
+providerNodes:
+  - blueId: Custom/Derived Message
+    type:
+      blueId: Custom/Base Message
+document: |
+  name: Provider Derived Direct Workflow Event Filter Type Chain Fixture
+  observed: 0
+  contracts:
+    testChannel:
+      type:
+        blueId: TestEventChannel
+    workflow:
+      channel: testChannel
+      type:
+        blueId: Conversation/Sequential Workflow
+      event:
+        payload:
+          type:
+            blueId: Custom/Base Message
+      steps:
+        - type:
+            blueId: Conversation/Update Document
+          changeset:
+            - op: REPLACE
+              path: /observed
+              val: "${event.payload}"
+event: |
+  type:
+    blueId: TestEvent
+  eventId: fixture-provider-derived-direct-workflow-event-filter
+  kind: TestEvent
+  payload:
+    type:
+      blueId: Custom/Derived Message
+    value: 7
+expected:
+  paths:
+    /observed: 7
+  triggeredEventsCount: 0
+  capabilityFailure: false
