@@ -150,9 +150,10 @@ name: Field builder parity
 x:
   type: Integer
   description: Score
-  required: true
-  minimum: 0
-  maximum: 100
+  constraints:
+    required: true
+    minimum: 0
+    maximum: 100
   value: 42
 profile:
   name: Alice

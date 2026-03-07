@@ -12,10 +12,10 @@ export function assertDslMatchesYaml(
   const expected = blue.preprocess(blue.yamlToNode(expectedYaml).clone());
   const normalizedActual = blue.preprocess(actual.clone());
 
-  const expectedJson = blue.nodeToJson(expected, 'simple');
-  const actualJson = blue.nodeToJson(normalizedActual, 'simple');
   const expectedBlueId = blue.calculateBlueIdSync(expected);
   const actualBlueId = blue.calculateBlueIdSync(normalizedActual);
+  const expectedJson = blue.nodeToJson(expected, 'official');
+  const actualJson = blue.nodeToJson(normalizedActual, 'official');
 
   try {
     expect(actualJson).toEqual(expectedJson);
@@ -24,13 +24,13 @@ export function assertDslMatchesYaml(
       [
         `Expected BlueId: ${expectedBlueId}`,
         `Actual BlueId: ${actualBlueId}`,
-        'Expected YAML:',
-        blue.nodeToYaml(expected, 'simple'),
-        'Actual YAML:',
-        blue.nodeToYaml(normalizedActual, 'simple'),
-        'Expected JSON:',
+        'Expected official YAML:',
+        blue.nodeToYaml(expected, 'official'),
+        'Actual official YAML:',
+        blue.nodeToYaml(normalizedActual, 'official'),
+        'Expected official JSON:',
         JSON.stringify(expectedJson, null, 2),
-        'Actual JSON:',
+        'Actual official JSON:',
         JSON.stringify(actualJson, null, 2),
       ].join('\n'),
     );

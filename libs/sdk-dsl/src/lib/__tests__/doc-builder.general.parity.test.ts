@@ -12,7 +12,7 @@ describe('DocBuilder general parity', () => {
     const document = DocBuilder.doc()
       .name('Identity parity')
       .description('Doc description')
-      .type('Integer')
+      .type('Custom/Type')
       .buildDocument();
 
     assertDslMatchesYaml(
@@ -20,6 +20,21 @@ describe('DocBuilder general parity', () => {
       `
 name: Identity parity
 description: Doc description
+type: Custom/Type
+`,
+    );
+  });
+
+  it('supports repository-known scalar aliases in a separate coverage case', () => {
+    const document = DocBuilder.doc()
+      .name('Integer alias')
+      .type('Integer')
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      document,
+      `
+name: Integer alias
 type: Integer
 `,
     );

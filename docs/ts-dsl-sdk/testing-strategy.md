@@ -52,9 +52,9 @@ The implemented stage-1 test suite is:
 - `libs/sdk-dsl/src/lib/__tests__/pointer.test.ts`
 - `libs/sdk-dsl/src/lib/__tests__/steps-builder.core.test.ts`
 - `libs/sdk-dsl/src/lib/__tests__/doc-builder.counter.integration.test.ts`
-- `libs/sdk-dsl/src/lib/test-support/dsl-parity.ts`
-- `libs/sdk-dsl/src/lib/test-support/processor-harness.ts`
-- `libs/sdk-dsl/src/lib/test-support/create-blue.ts`
+- `libs/sdk-dsl/src/__tests__/support/dsl-parity.ts`
+- `libs/sdk-dsl/src/__tests__/support/processor-harness.ts`
+- `libs/sdk-dsl/src/__tests__/support/create-blue.ts`
 
 ## Required Java sources to port or faithfully reproduce
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java`
@@ -75,9 +75,9 @@ The parity helper should mirror the intent of Java `DslParityAssertions`:
 
 The implemented parity helper uses a repository-backed `Blue` instance and:
 - preprocesses both nodes
-- compares `nodeToJson(..., 'simple')`
+- compares `nodeToJson(..., 'official')`
 - compares calculated BlueIds after structural comparison
-- dumps both YAML and JSON payloads when mismatches occur
+- dumps both official YAML and official JSON payloads when mismatches occur
 
 ## Processor test harness requirements
 Use only public package APIs.

@@ -39,6 +39,17 @@ function requireNonBlank(value: string, label: string): string {
 
 type StepsCustomizer = (steps: StepsBuilder) => void;
 
+function ensureConstraintNode(fieldNode: BlueNode): BlueNode {
+  const existing = fieldNode.getProperties()?.constraints;
+  if (existing) {
+    return existing;
+  }
+
+  const created = new BlueNode().setProperties({});
+  fieldNode.addProperty('constraints', created);
+  return created;
+}
+
 export class DocBuilder {
   private currentSection?: SectionTracker;
 
@@ -377,19 +388,19 @@ export class FieldBuilder {
       fieldNode.setDescription(this.fieldDescription);
     }
     if (this.requiredValue !== undefined) {
-      fieldNode.addProperty(
+      ensureConstraintNode(fieldNode).addProperty(
         'required',
         new BlueNode().setValue(this.requiredValue),
       );
     }
     if (this.minimumValue !== undefined) {
-      fieldNode.addProperty(
+      ensureConstraintNode(fieldNode).addProperty(
         'minimum',
         new BlueNode().setValue(this.minimumValue),
       );
     }
     if (this.maximumValue !== undefined) {
-      fieldNode.addProperty(
+      ensureConstraintNode(fieldNode).addProperty(
         'maximum',
         new BlueNode().setValue(this.maximumValue),
       );

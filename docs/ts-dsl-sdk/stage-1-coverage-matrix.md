@@ -18,7 +18,7 @@ The goal is to make missing coverage immediately visible.
 | `DocBuilder.expr(...)` | `DocBuilder.java`, `StepsBuilder.java` usage | n/a | `doc-builder.expr.test.ts` | n/a | done |  |
 | `.name(...)` | `DocBuilderGeneralDslParityTest.java` | `doc-builder.general.parity.test.ts` | n/a | `doc-builder.counter.integration.test.ts` | done |  |
 | `.description(...)` | `DocBuilderGeneralDslParityTest.java` | `doc-builder.general.parity.test.ts` | n/a | `doc-builder.counter.integration.test.ts` | done |  |
-| `.type(...)` | `DocBuilderGeneralDslParityTest.java` | `doc-builder.general.parity.test.ts` | `type-input.test.ts` | n/a | deviation | `#unregistered-string-aliases-are-preserved-inline-but-not-treated-as-runtime-safe-parity-inputs` |
+| `.type(...)` | `DocBuilderGeneralDslParityTest.java` | `doc-builder.general.parity.test.ts` | `type-input.test.ts` | n/a | deviation | `#truly-unregistered-string-aliases-are-preserved-inline-but-are-not-runtime-safe` |
 | `.field(path, value)` | `DocBuilderGeneralDslParityTest.java`, `DocBuilderSectionsDslParityTest.java` | `doc-builder.sections.parity.test.ts` | `pointer.test.ts` | `doc-builder.counter.integration.test.ts` | done |  |
 | `.field(path)` builder | `DocBuilderSectionsDslParityTest.java` | `doc-builder.sections.parity.test.ts` | `doc-builder.sections.parity.test.ts` | n/a | done |  |
 | `.replace(path, value)` | `DocBuilder.java` / direct behavior | n/a | `pointer.test.ts` | n/a | done |  |
@@ -34,7 +34,7 @@ The goal is to make missing coverage immediately visible.
 | operation `.requestType(...)` | `DocBuilderGeneralDslParityTest.java`, `DocBuilderOperationsDslParityTest.java` | `doc-builder.general.parity.test.ts`, `doc-builder.operations.parity.test.ts` | `type-input.test.ts` | `doc-builder.counter.integration.test.ts` | done |  |
 | operation `.request(...)` | `DocBuilderOperationsDslParityTest.java` | `doc-builder.operations.parity.test.ts` | n/a | n/a | done |  |
 | operation `.requestDescription(...)` | `DocBuilderGeneralDslParityTest.java` | `doc-builder.general.parity.test.ts` | n/a | `doc-builder.counter.integration.test.ts` | done |  |
-| operation `.noRequest()` | `DocBuilderGeneralDslParityTest.java`, `DocBuilderOperationsDslParityTest.java` | `doc-builder.general.parity.test.ts` | n/a | n/a | done |  |
+| operation `.noRequest()` | `DocBuilderGeneralDslParityTest.java`, `DocBuilderOperationsDslParityTest.java` | `doc-builder.general.parity.test.ts`, `doc-builder.operations.parity.test.ts` | n/a | n/a | done |  |
 | operation `.steps(...)` | `DocBuilderOperationsDslParityTest.java` | `doc-builder.general.parity.test.ts`, `doc-builder.operations.parity.test.ts` | n/a | `doc-builder.counter.integration.test.ts` | done |  |
 | `StepsBuilder.jsRaw(...)` | `StepsBuilder.java` | n/a | `steps-builder.core.test.ts` | n/a | done |  |
 | `StepsBuilder.replaceValue(...)` | `StepsBuilder.java` | `doc-builder.general.parity.test.ts` | `steps-builder.core.test.ts` | n/a | done |  |
@@ -43,7 +43,7 @@ The goal is to make missing coverage immediately visible.
 | `StepsBuilder.emit(...)` | `StepsBuilder.java` | n/a | `steps-builder.core.test.ts` | n/a | done |  |
 | `StepsBuilder.emitType(...)` | `StepsBuilder.java` | `doc-builder.operations.parity.test.ts` | `steps-builder.core.test.ts` | n/a | done |  |
 | `StepsBuilder.raw(...)` | `StepsBuilder.java` | n/a | `steps-builder.core.test.ts` | n/a | done |  |
-| parity helper (`DslParityAssertions` equivalent) | `DslParityAssertions.java` | `src/lib/test-support/dsl-parity.ts` | n/a | n/a | done |  |
+| parity helper (`DslParityAssertions` equivalent) | `DslParityAssertions.java` | `src/__tests__/support/dsl-parity.ts` | n/a | n/a | done |  |
 | counter end-to-end integration | `DocBuilderCounterIntegrationTest.java` | `doc-builder.counter.integration.test.ts` | n/a | `doc-builder.counter.integration.test.ts` | done |  |
 
 ## Out-of-scope for stage 1

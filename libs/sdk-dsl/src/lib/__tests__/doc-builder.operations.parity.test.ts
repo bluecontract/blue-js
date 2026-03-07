@@ -149,15 +149,15 @@ contracts:
       .operation('emit')
       .channel('ownerChannel')
       .request({
-        type: 'Dictionary',
-        entries: {
-          amount: {
+        type: 'List',
+        items: [
+          {
             type: 'Integer',
           },
-          event: {
+          {
             type: 'Conversation/Event',
           },
-        },
+        ],
       })
       .done()
       .buildDocument();
@@ -173,12 +173,42 @@ contracts:
     type: Conversation/Operation
     channel: ownerChannel
     request:
-      type: Dictionary
-      entries:
-        amount:
-          type: Integer
-        event:
-          type: Conversation/Event
+      type: List
+      items:
+        - type: Integer
+        - type: Conversation/Event
+`,
+    );
+  });
+
+  it('removes an existing request when noRequest() is used while editing', () => {
+    const base = DocBuilder.doc()
+      .name('No request edit parity')
+      .channel('ownerChannel')
+      .operation('ack')
+      .channel('ownerChannel')
+      .description('Acknowledge')
+      .requestType('Integer')
+      .done()
+      .buildDocument();
+
+    const edited = DocBuilder.edit(base)
+      .operation('ack')
+      .noRequest()
+      .done()
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      edited,
+      `
+name: No request edit parity
+contracts:
+  ownerChannel:
+    type: Core/Channel
+  ack:
+    type: Conversation/Operation
+    channel: ownerChannel
+    description: Acknowledge
 `,
     );
   });

@@ -27,7 +27,7 @@ contracts:
     const document = DocBuilder.doc()
       .name('Provided channel parity')
       .channel('ownerChannel', {
-        type: 'Conversation/Timeline Channel',
+        type: 'MyOS/MyOS Timeline Channel',
         timelineId: 'timeline-1',
         accountId: 'acc-1',
         email: 'owner@example.com',
@@ -40,7 +40,7 @@ contracts:
 name: Provided channel parity
 contracts:
   ownerChannel:
-    type: Conversation/Timeline Channel
+    type: MyOS/MyOS Timeline Channel
     timelineId: timeline-1
     accountId: acc-1
     email: owner@example.com
@@ -104,7 +104,7 @@ contracts:
 
     const specialized = DocBuilder.from(template)
       .channel('adminChannel', {
-        type: 'Conversation/Timeline Channel',
+        type: 'MyOS/MyOS Timeline Channel',
         timelineId: 'session-42',
         accountId: 'acc-42',
         email: 'admin@company.com',
@@ -127,7 +127,7 @@ contracts:
 name: Channel template
 contracts:
   adminChannel:
-    type: Conversation/Timeline Channel
+    type: MyOS/MyOS Timeline Channel
     timelineId: session-42
     accountId: acc-42
     email: admin@company.com
