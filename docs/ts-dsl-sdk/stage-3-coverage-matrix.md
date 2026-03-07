@@ -2,15 +2,15 @@
 
 | Construct | Parity test | Runtime test | Deviation doc | Status | Notes |
 |---|---:|---:|---:|---|---|
-| `myOsAdmin(...)` | ☐ | ☐ | ☐ | TODO | Align to mapping ref 5.1 |
-| `onTriggeredWithId(...)` | ☐ | ☐ | ☐ | TODO | |
-| `onTriggeredWithMatcher(...)` | ☐ | ☐ | ☐ | TODO | |
-| `onSubscriptionUpdate(...)` | ☐ | ☐ | ☐ | TODO | Align to mapping ref 5.4 |
-| `onMyOsResponse(...)` | ☐ | ☐ | ☐ | TODO | Align to mapping ref 5.5 |
-| `steps.myOs()` entry | ☐ | ☐ | ☐ | TODO | |
-| SDPG request helper | ☐ | ☐ | ☐ | TODO | Align to mapping ref 5.2 |
-| subscribe-to-session helper | ☐ | ☐ | ☐ | TODO | Align to mapping ref 5.4 |
-| call-operation helper | ☐ | ☐ | ☐ | TODO | Align to mapping ref 5.5 |
-| bootstrap-aligned interaction foundations | ☐ | ☐ | ☐ | TODO | Cross-check mapping ref 3.5 + 5.9 |
-| non-admin session-interaction flow | ☐ | ☐ | ☐ | TODO | |
-| stage-1/stage-2 regression verification | ☐ | ☐ | ☐ | TODO | |
+| `myOsAdmin(...)` | `DocBuilder.myos.parity.test.ts` | `DocBuilder.myos.integration.test.ts` | `stage-3-deviations.md#myosadminupdate-requires-an-explicit-list-request-schema` | Done | Root document type stays unchanged; admin-base documents do not duplicate inherited contracts |
+| `onTriggeredWithId(...)` | `DocBuilder.myos.parity.test.ts` | `DocBuilder.myos.integration.test.ts` via `onMyOsResponse(...)` and subscription flows | `stage-3-deviations.md#requestid-matchers-bind-to-inresponsetorequestid` | Done | `subscriptionId` is top-level; `requestId` is nested correlation |
+| `onTriggeredWithMatcher(...)` | `DocBuilder.myos.parity.test.ts` | N/A | none | Done | Generic matcher node builder over `Core/Triggered Event Channel` |
+| `onSubscriptionUpdate(...)` | `DocBuilder.myos.parity.test.ts` | `DocBuilder.myos.integration.test.ts` | none | Done | Covered for both typed and untyped update filters |
+| `onMyOsResponse(...)` | `DocBuilder.myos.parity.test.ts` | `DocBuilder.myos.integration.test.ts` | `stage-3-deviations.md#requestid-matchers-bind-to-inresponsetorequestid` | Done | Runtime test uses `MyOS/Call Operation Responded` wrapper |
+| `steps.myOs()` entry | `StepsBuilder.myos.test.ts` | `DocBuilder.myos.integration.test.ts` | none | Done | Namespace entry only; no extra orchestration helpers added |
+| SDPG request helper | `StepsBuilder.myos.test.ts` | N/A | none | Done | Shape and optional flags covered directly |
+| subscribe-to-session helper | `StepsBuilder.myos.test.ts` | `DocBuilder.myos.integration.test.ts` through subscription flow composition | `stage-3-deviations.md#subscribe-to-session-helper-follows-the-final-runtime-schema` | Done | Default helper behavior is "match all" by omitting `subscription.events` |
+| call-operation helper | `StepsBuilder.myos.test.ts` | `DocBuilder.myos.integration.test.ts` | none | Done | Used both in non-admin interaction flow and the counter vertical slice |
+| bootstrap-aligned interaction foundations | `DocBuilder.steps.parity.test.ts` | `DocBuilder.handlers.integration.test.ts` | none | Done | Stage 3 composes with existing Stage 2 bootstrap helpers and `myOsAdminChannel` assignee semantics |
+| non-admin session-interaction flow | N/A | `DocBuilder.myos.integration.test.ts` | none | Done | Explicit regression that root `type` remains `Custom/Type` while admin/session flow still works |
+| stage-1/stage-2 regression verification | existing Stage 1/2 suites | existing Stage 1/2 suites | none | Done | Full `sdk-dsl` Vitest suite stays green with 67 tests |

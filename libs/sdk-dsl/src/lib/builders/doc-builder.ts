@@ -7,6 +7,7 @@ import type {
   OperationBuilder,
   TypeInput,
 } from '../types';
+import { INTERNAL_BLUE } from '../internal/blue';
 import { ensureContracts, getContract } from '../internal/contracts';
 import { mergeBlueNodes } from '../internal/node-merge';
 import {
@@ -31,10 +32,18 @@ const TRIGGERED_EVENT_CHANNEL_TYPE = 'Core/Triggered Event Channel';
 const DOCUMENT_UPDATE_CHANNEL_TYPE = 'Core/Document Update Channel';
 const DOCUMENT_PROCESSING_INITIATED_TYPE = 'Core/Document Processing Initiated';
 const DOCUMENT_UPDATE_EVENT_TYPE = 'Core/Document Update';
+const MYOS_TIMELINE_CHANNEL_TYPE = 'MyOS/MyOS Timeline Channel';
+const MYOS_ADMIN_BASE_TYPE = 'MyOS/MyOS Admin Base';
+const MYOS_SUBSCRIPTION_UPDATE_TYPE = 'MyOS/Subscription Update';
 const NAMED_EVENT_TYPE = 'Common/Named Event';
 const OPERATION_TYPE = 'Conversation/Operation';
 const OPERATION_IMPL_TYPE = 'Conversation/Sequential Workflow Operation';
 const SEQUENTIAL_WORKFLOW_TYPE = 'Conversation/Sequential Workflow';
+const MYOS_ADMIN_UPDATE_DESCRIPTION =
+  'The standard, required operation for MyOS Admin to deliver events.';
+const MYOS_ADMIN_UPDATE_IMPL_DESCRIPTION =
+  'Implementation that re-emits the provided events';
+const MYOS_ADMIN_REEMIT_CODE = 'return { events: event.message.request };';
 
 type OperationState = {
   readonly key: string;
@@ -321,6 +330,197 @@ export class DocBuilder {
     );
   }
 
+  myOsAdmin(): this {
+    if (this.isMyOsAdminBaseDocument()) {
+      return this;
+    }
+
+    const contracts = ensureContracts(this.document);
+    contracts.myOsAdminChannel = mergeBlueNodes(
+      new BlueNode().setType(resolveTypeInput(MYOS_TIMELINE_CHANNEL_TYPE)),
+      contracts.myOsAdminChannel ?? new BlueNode(),
+    );
+
+    const adminUpdate = (contracts.myOsAdminUpdate ?? new BlueNode()).clone();
+    adminUpdate.setType(resolveTypeInput(OPERATION_TYPE));
+    adminUpdate.setDescription(MYOS_ADMIN_UPDATE_DESCRIPTION);
+    adminUpdate.addProperty('channel', toBlueNode('myOsAdminChannel'));
+    adminUpdate.addProperty(
+      'request',
+      new BlueNode().setType(resolveTypeInput('List')),
+    );
+    contracts.myOsAdminUpdate = adminUpdate;
+
+    const adminUpdateImpl = new BlueNode()
+      .setType(resolveTypeInput(OPERATION_IMPL_TYPE))
+      .setDescription(MYOS_ADMIN_UPDATE_IMPL_DESCRIPTION);
+    adminUpdateImpl.addProperty('operation', toBlueNode('myOsAdminUpdate'));
+    adminUpdateImpl.addProperty(
+      'steps',
+      new BlueNode().setItems(
+        new StepsBuilder()
+          .jsRaw('EmitAdminEvents', MYOS_ADMIN_REEMIT_CODE)
+          .build(),
+      ),
+    );
+    contracts.myOsAdminUpdateImpl = adminUpdateImpl;
+
+    this.trackContract('myOsAdminChannel');
+    this.trackContract('myOsAdminUpdate');
+    this.trackContract('myOsAdminUpdateImpl');
+    return this;
+  }
+
+  onTriggeredWithId(
+    workflowKey: string,
+    eventType: TypeInput,
+    idFieldName: string,
+    idValue: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const normalizedField = requireNonEmpty(idFieldName, 'id field name');
+    const normalizedValue = requireNonEmpty(idValue, 'id value');
+
+    if (normalizedField === 'subscriptionId') {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        eventType,
+        { subscriptionId: normalizedValue },
+        customizer,
+      );
+    }
+
+    if (normalizedField === 'requestId') {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        eventType,
+        {
+          inResponseTo: {
+            requestId: normalizedValue,
+          },
+        },
+        customizer,
+      );
+    }
+
+    throw new Error(`Unsupported id field for matcher: ${normalizedField}`);
+  }
+
+  onTriggeredWithMatcher(
+    workflowKey: string,
+    eventType: TypeInput,
+    matcher: BlueValueInput | null | undefined,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonEmpty(workflowKey, 'workflow key');
+    requireStepsCustomizer(customizer);
+    this.ensureTriggeredChannel();
+
+    return this.applySequentialWorkflow(
+      key,
+      'triggeredEventChannel',
+      this.buildTriggeredMatcher(eventType, matcher),
+      customizer,
+    );
+  }
+
+  onSubscriptionUpdate(
+    workflowKey: string,
+    subscriptionId: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onSubscriptionUpdate(
+    workflowKey: string,
+    subscriptionId: string,
+    updateType: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onSubscriptionUpdate(
+    workflowKey: string,
+    subscriptionId: string,
+    updateTypeOrCustomizer: TypeInput | ((steps: StepsBuilder) => void),
+    maybeCustomizer?: (steps: StepsBuilder) => void,
+  ): this {
+    const normalizedSubscriptionId = requireNonEmpty(
+      subscriptionId,
+      'subscription id',
+    );
+
+    if (typeof updateTypeOrCustomizer === 'function') {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        MYOS_SUBSCRIPTION_UPDATE_TYPE,
+        {
+          subscriptionId: normalizedSubscriptionId,
+        },
+        updateTypeOrCustomizer,
+      );
+    }
+
+    const matcher = new BlueNode();
+    matcher.addProperty('subscriptionId', toBlueNode(normalizedSubscriptionId));
+    matcher.addProperty(
+      'update',
+      new BlueNode().setType(resolveTypeInput(updateTypeOrCustomizer)),
+    );
+    const customizer = maybeCustomizer;
+    requireStepsCustomizer(customizer);
+
+    return this.onTriggeredWithMatcher(
+      workflowKey,
+      MYOS_SUBSCRIPTION_UPDATE_TYPE,
+      matcher,
+      customizer,
+    );
+  }
+
+  onMyOsResponse(
+    workflowKey: string,
+    responseEventType: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onMyOsResponse(
+    workflowKey: string,
+    responseEventType: TypeInput,
+    requestId: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onMyOsResponse(
+    workflowKey: string,
+    responseEventType: TypeInput,
+    requestIdOrCustomizer: string | ((steps: StepsBuilder) => void),
+    maybeCustomizer?: (steps: StepsBuilder) => void,
+  ): this {
+    if (typeof requestIdOrCustomizer === 'function') {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        responseEventType,
+        null,
+        requestIdOrCustomizer,
+      );
+    }
+
+    const normalizedRequestId = requestIdOrCustomizer.trim();
+    const customizer = maybeCustomizer;
+    requireStepsCustomizer(customizer);
+    if (normalizedRequestId.length === 0) {
+      return this.onTriggeredWithMatcher(
+        workflowKey,
+        responseEventType,
+        null,
+        customizer,
+      );
+    }
+
+    return this.onTriggeredWithId(
+      workflowKey,
+      responseEventType,
+      'requestId',
+      normalizedRequestId,
+      customizer,
+    );
+  }
+
   onNamedEvent(
     workflowKey: string,
     eventName: string,
@@ -548,6 +748,16 @@ export class DocBuilder {
     return this;
   }
 
+  private buildTriggeredMatcher(
+    eventType: TypeInput,
+    matcher: BlueValueInput | null | undefined,
+  ): BlueNode {
+    const triggeredMatcher =
+      matcher == null ? new BlueNode() : toBlueNode(matcher);
+    triggeredMatcher.setType(resolveTypeInput(eventType, 'event type'));
+    return triggeredMatcher;
+  }
+
   private ensureTriggeredChannel(): void {
     const contracts = ensureContracts(this.document);
     if (!contracts.triggeredEventChannel) {
@@ -557,6 +767,19 @@ export class DocBuilder {
     }
 
     this.trackContract('triggeredEventChannel');
+  }
+
+  private isMyOsAdminBaseDocument(): boolean {
+    const documentType = this.document.getType();
+    const adminBaseBlueId = resolveTypeInput(MYOS_ADMIN_BASE_TYPE).getBlueId();
+    if (!documentType || !adminBaseBlueId) {
+      return false;
+    }
+
+    return INTERNAL_BLUE.isTypeOfBlueId(
+      new BlueNode().setType(documentType.clone()),
+      adminBaseBlueId,
+    );
   }
 
   private ensureInitChannel(): void {

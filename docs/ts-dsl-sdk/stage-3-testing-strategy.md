@@ -5,6 +5,10 @@
 ### 1. Parity tests
 Use Java references to reproduce stage-3-relevant scenarios.
 
+Current parity files:
+- `libs/sdk-dsl/src/__tests__/DocBuilder.myos.parity.test.ts`
+- `libs/sdk-dsl/src/__tests__/DocBuilder.steps.parity.test.ts` for Stage 2 bootstrap interaction reuse
+
 Primary comparison:
 - preprocess both actual and expected documents
 - compare `official` JSON
@@ -23,6 +27,9 @@ Prefer direct shape tests for:
 - call-operation request helper
 - matcher helper payload blocks
 
+Current exact-behavior file:
+- `libs/sdk-dsl/src/__tests__/StepsBuilder.myos.test.ts`
+
 ### 3. Processor integration tests
 Use `@blue-labs/document-processor` through public package APIs only.
 
@@ -32,6 +39,16 @@ At minimum prove:
 - response-oriented matchers trigger only for the intended MyOS response shape
 - a non-admin document can still participate in a session-interaction flow when `myOsAdmin(...)` is present
 
+Current runtime file:
+- `libs/sdk-dsl/src/__tests__/DocBuilder.myos.integration.test.ts`
+
+Covered runtime slices:
+- admin update re-emission
+- subscription update filtering
+- `MyOS/Call Operation Responded` wrapper matching
+- non-admin document + `myOsAdmin(...)` interaction
+- two-document counter/session-interaction vertical slice with admin response forwarding
+
 ## Baseline protection
 
 Before Stage 3 work:
@@ -40,6 +57,14 @@ Before Stage 3 work:
 After Stage 3 work:
 - rerun the same suite
 - add stage-3 tests to it
+
+Required post-implementation verification:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
 
 ## Fixture style
 

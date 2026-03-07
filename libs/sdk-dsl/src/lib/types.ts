@@ -7,6 +7,8 @@ export type ContractLike = BlueValueInput;
 
 export type TypeInput = string | { blueId: string } | BlueNode | ZodTypeAny;
 
+export type EventPatternInput = BlueValueInput | TypeInput;
+
 export type StringMapInput =
   | Record<string, string | null>
   | ReadonlyMap<string, string | null>;
@@ -48,6 +50,29 @@ export interface BootstrapOptionsBuilderLike {
     channelKey: string | null | undefined,
     text: string | null | undefined,
   ): BootstrapOptionsBuilderLike;
+}
+
+export interface MyOsSingleDocumentPermissionGrantRequestedOptions {
+  requestId?: string | null | undefined;
+  stepName?: string | null | undefined;
+  grantSessionSubscriptionOnResult?: boolean | null | undefined;
+  name?: string | null | undefined;
+  description?: string | null | undefined;
+}
+
+export interface MyOsSubscribeToSessionRequestedOptions {
+  requestId?: string | null | undefined;
+  stepName?: string | null | undefined;
+  events?: readonly EventPatternInput[] | null | undefined;
+  name?: string | null | undefined;
+  description?: string | null | undefined;
+}
+
+export interface MyOsCallOperationRequestedOptions {
+  requestId?: string | null | undefined;
+  stepName?: string | null | undefined;
+  name?: string | null | undefined;
+  description?: string | null | undefined;
 }
 
 export interface FieldBuilder<TDone> {

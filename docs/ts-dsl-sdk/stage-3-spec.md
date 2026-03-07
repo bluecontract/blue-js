@@ -57,9 +57,9 @@ Use these sections directly:
 #### StepsBuilder helpers
 - `steps.myOs()` / `MyOsSteps`
 - helper builders for:
-  - single-document permission request
-  - subscribe-to-session request
-  - call-operation request
+  - `singleDocumentPermissionGrantRequested(...)`
+  - `subscribeToSessionRequested(...)`
+  - `callOperationRequested(...)`
 
 #### Tests and docs
 - stage-3 parity tests
@@ -89,6 +89,10 @@ The resulting document should include the runtime-confirmed manual admin shape f
 The helper must not silently overwrite the root document `type`.
 If the document already uses `type: MyOS/MyOS Admin Base`, do not duplicate inherited contracts unless explicitly asked.
 
+Current runtime note:
+- `myOsAdminUpdate` must carry `request: { type: List }` in the current processor build, otherwise the operation does not execute.
+- this is recorded as a Stage 3 deviation because mapping-reference section 5.1 only says the request schema is optional when runtime does not require it.
+
 ### Triggered-event matchers
 These helpers must generate deterministic workflows bound to `Core/Triggered Event Channel` and apply the matching constraints required by the processor/runtime.
 
@@ -97,10 +101,24 @@ They must align to the mapped MyOS wrappers and update envelopes, especially:
 - `MyOS/Call Operation Responded`
 - related `inResponseTo` correlation shapes
 
+Current runtime-correct matcher decisions:
+- `onTriggeredWithId(..., 'subscriptionId', ...)` matches top-level `subscriptionId`
+- `onTriggeredWithId(..., 'requestId', ...)` matches nested `inResponseTo.requestId`
+- `onMyOsResponse(...)` is a thin convenience wrapper over the same `inResponseTo.requestId` correlation rule
+
 ### `MyOsSteps`
 This namespace should provide convenience builders for the standard MyOS request events used by session-interaction flows.
 
 These builders are not independent new concepts. They are thin typed wrappers over runtime-correct MyOS events emitted through the Stage 2 trigger/emit mechanisms.
+
+Implemented helper surface:
+- `steps.myOs().singleDocumentPermissionGrantRequested(...)`
+- `steps.myOs().subscribeToSessionRequested(...)`
+- `steps.myOs().callOperationRequested(...)`
+
+Current runtime-correct subscribe semantics:
+- the helper does not expose Java POC `onBehalfOf` for subscribe-to-session because the final mapping reference and current repo schema do not include it
+- when no event filters are provided, the helper omits `subscription.events` entirely so runtime semantics remain "match all"
 
 ## Exit criteria
 

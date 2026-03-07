@@ -1,10 +1,15 @@
 import { BlueNode } from '@blue-labs/language';
+import type { ZodTypeAny } from 'zod';
 
 import type {
   BlueValueInput,
   BootstrapOptionsBuilderLike,
   ChannelBindingsInput,
   ChangesetBuilderLike,
+  EventPatternInput,
+  MyOsCallOperationRequestedOptions,
+  MyOsSingleDocumentPermissionGrantRequestedOptions,
+  MyOsSubscribeToSessionRequestedOptions,
   StepPayloadBuilder,
   TypeInput,
 } from '../types';
@@ -176,6 +181,10 @@ export class StepsBuilder {
     return extension;
   }
 
+  myOs(): MyOsSteps {
+    return this.ext((steps) => new MyOsSteps(steps));
+  }
+
   raw(stepNode: BlueNode): this {
     this.steps.push(toBlueNode(stepNode));
     return this;
@@ -192,6 +201,112 @@ export class StepsBuilder {
     step.addProperty('changeset', changesetNode);
     this.steps.push(step);
     return this;
+  }
+}
+
+export class MyOsSteps {
+  constructor(private readonly parent: StepsBuilder) {}
+
+  singleDocumentPermissionGrantRequested(
+    onBehalfOf: string,
+    targetSessionId: BlueValueInput,
+    permissions: BlueValueInput,
+    options?: MyOsSingleDocumentPermissionGrantRequestedOptions,
+  ): StepsBuilder {
+    requireValueInput(targetSessionId, 'targetSessionId');
+    if (permissions == null) {
+      throw new Error('permissions is required');
+    }
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('MyOS/Single Document Permission Grant Requested')
+      .put('onBehalfOf', requireNonEmpty(onBehalfOf, 'onBehalfOf'))
+      .putNode('targetSessionId', targetSessionId)
+      .putNode('permissions', permissions);
+
+    putOptionalStepMetadata(eventNode, options);
+    const requestId = normalizeOptional(options?.requestId);
+    if (requestId) {
+      eventNode.put('requestId', requestId);
+    }
+    if (options?.grantSessionSubscriptionOnResult === true) {
+      eventNode.put('grantSessionSubscriptionOnResult', true);
+    }
+
+    return this.parent.triggerEvent(
+      resolveStepName(options?.stepName, 'RequestSingleDocumentPermission'),
+      eventNode.build(),
+    );
+  }
+
+  subscribeToSessionRequested(
+    targetSessionId: BlueValueInput,
+    subscriptionId: string,
+    options?: MyOsSubscribeToSessionRequestedOptions,
+  ): StepsBuilder {
+    requireValueInput(targetSessionId, 'targetSessionId');
+
+    const subscription = NodeObjectBuilder.create().put(
+      'id',
+      requireNonEmpty(subscriptionId, 'subscriptionId'),
+    );
+    if (options?.events != null) {
+      subscription.putNode(
+        'events',
+        new BlueNode().setItems(
+          options.events.map((eventPattern) =>
+            toEventPatternNode(eventPattern),
+          ),
+        ),
+      );
+    }
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('MyOS/Subscribe to Session Requested')
+      .putNode('targetSessionId', targetSessionId)
+      .putNode('subscription', subscription.build());
+
+    putOptionalStepMetadata(eventNode, options);
+    const requestId = normalizeOptional(options?.requestId);
+    if (requestId) {
+      eventNode.put('requestId', requestId);
+    }
+
+    return this.parent.triggerEvent(
+      resolveStepName(options?.stepName, 'SubscribeToSession'),
+      eventNode.build(),
+    );
+  }
+
+  callOperationRequested(
+    onBehalfOf: string,
+    targetSessionId: BlueValueInput,
+    operation: string,
+    request?: BlueValueInput,
+    options?: MyOsCallOperationRequestedOptions,
+  ): StepsBuilder {
+    requireValueInput(targetSessionId, 'targetSessionId');
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('MyOS/Call Operation Requested')
+      .put('onBehalfOf', requireNonEmpty(onBehalfOf, 'onBehalfOf'))
+      .putNode('targetSessionId', targetSessionId)
+      .put('operation', requireNonEmpty(operation, 'operation'));
+
+    if (request != null) {
+      eventNode.putNode('request', request);
+    }
+
+    putOptionalStepMetadata(eventNode, options);
+    const requestId = normalizeOptional(options?.requestId);
+    if (requestId) {
+      eventNode.put('requestId', requestId);
+    }
+
+    return this.parent.triggerEvent(
+      resolveStepName(options?.stepName, 'CallOperation'),
+      eventNode.build(),
+    );
   }
 }
 
@@ -217,6 +332,89 @@ function hasMeaningfulContent(node: BlueNode): boolean {
     node.getDescription() != null ||
     (node.getItems()?.length ?? 0) > 0 ||
     Object.keys(node.getProperties() ?? {}).length > 0
+  );
+}
+
+function putOptionalStepMetadata(
+  node: NodeObjectBuilder,
+  options:
+    | MyOsSingleDocumentPermissionGrantRequestedOptions
+    | MyOsSubscribeToSessionRequestedOptions
+    | MyOsCallOperationRequestedOptions
+    | undefined,
+): void {
+  const name = normalizeOptional(options?.name);
+  if (name) {
+    node.put('name', name);
+  }
+
+  const description = normalizeOptional(options?.description);
+  if (description) {
+    node.put('description', description);
+  }
+}
+
+function toEventPatternNode(eventPattern: EventPatternInput): BlueNode {
+  if (eventPattern == null) {
+    throw new Error('eventPattern cannot be null');
+  }
+
+  if (typeof eventPattern === 'string') {
+    return new BlueNode().setType(resolveTypeInput(eventPattern));
+  }
+
+  if (eventPattern instanceof BlueNode) {
+    return eventPattern.clone();
+  }
+
+  if (isBlueIdObject(eventPattern) || isLikelyZodSchema(eventPattern)) {
+    return new BlueNode().setType(resolveTypeInput(eventPattern));
+  }
+
+  return toBlueNode(eventPattern as BlueValueInput);
+}
+
+function resolveStepName(
+  provided: string | null | undefined,
+  fallback: string,
+): string {
+  return normalizeOptional(provided) ?? fallback;
+}
+
+function normalizeOptional(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+function requireValueInput(value: BlueValueInput, label: string): void {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  if (typeof value === 'string' && isBlank(value)) {
+    throw new Error(`${label} is required`);
+  }
+}
+
+function isBlueIdObject(value: unknown): value is { blueId: string } {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    'blueId' in value &&
+    typeof (value as { blueId?: unknown }).blueId === 'string'
+  );
+}
+
+function isLikelyZodSchema(value: unknown): value is ZodTypeAny {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    typeof (value as { safeParse?: unknown }).safeParse === 'function' &&
+    '_def' in value
   );
 }
 
