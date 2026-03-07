@@ -1,0 +1,116 @@
+---
+description: BLUE TS DSL SDK stage 2 testing, parity, and runtime verification requirements
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 2 Testing and Parity
+
+## Quality bar
+Stage 2 is not done until:
+- stage-1 tests still pass,
+- stage-2 tests pass,
+- typecheck, lint, and build are green.
+
+## Mandatory test layers
+1. direct unit tests for focused helpers where useful
+2. parity tests against expected YAML for the implemented handler and steps surface
+3. guardrail tests for invalid inputs and path protections
+4. processor integration tests for workflows and emitted events
+
+## Java test traceability
+Each TypeScript test file should start with a short comment listing the Java source file(s) it ports or adapts.
+Preserve intent and coverage even where TypeScript API shape differs.
+Do not replace Java behavioral coverage with unrelated TS-only scenarios.
+
+## Stage-2 Java tests to port fully or partially
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java`
+  - `onEventMatchesYamlDefinition`
+  - `onNamedEventMatchesYamlDefinition`
+  - `onDocChangeMatchesYamlDefinition`
+  - `onInitMatchesYamlDefinition`
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java`
+  - `onChannelEventMatchesYamlDefinition`
+- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderStepsDslParityTest.java`
+  - `stepPrimitivesAndEmitHelpersBuildExpectedContracts` (stage-2-relevant subset only)
+  - `bootstrapDocumentBuildersMapDocumentBindingsAndOptions`
+  - `eventEmitHelpersRequireExplicitStepNames`
+  - `extRejectsNullFactoriesAndNullExtensions`
+  - `extSupportsCustomStepExtensions`
+
+## Explicit stage-2 exclusions
+These Java areas are not part of stage 2:
+- payment request builders
+- PayNote / capture namespace
+- MyOS helper namespaces
+- AI
+- access / linked access / agency
+- patch / structure / generator pipeline
+
+If a Java test or assertion is skipped because it belongs to a later stage, record that in `docs/ts-dsl-sdk/stage-2-deviations.md`.
+
+## Runtime-gate rule
+For in-scope features, Java parity is the target, but the current public TypeScript runtime is the final execution gate.
+If a runtime conflict is proven:
+- keep the runtime-correct behavior,
+- document it in `stage-2-deviations.md`,
+- add a regression test,
+- and keep the mismatch visible in the mapping matrix and coverage matrix.
+
+## Parity harness rules
+Reuse the stronger stage-1 parity helper:
+- preprocess both expected YAML and built DSL nodes
+- compare structural JSON trees using `official` JSON
+- compare BlueIds where practical
+- print useful YAML/JSON on mismatch
+
+Inline YAML fixtures are encouraged.
+Raw snapshot comparison is not enough.
+
+## Processor-backed harness rules
+Integration tests must use only public package APIs.
+Reuse or extend the stage-1 harness for:
+- Blue runtime creation
+- default `ContractProcessorRegistryBuilder` registry
+- marker registration for section/policy contracts if still needed
+- lifecycle processing
+- triggered event processing
+- document update reactions
+- emitted-event capture where useful
+
+Do not use deep relative `src/...` imports across libraries.
+
+## Required stage-2 runtime scenarios
+At minimum, add integration coverage for:
+- `onInit(...)` lifecycle workflow
+- `onEvent(...)` handling of an emitted typed event
+- `onNamedEvent(...)` handling of an emitted named event
+- `onDocChange(...)` reacting to a watched path update
+- `updateDocumentFromExpression(...)` applying a dynamic changeset
+- `bootstrapDocument(...)` emitting the expected bootstrap request event
+
+If `onChannelEvent(...)` can be exercised cleanly through the public processor API, add a runtime test.
+If not, keep parity coverage and document the runtime limitation.
+
+## Documentation and coverage requirements
+Update these docs as part of the implementation:
+- `docs/ts-dsl-sdk/stage-2-mapping-matrix.md`
+- `docs/ts-dsl-sdk/stage-2-deviations.md`
+- `docs/ts-dsl-sdk/stage-2-coverage-matrix.md`
+
+Every documented deviation must be covered by a focused regression test.
+Every in-scope stage-2 feature must have an entry in the coverage matrix.
+
+## Required verification before completion
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+Recommended extra regression check:
+- `npx vitest run --config libs/document-processor/vite.config.ts`
+
+Do not report completion unless these commands were run and passed, or failures are reported explicitly.

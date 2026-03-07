@@ -23,5 +23,5 @@ Example commands (adjust to your workspace):
 
 ### Important rules
 Read and adhere to defined cursor rules:
-- .cursor/rules/blue-ts-dsl-sdk-stage1.mdc
-- .cursor/rules/blue-ts-dsl-sdk-testing.mdc
+- .cursor/rules/blue-ts-dsl-sdk-stage2-testing.mdc
+- .cursor/rules/blue-ts-dsl-sdk-stage2.mdc
