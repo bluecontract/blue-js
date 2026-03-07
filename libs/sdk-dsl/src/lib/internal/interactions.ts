@@ -46,10 +46,42 @@ export interface AgencyConfig {
   readonly permissionTiming: PermissionTiming;
 }
 
+export interface AINamedEventExpectationField {
+  readonly name: string;
+  readonly description: string | null;
+}
+
+export interface AINamedEventExpectation {
+  readonly name: string;
+  readonly fields: readonly AINamedEventExpectationField[];
+}
+
+export interface AITaskTemplate {
+  readonly name: string;
+  readonly instructions: readonly string[];
+  readonly expectedResponses: readonly BlueNode[];
+  readonly expectedNamedEvents: readonly AINamedEventExpectation[];
+}
+
+export interface AIIntegrationConfig {
+  readonly name: string;
+  readonly token: string;
+  readonly sessionId: BlueNode;
+  readonly permissionFromChannel: string;
+  readonly statusPath: string;
+  readonly contextPath: string;
+  readonly requesterId: string;
+  readonly requestId: string;
+  readonly subscriptionId: string;
+  readonly permissionTiming: PermissionTiming;
+  readonly tasks: ReadonlyMap<string, AITaskTemplate>;
+}
+
 export interface InteractionConfigRegistry {
   readonly accessConfigs: ReadonlyMap<string, AccessConfig>;
   readonly linkedAccessConfigs: ReadonlyMap<string, LinkedAccessConfig>;
   readonly agencyConfigs: ReadonlyMap<string, AgencyConfig>;
+  readonly aiConfigs: ReadonlyMap<string, AIIntegrationConfig>;
 }
 
 const EMPTY_MAP = new Map();
@@ -58,6 +90,7 @@ export const EMPTY_INTERACTION_CONFIG_REGISTRY: InteractionConfigRegistry = {
   accessConfigs: EMPTY_MAP,
   linkedAccessConfigs: EMPTY_MAP,
   agencyConfigs: EMPTY_MAP,
+  aiConfigs: EMPTY_MAP,
 };
 
 export function tokenOf(

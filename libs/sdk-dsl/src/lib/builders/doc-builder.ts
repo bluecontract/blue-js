@@ -1,6 +1,7 @@
 import { BlueNode } from '@blue-labs/language';
 
 import type {
+  AIResponseNamedEventMatcher,
   BlueValueInput,
   ContractLike,
   FieldBuilder,
@@ -11,6 +12,9 @@ import { INTERNAL_BLUE } from '../internal/blue';
 import { ensureContracts, getContract } from '../internal/contracts';
 import {
   type AccessConfig,
+  type AIIntegrationConfig,
+  type AINamedEventExpectation,
+  type AITaskTemplate,
   type AgencyConfig,
   createLinkedDocumentsPermissionSet,
   createPermissionFlagsNode,
@@ -36,7 +40,7 @@ import {
 import { wrapExpression } from '../internal/expression';
 import { resolveTypeInput } from '../internal/type-input';
 import { toBlueNode, toRequestSchemaNode } from '../internal/value-to-node';
-import { StepsBuilder } from './steps-builder';
+import { AINamedEventFieldsBuilder, StepsBuilder } from './steps-builder';
 
 const DEFAULT_CHANNEL_TYPE = 'Core/Channel';
 const COMPOSITE_CHANNEL_TYPE = 'Conversation/Composite Timeline Channel';
@@ -105,11 +109,23 @@ type AgencyState = {
   readonly permissionTiming: PermissionTiming;
 };
 
+type AIState = {
+  readonly name: string;
+  readonly sessionId: BlueValueInput | null;
+  readonly permissionFromChannel: string | null;
+  readonly statusPath: string | null;
+  readonly contextPath: string | null;
+  readonly requesterId: string | null;
+  readonly permissionTiming: PermissionTiming;
+  readonly tasks: ReadonlyMap<string, AITaskTemplate>;
+};
+
 export class DocBuilder {
   private currentSection: SectionTracker | null = null;
   private readonly accessConfigs = new Map<string, AccessConfig>();
   private readonly linkedAccessConfigs = new Map<string, LinkedAccessConfig>();
   private readonly agencyConfigs = new Map<string, AgencyConfig>();
+  private readonly aiConfigs = new Map<string, AIIntegrationConfig>();
 
   private constructor(private readonly document: BlueNode) {}
 
@@ -272,6 +288,14 @@ export class DocBuilder {
       parent: this,
       name: requireNonEmpty(agencyName, 'agency name'),
       applyState: (state) => this.applyAgencyState(state),
+    });
+  }
+
+  ai(aiName: string): AiIntegrationBuilder<this> {
+    return new AiIntegrationBuilder({
+      parent: this,
+      name: requireNonEmpty(aiName, 'ai name'),
+      applyState: (state) => this.applyAiState(state),
     });
   }
 
@@ -897,6 +921,107 @@ export class DocBuilder {
     return this.onEvent(workflowKey, 'MyOS/All Participants Ready', customizer);
   }
 
+  onAIResponse(
+    integrationName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onAIResponse(
+    integrationName: string,
+    workflowKey: string,
+    responseType: TypeInput | AIResponseNamedEventMatcher,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onAIResponse(
+    integrationName: string,
+    workflowKey: string,
+    responseType: TypeInput | AIResponseNamedEventMatcher,
+    taskName: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onAIResponse(
+    integrationName: string,
+    workflowKey: string,
+    responseTypeOrCustomizer:
+      | TypeInput
+      | AIResponseNamedEventMatcher
+      | ((steps: StepsBuilder) => void),
+    taskNameOrCustomizer?: string | ((steps: StepsBuilder) => void),
+    maybeCustomizer?: (steps: StepsBuilder) => void,
+  ): this {
+    const integration = this.requireAiIntegration(integrationName);
+
+    const responseType =
+      typeof responseTypeOrCustomizer === 'function'
+        ? ('Conversation/Response' as const)
+        : responseTypeOrCustomizer;
+    const taskName =
+      typeof taskNameOrCustomizer === 'string'
+        ? requireNonEmpty(taskNameOrCustomizer, 'task name')
+        : null;
+    const customizer =
+      typeof responseTypeOrCustomizer === 'function'
+        ? responseTypeOrCustomizer
+        : typeof taskNameOrCustomizer === 'function'
+          ? taskNameOrCustomizer
+          : maybeCustomizer;
+
+    requireStepsCustomizer(customizer);
+
+    if (taskName && !integration.tasks.has(taskName)) {
+      throw new Error(
+        `Unknown task '${taskName}' for AI integration '${integration.name}'`,
+      );
+    }
+
+    const updateMatcher = isAiNamedEventMatcher(responseType)
+      ? new BlueNode().setType(resolveTypeInput(NAMED_EVENT_TYPE))
+      : resolveTypeInput(responseType).clone();
+
+    if (isAiNamedEventMatcher(responseType)) {
+      updateMatcher.addProperty(
+        'name',
+        toBlueNode(
+          requireNonEmpty(responseType.namedEvent, 'named event name'),
+        ),
+      );
+    }
+
+    const incomingEventMatcher = new BlueNode().addProperty(
+      'requester',
+      toBlueNode(integration.requesterId),
+    );
+    if (taskName) {
+      incomingEventMatcher.addProperty('taskName', toBlueNode(taskName));
+    }
+
+    updateMatcher.addProperty(
+      'inResponseTo',
+      new BlueNode().addProperty('incomingEvent', incomingEventMatcher),
+    );
+
+    const matcher = new BlueNode();
+    matcher.addProperty(
+      'subscriptionId',
+      toBlueNode(integration.subscriptionId),
+    );
+    matcher.addProperty('update', updateMatcher);
+
+    return this.onTriggeredWithMatcher(
+      workflowKey,
+      MYOS_SUBSCRIPTION_UPDATE_TYPE,
+      matcher,
+      (steps) => {
+        steps.replaceExpression(
+          '_SaveAIContext',
+          integration.contextPath,
+          'event.update.context',
+        );
+        customizer(steps);
+      },
+    );
+  }
+
   buildDocument(): BlueNode {
     if (this.currentSection) {
       throw new Error(
@@ -1253,6 +1378,82 @@ export class DocBuilder {
     return this;
   }
 
+  private applyAiState(state: AIState): this {
+    const sessionId = requireBlueValueInput(
+      state.sessionId,
+      `ai('${state.name}'): sessionId is required`,
+    );
+    const permissionFromChannel = requireNonEmpty(
+      state.permissionFromChannel,
+      `ai('${state.name}'): permissionFrom is required`,
+    );
+    const statusPath = requireNonEmpty(
+      state.statusPath,
+      `ai('${state.name}'): statusPath is required`,
+    );
+    const contextPath = requireNonEmpty(
+      state.contextPath,
+      `ai('${state.name}'): contextPath is required`,
+    );
+    const requesterId = requireNonEmpty(
+      state.requesterId,
+      `ai('${state.name}'): requesterId is required`,
+    );
+
+    this.ensureMyOsAdmin();
+
+    const token = tokenOf(state.name, 'AI');
+    const config: AIIntegrationConfig = {
+      name: state.name,
+      token,
+      sessionId,
+      permissionFromChannel,
+      statusPath,
+      contextPath,
+      requesterId,
+      requestId: `REQ_${token}`,
+      subscriptionId: `SUB_${token}`,
+      permissionTiming: state.permissionTiming,
+      tasks: cloneAiTaskMap(state.tasks),
+    };
+
+    this.registerAiConfig(config);
+    this.field(config.statusPath, 'pending');
+    this.field(config.contextPath, new BlueNode());
+
+    this.materializePermissionWorkflow(
+      `ai${token}RequestPermission`,
+      config.permissionTiming,
+      (steps) => steps.ai(config.name).requestPermission(),
+    );
+
+    this.onMyOsResponse(
+      `ai${token}Subscribe`,
+      'MyOS/Single Document Permission Granted',
+      config.requestId,
+      (steps) => steps.ai(config.name).subscribe(),
+    );
+
+    this.onTriggeredWithId(
+      `ai${token}SubscriptionReady`,
+      'MyOS/Subscription to Session Initiated',
+      'subscriptionId',
+      config.subscriptionId,
+      (steps) =>
+        steps.replaceValue(`Mark${token}Ready`, config.statusPath, 'ready'),
+    );
+
+    this.onMyOsResponse(
+      `ai${token}PermissionRejected`,
+      'MyOS/Single Document Permission Rejected',
+      config.requestId,
+      (steps) =>
+        steps.replaceValue(`Mark${token}Revoked`, config.statusPath, 'revoked'),
+    );
+
+    return this;
+  }
+
   private materializePermissionWorkflow(
     workflowKey: string,
     permissionTiming: PermissionTiming,
@@ -1294,6 +1495,13 @@ export class DocBuilder {
     this.agencyConfigs.set(config.name, config);
   }
 
+  private registerAiConfig(config: AIIntegrationConfig): void {
+    if (this.aiConfigs.has(config.name)) {
+      throw new Error(`Duplicate AI integration: ${config.name}`);
+    }
+    this.aiConfigs.set(config.name, config);
+  }
+
   private requireAccessConfig(accessName: string): AccessConfig {
     const normalized = requireNonEmpty(accessName, 'access name');
     const config = this.accessConfigs.get(normalized);
@@ -1319,6 +1527,15 @@ export class DocBuilder {
     const config = this.agencyConfigs.get(normalized);
     if (!config) {
       throw new Error(`Unknown agency: ${normalized}`);
+    }
+    return config;
+  }
+
+  private requireAiIntegration(integrationName: string): AIIntegrationConfig {
+    const normalized = requireNonEmpty(integrationName, 'ai integration');
+    const config = this.aiConfigs.get(normalized);
+    if (!config) {
+      throw new Error(`Unknown AI integration: ${normalized}`);
     }
     return config;
   }
@@ -1533,6 +1750,7 @@ export class DocBuilder {
       accessConfigs: new Map(this.accessConfigs),
       linkedAccessConfigs: new Map(this.linkedAccessConfigs),
       agencyConfigs: new Map(this.agencyConfigs),
+      aiConfigs: new Map(this.aiConfigs),
     };
   }
 
@@ -2028,6 +2246,219 @@ export class AgencyBuilder<P extends DocBuilder> {
       permissionTiming: this.permissionTiming,
     });
   }
+}
+
+export class AiIntegrationBuilder<P extends DocBuilder> {
+  private sessionIdValue: BlueValueInput | null = null;
+  private permissionFromChannel: string | null = null;
+  private statusPathValue: string;
+  private contextPathValue: string;
+  private requesterIdValue: string;
+  private permissionTiming: PermissionTiming = { kind: 'onInit' };
+  private readonly tasks = new Map<string, AITaskTemplate>();
+
+  constructor(
+    private readonly config: {
+      readonly parent: P;
+      readonly name: string;
+      readonly applyState: (state: AIState) => P;
+    },
+  ) {
+    this.statusPathValue = `/ai/${config.name}/status`;
+    this.contextPathValue = `/ai/${config.name}/context`;
+    this.requesterIdValue = tokenOf(config.name, 'AI');
+  }
+
+  sessionId(sessionId: BlueValueInput): AiIntegrationBuilder<P> {
+    this.sessionIdValue = sessionId;
+    return this;
+  }
+
+  permissionFrom(channelKey: string): AiIntegrationBuilder<P> {
+    this.permissionFromChannel = requireNonEmpty(channelKey, 'permissionFrom');
+    return this;
+  }
+
+  statusPath(pointer: string): AiIntegrationBuilder<P> {
+    this.statusPathValue = requireNonEmpty(pointer, 'statusPath');
+    return this;
+  }
+
+  contextPath(pointer: string): AiIntegrationBuilder<P> {
+    this.contextPathValue = requireNonEmpty(pointer, 'contextPath');
+    return this;
+  }
+
+  requesterId(requesterId: string): AiIntegrationBuilder<P> {
+    this.requesterIdValue = requireNonEmpty(requesterId, 'requesterId');
+    return this;
+  }
+
+  requestPermissionOnInit(): AiIntegrationBuilder<P> {
+    this.permissionTiming = { kind: 'onInit' };
+    return this;
+  }
+
+  requestPermissionOnEvent(eventType: TypeInput): AiIntegrationBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onEvent',
+      eventType,
+    };
+    return this;
+  }
+
+  requestPermissionOnDocChange(path: string): AiIntegrationBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onDocChange',
+      path: requireNonEmpty(path, 'path'),
+    };
+    return this;
+  }
+
+  requestPermissionManually(): AiIntegrationBuilder<P> {
+    this.permissionTiming = { kind: 'manual' };
+    return this;
+  }
+
+  task(taskName: string): AITaskBuilder<P> {
+    return new AITaskBuilder({
+      parent: this,
+      taskName: requireNonEmpty(taskName, 'task name'),
+      register: (task) => {
+        if (this.tasks.has(task.name)) {
+          throw new Error(`Duplicate AI task name: ${task.name}`);
+        }
+        this.tasks.set(task.name, task);
+        return this;
+      },
+    });
+  }
+
+  done(): P {
+    return this.config.applyState({
+      name: this.config.name,
+      sessionId: this.sessionIdValue,
+      permissionFromChannel: this.permissionFromChannel,
+      statusPath: this.statusPathValue,
+      contextPath: this.contextPathValue,
+      requesterId: this.requesterIdValue,
+      permissionTiming: this.permissionTiming,
+      tasks: new Map(this.tasks),
+    });
+  }
+}
+
+export class AITaskBuilder<P extends DocBuilder> {
+  private readonly instructions: string[] = [];
+  private readonly expectedResponses: BlueNode[] = [];
+  private readonly expectedNamedEvents: AINamedEventExpectation[] = [];
+
+  constructor(
+    private readonly config: {
+      readonly parent: AiIntegrationBuilder<P>;
+      readonly taskName: string;
+      readonly register: (task: AITaskTemplate) => AiIntegrationBuilder<P>;
+    },
+  ) {}
+
+  instruction(text: string | null | undefined): AITaskBuilder<P> {
+    const normalized = text?.trim() ?? '';
+    if (normalized.length > 0) {
+      this.instructions.push(normalized);
+    }
+    return this;
+  }
+
+  expects(typeInput: TypeInput): AITaskBuilder<P> {
+    this.expectedResponses.push(resolveTypeInput(typeInput).clone());
+    return this;
+  }
+
+  expectsNamed(eventName: string): AITaskBuilder<P>;
+  expectsNamed(
+    eventName: string,
+    fieldsCustomizer: (fields: AINamedEventFieldsBuilder) => void,
+  ): AITaskBuilder<P>;
+  expectsNamed(eventName: string, ...fieldNames: string[]): AITaskBuilder<P>;
+  expectsNamed(
+    eventName: string,
+    ...rest:
+      | []
+      | [fieldsCustomizer: (fields: AINamedEventFieldsBuilder) => void]
+      | string[]
+  ): AITaskBuilder<P> {
+    const builder = new AINamedEventFieldsBuilder(eventName);
+    const first = rest[0];
+    if (typeof first === 'function') {
+      first(builder);
+    } else {
+      for (const fieldName of rest.filter(
+        (value): value is string => typeof value === 'string',
+      )) {
+        builder.field(fieldName);
+      }
+    }
+    this.expectedNamedEvents.push(builder.build());
+    return this;
+  }
+
+  done(): AiIntegrationBuilder<P> {
+    if (this.instructions.length === 0) {
+      throw new Error(
+        `Task '${this.config.taskName}': at least one instruction required`,
+      );
+    }
+
+    return this.config.register({
+      name: this.config.taskName,
+      instructions: [...this.instructions],
+      expectedResponses: this.expectedResponses.map((response) =>
+        response.clone(),
+      ),
+      expectedNamedEvents: this.expectedNamedEvents.map((expectation) => ({
+        name: expectation.name,
+        fields: expectation.fields.map((field) => ({
+          name: field.name,
+          description: field.description,
+        })),
+      })),
+    });
+  }
+}
+
+function cloneAiTaskMap(
+  tasks: ReadonlyMap<string, AITaskTemplate>,
+): ReadonlyMap<string, AITaskTemplate> {
+  return new Map(
+    [...tasks.entries()].map(([name, task]) => [
+      name,
+      {
+        name: task.name,
+        instructions: [...task.instructions],
+        expectedResponses: task.expectedResponses.map((response) =>
+          response.clone(),
+        ),
+        expectedNamedEvents: task.expectedNamedEvents.map((expectation) => ({
+          name: expectation.name,
+          fields: expectation.fields.map((field) => ({
+            name: field.name,
+            description: field.description,
+          })),
+        })),
+      },
+    ]),
+  );
+}
+
+function isAiNamedEventMatcher(
+  value: TypeInput | AIResponseNamedEventMatcher,
+): value is AIResponseNamedEventMatcher {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    'namedEvent' in value &&
+    typeof (value as { namedEvent?: unknown }).namedEvent === 'string'
+  );
 }
 
 function createDefaultChannelContract(): BlueNode {

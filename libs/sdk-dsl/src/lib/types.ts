@@ -9,6 +9,10 @@ export type TypeInput = string | { blueId: string } | BlueNode | ZodTypeAny;
 
 export type EventPatternInput = BlueValueInput | TypeInput;
 
+export interface AIResponseNamedEventMatcher {
+  readonly namedEvent: string;
+}
+
 export type StringMapInput =
   | Record<string, string | null>
   | ReadonlyMap<string, string | null>;

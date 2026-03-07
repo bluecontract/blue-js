@@ -1,0 +1,85 @@
+---
+description: BLUE TS DSL SDK stage 5 guardrails with final mapping reference
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 5
+
+## Goal
+
+Implement Stage 5 of the TypeScript DSL SDK inside `blue-js`.
+
+Stage 5 is the **AI / LLM-provider orchestration DSL** built on top of completed Stages 1–4.
+
+## Sources of truth
+
+1. `AGENTS.md`
+2. `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+3. `references/java-sdk/**`
+4. Existing public APIs in:
+   - `libs/language`
+   - `libs/document-processor`
+5. Existing Stage 1–4 implementation in `libs/sdk-dsl`
+
+## Scope in
+
+### DocBuilder APIs
+- `ai(...)`
+- AI integration nested builder and `.done()`
+- AI task nested builder(s) discovered from Java refs
+- `onAIResponse(...)` overload family
+
+### StepsBuilder APIs
+- `askAI(...)`
+- `steps.ai(name).requestPermission(...)`
+- `steps.ai(name).subscribe(...)`
+- any small supporting AI-step builder APIs clearly required by the Java stage-5 scenarios
+
+### Tests and docs
+- parity tests
+- runtime integration tests
+- stage-5 docs / coverage / deviation tracking
+
+## Scope out
+
+- PayNote / payments implementation
+- patch/editing compiler work
+- new Stage 4 feature expansion unrelated to AI
+- dependency upgrades unless clearly justified
+- dedicated provider-side macro builder unless Java clearly requires it and it fits the final mapping reference
+
+## Mapping and design guardrails
+
+- AI DSL must be a convenience layer over standard runtime-confirmed flows:
+  - `Conversation/Request`
+  - `Conversation/Response`
+  - `MyOS/Single Document Permission Grant Requested`
+  - `MyOS/Subscribe to Session Requested`
+  - `MyOS/Call Operation Requested`
+  - `MyOS/Subscription Update`
+- Do not invent separate magic AI request/response types.
+- Do not create fake local repo types.
+- Preserve Java-like fluent ergonomics where feasible.
+- Prefer composition using Stage 3 / Stage 4 foundations instead of duplicating low-level event assembly.
+- A single AI DSL expression is allowed to materialize multiple contracts/workflows when the final mapping reference requires it.
+
+## Behavioral guardrails
+
+- `ai(...).done()` should create the mapped AI orchestration scaffolding, not just store metadata.
+- `askAI(...)` must validate integration and task references where the Java API does.
+- `onAIResponse(...)` should automatically prepend AI context persistence when the mapping reference requires it.
+- Named-event AI response matching must respect the final mapping reference and current repo/runtime constraints.
+- Any unavoidable deviation must be documented in `stage-5-deviations.md` and protected by a regression test.
+
+## Package boundary guardrails
+
+- Do not import `document-processor` into the runtime library surface.
+- Keep test-only helpers under test-only paths.
+- Keep public exports clean in `src/index.ts`.
+
+## Completion
+
+Do not claim completion unless verification commands were run and reported.

@@ -1,0 +1,90 @@
+---
+description: BLUE TS DSL SDK stage 5 testing and parity rules
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 5 testing
+
+## Core testing rule
+
+Every Stage 5 construct must be covered by:
+1. **Parity / shape tests** against the final mapping reference plus Java scenario intent.
+2. **Runtime tests** through `document-processor` proving real behavior.
+
+## Primary oracle
+
+- Canonical structural comparison after preprocess using `official` JSON
+- BlueId comparison when useful
+- YAML fixtures may be used as readable expected documents, but raw YAML formatting is not the primary oracle
+
+## Required test categories
+
+### A. AI integration builder parity tests
+At least one test each for:
+- `ai(...).done()` defaults
+- explicit `statusPath`, `contextPath`, `requesterId`
+- permission timing modes:
+  - on init
+  - on event
+  - on document change
+  - manual
+- task definitions and task validation guardrails
+
+### B. AI step/helper tests
+At least one test each for:
+- `askAI(...)` with inline instructions
+- `askAI(...)` with task + inline instructions
+- unknown integration rejection
+- unknown task rejection
+- missing instructions rejection
+- `steps.ai(name).requestPermission(...)`
+- `steps.ai(name).subscribe(...)`
+
+### C. AI response matcher tests
+At least one test each for:
+- default `Conversation/Response` matcher
+- explicit response type matcher
+- task-filtered response matcher
+- named-event matcher if supported by current runtime mapping
+- named-event + task-filtered matcher if supported by current runtime mapping
+- automatic `_SaveAIContext` prepend behavior
+
+### D. Processor-backed integration tests
+At minimum:
+1. one init-driven provider access flow proving permission request emission
+2. one granted -> subscribe flow proving subscription request emission
+3. one subscription-initiated flow proving readiness state update
+4. one `askAI(...)` flow proving `MyOS/Call Operation Requested` emission with correct request payload and requester correlation
+5. one response-handling flow proving:
+   - `MyOS/Subscription Update` matcher works
+   - AI context is saved
+   - custom workflow steps run
+6. one manual-permission flow proving `steps.ai(...).requestPermission()` works
+7. one composition scenario with two integrations proving they stay isolated
+
+## Test readability rules
+
+- use explicit test names:
+  - `builds ... parity`
+  - `runs ... in processor`
+  - `prepends ... context save`
+  - `rejects ...`
+- keep fluent builder chains readable and indented
+- add short comments explaining:
+  1. what is being built,
+  2. what mapping shape is expected,
+  3. what runtime behavior is being proven
+
+## Coverage tracking
+
+Update `docs/ts-dsl-sdk/stage-5-coverage-matrix.md` so every stage-5 construct shows whether it has:
+- parity coverage
+- runtime coverage
+- deviation documentation if applicable
+
+### E. Canonical public scenario coverage
+At least one Stage 5 processor-backed integration test must reconstruct a canonical AI/provider orchestration scenario from `docs/ts-dsl-sdk/canonical-scenarios/ai-provider-patterns.md`.
+That test must prove both document-shape correctness and runtime behavior without relying on private provenance.

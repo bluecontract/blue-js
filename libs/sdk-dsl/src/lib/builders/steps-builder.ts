@@ -17,6 +17,8 @@ import { ChangesetBuilder } from '../internal/changeset-builder';
 import { isBlank, wrapExpression } from '../internal/expression';
 import type {
   AccessConfig,
+  AIIntegrationConfig,
+  AINamedEventExpectation,
   AgencyConfig,
   InteractionConfigRegistry,
 } from '../internal/interactions';
@@ -212,6 +214,40 @@ export class StepsBuilder {
     return this.ext((steps) => new MyOsSteps(steps));
   }
 
+  ai(aiName: string): AISteps {
+    return new AISteps(this, this.requireAiIntegration(aiName));
+  }
+
+  askAI(aiName: string, askCustomizer: (ask: AskAIBuilder) => void): this;
+  askAI(
+    aiName: string,
+    stepName: string,
+    askCustomizer: (ask: AskAIBuilder) => void,
+  ): this;
+  askAI(
+    aiName: string,
+    stepNameOrCustomizer: string | ((ask: AskAIBuilder) => void),
+    maybeCustomizer?: (ask: AskAIBuilder) => void,
+  ): this {
+    const integration = this.requireAiIntegration(aiName);
+    const stepName =
+      typeof stepNameOrCustomizer === 'function'
+        ? 'AskAI'
+        : requireNonEmpty(stepNameOrCustomizer, 'step name');
+    const askCustomizer =
+      typeof stepNameOrCustomizer === 'function'
+        ? stepNameOrCustomizer
+        : maybeCustomizer;
+
+    if (typeof askCustomizer !== 'function') {
+      throw new Error('ask customizer is required');
+    }
+
+    const ask = new AskAIBuilder(this, integration, stepName);
+    askCustomizer(ask);
+    return ask.build() as this;
+  }
+
   access(accessName: string): AccessSteps {
     const normalized = requireNonEmpty(accessName, 'access name');
     const config = this.interactionConfigs.accessConfigs.get(normalized);
@@ -250,6 +286,17 @@ export class StepsBuilder {
     step.addProperty('changeset', changesetNode);
     this.steps.push(step);
     return this;
+  }
+
+  private requireAiIntegration(aiName: string): AIIntegrationConfig {
+    const normalized = requireNonEmpty(aiName, 'ai name');
+    const config = this.interactionConfigs.aiConfigs.get(normalized);
+    if (!config) {
+      throw new Error(
+        `Unknown AI integration: '${normalized}'. Define it with .ai("${normalized}")...done().`,
+      );
+    }
+    return config;
   }
 }
 
@@ -542,6 +589,41 @@ export class MyOsSteps {
   }
 }
 
+export class AISteps {
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly integration: AIIntegrationConfig,
+  ) {}
+
+  requestPermission(stepName = 'RequestPermission'): StepsBuilder {
+    return this.parent.myOs().requestSingleDocPermission(
+      this.integration.permissionFromChannel,
+      this.integration.requestId,
+      this.integration.sessionId.clone(),
+      {
+        type: 'MyOS/Single Document Permission Set',
+        read: true,
+        singleOps: ['provideInstructions'],
+      },
+      {
+        stepName,
+      },
+    );
+  }
+
+  subscribe(stepName = 'Subscribe'): StepsBuilder {
+    return this.parent
+      .myOs()
+      .subscribeToSessionRequested(
+        this.integration.sessionId.clone(),
+        this.integration.subscriptionId,
+        {
+          stepName,
+        },
+      );
+  }
+}
+
 export class AccessSteps {
   constructor(
     private readonly parent: StepsBuilder,
@@ -801,6 +883,303 @@ export class AgencySessionCapabilitiesBuilder {
   }
 }
 
+export class AskAIBuilder {
+  private readonly prompt = new PromptExpressionBuilder();
+  private readonly inlineExpectedResponses: BlueNode[] = [];
+  private readonly inlineNamedExpectedResponses: AINamedEventExpectation[] = [];
+  private taskName: string | null = null;
+
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly integration: AIIntegrationConfig,
+    private readonly stepName: string,
+  ) {}
+
+  task(taskName: string): this {
+    this.taskName = requireNonEmpty(taskName, 'taskName');
+    return this;
+  }
+
+  instruction(text: string | null | undefined): this {
+    this.prompt.text(text);
+    return this;
+  }
+
+  expects(typeInput: TypeInput): this {
+    this.inlineExpectedResponses.push(resolveTypeInput(typeInput).clone());
+    return this;
+  }
+
+  expectsNamed(eventName: string): this;
+  expectsNamed(
+    eventName: string,
+    fieldsCustomizer: (fields: AINamedEventFieldsBuilder) => void,
+  ): this;
+  expectsNamed(eventName: string, ...fieldNames: string[]): this;
+  expectsNamed(
+    eventName: string,
+    ...rest:
+      | []
+      | [fieldsCustomizer: (fields: AINamedEventFieldsBuilder) => void]
+      | string[]
+  ): this {
+    const builder = new AINamedEventFieldsBuilder(eventName);
+    const first = rest[0];
+    if (typeof first === 'function') {
+      first(builder);
+    } else {
+      for (const fieldName of rest.filter(
+        (value): value is string => typeof value === 'string',
+      )) {
+        builder.field(fieldName);
+      }
+    }
+
+    this.inlineNamedExpectedResponses.push(builder.build());
+    return this;
+  }
+
+  build(): StepsBuilder {
+    const mergedPrompt = new PromptExpressionBuilder();
+    const mergedExpectedResponses: BlueNode[] = [];
+    const mergedNamedExpectedResponses: AINamedEventExpectation[] = [];
+
+    if (this.taskName) {
+      const task = this.integration.tasks.get(this.taskName);
+      if (!task) {
+        throw new Error(
+          `Unknown task '${this.taskName}' for AI integration '${this.integration.name}'`,
+        );
+      }
+
+      for (const instruction of task.instructions) {
+        mergedPrompt.text(instruction);
+      }
+
+      mergedExpectedResponses.push(
+        ...task.expectedResponses.map((response) => response.clone()),
+      );
+      mergedNamedExpectedResponses.push(...task.expectedNamedEvents);
+    }
+
+    mergedPrompt.append(this.prompt);
+    mergedExpectedResponses.push(
+      ...this.inlineExpectedResponses.map((response) => response.clone()),
+    );
+    mergedNamedExpectedResponses.push(...this.inlineNamedExpectedResponses);
+
+    if (mergedPrompt.isEmpty()) {
+      throw new Error(
+        `askAI('${this.integration.name}', '${this.stepName}'): at least one instruction is required`,
+      );
+    }
+
+    const request = NodeObjectBuilder.create()
+      .put('requester', this.integration.requesterId)
+      .put('instructions', mergedPrompt.toWrappedExpression())
+      .putExpression(
+        'context',
+        `document('${escapeSingleQuoted(this.integration.contextPath)}')`,
+      );
+
+    if (this.taskName) {
+      request.put('taskName', this.taskName);
+    }
+
+    const expectedResponsesNode = buildAiExpectedResponsesNode(
+      mergedExpectedResponses,
+      mergedNamedExpectedResponses,
+    );
+    if (expectedResponsesNode) {
+      request.putNode('expectedResponses', expectedResponsesNode);
+    }
+
+    return this.parent
+      .myOs()
+      .callOperationRequested(
+        this.integration.permissionFromChannel,
+        this.integration.sessionId.clone(),
+        'provideInstructions',
+        request.build(),
+        {
+          stepName: this.stepName,
+        },
+      );
+  }
+}
+
+export class AINamedEventFieldsBuilder {
+  private readonly fields: {
+    name: string;
+    description: string | null;
+  }[] = [];
+
+  constructor(private readonly eventName: string) {}
+
+  field(
+    fieldName: string,
+    description?: string | null | undefined,
+  ): AINamedEventFieldsBuilder {
+    this.fields.push({
+      name: requireNonEmpty(fieldName, 'field name'),
+      description: normalizeOptional(description),
+    });
+    return this;
+  }
+
+  build(): AINamedEventExpectation {
+    return {
+      name: requireNonEmpty(this.eventName, 'eventName'),
+      fields: this.fields.map((field) => ({
+        name: field.name,
+        description: field.description,
+      })),
+    };
+  }
+}
+
+class PromptExpressionBuilder {
+  private readonly segments: PromptSegment[] = [];
+
+  append(other: PromptExpressionBuilder): void {
+    if (other.segments.length === 0) {
+      return;
+    }
+
+    if (this.segments.length > 0) {
+      this.segments.push(PromptSegment.literal('\n'));
+    }
+
+    this.segments.push(...other.segments.map((segment) => segment.clone()));
+  }
+
+  text(value: string | null | undefined): void {
+    if (value == null) {
+      return;
+    }
+
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      return;
+    }
+
+    if (this.segments.length > 0) {
+      this.segments.push(PromptSegment.literal('\n'));
+    }
+
+    this.parseInterpolatedText(normalized);
+  }
+
+  isEmpty(): boolean {
+    return this.segments.length === 0;
+  }
+
+  toWrappedExpression(): string {
+    if (this.segments.length === 0) {
+      return wrapExpression("''");
+    }
+
+    return wrapExpression(
+      this.segments
+        .map((segment) =>
+          segment.expression
+            ? `(${segment.value})`
+            : `'${escapePromptLiteral(segment.value)}'`,
+        )
+        .join(' + '),
+    );
+  }
+
+  private parseInterpolatedText(rawText: string): void {
+    let index = 0;
+    while (index < rawText.length) {
+      const start = rawText.indexOf('${', index);
+      if (start < 0) {
+        const literal = rawText.slice(index);
+        if (literal.length > 0) {
+          this.segments.push(PromptSegment.literal(literal));
+        }
+        return;
+      }
+
+      if (start > index) {
+        this.segments.push(PromptSegment.literal(rawText.slice(index, start)));
+      }
+
+      const end = rawText.indexOf('}', start + 2);
+      if (end < 0) {
+        this.segments.push(PromptSegment.literal(rawText.slice(start)));
+        return;
+      }
+
+      const expression = rawText.slice(start + 2, end).trim();
+      if (expression.length > 0) {
+        this.segments.push(PromptSegment.expression(expression));
+      }
+      index = end + 1;
+    }
+  }
+}
+
+class PromptSegment {
+  private constructor(
+    readonly expression: boolean,
+    readonly value: string,
+  ) {}
+
+  static literal(value: string): PromptSegment {
+    return new PromptSegment(false, value);
+  }
+
+  static expression(value: string): PromptSegment {
+    return new PromptSegment(true, value);
+  }
+
+  clone(): PromptSegment {
+    return new PromptSegment(this.expression, this.value);
+  }
+}
+
+function buildAiExpectedResponsesNode(
+  expectedResponses: readonly BlueNode[],
+  expectedNamedEvents: readonly AINamedEventExpectation[],
+): BlueNode | null {
+  if (expectedResponses.length === 0 && expectedNamedEvents.length === 0) {
+    return null;
+  }
+
+  const items: BlueNode[] = [
+    ...expectedResponses.map((response) => response.clone()),
+    ...expectedNamedEvents.map((expectation) =>
+      buildNamedEventExpectationNode(expectation),
+    ),
+  ];
+
+  return items.length === 0 ? null : new BlueNode().setItems(items);
+}
+
+function buildNamedEventExpectationNode(
+  expectation: AINamedEventExpectation,
+): BlueNode {
+  const event = NodeObjectBuilder.create()
+    .type('Common/Named Event')
+    .put('name', expectation.name);
+
+  if (expectation.fields.length > 0) {
+    const payload = NodeObjectBuilder.create();
+    for (const field of expectation.fields) {
+      const descriptor = NodeObjectBuilder.create();
+      if (field.description) {
+        descriptor.setDescription(field.description);
+      }
+      payload.putNode(field.name, descriptor.build());
+    }
+    event.putNode('payload', payload.build());
+  }
+
+  return event.build();
+}
+
 function applyBootstrapOptions(
   payload: NodeObjectBuilder,
   optionsCustomizer?: (options: BootstrapOptionsBuilderLike) => void,
@@ -939,6 +1318,14 @@ function normalizeOptional(value: string | null | undefined): string | null {
 
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+function escapeSingleQuoted(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function escapePromptLiteral(value: string): string {
+  return escapeSingleQuoted(value).replace(/\n/g, '\\n');
 }
 
 function requireValueInput(value: BlueValueInput, label: string): void {
