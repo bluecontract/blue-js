@@ -17,6 +17,9 @@
     },
     {
       "path": "./libs/repository-contract"
+    },
+    {
+      "path": "./libs/sdk-dsl"
     }
   ]
 }

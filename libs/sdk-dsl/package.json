@@ -1,0 +1,35 @@
+{
+  "name": "@blue-labs/sdk-dsl",
+  "version": "3.5.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  },
+  "dependencies": {
+    "@blue-labs/language": "*",
+    "@blue-repository/types": "0.19.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.20.0"
+  }
+}

@@ -1,0 +1,118 @@
+---
+description: BLUE TS DSL SDK stage 2 scope, source-of-truth, and design guardrails
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+  - package.json
+  - tsconfig.base.json
+  - vitest.workspace.ts
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 2
+
+## Mission
+Implement stage 2 of the TypeScript DSL SDK on top of the existing stage-1 library in `libs/sdk-dsl`.
+Stage 2 extends the SDK with workflow handler authoring and richer step composition.
+Do not rewrite the library from scratch.
+
+## Source-of-truth policy
+1. `AGENTS.md`
+2. `docs/ts-dsl-sdk/stage-2-spec.md`
+3. `docs/ts-dsl-sdk/stage-2-testing-strategy.md`
+4. `docs/ts-dsl-sdk/stage-2-mapping-matrix.md`
+5. `docs/ts-dsl-sdk/stage-2-coverage-matrix.md`
+6. Java SDK files under `references/java-sdk/**`
+7. Current public APIs in `libs/language` and `libs/document-processor`
+
+For in-scope stage-2 features:
+- Java is the primary reference for API shape, naming, builder behavior, and intended mappings.
+- The public TypeScript runtime is the execution correctness gate.
+- If a proven conflict appears between Java parity and current runtime behavior, keep the runtime-correct behavior, document the deviation in `docs/ts-dsl-sdk/stage-2-deviations.md`, and add a focused regression test.
+
+Historical TypeScript SDK attempts or sibling branches are not a source of truth for this stage.
+
+## Scope in
+### New `DocBuilder` APIs
+- `onInit(workflowKey, steps => ...)`
+- `onEvent(workflowKey, eventTypeInput, steps => ...)`
+- `onNamedEvent(workflowKey, eventName, steps => ...)`
+- `onDocChange(workflowKey, path, steps => ...)`
+- `onChannelEvent(workflowKey, channelKey, eventTypeInput, steps => ...)`
+
+### New `StepsBuilder` APIs
+- `updateDocument(name, changeset => ...)`
+- `updateDocumentFromExpression(name, expression)`
+- `namedEvent(name, eventName)`
+- `namedEvent(name, eventName, payload => ...)`
+- `bootstrapDocument(stepName, documentNode, channelBindings)`
+- `bootstrapDocument(stepName, documentNode, channelBindings, options => ...)`
+- `bootstrapDocumentExpr(stepName, documentExpression, channelBindings, options => ...)`
+- `ext(factory)`
+
+### New internal helpers
+- `ChangesetBuilder`
+- `BootstrapOptionsBuilder`
+- small internal payload/object builder for event payload customizers if needed
+
+### Documentation
+- stage-2 spec, testing strategy, mapping matrix, deviations, coverage matrix
+
+## Scope out
+- `canEmit`
+- `directChange`, `contractsPolicy`, `proposeChange`, `acceptChange`, `rejectChange`
+- MyOS admin helper surface and MyOS-specific step namespaces
+- access / linked access / agency
+- AI
+- payment request builders
+- PayNote
+- patch / structure / generator pipeline
+- dependency upgrades
+- unrelated refactors
+
+## Design guardrails
+- Work on the existing `libs/sdk-dsl` library
+- Preserve stage-1 behavior and keep stage-1 tests green
+- Runtime must not depend on `document-processor`
+- Test code may use `document-processor`
+- Use only public imports from `@blue-labs/language`
+- Do not import internal helpers from `@blue-labs/language/lib/...`
+- If a helper is missing, implement a small local helper instead of reaching into internals
+- Keep root/workspace changes minimal
+- Do not upgrade dependency versions
+- Do not change `@blue-repository/types` version unless already upgraded in the target branch and explicitly intended
+- Do not add stage-3+ concepts “just because Java has them”
+
+## Behavioral guardrails
+- `onInit(...)` auto-creates or reuses `initLifecycleChannel`
+- `onEvent(...)` auto-creates or reuses `triggeredEventChannel`
+- `onNamedEvent(...)` auto-creates or reuses `triggeredEventChannel`
+- `onDocChange(...)` creates or reuses `<workflowKey>DocUpdateChannel`
+- `onChannelEvent(...)` binds to the provided existing channel key and does not silently replace it
+- `namedEvent(...)` must reject blank event names
+- `ChangesetBuilder` must reject empty patch paths
+- `ChangesetBuilder` must reject reserved processor-relative paths
+- stage-1 parity helper remains on canonical/preprocessed Blue trees
+
+## Documentation guardrails
+Keep these docs accurate as implementation proceeds:
+- `docs/ts-dsl-sdk/stage-2-spec.md`
+- `docs/ts-dsl-sdk/stage-2-testing-strategy.md`
+- `docs/ts-dsl-sdk/stage-2-mapping-matrix.md`
+- `docs/ts-dsl-sdk/stage-2-deviations.md`
+- `docs/ts-dsl-sdk/stage-2-coverage-matrix.md`
+
+Document every justified Java-to-TS or Java-to-runtime deviation.
+
+## Formatting guardrails
+- Keep fluent builder chains indented across lines.
+- Prefer:
+  ```ts
+  .onInit('initialize', steps => steps
+    .namedEvent('EmitReady', 'ready')
+    .replaceValue('SetStatus', '/status', 'ready'))
+  ```
+- Keep tests readable, with short comments describing:
+  1. what is being built,
+  2. what mapping shape is expected,
+  3. what runtime behavior is expected.

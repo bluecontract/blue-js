@@ -1,0 +1,174 @@
+Implement stage 2 of the BLUE TypeScript DSL SDK on top of the existing stage-1 implementation in this repo.
+
+Do not rewrite from scratch.
+Do not widen scope.
+Improve the existing `libs/sdk-dsl` implementation directly.
+
+This prompt is stored in blue-js/cursor-stage2-prompt.txt for future reference.
+
+Read first:
+- AGENTS.md
+- .cursor/rules/blue-ts-dsl-sdk-stage1.mdc
+- .cursor/rules/blue-ts-dsl-sdk-testing.mdc
+- .cursor/rules/blue-ts-dsl-sdk-stage2.mdc
+- .cursor/rules/blue-ts-dsl-sdk-stage2-testing.mdc
+- docs/ts-dsl-sdk/stage-1-spec.md
+- docs/ts-dsl-sdk/testing-strategy.md
+- docs/ts-dsl-sdk/stage-2-spec.md
+- docs/ts-dsl-sdk/stage-2-testing-strategy.md
+- docs/ts-dsl-sdk/stage-2-mapping-matrix.md
+- docs/ts-dsl-sdk/stage-2-coverage-matrix.md
+- docs/ts-dsl-sdk/stage-2-deviations.md
+
+Use Java reference files as the primary stage-2 behavioral spec:
+- references/java-sdk/docs/sdk-dsl-developers.md
+- references/java-sdk/docs/sdk-dsl-mapping-audit-reference.md
+- references/java-sdk/src/main/java/blue/language/sdk/DocBuilder.java
+- references/java-sdk/src/main/java/blue/language/sdk/internal/StepsBuilder.java
+- references/java-sdk/src/main/java/blue/language/sdk/internal/ChangesetBuilder.java
+- references/java-sdk/src/main/java/blue/language/sdk/internal/BootstrapOptionsBuilder.java
+- references/java-sdk/src/main/java/blue/language/sdk/internal/NodeObjectBuilder.java
+- references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java
+- references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderStepsDslParityTest.java
+
+Source-of-truth policy:
+- Java references are the primary source of truth for stage-2 public API shape, naming, parity scenarios, and mapping intent.
+- Existing public TypeScript runtime behavior in `libs/language` and `libs/document-processor` is the final execution correctness gate.
+- If a proven conflict appears between Java parity and current runtime behavior for an in-scope stage-2 feature, preserve runtime-correct behavior, document the mismatch in `docs/ts-dsl-sdk/stage-2-deviations.md`, and add a focused regression test.
+- Do not invent stage-3+ features.
+
+Mission:
+Extend the stage-1 DSL with workflow handlers and richer step composition.
+
+Required stage-2 APIs to implement:
+1. `DocBuilder.onInit(workflowKey, steps => ...)`
+2. `DocBuilder.onEvent(workflowKey, eventTypeInput, steps => ...)`
+3. `DocBuilder.onNamedEvent(workflowKey, eventName, steps => ...)`
+4. `DocBuilder.onDocChange(workflowKey, path, steps => ...)`
+5. `DocBuilder.onChannelEvent(workflowKey, channelKey, eventTypeInput, steps => ...)`
+
+6. `StepsBuilder.updateDocument(name, changeset => ...)`
+7. `StepsBuilder.updateDocumentFromExpression(name, expression)`
+8. `StepsBuilder.namedEvent(name, eventName)`
+9. `StepsBuilder.namedEvent(name, eventName, payload => ...)`
+10. `StepsBuilder.bootstrapDocument(stepName, documentNode, channelBindings)`
+11. `StepsBuilder.bootstrapDocument(stepName, documentNode, channelBindings, options => ...)`
+12. `StepsBuilder.bootstrapDocumentExpr(stepName, documentExpression, channelBindings, options => ...)`
+13. `StepsBuilder.ext(factory)`
+
+Required internal helpers:
+- `ChangesetBuilder`
+  - `replaceValue(path, value)`
+  - `replaceExpression(path, expression)`
+  - `addValue(path, value)`
+  - `remove(path)`
+- `BootstrapOptionsBuilder`
+  - `assignee(channelKey)`
+  - `defaultMessage(text)`
+  - `channelMessage(channelKey, text)`
+- a small internal payload builder for named-event / bootstrap payload customizers if needed
+
+Required semantics:
+- `onInit(...)` auto-creates or reuses `initLifecycleChannel`
+- `onEvent(...)` auto-creates or reuses `triggeredEventChannel`
+- `onNamedEvent(...)` auto-creates or reuses `triggeredEventChannel`
+- `onDocChange(...)` creates or reuses `<workflowKey>DocUpdateChannel`
+- `onChannelEvent(...)` binds to an existing channel key and matcher type
+- `namedEvent(...)` rejects blank event names
+- `bootstrapDocumentExpr(...)` rejects blank document expressions
+- `ChangesetBuilder` rejects blank patch paths
+- `ChangesetBuilder` rejects reserved processor-relative paths
+- stage-1 parity helper must remain on canonical/preprocessed `official` JSON + BlueId
+- stage-1 behavior and tests must remain intact
+
+Important note on named events:
+- Prefer the repository/runtime canonical named-event type when it is available and executable.
+- If the current repo/runtime requires a different compatible shape, keep runtime-correct behavior, document it in stage-2 deviations, and add a regression test.
+- Do not silently paper over named-event drift.
+
+Testing requirements:
+Port or adapt the relevant Java tests as closely as possible:
+- from `DocBuilderGeneralDslParityTest`:
+  - `onEventMatchesYamlDefinition`
+  - `onNamedEventMatchesYamlDefinition`
+  - `onDocChangeMatchesYamlDefinition`
+  - `onInitMatchesYamlDefinition`
+- from `DocBuilderChannelsDslParityTest`:
+  - `onChannelEventMatchesYamlDefinition`
+- from `DocBuilderStepsDslParityTest`:
+  - stage-2-relevant subset of `stepPrimitivesAndEmitHelpersBuildExpectedContracts`
+  - `bootstrapDocumentBuildersMapDocumentBindingsAndOptions`
+  - `eventEmitHelpersRequireExplicitStepNames`
+  - `extRejectsNullFactoriesAndNullExtensions`
+  - `extSupportsCustomStepExtensions`
+
+Do not widen scope into stage-3 areas from `DocBuilderStepsDslParityTest`:
+- triggerPayment / payment payload builders
+- requestBackwardPayment
+- capture namespace
+- payment ext builders
+
+Required processor-backed integration tests:
+- `onInit(...)` lifecycle workflow updates document state
+- `onEvent(...)` reacts to an emitted typed event and updates document state
+- `onNamedEvent(...)` reacts to an emitted named event and updates document state
+- `onDocChange(...)` reacts to a watched path update
+- `updateDocumentFromExpression(...)` applies a dynamic changeset
+- `bootstrapDocument(...)` emits the expected bootstrap request event
+
+If `onChannelEvent(...)` can be exercised cleanly through the public processor API, add a runtime test.
+If not, keep parity coverage and document the limitation in stage-2 deviations.
+
+Documentation deliverables:
+- update `docs/ts-dsl-sdk/stage-2-spec.md`
+- update `docs/ts-dsl-sdk/stage-2-testing-strategy.md`
+- update `docs/ts-dsl-sdk/stage-2-mapping-matrix.md`
+- update `docs/ts-dsl-sdk/stage-2-deviations.md`
+- update `docs/ts-dsl-sdk/stage-2-coverage-matrix.md`
+
+Recommended files to create or modify:
+- `libs/sdk-dsl/src/lib/doc-builder.ts`
+- `libs/sdk-dsl/src/lib/steps-builder.ts`
+- `libs/sdk-dsl/src/lib/internal/changeset-builder.ts`
+- `libs/sdk-dsl/src/lib/internal/bootstrap-options-builder.ts`
+- `libs/sdk-dsl/src/lib/internal/node-object-builder.ts`
+- `libs/sdk-dsl/src/index.ts`
+- new or extended tests under `libs/sdk-dsl/src/__tests__/...`
+
+Non-negotiable rules:
+- Do not rewrite from scratch.
+- Do not widen scope beyond stage 2.
+- Do not remove stage-1 coverage.
+- Do not weaken tests.
+- Do not replace Java-derived parity scenarios with easier TS-only scenarios.
+- Do not import `document-processor` into the runtime library build.
+- Do not upgrade dependencies unless already required by the target branch and clearly justified.
+- Do not silently document fake deviations to avoid doing implementation work.
+
+Definition of done for stage 2:
+1. Stage-1 tests still pass.
+2. Stage-2 APIs are implemented.
+3. Stage-2 parity tests are present and green.
+4. Required stage-2 runtime tests are present and green.
+5. Stage-2 docs are updated and accurate.
+6. Verification commands were run and all passed:
+   - `npm install`
+   - `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+   - `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+   - `npx eslint libs/sdk-dsl`
+   - `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+   - `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+When finished, report:
+- exactly which files were changed
+- which stage-2 APIs were implemented
+- which Java tests were ported/adapted
+- which runtime tests were added
+- whether any deviations remain
+- the exact verification commands you ran
+
+Do the work directly.
+Do not ask broad clarifying questions.
+If a true runtime conflict appears, document it and continue.

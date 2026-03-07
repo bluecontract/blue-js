@@ -1,0 +1,22 @@
+{
+  "name": "sdk-dsl",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/sdk-dsl/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "currentVersionResolver": "git-tag",
+      "preserveLocalDependencyProtocols": false
+    }
+  },
+  "tags": [],
+  "targets": {
+    "yalc-push": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["yalc push"]
+      }
+    }
+  }
+}

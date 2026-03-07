@@ -35,4 +35,30 @@ If a deviation is recorded, it must also be:
 
 ## Current deviations
 
-_No deviations recorded yet._
+### Truly unregistered string aliases are preserved inline but are not runtime-safe
+- **Status**: accepted
+- **Java source reference**:
+  - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java`
+  - `references/java-sdk/src/main/java/blue/language/sdk/DocBuilder.java`
+- **Minimal DSL repro**:
+  ```ts
+  const document = DocBuilder.doc()
+    .type('Custom/Unknown Type')
+    .buildDocument();
+  ```
+- **Java/reference expectation**:
+  - arbitrary string aliases are accepted as authoring inputs and can be asserted structurally in parity tests
+- **Runtime/actual behavior**:
+  - the current public TypeScript `Blue.preprocess(...)` rejects unknown aliases with:
+    - `Unknown type "..." found in type field. No BlueId mapping exists for this type.`
+- **Implementation decision**:
+  - sdk-dsl resolves repository-known aliases to repository BlueIds during authoring
+  - the parity harness registers `Custom/Type` so the Java custom-type parity case remains covered with the stronger preprocess-based oracle
+  - sdk-dsl preserves unknown aliases inline in the built `BlueNode`
+  - truly unregistered aliases remain non-runtime-safe and are covered by a focused regression test
+- **Rationale**:
+  - this keeps Java parity coverage for the stage-1 custom-type scenario without pretending that the current public runtime can execute arbitrary unregistered aliases
+  - it makes the runtime limitation explicit instead of silently treating unsupported aliases as executable
+- **Confirming tests**:
+  - `libs/sdk-dsl/src/lib/__tests__/doc-builder.general.parity.test.ts` — `matches identity and string type parity`
+  - `libs/sdk-dsl/src/lib/__tests__/type-input.test.ts` — `preserves unknown string aliases as inline values`

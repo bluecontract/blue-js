@@ -42,17 +42,19 @@ Every stage-1 TypeScript test file should start with a short comment showing whi
 This keeps parity work auditable.
 
 ## Required stage-1 TypeScript test files
-A good minimum set is:
-- `DocBuilder.general.parity.test.ts`
-- `DocBuilder.channels.parity.test.ts`
-- `DocBuilder.sections.parity.test.ts`
-- `DocBuilder.operations.parity.test.ts`
-- `StepsBuilder.core.test.ts`
-- `DocBuilder.counter.integration.test.ts`
-- a shared parity helper file such as `dslParity.ts`
-- a small processor test harness file
-
-Exact names may vary, but coverage must remain equivalent.
+The implemented stage-1 test suite is:
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.general.parity.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.channels.parity.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.sections.parity.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.operations.parity.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.expr.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/type-input.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/pointer.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/steps-builder.core.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.counter.integration.test.ts`
+- `libs/sdk-dsl/src/__tests__/support/dsl-parity.ts`
+- `libs/sdk-dsl/src/__tests__/support/processor-harness.ts`
+- `libs/sdk-dsl/src/__tests__/support/create-blue.ts`
 
 ## Required Java sources to port or faithfully reproduce
 - `references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java`
@@ -71,6 +73,12 @@ The parity helper should mirror the intent of Java `DslParityAssertions`:
 5. compare `calculateBlueIdSync(...)` where practical
 6. print useful YAML or JSON on failures
 
+The implemented parity helper uses a repository-backed `Blue` instance and:
+- preprocesses both nodes
+- compares `nodeToJson(..., 'official')`
+- compares calculated BlueIds after structural comparison
+- dumps both official YAML and official JSON payloads when mismatches occur
+
 ## Processor test harness requirements
 Use only public package APIs.
 The test harness should:
@@ -84,6 +92,14 @@ The test harness should:
    - representative operation processing
 
 Do not use deep relative imports into `src/...` across libraries.
+
+The implemented processor harness:
+- uses `@blue-labs/document-processor` public exports only
+- creates repository-backed `Blue` with `createDefaultMergingProcessor()`
+- registers pass-through marker processors for:
+  - `Conversation/Document Section`
+  - `Conversation/Contracts Change Policy`
+- exposes an operation-request timeline-entry helper used by the counter integration test
 
 ## Coverage matrix requirement
 Keep `docs/ts-dsl-sdk/stage-1-coverage-matrix.md` updated.
