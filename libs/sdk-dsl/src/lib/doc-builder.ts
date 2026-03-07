@@ -4,6 +4,10 @@ import {
   appendOperationImplementationSteps,
   buildCompositeChannelContract,
   buildDefaultChannelContract,
+  buildDocumentUpdateChannelContract,
+  buildLifecycleEventChannelContract,
+  buildSequentialWorkflowContract,
+  buildTriggeredEventChannelContract,
   ensureContracts,
   ensureOperationContract,
   getImplementationContractKey,
@@ -15,6 +19,7 @@ import {
   setOperationRequestDescription,
   setOperationRequestNode,
   setOperationRequestType,
+  TYPE_ALIASES,
 } from './internal/contracts.js';
 import { wrapExpression } from './internal/expressions.js';
 import { toBlueNode } from './internal/node-input.js';
@@ -168,6 +173,137 @@ export class DocBuilder {
     ensureContracts(this.document)[this.currentSection.key] =
       this.currentSection.buildNode();
     this.currentSection = undefined;
+    return this;
+  }
+
+  onInit(
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonBlank(workflowKey, 'Workflow key');
+    const contracts = ensureContracts(this.document);
+
+    if (!contracts.initLifecycleChannel) {
+      contracts.initLifecycleChannel = buildLifecycleEventChannelContract(
+        resolveTypeInput(TYPE_ALIASES.documentProcessingInitiated),
+      );
+    }
+
+    const steps = new StepsBuilder();
+    customizer(steps);
+    contracts[key] = buildSequentialWorkflowContract(
+      'initLifecycleChannel',
+      steps.build(),
+    );
+    this.trackContract('initLifecycleChannel');
+    this.trackContract(key);
+    return this;
+  }
+
+  onEvent(
+    workflowKey: string,
+    eventTypeInput: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonBlank(workflowKey, 'Workflow key');
+    const contracts = ensureContracts(this.document);
+
+    if (!contracts.triggeredEventChannel) {
+      contracts.triggeredEventChannel = buildTriggeredEventChannelContract();
+    }
+
+    const steps = new StepsBuilder();
+    customizer(steps);
+    const eventMatcher = new BlueNode().setType(resolveTypeInput(eventTypeInput));
+    contracts[key] = buildSequentialWorkflowContract(
+      'triggeredEventChannel',
+      steps.build(),
+      eventMatcher,
+    );
+    this.trackContract('triggeredEventChannel');
+    this.trackContract(key);
+    return this;
+  }
+
+  onNamedEvent(
+    workflowKey: string,
+    eventName: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const normalizedEventName = requireNonBlank(eventName, 'Event name');
+    const key = requireNonBlank(workflowKey, 'Workflow key');
+    const contracts = ensureContracts(this.document);
+
+    if (!contracts.triggeredEventChannel) {
+      contracts.triggeredEventChannel = buildTriggeredEventChannelContract();
+    }
+
+    const steps = new StepsBuilder();
+    customizer(steps);
+    const eventMatcher = new BlueNode()
+      .setType(resolveTypeInput(TYPE_ALIASES.namedEvent))
+      .addProperty('name', new BlueNode().setValue(normalizedEventName));
+    contracts[key] = buildSequentialWorkflowContract(
+      'triggeredEventChannel',
+      steps.build(),
+      eventMatcher,
+    );
+    this.trackContract('triggeredEventChannel');
+    this.trackContract(key);
+    return this;
+  }
+
+  onDocChange(
+    workflowKey: string,
+    path: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonBlank(workflowKey, 'Workflow key');
+    const normalizedPath = normalizePointer(path, 'Document update path');
+    const contracts = ensureContracts(this.document);
+    const channelKey = `${key}DocUpdateChannel`;
+
+    contracts[channelKey] = buildDocumentUpdateChannelContract(normalizedPath);
+
+    const steps = new StepsBuilder();
+    customizer(steps);
+    const eventMatcher = new BlueNode().setType(
+      resolveTypeInput(TYPE_ALIASES.documentUpdate),
+    );
+    contracts[key] = buildSequentialWorkflowContract(
+      channelKey,
+      steps.build(),
+      eventMatcher,
+    );
+    this.trackContract(channelKey);
+    this.trackContract(key);
+    return this;
+  }
+
+  onChannelEvent(
+    workflowKey: string,
+    channelKey: string,
+    eventTypeInput: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonBlank(workflowKey, 'Workflow key');
+    const normalizedChannelKey = requireNonBlank(channelKey, 'Channel key');
+    const contracts = ensureContracts(this.document);
+    if (!contracts[normalizedChannelKey]) {
+      throw new Error(
+        `Channel '${normalizedChannelKey}' must exist before onChannelEvent().`,
+      );
+    }
+
+    const steps = new StepsBuilder();
+    customizer(steps);
+    const eventMatcher = new BlueNode().setType(resolveTypeInput(eventTypeInput));
+    contracts[key] = buildSequentialWorkflowContract(
+      normalizedChannelKey,
+      steps.build(),
+      eventMatcher,
+    );
+    this.trackContract(key);
     return this;
   }
 

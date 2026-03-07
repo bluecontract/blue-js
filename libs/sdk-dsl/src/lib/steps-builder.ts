@@ -1,7 +1,10 @@
 import { BlueNode } from '@blue-labs/language';
 
 import { TYPE_ALIASES } from './internal/contracts.js';
+import { BootstrapOptionsBuilder } from './internal/bootstrap-options-builder.js';
+import { ChangesetBuilder } from './internal/changeset-builder.js';
 import { wrapExpression } from './internal/expressions.js';
+import { NodeObjectBuilder } from './internal/node-object-builder.js';
 import { toBlueNode } from './internal/node-input.js';
 import { resolveTypeInput } from './internal/type-input.js';
 import type { BlueValue, TypeInput } from './types.js';
@@ -20,14 +23,6 @@ function buildNamedStep(name: string, typeAlias: string): BlueNode {
     .setType(resolveTypeInput(typeAlias));
 }
 
-function buildReplaceChangesetEntry(path: string, value: BlueNode): BlueNode {
-  return new BlueNode().setProperties({
-    op: new BlueNode().setValue('replace'),
-    path: new BlueNode().setValue(path),
-    val: value,
-  });
-}
-
 export class StepsBuilder {
   private readonly steps: BlueNode[] = [];
 
@@ -41,29 +36,40 @@ export class StepsBuilder {
     return this;
   }
 
-  replaceValue(name: string, path: string, value: BlueValue): this {
+  updateDocument(
+    name: string,
+    customizer: (changeset: ChangesetBuilder) => void,
+  ): this {
+    const builder = new ChangesetBuilder();
+    customizer(builder);
+
     const step = buildNamedStep(name, TYPE_ALIASES.updateDocument).addProperty(
       'changeset',
-      new BlueNode().setItems([
-        buildReplaceChangesetEntry(path, toBlueNode(value)),
-      ]),
+      new BlueNode().setItems(builder.build()),
     );
     this.steps.push(step);
     return this;
   }
 
-  replaceExpression(name: string, path: string, expression: string): this {
+  updateDocumentFromExpression(name: string, expression: string): this {
     const step = buildNamedStep(name, TYPE_ALIASES.updateDocument).addProperty(
       'changeset',
-      new BlueNode().setItems([
-        buildReplaceChangesetEntry(
-          path,
-          new BlueNode().setValue(wrapExpression(expression)),
-        ),
-      ]),
+      new BlueNode().setValue(wrapExpression(expression)),
     );
     this.steps.push(step);
     return this;
+  }
+
+  replaceValue(name: string, path: string, value: BlueValue): this {
+    return this.updateDocument(name, (changeset) =>
+      changeset.replaceValue(path, value),
+    );
+  }
+
+  replaceExpression(name: string, path: string, expression: string): this {
+    return this.updateDocument(name, (changeset) =>
+      changeset.replaceExpression(path, expression),
+    );
   }
 
   triggerEvent(name: string, eventNode: BlueNode): this {
@@ -87,6 +93,79 @@ export class StepsBuilder {
     const eventNode = new BlueNode().setType(resolveTypeInput(typeInput));
     payloadCustomizer?.(eventNode);
     return this.triggerEvent(name, eventNode);
+  }
+
+  namedEvent(
+    name: string,
+    eventName: string,
+    payloadCustomizer?: (payload: NodeObjectBuilder) => void,
+  ): this {
+    const normalizedEventName = requireNonBlank(eventName, 'Event name');
+    const event = new BlueNode()
+      .setType(resolveTypeInput(TYPE_ALIASES.namedEvent))
+      .addProperty('name', new BlueNode().setValue(normalizedEventName));
+
+    if (payloadCustomizer) {
+      const payload = NodeObjectBuilder.create();
+      payloadCustomizer(payload);
+      event.addProperty('payload', payload.build());
+    }
+
+    return this.triggerEvent(name, event);
+  }
+
+  bootstrapDocument(
+    stepName: string,
+    documentNode: BlueNode,
+    channelBindings: Record<string, string>,
+    optionsCustomizer?: (options: BootstrapOptionsBuilder) => void,
+  ): this {
+    const payload = NodeObjectBuilder.create()
+      .type(TYPE_ALIASES.documentBootstrapRequested)
+      .putNode('document', documentNode)
+      .putStringMap('channelBindings', channelBindings);
+    if (optionsCustomizer) {
+      const options = new BootstrapOptionsBuilder();
+      optionsCustomizer(options);
+      options.applyTo(payload);
+    }
+    return this.triggerEvent(stepName, payload.build());
+  }
+
+  bootstrapDocumentExpr(
+    stepName: string,
+    documentExpression: string,
+    channelBindings: Record<string, string>,
+    optionsCustomizer?: (options: BootstrapOptionsBuilder) => void,
+  ): this {
+    const normalizedExpression = documentExpression.trim();
+    if (normalizedExpression.length === 0) {
+      throw new Error('Document expression cannot be empty.');
+    }
+
+    const payload = NodeObjectBuilder.create()
+      .type(TYPE_ALIASES.documentBootstrapRequested)
+      .putExpression('document', normalizedExpression)
+      .putStringMap('channelBindings', channelBindings);
+    if (optionsCustomizer) {
+      const options = new BootstrapOptionsBuilder();
+      optionsCustomizer(options);
+      options.applyTo(payload);
+    }
+    return this.triggerEvent(stepName, payload.build());
+  }
+
+  ext<TExtension>(
+    factory: ((steps: StepsBuilder) => TExtension) | null,
+  ): TExtension {
+    if (!factory) {
+      throw new Error('extensionFactory cannot be null');
+    }
+    const extension = factory(this);
+    if (extension == null) {
+      throw new Error('extensionFactory cannot return null');
+    }
+    return extension;
   }
 
   raw(stepNode: BlueNode): this {

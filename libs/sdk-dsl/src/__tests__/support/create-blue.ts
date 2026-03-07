@@ -3,6 +3,8 @@ import { createDefaultMergingProcessor } from '@blue-labs/document-processor';
 import { repository as blueRepository } from '@blue-repository/types';
 
 const customTypeBlueId = 'sdkDslCustomTypeBlueId';
+const namedEventBlueId = 'sdkDslNamedEventBlueId';
+const demoChildBlueId = 'sdkDslDemoChildBlueId';
 
 const customParityRepository: BlueRepository = {
   name: 'sdk.dsl.stage1.parity',
@@ -12,6 +14,8 @@ const customParityRepository: BlueRepository = {
       name: 'parity',
       aliases: {
         'Custom/Type': customTypeBlueId,
+        'Demo/Child': demoChildBlueId,
+        'Common/Named Event': namedEventBlueId,
       },
       typesMeta: {
         [customTypeBlueId]: {
@@ -25,10 +29,46 @@ const customParityRepository: BlueRepository = {
             },
           ],
         },
+        [namedEventBlueId]: {
+          status: 'stable',
+          name: 'Common/Named Event',
+          versions: [
+            {
+              repositoryVersionIndex: 0,
+              typeBlueId: namedEventBlueId,
+              attributesAdded: [],
+            },
+          ],
+        },
+        [demoChildBlueId]: {
+          status: 'stable',
+          name: 'Demo/Child',
+          versions: [
+            {
+              repositoryVersionIndex: 0,
+              typeBlueId: demoChildBlueId,
+              attributesAdded: [],
+            },
+          ],
+        },
       },
       contents: {
         [customTypeBlueId]: {
           name: 'Custom/Type',
+          type: {
+            blueId: Properties.DICTIONARY_TYPE_BLUE_ID,
+          },
+          properties: {},
+        },
+        [namedEventBlueId]: {
+          name: 'Common/Named Event',
+          type: {
+            blueId: Properties.DICTIONARY_TYPE_BLUE_ID,
+          },
+          properties: {},
+        },
+        [demoChildBlueId]: {
+          name: 'Demo/Child',
           type: {
             blueId: Properties.DICTIONARY_TYPE_BLUE_ID,
           },

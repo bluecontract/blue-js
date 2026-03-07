@@ -5,16 +5,16 @@ import { createTestBlue } from './create-blue.js';
 
 const blue = createTestBlue();
 
-export function assertDslMatchesYaml(
+function assertNormalizedNodesMatch(
   actual: BlueNode,
-  expectedYaml: string,
+  expected: BlueNode,
 ): void {
-  const expected = blue.preprocess(blue.yamlToNode(expectedYaml).clone());
+  const normalizedExpected = blue.preprocess(expected.clone());
   const normalizedActual = blue.preprocess(actual.clone());
 
-  const expectedBlueId = blue.calculateBlueIdSync(expected);
+  const expectedBlueId = blue.calculateBlueIdSync(normalizedExpected);
   const actualBlueId = blue.calculateBlueIdSync(normalizedActual);
-  const expectedJson = blue.nodeToJson(expected, 'official');
+  const expectedJson = blue.nodeToJson(normalizedExpected, 'official');
   const actualJson = blue.nodeToJson(normalizedActual, 'official');
 
   try {
@@ -25,7 +25,7 @@ export function assertDslMatchesYaml(
         `Expected BlueId: ${expectedBlueId}`,
         `Actual BlueId: ${actualBlueId}`,
         'Expected official YAML:',
-        blue.nodeToYaml(expected, 'official'),
+        blue.nodeToYaml(normalizedExpected, 'official'),
         'Actual official YAML:',
         blue.nodeToYaml(normalizedActual, 'official'),
         'Expected official JSON:',
@@ -37,4 +37,18 @@ export function assertDslMatchesYaml(
   }
 
   expect(actualBlueId).toBe(expectedBlueId);
+}
+
+export function assertDslMatchesYaml(
+  actual: BlueNode,
+  expectedYaml: string,
+): void {
+  assertNormalizedNodesMatch(actual, blue.yamlToNode(expectedYaml));
+}
+
+export function assertDslMatchesNode(
+  actual: BlueNode,
+  expected: BlueNode,
+): void {
+  assertNormalizedNodesMatch(actual, expected);
 }

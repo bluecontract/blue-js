@@ -6,13 +6,21 @@ import { resolveTypeInput } from './type-input.js';
 
 export const TYPE_ALIASES = {
   defaultChannel: 'Core/Channel',
+  lifecycleEventChannel: 'Core/Lifecycle Event Channel',
+  triggeredEventChannel: 'Core/Triggered Event Channel',
+  documentUpdateChannel: 'Core/Document Update Channel',
+  documentProcessingInitiated: 'Core/Document Processing Initiated',
+  documentUpdate: 'Core/Document Update',
   compositeChannel: 'Conversation/Composite Timeline Channel',
   documentSection: 'Conversation/Document Section',
   operation: 'Conversation/Operation',
+  sequentialWorkflow: 'Conversation/Sequential Workflow',
   sequentialWorkflowOperation: 'Conversation/Sequential Workflow Operation',
   javascriptCode: 'Conversation/JavaScript Code',
   updateDocument: 'Conversation/Update Document',
   triggerEvent: 'Conversation/Trigger Event',
+  namedEvent: 'Common/Named Event',
+  documentBootstrapRequested: 'Conversation/Document Bootstrap Requested',
 } as const;
 
 function ensureProperties(node: BlueNode): Record<string, BlueNode> {
@@ -48,6 +56,46 @@ export function buildCompositeChannelContract(channelKeys: string[]): BlueNode {
         channelKeys.map((channelKey) => new BlueNode().setValue(channelKey)),
       ),
     );
+}
+
+export function buildLifecycleEventChannelContract(eventType?: BlueNode): BlueNode {
+  const channel = new BlueNode().setType(
+    resolveTypeInput(TYPE_ALIASES.lifecycleEventChannel),
+  );
+  if (eventType) {
+    channel.addProperty('event', new BlueNode().setType(eventType.clone()));
+  }
+  return channel;
+}
+
+export function buildTriggeredEventChannelContract(): BlueNode {
+  return new BlueNode().setType(
+    resolveTypeInput(TYPE_ALIASES.triggeredEventChannel),
+  );
+}
+
+export function buildDocumentUpdateChannelContract(path: string): BlueNode {
+  return new BlueNode()
+    .setType(resolveTypeInput(TYPE_ALIASES.documentUpdateChannel))
+    .addProperty('path', new BlueNode().setValue(path));
+}
+
+export function buildSequentialWorkflowContract(
+  channelKey: string,
+  steps: BlueNode[],
+  eventNode?: BlueNode,
+): BlueNode {
+  const workflow = new BlueNode()
+    .setType(resolveTypeInput(TYPE_ALIASES.sequentialWorkflow))
+    .addProperty('channel', new BlueNode().setValue(channelKey))
+    .addProperty(
+      'steps',
+      new BlueNode().setItems(steps.map((step) => step.clone())),
+    );
+  if (eventNode) {
+    workflow.addProperty('event', eventNode.clone());
+  }
+  return workflow;
 }
 
 export function mergeSpecialization(
