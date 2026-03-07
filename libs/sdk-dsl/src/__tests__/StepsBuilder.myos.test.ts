@@ -3,6 +3,7 @@ Java references:
 - references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderMyOsDslParityTest.java
 */
 
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { blueIds as myOsBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 
 import { DocBuilder, StepsBuilder } from '../lib';
@@ -163,5 +164,161 @@ describe('StepsBuilder MyOS helpers', () => {
 
     const callEvent = steps[1]?.getProperties()?.event;
     expect(callEvent?.getProperties()?.request).toBeUndefined();
+  });
+
+  it('builds linked-doc, revoke, worker-agency, and worker-session helpers with runtime-correct shapes', () => {
+    const built = DocBuilder.doc()
+      .name('MyOS stage 4 helper parity')
+      .field('/targetSessionId', 'session-77')
+      .onInit('bootstrap', (steps) =>
+        steps
+          .myOs()
+          .requestLinkedDocsPermission(
+            'ownerChannel',
+            'REQ_LINKS',
+            DocBuilder.expr("document('/targetSessionId')"),
+            {
+              type: 'MyOS/Linked Documents Permission Set',
+              invoices: {
+                read: true,
+                singleOps: ['list'],
+              },
+            },
+          )
+          .myOs()
+          .revokeSingleDocPermission('REQ_REVOKE_SINGLE')
+          .myOs()
+          .revokeLinkedDocsPermission('REQ_REVOKE_LINKS')
+          .myOs()
+          .grantWorkerAgencyPermission('ownerChannel', 'REQ_WORKER_GRANT', [
+            {
+              type: 'MyOS/Worker Agency Permission',
+              workerType: {
+                type: 'Conversation/Response',
+              },
+              permissions: {
+                type: 'MyOS/Single Document Permission Set',
+                singleOps: ['run'],
+              },
+            },
+          ])
+          .myOs()
+          .revokeWorkerAgencyPermission('REQ_WORKER_REVOKE')
+          .myOs()
+          .startWorkerSession(
+            'ownerChannel',
+            {
+              name: 'Worker Session',
+            },
+            {
+              buyerChannel: {
+                email: 'buyer@example.com',
+              },
+            },
+            (options) =>
+              options
+                .defaultMessage('Started')
+                .capabilities((caps) => caps.participantsOrchestration(true)),
+            'StartWorker',
+          ),
+      )
+      .buildDocument();
+
+    const steps =
+      built.getContracts()?.bootstrap?.getProperties()?.steps?.getItems() ?? [];
+
+    expect(steps[0]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Linked Documents Permission Grant Requested'],
+    );
+    expect(
+      steps[0]?.getProperties()?.event?.getProperties()?.requestId?.getValue(),
+    ).toBe('REQ_LINKS');
+    expect(
+      steps[0]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.links?.getProperties()
+        ?.invoices?.getProperties()
+        ?.read?.getValue(),
+    ).toBe(true);
+
+    expect(steps[1]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Single Document Permission Revoke Requested'],
+    );
+    expect(
+      steps[1]?.getProperties()?.event?.getProperties()?.requestId?.getValue(),
+    ).toBe('REQ_REVOKE_SINGLE');
+    expect(
+      steps[1]?.getProperties()?.event?.getProperties()?.targetSessionId,
+    ).toBeUndefined();
+
+    expect(steps[2]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Linked Documents Permission Revoke Requested'],
+    );
+    expect(
+      steps[2]?.getProperties()?.event?.getProperties()?.requestId?.getValue(),
+    ).toBe('REQ_REVOKE_LINKS');
+
+    expect(steps[3]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Worker Agency Permission Grant Requested'],
+    );
+    expect(
+      steps[3]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.allowedWorkerAgencyPermissions?.getItems()?.[0]
+        ?.getProperties()
+        ?.workerType?.getType()
+        ?.getBlueId(),
+    ).toBe(conversationBlueIds['Conversation/Response']);
+    expect(
+      steps[3]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.allowedWorkerAgencyPermissions?.getItems()?.[0]
+        ?.getProperties()
+        ?.permissions?.getProperties()
+        ?.singleOps?.getItems()?.[0]
+        ?.getValue(),
+    ).toBe('run');
+
+    expect(steps[4]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Worker Agency Permission Revoke Requested'],
+    );
+    expect(
+      steps[4]?.getProperties()?.event?.getProperties()?.requestId?.getValue(),
+    ).toBe('REQ_WORKER_REVOKE');
+
+    expect(steps[5]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Start Worker Session Requested'],
+    );
+    expect(
+      steps[5]?.getProperties()?.event?.getProperties()?.onBehalfOf?.getValue(),
+    ).toBe('ownerChannel');
+    expect(
+      steps[5]?.getProperties()?.event?.getProperties()?.document?.getName(),
+    ).toBe('Worker Session');
+    expect(
+      steps[5]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.channelBindings?.getProperties()
+        ?.buyerChannel?.getProperties()
+        ?.email?.getValue(),
+    ).toBe('buyer@example.com');
+    expect(
+      steps[5]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.initialMessages?.getProperties()
+        ?.defaultMessage?.getValue(),
+    ).toBe('Started');
+    expect(
+      steps[5]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.capabilities?.getProperties()
+        ?.participantsOrchestration?.getValue(),
+    ).toBe(true);
   });
 });

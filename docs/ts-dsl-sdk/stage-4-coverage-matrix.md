@@ -1,11 +1,15 @@
 # BLUE TS DSL SDK — Stage 4 coverage matrix
 
-| Area | Parity coverage | Runtime coverage | Deviation doc | Status |
-|---|---|---|---|---|
-| `access(...)` | planned | planned | no | pending |
-| `accessLinked(...)` | planned | planned | no | pending |
-| `agency(...)` | planned | planned | no | pending |
-| access-related step helpers | planned | planned | no | pending |
-| linked-access-related step helpers | planned | planned | no | pending |
-| agency-related step helpers | planned | planned | no | pending |
-| deterministic naming / guardrails | planned | planned | no | pending |
+| Construct | Java reference(s) | Parity / guardrail coverage | Runtime coverage | Status | Deviation link | Notes |
+|---|---|---|---|---|---|---|
+| `DocBuilder.access(...)` lifecycle | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | `stage-4-deviations.md#subscribetocreatedsessionstrue-is-accepted-but-non-materializing` | Covers init-triggered request flow, granted/rejected/revoked handlers, and optional subscribe flow |
+| Access timing variants | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | N/A | Done | none | Includes init, event, doc-change, and manual timing |
+| `steps.access(...)` composition | `DocBuilderInteractionsDslParityTest.java`, `internal/StepsBuilder.java` | `DocBuilder.interactions.parity.test.ts` | covered indirectly by access integration flow | Done | `stage-4-deviations.md#single-document-and-linked-document-revoke-requests-use-the-minimal-runtime-schema` | Includes request, call, subscribe, and revoke helpers |
+| `DocBuilder.accessLinked(...)` lifecycle | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | none | Covers multi-link permission set materialization and requestId correlation |
+| `DocBuilder.agency(...)` lifecycle | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | `stage-4-deviations.md#start-worker-session-request-uses-the-runtime-envelope-not-the-java-poc-config-wrapper` | Covers worker-agency marker and granted/rejected/revoked handlers |
+| `steps.viaAgency(...)` composition | `DocBuilderInteractionsDslParityTest.java`, `internal/StepsBuilder.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | `stage-4-deviations.md#start-worker-session-request-uses-the-runtime-envelope-not-the-java-poc-config-wrapper` | Covers requestPermission and startSession |
+| Low-level stage-4 `steps.myOs()` helpers | `DocBuilderMyOsDslParityTest.java` | `StepsBuilder.myos.test.ts` | N/A | Done | `stage-4-deviations.md#single-document-and-linked-document-revoke-requests-use-the-minimal-runtime-schema` | Covers linked-doc requests, revoke requests, worker-agency requests, worker-session requests |
+| Access subscription-ready matching | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | `stage-4-deviations.md#access-subscription-ready-state-matches-direct-initiatedfailed-events` | Uses direct `MyOS/Subscription to Session Initiated/Failed` events with top-level `subscriptionId` |
+| Generated section tracking | Stage 1 section semantics, applied to Stage 4 flows | `DocBuilder.interactions.parity.test.ts` | N/A | Done | none | Verifies generated access / linked-access / agency contracts land in `relatedContracts` |
+| Unknown helpers / invalid builder usage | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | N/A | Done | none | Covers missing links and unknown `steps.access(...)` / `steps.viaAgency(...)` references |
+| Stage 3 composition regression | `DocBuilderInteractionsDslParityTest.java` | N/A | `DocBuilder.interactions.integration.test.ts` | Done | none | Confirms Stage 4 abstractions compose cleanly with existing Stage 3 subscription handlers |

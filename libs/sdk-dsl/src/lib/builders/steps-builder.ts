@@ -4,7 +4,6 @@ import type { ZodTypeAny } from 'zod';
 import type {
   BlueValueInput,
   BootstrapOptionsBuilderLike,
-  ChannelBindingsInput,
   ChangesetBuilderLike,
   EventPatternInput,
   MyOsCallOperationRequestedOptions,
@@ -16,12 +15,40 @@ import type {
 import { BootstrapOptionsBuilder } from '../internal/bootstrap-options-builder';
 import { ChangesetBuilder } from '../internal/changeset-builder';
 import { isBlank, wrapExpression } from '../internal/expression';
+import type {
+  AccessConfig,
+  AgencyConfig,
+  InteractionConfigRegistry,
+} from '../internal/interactions';
+import { EMPTY_INTERACTION_CONFIG_REGISTRY } from '../internal/interactions';
 import { NodeObjectBuilder } from '../internal/node-object-builder';
 import { resolveTypeInput } from '../internal/type-input';
 import { toBlueNode } from '../internal/value-to-node';
 
+type WorkerSessionBindingInput =
+  | Record<string, BlueValueInput>
+  | ReadonlyMap<string, BlueValueInput>;
+
+type WorkerSessionOptionsCustomizer =
+  | ((options: AgencySessionOptionsBuilder) => void)
+  | undefined;
+
+type SimpleStepOptions = {
+  readonly stepName?: string | null | undefined;
+  readonly name?: string | null | undefined;
+  readonly description?: string | null | undefined;
+};
+
+type RevokeRequestOptions = SimpleStepOptions & {
+  readonly reason?: string | null | undefined;
+};
+
 export class StepsBuilder {
   private readonly steps: BlueNode[] = [];
+
+  constructor(
+    private readonly interactionConfigs: InteractionConfigRegistry = EMPTY_INTERACTION_CONFIG_REGISTRY,
+  ) {}
 
   jsRaw(name: string, code: string): this {
     const step = new BlueNode()
@@ -124,18 +151,18 @@ export class StepsBuilder {
   bootstrapDocument(
     stepName: string,
     documentNode: BlueValueInput,
-    channelBindings: ChannelBindingsInput,
+    channelBindings: Record<string, string> | ReadonlyMap<string, string>,
   ): this;
   bootstrapDocument(
     stepName: string,
     documentNode: BlueValueInput,
-    channelBindings: ChannelBindingsInput,
+    channelBindings: Record<string, string> | ReadonlyMap<string, string>,
     optionsCustomizer: (options: BootstrapOptionsBuilderLike) => void,
   ): this;
   bootstrapDocument(
     stepName: string,
     documentNode: BlueValueInput,
-    channelBindings: ChannelBindingsInput,
+    channelBindings: Record<string, string> | ReadonlyMap<string, string>,
     optionsCustomizer?: (options: BootstrapOptionsBuilderLike) => void,
   ): this {
     const eventNode = NodeObjectBuilder.create()
@@ -150,7 +177,7 @@ export class StepsBuilder {
   bootstrapDocumentExpr(
     stepName: string,
     documentExpression: string,
-    channelBindings: ChannelBindingsInput,
+    channelBindings: Record<string, string> | ReadonlyMap<string, string>,
     optionsCustomizer?: (options: BootstrapOptionsBuilderLike) => void,
   ): this {
     if (isBlank(documentExpression)) {
@@ -185,6 +212,28 @@ export class StepsBuilder {
     return this.ext((steps) => new MyOsSteps(steps));
   }
 
+  access(accessName: string): AccessSteps {
+    const normalized = requireNonEmpty(accessName, 'access name');
+    const config = this.interactionConfigs.accessConfigs.get(normalized);
+    if (!config) {
+      throw new Error(
+        `Unknown access: '${normalized}'. Define it with .access("${normalized}")...done().`,
+      );
+    }
+    return new AccessSteps(this, config);
+  }
+
+  viaAgency(agencyName: string): AgencySteps {
+    const normalized = requireNonEmpty(agencyName, 'agency name');
+    const config = this.interactionConfigs.agencyConfigs.get(normalized);
+    if (!config) {
+      throw new Error(
+        `Unknown agency: '${normalized}'. Define it with .agency("${normalized}")...done().`,
+      );
+    }
+    return new AgencySteps(this, config);
+  }
+
   raw(stepNode: BlueNode): this {
     this.steps.push(toBlueNode(stepNode));
     return this;
@@ -205,13 +254,32 @@ export class StepsBuilder {
 }
 
 export class MyOsSteps {
-  constructor(private readonly parent: StepsBuilder) {}
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly adminChannelKey = 'myOsAdminChannel',
+  ) {}
 
   singleDocumentPermissionGrantRequested(
     onBehalfOf: string,
     targetSessionId: BlueValueInput,
     permissions: BlueValueInput,
     options?: MyOsSingleDocumentPermissionGrantRequestedOptions,
+  ): StepsBuilder {
+    return this.requestSingleDocPermission(
+      onBehalfOf,
+      options?.requestId,
+      targetSessionId,
+      permissions,
+      options,
+    );
+  }
+
+  requestSingleDocPermission(
+    onBehalfOf: string,
+    requestId: string | null | undefined,
+    targetSessionId: BlueValueInput,
+    permissions: BlueValueInput,
+    options?: SimpleStepOptions,
   ): StepsBuilder {
     requireValueInput(targetSessionId, 'targetSessionId');
     if (permissions == null) {
@@ -225,14 +293,102 @@ export class MyOsSteps {
       .putNode('permissions', permissions);
 
     putOptionalStepMetadata(eventNode, options);
-    const requestId = normalizeOptional(options?.requestId);
-    if (requestId) {
-      eventNode.put('requestId', requestId);
-    }
+    putOptionalString(eventNode, 'requestId', requestId);
 
     return this.parent.triggerEvent(
       resolveStepName(options?.stepName, 'RequestSingleDocumentPermission'),
       eventNode.build(),
+    );
+  }
+
+  requestLinkedDocsPermission(
+    onBehalfOf: string,
+    requestId: string | null | undefined,
+    targetSessionId: BlueValueInput,
+    links: BlueValueInput,
+    options?: SimpleStepOptions,
+  ): StepsBuilder {
+    requireValueInput(targetSessionId, 'targetSessionId');
+    if (links == null) {
+      throw new Error('links is required');
+    }
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('MyOS/Linked Documents Permission Grant Requested')
+      .put('onBehalfOf', requireNonEmpty(onBehalfOf, 'onBehalfOf'))
+      .putNode('targetSessionId', targetSessionId)
+      .putNode('links', links);
+
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', requestId);
+
+    return this.parent.triggerEvent(
+      resolveStepName(options?.stepName, 'RequestLinkedDocumentsPermission'),
+      eventNode.build(),
+    );
+  }
+
+  revokeSingleDocPermission(
+    requestId: string | null | undefined,
+    options?: RevokeRequestOptions,
+  ): StepsBuilder {
+    return this.emitRevokeRequested(
+      'MyOS/Single Document Permission Revoke Requested',
+      requestId,
+      resolveStepName(options?.stepName, 'RevokeSingleDocumentPermission'),
+      options,
+    );
+  }
+
+  revokeLinkedDocsPermission(
+    requestId: string | null | undefined,
+    options?: RevokeRequestOptions,
+  ): StepsBuilder {
+    return this.emitRevokeRequested(
+      'MyOS/Linked Documents Permission Revoke Requested',
+      requestId,
+      resolveStepName(options?.stepName, 'RevokeLinkedDocumentsPermission'),
+      options,
+    );
+  }
+
+  grantWorkerAgencyPermission(
+    onBehalfOf: string,
+    requestId: string | null | undefined,
+    allowedWorkerAgencyPermissions: BlueValueInput,
+    options?: SimpleStepOptions,
+  ): StepsBuilder {
+    if (allowedWorkerAgencyPermissions == null) {
+      throw new Error('allowedWorkerAgencyPermissions is required');
+    }
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('MyOS/Worker Agency Permission Grant Requested')
+      .put('onBehalfOf', requireNonEmpty(onBehalfOf, 'onBehalfOf'));
+
+    const permissionsNode = toBlueNode(allowedWorkerAgencyPermissions);
+    if (hasMeaningfulContent(permissionsNode)) {
+      eventNode.putNode('allowedWorkerAgencyPermissions', permissionsNode);
+    }
+
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', requestId);
+
+    return this.parent.triggerEvent(
+      resolveStepName(options?.stepName, 'RequestWorkerAgencyPermission'),
+      eventNode.build(),
+    );
+  }
+
+  revokeWorkerAgencyPermission(
+    requestId: string | null | undefined,
+    options?: RevokeRequestOptions,
+  ): StepsBuilder {
+    return this.emitRevokeRequested(
+      'MyOS/Worker Agency Permission Revoke Requested',
+      requestId,
+      resolveStepName(options?.stepName, 'RevokeWorkerAgencyPermission'),
+      options,
     );
   }
 
@@ -247,7 +403,7 @@ export class MyOsSteps {
       'id',
       requireNonEmpty(subscriptionId, 'subscriptionId'),
     );
-    if (options?.events != null) {
+    if (options?.events != null && options.events.length > 0) {
       subscription.putNode(
         'events',
         new BlueNode().setItems(
@@ -264,15 +420,22 @@ export class MyOsSteps {
       .putNode('subscription', subscription.build());
 
     putOptionalStepMetadata(eventNode, options);
-    const requestId = normalizeOptional(options?.requestId);
-    if (requestId) {
-      eventNode.put('requestId', requestId);
-    }
+    putOptionalString(eventNode, 'requestId', options?.requestId);
 
     return this.parent.triggerEvent(
       resolveStepName(options?.stepName, 'SubscribeToSession'),
       eventNode.build(),
     );
+  }
+
+  subscribeToSession(
+    targetSessionId: BlueValueInput,
+    subscriptionId: string,
+    ...eventPatterns: EventPatternInput[]
+  ): StepsBuilder {
+    return this.subscribeToSessionRequested(targetSessionId, subscriptionId, {
+      events: eventPatterns,
+    });
   }
 
   callOperationRequested(
@@ -295,15 +458,316 @@ export class MyOsSteps {
     }
 
     putOptionalStepMetadata(eventNode, options);
-    const requestId = normalizeOptional(options?.requestId);
-    if (requestId) {
-      eventNode.put('requestId', requestId);
-    }
+    putOptionalString(eventNode, 'requestId', options?.requestId);
 
     return this.parent.triggerEvent(
       resolveStepName(options?.stepName, 'CallOperation'),
       eventNode.build(),
     );
+  }
+
+  callOperation(
+    onBehalfOf: string,
+    targetSessionId: BlueValueInput,
+    operation: string,
+    request?: BlueValueInput,
+  ): StepsBuilder {
+    return this.callOperationRequested(
+      onBehalfOf,
+      targetSessionId,
+      operation,
+      request,
+    );
+  }
+
+  startWorkerSession(
+    onBehalfOf: string,
+    document: BlueValueInput,
+    channelBindings?: WorkerSessionBindingInput,
+    optionsCustomizer?: WorkerSessionOptionsCustomizer,
+    stepName?: string,
+  ): StepsBuilder {
+    if (document == null) {
+      throw new Error('document is required');
+    }
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('MyOS/Start Worker Session Requested')
+      .put('onBehalfOf', requireNonEmpty(onBehalfOf, 'onBehalfOf'))
+      .putNode('document', document);
+
+    const bindingsNode = buildBlueValueMapNode(channelBindings);
+    if (bindingsNode) {
+      eventNode.putNode('channelBindings', bindingsNode);
+    }
+
+    const options = new AgencySessionOptionsBuilder();
+    optionsCustomizer?.(options);
+    options.applyTo(eventNode);
+
+    return this.parent.triggerEvent(
+      resolveStepName(stepName, 'StartWorkerSession'),
+      eventNode.build(),
+    );
+  }
+
+  bootstrapDocument(
+    stepName: string,
+    documentNode: BlueValueInput,
+    channelBindings: Record<string, string> | ReadonlyMap<string, string>,
+    optionsCustomizer?: (options: BootstrapOptionsBuilderLike) => void,
+  ): StepsBuilder {
+    return this.parent.bootstrapDocument(
+      stepName,
+      documentNode,
+      channelBindings,
+      (options) => {
+        options.assignee(this.adminChannelKey);
+        optionsCustomizer?.(options);
+      },
+    );
+  }
+
+  private emitRevokeRequested(
+    typeInput: TypeInput,
+    requestId: string | null | undefined,
+    stepName: string,
+    options?: RevokeRequestOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(typeInput);
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', requestId);
+    putOptionalString(eventNode, 'reason', options?.reason);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+}
+
+export class AccessSteps {
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly config: AccessConfig,
+  ) {}
+
+  call(operation: string, request: BlueValueInput | null): StepsBuilder {
+    return this.parent
+      .myOs()
+      .callOperationRequested(
+        this.config.onBehalfOfChannel,
+        this.config.targetSessionId.clone(),
+        operation,
+        request ?? undefined,
+      );
+  }
+
+  callExpr(operation: string, requestExpression: string): StepsBuilder {
+    return this.call(operation, wrapExpression(requestExpression));
+  }
+
+  requestPermission(stepName = 'RequestPermission'): StepsBuilder {
+    return this.parent
+      .myOs()
+      .requestSingleDocPermission(
+        this.config.onBehalfOfChannel,
+        this.config.requestId,
+        this.config.targetSessionId.clone(),
+        this.config.permissions.clone(),
+        {
+          stepName,
+        },
+      );
+  }
+
+  subscribe(stepName = 'Subscribe'): StepsBuilder {
+    return this.parent
+      .myOs()
+      .subscribeToSessionRequested(
+        this.config.targetSessionId.clone(),
+        this.config.subscriptionId,
+        {
+          stepName,
+          events: this.config.subscriptionEvents,
+        },
+      );
+  }
+
+  revokePermission(stepName = 'RevokePermission'): StepsBuilder {
+    return this.parent.myOs().revokeSingleDocPermission(this.config.requestId, {
+      stepName,
+    });
+  }
+}
+
+export class AgencySteps {
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly config: AgencyConfig,
+  ) {}
+
+  requestPermission(stepName = 'RequestAgencyPermission'): StepsBuilder {
+    return this.parent
+      .myOs()
+      .grantWorkerAgencyPermission(
+        this.config.onBehalfOfChannel,
+        this.config.requestId,
+        new BlueNode().setItems(
+          this.config.allowedWorkerAgencyPermissions.map((permission) =>
+            permission.clone(),
+          ),
+        ),
+        {
+          stepName,
+        },
+      );
+  }
+
+  startSession(
+    stepName: string,
+    document: BlueValueInput,
+    bindingsCustomizer?: (bindings: AgencyBindingsBuilder) => void,
+    optionsCustomizer?: (options: AgencySessionOptionsBuilder) => void,
+  ): StepsBuilder {
+    const bindings = new AgencyBindingsBuilder();
+    bindingsCustomizer?.(bindings);
+
+    return this.parent
+      .myOs()
+      .startWorkerSession(
+        this.config.onBehalfOfChannel,
+        document,
+        bindings.build(),
+        optionsCustomizer,
+        stepName,
+      );
+  }
+}
+
+export class AgencyBindingsBuilder {
+  private readonly bindings = new Map<string, BlueNode>();
+
+  bind(channelKey: string, email: string): this {
+    return this.putBinding(channelKey, {
+      email: requireNonEmpty(email, 'email'),
+    });
+  }
+
+  bindAccount(channelKey: string, accountId: string): this {
+    return this.putBinding(channelKey, {
+      accountId: requireNonEmpty(accountId, 'accountId'),
+    });
+  }
+
+  bindNode(channelKey: string, binding: BlueValueInput): this {
+    return this.putBinding(channelKey, binding);
+  }
+
+  bindExpr(channelKey: string, expression: string): this {
+    if (isBlank(expression)) {
+      throw new Error('expression is required');
+    }
+    return this.putBinding(channelKey, wrapExpression(expression));
+  }
+
+  bindFromCurrentDoc(targetKey: string, sourceKey?: string): this {
+    const resolvedSource = requireNonEmpty(
+      sourceKey ?? targetKey,
+      'source channel key',
+    );
+    return this.bindExpr(
+      requireNonEmpty(targetKey, 'channel key'),
+      `document('/contracts/${resolvedSource}')`,
+    );
+  }
+
+  build(): Record<string, BlueNode> {
+    return Object.fromEntries(
+      [...this.bindings.entries()].map(([key, value]) => [key, value.clone()]),
+    );
+  }
+
+  private putBinding(channelKey: string, binding: BlueValueInput): this {
+    this.bindings.set(
+      requireNonEmpty(channelKey, 'channel key'),
+      toBlueNode(binding),
+    );
+    return this;
+  }
+}
+
+export class AgencySessionOptionsBuilder {
+  private defaultMessageText: string | null = null;
+  private readonly channelMessages = new Map<string, string>();
+  private readonly capabilityValues = new Map<string, boolean>();
+
+  defaultMessage(text: string | null | undefined): this {
+    this.defaultMessageText = normalizeOptional(text);
+    return this;
+  }
+
+  channelMessage(
+    channelKey: string | null | undefined,
+    text: string | null | undefined,
+  ): this {
+    const normalizedKey = normalizeOptional(channelKey);
+    const normalizedText = normalizeOptional(text);
+    if (normalizedKey && normalizedText) {
+      this.channelMessages.set(normalizedKey, normalizedText);
+    }
+    return this;
+  }
+
+  capabilities(
+    customizer: (capabilities: AgencySessionCapabilitiesBuilder) => void,
+  ): this {
+    if (typeof customizer !== 'function') {
+      throw new Error('capabilities customizer is required');
+    }
+
+    const builder = new AgencySessionCapabilitiesBuilder();
+    customizer(builder);
+    for (const [key, value] of builder.build().entries()) {
+      this.capabilityValues.set(key, value);
+    }
+    return this;
+  }
+
+  applyTo(payload: NodeObjectBuilder): void {
+    if (this.defaultMessageText || this.channelMessages.size > 0) {
+      const initialMessages = NodeObjectBuilder.create();
+      if (this.defaultMessageText) {
+        initialMessages.put('defaultMessage', this.defaultMessageText);
+      }
+      if (this.channelMessages.size > 0) {
+        initialMessages.putNode(
+          'perChannel',
+          buildStringRecordNode(this.channelMessages),
+        );
+      }
+      payload.putNode('initialMessages', initialMessages.build());
+    }
+
+    if (this.capabilityValues.size > 0) {
+      payload.putNode(
+        'capabilities',
+        buildBooleanRecordNode(this.capabilityValues),
+      );
+    }
+  }
+}
+
+export class AgencySessionCapabilitiesBuilder {
+  private readonly capabilities = new Map<string, boolean>();
+
+  set(name: string, enabled: boolean): this {
+    this.capabilities.set(requireNonEmpty(name, 'capability name'), enabled);
+    return this;
+  }
+
+  participantsOrchestration(enabled: boolean): this {
+    return this.set('participantsOrchestration', enabled);
+  }
+
+  build(): ReadonlyMap<string, boolean> {
+    return new Map(this.capabilities);
   }
 }
 
@@ -320,6 +784,53 @@ function applyBootstrapOptions(
   options.applyTo(payload);
 }
 
+function buildBlueValueMapNode(
+  input: WorkerSessionBindingInput | undefined,
+): BlueNode | null {
+  if (!input) {
+    return null;
+  }
+
+  const dictionary = new BlueNode();
+  const properties: Record<string, BlueNode> = {};
+  for (const [rawKey, value] of iterateBlueValueMap(input)) {
+    const normalizedKey = rawKey.trim();
+    if (normalizedKey.length === 0 || value == null) {
+      continue;
+    }
+    properties[normalizedKey] = toBlueNode(value);
+  }
+
+  if (Object.keys(properties).length === 0) {
+    return null;
+  }
+
+  dictionary.setProperties(properties);
+  return dictionary;
+}
+
+function buildStringRecordNode(values: ReadonlyMap<string, string>): BlueNode {
+  const dictionary = new BlueNode();
+  const properties: Record<string, BlueNode> = {};
+  for (const [key, value] of values.entries()) {
+    properties[key] = toBlueNode(value);
+  }
+  dictionary.setProperties(properties);
+  return dictionary;
+}
+
+function buildBooleanRecordNode(
+  values: ReadonlyMap<string, boolean>,
+): BlueNode {
+  const dictionary = new BlueNode();
+  const properties: Record<string, BlueNode> = {};
+  for (const [key, value] of values.entries()) {
+    properties[key] = toBlueNode(value);
+  }
+  dictionary.setProperties(properties);
+  return dictionary;
+}
+
 function hasMeaningfulContent(node: BlueNode): boolean {
   return (
     node.getValue() !== undefined ||
@@ -334,20 +845,20 @@ function hasMeaningfulContent(node: BlueNode): boolean {
 
 function putOptionalStepMetadata(
   node: NodeObjectBuilder,
-  options:
-    | MyOsSingleDocumentPermissionGrantRequestedOptions
-    | MyOsSubscribeToSessionRequestedOptions
-    | MyOsCallOperationRequestedOptions
-    | undefined,
+  options: SimpleStepOptions | undefined,
 ): void {
-  const name = normalizeOptional(options?.name);
-  if (name) {
-    node.put('name', name);
-  }
+  putOptionalString(node, 'name', options?.name);
+  putOptionalString(node, 'description', options?.description);
+}
 
-  const description = normalizeOptional(options?.description);
-  if (description) {
-    node.put('description', description);
+function putOptionalString(
+  node: NodeObjectBuilder,
+  key: string,
+  value: string | null | undefined,
+): void {
+  const normalized = normalizeOptional(value);
+  if (normalized) {
+    node.put(key, normalized);
   }
 }
 
@@ -369,6 +880,12 @@ function toEventPatternNode(eventPattern: EventPatternInput): BlueNode {
   }
 
   return toBlueNode(eventPattern as BlueValueInput);
+}
+
+function iterateBlueValueMap(
+  map: WorkerSessionBindingInput,
+): Iterable<[string, BlueValueInput]> {
+  return map instanceof Map ? map.entries() : Object.entries(map);
 }
 
 function resolveStepName(

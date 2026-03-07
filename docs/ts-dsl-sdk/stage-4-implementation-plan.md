@@ -1,64 +1,82 @@
 # BLUE TS DSL SDK — Stage 4 implementation plan
 
-## High-level goal
+## Goal
 
-Implement the higher-level MyOS interaction builders on top of the Stage 3 foundations without widening scope into AI or payments.
+Build the higher-level MyOS interaction builders on top of the existing Stage 3 foundations without widening scope into payments, AI, or later orchestration DSLs.
 
-## Phase 0 — Baseline and source review
+## Completed implementation
 
-- Verify Stage 1–3 are green on this branch.
-- Read stage-4-relevant sections of `final-dsl-sdk-mapping-reference.md`.
-- Search Java refs for:
-  - `access(`
-  - `accessLinked(`
-  - `agency(`
-  - nested builder implementations and `.done()` behavior
-  - tests covering SDPG / LDPG / worker-agency flows
+### Phase 0 — Baseline and source review
 
-## Phase 1 — API surface and internal state design
-
-- Define the TypeScript public API for:
+Completed:
+- verified the pre-Stage-4 `sdk-dsl` baseline,
+- read the stage-4 mapping sections from both mapping references,
+- searched Java source and tests for:
   - `access(...)`
   - `accessLinked(...)`
   - `agency(...)`
-- Mirror Java nested-builder ergonomics where feasible.
-- Decide which reusable Stage 3 primitives the builders should compose internally.
-- Keep key generation deterministic.
+  - nested `.done()` behavior
+  - access / linked-access / worker-agency / worker-session scenarios
 
-## Phase 2 — Implement access builders
+### Phase 1 — Shared interaction kernel
 
-- Implement the single-document permission builder and its `.done()` behavior.
-- Ensure emitted contracts/events align to mapping sections 5.2 and 5.10.
-- Add parity coverage.
+Completed in `libs/sdk-dsl/src/lib/internal/interactions.ts`:
+- shared config models for access, linked access, and agency,
+- deterministic token / id generation,
+- runtime-correct permission-set builders,
+- runtime-correct worker-agency permission materialization.
 
-## Phase 3 — Implement linked-access builders
+### Phase 2 — `DocBuilder.access(...)`
 
-- Implement the linked-documents permission builder and its `.done()` behavior.
-- Align to anchors/links plus mapping sections 5.3, 5.6, and 5.10.
-- Add parity coverage.
+Completed in `libs/sdk-dsl/src/lib/builders/doc-builder.ts`:
+- nested `AccessBuilder`,
+- deterministic request/subscription ids,
+- auto-materialized request / granted / rejected / revoked workflows,
+- optional follow-up subscribe workflow and subscription-ready / failed handlers,
+- support for init / event / doc-change / manual timing.
 
-## Phase 4 — Implement agency builders
+### Phase 3 — `DocBuilder.accessLinked(...)`
 
-- Implement the worker-agency builder and its `.done()` behavior.
-- Align to mapping section 5.8.
-- Add parity coverage.
+Completed in `libs/sdk-dsl/src/lib/builders/doc-builder.ts`:
+- nested `LinkedAccessBuilder`,
+- nested `link(...).done()` builder,
+- runtime-correct linked-doc permission set materialization,
+- request / granted / rejected / revoked workflows,
+- validation for missing links.
 
-## Phase 5 — Implement stage-4 step/helper namespaces
+### Phase 4 — `DocBuilder.agency(...)`
 
-- Implement the related `StepsBuilder` helper namespaces discovered from Java refs.
-- Prefer composition over re-implementing raw MyOS event shapes.
-- Keep wrappers thin and explicit.
+Completed in `libs/sdk-dsl/src/lib/builders/doc-builder.ts`:
+- nested `AgencyBuilder`,
+- worker-agency marker contract materialization,
+- request / granted / rejected / revoked workflows,
+- runtime-correct allowed-worker-permissions shape.
 
-## Phase 6 — Runtime integration matrix
+### Phase 5 — Stage-4 step composition
 
-Add processor-backed tests for:
-- single-document permission flow
-- linked-documents permission flow
-- worker-agency flow
-- one regression/composition scenario showing Stage 3 helpers still compose cleanly with Stage 4 abstractions
+Completed in `libs/sdk-dsl/src/lib/builders/steps-builder.ts`:
+- `steps.access(...)`
+- `steps.viaAgency(...)`
+- extended `steps.myOs()` helpers for linked-doc revoke / worker-agency / worker-session flows,
+- thin binding and session-option builders for worker-session startup.
 
-## Phase 7 — Docs and verification
+### Phase 6 — Processor-backed verification
 
-- Update stage-4 spec / mapping / coverage / deviations docs.
-- Run verification commands.
-- Report exact remaining deviations, if any.
+Completed with runtime tests for:
+- single-document access grant + subscription-ready flow,
+- linked-documents access flow correlated by `requestId`,
+- worker-agency grant followed by worker-session startup,
+- Stage 3 + Stage 4 composition regression.
+
+### Phase 7 — Docs and deviations
+
+Completed:
+- Stage 4 spec / testing / mapping / coverage docs updated,
+- runtime-first deviations recorded explicitly,
+- no document-processor changes introduced.
+
+## Implementation notes
+
+- Stage 4 composes Stage 3 matchers and MyOS helpers instead of bypassing them.
+- Runtime-confirmed repo shapes took precedence over legacy Java-PoC fields.
+- Section tracking and prior-stage behavior remain intact.

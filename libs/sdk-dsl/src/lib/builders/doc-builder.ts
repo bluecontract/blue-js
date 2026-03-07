@@ -9,6 +9,19 @@ import type {
 } from '../types';
 import { INTERNAL_BLUE } from '../internal/blue';
 import { ensureContracts, getContract } from '../internal/contracts';
+import {
+  type AccessConfig,
+  type AgencyConfig,
+  createLinkedDocumentsPermissionSet,
+  createPermissionFlagsNode,
+  createSingleDocumentPermissionSet,
+  createWorkerAgencyPermissionList,
+  type InteractionConfigRegistry,
+  type LinkedAccessConfig,
+  normalizeStringList,
+  type PermissionTiming,
+  tokenOf,
+} from '../internal/interactions';
 import { mergeBlueNodes } from '../internal/node-merge';
 import {
   getPointerNode,
@@ -56,8 +69,47 @@ type OperationState = {
   readonly implementation: ((steps: StepsBuilder) => void) | null;
 };
 
+type AccessState = {
+  readonly name: string;
+  readonly targetSessionId: BlueValueInput | null;
+  readonly onBehalfOfChannel: string | null;
+  readonly read: boolean;
+  readonly operations: readonly string[];
+  readonly statusPath: string | null;
+  readonly subscribeAfterGranted: boolean;
+  readonly subscriptionEvents: readonly TypeInput[];
+  readonly subscribeToCreatedSessions: boolean;
+  readonly permissionTiming: PermissionTiming;
+};
+
+type LinkedAccessState = {
+  readonly name: string;
+  readonly targetSessionId: BlueValueInput | null;
+  readonly onBehalfOfChannel: string | null;
+  readonly statusPath: string | null;
+  readonly links: Readonly<Record<string, LinkState>>;
+  readonly permissionTiming: PermissionTiming;
+};
+
+type LinkState = {
+  readonly read: boolean;
+  readonly operations: readonly string[];
+};
+
+type AgencyState = {
+  readonly name: string;
+  readonly onBehalfOfChannel: string | null;
+  readonly allowedTypes: readonly TypeInput[];
+  readonly allowedOperations: readonly string[];
+  readonly statusPath: string | null;
+  readonly permissionTiming: PermissionTiming;
+};
+
 export class DocBuilder {
   private currentSection: SectionTracker | null = null;
+  private readonly accessConfigs = new Map<string, AccessConfig>();
+  private readonly linkedAccessConfigs = new Map<string, LinkedAccessConfig>();
+  private readonly agencyConfigs = new Map<string, AgencyConfig>();
 
   private constructor(private readonly document: BlueNode) {}
 
@@ -197,6 +249,30 @@ export class DocBuilder {
       this.currentSection.buildNode();
     this.currentSection = null;
     return this;
+  }
+
+  access(accessName: string): AccessBuilder<this> {
+    return new AccessBuilder({
+      parent: this,
+      name: requireNonEmpty(accessName, 'access name'),
+      applyState: (state) => this.applyAccessState(state),
+    });
+  }
+
+  accessLinked(linkedAccessName: string): LinkedAccessBuilder<this> {
+    return new LinkedAccessBuilder({
+      parent: this,
+      name: requireNonEmpty(linkedAccessName, 'linked access name'),
+      applyState: (state) => this.applyLinkedAccessState(state),
+    });
+  }
+
+  agency(agencyName: string): AgencyBuilder<this> {
+    return new AgencyBuilder({
+      parent: this,
+      name: requireNonEmpty(agencyName, 'agency name'),
+      applyState: (state) => this.applyAgencyState(state),
+    });
   }
 
   operation(key: string): OperationBuilder<this>;
@@ -593,6 +669,234 @@ export class DocBuilder {
     );
   }
 
+  onAccessGranted(
+    accessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Single Document Permission Granted',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAccessRejected(
+    accessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Single Document Permission Rejected',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAccessRevoked(
+    accessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Single Document Permission Revoked',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onCallResponse(
+    accessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    this.requireAccessConfig(accessName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Call Operation Responded',
+      customizer,
+    );
+  }
+
+  onUpdate(
+    accessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onUpdate(
+    accessName: string,
+    workflowKey: string,
+    updateType: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onUpdate(
+    accessName: string,
+    workflowKey: string,
+    updateTypeOrCustomizer: TypeInput | ((steps: StepsBuilder) => void),
+    maybeCustomizer?: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireAccessConfig(accessName);
+    if (typeof updateTypeOrCustomizer === 'function') {
+      return this.onSubscriptionUpdate(
+        workflowKey,
+        config.subscriptionId,
+        updateTypeOrCustomizer,
+      );
+    }
+
+    const customizer = maybeCustomizer;
+    requireStepsCustomizer(customizer);
+    return this.onSubscriptionUpdate(
+      workflowKey,
+      config.subscriptionId,
+      updateTypeOrCustomizer,
+      customizer,
+    );
+  }
+
+  onLinkedAccessGranted(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Linked Documents Permission Granted',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onLinkedAccessRejected(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Linked Documents Permission Rejected',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onLinkedAccessRevoked(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Linked Documents Permission Revoked',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAgencyGranted(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireAgencyConfig(agencyName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Worker Agency Permission Granted',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAgencyRejected(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireAgencyConfig(agencyName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Worker Agency Permission Rejected',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onAgencyRevoked(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const config = this.requireAgencyConfig(agencyName);
+    return this.onMyOsResponse(
+      workflowKey,
+      'MyOS/Worker Agency Permission Revoked',
+      config.requestId,
+      customizer,
+    );
+  }
+
+  onSessionStarting(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Worker Session Starting',
+      customizer,
+    );
+  }
+
+  onSessionStarted(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Target Document Session Started',
+      customizer,
+    );
+  }
+
+  onSessionFailed(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(workflowKey, 'MyOS/Bootstrap Failed', customizer);
+  }
+
+  onParticipantResolved(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(workflowKey, 'MyOS/Participant Resolved', customizer);
+  }
+
+  onAllParticipantsReady(
+    agencyName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    this.requireAgencyConfig(agencyName);
+    return this.onEvent(workflowKey, 'MyOS/All Participants Ready', customizer);
+  }
+
   buildDocument(): BlueNode {
     if (this.currentSection) {
       throw new Error(
@@ -618,6 +922,405 @@ export class DocBuilder {
       this.document,
       normalizeRequiredPointer(path, 'field path'),
     );
+  }
+
+  private applyAccessState(state: AccessState): this {
+    const targetSessionId = requireBlueValueInput(
+      state.targetSessionId,
+      `access('${state.name}'): targetSessionId is required`,
+    );
+    const onBehalfOfChannel = requireNonEmpty(
+      state.onBehalfOfChannel,
+      `access('${state.name}'): onBehalfOf is required`,
+    );
+
+    this.ensureMyOsAdmin();
+
+    const token = tokenOf(state.name, 'ACCESS');
+    const config: AccessConfig = {
+      name: state.name,
+      token,
+      targetSessionId,
+      onBehalfOfChannel,
+      requestId: `REQ_ACCESS_${token}`,
+      subscriptionId: `SUB_ACCESS_${token}`,
+      permissions: createSingleDocumentPermissionSet({
+        read: state.read,
+        operations: state.operations,
+      }),
+      statusPath: state.statusPath,
+      subscribeAfterGranted: state.subscribeAfterGranted,
+      subscriptionEvents: filterTypeInputs(state.subscriptionEvents),
+      subscribeToCreatedSessions: state.subscribeToCreatedSessions,
+      permissionTiming: state.permissionTiming,
+    };
+
+    this.registerAccessConfig(config);
+
+    if (config.statusPath) {
+      this.field(config.statusPath, 'pending');
+    }
+
+    this.materializePermissionWorkflow(
+      `access${token}RequestPermission`,
+      config.permissionTiming,
+      (steps) =>
+        steps
+          .myOs()
+          .requestSingleDocPermission(
+            config.onBehalfOfChannel,
+            config.requestId,
+            config.targetSessionId.clone(),
+            config.permissions.clone(),
+          ),
+    );
+
+    this.onMyOsResponse(
+      `access${token}Granted`,
+      'MyOS/Single Document Permission Granted',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue('MarkAccessGranted', config.statusPath, 'granted');
+        }
+
+        if (config.subscribeAfterGranted) {
+          steps
+            .myOs()
+            .subscribeToSessionRequested(
+              config.targetSessionId.clone(),
+              config.subscriptionId,
+              {
+                stepName: 'SubscribeToGrantedSession',
+                events: config.subscriptionEvents,
+              },
+            );
+        }
+      },
+    );
+
+    this.onMyOsResponse(
+      `access${token}Rejected`,
+      'MyOS/Single Document Permission Rejected',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue(
+            'MarkAccessRejected',
+            config.statusPath,
+            'rejected',
+          );
+        }
+      },
+    );
+
+    this.onMyOsResponse(
+      `access${token}Revoked`,
+      'MyOS/Single Document Permission Revoked',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue('MarkAccessRevoked', config.statusPath, 'revoked');
+        }
+      },
+    );
+
+    if (config.subscribeAfterGranted) {
+      this.onTriggeredWithId(
+        `access${token}SubscriptionReady`,
+        'MyOS/Subscription to Session Initiated',
+        'subscriptionId',
+        config.subscriptionId,
+        (steps) => {
+          if (config.statusPath) {
+            steps.replaceValue(
+              'MarkAccessSubscribed',
+              config.statusPath,
+              'subscribed',
+            );
+          }
+        },
+      );
+
+      this.onTriggeredWithId(
+        `access${token}SubscriptionFailed`,
+        'MyOS/Subscription to Session Failed',
+        'subscriptionId',
+        config.subscriptionId,
+        (steps) => {
+          if (config.statusPath) {
+            steps.replaceValue(
+              'MarkAccessSubscriptionFailed',
+              config.statusPath,
+              'subscription-failed',
+            );
+          }
+        },
+      );
+    }
+
+    return this;
+  }
+
+  private applyLinkedAccessState(state: LinkedAccessState): this {
+    const targetSessionId = requireBlueValueInput(
+      state.targetSessionId,
+      `accessLinked('${state.name}'): targetSessionId is required`,
+    );
+    const onBehalfOfChannel = requireNonEmpty(
+      state.onBehalfOfChannel,
+      `accessLinked('${state.name}'): onBehalfOf is required`,
+    );
+    if (Object.keys(state.links).length === 0) {
+      throw new Error(
+        `accessLinked('${state.name}'): at least one link(...) is required`,
+      );
+    }
+
+    this.ensureMyOsAdmin();
+
+    const token = tokenOf(state.name, 'LINKEDACCESS');
+    const config: LinkedAccessConfig = {
+      name: state.name,
+      token,
+      targetSessionId,
+      onBehalfOfChannel,
+      requestId: `REQ_LINKED_ACCESS_${token}`,
+      statusPath: state.statusPath,
+      links: Object.fromEntries(
+        Object.entries(state.links).map(([linkName, linkState]) => [
+          linkName,
+          createPermissionFlagsNode({
+            read: linkState.read,
+            operations: linkState.operations,
+          }),
+        ]),
+      ),
+      permissionTiming: state.permissionTiming,
+    };
+
+    this.registerLinkedAccessConfig(config);
+
+    if (config.statusPath) {
+      this.field(config.statusPath, 'pending');
+    }
+
+    this.materializePermissionWorkflow(
+      `linkedAccess${token}RequestPermission`,
+      config.permissionTiming,
+      (steps) =>
+        steps
+          .myOs()
+          .requestLinkedDocsPermission(
+            config.onBehalfOfChannel,
+            config.requestId,
+            config.targetSessionId.clone(),
+            createLinkedDocumentsPermissionSet(config.links),
+          ),
+    );
+
+    this.onMyOsResponse(
+      `linkedAccess${token}Granted`,
+      'MyOS/Linked Documents Permission Granted',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue(
+            'MarkLinkedAccessGranted',
+            config.statusPath,
+            'granted',
+          );
+        }
+      },
+    );
+
+    this.onMyOsResponse(
+      `linkedAccess${token}Rejected`,
+      'MyOS/Linked Documents Permission Rejected',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue(
+            'MarkLinkedAccessRejected',
+            config.statusPath,
+            'rejected',
+          );
+        }
+      },
+    );
+
+    this.onMyOsResponse(
+      `linkedAccess${token}Revoked`,
+      'MyOS/Linked Documents Permission Revoked',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue(
+            'MarkLinkedAccessRevoked',
+            config.statusPath,
+            'revoked',
+          );
+        }
+      },
+    );
+
+    return this;
+  }
+
+  private applyAgencyState(state: AgencyState): this {
+    const onBehalfOfChannel = requireNonEmpty(
+      state.onBehalfOfChannel,
+      `agency('${state.name}'): onBehalfOf is required`,
+    );
+
+    this.ensureMyOsAdmin();
+    this.ensureWorkerAgencyMarker();
+
+    const token = tokenOf(state.name, 'AGENCY');
+    const config: AgencyConfig = {
+      name: state.name,
+      token,
+      onBehalfOfChannel,
+      requestId: `REQ_AGENCY_${token}`,
+      allowedWorkerAgencyPermissions: createWorkerAgencyPermissionList({
+        allowedTypes: filterTypeInputs(state.allowedTypes),
+        allowedOperations: state.allowedOperations,
+      }),
+      statusPath: state.statusPath,
+      permissionTiming: state.permissionTiming,
+    };
+
+    this.registerAgencyConfig(config);
+
+    if (config.statusPath) {
+      this.field(config.statusPath, 'pending');
+    }
+
+    this.materializePermissionWorkflow(
+      `agency${token}RequestPermission`,
+      config.permissionTiming,
+      (steps) =>
+        steps
+          .myOs()
+          .grantWorkerAgencyPermission(
+            config.onBehalfOfChannel,
+            config.requestId,
+            new BlueNode().setItems(
+              config.allowedWorkerAgencyPermissions.map((permission) =>
+                permission.clone(),
+              ),
+            ),
+          ),
+    );
+
+    this.onMyOsResponse(
+      `agency${token}Granted`,
+      'MyOS/Worker Agency Permission Granted',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue('MarkAgencyGranted', config.statusPath, 'granted');
+        }
+      },
+    );
+
+    this.onMyOsResponse(
+      `agency${token}Rejected`,
+      'MyOS/Worker Agency Permission Rejected',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue(
+            'MarkAgencyRejected',
+            config.statusPath,
+            'rejected',
+          );
+        }
+      },
+    );
+
+    this.onMyOsResponse(
+      `agency${token}Revoked`,
+      'MyOS/Worker Agency Permission Revoked',
+      config.requestId,
+      (steps) => {
+        if (config.statusPath) {
+          steps.replaceValue('MarkAgencyRevoked', config.statusPath, 'revoked');
+        }
+      },
+    );
+
+    return this;
+  }
+
+  private materializePermissionWorkflow(
+    workflowKey: string,
+    permissionTiming: PermissionTiming,
+    customizer: (steps: StepsBuilder) => void,
+  ): void {
+    switch (permissionTiming.kind) {
+      case 'onInit':
+        this.onInit(workflowKey, customizer);
+        return;
+      case 'onEvent':
+        this.onEvent(workflowKey, permissionTiming.eventType, customizer);
+        return;
+      case 'onDocChange':
+        this.onDocChange(workflowKey, permissionTiming.path, customizer);
+        return;
+      case 'manual':
+        return;
+    }
+  }
+
+  private registerAccessConfig(config: AccessConfig): void {
+    if (this.accessConfigs.has(config.name)) {
+      throw new Error(`Duplicate access config: ${config.name}`);
+    }
+    this.accessConfigs.set(config.name, config);
+  }
+
+  private registerLinkedAccessConfig(config: LinkedAccessConfig): void {
+    if (this.linkedAccessConfigs.has(config.name)) {
+      throw new Error(`Duplicate linked access config: ${config.name}`);
+    }
+    this.linkedAccessConfigs.set(config.name, config);
+  }
+
+  private registerAgencyConfig(config: AgencyConfig): void {
+    if (this.agencyConfigs.has(config.name)) {
+      throw new Error(`Duplicate agency config: ${config.name}`);
+    }
+    this.agencyConfigs.set(config.name, config);
+  }
+
+  private requireAccessConfig(accessName: string): AccessConfig {
+    const normalized = requireNonEmpty(accessName, 'access name');
+    const config = this.accessConfigs.get(normalized);
+    if (!config) {
+      throw new Error(`Unknown access: ${normalized}`);
+    }
+    return config;
+  }
+
+  private requireLinkedAccessConfig(
+    linkedAccessName: string,
+  ): LinkedAccessConfig {
+    const normalized = requireNonEmpty(linkedAccessName, 'linked access name');
+    const config = this.linkedAccessConfigs.get(normalized);
+    if (!config) {
+      throw new Error(`Unknown linked access: ${normalized}`);
+    }
+    return config;
+  }
+
+  private requireAgencyConfig(agencyName: string): AgencyConfig {
+    const normalized = requireNonEmpty(agencyName, 'agency name');
+    const config = this.agencyConfigs.get(normalized);
+    if (!config) {
+      throw new Error(`Unknown agency: ${normalized}`);
+    }
+    return config;
   }
 
   private applyOperationState(state: OperationState): this {
@@ -730,7 +1433,7 @@ export class DocBuilder {
 
   private buildSteps(customizer: (steps: StepsBuilder) => void): BlueNode[] {
     requireStepsCustomizer(customizer);
-    const builder = new StepsBuilder();
+    const builder = new StepsBuilder(this.createInteractionRegistry());
     customizer(builder);
     return builder.build();
   }
@@ -779,6 +1482,10 @@ export class DocBuilder {
     this.trackContract('triggeredEventChannel');
   }
 
+  private ensureMyOsAdmin(): void {
+    this.myOsAdmin();
+  }
+
   private isMyOsAdminBaseDocument(): boolean {
     const documentType = this.document.getType();
     const adminBaseBlueId = resolveTypeInput(MYOS_ADMIN_BASE_TYPE).getBlueId();
@@ -808,6 +1515,25 @@ export class DocBuilder {
     }
 
     this.trackContract('initLifecycleChannel');
+  }
+
+  private ensureWorkerAgencyMarker(): void {
+    const contracts = ensureContracts(this.document);
+    if (!contracts.workerAgency) {
+      contracts.workerAgency = new BlueNode().setType(
+        resolveTypeInput('MyOS/MyOS Worker Agency'),
+      );
+    }
+
+    this.trackContract('workerAgency');
+  }
+
+  private createInteractionRegistry(): InteractionConfigRegistry {
+    return {
+      accessConfigs: new Map(this.accessConfigs),
+      linkedAccessConfigs: new Map(this.linkedAccessConfigs),
+      agencyConfigs: new Map(this.agencyConfigs),
+    };
   }
 
   private trackField(path: string): void {
@@ -1002,8 +1728,329 @@ class OperationBuilderImpl<
   }
 }
 
+export class AccessBuilder<P extends DocBuilder> {
+  private targetSessionIdValue: BlueValueInput | null = null;
+  private onBehalfOfChannel: string | null = null;
+  private readValue = false;
+  private readonly operationsList: string[] = [];
+  private statusPathValue: string | null = null;
+  private subscribeAfterGrantedValue = false;
+  private readonly subscriptionEventTypes: TypeInput[] = [];
+  private subscribeToCreatedSessionsValue = false;
+  private permissionTiming: PermissionTiming = { kind: 'onInit' };
+
+  constructor(
+    private readonly config: {
+      readonly parent: P;
+      readonly name: string;
+      readonly applyState: (state: AccessState) => P;
+    },
+  ) {}
+
+  targetSessionId(targetSessionId: BlueValueInput): AccessBuilder<P> {
+    this.targetSessionIdValue = targetSessionId;
+    return this;
+  }
+
+  onBehalfOf(channelKey: string): AccessBuilder<P> {
+    this.onBehalfOfChannel = channelKey;
+    return this;
+  }
+
+  read(read: boolean): AccessBuilder<P> {
+    this.readValue = read;
+    return this;
+  }
+
+  operations(...operations: string[]): AccessBuilder<P> {
+    this.operationsList.push(...operations);
+    return this;
+  }
+
+  statusPath(statusPath: string): AccessBuilder<P> {
+    this.statusPathValue = requireNonEmpty(statusPath, 'statusPath');
+    return this;
+  }
+
+  subscribeAfterGranted(): AccessBuilder<P> {
+    this.subscribeAfterGrantedValue = true;
+    return this;
+  }
+
+  subscriptionEvents(...eventTypes: TypeInput[]): AccessBuilder<P> {
+    this.subscriptionEventTypes.push(
+      ...eventTypes.filter(
+        (eventType): eventType is TypeInput => eventType != null,
+      ),
+    );
+    return this;
+  }
+
+  subscribeToCreatedSessions(enabled: boolean): AccessBuilder<P> {
+    this.subscribeToCreatedSessionsValue = enabled;
+    return this;
+  }
+
+  requestPermissionOnInit(): AccessBuilder<P> {
+    this.permissionTiming = { kind: 'onInit' };
+    return this;
+  }
+
+  requestPermissionOnEvent(eventType: TypeInput): AccessBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onEvent',
+      eventType,
+    };
+    return this;
+  }
+
+  requestPermissionOnDocChange(path: string): AccessBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onDocChange',
+      path: requireNonEmpty(path, 'path'),
+    };
+    return this;
+  }
+
+  requestPermissionManually(): AccessBuilder<P> {
+    this.permissionTiming = { kind: 'manual' };
+    return this;
+  }
+
+  done(): P {
+    return this.config.applyState({
+      name: this.config.name,
+      targetSessionId: this.targetSessionIdValue,
+      onBehalfOfChannel: this.onBehalfOfChannel,
+      read: this.readValue,
+      operations: normalizeStringList(this.operationsList),
+      statusPath: this.statusPathValue,
+      subscribeAfterGranted: this.subscribeAfterGrantedValue,
+      subscriptionEvents: this.subscriptionEventTypes,
+      subscribeToCreatedSessions: this.subscribeToCreatedSessionsValue,
+      permissionTiming: this.permissionTiming,
+    });
+  }
+}
+
+export class LinkedAccessBuilder<P extends DocBuilder> {
+  private targetSessionIdValue: BlueValueInput | null = null;
+  private onBehalfOfChannel: string | null = null;
+  private statusPathValue: string | null = null;
+  private readonly linkStates = new Map<string, LinkState>();
+  private permissionTiming: PermissionTiming = { kind: 'onInit' };
+
+  constructor(
+    private readonly config: {
+      readonly parent: P;
+      readonly name: string;
+      readonly applyState: (state: LinkedAccessState) => P;
+    },
+  ) {}
+
+  targetSessionId(targetSessionId: BlueValueInput): LinkedAccessBuilder<P> {
+    this.targetSessionIdValue = targetSessionId;
+    return this;
+  }
+
+  onBehalfOf(channelKey: string): LinkedAccessBuilder<P> {
+    this.onBehalfOfChannel = channelKey;
+    return this;
+  }
+
+  statusPath(statusPath: string): LinkedAccessBuilder<P> {
+    this.statusPathValue = requireNonEmpty(statusPath, 'statusPath');
+    return this;
+  }
+
+  link(linkName: string): LinkedAccessLinkBuilder<P> {
+    const normalized = requireNonEmpty(linkName, 'link name');
+    const existing = this.linkStates.get(normalized) ?? {
+      read: false,
+      operations: [],
+    };
+
+    return new LinkedAccessLinkBuilder({
+      parent: this,
+      name: normalized,
+      initial: existing,
+      commit: (state) => {
+        this.linkStates.set(normalized, state);
+        return this;
+      },
+    });
+  }
+
+  requestPermissionOnInit(): LinkedAccessBuilder<P> {
+    this.permissionTiming = { kind: 'onInit' };
+    return this;
+  }
+
+  requestPermissionOnEvent(eventType: TypeInput): LinkedAccessBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onEvent',
+      eventType,
+    };
+    return this;
+  }
+
+  requestPermissionOnDocChange(path: string): LinkedAccessBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onDocChange',
+      path: requireNonEmpty(path, 'path'),
+    };
+    return this;
+  }
+
+  requestPermissionManually(): LinkedAccessBuilder<P> {
+    this.permissionTiming = { kind: 'manual' };
+    return this;
+  }
+
+  done(): P {
+    return this.config.applyState({
+      name: this.config.name,
+      targetSessionId: this.targetSessionIdValue,
+      onBehalfOfChannel: this.onBehalfOfChannel,
+      statusPath: this.statusPathValue,
+      links: Object.fromEntries(this.linkStates.entries()),
+      permissionTiming: this.permissionTiming,
+    });
+  }
+}
+
+export class LinkedAccessLinkBuilder<P extends DocBuilder> {
+  private readValue: boolean;
+  private readonly operationsList: string[];
+
+  constructor(
+    private readonly config: {
+      readonly parent: LinkedAccessBuilder<P>;
+      readonly name: string;
+      readonly initial: LinkState;
+      readonly commit: (state: LinkState) => LinkedAccessBuilder<P>;
+    },
+  ) {
+    this.readValue = config.initial.read;
+    this.operationsList = [...config.initial.operations];
+  }
+
+  read(read: boolean): LinkedAccessLinkBuilder<P> {
+    this.readValue = read;
+    return this;
+  }
+
+  operations(...operations: string[]): LinkedAccessLinkBuilder<P> {
+    this.operationsList.push(...operations);
+    return this;
+  }
+
+  done(): LinkedAccessBuilder<P> {
+    return this.config.commit({
+      read: this.readValue,
+      operations: normalizeStringList(this.operationsList),
+    });
+  }
+}
+
+export class AgencyBuilder<P extends DocBuilder> {
+  private onBehalfOfChannel: string | null = null;
+  private readonly allowedTypeInputs: TypeInput[] = [];
+  private readonly allowedOperationKeys: string[] = [];
+  private statusPathValue: string | null = null;
+  private permissionTiming: PermissionTiming = { kind: 'onInit' };
+
+  constructor(
+    private readonly config: {
+      readonly parent: P;
+      readonly name: string;
+      readonly applyState: (state: AgencyState) => P;
+    },
+  ) {}
+
+  onBehalfOf(channelKey: string): AgencyBuilder<P> {
+    this.onBehalfOfChannel = channelKey;
+    return this;
+  }
+
+  allowedTypes(...allowedTypes: TypeInput[]): AgencyBuilder<P> {
+    this.allowedTypeInputs.push(
+      ...allowedTypes.filter(
+        (allowedType): allowedType is TypeInput => allowedType != null,
+      ),
+    );
+    return this;
+  }
+
+  allowedOperations(...allowedOperations: string[]): AgencyBuilder<P> {
+    this.allowedOperationKeys.push(...allowedOperations);
+    return this;
+  }
+
+  statusPath(statusPath: string): AgencyBuilder<P> {
+    this.statusPathValue = requireNonEmpty(statusPath, 'statusPath');
+    return this;
+  }
+
+  requestPermissionOnInit(): AgencyBuilder<P> {
+    this.permissionTiming = { kind: 'onInit' };
+    return this;
+  }
+
+  requestPermissionOnEvent(eventType: TypeInput): AgencyBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onEvent',
+      eventType,
+    };
+    return this;
+  }
+
+  requestPermissionOnDocChange(path: string): AgencyBuilder<P> {
+    this.permissionTiming = {
+      kind: 'onDocChange',
+      path: requireNonEmpty(path, 'path'),
+    };
+    return this;
+  }
+
+  requestPermissionManually(): AgencyBuilder<P> {
+    this.permissionTiming = { kind: 'manual' };
+    return this;
+  }
+
+  done(): P {
+    return this.config.applyState({
+      name: this.config.name,
+      onBehalfOfChannel: this.onBehalfOfChannel,
+      allowedTypes: this.allowedTypeInputs,
+      allowedOperations: normalizeStringList(this.allowedOperationKeys),
+      statusPath: this.statusPathValue,
+      permissionTiming: this.permissionTiming,
+    });
+  }
+}
+
 function createDefaultChannelContract(): BlueNode {
   return new BlueNode().setType(resolveTypeInput(DEFAULT_CHANNEL_TYPE));
+}
+
+function filterTypeInputs(values: readonly TypeInput[]): TypeInput[] {
+  return values.filter((value): value is TypeInput => value != null);
+}
+
+function requireBlueValueInput(
+  value: BlueValueInput | null,
+  message: string,
+): BlueNode {
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  if (typeof value === 'string' && value.trim().length === 0) {
+    throw new Error(message);
+  }
+
+  return toBlueNode(value);
 }
 
 function requireNonEmpty(
