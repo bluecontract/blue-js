@@ -25,7 +25,6 @@ describe('StepsBuilder MyOS helpers', () => {
             },
             {
               requestId: 'REQ_1',
-              grantSessionSubscriptionOnResult: true,
             },
           )
           .myOs()
@@ -90,11 +89,9 @@ describe('StepsBuilder MyOS helpers', () => {
         ?.getValue(),
     ).toBe('sync');
     expect(
-      steps[0]
-        ?.getProperties()
-        ?.event?.getProperties()
-        ?.grantSessionSubscriptionOnResult?.getValue(),
-    ).toBe(true);
+      steps[0]?.getProperties()?.event?.getProperties()
+        ?.grantSessionSubscriptionOnResult,
+    ).toBeUndefined();
 
     expect(steps[1]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
       myOsBlueIds['MyOS/Subscribe to Session Requested'],

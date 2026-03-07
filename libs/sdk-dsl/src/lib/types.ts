@@ -55,7 +55,6 @@ export interface BootstrapOptionsBuilderLike {
 export interface MyOsSingleDocumentPermissionGrantRequestedOptions {
   requestId?: string | null | undefined;
   stepName?: string | null | undefined;
-  grantSessionSubscriptionOnResult?: boolean | null | undefined;
   name?: string | null | undefined;
   description?: string | null | undefined;
 }

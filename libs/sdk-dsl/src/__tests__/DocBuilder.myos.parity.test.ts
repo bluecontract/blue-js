@@ -4,6 +4,8 @@ Java references:
 - references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderMyOsDslParityTest.java
 */
 
+import { blueIds as myOsBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
+
 import { DocBuilder } from '../lib';
 import { assertDslMatchesYaml } from './dsl-parity';
 
@@ -47,6 +49,23 @@ contracts:
       .buildDocument();
 
     expect(fromDsl.getContracts()).toBeUndefined();
+  });
+
+  it('supports the myOsAdmin(channelKey) overload', () => {
+    const fromDsl = DocBuilder.doc()
+      .name('Custom admin channel parity')
+      .myOsAdmin('customAdminChannel')
+      .buildDocument();
+
+    expect(
+      fromDsl.getContracts()?.customAdminChannel?.getType()?.getBlueId(),
+    ).toBe(myOsBlueIds['MyOS/MyOS Timeline Channel']);
+    expect(
+      fromDsl
+        .getContracts()
+        ?.myOsAdminUpdate?.getProperties()
+        ?.channel?.getValue(),
+    ).toBe('customAdminChannel');
   });
 
   it('matches onTriggeredWithId parity for subscription updates', () => {

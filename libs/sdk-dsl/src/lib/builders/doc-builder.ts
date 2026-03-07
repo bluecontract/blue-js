@@ -330,21 +330,31 @@ export class DocBuilder {
     );
   }
 
-  myOsAdmin(): this {
-    if (this.isMyOsAdminBaseDocument()) {
+  myOsAdmin(): this;
+  myOsAdmin(channelKey: string): this;
+  myOsAdmin(channelKey?: string): this {
+    const adminChannelKey =
+      channelKey == null
+        ? 'myOsAdminChannel'
+        : requireNonEmpty(channelKey, 'channel key');
+
+    if (
+      adminChannelKey === 'myOsAdminChannel' &&
+      this.isMyOsAdminBaseDocument()
+    ) {
       return this;
     }
 
     const contracts = ensureContracts(this.document);
-    contracts.myOsAdminChannel = mergeBlueNodes(
+    contracts[adminChannelKey] = mergeBlueNodes(
       new BlueNode().setType(resolveTypeInput(MYOS_TIMELINE_CHANNEL_TYPE)),
-      contracts.myOsAdminChannel ?? new BlueNode(),
+      contracts[adminChannelKey] ?? new BlueNode(),
     );
 
     const adminUpdate = (contracts.myOsAdminUpdate ?? new BlueNode()).clone();
     adminUpdate.setType(resolveTypeInput(OPERATION_TYPE));
     adminUpdate.setDescription(MYOS_ADMIN_UPDATE_DESCRIPTION);
-    adminUpdate.addProperty('channel', toBlueNode('myOsAdminChannel'));
+    adminUpdate.addProperty('channel', toBlueNode(adminChannelKey));
     adminUpdate.addProperty(
       'request',
       new BlueNode().setType(resolveTypeInput('List')),
@@ -365,7 +375,7 @@ export class DocBuilder {
     );
     contracts.myOsAdminUpdateImpl = adminUpdateImpl;
 
-    this.trackContract('myOsAdminChannel');
+    this.trackContract(adminChannelKey);
     this.trackContract('myOsAdminUpdate');
     this.trackContract('myOsAdminUpdateImpl');
     return this;

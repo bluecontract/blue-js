@@ -229,9 +229,6 @@ export class MyOsSteps {
     if (requestId) {
       eventNode.put('requestId', requestId);
     }
-    if (options?.grantSessionSubscriptionOnResult === true) {
-      eventNode.put('grantSessionSubscriptionOnResult', true);
-    }
 
     return this.parent.triggerEvent(
       resolveStepName(options?.stepName, 'RequestSingleDocumentPermission'),
