@@ -1,31 +1,31 @@
-Implement a focused “stage 4.5 reference hardening” pass for `libs/sdk-dsl`.
+Implement a focused “stage 4.5 canonical scenario hardening” pass for `libs/sdk-dsl`.
 
 Context:
 - Stages 1–4 are already implemented on the main DSL branch.
-- The repo already contains the reference scenario suites under:
-  - `docs/ts-dsl-sdk/reference-suites/**`
-- Those suites are based on real `lcloud` and bank behavior and are now the acceptance corpus for complex flows.
+- The repo already contains the canonical scenario corpus under:
+  - `docs/ts-dsl-sdk/canonical-scenarios/**`
+- Those scenario groups are now the acceptance corpus for complex flows.
 - Do NOT widen scope to stage 5+ implementation.
 - This task is about strengthening tests and fixing any exposed drift in stage 3 and stage 4 behavior.
 
 Read first:
 - `AGENTS.md`
-- `.cursor/rules/blue-ts-dsl-reference-suites.mdc`
+- `.cursor/rules/blue-ts-dsl-canonical-scenarios.mdc`
 - `.cursor/rules/blue-ts-dsl-reference-hardening-stage34.mdc`
 - `.cursor/rules/blue-ts-dsl-reference-hardening-testing.mdc`
-- `docs/ts-dsl-sdk/reference-suites/reference-suites-overview.md`
-- `docs/ts-dsl-sdk/reference-suites/reference-suite-manifest.md`
-- `docs/ts-dsl-sdk/reference-suites/reference-suite-rules.md`
-- `docs/ts-dsl-sdk/reference-suites/suite-00-seed-blueprints.md`
-- `docs/ts-dsl-sdk/reference-suites/suite-10-myos-stage3-foundations.md`
-- `docs/ts-dsl-sdk/reference-suites/suite-20-myos-stage4-permissions-and-orchestration.md`
+- `docs/ts-dsl-sdk/canonical-scenarios/overview.md`
+- `docs/ts-dsl-sdk/canonical-scenarios/manifest.md`
+- `docs/ts-dsl-sdk/canonical-scenarios/rules.md`
+- `docs/ts-dsl-sdk/canonical-scenarios/seed-blueprints.md`
+- `docs/ts-dsl-sdk/canonical-scenarios/myos-foundations.md`
+- `docs/ts-dsl-sdk/canonical-scenarios/permissions-and-orchestration.md`
 - `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
 - `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
 
 This prompt is stored in blue-js/cursor-stage45-reference-hardening-prompt.txt for future reference.
 
 Mission:
-Harden stage 3 and stage 4 by reconstructing real reference scenarios with the TypeScript DSL SDK and proving zero-drift behavior.
+Harden stage 3 and stage 4 by reconstructing canonical scenarios with the TypeScript DSL SDK and proving zero-drift behavior.
 
 Primary goal:
 For selected scenarios from Suite 00 / 10 / 20, add or migrate tests so that:
@@ -54,7 +54,7 @@ Required deliverables:
    - Suite 10
    - Suite 20
 3. Reusable comparison/test support helpers for:
-   - canonical reference doc -> BlueNode
+   - canonical doc -> BlueNode
    - DSL doc -> BlueNode
    - preprocess + official JSON equivalence
    - BlueId equivalence where practical
@@ -62,8 +62,8 @@ Required deliverables:
 
 Required approach:
 A. Start with shared helpers:
-- create support for loading or reconstructing canonical reference docs used by the suites,
-- create equivalence helpers for “reference document vs DSL-authored document”.
+- create support for loading or reconstructing canonical docs used by the scenario groups,
+- create equivalence helpers for “canonical document vs DSL-authored document”.
 
 B. Then implement reference tests in this order:
 1. Suite 00 seed blueprints:
@@ -85,7 +85,7 @@ C. For each scenario add:
 3. if the scenario corresponds to a complex macro builder, verify the materialized contracts/workflows explicitly
 
 Important:
-- Use the reference suites as the scenario source.
+- Use the canonical scenario docs as the scenario source.
 - Use `final-dsl-sdk-mapping-reference.md` and `complex-flow-materialization-reference.md` as the source of truth for final shape/materialization.
 - Java examples remain secondary only when helpful for API ergonomics or naming.
 
@@ -96,9 +96,9 @@ Expected test style:
 - primary oracle is preprocess + official JSON equivalence, not raw YAML string formatting
 
 Good test file naming examples:
-- `ReferenceSuite00.seed-blueprints.test.ts`
-- `ReferenceSuite10.myos-foundations.test.ts`
-- `ReferenceSuite20.permissions-orchestration.test.ts`
+- `CanonicalSeedBlueprints.test.ts`
+- `CanonicalMyOsFoundations.test.ts`
+- `CanonicalMyOsPermissionsAndOrchestration.test.ts`
 
 If a reference scenario cannot be represented yet because the DSL surface is genuinely missing a required stage-3/4 feature:
 - document it in `stage-45-reference-hardening-deviations.md`

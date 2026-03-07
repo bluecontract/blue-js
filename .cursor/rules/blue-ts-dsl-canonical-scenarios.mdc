@@ -1,15 +1,15 @@
 ---
-description: Use real MyOS/bank authored-document suites as acceptance corpus for complex DSL flows
+description: Use the public canonical scenario corpus as the acceptance corpus for complex DSL flows
 globs:
-  - docs/ts-dsl-sdk/reference-suites/**
+  - docs/ts-dsl-sdk/canonical-scenarios/**
   - libs/sdk-dsl/src/**
 alwaysApply: false
 ---
 
-# BLUE TS DSL SDK — Reference scenario suites
+# BLUE TS DSL SDK — Canonical scenario corpus
 
 ## Goal
-Use real authored-document scenarios from `lcloud` and `demo-bank-app` as the acceptance corpus for complex DSL flows.
+Use the public canonical scenario corpus as the acceptance corpus for complex DSL flows.
 
 ## What counts as in-scope
 - authored documents defined inline in integration/business tests
@@ -23,7 +23,7 @@ Use real authored-document scenarios from `lcloud` and `demo-bank-app` as the ac
 - persistence/idempotency semantics not driven by authored document shape
 
 ## Required test pattern
-For each adopted reference scenario:
+For each adopted canonical scenario:
 1. preserve the raw authored-document intent,
 2. rebuild it with DSL,
 3. compare canonical structure after preprocess,

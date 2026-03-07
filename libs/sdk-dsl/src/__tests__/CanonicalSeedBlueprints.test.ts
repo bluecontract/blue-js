@@ -1,9 +1,3 @@
-/*
-Reference suite sources:
-- docs/ts-dsl-sdk/reference-suites/suite-00-seed-blueprints.md
-- references/lcloud/lcloud-develop/tests/integration/tests-db/docHelpers.ts
-*/
-
 import { DocBuilder } from '../lib';
 import {
   initializeDocument,
@@ -12,11 +6,11 @@ import {
   processOperationRequest,
 } from './processor-harness';
 import {
-  assertReferenceDocMatchesDsl,
-  assertReferenceEventListsMatchDsl,
-  assertReferenceNodeMatchesDsl,
-  referenceDocToNode,
-} from './reference-suite-support';
+  assertCanonicalDocMatchesDsl,
+  assertCanonicalEventListsMatchDsl,
+  assertCanonicalNodeMatchesDsl,
+  canonicalDocToNode,
+} from './canonical-scenario-support';
 
 const EMIT_CALL_OPERATION_REQUESTED_CODE = `
             const payload = event.message.request;
@@ -346,20 +340,20 @@ function buildDslParticipantsOrchestrationDocument(runId: string) {
     .buildDocument();
 }
 
-describe('Reference Suite 00 — Seed blueprints', () => {
-  describe('DOC-SEED-05 — Call operation request document', () => {
-    it('matches the reference blueprint structurally', () => {
+describe('Canonical seed blueprints', () => {
+  describe('Call operation request blueprint', () => {
+    it('matches the canonical blueprint structurally', () => {
       const runId = 'suite00-call';
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceCallOperationRequestDocument(runId),
         buildDslCallOperationRequestDocument(runId),
       );
     });
 
-    it('matches the reference runtime behavior for emitted call-operation requests', async () => {
+    it('matches the canonical runtime behavior for emitted call-operation requests', async () => {
       const runId = 'suite00-call-runtime';
       const reference = await initializeDocument(
-        referenceDocToNode(buildReferenceCallOperationRequestDocument(runId)),
+        canonicalDocToNode(buildReferenceCallOperationRequestDocument(runId)),
       );
       const dsl = await initializeDocument(
         buildDslCallOperationRequestDocument(runId),
@@ -388,30 +382,30 @@ describe('Reference Suite 00 — Seed blueprints', () => {
         request,
       });
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referenceResult.triggeredEvents,
         dslResult.triggeredEvents,
       );
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceResult.document,
         dslResult.document,
       );
     });
   });
 
-  describe('DOC-SEED-01 — Participants orchestration document', () => {
-    it('matches the reference blueprint structurally', () => {
+  describe('Participants orchestration blueprint', () => {
+    it('matches the canonical blueprint structurally', () => {
       const runId = 'suite00-participants';
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceParticipantsOrchestrationDocument(runId),
         buildDslParticipantsOrchestrationDocument(runId),
       );
     });
 
-    it('matches the reference runtime behavior for participant request emission and approved contract application', async () => {
+    it('matches the canonical runtime behavior for participant request emission and approved contract application', async () => {
       const runId = 'suite00-participants-runtime';
       const reference = await initializeDocument(
-        referenceDocToNode(
+        canonicalDocToNode(
           buildReferenceParticipantsOrchestrationDocument(runId),
         ),
       );
@@ -445,11 +439,11 @@ describe('Reference Suite 00 — Seed blueprints', () => {
         request,
       });
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referenceRequested.triggeredEvents,
         dslRequested.triggeredEvents,
       );
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceRequested.document,
         dslRequested.document,
       );
@@ -480,7 +474,7 @@ describe('Reference Suite 00 — Seed blueprints', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceApproved.document,
         dslApproved.document,
       );

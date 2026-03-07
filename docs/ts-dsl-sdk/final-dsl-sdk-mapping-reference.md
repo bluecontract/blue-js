@@ -31,7 +31,7 @@ Na potrzeby tego dokumentu źródłem prawdy są, w tej kolejności:
 1. **aktualne repo typów** `blue-repository-js`:
    - `libs/types/src/packages/**/schemas/*.ts`
    - `libs/types/src/packages/**/blue-ids.ts`
-2. **aktualny backend / runtime MyOS w `lcloud-develop`**:
+2. **aktualny backend / runtime MyOS**:
    - `docs/system/*.md`
    - `src/lib/blue/localRepository/definitions/*.blue`
    - testy integracyjne / jednostkowe dokumentujące runtime behavior
@@ -42,7 +42,7 @@ Na potrzeby tego dokumentu źródłem prawdy są, w tej kolejności:
 
 Jeżeli wystąpi konflikt między:
 - Java POC / starymi docs,
-- a aktualnym `blue-repository-js` lub aktualnym runtime `lcloud-develop`,
+- a aktualnym `blue-repository-js` lub aktualnym runtime MyOS,
 
 to **wygrywają aktualne repo types i runtime**.
 
@@ -51,8 +51,8 @@ to **wygrywają aktualne repo types i runtime**.
 W dokumencie używam czterech poziomów pewności:
 
 - **runtime-confirmed** – kształt jest potwierdzony zarówno przez aktualne repo types, jak i przez użycie / zachowanie backendu MyOS lub processor/runtime tests.
-- **repo-confirmed** – kształt jest potwierdzony przez aktualne repo types, ale nie został jednoznacznie potwierdzony jako aktywnie używany w `lcloud-develop`.
-- **app-confirmed** – kształt jest potwierdzony przez aktualny flow aplikacyjny (np. Demo Bank), nawet jeśli nie jest centralnym flow w `lcloud-develop`.
+- **repo-confirmed** – kształt jest potwierdzony przez aktualne repo types, ale nie został jednoznacznie potwierdzony jako aktywnie używany w aktualnym runtime MyOS.
+- **app-confirmed** – kształt jest potwierdzony przez aktualny flow aplikacyjny, nawet jeśli nie jest centralnym flow w aktualnym runtime MyOS.
 - **deferred** – po analizie nadal brakuje wystarczającej pewności, więc dokument nie zgaduje i nie promuje tego do natywnego helpera.
 
 ### 0.4. Co z tego wynika dla DSL SDK
@@ -161,7 +161,7 @@ W finalnym DSL trzeba rozdzielić:
 
 Najważniejszy przykład:
 - `Conversation/Document Bootstrap Requested` to **Blue event type**,
-- bootstrap endpoint w `lcloud-develop` przyjmuje osobny request payload,
+- bootstrap endpoint w aktualnym runtime przyjmuje osobny request payload,
 - `MyOS/Document Session Bootstrap` to osobny, wewnętrzny dokument bootstrap tracking.
 
 DSL helper nie powinien mieszać tych warstw.
@@ -389,7 +389,7 @@ actions:
 ```
 
 Runtime note:
-- po analizie `lcloud-develop` nie potwierdzono jeszcze aktywnego backendowego flow opartego o ten typ,
+- po analizie aktualnego runtime nie potwierdzono jeszcze aktywnego backendowego flow opartego o ten typ,
 - ale typ istnieje w aktualnym repo, więc mapping DSL powinien odpowiadać repo dokładnie.
 
 Wniosek dla DSL:
@@ -431,9 +431,9 @@ initialMessages:
 
 **Ważna uwaga:**
 
-To jest **event repo-native**, ale w `lcloud-develop` nie znaleziono aktywnego backendowego flow, który bezpośrednio konsumuje ten event jako główny bootstrap entrypoint.
+To jest **event repo-native**, ale w aktualnym runtime nie znaleziono aktywnego backendowego flow, który bezpośrednio konsumuje ten event jako główny bootstrap entrypoint.
 
-Jednocześnie `lcloud-develop` ma:
+Jednocześnie aktualny runtime ma:
 - bootstrap **endpoint**,
 - oraz wewnętrzny dokument `MyOS/Document Session Bootstrap`.
 
@@ -1092,7 +1092,7 @@ Wspierane subtype linków:
 - `MyOS/Document Type Link`
 
 Runtime semantics:
-- `lcloud-develop` parsuje links z `contracts` i rozróżnia link type jako:
+- aktualny runtime parsuje links z `contracts` i rozróżnia link type jako:
   - SESSION,
   - DOCUMENT,
   - DOCUMENT_TYPE.
@@ -1179,7 +1179,7 @@ Dla DSL helpera participants orchestration należy przyjąć wzorzec dokumentu:
 - workflow `addApprovedParticipant` reagujący na `MyOS/Participant Resolved` i dodający kanał do `/contracts`,
 - workflow `removeApprovedParticipant` reagujący na `MyOS/Removing Participant Responded` i usuwający kanał z `/contracts`.
 
-To jest dokładnie ten wzorzec, który potwierdzają integration tests w `lcloud-develop`.
+To jest dokładnie ten wzorzec, który potwierdzają integration tests w aktualnym runtime.
 
 ## 5.8. Worker agency
 
@@ -1301,7 +1301,7 @@ description: <optional text>
 
 **Ważna uwaga o konflikcie schema/runtime:**
 - repo schema typuje `channelBindings` jako `record<string, ChannelSchema>`,
-- ale `lcloud-develop` runtime **aktywnie normalizuje** raw binding objects `{ accountId?, email?, timelineId? }` dla `Start Worker Session Requested`.
+- ale aktualny runtime **aktywnie normalizuje** raw binding objects `{ accountId?, email?, timelineId? }` dla `Start Worker Session Requested`.
 
 Wniosek dla DSL:
 - helper `steps.myOs().startWorkerSessionRequested(...)` powinien wspierać binding objects w stylu bootstrap endpointu,
@@ -2028,7 +2028,7 @@ Na koniec lista rzeczy, których ten dokument świadomie **nie zgaduje**:
 3. **Nie promuje** `payNoteInitialStateDescription` do natywnego helper API, mimo że pole istnieje w repo schema.
 4. **Nie dopisuje** `holdId` / `paymentMandateDocumentId` do reserve/capture/release helperów, jeśli repo schema ich nie ma.
 5. **Nie wprowadza** dodatkowych AI-specific payload types ponad obecny Request/Response/session-interaction pattern.
-6. **Nie zakłada**, że każdy repo-confirmed typ ma już potwierdzony dedykowany backend flow w `lcloud-develop`.
+6. **Nie zakłada**, że każdy repo-confirmed typ ma już potwierdzony dedykowany backend flow w aktualnym runtime MyOS.
 
 ---
 

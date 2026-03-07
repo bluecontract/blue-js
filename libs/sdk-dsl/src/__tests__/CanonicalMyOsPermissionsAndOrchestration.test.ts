@@ -1,11 +1,3 @@
-/*
-Reference suite sources:
-- docs/ts-dsl-sdk/reference-suites/suite-20-myos-stage4-permissions-and-orchestration.md
-- references/lcloud/lcloud-develop/tests/integration/tests-myos-admin/myos-admin-ldpg-request.it.test.ts
-- references/lcloud/lcloud-develop/tests/integration/tests-myos-admin/myos-admin-wapg.it.test.ts
-- references/lcloud/lcloud-develop/tests/integration/tests-myos-admin/myos-admin-worker-session.it.test.ts
-*/
-
 import { DocBuilder } from '../lib';
 import {
   initializeDocument,
@@ -13,11 +5,11 @@ import {
   processExternalEvent,
 } from './processor-harness';
 import {
-  assertReferenceDocMatchesDsl,
-  assertReferenceEventListsMatchDsl,
-  assertReferenceNodeMatchesDsl,
-  referenceDocToNode,
-} from './reference-suite-support';
+  assertCanonicalDocMatchesDsl,
+  assertCanonicalEventListsMatchDsl,
+  assertCanonicalNodeMatchesDsl,
+  canonicalDocToNode,
+} from './canonical-scenario-support';
 
 function buildReferenceLdpgWatcherDocument(options: {
   readonly runId: string;
@@ -370,7 +362,7 @@ async function initializePair(
   dslDocument: ReturnType<typeof DocBuilder.doc> extends never ? never : any,
 ) {
   const reference = await initializeDocument(
-    referenceDocToNode(referenceDocument),
+    canonicalDocToNode(referenceDocument),
   );
   const dsl = await initializeDocument(dslDocument);
   return {
@@ -379,22 +371,22 @@ async function initializePair(
   };
 }
 
-describe('Reference Suite 20 — MyOS stage 4 permissions and orchestration', () => {
-  describe('MYOS-S4-02 — LDPG request + watcher', () => {
-    it('matches the watcher reference document structurally', () => {
+describe('Canonical MyOS permissions and orchestration', () => {
+  describe('Linked-document permission watcher', () => {
+    it('matches the watcher canonical document structurally', () => {
       const options = {
         runId: 'suite20-ldpg',
         targetSessionId: 'base-session-1',
         requestId: 'ldpg-watch-1',
       };
 
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceLdpgWatcherDocument(options),
         buildDslLdpgWatcherDocument(options),
       );
     });
 
-    it('matches the reference runtime for request emission and correlated grant observation', async () => {
+    it('matches the canonical runtime for request emission and correlated grant observation', async () => {
       const options = {
         runId: 'suite20-ldpg-runtime',
         targetSessionId: 'base-session-1',
@@ -406,7 +398,7 @@ describe('Reference Suite 20 — MyOS stage 4 permissions and orchestration', ()
         buildDslLdpgWatcherDocument(options),
       );
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         reference.triggeredEvents,
         dsl.triggeredEvents,
       );
@@ -435,27 +427,27 @@ describe('Reference Suite 20 — MyOS stage 4 permissions and orchestration', ()
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceGranted.document,
         dslGranted.document,
       );
     });
   });
 
-  describe('MYOS-S4-04 — Worker agency permission lifecycle', () => {
-    it('matches the requester reference document structurally', () => {
+  describe('Worker agency permission lifecycle', () => {
+    it('matches the requester canonical document structurally', () => {
       const options = {
         runId: 'suite20-wapg',
         grantName: 'WAPG-suite20',
       };
 
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceWorkerAgencyRequesterDocument(options),
         buildDslWorkerAgencyRequesterDocument(options),
       );
     });
 
-    it('matches the reference runtime for initial permission request emission', async () => {
+    it('matches the canonical runtime for initial permission request emission', async () => {
       const options = {
         runId: 'suite20-wapg-runtime',
         grantName: 'WAPG-runtime',
@@ -466,29 +458,29 @@ describe('Reference Suite 20 — MyOS stage 4 permissions and orchestration', ()
         buildDslWorkerAgencyRequesterDocument(options),
       );
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         reference.triggeredEvents,
         dsl.triggeredEvents,
       );
-      assertReferenceNodeMatchesDsl(reference.document, dsl.document);
+      assertCanonicalNodeMatchesDsl(reference.document, dsl.document);
     });
   });
 
-  describe('MYOS-S4-05 — Worker session startup', () => {
-    it('matches the requester reference document structurally', () => {
+  describe('Worker session startup', () => {
+    it('matches the requester canonical document structurally', () => {
       const options = {
         runId: 'suite20-worker-session',
         grantName: 'WAPG-worker-session',
         requestId: 'WAPG-worker-session-req',
       };
 
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceWorkerSessionRequesterDocument(options),
         buildDslWorkerSessionRequesterDocument(options),
       );
     });
 
-    it('matches the reference runtime for granted -> start-worker-session emission', async () => {
+    it('matches the canonical runtime for granted -> start-worker-session emission', async () => {
       const options = {
         runId: 'suite20-worker-session-runtime',
         grantName: 'WAPG-worker-session-runtime',
@@ -500,7 +492,7 @@ describe('Reference Suite 20 — MyOS stage 4 permissions and orchestration', ()
         buildDslWorkerSessionRequesterDocument(options),
       );
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         reference.triggeredEvents,
         dsl.triggeredEvents,
       );
@@ -525,11 +517,11 @@ describe('Reference Suite 20 — MyOS stage 4 permissions and orchestration', ()
         }),
       });
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referenceGranted.triggeredEvents,
         dslGranted.triggeredEvents,
       );
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceGranted.document,
         dslGranted.document,
       );

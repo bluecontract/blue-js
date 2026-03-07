@@ -1,11 +1,3 @@
-/*
-Reference suite sources:
-- docs/ts-dsl-sdk/reference-suites/suite-10-myos-stage3-foundations.md
-- references/lcloud/lcloud-develop/tests/integration/tests-myos-admin/myos-admin-call-response-forwarding.it.test.ts
-- references/lcloud/lcloud-develop/tests/integration/tests-myos-admin/myos-admin-session-subscription.it.test.ts
-- references/lcloud/lcloud-develop/tests/integration/tests-myos-admin/myos-admin-sdpg-request.it.test.ts
-*/
-
 import { DocBuilder } from '../lib';
 import {
   initializeDocument,
@@ -14,11 +6,11 @@ import {
   processOperationRequest,
 } from './processor-harness';
 import {
-  assertReferenceDocMatchesDsl,
-  assertReferenceEventListsMatchDsl,
-  assertReferenceNodeMatchesDsl,
-  referenceDocToNode,
-} from './reference-suite-support';
+  assertCanonicalDocMatchesDsl,
+  assertCanonicalEventListsMatchDsl,
+  assertCanonicalNodeMatchesDsl,
+  canonicalDocToNode,
+} from './canonical-scenario-support';
 
 const CALL_OPERATION_NAME = 'forwardCallOperation';
 const NO_RESPONSES_CALL_OPERATION_NAME = 'noResponsesCallOperation';
@@ -942,7 +934,7 @@ async function initializePair(
   dslDocument: ReturnType<typeof DocBuilder.doc> extends never ? never : any,
 ) {
   const reference = await initializeDocument(
-    referenceDocToNode(referenceDocument),
+    canonicalDocToNode(referenceDocument),
   );
   const dsl = await initializeDocument(dslDocument);
   return {
@@ -951,17 +943,17 @@ async function initializePair(
   };
 }
 
-describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
-  describe('MYOS-S3-01 — Admin call/response forwarding target document', () => {
-    it('matches the reference document structurally', () => {
+describe('Canonical MyOS foundations', () => {
+  describe('Admin call/response forwarding', () => {
+    it('matches the canonical document structurally', () => {
       const runId = 'suite10-call-target';
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceCallResponseTargetDocument(runId),
         buildDslCallResponseTargetDocument(runId),
       );
     });
 
-    it('matches the reference runtime for request recording and mixed response emission', async () => {
+    it('matches the canonical runtime for request recording and mixed response emission', async () => {
       const runId = 'suite10-call-target-runtime';
       const { reference, dsl } = await initializePair(
         buildReferenceCallResponseTargetDocument(runId),
@@ -990,31 +982,31 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         request,
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceResult.document,
         dslResult.document,
       );
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referenceResult.triggeredEvents,
         dslResult.triggeredEvents,
       );
     });
   });
 
-  describe('MYOS-S3-02 — Session subscription lifecycle and filtered subscriptions', () => {
+  describe('Filtered subscription lifecycle', () => {
     it('matches the public event source and pattern subscriber documents structurally', () => {
       const runId = 'suite10-pattern';
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferencePublicEventSourceDocument(runId),
         buildDslPublicEventSourceDocument(runId),
       );
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferencePatternSubscriberDocument(runId),
         buildDslPatternSubscriberDocument(runId),
       );
     });
 
-    it('matches the reference runtime for filtered subscription setup and updates', async () => {
+    it('matches the canonical runtime for filtered subscription setup and updates', async () => {
       const runId = 'suite10-pattern-runtime';
       const source = await initializePair(
         buildReferencePublicEventSourceDocument(runId),
@@ -1042,7 +1034,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         request: {},
       });
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referenceSourceEvents.triggeredEvents,
         dslSourceEvents.triggeredEvents,
       );
@@ -1067,8 +1059,8 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         request: initRequest,
       });
 
-      assertReferenceNodeMatchesDsl(referenceInit.document, dslInit.document);
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalNodeMatchesDsl(referenceInit.document, dslInit.document);
+      assertCanonicalEventListsMatchDsl(
         referenceInit.triggeredEvents,
         dslInit.triggeredEvents,
       );
@@ -1094,7 +1086,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(referenceReady.document, dslReady.document);
+      assertCanonicalNodeMatchesDsl(referenceReady.document, dslReady.document);
 
       const eventPatternUpdate = {
         type: 'MyOS/Subscription Update',
@@ -1121,7 +1113,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceEventMatch.document,
         dslEventMatch.document,
       );
@@ -1151,7 +1143,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceRequestMatch.document,
         dslRequestMatch.document,
       );
@@ -1159,17 +1151,17 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
 
     it('matches the revocation source and subscriber documents structurally', () => {
       const runId = 'suite10-revocation';
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceRevocationEventSourceDocument(runId),
         buildDslRevocationEventSourceDocument(runId),
       );
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceRevocationSubscriberDocument(runId),
         buildDslRevocationSubscriberDocument(runId),
       );
     });
 
-    it('matches the reference runtime for subscription revocation handling', async () => {
+    it('matches the canonical runtime for subscription revocation handling', async () => {
       const runId = 'suite10-revocation-runtime';
       const source = await initializePair(
         buildReferenceRevocationEventSourceDocument(runId),
@@ -1197,7 +1189,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         request: {},
       });
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referenceSource.triggeredEvents,
         dslSource.triggeredEvents,
       );
@@ -1222,11 +1214,11 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         request: subscribeRequest,
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referencePending.document,
         dslPending.document,
       );
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referencePending.triggeredEvents,
         dslPending.triggeredEvents,
       );
@@ -1252,7 +1244,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceActive.document,
         dslActive.document,
       );
@@ -1280,15 +1272,15 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceRevoked.document,
         dslRevoked.document,
       );
     });
   });
 
-  describe('MYOS-S3-03 — SDPG requester/subscriber foundation', () => {
-    it('matches the subscriber reference document structurally', () => {
+  describe('Single-document permission subscriber foundation', () => {
+    it('matches the subscriber canonical document structurally', () => {
       const options = {
         runId: 'suite10-sdpg',
         targetSessionId: 'counter-session-1',
@@ -1296,13 +1288,13 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         requestId: 'sdpg-req-1',
       };
 
-      assertReferenceDocMatchesDsl(
+      assertCanonicalDocMatchesDsl(
         buildReferenceSdpgSubscriberDocument(options),
         buildDslSdpgSubscriberDocument(options),
       );
     });
 
-    it('matches the reference runtime for request, subscribe, call, and mirror flows', async () => {
+    it('matches the canonical runtime for request, subscribe, call, and mirror flows', async () => {
       const options = {
         runId: 'suite10-sdpg-runtime',
         targetSessionId: 'counter-session-1',
@@ -1315,7 +1307,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         buildDslSdpgSubscriberDocument(options),
       );
 
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         reference.triggeredEvents,
         dsl.triggeredEvents,
       );
@@ -1340,11 +1332,11 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceGranted.document,
         dslGranted.document,
       );
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalEventListsMatchDsl(
         referenceGranted.triggeredEvents,
         dslGranted.triggeredEvents,
       );
@@ -1370,8 +1362,8 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(referenceReady.document, dslReady.document);
-      assertReferenceEventListsMatchDsl(
+      assertCanonicalNodeMatchesDsl(referenceReady.document, dslReady.document);
+      assertCanonicalEventListsMatchDsl(
         referenceReady.triggeredEvents,
         dslReady.triggeredEvents,
       );
@@ -1403,7 +1395,7 @@ describe('Reference Suite 10 — MyOS stage 3 foundations', () => {
         }),
       });
 
-      assertReferenceNodeMatchesDsl(
+      assertCanonicalNodeMatchesDsl(
         referenceUpdated.document,
         dslUpdated.document,
       );

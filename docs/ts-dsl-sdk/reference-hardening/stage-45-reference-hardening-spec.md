@@ -1,12 +1,12 @@
-# Stage 4.5 Reference Hardening Spec
+# Stage 4.5 Canonical Scenario Hardening Spec
 
 ## Objective
 
-Use real reference scenarios from `lcloud`- and bank-derived suites to harden the already implemented stage 3 and stage 4 DSL surfaces.
+Use the public canonical scenario corpus to harden the already implemented Stage 3 and Stage 4 DSL surfaces.
 
 This pass exists to answer one question:
 
-> Do the current stage 3 and 4 DSL builders generate documents that are materially equivalent to real reference documents and do they preserve the intended runtime behavior?
+> Do the current Stage 3 and Stage 4 DSL builders generate documents that are materially equivalent to the canonical authored documents in this repository, and do they preserve the intended runtime behavior?
 
 ## In scope
 
@@ -35,12 +35,12 @@ This pass exists to answer one question:
 - init mode / LATE_START / bootstrap endpoint transport behavior
 - editing pipeline
 
-## Reference sources
+## Canonical sources
 
-The reference scenario suites define which real scenarios matter:
-- `reference-suites/suite-00-seed-blueprints.md`
-- `reference-suites/suite-10-myos-stage3-foundations.md`
-- `reference-suites/suite-20-myos-stage4-permissions-and-orchestration.md`
+The canonical scenario docs define which scenarios matter:
+- `canonical-scenarios/seed-blueprints.md`
+- `canonical-scenarios/myos-foundations.md`
+- `canonical-scenarios/permissions-and-orchestration.md`
 
 The final document/materialization rules come from:
 - `final-dsl-sdk-mapping-reference.md`
@@ -49,7 +49,7 @@ The final document/materialization rules come from:
 ## What this pass hardened
 
 ### Shared comparison support
-- added reusable helpers that compare `reference raw object -> BlueNode` against `DSL-built BlueNode`
+- added reusable helpers that compare `canonical raw object -> BlueNode` against `DSL-built BlueNode`
 - primary oracle is `preprocess + official JSON + BlueId`, not YAML text formatting
 - runtime proofs compare processor results side-by-side using public `document-processor` APIs
 
@@ -58,21 +58,21 @@ The final document/materialization rules come from:
 - request-schema object conversion now treats `name` / `description` as BLUE node metadata, matching canonical authored documents
 - worker-session request helper already carries `requestId` through the runtime event payload, which is required by the reference worker-session flow
 
-### Reference suites covered in this pass
-- Suite 00:
-  - `DOC-SEED-01` participants orchestration blueprint
-  - `DOC-SEED-05` call operation request blueprint
-- Suite 10:
-  - `MYOS-S3-01` admin call/response forwarding
-  - `MYOS-S3-02` filtered subscription lifecycle
-  - `MYOS-S3-02` subscription revocation lifecycle
-  - `MYOS-S3-03` SDPG subscriber foundation
-- Suite 20:
-  - `MYOS-S4-02` linked-doc permission request watcher
-  - `MYOS-S4-04` worker agency permission lifecycle
-  - `MYOS-S4-05` worker session startup
+### Canonical scenarios covered in this pass
+- Seed blueprints:
+  - participants orchestration blueprint
+  - call operation request blueprint
+- MyOS foundations:
+  - admin call/response forwarding
+  - filtered subscription lifecycle
+  - subscription revocation lifecycle
+  - single-document permission subscriber foundation
+- Permissions and orchestration:
+  - linked-document permission watcher
+  - worker agency permission lifecycle
+  - worker session startup
 
 ## Acceptance criteria
-- Stage 3 and 4 are exercised against real reference scenarios, not only synthetic parity cases.
-- At least 7 strong reference-backed scenarios are covered across Suite 00/10/20.
+- Stage 3 and 4 are exercised against canonical scenarios, not only synthetic parity cases.
+- At least 7 strong canonical scenarios are covered across the seed-blueprints, MyOS foundations, and permissions-and-orchestration groups.
 - Any remaining gap is explicit and justified.

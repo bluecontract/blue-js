@@ -61,7 +61,7 @@ Planned later:
 ### Stage 5 — PayNote DSL and mapping definitions
 Planned later:
 - PayNote-specific builders
-- mappings derived from demo-bank-app and later mapping work
+- mappings derived from current PayNote business flows and later mapping work
 - conversation/customer-action-related mappings
 
 ### Stage 6 — Optional editing pipeline

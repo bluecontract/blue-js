@@ -1,0 +1,128 @@
+{
+  "version": "2.0.0",
+  "purpose": "Public canonical scenario corpus for complex DSL-authored documents and runtime proof tests",
+  "sourceOfTruthOrder": [
+    "docs/ts-dsl-sdk/canonical-scenarios/*.md",
+    "docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md",
+    "docs/ts-dsl-sdk/complex-flow-materialization-reference.md",
+    "Java SDK parity/examples for ergonomics only"
+  ],
+  "scenarioGroups": [
+    {
+      "id": "seed-blueprints",
+      "name": "Seed blueprints",
+      "kind": "compact-document-corpus",
+      "stages": ["3", "4"],
+      "scenarios": [
+        "Participants orchestration blueprint",
+        "Subscription request blueprint",
+        "Single-document permission request blueprint",
+        "Single-document permission revoke blueprint",
+        "Call operation request blueprint"
+      ],
+      "dslSurfaces": [
+        "low-level operation materialization",
+        "stage-3 MyOS step helpers",
+        "stage-4 building blocks"
+      ],
+      "tests": [
+        "libs/sdk-dsl/src/__tests__/CanonicalSeedBlueprints.test.ts"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "myos-foundations",
+      "name": "MyOS foundations",
+      "kind": "runtime-acceptance",
+      "stages": ["3"],
+      "scenarios": [
+        "Admin call/response forwarding",
+        "Filtered subscription lifecycle",
+        "Subscription revocation lifecycle",
+        "Single-document permission subscriber foundation"
+      ],
+      "dslSurfaces": [
+        "myOsAdmin(...)",
+        "onMyOsResponse(...)",
+        "onSubscriptionUpdate(...)",
+        "onTriggeredWithId(...)",
+        "low-level steps.myOs() helpers"
+      ],
+      "tests": [
+        "libs/sdk-dsl/src/__tests__/CanonicalMyOsFoundations.test.ts"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "permissions-and-orchestration",
+      "name": "Permissions and orchestration",
+      "kind": "runtime-acceptance",
+      "stages": ["4"],
+      "scenarios": [
+        "Single-document permission lifecycle",
+        "Linked-document permission watcher",
+        "Linked-document full lifecycle",
+        "Worker agency permission lifecycle",
+        "Worker session startup",
+        "Participants orchestration"
+      ],
+      "dslSurfaces": [
+        "access(...)",
+        "accessLinked(...)",
+        "agency(...)",
+        "steps.access(...)",
+        "steps.viaAgency(...)",
+        "stage-3 MyOS composition helpers"
+      ],
+      "tests": [
+        "libs/sdk-dsl/src/__tests__/CanonicalMyOsPermissionsAndOrchestration.test.ts"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "ai-provider-patterns",
+      "name": "AI provider patterns",
+      "kind": "planned-acceptance",
+      "stages": ["5"],
+      "scenarios": [
+        "Provider bootstrap",
+        "Provider max-context flow",
+        "Provider recruitment-cv flow"
+      ],
+      "dslSurfaces": [
+        "stage-5 AI builders"
+      ],
+      "tests": [],
+      "status": "planned"
+    },
+    {
+      "id": "paynote-business",
+      "name": "PayNote business flows",
+      "kind": "planned-acceptance",
+      "stages": ["6"],
+      "scenarios": [
+        "PayNote bootstrap",
+        "Bootstrap webhook handling",
+        "Delivery webhook handling",
+        "Customer action handling",
+        "Delivery payload resolution",
+        "PayNote document operations"
+      ],
+      "dslSurfaces": [
+        "stage-6 PayNote builders",
+        "Conversation customer-action helpers",
+        "bootstrap-related helpers"
+      ],
+      "tests": [],
+      "status": "planned"
+    }
+  ],
+  "explicitExclusions": [
+    "REST/API transport and query scenarios",
+    "bootstrap endpoint status behavior",
+    "late-start/init-mode behavior",
+    "persistence and idempotency acceptance-only suites",
+    "outward API handlers",
+    "validation-only and parsing-only utility tests"
+  ]
+}

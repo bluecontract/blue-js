@@ -82,7 +82,7 @@ new StepsBuilder()
 ```
 - **Final mapping reference expectation:** section 5.2 does not include `grantSessionSubscriptionOnResult` on `MyOS/Single Document Permission Grant Requested`.
 - **Java / legacy expectation:** Java POC exposed and emitted `grantSessionSubscriptionOnResult`.
-- **Runtime / actual behavior:** the field is not present in current `@blue-repository/types`, is not part of `SingleDocumentPermissionGrantRequestedSchema`, and is not runtime-confirmed in `lcloud-develop`.
+- **Runtime / actual behavior:** the field is not present in current `@blue-repository/types`, is not part of `SingleDocumentPermissionGrantRequestedSchema`, and is not runtime-confirmed in the current MyOS runtime.
 - **Decision taken:** Stage 3 does not materialize this field and does not keep it in the typed helper surface.
 - **Reason:** this is legacy Java-PoC drift outside the final source of truth.
 - **Regression test:** `libs/sdk-dsl/src/__tests__/StepsBuilder.myos.test.ts`

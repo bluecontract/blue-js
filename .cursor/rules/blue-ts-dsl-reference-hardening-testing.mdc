@@ -6,10 +6,10 @@ globs:
 alwaysApply: false
 ---
 
-# Reference hardening test rules
+# Canonical scenario hardening test rules
 
 ## Required test layers
-Every selected reference scenario should have:
+Every selected canonical scenario should have:
 1. Shape equivalence:
    - reference document vs DSL-authored document
    - compare after preprocess using official JSON
@@ -17,7 +17,7 @@ Every selected reference scenario should have:
    - prove the scenario still behaves correctly through document-processor
 
 ## Preferred scenario grouping
-- one file per reference suite group
+- one file per canonical scenario group
 - nested describe blocks:
   - suite
   - scenario
