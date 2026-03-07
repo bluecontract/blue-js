@@ -66,12 +66,13 @@ Do not port stage-3+ cases from the same file yet:
 - capture namespace
 - payment ext payload builders
 
-## Recommended test file layout
-- `libs/sdk-dsl/src/__tests__/DocBuilder.general.parity.test.ts` (extend)
-- `libs/sdk-dsl/src/__tests__/DocBuilder.channels.parity.test.ts` (extend)
-- `libs/sdk-dsl/src/__tests__/DocBuilder.steps.parity.test.ts` (new or extend)
-- `libs/sdk-dsl/src/__tests__/DocBuilder.handlers.integration.test.ts`
-- `libs/sdk-dsl/src/__tests__/ChangesetBuilder.guardrails.test.ts`
+## Implemented stage-2 test file layout
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.workflows.parity.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.steps.parity.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/doc-builder.workflows.integration.test.ts`
+- `libs/sdk-dsl/src/lib/__tests__/changeset-builder.test.ts`
+
+Stage-1 coverage remains in place in the existing `src/lib/__tests__` files.
 
 ## Required runtime scenarios
 ### `onInit(...)`
@@ -95,6 +96,18 @@ Build a document that emits a bootstrap request. Capture emitted events through 
 ## `onChannelEvent(...)` runtime note
 Add a processor-backed runtime test if the public processor API supports direct external channel-event delivery cleanly.
 If not, keep parity coverage and document the limitation in stage-2 deviations.
+
+## Implemented parity/runtime notes
+- The shared parity helper continues to compare preprocessed `official` JSON plus BlueIds.
+- Named-event-specific parity uses a programmatic expected-node variant of the same oracle where the current TypeScript YAML parser cannot faithfully encode a property literally named `name`.
+- Runtime integration was added for:
+  - `onInit(...)`
+  - `onEvent(...)` via an init-emitted typed event
+  - `onNamedEvent(...)` via an init-emitted named event
+  - `onDocChange(...)`
+  - `updateDocumentFromExpression(...)`
+  - `bootstrapDocument(...)`
+- `onChannelEvent(...)` currently remains parity-only; see stage-2 deviations.
 
 ## Documentation obligations
 As tests are implemented, keep these files updated:

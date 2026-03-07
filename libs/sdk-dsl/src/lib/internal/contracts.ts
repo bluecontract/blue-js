@@ -58,7 +58,9 @@ export function buildCompositeChannelContract(channelKeys: string[]): BlueNode {
     );
 }
 
-export function buildLifecycleEventChannelContract(eventType?: BlueNode): BlueNode {
+export function buildLifecycleEventChannelContract(
+  eventType?: BlueNode,
+): BlueNode {
   const channel = new BlueNode().setType(
     resolveTypeInput(TYPE_ALIASES.lifecycleEventChannel),
   );

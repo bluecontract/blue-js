@@ -30,7 +30,10 @@ describe('DocBuilder step parity', () => {
               .replaceExpression('/expr', "document('/counter') + 1")
               .remove('/obsolete'),
           )
-          .updateDocumentFromExpression('ApplyDynamic', 'steps.Compute.nextChangeset')
+          .updateDocumentFromExpression(
+            'ApplyDynamic',
+            'steps.Compute.nextChangeset',
+          )
           .triggerEvent(
             'EmitTriggered',
             new BlueNode()
@@ -50,7 +53,11 @@ describe('DocBuilder step parity', () => {
               ),
           )
           .replaceValue('ReplaceValue', '/status', 'ready')
-          .replaceExpression('ReplaceExpression', '/calc', "document('/counter') + 5")
+          .replaceExpression(
+            'ReplaceExpression',
+            '/calc',
+            "document('/counter') + 5",
+          )
           .raw(rawStep),
       )
       .buildDocument();
@@ -67,7 +74,10 @@ describe('DocBuilder step parity', () => {
           ),
         initialize: new BlueNode()
           .setType('Conversation/Sequential Workflow')
-          .addProperty('channel', new BlueNode().setValue('initLifecycleChannel'))
+          .addProperty(
+            'channel',
+            new BlueNode().setValue('initLifecycleChannel'),
+          )
           .addProperty(
             'steps',
             new BlueNode().setItems([
@@ -79,7 +89,11 @@ describe('DocBuilder step parity', () => {
                   new BlueNode().setValue('return { nextChangeset: [] };'),
                 ),
               buildUpdateDocumentStep('ApplyPatch', [
-                buildPatchEntry('add', '/items/0', new BlueNode().setValue('x')),
+                buildPatchEntry(
+                  'add',
+                  '/items/0',
+                  new BlueNode().setValue('x'),
+                ),
                 buildPatchEntry(
                   'replace',
                   '/counter',
@@ -106,7 +120,10 @@ describe('DocBuilder step parity', () => {
                 'EmitTriggered',
                 new BlueNode()
                   .setType('Conversation/Chat Message')
-                  .addProperty('message', new BlueNode().setValue('from-trigger')),
+                  .addProperty(
+                    'message',
+                    new BlueNode().setValue('from-trigger'),
+                  ),
               ),
               buildTriggerEventStep(
                 'EmitBean',
@@ -157,7 +174,9 @@ describe('DocBuilder step parity', () => {
       .name('Named event step parity')
       .onInit('initialize', (steps) =>
         steps
-          .namedEvent('EmitAdHoc', 'AD_HOC', (payload) => payload.put('flag', true))
+          .namedEvent('EmitAdHoc', 'AD_HOC', (payload) =>
+            payload.put('flag', true),
+          )
           .namedEvent('EmitNamed', 'NAMED')
           .namedEvent('EmitNamedWithPayload', 'NAMED_PAYLOAD', (payload) =>
             payload.put('status', 'ok'),
@@ -176,7 +195,10 @@ describe('DocBuilder step parity', () => {
           ),
         initialize: new BlueNode()
           .setType('Conversation/Sequential Workflow')
-          .addProperty('channel', new BlueNode().setValue('initLifecycleChannel'))
+          .addProperty(
+            'channel',
+            new BlueNode().setValue('initLifecycleChannel'),
+          )
           .addProperty(
             'steps',
             new BlueNode().setItems([
@@ -193,9 +215,7 @@ describe('DocBuilder step parity', () => {
   });
 
   it('matches bootstrap document builders parity', () => {
-    const child = new BlueNode()
-      .setName('Child Doc')
-      .setType('Demo/Child');
+    const child = new BlueNode().setName('Child Doc').setType('Demo/Child');
 
     const document = DocBuilder.doc()
       .name('Bootstrap parity')
@@ -308,10 +328,15 @@ contracts:
           ),
         initialize: new BlueNode()
           .setType('Conversation/Sequential Workflow')
-          .addProperty('channel', new BlueNode().setValue('initLifecycleChannel'))
+          .addProperty(
+            'channel',
+            new BlueNode().setValue('initLifecycleChannel'),
+          )
           .addProperty(
             'steps',
-            new BlueNode().setItems([buildNamedEventStep('DemoStep', 'EXT_SIGNAL')]),
+            new BlueNode().setItems([
+              buildNamedEventStep('DemoStep', 'EXT_SIGNAL'),
+            ]),
           ),
       });
 
@@ -341,11 +366,7 @@ function buildNamedEventStep(
     .addProperty('event', event);
 }
 
-function buildPatchEntry(
-  op: string,
-  path: string,
-  value: BlueNode,
-): BlueNode {
+function buildPatchEntry(op: string, path: string, value: BlueNode): BlueNode {
   return new BlueNode().setProperties({
     op: new BlueNode().setValue(op),
     path: new BlueNode().setValue(path),
@@ -353,7 +374,10 @@ function buildPatchEntry(
   });
 }
 
-function buildUpdateDocumentStep(stepName: string, entries: BlueNode[]): BlueNode {
+function buildUpdateDocumentStep(
+  stepName: string,
+  entries: BlueNode[],
+): BlueNode {
   return new BlueNode()
     .setName(stepName)
     .setType('Conversation/Update Document')

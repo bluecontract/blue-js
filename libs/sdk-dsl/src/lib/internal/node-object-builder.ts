@@ -37,7 +37,10 @@ export class NodeObjectBuilder {
     return this;
   }
 
-  putStringMap(key: string, map: Record<string, string> | Map<string, string>): this {
+  putStringMap(
+    key: string,
+    map: Record<string, string> | Map<string, string>,
+  ): this {
     const entries =
       map instanceof Map ? [...map.entries()] : Object.entries(map ?? {});
     const dictionary = new BlueNode().setProperties({});

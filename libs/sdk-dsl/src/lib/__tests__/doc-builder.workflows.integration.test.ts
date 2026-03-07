@@ -101,7 +101,10 @@ describe('DocBuilder workflow runtime integration', () => {
             'Compute',
             "return { nextChangeset: [{ op: 'replace', path: '/value', val: 9 }] };",
           )
-          .updateDocumentFromExpression('ApplyDynamic', 'steps.Compute.nextChangeset'),
+          .updateDocumentFromExpression(
+            'ApplyDynamic',
+            'steps.Compute.nextChangeset',
+          ),
       )
       .buildDocument();
 
@@ -124,9 +127,7 @@ describe('DocBuilder workflow runtime integration', () => {
           child,
           { participantA: 'aliceChannel' },
           (options) =>
-            options
-              .assignee('orchestratorChannel')
-              .defaultMessage('Welcome'),
+            options.assignee('orchestratorChannel').defaultMessage('Welcome'),
         ),
       )
       .buildDocument();
@@ -136,14 +137,15 @@ describe('DocBuilder workflow runtime integration', () => {
     expect(result.capabilityFailure).toBe(false);
     expect(result.triggeredEvents).toHaveLength(2);
 
-    const bootstrapEvent = result.triggeredEvents.find(
-      (event) =>
-        event.getType()?.getBlueId() ===
-        blue
-          .yamlToNode('type: Conversation/Document Bootstrap Requested')
-          .getType()
-          ?.getBlueId(),
-    ) ?? result.triggeredEvents[1];
+    const bootstrapEvent =
+      result.triggeredEvents.find(
+        (event) =>
+          event.getType()?.getBlueId() ===
+          blue
+            .yamlToNode('type: Conversation/Document Bootstrap Requested')
+            .getType()
+            ?.getBlueId(),
+      ) ?? result.triggeredEvents[1];
 
     expect(String(bootstrapEvent.getProperties()?.document?.getName())).toBe(
       'Child',

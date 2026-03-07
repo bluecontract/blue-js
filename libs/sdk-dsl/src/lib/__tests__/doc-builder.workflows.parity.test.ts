@@ -160,11 +160,8 @@ contracts:
       .name('Channel event parity')
       .channel('ownerChannel')
       .field('/counter', 0)
-      .onChannelEvent(
-        'onIncrementEvent',
-        'ownerChannel',
-        'Integer',
-        (steps) => steps.replaceValue('SetCounter', '/counter', 1),
+      .onChannelEvent('onIncrementEvent', 'ownerChannel', 'Integer', (steps) =>
+        steps.replaceValue('SetCounter', '/counter', 1),
       )
       .buildDocument();
 

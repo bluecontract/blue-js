@@ -176,10 +176,7 @@ export class DocBuilder {
     return this;
   }
 
-  onInit(
-    workflowKey: string,
-    customizer: (steps: StepsBuilder) => void,
-  ): this {
+  onInit(workflowKey: string, customizer: (steps: StepsBuilder) => void): this {
     const key = requireNonBlank(workflowKey, 'Workflow key');
     const contracts = ensureContracts(this.document);
 
@@ -214,7 +211,9 @@ export class DocBuilder {
 
     const steps = new StepsBuilder();
     customizer(steps);
-    const eventMatcher = new BlueNode().setType(resolveTypeInput(eventTypeInput));
+    const eventMatcher = new BlueNode().setType(
+      resolveTypeInput(eventTypeInput),
+    );
     contracts[key] = buildSequentialWorkflowContract(
       'triggeredEventChannel',
       steps.build(),
@@ -297,7 +296,9 @@ export class DocBuilder {
 
     const steps = new StepsBuilder();
     customizer(steps);
-    const eventMatcher = new BlueNode().setType(resolveTypeInput(eventTypeInput));
+    const eventMatcher = new BlueNode().setType(
+      resolveTypeInput(eventTypeInput),
+    );
     contracts[key] = buildSequentialWorkflowContract(
       normalizedChannelKey,
       steps.build(),

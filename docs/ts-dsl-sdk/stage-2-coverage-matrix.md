@@ -4,15 +4,15 @@ Update this file as stage-2 implementation proceeds.
 
 | Feature | Java reference | Mapping/parity test | Runtime test | Guardrail test | Status | Deviation? |
 |---|---|---|---|---|---|---|
-| `onInit(...)` | `DocBuilderGeneralDslParityTest.onInitMatchesYamlDefinition` | planned | planned | n/a | planned | no |
-| `onEvent(...)` | `DocBuilderGeneralDslParityTest.onEventMatchesYamlDefinition` | planned | planned | n/a | planned | no |
-| `onNamedEvent(...)` | `DocBuilderGeneralDslParityTest.onNamedEventMatchesYamlDefinition` | planned | planned | planned | planned | maybe |
-| `onDocChange(...)` | `DocBuilderGeneralDslParityTest.onDocChangeMatchesYamlDefinition` | planned | planned | n/a | planned | no |
-| `onChannelEvent(...)` | `DocBuilderChannelsDslParityTest.onChannelEventMatchesYamlDefinition` | planned | planned-if-clean | n/a | planned | maybe |
-| `updateDocument(...)` | `DocBuilderStepsDslParityTest.stepPrimitivesAndEmitHelpersBuildExpectedContracts` | planned | planned | planned | planned | no |
-| `updateDocumentFromExpression(...)` | same | planned | planned | n/a | planned | no |
-| `namedEvent(...)` | same | planned | planned | planned | planned | maybe |
-| `bootstrapDocument(...)` | `bootstrapDocumentBuildersMapDocumentBindingsAndOptions` | planned | planned | planned | planned | no |
-| `bootstrapDocumentExpr(...)` | same | planned | planned | planned | planned | no |
-| `ext(factory)` | `extRejectsNullFactoriesAndNullExtensions`, `extSupportsCustomStepExtensions` | planned | optional | planned | planned | no |
-| `ChangesetBuilder` path validation | `ChangesetBuilder.java` | planned | n/a | planned | planned | no |
+| `onInit(...)` | `DocBuilderGeneralDslParityTest.onInitMatchesYamlDefinition` | `doc-builder.workflows.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | n/a | done | no |
+| `onEvent(...)` | `DocBuilderGeneralDslParityTest.onEventMatchesYamlDefinition` | `doc-builder.workflows.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | n/a | done | no |
+| `onNamedEvent(...)` | `DocBuilderGeneralDslParityTest.onNamedEventMatchesYamlDefinition` | `doc-builder.workflows.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | `doc-builder.steps.parity.test.ts` | done | yes |
+| `onDocChange(...)` | `DocBuilderGeneralDslParityTest.onDocChangeMatchesYamlDefinition` | `doc-builder.workflows.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | n/a | done | no |
+| `onChannelEvent(...)` | `DocBuilderChannelsDslParityTest.onChannelEventMatchesYamlDefinition` | `doc-builder.workflows.parity.test.ts` | none | n/a | deviation | yes |
+| `updateDocument(...)` | `DocBuilderStepsDslParityTest.stepPrimitivesAndEmitHelpersBuildExpectedContracts` | `doc-builder.steps.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | `changeset-builder.test.ts` | done | no |
+| `updateDocumentFromExpression(...)` | same | `doc-builder.steps.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | n/a | done | no |
+| `namedEvent(...)` | same | `doc-builder.steps.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | `doc-builder.steps.parity.test.ts` | done | yes |
+| `bootstrapDocument(...)` | `bootstrapDocumentBuildersMapDocumentBindingsAndOptions` | `doc-builder.steps.parity.test.ts` | `doc-builder.workflows.integration.test.ts` | n/a | done | no |
+| `bootstrapDocumentExpr(...)` | same | `doc-builder.steps.parity.test.ts` | parity only | `doc-builder.steps.parity.test.ts` | done | no |
+| `ext(factory)` | `extRejectsNullFactoriesAndNullExtensions`, `extSupportsCustomStepExtensions` | `doc-builder.steps.parity.test.ts` | n/a | `doc-builder.steps.parity.test.ts` | done | no |
+| `ChangesetBuilder` path validation | `ChangesetBuilder.java` | `doc-builder.steps.parity.test.ts` | n/a | `changeset-builder.test.ts` | done | no |

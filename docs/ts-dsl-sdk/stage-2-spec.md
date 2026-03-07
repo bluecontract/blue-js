@@ -90,6 +90,10 @@ Use these sources in this order:
 - If the current repo/runtime requires a different but compatible event shape, keep runtime-correct behavior and document it in stage-2 deviations.
 - Blank event names are invalid.
 
+Implementation note:
+- the current branch emits a `Common/Named Event`-shaped node for stage-2 named-event helpers
+- named-event parity/runtime coverage uses the stronger preprocess + `official` JSON oracle, but named-event-specific expected artifacts are built programmatically because the current TypeScript YAML parser reserves the key `name`
+
 ### Update-document rule
 - `updateDocument(...)` produces a `Conversation/Update Document` step with an inline `changeset` array.
 - `updateDocumentFromExpression(...)` produces a `Conversation/Update Document` step whose `changeset` is an expression string.
@@ -118,6 +122,11 @@ Use these sources in this order:
 - null factory is invalid
 - a factory that returns null is invalid
 - the extension hook is generic stage-2 infrastructure, not a payment or AI feature
+
+### Runtime note for `onChannelEvent(...)`
+- parity coverage is required
+- runtime coverage is optional only if the public processor API supports clean external channel-event delivery for the stage-2 matcher shape
+- if not, keep parity coverage and document the limitation
 
 ## Type input model
 Stage-2 handler matcher type inputs should support the same stage-1 type-input model:

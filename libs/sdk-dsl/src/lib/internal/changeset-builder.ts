@@ -44,7 +44,9 @@ export class ChangesetBuilder {
 
   replaceValue(path: string, value: BlueValue): this {
     const normalized = validateAllowedPath(path);
-    this.entries.push(buildPatchEntry('replace', normalized, toBlueNode(value)));
+    this.entries.push(
+      buildPatchEntry('replace', normalized, toBlueNode(value)),
+    );
     return this;
   }
 
