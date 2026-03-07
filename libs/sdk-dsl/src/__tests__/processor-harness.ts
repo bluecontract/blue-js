@@ -12,6 +12,7 @@ import { DocumentSectionSchema } from '@blue-repository/types/packages/conversat
 type MarkerContract = Record<string, unknown>;
 
 const CUSTOM_TYPE_BLUE_ID = 'sdkdsl-custom-type';
+const NAMED_EVENT_BLUE_ID = 'sdkdsl-common-named-event';
 
 const sdkDslTestRepository: BlueRepository = {
   name: 'sdk-dsl.test.repo',
@@ -45,9 +46,51 @@ const sdkDslTestRepository: BlueRepository = {
   },
 };
 
+const sdkDslParityRepository: BlueRepository = {
+  name: 'sdk-dsl.parity.repo',
+  repositoryVersions: ['R0'],
+  packages: {
+    sdkdslParity: {
+      name: 'sdkdslParity',
+      aliases: {
+        'Common/Named Event': NAMED_EVENT_BLUE_ID,
+      },
+      typesMeta: {
+        [NAMED_EVENT_BLUE_ID]: {
+          status: 'stable',
+          name: 'Named Event',
+          versions: [
+            {
+              repositoryVersionIndex: 0,
+              typeBlueId: NAMED_EVENT_BLUE_ID,
+              attributesAdded: [],
+            },
+          ],
+        },
+      },
+      contents: {
+        [NAMED_EVENT_BLUE_ID]: {
+          name: 'Named Event',
+        },
+      },
+      schemas: {},
+    },
+  },
+};
+
 export function createBlue(): Blue {
   return new Blue({
     repositories: [blueRepository, sdkDslTestRepository],
+  });
+}
+
+export function createParityBlue(): Blue {
+  return new Blue({
+    repositories: [
+      blueRepository,
+      sdkDslTestRepository,
+      sdkDslParityRepository,
+    ],
   });
 }
 
@@ -125,6 +168,28 @@ export function makeOperationRequestEvent(
   });
 }
 
+export function makeTimelineEntryEvent(
+  blue: Blue,
+  options: {
+    readonly timelineId: string;
+    readonly message: Record<string, unknown>;
+    readonly actorName?: string;
+    readonly timestamp?: number;
+  },
+): BlueNode {
+  return blue.jsonValueToNode({
+    type: 'Conversation/Timeline Entry',
+    timeline: {
+      timelineId: options.timelineId,
+    },
+    message: options.message,
+    actor: {
+      name: options.actorName ?? 'SDK DSL Test Driver',
+    },
+    timestamp: options.timestamp ?? 1700000000,
+  });
+}
+
 export async function initializeDocument(
   document: BlueNode,
   options?: {
@@ -135,6 +200,7 @@ export async function initializeDocument(
   blue: Blue;
   processor: DocumentProcessor;
   document: BlueNode;
+  triggeredEvents: readonly BlueNode[];
 }> {
   const blue = options?.blue ?? createBlue();
   const processor = options?.processor ?? createDocumentProcessor(blue);
@@ -149,6 +215,7 @@ export async function initializeDocument(
     blue,
     processor,
     document: result.document,
+    triggeredEvents: result.triggeredEvents.map((event) => event.clone()),
   };
 }
 
@@ -177,6 +244,24 @@ export async function processOperationRequest(options: {
   if (result.capabilityFailure) {
     throw new Error(
       `Expected operation processing success, got failure: ${result.failureReason ?? 'unknown'}`,
+    );
+  }
+
+  return result;
+}
+
+export async function processExternalEvent(options: {
+  readonly processor: DocumentProcessor;
+  readonly document: BlueNode;
+  readonly event: BlueNode;
+}) {
+  const result = await options.processor.processDocument(
+    options.document,
+    options.event,
+  );
+  if (result.capabilityFailure) {
+    throw new Error(
+      `Expected event processing success, got failure: ${result.failureReason ?? 'unknown'}`,
     );
   }
 

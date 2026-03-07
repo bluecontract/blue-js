@@ -44,8 +44,7 @@ export function toRequestSchemaNode(value: BlueValueInput): BlueNode {
 }
 
 export function normalizeBlueNodeInput(node: BlueNode): BlueNode {
-  const normalizedJson = INTERNAL_BLUE.nodeToJson(node, 'official');
-  return INTERNAL_BLUE.jsonValueToNode(normalizedJson);
+  return node.clone();
 }
 
 function fromRequestSchemaRecord(record: Record<string, unknown>): BlueNode {

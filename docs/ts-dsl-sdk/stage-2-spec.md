@@ -1,179 +1,128 @@
 # BLUE TS DSL SDK — Stage 2 Specification
 
 ## Goal
-Extend the stage-1 TypeScript DSL SDK with workflow handler authoring and richer step composition, while preserving stage-1 behavior and keeping the implementation close to the Java SDK for the stage-2 feature set.
-
-## Stage relationship
-- Stage 1 remains the foundation and must stay green.
-- Stage 2 adds workflow-level authoring and reusable step-building primitives.
-- Stage 3+ features such as MyOS helper DSL, AI, payments, PayNote, and patch/structure remain out of scope.
+Extend the existing stage-1 `libs/sdk-dsl` implementation with workflow handlers and richer step composition, while keeping stage-1 behavior intact and staying behaviorally close to the Java SDK for the stage-2 scope.
 
 ## Source of truth
-Use these sources in this order:
 1. `AGENTS.md`
-2. `.cursor/rules/*.mdc` relevant to the DSL work
+2. relevant `.cursor/rules/*.mdc`
 3. stage-1 docs where they still apply
-4. this stage-2 spec and stage-2 testing strategy
-5. Java docs and code under `references/java-sdk/**`
+4. this spec and `stage-2-testing-strategy.md`
+5. Java references under `references/java-sdk/**`
 6. public APIs of `libs/language` and `libs/document-processor`
 
-### Source-of-truth policy
-- Java is the primary behavioral reference for all stage-2 in-scope features.
-- The public TypeScript runtime is the final execution gate.
-- If a proven conflict appears between Java parity and current runtime behavior, keep the runtime-correct behavior, document the mismatch in `stage-2-deviations.md`, and add a focused regression test.
+Java remains the primary API and mapping reference.
+The current public TypeScript runtime is the final execution gate.
+When Java and runtime disagree, the SDK keeps the runtime-correct behavior, records the mismatch in `stage-2-deviations.md`, and adds a regression test.
 
-## In scope
-### `DocBuilder` handler authoring
+## Implemented public APIs
+
+### `DocBuilder`
 - `.onInit(workflowKey, steps => ...)`
 - `.onEvent(workflowKey, eventTypeInput, steps => ...)`
 - `.onNamedEvent(workflowKey, eventName, steps => ...)`
 - `.onDocChange(workflowKey, path, steps => ...)`
 - `.onChannelEvent(workflowKey, channelKey, eventTypeInput, steps => ...)`
 
-### `StepsBuilder` extensions
+### `StepsBuilder`
 - `.updateDocument(name, changeset => ...)`
 - `.updateDocumentFromExpression(name, expression)`
 - `.namedEvent(name, eventName)`
 - `.namedEvent(name, eventName, payload => ...)`
 - `.bootstrapDocument(stepName, documentNode, channelBindings)`
 - `.bootstrapDocument(stepName, documentNode, channelBindings, options => ...)`
-- `.bootstrapDocumentExpr(stepName, documentExpression, channelBindings, options => ...)`
+- `.bootstrapDocumentExpr(stepName, documentExpression, channelBindings, options?)`
 - `.ext(factory)`
 
-### Nested / internal helper builders
+### Internal stage-2 helpers
 - `ChangesetBuilder`
-  - `.replaceValue(path, value)`
-  - `.replaceExpression(path, expression)`
-  - `.addValue(path, value)`
-  - `.remove(path)`
 - `BootstrapOptionsBuilder`
-  - `.assignee(channelKey)`
-  - `.defaultMessage(text)`
-  - `.channelMessage(channelKey, text)`
-- internal payload/object builder used by:
-  - `namedEvent(...)`
-  - `bootstrapDocument(...)`
-  - `bootstrapDocumentExpr(...)`
+- `NodeObjectBuilder`
 
-## Out of scope
-- `canEmit`
-- `directChange`, `contractsPolicy`, `proposeChange`, `acceptChange`, `rejectChange`
-- MyOS admin helper surface and MyOS-specific step namespaces
-- access / linked access / agency
-- AI
-- payment request builders
-- PayNote
-- patch / structure / generator pipeline
-- dependency upgrades
+## Implemented runtime mappings
 
-## Required semantics
 ### Handler contracts
-- `onInit(...)` auto-creates or reuses `initLifecycleChannel`
-- `initLifecycleChannel` should be a lifecycle event channel matching document processing initiated
-- `onEvent(...)` auto-creates or reuses `triggeredEventChannel`
-- `onNamedEvent(...)` auto-creates or reuses `triggeredEventChannel`
-- `onDocChange(...)` auto-creates or reuses `<workflowKey>DocUpdateChannel`
-- `onChannelEvent(...)` binds the workflow to the provided channel key and event matcher
+- `onInit(...)` auto-creates `initLifecycleChannel` if missing.
+- `initLifecycleChannel` is emitted as `Core/Lifecycle Event Channel` with channel-level event `Core/Document Processing Initiated`.
+- `onInit(...)` writes a `Conversation/Sequential Workflow` bound to `initLifecycleChannel` and does not add a workflow-level event matcher.
 
-### Expected handler shapes
-- `onInit(...)` produces a `Conversation/Sequential Workflow` bound to `initLifecycleChannel`
-- `onEvent(...)` produces a `Conversation/Sequential Workflow` bound to `triggeredEventChannel` with an `event` matcher
-- `onNamedEvent(...)` produces a `Conversation/Sequential Workflow` bound to `triggeredEventChannel` with a named-event matcher
-- `onDocChange(...)` produces:
-  - a generated document update channel contract
-  - a `Conversation/Sequential Workflow` bound to that channel
-  - an event matcher compatible with document update events if required by runtime
-- `onChannelEvent(...)` produces a `Conversation/Sequential Workflow` bound to the provided channel
+- `onEvent(...)` auto-creates `triggeredEventChannel` if missing.
+- `triggeredEventChannel` is emitted as `Core/Triggered Event Channel`.
+- `onEvent(...)` writes a `Conversation/Sequential Workflow` bound to `triggeredEventChannel` with a workflow-level `event` matcher resolved from the stage-1 `TypeInput` model.
 
-### Named-event rule
-- Prefer the canonical repository/runtime named-event type if available.
-- If the current repo/runtime requires a different but compatible event shape, keep runtime-correct behavior and document it in stage-2 deviations.
-- Blank event names are invalid.
+- `onNamedEvent(...)` also reuses `triggeredEventChannel`.
+- The workflow matcher event uses type `Common/Named Event`.
+- In the current public runtime this type is kept as an unresolved inline type node because the repo packages do not expose a canonical public alias or BlueId for it.
 
-### Update-document rule
-- `updateDocument(...)` produces a `Conversation/Update Document` step with an inline `changeset` array.
-- `updateDocumentFromExpression(...)` produces a `Conversation/Update Document` step whose `changeset` is an expression string.
+- `onDocChange(...)` writes `<workflowKey>DocUpdateChannel` as `Core/Document Update Channel`.
+- The generated channel stores the provided `path` string.
+- The workflow is emitted as `Conversation/Sequential Workflow` bound to that generated channel with event type `Core/Document Update`.
 
-### Changeset guardrails
-- blank paths are invalid
-- reserved processor-relative paths are forbidden
-- at minimum, protect the equivalents of:
-  - `/_checkpoint`
-  - `/_embedded`
-  - `/_initialized`
-  - `/_terminated`
-- if public processor constants for these paths are unavailable, locally mirror the reserved path list with a short comment
+- `onChannelEvent(...)` writes a `Conversation/Sequential Workflow` bound to the provided channel key and uses the provided stage-1 `TypeInput` as the workflow event matcher.
+- The SDK does not silently replace the channel contract at that key.
 
-### Bootstrap-document rule
-- `bootstrapDocument(...)` emits `Conversation/Document Bootstrap Requested`
-- `bootstrapDocumentExpr(...)` emits the same event but uses an expression-valued `document`
-- channel bindings are serialized as a string-keyed dictionary
-- options may populate:
-  - `bootstrapAssignee`
-  - `initialMessages.defaultMessage`
-  - `initialMessages.perChannel`
+### Step contracts
+- `updateDocument(...)` emits `Conversation/Update Document` with an inline `changeset` array.
+- `updateDocumentFromExpression(...)` emits `Conversation/Update Document` with an expression-valued `changeset`.
+- `namedEvent(...)` emits `Conversation/Trigger Event` whose `event` node has type `Common/Named Event`, a required `name`, and optional `payload`.
+- `bootstrapDocument(...)` emits `Conversation/Trigger Event` with `event.type = Conversation/Document Bootstrap Requested`.
+- `bootstrapDocumentExpr(...)` emits the same event type, but stores `document` as a wrapped `${...}` expression string.
+- `ext(factory)` returns a custom extension bound to the current `StepsBuilder`.
 
-### Extension hook rule
-- `ext(factory)` returns a custom extension object bound to the current `StepsBuilder`
-- null factory is invalid
-- a factory that returns null is invalid
-- the extension hook is generic stage-2 infrastructure, not a payment or AI feature
+## Type and value model
 
-## Type input model
-Stage-2 handler matcher type inputs should support the same stage-1 type-input model:
+### Type input support
+The following stage-1 `TypeInput` model is reused:
 - string alias
 - `{ blueId: string }`
 - `BlueNode`
-- Zod schema with public `typeBlueId` annotation
+- Zod schema with a public `typeBlueId` annotation
 
-Stage-2 payload and changeset values should support the same stage-1 ordinary value model:
+### Value input support
+Stage-2 payloads, bootstrap documents, changeset values, and matcher payloads support:
 - primitives
 - arrays
-- plain Blue-shaped objects
+- plain BLUE-shaped JSON-like objects
 - `BlueNode`
 
-## Design constraints
-- work on the existing `libs/sdk-dsl` library
-- preserve stage-1 APIs and behavior
-- runtime must not depend on `document-processor`
-- tests may use `document-processor`
-- use only public imports from `@blue-labs/language`
-- do not import from internal paths such as `@blue-labs/language/lib/...`
-- keep workspace changes minimal
-- do not upgrade dependency versions
+## Payload customizer shape
+- `emitType(...)` now accepts a hybrid payload customizer object that keeps the old `BlueNode`-style mutators such as `.addProperty(...)` and also exposes Java-like helpers:
+  - `.put(...)`
+  - `.putNode(...)`
+  - `.putExpression(...)`
+  - `.putStringMap(...)`
+- `namedEvent(...)` payload customizers and bootstrap payload building use the same internal object-builder implementation.
 
-## Java references to read first
-### Main Java code
-- `references/java-sdk/src/main/java/blue/language/sdk/DocBuilder.java`
-- `references/java-sdk/src/main/java/blue/language/sdk/internal/StepsBuilder.java`
-- `references/java-sdk/src/main/java/blue/language/sdk/internal/ChangesetBuilder.java`
-- `references/java-sdk/src/main/java/blue/language/sdk/internal/BootstrapOptionsBuilder.java`
-- `references/java-sdk/src/main/java/blue/language/sdk/internal/NodeObjectBuilder.java`
+## Guardrails
+- `namedEvent(...)` rejects blank event names.
+- `bootstrapDocumentExpr(...)` rejects blank document expressions.
+- `ChangesetBuilder` rejects blank paths.
+- `ChangesetBuilder` rejects writes to reserved processor-managed contract paths:
+  - `/contracts/checkpoint`
+  - `/contracts/embedded`
+  - `/contracts/initialized`
+  - `/contracts/terminated`
+- `ext(factory)` rejects null factories and null extension results.
 
-### Java docs
-- `references/java-sdk/docs/sdk-dsl-developers.md`
-- `references/java-sdk/docs/sdk-dsl-mapping-audit-reference.md`
+## Out of scope
+- `canEmit`
+- `directChange`, change-policy DSL, proposal/accept/reject change helpers
+- MyOS helper namespaces
+- access / linked access / agency
+- AI
+- payments / PayNote / capture
+- patch / structure / generator pipeline
+- dependency upgrades
 
-### Java tests for stage 2
-- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DslParityAssertions.java`
-- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderGeneralDslParityTest.java`
-- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java`
-- `references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderStepsDslParityTest.java`
+## Testing and acceptance
+- stage-1 tests remain green
+- stage-2 parity cases are ported/adapted from Java
+- processor-backed runtime tests cover the required stage-2 flows
+- all required verification commands pass
 
-## Deliverables
-- existing `libs/sdk-dsl` extended with stage-2 APIs
-- clean public export surface in `libs/sdk-dsl/src/index.ts`
-- stage-2 docs updated to match implementation
-- stage-2 parity tests, guardrail tests, and runtime integration tests
-- `docs/ts-dsl-sdk/stage-2-deviations.md` updated with any justified deviations
-- `docs/ts-dsl-sdk/stage-2-coverage-matrix.md` updated with actual coverage
+## Current deviations
+- processor-managed Java shorthand aliases are emitted with runtime-correct `Core/*` aliases
+- named events use a runtime-compatible unresolved `Common/Named Event` type node
+- `onChannelEvent(...)` does not have a clean positive runtime path for timeline-message matchers through the current public processor API
 
-## Acceptance criteria
-The stage is accepted only when:
-1. stage-1 tests still pass
-2. stage-2 API is implemented
-3. stage-2 tests pass
-4. required runtime scenarios pass with TS `DocumentProcessor`
-5. no internal `@blue-labs/language` imports were used
-6. no dependency versions were upgraded unless already intentionally upgraded in the target branch
-7. any deviation from Java is documented, justified, and covered by tests
+See `stage-2-deviations.md` for the confirmed details and regression coverage.

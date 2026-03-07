@@ -1,53 +1,47 @@
 # BLUE TS DSL SDK — Stage 2 Mapping Matrix
 
-This matrix defines the expected stage-2 DSL → document mappings.
-Java is the primary reference for intent.
-The current TypeScript runtime is the final execution gate.
+Java remains the primary mapping reference.
+The current TypeScript runtime remains the execution gate.
 
 ## Handler authoring
 
-| DSL expression | Expected generated contracts / steps | Java reference | Required tests | Notes |
+| DSL expression | Generated mapping | Java reference | Tests | Notes |
 |---|---|---|---|---|
-| `.onInit('initialize', steps => ...)` | `initLifecycleChannel` + workflow `initialize` bound to it | `DocBuilderGeneralDslParityTest.onInitMatchesYamlDefinition` | parity + runtime | `initLifecycleChannel` should be reused if already present |
-| `.onEvent('onNumber', type, steps => ...)` | `triggeredEventChannel` + workflow `onNumber` with event matcher | `DocBuilderGeneralDslParityTest.onEventMatchesYamlDefinition` | parity + runtime | event type uses stage-1 type-input model |
-| `.onNamedEvent('onReady', 'ready', steps => ...)` | `triggeredEventChannel` + workflow `onReady` with named-event matcher | `DocBuilderGeneralDslParityTest.onNamedEventMatchesYamlDefinition` | parity + runtime | canonical named-event type if available; otherwise documented runtime-compatible fallback |
-| `.onDocChange('watchPrice', '/price', steps => ...)` | `watchPriceDocUpdateChannel` + workflow `watchPrice` bound to it | `DocBuilderGeneralDslParityTest.onDocChangeMatchesYamlDefinition` | parity + runtime | generated doc-update channel name is deterministic |
-| `.onChannelEvent('onIncrementEvent', 'ownerChannel', type, steps => ...)` | workflow bound to existing `ownerChannel` with event matcher | `DocBuilderChannelsDslParityTest.onChannelEventMatchesYamlDefinition` | parity + runtime-if-clean | runtime test only if public processor API supports it cleanly |
+| `.onInit('initialize', steps => ...)` | `initLifecycleChannel` as `Core/Lifecycle Event Channel` with channel-level event `Core/Document Processing Initiated`, plus workflow `initialize` bound to it | `DocBuilderGeneralDslParityTest.onInitMatchesYamlDefinition` | `DocBuilder.general.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | runtime alias deviation, see [stage-2-deviations.md](./stage-2-deviations.md) |
+| `.onEvent('onNumber', type, steps => ...)` | `triggeredEventChannel` as `Core/Triggered Event Channel`, plus workflow `onNumber` with workflow-level `event` matcher | `DocBuilderGeneralDslParityTest.onEventMatchesYamlDefinition` | `DocBuilder.general.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | matcher uses stage-1 `TypeInput` resolution |
+| `.onNamedEvent('onReady', 'ready', steps => ...)` | `triggeredEventChannel` plus workflow `onReady` whose matcher event uses type `Common/Named Event` and property `name` | `DocBuilderGeneralDslParityTest.onNamedEventMatchesYamlDefinition` | `DocBuilder.general.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | runtime-compatible unresolved named-event type, see [stage-2-deviations.md](./stage-2-deviations.md) |
+| `.onDocChange('watchPrice', '/price', steps => ...)` | `watchPriceDocUpdateChannel` as `Core/Document Update Channel` with `path`, plus workflow `watchPrice` bound to it with event `Core/Document Update` | `DocBuilderGeneralDslParityTest.onDocChangeMatchesYamlDefinition` | `DocBuilder.general.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | generated channel key is deterministic |
+| `.onChannelEvent('onIncrementEvent', 'ownerChannel', type, steps => ...)` | workflow bound to `ownerChannel` with workflow-level `event` matcher | `DocBuilderChannelsDslParityTest.onChannelEventMatchesYamlDefinition` | `DocBuilder.channels.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | parity is green; public runtime limitation is documented in [stage-2-deviations.md](./stage-2-deviations.md) |
 
 ## Step authoring
 
-| DSL expression | Expected generated step shape | Java reference | Required tests | Notes |
+| DSL expression | Generated mapping | Java reference | Tests | Notes |
 |---|---|---|---|---|
-| `.updateDocument('ApplyPatch', changeset => ...)` | `Conversation/Update Document` with inline `changeset` array | `DocBuilderStepsDslParityTest.stepPrimitivesAndEmitHelpersBuildExpectedContracts` | parity + runtime | use `ChangesetBuilder` |
-| `.updateDocumentFromExpression('ApplyDynamic', 'steps.Compute.nextChangeset')` | `Conversation/Update Document` with expression-valued `changeset` | `DocBuilderStepsDslParityTest.stepPrimitivesAndEmitHelpersBuildExpectedContracts` | parity + runtime | expression must be wrapped exactly once |
-| `.namedEvent('EmitReady', 'READY')` | `Conversation/Trigger Event` with named-event payload | `DocBuilderStepsDslParityTest.stepPrimitivesAndEmitHelpersBuildExpectedContracts` | parity + runtime | blank names invalid |
-| `.namedEvent('EmitPayload', 'READY', payload => payload.put(...))` | same as above, plus `payload` object | same | parity + runtime | payload builder should preserve insertion order |
-| `.bootstrapDocument('BootstrapNode', node, bindings)` | `Conversation/Document Bootstrap Requested` emitted event | `DocBuilderStepsDslParityTest.bootstrapDocumentBuildersMapDocumentBindingsAndOptions` | parity + emitted-event runtime | node document mode |
-| `.bootstrapDocument(..., options => ...)` | same + bootstrap options fields | same | parity + emitted-event runtime | `bootstrapAssignee`, `initialMessages` |
-| `.bootstrapDocumentExpr('BootstrapExpr', "document('/child')", bindings, ...)` | same event with expression-valued `document` | same | parity + emitted-event runtime | blank expression invalid |
-| `.ext(factory)` | returns a custom extension object bound to current steps builder | `DocBuilderStepsDslParityTest.extRejectsNullFactoriesAndNullExtensions` and `extSupportsCustomStepExtensions` | guardrail + parity | generic extension hook only |
+| `.updateDocument('ApplyPatch', changeset => ...)` | `Conversation/Update Document` with inline `changeset` array | `DocBuilderStepsDslParityTest.stepPrimitivesAndEmitHelpersBuildExpectedContracts` | `DocBuilder.steps.parity.test.ts` | uses `ChangesetBuilder` |
+| `.updateDocumentFromExpression('ApplyDynamic', 'steps.Compute.nextChangeset')` | `Conversation/Update Document` with expression-valued `changeset` | same | `DocBuilder.steps.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | wraps `${...}` exactly once |
+| `.namedEvent('EmitReady', 'READY')` | `Conversation/Trigger Event` whose `event` node is `Common/Named Event` with required `name` | same | `DocBuilder.steps.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | blank names rejected; runtime named-event deviation applies |
+| `.namedEvent('EmitPayload', 'READY', payload => payload.put(...))` | same as above, plus `payload` object | same | `DocBuilder.steps.parity.test.ts` | payload builder preserves insertion order |
+| `.emitType('EmitTyped', type, payload => payload.put(...))` | `Conversation/Trigger Event` with typed event node and Java-like payload builder helpers | same | `DocBuilder.steps.parity.test.ts`, `StepsBuilder.core.test.ts` | payload builder still supports legacy `.addProperty(...)` style |
+| `.bootstrapDocument('BootstrapNode', node, bindings)` | `Conversation/Document Bootstrap Requested` emitted via `Conversation/Trigger Event` | `DocBuilderStepsDslParityTest.bootstrapDocumentBuildersMapDocumentBindingsAndOptions` | `DocBuilder.steps.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | channel bindings serialize to a string-keyed dictionary |
+| `.bootstrapDocument(..., options => ...)` | same plus `bootstrapAssignee` and `initialMessages` | same | `DocBuilder.steps.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | `channelMessage(...)` ignores blank channel keys |
+| `.bootstrapDocumentExpr('BootstrapExpr', "document('/child')", bindings, ...)` | same event with expression-valued `document` | same | `DocBuilder.steps.parity.test.ts` | blank expression rejected |
+| `.ext(factory)` | returns a custom extension object bound to the current `StepsBuilder` | `DocBuilderStepsDslParityTest.extRejectsNullFactoriesAndNullExtensions`, `extSupportsCustomStepExtensions` | `DocBuilder.steps.parity.test.ts` | null factory and null return rejected |
 
 ## ChangesetBuilder
 
-| Builder call | Expected patch entry | Java reference | Required tests | Notes |
+| Builder call | Serialized patch entry | Java reference | Tests | Notes |
 |---|---|---|---|---|
-| `.replaceValue('/x', 1)` | `{ op: 'replace', path: '/x', val: 1 }` | `ChangesetBuilder.java` | parity + unit | |
-| `.replaceExpression('/x', "document('/y')")` | `{ op: 'replace', path: '/x', val: "${document('/y')}" }` | `ChangesetBuilder.java` | parity + unit | |
-| `.addValue('/items/0', 'a')` | `{ op: 'add', path: '/items/0', val: 'a' }` | `ChangesetBuilder.java` | parity + unit | |
-| `.remove('/obsolete')` | `{ op: 'remove', path: '/obsolete' }` | `ChangesetBuilder.java` | parity + unit | |
-| invalid blank / reserved path | throws | `ChangesetBuilder.java` | guardrail | reserved processor-relative paths must be protected |
+| `.replaceValue('/x', 1)` | `{ op: 'replace', path: '/x', val: 1 }` | `ChangesetBuilder.java` | `DocBuilder.steps.parity.test.ts`, `ChangesetBuilder.guardrails.test.ts` | |
+| `.replaceExpression('/x', "document('/y')")` | `{ op: 'replace', path: '/x', val: "${document('/y')}" }` | `ChangesetBuilder.java` | same | |
+| `.addValue('/items/0', 'a')` | `{ op: 'add', path: '/items/0', val: 'a' }` | `ChangesetBuilder.java` | same | |
+| `.remove('/obsolete')` | `{ op: 'remove', path: '/obsolete' }` | `ChangesetBuilder.java` | same | |
+| blank path | throws `Patch path cannot be empty` | `ChangesetBuilder.java` | `ChangesetBuilder.guardrails.test.ts` | |
+| reserved processor path | throws | `ChangesetBuilder.java` | `ChangesetBuilder.guardrails.test.ts` | protects `/contracts/checkpoint`, `/contracts/embedded`, `/contracts/initialized`, `/contracts/terminated` |
 
 ## Bootstrap options
 
-| Builder call | Expected serialized field(s) | Java reference | Required tests | Notes |
+| Builder call | Serialized field(s) | Java reference | Tests | Notes |
 |---|---|---|---|---|
-| `.assignee('orchestratorChannel')` | `bootstrapAssignee` | `BootstrapOptionsBuilder.java` | parity | |
-| `.defaultMessage('You have been added.')` | `initialMessages.defaultMessage` | same | parity | |
-| `.channelMessage('participantA', 'Please review.')` | `initialMessages.perChannel.participantA` | same | parity | blank channel keys ignored |
-
-## Deviation handling
-If the current runtime requires a mapping different from Java for an in-scope feature:
-1. keep the runtime-correct mapping,
-2. document it in `stage-2-deviations.md`,
-3. add a focused regression test,
-4. keep the difference visible in the coverage matrix.
+| `.assignee('orchestratorChannel')` | `bootstrapAssignee` | `BootstrapOptionsBuilder.java` | `DocBuilder.steps.parity.test.ts`, `DocBuilder.handlers.integration.test.ts` | |
+| `.defaultMessage('You have been added.')` | `initialMessages.defaultMessage` | same | same | |
+| `.channelMessage('participantA', 'Please review.')` | `initialMessages.perChannel.participantA` | same | same | blank channel keys are ignored |

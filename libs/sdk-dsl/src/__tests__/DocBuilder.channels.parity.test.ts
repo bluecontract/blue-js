@@ -136,4 +136,38 @@ contracts:
 `,
     );
   });
+
+  it('matches onChannelEvent parity', () => {
+    const fromDsl = DocBuilder.doc()
+      .name('Channel event parity')
+      .channel('ownerChannel')
+      .field('/counter', 0)
+      .onChannelEvent('onIncrementEvent', 'ownerChannel', 'Integer', (steps) =>
+        steps.replaceValue('SetCounter', '/counter', 1),
+      )
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      fromDsl,
+      `
+name: Channel event parity
+counter: 0
+contracts:
+  ownerChannel:
+    type: Core/Channel
+  onIncrementEvent:
+    type: Conversation/Sequential Workflow
+    channel: ownerChannel
+    event:
+      type: Integer
+    steps:
+      - name: SetCounter
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: 1
+`,
+    );
+  });
 });

@@ -7,6 +7,49 @@ export type ContractLike = BlueValueInput;
 
 export type TypeInput = string | { blueId: string } | BlueNode | ZodTypeAny;
 
+export type StringMapInput =
+  | Record<string, string | null>
+  | ReadonlyMap<string, string | null>;
+
+export type ChannelBindingsInput =
+  | Record<string, string>
+  | ReadonlyMap<string, string>;
+
+export interface NodeObjectWriter {
+  type(typeInput: TypeInput): this;
+  put(key: string, value: BlueValueInput): this;
+  putNode(key: string, value: BlueValueInput): this;
+  putStringMap(key: string, map: StringMapInput): this;
+  putExpression(key: string, expression: string): this;
+}
+
+export interface StepPayloadBuilder extends NodeObjectWriter {
+  addProperty(key: string, value: BlueNode): this;
+  removeProperty(key: string): this;
+  setType(type: BlueNode): this;
+  setItems(items: BlueNode[]): this;
+  getItems(): BlueNode[] | null | undefined;
+  setProperties(properties: Record<string, BlueNode>): this;
+  getProperties(): Record<string, BlueNode> | null | undefined;
+  clone(): BlueNode;
+}
+
+export interface ChangesetBuilderLike {
+  replaceValue(path: string, value: BlueValueInput): ChangesetBuilderLike;
+  replaceExpression(path: string, expression: string): ChangesetBuilderLike;
+  addValue(path: string, value: BlueValueInput): ChangesetBuilderLike;
+  remove(path: string): ChangesetBuilderLike;
+}
+
+export interface BootstrapOptionsBuilderLike {
+  assignee(channelKey: string | null | undefined): BootstrapOptionsBuilderLike;
+  defaultMessage(text: string | null | undefined): BootstrapOptionsBuilderLike;
+  channelMessage(
+    channelKey: string | null | undefined,
+    text: string | null | undefined,
+  ): BootstrapOptionsBuilderLike;
+}
+
 export interface FieldBuilder<TDone> {
   type(typeInput: TypeInput): FieldBuilder<TDone>;
   description(text: string): FieldBuilder<TDone>;

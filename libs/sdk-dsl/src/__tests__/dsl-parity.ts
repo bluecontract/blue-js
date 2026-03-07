@@ -2,12 +2,19 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { BlueNode } from '@blue-labs/language';
 
-import { createBlue } from './processor-harness';
+import { createParityBlue } from './processor-harness';
 
-const blue = createBlue();
+const blue = createParityBlue();
 
 export function assertDslMatchesYaml(fromDsl: BlueNode, yaml: string): void {
-  const expected = blue.preprocess(blue.yamlToNode(yaml).clone());
+  assertDslMatchesNode(fromDsl, blue.yamlToNode(yaml));
+}
+
+export function assertDslMatchesNode(
+  fromDsl: BlueNode,
+  expectedNode: BlueNode,
+): void {
+  const expected = blue.preprocess(expectedNode.clone());
   const actual = blue.preprocess(fromDsl.clone());
 
   const expectedBlueId = blue.calculateBlueIdSync(expected);

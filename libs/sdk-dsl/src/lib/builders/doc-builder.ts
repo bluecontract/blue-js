@@ -19,14 +19,22 @@ import {
   SectionTracker,
   sectionTrackerFromDocument,
 } from '../internal/section-tracker';
+import { wrapExpression } from '../internal/expression';
 import { resolveTypeInput } from '../internal/type-input';
 import { toBlueNode, toRequestSchemaNode } from '../internal/value-to-node';
 import { StepsBuilder } from './steps-builder';
 
 const DEFAULT_CHANNEL_TYPE = 'Core/Channel';
 const COMPOSITE_CHANNEL_TYPE = 'Conversation/Composite Timeline Channel';
+const LIFECYCLE_CHANNEL_TYPE = 'Core/Lifecycle Event Channel';
+const TRIGGERED_EVENT_CHANNEL_TYPE = 'Core/Triggered Event Channel';
+const DOCUMENT_UPDATE_CHANNEL_TYPE = 'Core/Document Update Channel';
+const DOCUMENT_PROCESSING_INITIATED_TYPE = 'Core/Document Processing Initiated';
+const DOCUMENT_UPDATE_EVENT_TYPE = 'Core/Document Update';
+const NAMED_EVENT_TYPE = 'Common/Named Event';
 const OPERATION_TYPE = 'Conversation/Operation';
 const OPERATION_IMPL_TYPE = 'Conversation/Sequential Workflow Operation';
+const SEQUENTIAL_WORKFLOW_TYPE = 'Conversation/Sequential Workflow';
 
 type OperationState = {
   readonly key: string;
@@ -57,8 +65,7 @@ export class DocBuilder {
   }
 
   static expr(expression: string): string {
-    const trimmed = expression.trim();
-    return trimmed.startsWith('${') ? trimmed : `\${${trimmed}}`;
+    return wrapExpression(expression);
   }
 
   name(name: string): this {
@@ -286,6 +293,96 @@ export class DocBuilder {
     });
   }
 
+  onInit(workflowKey: string, customizer: (steps: StepsBuilder) => void): this {
+    const key = requireNonEmpty(workflowKey, 'workflow key');
+    requireStepsCustomizer(customizer);
+    this.ensureInitChannel();
+    return this.applySequentialWorkflow(
+      key,
+      'initLifecycleChannel',
+      null,
+      customizer,
+    );
+  }
+
+  onEvent(
+    workflowKey: string,
+    eventType: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonEmpty(workflowKey, 'workflow key');
+    requireStepsCustomizer(customizer);
+    this.ensureTriggeredChannel();
+    return this.applySequentialWorkflow(
+      key,
+      'triggeredEventChannel',
+      new BlueNode().setType(resolveTypeInput(eventType, 'event type')),
+      customizer,
+    );
+  }
+
+  onNamedEvent(
+    workflowKey: string,
+    eventName: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonEmpty(workflowKey, 'workflow key');
+    const normalizedEventName = requireNonEmpty(eventName, 'event name');
+    requireStepsCustomizer(customizer);
+    this.ensureTriggeredChannel();
+
+    const matcher = new BlueNode().setType(resolveTypeInput(NAMED_EVENT_TYPE));
+    matcher.addProperty('name', toBlueNode(normalizedEventName));
+    return this.applySequentialWorkflow(
+      key,
+      'triggeredEventChannel',
+      matcher,
+      customizer,
+    );
+  }
+
+  onDocChange(
+    workflowKey: string,
+    path: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonEmpty(workflowKey, 'workflow key');
+    const channelKey = `${key}DocUpdateChannel`;
+    requireStepsCustomizer(customizer);
+
+    const channel = new BlueNode().setType(
+      resolveTypeInput(DOCUMENT_UPDATE_CHANNEL_TYPE),
+    );
+    channel.addProperty('path', toBlueNode(requireNonEmpty(path, 'path')));
+    ensureContracts(this.document)[channelKey] = channel;
+    this.trackContract(channelKey);
+
+    return this.applySequentialWorkflow(
+      key,
+      channelKey,
+      new BlueNode().setType(resolveTypeInput(DOCUMENT_UPDATE_EVENT_TYPE)),
+      customizer,
+    );
+  }
+
+  onChannelEvent(
+    workflowKey: string,
+    channelKey: string,
+    eventType: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const key = requireNonEmpty(workflowKey, 'workflow key');
+    const normalizedChannel = requireNonEmpty(channelKey, 'channel key');
+    requireStepsCustomizer(customizer);
+
+    return this.applySequentialWorkflow(
+      key,
+      normalizedChannel,
+      new BlueNode().setType(resolveTypeInput(eventType, 'event type')),
+      customizer,
+    );
+  }
+
   buildDocument(): BlueNode {
     if (this.currentSection) {
       throw new Error(
@@ -422,9 +519,62 @@ export class DocBuilder {
   }
 
   private buildSteps(customizer: (steps: StepsBuilder) => void): BlueNode[] {
+    requireStepsCustomizer(customizer);
     const builder = new StepsBuilder();
     customizer(builder);
     return builder.build();
+  }
+
+  private applySequentialWorkflow(
+    workflowKey: string,
+    channelKey: string,
+    eventMatcher: BlueNode | null,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    const workflow = new BlueNode().setType(
+      resolveTypeInput(SEQUENTIAL_WORKFLOW_TYPE),
+    );
+    workflow.addProperty('channel', toBlueNode(channelKey));
+    if (eventMatcher) {
+      workflow.addProperty('event', eventMatcher.clone());
+    }
+    workflow.addProperty(
+      'steps',
+      new BlueNode().setItems(this.buildSteps(customizer)),
+    );
+
+    ensureContracts(this.document)[workflowKey] = workflow;
+    this.trackContract(workflowKey);
+    return this;
+  }
+
+  private ensureTriggeredChannel(): void {
+    const contracts = ensureContracts(this.document);
+    if (contracts.triggeredEventChannel) {
+      return;
+    }
+
+    contracts.triggeredEventChannel = new BlueNode().setType(
+      resolveTypeInput(TRIGGERED_EVENT_CHANNEL_TYPE),
+    );
+  }
+
+  private ensureInitChannel(): void {
+    const contracts = ensureContracts(this.document);
+    if (contracts.initLifecycleChannel) {
+      return;
+    }
+
+    const lifecycleChannel = new BlueNode().setType(
+      resolveTypeInput(LIFECYCLE_CHANNEL_TYPE),
+    );
+    lifecycleChannel.addProperty(
+      'event',
+      new BlueNode().setType(
+        resolveTypeInput(DOCUMENT_PROCESSING_INITIATED_TYPE),
+      ),
+    );
+    contracts.initLifecycleChannel = lifecycleChannel;
   }
 
   private trackField(path: string): void {
@@ -623,10 +773,21 @@ function createDefaultChannelContract(): BlueNode {
   return new BlueNode().setType(resolveTypeInput(DEFAULT_CHANNEL_TYPE));
 }
 
-function requireNonEmpty(value: string, label: string): string {
-  const trimmed = value.trim();
+function requireNonEmpty(
+  value: string | null | undefined,
+  label: string,
+): string {
+  const trimmed = value?.trim() ?? '';
   if (trimmed.length === 0) {
     throw new Error(`${label} is required`);
   }
   return trimmed;
+}
+
+function requireStepsCustomizer(
+  customizer: ((steps: StepsBuilder) => void) | null | undefined,
+): asserts customizer is (steps: StepsBuilder) => void {
+  if (typeof customizer !== 'function') {
+    throw new Error('steps is required');
+  }
 }
