@@ -5,7 +5,7 @@
 import { BlueNode } from '@blue-labs/language';
 
 import { StepsBuilder } from '../../index.js';
-import { createTestBlue } from '../test-support/create-blue.js';
+import { createTestBlue } from '../../__tests__/support/create-blue.js';
 
 describe('StepsBuilder core step construction', () => {
   const blue = createTestBlue();

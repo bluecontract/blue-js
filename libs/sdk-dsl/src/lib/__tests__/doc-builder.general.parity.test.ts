@@ -5,7 +5,7 @@
 import { BlueNode } from '@blue-labs/language';
 
 import { DocBuilder } from '../../index.js';
-import { assertDslMatchesYaml } from '../test-support/dsl-parity.js';
+import { assertDslMatchesYaml } from '../../__tests__/support/dsl-parity.js';
 
 describe('DocBuilder general parity', () => {
   it('matches identity and string type parity', () => {

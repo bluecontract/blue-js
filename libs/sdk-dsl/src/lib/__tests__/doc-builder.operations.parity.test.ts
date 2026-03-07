@@ -5,8 +5,8 @@
 import { BlueNode } from '@blue-labs/language';
 
 import { DocBuilder } from '../../index.js';
-import { assertDslMatchesYaml } from '../test-support/dsl-parity.js';
-import { createTestBlue } from '../test-support/create-blue.js';
+import { assertDslMatchesYaml } from '../../__tests__/support/dsl-parity.js';
+import { createTestBlue } from '../../__tests__/support/create-blue.js';
 
 describe('DocBuilder operations parity', () => {
   const blue = createTestBlue();

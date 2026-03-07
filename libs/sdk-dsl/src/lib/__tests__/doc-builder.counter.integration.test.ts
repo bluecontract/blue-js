@@ -3,7 +3,7 @@
  * - references/java-sdk/src/test/java/blue/language/sdk/DocBuilderCounterIntegrationTest.java
  */
 import { DocBuilder } from '../../index.js';
-import { createProcessorHarness } from '../test-support/processor-harness.js';
+import { createProcessorHarness } from '../../__tests__/support/processor-harness.js';
 
 describe('DocBuilder counter integration', () => {
   it('builds the counter document and processes an increment operation', async () => {

@@ -7,7 +7,7 @@ import { BlueNode, withTypeBlueId } from '@blue-labs/language';
 import { z } from 'zod';
 
 import { resolveTypeInput } from '../internal/type-input.js';
-import { createTestBlue } from '../test-support/create-blue.js';
+import { createTestBlue } from '../../__tests__/support/create-blue.js';
 
 describe('type input resolution', () => {
   const blue = createTestBlue();

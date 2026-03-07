@@ -3,7 +3,7 @@
  * - references/java-sdk/src/test/java/blue/language/sdk/dsl/DocBuilderChannelsDslParityTest.java
  */
 import { DocBuilder } from '../../index.js';
-import { assertDslMatchesYaml } from '../test-support/dsl-parity.js';
+import { assertDslMatchesYaml } from '../../__tests__/support/dsl-parity.js';
 
 describe('DocBuilder channels parity', () => {
   it('supports default channel parity', () => {
