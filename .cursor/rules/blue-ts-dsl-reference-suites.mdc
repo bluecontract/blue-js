@@ -1,0 +1,35 @@
+---
+description: Use real MyOS/bank authored-document suites as acceptance corpus for complex DSL flows
+globs:
+  - docs/ts-dsl-sdk/reference-suites/**
+  - libs/sdk-dsl/src/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Reference scenario suites
+
+## Goal
+Use real authored-document scenarios from `lcloud` and `demo-bank-app` as the acceptance corpus for complex DSL flows.
+
+## What counts as in-scope
+- authored documents defined inline in integration/business tests
+- helper files that build those authored documents
+- runtime-visible workflow behavior caused by those documents
+
+## What is out-of-scope
+- REST/API transport tests
+- init mode / LATE_START
+- endpoint-only payload validation
+- persistence/idempotency semantics not driven by authored document shape
+
+## Required test pattern
+For each adopted reference scenario:
+1. preserve the raw authored-document intent,
+2. rebuild it with DSL,
+3. compare canonical structure after preprocess,
+4. run the real runtime scenario,
+5. document any unavoidable deviation.
+
+## Drift policy
+No silent drift is allowed.
+Any mismatch must be recorded explicitly in a deviations document.
