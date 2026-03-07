@@ -1,0 +1,121 @@
+Implement a focused “stage 4.5 reference hardening” pass for `libs/sdk-dsl`.
+
+Context:
+- Stages 1–4 are already implemented on the main DSL branch.
+- The repo already contains the reference scenario suites under:
+  - `docs/ts-dsl-sdk/reference-suites/**`
+- Those suites are based on real `lcloud` and bank behavior and are now the acceptance corpus for complex flows.
+- Do NOT widen scope to stage 5+ implementation.
+- This task is about strengthening tests and fixing any exposed drift in stage 3 and stage 4 behavior.
+
+Read first:
+- `AGENTS.md`
+- `.cursor/rules/blue-ts-dsl-reference-suites.mdc`
+- `.cursor/rules/blue-ts-dsl-reference-hardening-stage34.mdc`
+- `.cursor/rules/blue-ts-dsl-reference-hardening-testing.mdc`
+- `docs/ts-dsl-sdk/reference-suites/reference-suites-overview.md`
+- `docs/ts-dsl-sdk/reference-suites/reference-suite-manifest.md`
+- `docs/ts-dsl-sdk/reference-suites/reference-suite-rules.md`
+- `docs/ts-dsl-sdk/reference-suites/suite-00-seed-blueprints.md`
+- `docs/ts-dsl-sdk/reference-suites/suite-10-myos-stage3-foundations.md`
+- `docs/ts-dsl-sdk/reference-suites/suite-20-myos-stage4-permissions-and-orchestration.md`
+- `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+- `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
+
+This prompt is stored in blue-js/cursor-stage45-reference-hardening-prompt.txt for future reference.
+
+Mission:
+Harden stage 3 and stage 4 by reconstructing real reference scenarios with the TypeScript DSL SDK and proving zero-drift behavior.
+
+Primary goal:
+For selected scenarios from Suite 00 / 10 / 20, add or migrate tests so that:
+1. a document previously authored inline JSON/YAML/helper form is reconstructed with the DSL SDK,
+2. the DSL-authored document is structurally equivalent to the canonical/reference document,
+3. the runtime behavior remains equivalent through `document-processor`,
+4. any unavoidable deviation is explicitly documented.
+
+Non-negotiable rules:
+- Do NOT implement stage 5 or stage 6 features here.
+- Do NOT rewrite large parts of the SDK without evidence from the suites.
+- Do NOT weaken existing parity or integration tests.
+- Do NOT mutate the canonical/reference raw document fixtures just to match current DSL behavior.
+- If DSL behavior is wrong, fix the DSL.
+- If the suite reveals a real runtime-vs-Java mismatch already covered by final mapping docs, preserve runtime-correct behavior and document it.
+- Keep scope to stage 3 and stage 4 flows only.
+
+Required deliverables:
+1. A new hardening doc set under:
+   - `docs/ts-dsl-sdk/reference-hardening/stage-45-reference-hardening-spec.md`
+   - `docs/ts-dsl-sdk/reference-hardening/stage-45-reference-hardening-matrix.md`
+   - `docs/ts-dsl-sdk/reference-hardening/stage-45-reference-hardening-deviations.md`
+   - `docs/ts-dsl-sdk/reference-hardening/stage-45-reference-hardening-coverage.md`
+2. New or updated tests in `libs/sdk-dsl` for reference scenarios from:
+   - Suite 00
+   - Suite 10
+   - Suite 20
+3. Reusable comparison/test support helpers for:
+   - canonical reference doc -> BlueNode
+   - DSL doc -> BlueNode
+   - preprocess + official JSON equivalence
+   - BlueId equivalence where practical
+   - runtime behavior equivalence where practical
+
+Required approach:
+A. Start with shared helpers:
+- create support for loading or reconstructing canonical reference docs used by the suites,
+- create equivalence helpers for “reference document vs DSL-authored document”.
+
+B. Then implement reference tests in this order:
+1. Suite 00 seed blueprints:
+   - one seed/simple counter-like case
+   - one composite/shared-channel-like case if present in the suite docs
+2. Suite 10 MyOS stage 3 foundations:
+   - admin re-emit
+   - call/response forwarding
+   - filtered subscription / subscription update correlation
+   - single-document permission request/subscriber foundation
+3. Suite 20 MyOS stage 4 permissions/orchestration:
+   - SDPG lifecycle
+   - LDPG request/watcher or linked permission lifecycle
+   - worker agency / worker session start flow
+
+C. For each scenario add:
+1. shape equivalence test
+2. runtime equivalence or runtime proof test
+3. if the scenario corresponds to a complex macro builder, verify the materialized contracts/workflows explicitly
+
+Important:
+- Use the reference suites as the scenario source.
+- Use `final-dsl-sdk-mapping-reference.md` and `complex-flow-materialization-reference.md` as the source of truth for final shape/materialization.
+- Java examples remain secondary only when helpful for API ergonomics or naming.
+
+Expected test style:
+- clear describe blocks by suite and scenario
+- readable builder chains
+- explicit comments on what the scenario proves
+- primary oracle is preprocess + official JSON equivalence, not raw YAML string formatting
+
+Good test file naming examples:
+- `ReferenceSuite00.seed-blueprints.test.ts`
+- `ReferenceSuite10.myos-foundations.test.ts`
+- `ReferenceSuite20.permissions-orchestration.test.ts`
+
+If a reference scenario cannot be represented yet because the DSL surface is genuinely missing a required stage-3/4 feature:
+- document it in `stage-45-reference-hardening-deviations.md`
+- add a failing TODO-style test only if the repo convention allows it,
+- otherwise add a coverage gap entry with exact blocker details
+
+Required verification before claiming success:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+Completion criteria:
+- At least one strong reference-backed scenario from Suite 00 is covered.
+- At least three strong reference-backed scenarios from Suite 10 are covered.
+- At least three strong reference-backed scenarios from Suite 20 are covered.
+- Any deviation is explicit, narrow, and justified.
+- Report exactly which scenarios are now covered.

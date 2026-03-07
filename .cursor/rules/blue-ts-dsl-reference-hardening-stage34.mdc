@@ -1,0 +1,45 @@
+---
+description: Stage 4.5 reference hardening for stage 3 and 4
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/reference-hardening/**
+alwaysApply: false
+---
+
+# Stage 4.5 — reference hardening
+
+## Goal
+Strengthen stage 3 and stage 4 using real reference scenario suites already added to the repo.
+
+## Scope in
+- New reference-backed tests for:
+  - Suite 00 seed blueprints
+  - Suite 10 MyOS stage 3 foundations
+  - Suite 20 MyOS stage 4 permissions and orchestration
+- Small DSL fixes only when the reference suites expose real drift
+- Supporting equivalence helpers
+- Reference hardening docs
+
+## Scope out
+- Stage 5 AI implementation
+- Stage 6 PayNote implementation
+- Editing pipeline
+- Broad refactors unrelated to reference-suite hardening
+
+## Sources of truth
+1. `docs/ts-dsl-sdk/reference-suites/**`
+2. `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+3. `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
+4. Existing stage 3 and stage 4 implementation/tests
+5. Java examples only as secondary ergonomic reference
+
+## Behavioral guardrails
+- Preserve runtime-correct behavior
+- Do not normalize reference docs to current DSL bugs
+- Fix the DSL if reference-backed equivalence proves drift
+- Any deviation must be documented explicitly
+
+## Output expectations
+- New docs under `docs/ts-dsl-sdk/reference-hardening/**`
+- New or updated tests in `libs/sdk-dsl`
+- Verification commands must pass before claiming completion

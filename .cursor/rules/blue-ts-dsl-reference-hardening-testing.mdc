@@ -1,0 +1,35 @@
+---
+description: Testing rules for stage 4.5 reference hardening
+globs:
+  - libs/sdk-dsl/src/**/__tests__/**
+  - libs/sdk-dsl/src/**/*.test.ts
+alwaysApply: false
+---
+
+# Reference hardening test rules
+
+## Required test layers
+Every selected reference scenario should have:
+1. Shape equivalence:
+   - reference document vs DSL-authored document
+   - compare after preprocess using official JSON
+2. Runtime proof or runtime equivalence:
+   - prove the scenario still behaves correctly through document-processor
+
+## Preferred scenario grouping
+- one file per reference suite group
+- nested describe blocks:
+  - suite
+  - scenario
+  - shape/runtime
+
+## Oracle rules
+- primary oracle: preprocess + official JSON
+- compare BlueIds where practical
+- raw YAML formatting is never the primary oracle
+
+## Documentation rules
+If a scenario is skipped or partially covered:
+- add it to stage-45 coverage/deviations docs
+- explain the exact blocker
+- do not silently omit it
