@@ -1,0 +1,103 @@
+---
+description: BLUE TS DSL SDK stage 4 guardrails with final mapping reference
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 4
+
+## Goal
+
+Implement Stage 4 of the TypeScript DSL SDK inside `blue-js`.
+
+Stage 4 is the **higher-level MyOS interaction DSL** layer on top of completed Stage 1, Stage 2, and Stage 3 work.
+
+## Sources of truth
+
+1. `AGENTS.md`
+2. `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+3. `references/java-sdk/**`
+4. Existing public APIs in:
+   - `libs/language`
+   - `libs/document-processor`
+5. Existing `libs/sdk-dsl` implementation from Stage 1–3
+
+## Source-of-truth policy
+
+- The final mapping reference is the primary source of truth for Conversation/MyOS/PayNote domain mappings.
+- For Stage 4 specifically, treat the final mapping reference as authoritative for:
+  - single-document permission flows,
+  - linked-documents permission flows,
+  - worker-agency flows,
+  - grant document shapes,
+  - anchors/links semantics,
+  - `requestId` / correlation semantics,
+  - response/control event shapes.
+- Java reference files are the secondary source of truth for public API shape, naming, builder behavior, and parity scenario discovery.
+- Existing TypeScript runtime behavior in `libs/language` and `libs/document-processor` is the execution gate.
+- If a proven conflict appears between Java POC and the final mapping reference for an in-scope feature:
+  - preserve runtime-correct behavior aligned to the final mapping reference,
+  - document it in `docs/ts-dsl-sdk/stage-4-deviations.md`,
+  - add a regression test.
+
+## Scope in
+
+- `DocBuilder.access(...)`
+- `DocBuilder.accessLinked(...)`
+- `DocBuilder.agency(...)`
+- nested fluent builders and `.done()` for those constructs
+- stage-4 `StepsBuilder` helper namespaces related to those integrations, discovered from Java refs, including request/subscription/call-operation composition helpers where relevant
+- stage-4 integration tests
+- stage-4 docs / matrices
+
+## Scope out
+
+- AI DSL
+- payments / PayNote implementation
+- DocStructure / DocPatch / BlueChangeCompiler
+- participants orchestration DSL helpers unless directly required by an in-scope mapped scenario
+- bootstrap endpoint payload modeling beyond already-defined runtime document/event mappings
+- dependency upgrades unless absolutely required and clearly justified
+
+## Mapping sections to use directly
+
+Use these sections from `final-dsl-sdk-mapping-reference.md` directly during implementation:
+- 2.1 explicit channels in runtime documents
+- 2.2 `requestId`
+- 2.4 inherited contracts vs explicit duplication
+- 3.4 pending actions and customer interactions
+- 4.3 `MyOS/MyOS Timeline Channel`
+- 5.1 `MyOS/MyOS Admin Base`
+- 5.2 single-document permission wrappers and control events
+- 5.3 linked-documents permission wrappers and control events
+- 5.4 subscription wrappers where needed by access flows
+- 5.5 call-operation request and response forwarding where needed by access flows
+- 5.6 anchors and links
+- 5.8 worker agency
+- 5.10 canonical grant document patterns
+- 8.2 Stage 4 implications
+
+## Design guardrails
+
+- Keep implementation inside `libs/sdk-dsl`
+- Keep runtime package boundary clean; `document-processor` is test-only
+- Use only public imports from `@blue-labs/language` and `@blue-labs/document-processor`
+- Do not import from internal `src/...` paths across libraries
+- Build Stage 4 as a composition layer on top of Stage 1–3 primitives when practical
+- Prefer thin, explicit wrappers over hidden magic
+- Keep the public API close to Java unless TypeScript/runtime constraints require a deviation
+
+## Behavioral guardrails
+
+- Access-related builders must produce runtime-correct MyOS permission request/control flows aligned to the final mapping reference
+- Linked-access builders must align to anchors/links plus linked-doc permission request/control shapes
+- Agency builders must align to worker-agency permission request/control and worker-session start request shapes
+- Do not silently force root document `type` unless Java plus mapping reference clearly require it
+- Do not duplicate inherited admin contracts on documents already typed as `MyOS/MyOS Admin Base` unless explicitly requested
+- Preserve deterministic key generation and contract insertion order
+
+## Completion
+
+Do not claim completion unless verification commands were run and reported.

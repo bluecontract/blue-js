@@ -1,0 +1,79 @@
+---
+description: BLUE TS DSL SDK stage 4 testing and parity rules with final mapping reference
+globs:
+  - libs/sdk-dsl/**/*.test.ts
+  - libs/sdk-dsl/**/*.spec.ts
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 4 testing rules
+
+## Test philosophy
+
+Stage 4 must be validated with both:
+
+1. **Parity tests**
+   - port stage-4-relevant Java tests as closely as possible
+   - compare canonical Blue trees after preprocess
+   - compare BlueIds where practical
+   - align domain/event/document shapes to `final-dsl-sdk-mapping-reference.md`
+
+2. **Runtime tests**
+   - run generated documents through `document-processor`
+   - prove behavior for access / linked access / worker-agency flows
+   - prefer runtime-confirmed MyOS shapes from the final mapping reference over Java-only legacy shapes
+
+## Primary oracle
+
+- Canonical structural comparison after preprocess using `official` JSON
+- BlueId comparison when useful
+- YAML fixtures are allowed as readable expected documents, but raw YAML formatting is not the primary oracle
+
+## Required test categories
+
+### A. Builder parity tests
+At least one test each for:
+- `access(...)`
+- `accessLinked(...)`
+- `agency(...)`
+- each related nested builder path that materially changes generated contracts
+
+### B. Step/helper parity tests
+At least one parity or exact-behavior test each for any stage-4 helper namespaces discovered from Java refs, including representative helpers for:
+- single-document permission request composition
+- linked-documents permission request composition
+- worker-agency request composition
+- worker-session start request composition if in scope
+
+### C. Processor-backed integration tests
+At minimum:
+1. one single-document permission flow proving the DSL emits the correct request/control flow and reacts to the granted path
+2. one linked-documents permission flow proving requestId correlation or grant reaction works
+3. one worker-agency flow proving the DSL emits the correct permission request and then emits worker-session start on grant
+4. one regression scenario proving Stage 3 MyOS foundations still compose cleanly with the higher-level Stage 4 abstractions
+
+### D. Regression tests
+- any runtime-vs-Java mismatch must have a focused regression test
+- any unavoidable deviation must be documented in `stage-4-deviations.md`
+- any deviation from the final mapping reference must be treated as a blocker unless explicitly justified by current runtime behavior
+
+## Test readability rules
+
+- use explicit test names:
+  - `builds ... parity`
+  - `runs ... in processor`
+  - `correlates ... by request id`
+  - `emits ... after grant`
+- keep fluent builder chains readable and indented
+- add short comments explaining:
+  1. what is being built,
+  2. what mapping shape is expected,
+  3. what runtime behavior is being proven
+
+## Coverage tracking
+
+Update `docs/ts-dsl-sdk/stage-4-coverage-matrix.md` so every stage-4 construct shows whether it has:
+- parity coverage
+- runtime coverage
+- deviation documentation if applicable

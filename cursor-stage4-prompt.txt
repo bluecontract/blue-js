@@ -1,0 +1,135 @@
+Implement Stage 4 of the BLUE TypeScript DSL SDK in this repo.
+
+Read first, in this order:
+- AGENTS.md
+- .cursor/rules/blue-ts-dsl-sdk-stage4.mdc
+- .cursor/rules/blue-ts-dsl-sdk-stage4-testing.mdc
+- docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md
+- docs/ts-dsl-sdk/stage-4-spec.md
+- docs/ts-dsl-sdk/stage-4-implementation-plan.md
+- docs/ts-dsl-sdk/stage-4-testing-strategy.md
+- docs/ts-dsl-sdk/stage-4-mapping-matrix.md
+- docs/ts-dsl-sdk/stage-4-coverage-matrix.md
+- docs/ts-dsl-sdk/stage-4-deviations.md
+
+Use Java references as the secondary parity source for API shape and scenario discovery:
+- references/java-sdk/docs/sdk-dsl-developers.md
+- references/java-sdk/docs/sdk-dsl-mapping-audit-reference.md
+- references/java-sdk/src/main/java/blue/language/sdk/DocBuilder.java
+- references/java-sdk/src/main/java/blue/language/sdk/internal/StepsBuilder.java
+- references/java-sdk/src/test/java/blue/language/sdk/**
+
+This prompt is stored in blue-js/cursor-stage4-prompt.txt for future reference.
+
+Important:
+Search the Java source and test tree for stage-4-relevant APIs and scenarios around:
+- `access(`
+- `accessLinked(`
+- `agency(`
+- `.done()` of their nested builders
+- any related `StepsBuilder` namespaces/helpers used by Java tests
+- SDPG / linked-doc grant / worker-agency scenarios
+
+Port those scenarios as closely as possible for the Stage 4 scope.
+Do not invent a stage-4 scope wider than what is documented here.
+
+Source-of-truth policy for Stage 4:
+- `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md` is the primary source of truth for Conversation/MyOS/PayNote domain mappings.
+- `docs/ts-dsl-sdk/complex-flow-materialization-reference.md` is the primary source of truth for complex flows mappings.
+- For Stage 4 specifically, use that mapping document as authoritative for:
+  - single-document permission flows,
+  - linked-documents permission flows,
+  - worker-agency flows,
+  - grant document shapes,
+  - request/response/control event shapes,
+  - anchors/links semantics,
+  - `requestId` / correlation semantics.
+- Java references are the secondary source of truth for public API shape, naming, fluent ergonomics, nested builder behavior, and scenario intent.
+- Existing TypeScript runtime behavior in `libs/language` and `libs/document-processor` is the final execution gate.
+- If a proven conflict appears between Java parity and the final mapping reference for an in-scope feature, prefer the final mapping reference plus runtime-correct behavior, document the mismatch in `docs/ts-dsl-sdk/stage-4-deviations.md`, and add a focused regression test.
+
+Current assumptions:
+- Stage 1, Stage 2, and Stage 3 already exist on this branch and are green.
+- You must keep stage-1/stage-2/stage-3 behavior green.
+- Do not rewrite the SDK from scratch.
+
+Mapping sections you must use directly during implementation:
+- `final-dsl-sdk-mapping-reference.md` sections:
+  - 2.1 explicit channels in runtime documents
+  - 2.2 `requestId`
+  - 2.4 inherited contracts vs explicit duplication
+  - 3.4 pending actions and customer interactions
+  - 4.3 `MyOS/MyOS Timeline Channel`
+  - 5.1 `MyOS/MyOS Admin Base`
+  - 5.2 single-document permission request/response/control events
+  - 5.3 linked-documents permission request/response/control events
+  - 5.4 subscription wrappers where needed by access flows
+  - 5.5 call-operation request/response forwarding where needed by access flows
+  - 5.6 anchors and links
+  - 5.8 worker agency
+  - 5.10 canonical grant document patterns
+  - 8.2 Stage 4 implications
+
+Stage 4 scope:
+1. `DocBuilder.access(...)`
+2. `DocBuilder.accessLinked(...)`
+3. `DocBuilder.agency(...)`
+4. nested fluent builders and `.done()` for the above
+5. stage-4 `StepsBuilder` helper namespaces related to those integrations, discovered from Java refs, including request/subscription/call-operation composition helpers where they are part of the Java stage-4 scenarios
+6. stage-4 parity tests
+7. stage-4 processor-backed integration tests
+8. stage-4 docs / matrices
+
+Out of scope:
+- AI
+- payments / PayNote implementation
+- DocStructure / DocPatch / BlueChangeCompiler
+- participants orchestration DSL helpers unless directly required by a stage-4 mapped scenario and confirmed by the final mapping reference
+- bootstrap endpoint payload modeling beyond already-defined runtime document/event mappings
+- dependency upgrades unless absolutely required and clearly justified
+
+Non-negotiable rules:
+- Do not change `document-processor`
+- Do not weaken stage-1/stage-2/stage-3 tests
+- Do not widen scope to stage 5+
+- Do not replace mapping-reference-derived scenarios with easier TS-only scenarios if the mapped scenarios are feasible here
+- Do not import `document-processor` into the runtime library surface
+- Do not invent local fake repo types when `@blue-repository/types` does not provide them
+- Do not claim completion if verification did not pass
+
+What to build:
+- Keep the implementation layered:
+  - Stage 1: core document authoring
+  - Stage 2: handlers and richer steps
+  - Stage 3: MyOS/admin/session-interaction foundations
+  - Stage 4: higher-level access / linked access / agency abstractions built on top of those foundations
+- Prefer composition over duplicated low-level event-shape assembly when Stage 3 helpers already exist.
+- Keep runtime behavior aligned to the final mapping reference.
+- Mirror the Java public API shape closely where feasible.
+
+Required deliverables:
+- implementation inside `libs/sdk-dsl`
+- stage-4 parity tests
+- stage-4 runtime integration tests
+- updated `docs/ts-dsl-sdk/stage-4-spec.md`
+- updated `docs/ts-dsl-sdk/stage-4-implementation-plan.md`
+- updated `docs/ts-dsl-sdk/stage-4-testing-strategy.md`
+- updated `docs/ts-dsl-sdk/stage-4-mapping-matrix.md`
+- updated `docs/ts-dsl-sdk/stage-4-coverage-matrix.md`
+- updated `docs/ts-dsl-sdk/stage-4-deviations.md`
+
+Verification commands to run before claiming completion:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+When finished, report:
+- which files were changed
+- which stage-4 APIs were implemented
+- which Java scenarios were ported
+- which runtime-backed scenarios were proven
+- what deviations remain, if any
+- the exact verification commands you ran
