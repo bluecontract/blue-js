@@ -2,12 +2,12 @@
 
 | Suite | Scenario | Reference source | DSL surface | Shape test | Runtime test | Status | Notes |
 |---|---|---|---|---|---|---|---|
-| 00 | seed blueprint A | fill during implementation | stage 1-2 core | pending | pending | pending |  |
-| 00 | seed blueprint B | fill during implementation | stage 1-2 core | pending | pending | pending |  |
-| 10 | admin re-emit | fill during implementation | stage 3 | pending | pending | pending |  |
-| 10 | call/response forwarding | fill during implementation | stage 3 | pending | pending | pending |  |
-| 10 | filtered subscription | fill during implementation | stage 3 | pending | pending | pending |  |
-| 10 | SDPG foundation | fill during implementation | stage 3 | pending | pending | pending |  |
-| 20 | SDPG lifecycle | fill during implementation | stage 4 | pending | pending | pending |  |
-| 20 | linked permission lifecycle | fill during implementation | stage 4 | pending | pending | pending |  |
-| 20 | worker agency/session | fill during implementation | stage 4 | pending | pending | pending |  |
+| 00 | `DOC-SEED-01` participants orchestration blueprint | `tests-db/documentBuilders.ts`, `tests-db/docHelpers.ts`, `participants-orchestration.it.test.ts` | stage-3 foundation + operation/raw-step composition | `ReferenceSuite00.seed-blueprints.test.ts` | `ReferenceSuite00.seed-blueprints.test.ts` | Done | Verifies document reconstruction plus participant request / approval runtime parity |
+| 00 | `DOC-SEED-05` call operation request blueprint | `tests-db/documentBuilders.ts` | `steps.myOs().callOperationRequested(...)` | `ReferenceSuite00.seed-blueprints.test.ts` | `ReferenceSuite00.seed-blueprints.test.ts` | Done | Covers compact reference doc plus emitted call-operation request parity |
+| 10 | `MYOS-S3-01` admin call/response forwarding | `myos-admin-call-response-forwarding.it.test.ts` | `myOsAdmin(...)`, `steps.myOs().callOperationRequested(...)`, stage-3 response handling | `ReferenceSuite10.myos-foundations.test.ts` | `ReferenceSuite10.myos-foundations.test.ts` | Done | Mixed responses/requests/events are compared side-by-side |
+| 10 | `MYOS-S3-02` filtered subscription lifecycle | `myos-admin-session-subscription.it.test.ts` | `steps.myOs().subscribeToSessionRequested(...)`, `onSubscriptionUpdate(...)` | `ReferenceSuite10.myos-foundations.test.ts` | `ReferenceSuite10.myos-foundations.test.ts` | Done | Matches reference materialization for subscription filters and correlated updates |
+| 10 | `MYOS-S3-02` subscription revocation lifecycle | `myos-admin-session-subscription.it.test.ts` | `onTriggeredWithId(...)`, `steps.myOs().subscribeToSessionRequested(...)` | `ReferenceSuite10.myos-foundations.test.ts` | `ReferenceSuite10.myos-foundations.test.ts` | Done | Matches grouped update-document materialization for pending/active/revoked states |
+| 10 | `MYOS-S3-03` SDPG subscriber foundation | `myos-admin-sdpg-request.it.test.ts` | low-level `steps.myOs()` request/subscribe/call helpers | `ReferenceSuite10.myos-foundations.test.ts` | `ReferenceSuite10.myos-foundations.test.ts` | Done | Proves request -> granted -> subscribe -> mirrored update flow |
+| 20 | `MYOS-S4-02` linked-doc permission watcher | `myos-admin-ldpg-request.it.test.ts` | `steps.myOs().requestLinkedDocsPermission(...)`, `onMyOsResponse(...)` | `ReferenceSuite20.permissions-orchestration.test.ts` | `ReferenceSuite20.permissions-orchestration.test.ts` | Done | Focused linked-permission request and correlated grant observation |
+| 20 | `MYOS-S4-04` worker agency permission lifecycle | `myos-admin-wapg.it.test.ts` | `steps.myOs().grantWorkerAgencyPermission(...)`, stage-4 agency materialization layer | `ReferenceSuite20.permissions-orchestration.test.ts` | `ReferenceSuite20.permissions-orchestration.test.ts` | Done | Exposed and fixed event-metadata drift for worker-agency request names |
+| 20 | `MYOS-S4-05` worker session startup | `myos-admin-worker-session.it.test.ts` | `steps.myOs().startWorkerSession(...)`, stage-4 agency startup flow | `ReferenceSuite20.permissions-orchestration.test.ts` | `ReferenceSuite20.permissions-orchestration.test.ts` | Done | Proves granted -> start-worker-session request emission with reference payload shape |

@@ -29,6 +29,16 @@ export class NodeObjectBuilder implements StepPayloadBuilder {
     return this;
   }
 
+  setName(name: string | undefined): this {
+    this.node.setName(name);
+    return this;
+  }
+
+  setDescription(description: string | undefined): this {
+    this.node.setDescription(description);
+    return this;
+  }
+
   put(key: string, value: BlueValueInput): this {
     this.node.addProperty(requireNonEmpty(key, 'key'), toBlueNode(value));
     return this;

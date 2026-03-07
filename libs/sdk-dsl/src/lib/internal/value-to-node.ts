@@ -50,6 +50,14 @@ export function normalizeBlueNodeInput(node: BlueNode): BlueNode {
 function fromRequestSchemaRecord(record: Record<string, unknown>): BlueNode {
   const node = new BlueNode();
 
+  if ('name' in record && typeof record.name === 'string') {
+    node.setName(record.name);
+  }
+
+  if ('description' in record && typeof record.description === 'string') {
+    node.setDescription(record.description);
+  }
+
   if ('type' in record && record.type != null) {
     node.setType(
       resolveTypeInput(record.type as Parameters<typeof resolveTypeInput>[0]),
@@ -61,7 +69,12 @@ function fromRequestSchemaRecord(record: Record<string, unknown>): BlueNode {
   }
 
   for (const [key, propertyValue] of Object.entries(record)) {
-    if (key === 'type' || key === 'blueId') {
+    if (
+      key === 'type' ||
+      key === 'blueId' ||
+      key === 'name' ||
+      key === 'description'
+    ) {
       continue;
     }
 

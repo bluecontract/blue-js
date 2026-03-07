@@ -697,6 +697,24 @@ export class AgencySessionOptionsBuilder {
   private defaultMessageText: string | null = null;
   private readonly channelMessages = new Map<string, string>();
   private readonly capabilityValues = new Map<string, boolean>();
+  private requestIdValue: string | null = null;
+  private eventNameValue: string | null = null;
+  private eventDescriptionValue: string | null = null;
+
+  requestId(requestId: string | null | undefined): this {
+    this.requestIdValue = normalizeOptional(requestId);
+    return this;
+  }
+
+  name(name: string | null | undefined): this {
+    this.eventNameValue = normalizeOptional(name);
+    return this;
+  }
+
+  description(description: string | null | undefined): this {
+    this.eventDescriptionValue = normalizeOptional(description);
+    return this;
+  }
 
   defaultMessage(text: string | null | undefined): this {
     this.defaultMessageText = normalizeOptional(text);
@@ -731,6 +749,18 @@ export class AgencySessionOptionsBuilder {
   }
 
   applyTo(payload: NodeObjectBuilder): void {
+    if (this.requestIdValue) {
+      payload.put('requestId', this.requestIdValue);
+    }
+
+    if (this.eventNameValue) {
+      payload.setName(this.eventNameValue);
+    }
+
+    if (this.eventDescriptionValue) {
+      payload.setDescription(this.eventDescriptionValue);
+    }
+
     if (this.defaultMessageText || this.channelMessages.size > 0) {
       const initialMessages = NodeObjectBuilder.create();
       if (this.defaultMessageText) {
@@ -847,8 +877,15 @@ function putOptionalStepMetadata(
   node: NodeObjectBuilder,
   options: SimpleStepOptions | undefined,
 ): void {
-  putOptionalString(node, 'name', options?.name);
-  putOptionalString(node, 'description', options?.description);
+  const name = normalizeOptional(options?.name);
+  if (name) {
+    node.setName(name);
+  }
+
+  const description = normalizeOptional(options?.description);
+  if (description) {
+    node.setDescription(description);
+  }
 }
 
 function putOptionalString(

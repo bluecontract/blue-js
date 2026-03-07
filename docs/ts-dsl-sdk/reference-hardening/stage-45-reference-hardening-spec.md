@@ -26,6 +26,7 @@ This pass exists to answer one question:
 - `accessLinked(...)`
 - `agency(...)`
 - related stage-4 helper steps that materialize permission / worker-session flows
+- stage-3/4 low-level MyOS step helpers when they are the canonical materialization layer for the reference scenario
 
 ## Out of scope
 - Stage 5 AI feature expansion
@@ -44,6 +45,32 @@ The reference scenario suites define which real scenarios matter:
 The final document/materialization rules come from:
 - `final-dsl-sdk-mapping-reference.md`
 - `complex-flow-materialization-reference.md`
+
+## What this pass hardened
+
+### Shared comparison support
+- added reusable helpers that compare `reference raw object -> BlueNode` against `DSL-built BlueNode`
+- primary oracle is `preprocess + official JSON + BlueId`, not YAML text formatting
+- runtime proofs compare processor results side-by-side using public `document-processor` APIs
+
+### Real drift fixes
+- event-level helper `name` / `description` options now materialize as node metadata, not ad-hoc properties
+- request-schema object conversion now treats `name` / `description` as BLUE node metadata, matching canonical authored documents
+- worker-session request helper already carries `requestId` through the runtime event payload, which is required by the reference worker-session flow
+
+### Reference suites covered in this pass
+- Suite 00:
+  - `DOC-SEED-01` participants orchestration blueprint
+  - `DOC-SEED-05` call operation request blueprint
+- Suite 10:
+  - `MYOS-S3-01` admin call/response forwarding
+  - `MYOS-S3-02` filtered subscription lifecycle
+  - `MYOS-S3-02` subscription revocation lifecycle
+  - `MYOS-S3-03` SDPG subscriber foundation
+- Suite 20:
+  - `MYOS-S4-02` linked-doc permission request watcher
+  - `MYOS-S4-04` worker agency permission lifecycle
+  - `MYOS-S4-05` worker session startup
 
 ## Acceptance criteria
 - Stage 3 and 4 are exercised against real reference scenarios, not only synthetic parity cases.
