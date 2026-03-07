@@ -1,12 +1,40 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "composite": true,
     "declaration": true,
     "declarationMap": false,
     "emitDeclarationOnly": true,
     "noEmit": false,
     "outDir": "../../dist/out-tsc/libs/sdk-dsl",
+    "rootDir": "../..",
+    "paths": {
+      "@blue-labs/document-processor": [
+        "../document-processor/src/index.ts"
+      ],
+      "@blue-labs/document-processor/*": [
+        "../document-processor/src/*"
+      ],
+      "@blue-labs/language": [
+        "../language/src/index.ts"
+      ],
+      "@blue-labs/language/*": [
+        "../language/src/*"
+      ],
+      "@blue-labs/repository-contract": [
+        "../repository-contract/src/index.ts"
+      ],
+      "@blue-labs/repository-contract/*": [
+        "../repository-contract/src/*"
+      ],
+      "@blue-labs/shared-utils": [
+        "../shared/utils/src/index.ts"
+      ],
+      "@blue-labs/shared-utils/*": [
+        "../shared/utils/src/*"
+      ]
+    },
     "types": [
       "vitest/globals",
       "vitest/importMeta",
@@ -30,14 +58,26 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "../document-processor/src/**/*.ts",
+    "../language/src/**/*.ts",
+    "../language/types/base32.js.d.ts",
+    "../repository-contract/src/**/*.ts",
+    "../shared/utils/src/**/*.ts"
   ],
-  "references": [
-    {
-      "path": "../document-processor/tsconfig.lib.json"
-    },
-    {
-      "path": "../language/tsconfig.lib.json"
-    }
+  "exclude": [
+    "../document-processor/src/**/*.test.ts",
+    "../document-processor/src/**/*.spec.ts",
+    "../document-processor/src/**/__tests__/**",
+    "../document-processor/src/test-support/**",
+    "../language/src/**/*.test.ts",
+    "../language/src/**/*.spec.ts",
+    "../language/src/**/__tests__/**",
+    "../repository-contract/src/**/*.test.ts",
+    "../repository-contract/src/**/*.spec.ts",
+    "../repository-contract/src/**/__tests__/**",
+    "../shared/utils/src/**/*.test.ts",
+    "../shared/utils/src/**/*.spec.ts",
+    "../shared/utils/src/**/__tests__/**"
   ]
 }

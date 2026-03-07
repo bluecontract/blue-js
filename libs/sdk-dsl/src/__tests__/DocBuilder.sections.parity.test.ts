@@ -8,7 +8,9 @@ import { BlueNode } from '@blue-labs/language';
 
 import { DocBuilder } from '../lib';
 import { getPointerNode } from '../lib/internal/pointer';
-import { assertDslMatchesYaml } from './dsl-parity';
+import { resolveTypeInput } from '../lib/internal/type-input';
+import { toBlueNode } from '../lib/internal/value-to-node';
+import { assertDslMatchesNode, assertDslMatchesYaml } from './dsl-parity';
 
 describe('DocBuilder section parity', () => {
   it('tracks related fields and related contracts', () => {
@@ -166,5 +168,141 @@ meta:
 `,
     );
     expect(getPointerNode(fromDsl, '/trackedOnly')).toBeNull();
+  });
+
+  it('tracks init lifecycle contracts when onInit is defined inside a section', () => {
+    const fromDsl = DocBuilder.doc()
+      .name('Sectioned init handler')
+      .section('lifecycle', 'Lifecycle')
+      .onInit('initialize', (steps) =>
+        steps.replaceValue('SetStatus', '/status', 'ready'),
+      )
+      .endSection()
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      fromDsl,
+      `
+name: Sectioned init handler
+contracts:
+  initLifecycleChannel:
+    type: Core/Lifecycle Event Channel
+    event:
+      type: Core/Document Processing Initiated
+  initialize:
+    type: Conversation/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: SetStatus
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: ready
+  lifecycle:
+    type: Conversation/Document Section
+    title: Lifecycle
+    relatedContracts:
+      - initLifecycleChannel
+      - initialize
+`,
+    );
+  });
+
+  it('tracks triggered event contracts when onEvent is defined inside a section', () => {
+    const fromDsl = DocBuilder.doc()
+      .name('Sectioned event handler')
+      .section('events', 'Event handlers')
+      .onEvent('onCompleted', 'Conversation/Status Completed', (steps) =>
+        steps.replaceValue('SetStatus', '/status', 'done'),
+      )
+      .endSection()
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      fromDsl,
+      `
+name: Sectioned event handler
+contracts:
+  triggeredEventChannel:
+    type: Core/Triggered Event Channel
+  onCompleted:
+    type: Conversation/Sequential Workflow
+    channel: triggeredEventChannel
+    event:
+      type: Conversation/Status Completed
+    steps:
+      - name: SetStatus
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: done
+  events:
+    type: Conversation/Document Section
+    title: Event handlers
+    relatedContracts:
+      - triggeredEventChannel
+      - onCompleted
+`,
+    );
+  });
+
+  it('tracks triggered event contracts when onNamedEvent is defined inside a section', () => {
+    const fromDsl = DocBuilder.doc()
+      .name('Sectioned named-event handler')
+      .section('events', 'Named event handlers')
+      .onNamedEvent('onReady', 'READY', (steps) =>
+        steps.replaceValue('SetStatus', '/status', 'ready'),
+      )
+      .endSection()
+      .buildDocument();
+
+    const expected = new BlueNode().setName('Sectioned named-event handler');
+    const contracts = new BlueNode();
+    expected.addProperty('contracts', contracts);
+
+    contracts.addProperty(
+      'triggeredEventChannel',
+      new BlueNode().setType(resolveTypeInput('Core/Triggered Event Channel')),
+    );
+
+    const workflow = new BlueNode().setType(
+      resolveTypeInput('Conversation/Sequential Workflow'),
+    );
+    workflow.addProperty('channel', toBlueNode('triggeredEventChannel'));
+
+    const event = new BlueNode().setType(
+      resolveTypeInput('Common/Named Event'),
+    );
+    event.addProperty('name', toBlueNode('READY'));
+    workflow.addProperty('event', event);
+
+    const change = new BlueNode();
+    change.addProperty('op', toBlueNode('replace'));
+    change.addProperty('path', toBlueNode('/status'));
+    change.addProperty('val', toBlueNode('ready'));
+
+    const step = new BlueNode()
+      .setName('SetStatus')
+      .setType(resolveTypeInput('Conversation/Update Document'));
+    step.addProperty('changeset', new BlueNode().setItems([change]));
+    workflow.addProperty('steps', new BlueNode().setItems([step]));
+    contracts.addProperty('onReady', workflow);
+
+    const section = new BlueNode().setType(
+      resolveTypeInput('Conversation/Document Section'),
+    );
+    section.addProperty('title', toBlueNode('Named event handlers'));
+    section.addProperty(
+      'relatedContracts',
+      new BlueNode().setItems([
+        toBlueNode('triggeredEventChannel'),
+        toBlueNode('onReady'),
+      ]),
+    );
+    contracts.addProperty('events', section);
+
+    assertDslMatchesNode(fromDsl, expected);
   });
 });

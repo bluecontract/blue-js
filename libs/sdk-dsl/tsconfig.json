@@ -1,5 +1,34 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@blue-labs/document-processor": [
+        "../document-processor/src/index.ts"
+      ],
+      "@blue-labs/document-processor/*": [
+        "../document-processor/src/*"
+      ],
+      "@blue-labs/language": [
+        "../language/src/index.ts"
+      ],
+      "@blue-labs/language/*": [
+        "../language/src/*"
+      ],
+      "@blue-labs/repository-contract": [
+        "../repository-contract/src/index.ts"
+      ],
+      "@blue-labs/repository-contract/*": [
+        "../repository-contract/src/*"
+      ],
+      "@blue-labs/shared-utils": [
+        "../shared/utils/src/index.ts"
+      ],
+      "@blue-labs/shared-utils/*": [
+        "../shared/utils/src/*"
+      ]
+    }
+  },
   "files": [],
   "include": [],
   "references": [

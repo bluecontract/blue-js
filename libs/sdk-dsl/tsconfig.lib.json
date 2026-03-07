@@ -2,17 +2,38 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "rootDir": "src",
+    "paths": {
+      "@blue-labs/language": [
+        "../language/src/index.ts"
+      ],
+      "@blue-labs/language/*": [
+        "../language/src/*"
+      ],
+      "@blue-labs/repository-contract": [
+        "../repository-contract/src/index.ts"
+      ],
+      "@blue-labs/repository-contract/*": [
+        "../repository-contract/src/*"
+      ],
+      "@blue-labs/shared-utils": [
+        "../shared/utils/src/index.ts"
+      ],
+      "@blue-labs/shared-utils/*": [
+        "../shared/utils/src/*"
+      ]
+    },
+    "rootDir": "../..",
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../language/tsconfig.lib.json"
-    }
+  "include": [
+    "src/**/*.ts",
+    "../language/src/**/*.ts",
+    "../language/types/base32.js.d.ts",
+    "../repository-contract/src/**/*.ts",
+    "../shared/utils/src/**/*.ts"
   ],
   "exclude": [
     "vite.config.ts",
@@ -28,6 +49,15 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx",
+    "../language/src/**/*.test.ts",
+    "../language/src/**/*.spec.ts",
+    "../language/src/**/__tests__/**",
+    "../repository-contract/src/**/*.test.ts",
+    "../repository-contract/src/**/*.spec.ts",
+    "../repository-contract/src/**/__tests__/**",
+    "../shared/utils/src/**/*.test.ts",
+    "../shared/utils/src/**/*.spec.ts",
+    "../shared/utils/src/**/__tests__/**",
     "dist/**/*"
   ]
 }

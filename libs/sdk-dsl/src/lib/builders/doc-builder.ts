@@ -550,31 +550,31 @@ export class DocBuilder {
 
   private ensureTriggeredChannel(): void {
     const contracts = ensureContracts(this.document);
-    if (contracts.triggeredEventChannel) {
-      return;
+    if (!contracts.triggeredEventChannel) {
+      contracts.triggeredEventChannel = new BlueNode().setType(
+        resolveTypeInput(TRIGGERED_EVENT_CHANNEL_TYPE),
+      );
     }
 
-    contracts.triggeredEventChannel = new BlueNode().setType(
-      resolveTypeInput(TRIGGERED_EVENT_CHANNEL_TYPE),
-    );
+    this.trackContract('triggeredEventChannel');
   }
 
   private ensureInitChannel(): void {
     const contracts = ensureContracts(this.document);
-    if (contracts.initLifecycleChannel) {
-      return;
+    if (!contracts.initLifecycleChannel) {
+      const lifecycleChannel = new BlueNode().setType(
+        resolveTypeInput(LIFECYCLE_CHANNEL_TYPE),
+      );
+      lifecycleChannel.addProperty(
+        'event',
+        new BlueNode().setType(
+          resolveTypeInput(DOCUMENT_PROCESSING_INITIATED_TYPE),
+        ),
+      );
+      contracts.initLifecycleChannel = lifecycleChannel;
     }
 
-    const lifecycleChannel = new BlueNode().setType(
-      resolveTypeInput(LIFECYCLE_CHANNEL_TYPE),
-    );
-    lifecycleChannel.addProperty(
-      'event',
-      new BlueNode().setType(
-        resolveTypeInput(DOCUMENT_PROCESSING_INITIATED_TYPE),
-      ),
-    );
-    contracts.initLifecycleChannel = lifecycleChannel;
+    this.trackContract('initLifecycleChannel');
   }
 
   private trackField(path: string): void {

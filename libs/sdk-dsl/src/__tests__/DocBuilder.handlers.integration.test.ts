@@ -166,6 +166,49 @@ return {
     );
   });
 
+  it('emits bootstrap request events from bootstrapDocumentExpr expressions', async () => {
+    const childTemplate = new BlueNode()
+      .setName('Child Template')
+      .setType(new BlueNode().setValue('Custom/Type').setInlineValue(true))
+      .addProperty('initialCounter', new BlueNode().setValue(1));
+
+    const built = DocBuilder.doc()
+      .name('Bootstrap expr integration')
+      .field('/childTemplate', childTemplate)
+      .onInit('bootstrap', (steps) =>
+        steps.bootstrapDocumentExpr(
+          'BootstrapExpr',
+          "document('/childTemplate')",
+          {
+            participantB: 'bobChannel',
+          },
+          (options) => options.assignee('myOsAdminChannel'),
+        ),
+      )
+      .buildDocument();
+
+    const initialized = await initializeDocument(built);
+    const bootstrapEvent = initialized.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        conversationBlueIds['Conversation/Document Bootstrap Requested'],
+    );
+
+    expect(bootstrapEvent).toBeDefined();
+    expect(bootstrapEvent?.getProperties()?.document?.getName()).toBe(
+      'Child Template',
+    );
+    expect(
+      bootstrapEvent
+        ?.getProperties()
+        ?.channelBindings?.getProperties()
+        ?.participantB?.getValue(),
+    ).toBe('bobChannel');
+    expect(bootstrapEvent?.getProperties()?.bootstrapAssignee?.getValue()).toBe(
+      'myOsAdminChannel',
+    );
+  });
+
   it('preserves the current runtime limitation for onChannelEvent message matchers on timeline channels', async () => {
     const timelineId = 'owner-timeline-42';
     const built = DocBuilder.doc()

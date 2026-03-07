@@ -5,6 +5,8 @@
 - runtime-gated by the current public TypeScript processor
 - explicit deviations when Java and runtime differ
 - no stage-1 regressions
+- `libs/sdk-dsl` pins local source-path resolution for `@blue-labs/language` and `@blue-labs/document-processor` so `tsc`, Vitest, and Vite build against the same workspace sources during verification
+- `tsc` verification uses source-expanded `tsconfig.lib.json` / `tsconfig.spec.json`, while declaration generation uses `tsconfig.dts.json` so `vite build` stays scoped to `sdk-dsl` outputs
 
 ## Test layers
 
@@ -13,9 +15,11 @@ Files:
 - `libs/sdk-dsl/src/__tests__/DocBuilder.general.parity.test.ts`
 - `libs/sdk-dsl/src/__tests__/DocBuilder.channels.parity.test.ts`
 - `libs/sdk-dsl/src/__tests__/DocBuilder.steps.parity.test.ts`
+- `libs/sdk-dsl/src/__tests__/DocBuilder.sections.parity.test.ts`
 
 Coverage:
 - handler contract generation
+- handler section tracking for auto-created/reused lifecycle and triggered-event channels
 - step contract generation
 - bootstrap payload mapping
 - `ext(factory)` custom extension shape
@@ -54,6 +58,7 @@ Coverage:
 - `onDocChange(...)`
 - `updateDocumentFromExpression(...)`
 - bootstrap request emission
+- bootstrap request emission from `bootstrapDocumentExpr(...)`
 - stage-1 counter vertical slice
 
 ### 4. Deviation regression tests

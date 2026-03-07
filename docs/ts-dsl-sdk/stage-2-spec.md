@@ -45,14 +45,17 @@ When Java and runtime disagree, the SDK keeps the runtime-correct behavior, reco
 - `onInit(...)` auto-creates `initLifecycleChannel` if missing.
 - `initLifecycleChannel` is emitted as `Core/Lifecycle Event Channel` with channel-level event `Core/Document Processing Initiated`.
 - `onInit(...)` writes a `Conversation/Sequential Workflow` bound to `initLifecycleChannel` and does not add a workflow-level event matcher.
+- When `onInit(...)` is authored inside an open section, both `initLifecycleChannel` and the workflow key are added to that section's `relatedContracts`.
 
 - `onEvent(...)` auto-creates `triggeredEventChannel` if missing.
 - `triggeredEventChannel` is emitted as `Core/Triggered Event Channel`.
 - `onEvent(...)` writes a `Conversation/Sequential Workflow` bound to `triggeredEventChannel` with a workflow-level `event` matcher resolved from the stage-1 `TypeInput` model.
+- When `onEvent(...)` is authored inside an open section, both `triggeredEventChannel` and the workflow key are added to that section's `relatedContracts`.
 
 - `onNamedEvent(...)` also reuses `triggeredEventChannel`.
 - The workflow matcher event uses type `Common/Named Event`.
 - In the current public runtime this type is kept as an unresolved inline type node because the repo packages do not expose a canonical public alias or BlueId for it.
+- When `onNamedEvent(...)` is authored inside an open section, both `triggeredEventChannel` and the workflow key are added to that section's `relatedContracts`.
 
 - `onDocChange(...)` writes `<workflowKey>DocUpdateChannel` as `Core/Document Update Channel`.
 - The generated channel stores the provided `path` string.
