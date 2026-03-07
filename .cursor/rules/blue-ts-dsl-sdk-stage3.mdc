@@ -1,0 +1,125 @@
+---
+description: BLUE TS DSL SDK stage 3 guardrails with final mapping reference
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 3
+
+## Goal
+
+Implement Stage 3 of the TypeScript DSL SDK inside `blue-js`.
+
+Stage 3 is the **MyOS/admin/session-interaction foundation** layer on top of completed Stage 1 and Stage 2 work.
+
+## Sources of truth
+
+1. `AGENTS.md`
+2. `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+3. `references/java-sdk/**`
+4. Existing public APIs in:
+   - `libs/language`
+   - `libs/document-processor`
+5. Existing `libs/sdk-dsl` implementation from Stage 1 and Stage 2
+
+## Source-of-truth policy
+
+- The final mapping reference is the primary source of truth for Conversation/MyOS/PayNote domain mappings.
+- For Stage 3 specifically, treat the final mapping reference as authoritative for:
+  - MyOS event shapes,
+  - triggered-event wrappers,
+  - channel kinds,
+  - subscription/update envelopes,
+  - admin-delivery semantics,
+  - bootstrap-related semantics.
+- Java reference files are the secondary source of truth for public API shape, naming, builder behavior, and parity scenario discovery.
+- Existing TypeScript runtime behavior in `libs/language` and `libs/document-processor` is the execution gate.
+- If a proven conflict appears between Java POC and the final mapping reference for an in-scope feature:
+  - preserve runtime-correct behavior aligned to the final mapping reference,
+  - document it in `docs/ts-dsl-sdk/stage-3-deviations.md`,
+  - add a regression test.
+
+## Scope in
+
+- `DocBuilder.myOsAdmin(...)`
+- triggered-event matcher helpers:
+  - `onTriggeredWithId(...)`
+  - `onTriggeredWithMatcher(...)`
+  - `onSubscriptionUpdate(...)`
+  - `onMyOsResponse(...)`
+- `StepsBuilder.myOs()` / `MyOsSteps`
+- helper builders for the standard MyOS request events needed by session interaction:
+  - single-document permission request
+  - subscribe-to-session request
+  - call-operation request
+- stage-3 parity helper updates if needed
+- stage-3 integration tests
+- stage-3 docs / matrices
+
+## Scope out
+
+- `access()`
+- `accessLinked()`
+- `agency()`
+- AI DSL
+- payments / PayNote implementation
+- DocStructure / DocPatch / BlueChangeCompiler
+- worker-agency bootstrap helpers
+- participants orchestration helpers
+- linked-document grant orchestration helpers
+- dependency upgrades unless absolutely required and clearly justified
+
+## Mapping sections to use directly
+
+Use these sections from `final-dsl-sdk-mapping-reference.md` directly during implementation:
+- 2.1 explicit channels in runtime documents
+- 2.3 no `Common/Named Event` in current repo
+- 3.4 pending actions and customer interactions
+- 3.5 bootstrap-related Conversation events
+- 4.3 `MyOS/MyOS Timeline Channel`
+- 4.5 `Core/Triggered Event Channel`
+- 5.1 `MyOS/MyOS Admin Base`
+- 5.2 session interaction request and response wrappers
+- 5.4 subscribe-to-session and `MyOS/Subscription Update`
+- 5.5 `MyOS/Call Operation Requested` and response forwarding
+- 5.9 `MyOS/Document Session Bootstrap`
+- 8.1 Stage 3 implications
+
+## Design guardrails
+
+- Keep implementation inside `libs/sdk-dsl`
+- Keep runtime package boundary clean; `document-processor` is test-only
+- Use only public imports from `@blue-labs/language` and `@blue-labs/document-processor`
+- Do not import from internal `src/...` paths across libraries
+- Do not redesign stage-1/stage-2 APIs unless needed to preserve compatibility
+- Prefer thin helpers that build runtime-correct contracts/events already defined by the mapping reference
+
+## Behavioral guardrails
+
+- `myOsAdmin(...)` must materialize the standard admin contracts needed for admin-delivered events on non-admin document types
+- The helper must not silently force the root document `type`
+- triggered-event matcher helpers must bind to the correct triggered-event channel and set matchers deterministically
+- MyOS step helpers should be convenience wrappers over the same runtime-correct event shapes the processor expects
+- Do not assume a repo-native `Common/Named Event`
+- Do not widen scope to access/agency/AI/payments during this stage
+
+## Required docs
+
+- `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+- `docs/ts-dsl-sdk/stage-3-spec.md`
+- `docs/ts-dsl-sdk/stage-3-implementation-plan.md`
+- `docs/ts-dsl-sdk/stage-3-testing-strategy.md`
+- `docs/ts-dsl-sdk/stage-3-mapping-matrix.md`
+- `docs/ts-dsl-sdk/stage-3-deviations.md`
+- `docs/ts-dsl-sdk/stage-3-coverage-matrix.md`
+
+## Completion rule
+
+Do not claim Stage 3 complete unless:
+- stage-3 scope is implemented,
+- stage-3 mapping-reference-derived scenarios were covered,
+- processor-backed session-interaction tests pass,
+- stage-1 and stage-2 verification still pass,
+- docs are updated.
