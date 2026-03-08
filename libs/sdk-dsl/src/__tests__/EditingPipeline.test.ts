@@ -166,6 +166,55 @@ describe('Stage 7 editing pipeline', () => {
     expectRoundtrip(before, after);
   });
 
+  it('roundtrips documents whose root and contract payloads use reserved-looking envelope keys', () => {
+    const before = DocBuilder.doc()
+      .name('Reserved payloads')
+      .field('/payload', {
+        $sdkDslNode: 'root-before',
+        $sdkDslItems: ['a', 'b'],
+      })
+      .channel('ownerChannel')
+      .operation('submit')
+      .channel('ownerChannel')
+      .description('Submit payload')
+      .noRequest()
+      .steps((steps) =>
+        steps.emit('EmitPayload', {
+          type: 'Conversation/Event',
+          payload: {
+            $sdkDslNode: 'contract-before',
+            $sdkDslItems: ['x', 'y'],
+          },
+        }),
+      )
+      .done()
+      .buildDocument();
+    const after = DocBuilder.doc()
+      .name('Reserved payloads')
+      .field('/payload', {
+        $sdkDslNode: 'root-after',
+        $sdkDslItems: ['c', 'd'],
+      })
+      .channel('ownerChannel')
+      .operation('submit')
+      .channel('ownerChannel')
+      .description('Submit payload')
+      .noRequest()
+      .steps((steps) =>
+        steps.emit('EmitPayload', {
+          type: 'Conversation/Event',
+          payload: {
+            $sdkDslNode: 'contract-after',
+            $sdkDslItems: ['z'],
+          },
+        }),
+      )
+      .done()
+      .buildDocument();
+
+    expectRoundtrip(before, after);
+  });
+
   it('roundtrips a PayNote document with a new reserve phase', () => {
     const before = PayNotes.payNote('Simple capture')
       .currency('USD')

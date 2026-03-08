@@ -7,6 +7,8 @@ import { DocBuilder, DocPatch } from '../lib';
 import { assertCanonicalNodeEquals } from './editing-support';
 
 describe('DocPatch', () => {
+  type ReservedPayload = Record<string, string | string[]>;
+
   it('adds one root field as a single add operation and applies it', () => {
     const before = DocBuilder.doc()
       .name('Doc')
@@ -142,6 +144,57 @@ describe('DocPatch', () => {
     ]);
     assertCanonicalNodeEquals(patch.apply(), after);
   });
+
+  it.each([
+    {
+      label: '$sdkDslNode only',
+      beforePayload: {
+        $sdkDslNode: 'before',
+      } as ReservedPayload,
+      afterPayload: {
+        $sdkDslNode: 'after',
+      } as ReservedPayload,
+    },
+    {
+      label: '$sdkDslItems only',
+      beforePayload: {
+        $sdkDslItems: ['a', 'b'],
+      } as ReservedPayload,
+      afterPayload: {
+        $sdkDslItems: ['a', 'b', 'c'],
+      } as ReservedPayload,
+    },
+    {
+      label: 'both reserved-looking keys together',
+      beforePayload: {
+        $sdkDslNode: 'before',
+        $sdkDslItems: ['a', 'b'],
+      } as ReservedPayload,
+      afterPayload: {
+        $sdkDslNode: 'after',
+        $sdkDslItems: ['c', 'd'],
+      } as ReservedPayload,
+    },
+  ])(
+    'roundtrips root payload objects containing $label',
+    ({ beforePayload, afterPayload }) => {
+      const before = DocBuilder.doc()
+        .name('Reserved keys')
+        .field('/payload', beforePayload)
+        .buildDocument();
+      const after = DocBuilder.doc()
+        .name('Reserved keys')
+        .field('/payload', afterPayload)
+        .buildDocument();
+
+      assertCanonicalNodeEquals(DocPatch.from(before).apply(), before);
+
+      const patch = DocPatch.from(before).diff(after);
+      expect(patch.build()).toHaveLength(1);
+      expect(patch.build()[0]?.path).toBe('/payload');
+      assertCanonicalNodeEquals(patch.apply(), after);
+    },
+  );
 
   it('can patch inside contracts generically without BLUE-aware atomicity', () => {
     const before = DocBuilder.doc()

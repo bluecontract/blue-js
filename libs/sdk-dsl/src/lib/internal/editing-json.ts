@@ -14,6 +14,8 @@ import {
 
 const NODE_ENVELOPE_KEY = '$sdkDslNode';
 const ITEMS_ENVELOPE_KEY = '$sdkDslItems';
+const ENVELOPE_MARKER_KEY = '$sdkDslEnvelope';
+const ESCAPED_KEY_PREFIX = '$sdkDslEscaped:';
 
 type NodeEnvelope = {
   name?: string;
@@ -237,6 +239,7 @@ function serializeNode(node: BlueNode): EditingJsonValue {
   }
 
   const output: Record<string, EditingJsonValue> = {
+    [ENVELOPE_MARKER_KEY]: true,
     [NODE_ENVELOPE_KEY]: envelope,
   };
 
@@ -247,7 +250,7 @@ function serializeNode(node: BlueNode): EditingJsonValue {
   }
 
   for (const [key, value] of Object.entries(node.getProperties() ?? {})) {
-    output[key] = serializeNode(value);
+    output[encodeEnvelopePropertyKey(key)] = serializeNode(value);
   }
 
   return output;
@@ -307,8 +310,19 @@ function deserializeNode(value: EditingJsonValue): BlueNode {
   }
 
   const properties = Object.entries(value)
-    .filter(([key]) => key !== NODE_ENVELOPE_KEY && key !== ITEMS_ENVELOPE_KEY)
-    .map(([key, entryValue]) => [key, deserializeNode(entryValue)] as const);
+    .filter(
+      ([key]) =>
+        key !== ENVELOPE_MARKER_KEY &&
+        key !== NODE_ENVELOPE_KEY &&
+        key !== ITEMS_ENVELOPE_KEY,
+    )
+    .map(
+      ([key, entryValue]) =>
+        [
+          decodeSerializedPropertyKey(key),
+          deserializeNode(entryValue),
+        ] as const,
+    );
   if (properties.length > 0) {
     output.setProperties(Object.fromEntries(properties));
   }
@@ -319,7 +333,7 @@ function deserializeNode(value: EditingJsonValue): BlueNode {
 function serializeProperties(node: BlueNode): EditingJsonObject {
   return Object.fromEntries(
     Object.entries(node.getProperties() ?? {}).map(([key, value]) => [
-      key,
+      encodePlainPropertyKey(key),
       serializeNode(value),
     ]),
   );
@@ -330,7 +344,7 @@ function deserializeProperties(
 ): Record<string, BlueNode> {
   return Object.fromEntries(
     Object.entries(value).map(([key, entryValue]) => [
-      key,
+      decodeSerializedPropertyKey(key),
       deserializeNode(entryValue),
     ]),
   );
@@ -440,5 +454,31 @@ function serializePrimitiveValue(
 }
 
 function isEnvelopeObject(value: EditingJsonObject): boolean {
-  return NODE_ENVELOPE_KEY in value || ITEMS_ENVELOPE_KEY in value;
+  return value[ENVELOPE_MARKER_KEY] === true;
+}
+
+function encodePlainPropertyKey(key: string): string {
+  if (key === ENVELOPE_MARKER_KEY || key.startsWith(ESCAPED_KEY_PREFIX)) {
+    return `${ESCAPED_KEY_PREFIX}${key}`;
+  }
+  return key;
+}
+
+function encodeEnvelopePropertyKey(key: string): string {
+  if (
+    key === ENVELOPE_MARKER_KEY ||
+    key === NODE_ENVELOPE_KEY ||
+    key === ITEMS_ENVELOPE_KEY ||
+    key.startsWith(ESCAPED_KEY_PREFIX)
+  ) {
+    return `${ESCAPED_KEY_PREFIX}${key}`;
+  }
+  return key;
+}
+
+function decodeSerializedPropertyKey(key: string): string {
+  if (key.startsWith(ESCAPED_KEY_PREFIX)) {
+    return key.slice(ESCAPED_KEY_PREFIX.length);
+  }
+  return key;
 }

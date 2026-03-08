@@ -40,8 +40,15 @@ This layer is deliberately **not BLUE-aware**.
 Generic patch values use a stable Stage-7 editing JSON representation:
 - plain objects/lists stay plain when a node has no explicit BLUE metadata,
 - metadata-bearing nodes are wrapped in a reserved envelope:
+  - `$sdkDslEnvelope`
   - `$sdkDslNode`
   - `$sdkDslItems`
+
+The representation is collision-safe:
+- plain user objects using `$sdkDslNode` or `$sdkDslItems` remain plain user data,
+- actual internal envelopes are identified by the dedicated `$sdkDslEnvelope` marker,
+- user keys that collide with internal envelope-only keys are escaped internally and
+  unescaped during deserialization.
 
 This keeps root-field patch paths human-meaningful like `/counter` while still
 preserving typed scalar nodes and step payloads losslessly.
