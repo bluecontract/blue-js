@@ -2,106 +2,134 @@
 
 ## Purpose
 
-Stage 6 adds the **payments / PayNote DSL** on top of the generic authoring layer from Stages 1–2, the MyOS/admin foundations from Stage 3, the interaction abstractions from Stage 4, and the AI orchestration layer from Stage 5.
+Stage 6 adds the public PayNote DSL layer on top of:
 
-This stage covers three categories of APIs:
+- Stage 1 document authoring,
+- Stage 2 handlers and step composition,
+- Stage 3 MyOS/admin foundations,
+- Stage 4 access/agency abstractions,
+- Stage 5 AI orchestration.
 
-1. **typed PayNote document builders**
-2. **typed payment / conversation event helpers**
-3. **macro-style PayNote action-flow builders** that may intentionally materialize multiple contracts/workflows
+This stage is intentionally limited to repo-confirmed PayNote documents, typed PayNote/conversation events, and macro-style payment flows that are executable on the current public runtime.
 
-## Primary mapping references
+## Primary references
 
-Stage 6 must be implemented against:
+Stage 6 is implemented against:
 
 - `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
 - `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
+- `docs/ts-dsl-sdk/canonical-scenarios/paynote-business.md`
 
-Use them like this:
-- `final-dsl-sdk-mapping-reference.md` defines document shapes, event payloads, field semantics, and repo/runtime-confirmed optionality.
-- `complex-flow-materialization-reference.md` defines how high-level DSL expressions that represent flows are materialized into concrete contracts/workflows inside a document.
+Java references remain secondary for:
 
-Java POC remains useful for:
-- fluent API shape,
-- nested builder behavior,
+- public API shape,
 - naming,
-- builder ergonomics,
-- scenario discovery,
-- parity intent.
+- fluent ergonomics,
+- nested builder behavior,
+- scenario discovery.
 
-When Java POC and the final mapping references disagree, the final mapping references win.
+When Java POC and the public mapping/runtime differ, Stage 6 follows the public mapping/runtime and records the drift in `stage-6-deviations.md`.
 
-## Mapping sections relevant to Stage 6
+## Implemented public surface
 
-Use these sections directly from `final-dsl-sdk-mapping-reference.md`:
-- 2.1 explicit channels in runtime documents
-- 2.2 `requestId`
-- 2.4 inherited contracts vs explicit duplication
-- 2.5 bootstrap payload vs bootstrap request event vs bootstrap document
-- 3.4 pending actions and customer interactions
-- 3.5 bootstrap-related Conversation events
-- 5.9 `MyOS/Document Session Bootstrap`
-- 6 only where Stage 6 composes with AI-created child/bootstrap flows
-- 7.1–7.6 PayNote mappings
-- 8.4 Stage 6 implications
+### Typed PayNote document builders
 
-Use `complex-flow-materialization-reference.md` for:
-- macro-flow materialization templates,
-- generated workflow/operation structure,
-- validation rules for lock/unlock/request builders,
-- the boundary between typed event helpers and true multi-contract flow builders.
-
-## Scope
-
-### In scope
-
-#### Document builders
 - `PayNotes.payNote(name)`
 - `PayNotes.cardTransactionPayNote(name)`
-- `PayNotes.merchantToCustomerPayNote(name)` if confirmed on this branch
+- `PayNotes.merchantToCustomerPayNote(name)`
 - `PayNotes.payNoteDelivery(name)`
 - `PayNotes.paymentMandate(name)`
-- required fluent setters for repo/runtime-confirmed fields
 
-#### Step/event helper namespaces
-- `steps.paynote.*` typed helpers for Stage-6-confirmed native payloads
-- `steps.conversation.documentBootstrapRequested/responded/completed/failed`
-- `steps.conversation.customerActionRequested/responded`
+### Typed PayNote step helpers
 
-#### Macro-style flow builders
-- higher-level PayNote action builders discovered from Java refs and confirmed by the provided references
-- examples: `capture()/reserve()/release()` families if the references support them cleanly
+- `steps.paynote().reserveFundsRequested(...)`
+- `steps.paynote().captureFundsRequested(...)`
+- `steps.paynote().reserveFundsAndCaptureImmediatelyRequested(...)`
+- `steps.paynote().reservationReleaseRequested(...)`
+- `steps.paynote().cardTransactionCaptureLockRequested(...)`
+- `steps.paynote().cardTransactionCaptureUnlockRequested(...)`
+- `steps.paynote().startCardTransactionMonitoringRequested(...)`
+- `steps.paynote().linkedCardChargeRequested(...)`
+- `steps.paynote().linkedCardChargeAndCaptureImmediatelyRequested(...)`
+- `steps.paynote().reverseCardChargeRequested(...)`
+- `steps.paynote().reverseCardChargeAndCaptureImmediatelyRequested(...)`
+- `steps.paynote().paymentMandateSpendAuthorizationRequested(...)`
+- `steps.paynote().paymentMandateSpendSettled(...)`
 
-#### Tests and docs
-- stage-6 parity tests
-- stage-6 runtime integration tests
-- stage-6 docs / coverage / deviation tracking
+### Typed conversation helpers used by PayNote flows
 
-### Out of scope
+- `steps.conversation().documentBootstrapRequested(...)`
+- `steps.conversation().documentBootstrapRequestedExpr(...)`
+- `steps.conversation().documentBootstrapResponded(...)`
+- `steps.conversation().documentBootstrapCompleted(...)`
+- `steps.conversation().documentBootstrapFailed(...)`
+- `steps.conversation().customerActionRequested(...)`
+- `steps.conversation().customerActionResponded(...)`
 
-- patch/editing compiler work
-- introducing new backend/runtime semantics
-- inventing new repo-native payment fields
-- stage 7+
+### Macro-style PayNote flow builders
 
-## Core semantics
+- `capture()`
+- `reserve()`
+- `release()`
+
+Implemented nested methods:
+
+- `lockOnInit()`
+- `unlockOnEvent(...)`
+- `unlockOnDocPathChange(...)`
+- `unlockOnOperation(...)`
+- `requestOnInit()`
+- `requestOnEvent(...)`
+- `requestOnDocPathChange(...)`
+- `requestOnOperation(...)`
+- `requestPartialOnOperation(...)`
+- `requestPartialOnEvent(...)`
+- `done()`
+
+## Runtime-confirmed semantics
 
 ### Typed document builders
-Typed PayNote document builders should create the correct document `type` and expose confirmed fields. They should not duplicate inherited contracts unless an explicit runtime-confirmed reason exists.
+
+The typed builders set the correct document type and expose only repo-confirmed fields. They do not duplicate inherited repo contracts.
 
 ### Typed event helpers
-Typed payment/conversation helpers are thin wrappers over the lower-level Stage 2/3 step/event mechanisms. They exist for safety and DX, not because they introduce a new runtime abstraction.
 
-### Macro-style flow builders
-Some Stage-6 DSL expressions are intentionally higher-level and may materialize multiple contracts/workflows. This is allowed and expected, but only under the rules in `complex-flow-materialization-reference.md`.
+The typed step helpers are thin wrappers over the existing Stage 2 trigger-event APIs. They do not introduce a new runtime abstraction.
+
+### Macro materialization
+
+The `capture()/reserve()/release()` families materialize normal Conversation contracts using deterministic keys.
+
+Runtime-confirmed Stage 6 rules:
+
+- `lockOnInit()` validates that at least one unlock path exists before `buildDocument()`.
+- operation-triggered macro branches materialize executable request schemas on the current public runtime:
+  - `unlockOnOperation(...)` -> `request: { type: Boolean }`
+  - `requestOnOperation(...)` -> `request: { type: Boolean }`
+  - `requestPartialOnOperation(...)` -> `request: { type: Integer }`
+- `requestOnEvent(...)` and `unlockOnEvent(...)` still materialize `triggeredEventChannel` workflows, but processor-backed runtime delivery requires the matched event to be internally emitted or re-emitted through a runtime-confirmed bridge such as `myOsAdminUpdate`.
+
+### Unsupported subset
+
+The public repo does not currently confirm native reserve/release lock and unlock event types. Stage 6 therefore does not materialize reserve/release lock helpers and treats them as documented deviations.
+
+## Acceptance scenarios covered
+
+Stage 6 reconstructs and proves these public scenarios:
+
+- bootstrap delivery flow,
+- customer-action delivery flow,
+- payment-mandate authorization/settlement flow,
+- capture macro lifecycle,
+- reserve/release request lifecycle.
 
 ## Exit criteria
 
 Stage 6 is complete when:
-- the stage-6 APIs exist,
-- their parity coverage is in place,
-- runtime integration proves real behavior,
-- macro-style materialization is deterministic and tested,
-- Stages 1–5 are not regressed,
-- deviations are explicit and justified,
-- the implementation is aligned to the final mapping references.
+
+- the Stage 6 APIs above exist,
+- parity/materialization coverage is present,
+- processor-backed runtime tests prove the executable subset,
+- canonical PayNote business scenarios are reconstructed with the DSL,
+- Stages 1–5 remain green,
+- all remaining deviations are narrow and explicit.

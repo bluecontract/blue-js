@@ -3,6 +3,7 @@
 This document is the source of truth for **macro-style DSL expressions** that intentionally materialize multiple contracts/workflows.
 
 It complements `final-dsl-sdk-mapping-reference.md`:
+
 - `final-dsl-sdk-mapping-reference.md` defines payloads, document shapes, and repo/runtime-confirmed field semantics.
 - this document defines how higher-level DSL expressions materialize those payloads/shapes into concrete contracts/workflows in the document.
 
@@ -13,6 +14,7 @@ It complements `final-dsl-sdk-mapping-reference.md`:
 This is allowed for builder expressions that represent an orchestration, not a single raw contract.
 
 Examples:
+
 - `myOsAdmin(...)`
 - `access(...)`
 - `accessLinked(...)`
@@ -25,6 +27,7 @@ Examples:
 A macro builder must create only the branches explicitly requested by the DSL configuration.
 
 Example:
+
 - if the builder configures request + granted handling, do not also generate rejected/revoked handling unless explicitly configured or required by the canonical mapped pattern.
 
 ### 1.3 Do not duplicate inherited contracts
@@ -40,6 +43,7 @@ Any auto-generated channel/contract used by generated workflows must participate
 Generated contract keys must be deterministic.
 
 Known global rules:
+
 - operation implementation key: `<operationKey>Impl`
 - init channel key: `initLifecycleChannel`
 - triggered-event channel key: `triggeredEventChannel`
@@ -51,16 +55,19 @@ Stage-specific builders should follow a deterministic scheme that is stable acro
 ### 2.1 `myOsAdmin(channelKey)` on non-admin document types
 
 Materializes:
+
 - `myOsAdminChannel` (or provided key)
 - `myOsAdminUpdate`
 - `myOsAdminUpdateImpl`
 
 Purpose:
+
 - allow MyOS Admin to deliver events into a non-admin-base document.
 
 ### 2.2 `access(...)`
 
 Materializes, depending on configuration:
+
 - one request-emission workflow
 - zero or more response/control workflows (`granted`, `rejected`, `invalid`, `revoked`, etc.)
 - optional follow-up subscription/request/call-operation workflows if the integration DSL asks for them
@@ -71,6 +78,7 @@ It materializes the orchestrated flows for the configured interaction pattern.
 ### 2.3 `accessLinked(...)`
 
 Materializes, depending on configuration:
+
 - one linked-documents permission request-emission workflow
 - zero or more response/control workflows
 - optional downstream steps following grant/control events
@@ -78,6 +86,7 @@ Materializes, depending on configuration:
 ### 2.4 `agency(...)`
 
 Materializes, depending on configuration:
+
 - one worker-agency permission request-emission workflow
 - zero or more response/control workflows
 - optional worker-session start workflow once permission is granted
@@ -86,6 +95,7 @@ Materializes, depending on configuration:
 
 Materializes the AI orchestration scaffolding required by the mapped pattern.
 Depending on configuration this may include:
+
 - a permission-request workflow
 - a granted -> subscribe workflow
 - a subscription-ready workflow
@@ -107,6 +117,7 @@ It may also prepend `_SaveAIContext` or equivalent context-persistence steps whe
 ## 3.1 Typed PayNote document builders are not macro-flow builders by default
 
 The following builders primarily materialize a typed document and explicit fields:
+
 - `PayNotes.payNote(name)`
 - `PayNotes.cardTransactionPayNote(name)`
 - `PayNotes.merchantToCustomerPayNote(name)` when supported
@@ -120,6 +131,7 @@ They should not duplicate inherited contracts by default.
 These helpers materialize exactly one typed event/step payload inside an existing workflow.
 
 Examples:
+
 - `steps.paynote.reserveFundsRequested(...)`
 - `steps.paynote.captureFundsRequested(...)`
 - `steps.conversation.documentBootstrapRequested(...)`
@@ -133,6 +145,7 @@ Where Java exposes action-flow macros such as `capture()/reserve()/release()`, t
 
 These builders are **macro-flow builders**.
 They may create:
+
 - generated workflows,
 - generated operation contracts,
 - generated operation implementation workflows.
@@ -145,17 +158,20 @@ They only materialize normal Conversation/MyOS/PayNote contracts using determini
 #### `lockOnInit()`
 
 Materializes:
+
 - one `Conversation/Sequential Workflow`
 - channel: `initLifecycleChannel`
 - one `Conversation/Trigger Event` step emitting:
   - `PayNote/Card Transaction Capture Lock Requested`
 
 Recommended deterministic key:
+
 - `captureLockOnInit`
 
 #### `unlockOnEvent(<matcher>)`
 
 Materializes:
+
 - one `Conversation/Sequential Workflow`
 - channel: `triggeredEventChannel`
 - event matcher: `<matcher>`
@@ -163,12 +179,15 @@ Materializes:
   - `PayNote/Card Transaction Capture Unlock Requested`
 
 Recommended deterministic key pattern:
+
 - `captureUnlockOn<MatcherToken>`
 
 #### `unlockOnOperation(operationKey, channelKey, description)`
 
 Materializes:
+
 - one `Conversation/Operation` named `operationKey`
+- current public runtime subset: the generated operation must expose `request: { type: Boolean }`
 - one `Conversation/Sequential Workflow Operation` named `<operationKey>Impl`
 - implementation steps ending with a `Conversation/Trigger Event` step emitting:
   - `PayNote/Card Transaction Capture Unlock Requested`
@@ -176,6 +195,7 @@ Materializes:
 #### `requestOnInit(amountExpr?)`
 
 Materializes:
+
 - one `Conversation/Sequential Workflow`
 - channel: `initLifecycleChannel`
 - one `Conversation/Trigger Event` step emitting:
@@ -183,11 +203,13 @@ Materializes:
 - amount defaults to `${document('/amount/total')}` unless explicitly overridden
 
 Recommended deterministic key:
+
 - `captureRequestOnInit`
 
 #### `requestOnEvent(<matcher>, amountExpr?)`
 
 Materializes:
+
 - one `Conversation/Sequential Workflow`
 - channel: `triggeredEventChannel`
 - event matcher: `<matcher>`
@@ -197,12 +219,14 @@ Materializes:
 #### `requestOnOperation(operationKey, channelKey, description, amountExpr?)`
 
 Materializes:
+
 - one `Conversation/Operation`
+- current public runtime subset: the generated operation must expose `request: { type: Boolean }`
 - one `<operationKey>Impl` workflow operation
 - implementation steps ending with a trigger-event step emitting:
   - `PayNote/Capture Funds Requested`
 
-Partial-request variants follow the same structure; only the emitted amount expression changes.
+Partial-request variants follow the same structure, but on the current public runtime the generated operation must expose `request: { type: Integer }`.
 
 ### `reserve()` family
 
@@ -217,6 +241,7 @@ The same structural rules apply as for `capture()`, with the emitted request eve
 If an action macro configures `lockOnInit()`, at least one unlock path must also be configured before `buildDocument()`.
 
 Acceptable unlock paths:
+
 - `unlockOnEvent(...)`
 - `unlockOnOperation(...)`
 - another explicit unlock macro confirmed by the references
@@ -226,6 +251,7 @@ Acceptable unlock paths:
 This is a canonical composed flow, even if implemented with generic Stage-2/Stage-6 helpers.
 
 A delivery-decision flow typically materializes:
+
 - the typed `PayNote/PayNote Delivery` document
 - one or more user-facing operations already native to the type (`acceptPayNote`, `rejectPayNote`, etc.)
 - optional workflows that emit:
@@ -234,6 +260,7 @@ A delivery-decision flow typically materializes:
   - `Conversation/Document Bootstrap Requested` / related bootstrap events
 
 Important rule:
+
 - if the document type already provides delivery operations, the DSL builder should not duplicate them.
 - the flow composition happens around those existing operations and conversation events.
 
@@ -242,6 +269,7 @@ Important rule:
 This is another canonical composed flow.
 
 A mandate-spend orchestration typically materializes:
+
 - the typed `PayNote/Payment Mandate` document
 - request or response workflows that emit/consume:
   - `PayNote/Payment Mandate Spend Authorization Requested`
@@ -251,6 +279,7 @@ A mandate-spend orchestration typically materializes:
 ## 4. What is intentionally not auto-materialized
 
 The following are **not** automatically generated just because a typed document builder is used:
+
 - inherited repo contracts that the type already provides,
 - every possible response/control branch of an interaction,
 - ad-hoc application fields,

@@ -1,44 +1,41 @@
 # BLUE TS DSL SDK — Stage 6 mapping matrix
 
-## Document builders
-
-- `PayNotes.payNote(name)` -> `PayNote/PayNote`
-- `PayNotes.cardTransactionPayNote(name)` -> `PayNote/Card Transaction PayNote`
-- `PayNotes.merchantToCustomerPayNote(name)` -> `PayNote/Merchant To Customer PayNote` when available on this branch
-- `PayNotes.payNoteDelivery(name)` -> `PayNote/PayNote Delivery`
-- `PayNotes.paymentMandate(name)` -> `PayNote/Payment Mandate`
-
-## Typed step/event helpers
-
-### `steps.paynote.*`
-- `reserveFundsRequested(...)` -> `PayNote/Reserve Funds Requested`
-- `captureFundsRequested(...)` -> `PayNote/Capture Funds Requested`
-- `reserveFundsAndCaptureImmediatelyRequested(...)` -> `PayNote/Reserve Funds and Capture Immediately Requested`
-- `reservationReleaseRequested(...)` -> `PayNote/Reservation Release Requested`
-- `cardTransactionCaptureLockRequested(...)` -> `PayNote/Card Transaction Capture Lock Requested`
-- `cardTransactionCaptureUnlockRequested(...)` -> `PayNote/Card Transaction Capture Unlock Requested`
-- `startCardTransactionMonitoringRequested(...)` -> `PayNote/Start Card Transaction Monitoring Requested`
-- `linkedCardChargeRequested(...)` -> `PayNote/Linked Card Charge Requested`
-- `linkedCardChargeAndCaptureImmediatelyRequested(...)` -> `PayNote/Linked Card Charge and Capture Immediately Requested`
-- `reverseCardChargeRequested(...)` -> `PayNote/Reverse Card Charge Requested`
-- `reverseCardChargeAndCaptureImmediatelyRequested(...)` -> `PayNote/Reverse Card Charge and Capture Immediately Requested`
-- `paymentMandateSpendAuthorizationRequested(...)` -> `PayNote/Payment Mandate Spend Authorization Requested`
-- `paymentMandateSpendSettled(...)` -> `PayNote/Payment Mandate Spend Settled`
-
-### `steps.conversation.*`
-- `documentBootstrapRequested(...)` -> `Conversation/Document Bootstrap Requested`
-- `documentBootstrapResponded(...)` -> `Conversation/Document Bootstrap Responded`
-- `documentBootstrapCompleted(...)` -> `Conversation/Document Bootstrap Completed`
-- `documentBootstrapFailed(...)` -> `Conversation/Document Bootstrap Failed`
-- `customerActionRequested(...)` -> `Conversation/Customer Action Requested`
-- `customerActionResponded(...)` -> `Conversation/Customer Action Responded`
-
-## Macro-style builders
-
-Use `complex-flow-materialization-reference.md`.
-Examples expected to be considered in Stage 6:
-- `capture()` family
-- `reserve()` family
-- `release()` family
-
-Only implement macros whose materialization is confirmed by the final references and current runtime.
+| DSL surface                                                            | Runtime / mapping target                                                                              | Notes                                                                 |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `PayNotes.payNote(name)`                                               | `PayNote/PayNote`                                                                                     | typed base builder                                                    |
+| `PayNotes.cardTransactionPayNote(name)`                                | `PayNote/Card Transaction PayNote`                                                                    | typed card transaction builder                                        |
+| `PayNotes.merchantToCustomerPayNote(name)`                             | `PayNote/Merchant To Customer PayNote`                                                                | typed merchant-to-customer builder                                    |
+| `PayNotes.payNoteDelivery(name)`                                       | `PayNote/PayNote Delivery`                                                                            | typed delivery builder                                                |
+| `PayNotes.paymentMandate(name)`                                        | `PayNote/Payment Mandate`                                                                             | typed payment-mandate builder                                         |
+| `steps.paynote().reserveFundsRequested(...)`                           | `PayNote/Reserve Funds Requested`                                                                     | thin trigger-event helper                                             |
+| `steps.paynote().captureFundsRequested(...)`                           | `PayNote/Capture Funds Requested`                                                                     | thin trigger-event helper                                             |
+| `steps.paynote().reserveFundsAndCaptureImmediatelyRequested(...)`      | `PayNote/Reserve Funds and Capture Immediately Requested`                                             | thin trigger-event helper                                             |
+| `steps.paynote().reservationReleaseRequested(...)`                     | `PayNote/Reservation Release Requested`                                                               | thin trigger-event helper                                             |
+| `steps.paynote().cardTransactionCaptureLockRequested(...)`             | `PayNote/Card Transaction Capture Lock Requested`                                                     | thin trigger-event helper                                             |
+| `steps.paynote().cardTransactionCaptureUnlockRequested(...)`           | `PayNote/Card Transaction Capture Unlock Requested`                                                   | thin trigger-event helper                                             |
+| `steps.paynote().startCardTransactionMonitoringRequested(...)`         | `PayNote/Start Card Transaction Monitoring Requested`                                                 | thin trigger-event helper                                             |
+| `steps.paynote().linkedCardChargeRequested(...)`                       | `PayNote/Linked Card Charge Requested`                                                                | includes `paymentMandateDocumentId` because it is repo-confirmed here |
+| `steps.paynote().linkedCardChargeAndCaptureImmediatelyRequested(...)`  | `PayNote/Linked Card Charge and Capture Immediately Requested`                                        | typed helper                                                          |
+| `steps.paynote().reverseCardChargeRequested(...)`                      | `PayNote/Reverse Card Charge Requested`                                                               | typed helper                                                          |
+| `steps.paynote().reverseCardChargeAndCaptureImmediatelyRequested(...)` | `PayNote/Reverse Card Charge and Capture Immediately Requested`                                       | typed helper                                                          |
+| `steps.paynote().paymentMandateSpendAuthorizationRequested(...)`       | `PayNote/Payment Mandate Spend Authorization Requested`                                               | typed helper                                                          |
+| `steps.paynote().paymentMandateSpendSettled(...)`                      | `PayNote/Payment Mandate Spend Settled`                                                               | typed helper                                                          |
+| `steps.conversation().documentBootstrapRequested(...)`                 | `Conversation/Document Bootstrap Requested`                                                           | typed bootstrap helper                                                |
+| `steps.conversation().documentBootstrapRequestedExpr(...)`             | `Conversation/Document Bootstrap Requested`                                                           | document source from expression                                       |
+| `steps.conversation().documentBootstrapResponded(...)`                 | `Conversation/Document Bootstrap Responded`                                                           | typed bootstrap helper                                                |
+| `steps.conversation().documentBootstrapCompleted(...)`                 | `Conversation/Document Bootstrap Completed`                                                           | typed bootstrap helper                                                |
+| `steps.conversation().documentBootstrapFailed(...)`                    | `Conversation/Document Bootstrap Failed`                                                              | typed bootstrap helper                                                |
+| `steps.conversation().customerActionRequested(...)`                    | `Conversation/Customer Action Requested`                                                              | typed customer-action helper                                          |
+| `steps.conversation().customerActionResponded(...)`                    | `Conversation/Customer Action Responded`                                                              | typed customer-action helper                                          |
+| `capture().lockOnInit()`                                               | workflow on `initLifecycleChannel` emitting `PayNote/Card Transaction Capture Lock Requested`         | deterministic key `captureLockOnInit`                                 |
+| `capture().unlockOnEvent(...)`                                         | workflow on `triggeredEventChannel` emitting `PayNote/Card Transaction Capture Unlock Requested`      | matcher tokenized into contract key                                   |
+| `capture().unlockOnDocPathChange(...)`                                 | workflow on generated doc-update channel emitting `PayNote/Card Transaction Capture Unlock Requested` | watch path stored on channel                                          |
+| `capture().unlockOnOperation(...)`                                     | `Conversation/Operation` + `Conversation/Sequential Workflow Operation`                               | uses runtime-confirmed `Boolean` request schema                       |
+| `capture().requestOnInit()`                                            | workflow on `initLifecycleChannel` emitting `PayNote/Capture Funds Requested`                         | default amount `${document('/amount/total')}`                         |
+| `capture().requestOnEvent(...)`                                        | workflow on `triggeredEventChannel` emitting `PayNote/Capture Funds Requested`                        | runtime proofs require internal emit or re-emit                       |
+| `capture().requestOnDocPathChange(...)`                                | workflow on generated doc-update channel emitting `PayNote/Capture Funds Requested`                   | watch path stored on channel                                          |
+| `capture().requestOnOperation(...)`                                    | `Conversation/Operation` + workflow operation emitting `PayNote/Capture Funds Requested`              | uses runtime-confirmed `Boolean` request schema                       |
+| `capture().requestPartialOnOperation(...)`                             | workflow operation emitting `PayNote/Capture Funds Requested`                                         | uses runtime-confirmed `Integer` request schema                       |
+| `capture().requestPartialOnEvent(...)`                                 | workflow on `triggeredEventChannel` with custom emitted amount expression                             | parity + runtime-confirmed internal emit path                         |
+| `reserve()` request family                                             | same structure as `capture()`, with reserve request event type                                        | reserve lock/unlock helpers are intentionally unsupported             |
+| `release()` request family                                             | same structure as `capture()`, with release request event type                                        | release lock/unlock helpers are intentionally unsupported             |

@@ -5,10 +5,23 @@ import type {
   BlueValueInput,
   BootstrapOptionsBuilderLike,
   ChangesetBuilderLike,
+  ConversationCustomerActionDefinition,
+  ConversationCustomerActionRespondedOptions,
+  ConversationCustomerActionRequestedOptions,
+  ConversationDocumentBootstrapCompletedOptions,
+  ConversationDocumentBootstrapFailedOptions,
+  ConversationDocumentBootstrapRequestOptions,
+  ConversationDocumentBootstrapRespondedOptions,
   EventPatternInput,
   MyOsCallOperationRequestedOptions,
   MyOsSingleDocumentPermissionGrantRequestedOptions,
   MyOsSubscribeToSessionRequestedOptions,
+  PayNoteAmountEventOptions,
+  PayNoteCardTransactionEventOptions,
+  PayNoteLinkedChargeRequestedOptions,
+  PayNoteMonitoringRequestedOptions,
+  PayNotePaymentMandateSpendAuthorizationRequestedOptions,
+  PayNotePaymentMandateSpendSettledOptions,
   StepPayloadBuilder,
   TypeInput,
 } from '../types';
@@ -212,6 +225,14 @@ export class StepsBuilder {
 
   myOs(): MyOsSteps {
     return this.ext((steps) => new MyOsSteps(steps));
+  }
+
+  paynote(): PayNoteSteps {
+    return this.ext((steps) => new PayNoteSteps(steps));
+  }
+
+  conversation(): ConversationSteps {
+    return this.ext((steps) => new ConversationSteps(steps));
   }
 
   ai(aiName: string): AISteps {
@@ -585,6 +606,376 @@ export class MyOsSteps {
     putOptionalStepMetadata(eventNode, options);
     putOptionalString(eventNode, 'requestId', requestId);
     putOptionalString(eventNode, 'reason', options?.reason);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+}
+
+export class PayNoteSteps {
+  constructor(private readonly parent: StepsBuilder) {}
+
+  reserveFundsRequested(
+    stepName = 'ReserveFundsRequested',
+    options?: PayNoteAmountEventOptions,
+  ): StepsBuilder {
+    return this.emitAmountRequest(
+      'PayNote/Reserve Funds Requested',
+      stepName,
+      options,
+    );
+  }
+
+  captureFundsRequested(
+    stepName = 'CaptureFundsRequested',
+    options?: PayNoteAmountEventOptions,
+  ): StepsBuilder {
+    return this.emitAmountRequest(
+      'PayNote/Capture Funds Requested',
+      stepName,
+      options,
+    );
+  }
+
+  reserveFundsAndCaptureImmediatelyRequested(
+    stepName = 'ReserveAndCaptureImmediatelyRequested',
+    options?: PayNoteAmountEventOptions,
+  ): StepsBuilder {
+    return this.emitAmountRequest(
+      'PayNote/Reserve Funds and Capture Immediately Requested',
+      stepName,
+      options,
+    );
+  }
+
+  reservationReleaseRequested(
+    stepName = 'ReservationReleaseRequested',
+    options?: PayNoteAmountEventOptions,
+  ): StepsBuilder {
+    return this.emitAmountRequest(
+      'PayNote/Reservation Release Requested',
+      stepName,
+      options,
+    );
+  }
+
+  cardTransactionCaptureLockRequested(
+    stepName = 'RequestCaptureLock',
+    options?: PayNoteCardTransactionEventOptions,
+  ): StepsBuilder {
+    return this.emitCardTransactionRequest(
+      'PayNote/Card Transaction Capture Lock Requested',
+      stepName,
+      options,
+    );
+  }
+
+  cardTransactionCaptureUnlockRequested(
+    stepName = 'RequestCaptureUnlock',
+    options?: PayNoteCardTransactionEventOptions,
+  ): StepsBuilder {
+    return this.emitCardTransactionRequest(
+      'PayNote/Card Transaction Capture Unlock Requested',
+      stepName,
+      options,
+    );
+  }
+
+  startCardTransactionMonitoringRequested(
+    stepName = 'StartCardTransactionMonitoring',
+    options?: PayNoteMonitoringRequestedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'PayNote/Start Card Transaction Monitoring Requested',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalNumber(eventNode, 'requestedAt', options?.requestedAt);
+    putOptionalString(eventNode, 'targetMerchantId', options?.targetMerchantId);
+    if (options?.events && options.events.length > 0) {
+      eventNode.putNode(
+        'events',
+        new BlueNode().setItems(
+          options.events.map((event) => toBlueNode(event)),
+        ),
+      );
+    }
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  linkedCardChargeRequested(
+    stepName = 'LinkedCardChargeRequested',
+    options?: PayNoteLinkedChargeRequestedOptions,
+  ): StepsBuilder {
+    return this.emitLinkedChargeRequest(
+      'PayNote/Linked Card Charge Requested',
+      stepName,
+      options,
+    );
+  }
+
+  linkedCardChargeAndCaptureImmediatelyRequested(
+    stepName = 'LinkedCardChargeAndCaptureImmediatelyRequested',
+    options?: PayNoteLinkedChargeRequestedOptions,
+  ): StepsBuilder {
+    return this.emitLinkedChargeRequest(
+      'PayNote/Linked Card Charge and Capture Immediately Requested',
+      stepName,
+      options,
+    );
+  }
+
+  reverseCardChargeRequested(
+    stepName = 'ReverseCardChargeRequested',
+    options?: PayNoteLinkedChargeRequestedOptions,
+  ): StepsBuilder {
+    return this.emitLinkedChargeRequest(
+      'PayNote/Reverse Card Charge Requested',
+      stepName,
+      options,
+    );
+  }
+
+  reverseCardChargeAndCaptureImmediatelyRequested(
+    stepName = 'ReverseCardChargeAndCaptureImmediatelyRequested',
+    options?: PayNoteLinkedChargeRequestedOptions,
+  ): StepsBuilder {
+    return this.emitLinkedChargeRequest(
+      'PayNote/Reverse Card Charge and Capture Immediately Requested',
+      stepName,
+      options,
+    );
+  }
+
+  paymentMandateSpendAuthorizationRequested(
+    stepName = 'RequestPaymentMandateSpendAuthorization',
+    options?: PayNotePaymentMandateSpendAuthorizationRequestedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'PayNote/Payment Mandate Spend Authorization Requested',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalString(eventNode, 'authorizationId', options?.authorizationId);
+    putOptionalNumber(eventNode, 'amountMinor', options?.amountMinor);
+    putOptionalString(eventNode, 'currency', options?.currency);
+    putOptionalString(eventNode, 'counterpartyType', options?.counterpartyType);
+    putOptionalString(eventNode, 'counterpartyId', options?.counterpartyId);
+    putOptionalString(
+      eventNode,
+      'requestingDocumentId',
+      options?.requestingDocumentId,
+    );
+    putOptionalString(
+      eventNode,
+      'requestingSessionId',
+      options?.requestingSessionId,
+    );
+    putOptionalString(eventNode, 'requestedAt', options?.requestedAt);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  paymentMandateSpendSettled(
+    stepName = 'PaymentMandateSpendSettled',
+    options?: PayNotePaymentMandateSpendSettledOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'PayNote/Payment Mandate Spend Settled',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalNode(eventNode, 'inResponseTo', options?.inResponseTo);
+    putOptionalString(eventNode, 'authorizationId', options?.authorizationId);
+    putOptionalString(eventNode, 'settlementId', options?.settlementId);
+    putOptionalString(eventNode, 'status', options?.status);
+    putOptionalString(eventNode, 'reason', options?.reason);
+    putOptionalNumber(
+      eventNode,
+      'reservedDeltaMinor',
+      options?.reservedDeltaMinor,
+    );
+    putOptionalNumber(
+      eventNode,
+      'capturedDeltaMinor',
+      options?.capturedDeltaMinor,
+    );
+    putOptionalString(eventNode, 'holdId', options?.holdId);
+    putOptionalString(eventNode, 'transactionId', options?.transactionId);
+    putOptionalString(eventNode, 'settledAt', options?.settledAt);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  private emitAmountRequest(
+    typeInput: TypeInput,
+    stepName: string,
+    options?: PayNoteAmountEventOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(typeInput);
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalNode(eventNode, 'amount', options?.amount);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  private emitCardTransactionRequest(
+    typeInput: TypeInput,
+    stepName: string,
+    options?: PayNoteCardTransactionEventOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(typeInput);
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalNode(
+      eventNode,
+      'cardTransactionDetails',
+      options?.cardTransactionDetails,
+    );
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  private emitLinkedChargeRequest(
+    typeInput: TypeInput,
+    stepName: string,
+    options?: PayNoteLinkedChargeRequestedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(typeInput);
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalNode(eventNode, 'amount', options?.amount);
+    putOptionalString(
+      eventNode,
+      'paymentMandateDocumentId',
+      options?.paymentMandateDocumentId,
+    );
+    putOptionalNode(eventNode, 'paynote', options?.paynote);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+}
+
+export class ConversationSteps {
+  constructor(private readonly parent: StepsBuilder) {}
+
+  documentBootstrapRequested(
+    stepName: string,
+    documentNode: BlueValueInput,
+    channelBindings: Record<string, string> | ReadonlyMap<string, string>,
+    options?: ConversationDocumentBootstrapRequestOptions,
+  ): StepsBuilder {
+    if (documentNode == null) {
+      throw new Error('document is required');
+    }
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('Conversation/Document Bootstrap Requested')
+      .putNode('document', documentNode)
+      .putStringMap('channelBindings', channelBindings);
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalString(
+      eventNode,
+      'bootstrapAssignee',
+      options?.bootstrapAssignee,
+    );
+    putInitialMessages(eventNode, options);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  documentBootstrapRequestedExpr(
+    stepName: string,
+    documentExpression: string,
+    channelBindings: Record<string, string> | ReadonlyMap<string, string>,
+    options?: ConversationDocumentBootstrapRequestOptions,
+  ): StepsBuilder {
+    if (isBlank(documentExpression)) {
+      throw new Error('documentExpression cannot be blank');
+    }
+
+    const eventNode = NodeObjectBuilder.create()
+      .type('Conversation/Document Bootstrap Requested')
+      .putExpression('document', documentExpression)
+      .putStringMap('channelBindings', channelBindings);
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalString(
+      eventNode,
+      'bootstrapAssignee',
+      options?.bootstrapAssignee,
+    );
+    putInitialMessages(eventNode, options);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  documentBootstrapResponded(
+    stepName = 'DocumentBootstrapResponded',
+    options?: ConversationDocumentBootstrapRespondedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'Conversation/Document Bootstrap Responded',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalNode(eventNode, 'inResponseTo', options?.inResponseTo);
+    putOptionalString(eventNode, 'status', options?.status);
+    putOptionalString(eventNode, 'reason', options?.reason);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  documentBootstrapCompleted(
+    stepName = 'DocumentBootstrapCompleted',
+    options?: ConversationDocumentBootstrapCompletedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'Conversation/Document Bootstrap Completed',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalNode(eventNode, 'inResponseTo', options?.inResponseTo);
+    putOptionalString(eventNode, 'documentId', options?.documentId);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  documentBootstrapFailed(
+    stepName = 'DocumentBootstrapFailed',
+    options?: ConversationDocumentBootstrapFailedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'Conversation/Document Bootstrap Failed',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalNode(eventNode, 'inResponseTo', options?.inResponseTo);
+    putOptionalString(eventNode, 'reason', options?.reason);
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  customerActionRequested(
+    stepName = 'CustomerActionRequested',
+    options?: ConversationCustomerActionRequestedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'Conversation/Customer Action Requested',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalString(eventNode, 'requestId', options?.requestId);
+    putOptionalString(eventNode, 'title', options?.title);
+    putOptionalString(eventNode, 'message', options?.message);
+    if (options?.actions && options.actions.length > 0) {
+      eventNode.putNode(
+        'actions',
+        new BlueNode().setItems(
+          options.actions.map((action) => buildCustomerActionNode(action)),
+        ),
+      );
+    }
+    return this.parent.triggerEvent(stepName, eventNode.build());
+  }
+
+  customerActionResponded(
+    stepName = 'CustomerActionResponded',
+    options?: ConversationCustomerActionRespondedOptions,
+  ): StepsBuilder {
+    const eventNode = NodeObjectBuilder.create().type(
+      'Conversation/Customer Action Responded',
+    );
+    putOptionalStepMetadata(eventNode, options);
+    putOptionalNode(eventNode, 'inResponseTo', options?.inResponseTo);
+    putOptionalString(eventNode, 'actionLabel', options?.actionLabel);
+    putOptionalNode(eventNode, 'input', options?.input);
+    putOptionalString(eventNode, 'respondedAt', options?.respondedAt);
     return this.parent.triggerEvent(stepName, eventNode.build());
   }
 }
@@ -1267,6 +1658,26 @@ function putOptionalStepMetadata(
   }
 }
 
+function putOptionalNode(
+  node: NodeObjectBuilder,
+  key: string,
+  value: BlueValueInput | null | undefined,
+): void {
+  if (value != null) {
+    node.putNode(key, value);
+  }
+}
+
+function putOptionalNumber(
+  node: NodeObjectBuilder,
+  key: string,
+  value: number | null | undefined,
+): void {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    node.put(key, value);
+  }
+}
+
 function putOptionalString(
   node: NodeObjectBuilder,
   key: string,
@@ -1276,6 +1687,60 @@ function putOptionalString(
   if (normalized) {
     node.put(key, normalized);
   }
+}
+
+function putInitialMessages(
+  node: NodeObjectBuilder,
+  options: ConversationDocumentBootstrapRequestOptions | undefined,
+): void {
+  const defaultMessage = normalizeOptional(options?.defaultMessage);
+  const channelMessages = options?.channelMessages;
+  const channelEntries = channelMessages
+    ? channelMessages instanceof Map
+      ? [...channelMessages.entries()]
+      : Object.entries(channelMessages)
+    : [];
+
+  if (!defaultMessage && channelEntries.length === 0) {
+    return;
+  }
+
+  const initialMessages = NodeObjectBuilder.create();
+  if (defaultMessage) {
+    initialMessages.put('defaultMessage', defaultMessage);
+  }
+
+  if (channelEntries.length > 0) {
+    const perChannel = new Map<string, string>();
+    for (const [key, value] of channelEntries) {
+      const normalizedKey = normalizeOptional(key);
+      const normalizedValue = normalizeOptional(value);
+      if (normalizedKey && normalizedValue) {
+        perChannel.set(normalizedKey, normalizedValue);
+      }
+    }
+
+    if (perChannel.size > 0) {
+      initialMessages.putNode('perChannel', buildStringRecordNode(perChannel));
+    }
+  }
+
+  node.putNode('initialMessages', initialMessages.build());
+}
+
+function buildCustomerActionNode(
+  action: ConversationCustomerActionDefinition,
+): BlueNode {
+  const node = NodeObjectBuilder.create();
+  putOptionalString(node, 'label', action.label);
+  putOptionalString(node, 'variant', action.variant);
+  putOptionalString(node, 'inputTitle', action.inputTitle);
+  putOptionalString(node, 'inputPlaceholder', action.inputPlaceholder);
+  if (typeof action.inputRequired === 'boolean') {
+    node.put('inputRequired', action.inputRequired);
+  }
+  putOptionalNode(node, 'inputSchema', action.inputSchema);
+  return node.build();
 }
 
 function toEventPatternNode(eventPattern: EventPatternInput): BlueNode {

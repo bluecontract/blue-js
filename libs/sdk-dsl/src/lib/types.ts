@@ -78,6 +78,115 @@ export interface MyOsCallOperationRequestedOptions {
   description?: string | null | undefined;
 }
 
+export interface PayNoteEventStepOptions {
+  requestId?: string | null | undefined;
+  stepName?: string | null | undefined;
+  name?: string | null | undefined;
+  description?: string | null | undefined;
+}
+
+export interface PayNoteAmountEventOptions extends PayNoteEventStepOptions {
+  amount?: BlueValueInput | null | undefined;
+}
+
+export interface PayNoteCardTransactionEventOptions extends PayNoteEventStepOptions {
+  cardTransactionDetails?: BlueValueInput | null | undefined;
+}
+
+export interface PayNoteMonitoringRequestedOptions extends PayNoteEventStepOptions {
+  requestedAt?: number | null | undefined;
+  targetMerchantId?: string | null | undefined;
+  events?: readonly string[] | null | undefined;
+}
+
+export interface PayNoteLinkedChargeRequestedOptions extends PayNoteAmountEventOptions {
+  paymentMandateDocumentId?: string | null | undefined;
+  paynote?: BlueValueInput | null | undefined;
+}
+
+export interface PayNotePaymentMandateSpendAuthorizationRequestedOptions extends PayNoteEventStepOptions {
+  authorizationId?: string | null | undefined;
+  amountMinor?: number | null | undefined;
+  currency?: string | null | undefined;
+  counterpartyType?: string | null | undefined;
+  counterpartyId?: string | null | undefined;
+  requestingDocumentId?: string | null | undefined;
+  requestingSessionId?: string | null | undefined;
+  requestedAt?: string | null | undefined;
+}
+
+export interface PayNotePaymentMandateSpendSettledOptions extends PayNoteEventStepOptions {
+  inResponseTo?: BlueValueInput | null | undefined;
+  authorizationId?: string | null | undefined;
+  settlementId?: string | null | undefined;
+  status?: string | null | undefined;
+  reason?: string | null | undefined;
+  reservedDeltaMinor?: number | null | undefined;
+  capturedDeltaMinor?: number | null | undefined;
+  holdId?: string | null | undefined;
+  transactionId?: string | null | undefined;
+  settledAt?: string | null | undefined;
+}
+
+export interface ConversationCustomerActionDefinition {
+  label?: string | null | undefined;
+  variant?: string | null | undefined;
+  inputTitle?: string | null | undefined;
+  inputPlaceholder?: string | null | undefined;
+  inputRequired?: boolean | null | undefined;
+  inputSchema?: BlueValueInput | null | undefined;
+}
+
+export interface ConversationCustomerActionRequestedOptions extends PayNoteEventStepOptions {
+  title?: string | null | undefined;
+  message?: string | null | undefined;
+  actions?: readonly ConversationCustomerActionDefinition[] | null | undefined;
+}
+
+export interface ConversationCustomerActionRespondedOptions extends PayNoteEventStepOptions {
+  inResponseTo?: BlueValueInput | null | undefined;
+  actionLabel?: string | null | undefined;
+  input?: BlueValueInput | null | undefined;
+  respondedAt?: string | null | undefined;
+}
+
+export interface ConversationDocumentBootstrapRequestOptions extends PayNoteEventStepOptions {
+  bootstrapAssignee?: string | null | undefined;
+  defaultMessage?: string | null | undefined;
+  channelMessages?:
+    | Record<string, string>
+    | ReadonlyMap<string, string>
+    | null
+    | undefined;
+}
+
+export interface ConversationDocumentBootstrapResponseOptions extends PayNoteEventStepOptions {
+  inResponseTo?: BlueValueInput | null | undefined;
+}
+
+export interface ConversationDocumentBootstrapRespondedOptions extends ConversationDocumentBootstrapResponseOptions {
+  status?: string | null | undefined;
+  reason?: string | null | undefined;
+}
+
+export interface ConversationDocumentBootstrapCompletedOptions extends ConversationDocumentBootstrapResponseOptions {
+  documentId?: string | null | undefined;
+}
+
+export interface ConversationDocumentBootstrapFailedOptions extends ConversationDocumentBootstrapResponseOptions {
+  reason?: string | null | undefined;
+}
+
+export interface PaymentMandateAllowedPayNoteInput {
+  documentBlueId?: string | null | undefined;
+  typeBlueId?: string | null | undefined;
+}
+
+export interface PaymentMandateCounterpartyInput {
+  counterpartyType?: string | null | undefined;
+  counterpartyId?: string | null | undefined;
+}
+
 export interface FieldBuilder<TDone> {
   type(typeInput: TypeInput): FieldBuilder<TDone>;
   description(text: string): FieldBuilder<TDone>;

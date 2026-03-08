@@ -1,24 +1,22 @@
 # BLUE TS DSL SDK — Stage 6 coverage matrix
 
-Update this file during Stage 6 implementation.
-
-## Document builders
-- PayNote/PayNote parity
-- Card Transaction PayNote parity
-- Merchant To Customer PayNote parity (if implemented)
-- PayNote Delivery parity
-- Payment Mandate parity
-
-## Typed event helpers
-- paynote request event helpers parity
-- conversation bootstrap helpers parity
-- conversation customer-action helpers parity
-
-## Macro-style builders
-- capture family materialization
-- reserve family materialization
-- release family materialization
-- runtime-backed macro-flow scenarios where supported
-
-## Regression/deviation coverage
-- every documented deviation linked to a test
+| Construct / scenario                                               | Parity / materialization coverage           | Runtime coverage                                                                     | Canonical coverage                 | Status / deviation |
+| ------------------------------------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------- | ------------------ |
+| `PayNotes.payNote(name)`                                           | `PayNotes.parity.test.ts`                   | indirect via macro/runtime docs built from PayNote builders                          | none                               | green              |
+| `PayNotes.cardTransactionPayNote(name)`                            | `PayNotes.parity.test.ts`                   | `CanonicalPayNoteBusiness.test.ts` bootstrap delivery                                | `CanonicalPayNoteBusiness.test.ts` | green              |
+| `PayNotes.merchantToCustomerPayNote(name)`                         | `PayNotes.parity.test.ts`                   | none                                                                                 | none                               | parity-only        |
+| `PayNotes.payNoteDelivery(name)`                                   | `PayNotes.parity.test.ts`                   | `CanonicalPayNoteBusiness.test.ts`                                                   | `CanonicalPayNoteBusiness.test.ts` | green              |
+| `PayNotes.paymentMandate(name)`                                    | `PayNotes.parity.test.ts`                   | `CanonicalPayNoteBusiness.test.ts`                                                   | `CanonicalPayNoteBusiness.test.ts` | green              |
+| `steps.paynote()` typed request/control helpers                    | `StepsBuilder.paynote.test.ts`              | indirectly via `PayNotes.integration.test.ts` and `CanonicalPayNoteBusiness.test.ts` | `CanonicalPayNoteBusiness.test.ts` | green              |
+| `steps.conversation()` bootstrap helpers                           | `StepsBuilder.paynote.test.ts`              | `CanonicalPayNoteBusiness.test.ts` bootstrap flow                                    | `CanonicalPayNoteBusiness.test.ts` | green              |
+| `steps.conversation()` customer-action helpers                     | `StepsBuilder.paynote.test.ts`              | `CanonicalPayNoteBusiness.test.ts` customer-action flow                              | `CanonicalPayNoteBusiness.test.ts` | green              |
+| `capture()` family materialization                                 | `PayNotes.parity.test.ts`                   | `PayNotes.integration.test.ts`                                                       | none                               | green              |
+| `reserve()` request subset materialization                         | `PayNotes.parity.test.ts`                   | `PayNotes.integration.test.ts`                                                       | none                               | green              |
+| `release()` request subset materialization                         | `PayNotes.parity.test.ts`                   | `PayNotes.integration.test.ts`                                                       | none                               | green              |
+| capture `lockOnInit()` validation                                  | `PayNotes.parity.test.ts`                   | not applicable                                                                       | none                               | green              |
+| reserve/release lock helpers unsupported                           | `PayNotes.parity.test.ts`                   | not applicable                                                                       | none                               | accepted deviation |
+| operation-triggered macro branches with executable request schemas | `PayNotes.parity.test.ts`                   | `PayNotes.integration.test.ts`                                                       | none                               | accepted deviation |
+| event-triggered macro branches on public runtime                   | `PayNotes.parity.test.ts`                   | `PayNotes.integration.test.ts` emitted-event proof                                   | none                               | accepted deviation |
+| canonical bootstrap delivery flow                                  | shape in `CanonicalPayNoteBusiness.test.ts` | runtime in `CanonicalPayNoteBusiness.test.ts`                                        | `CanonicalPayNoteBusiness.test.ts` | green              |
+| canonical customer-action delivery flow                            | shape in `CanonicalPayNoteBusiness.test.ts` | runtime in `CanonicalPayNoteBusiness.test.ts` via `myOsAdminUpdate` re-emit          | `CanonicalPayNoteBusiness.test.ts` | green              |
+| canonical payment-mandate authorization / settlement flow          | shape in `CanonicalPayNoteBusiness.test.ts` | runtime in `CanonicalPayNoteBusiness.test.ts` via `myOsAdminUpdate` re-emit          | `CanonicalPayNoteBusiness.test.ts` | green              |

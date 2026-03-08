@@ -127,7 +127,7 @@ export class DocBuilder {
   private readonly agencyConfigs = new Map<string, AgencyConfig>();
   private readonly aiConfigs = new Map<string, AIIntegrationConfig>();
 
-  private constructor(private readonly document: BlueNode) {}
+  protected constructor(private readonly document: BlueNode) {}
 
   static doc(): DocBuilder {
     return new DocBuilder(new BlueNode());
