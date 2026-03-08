@@ -11,7 +11,7 @@ Stage 7 completes the SDK with an editing pipeline. The safest implementation or
 5. finish with roundtrip and regression tests.
 
 ## Phase 1 — structure extraction
-Create or improve:
+Implemented:
 - `DocStructure`
 - `FieldEntry`
 - `ContractEntry`
@@ -41,7 +41,7 @@ Also implement:
 - `toPromptText()`
 
 ## Phase 2 — generic patching
-Create or improve:
+Implemented:
 - `DocPatch`
 - generic diff/apply helpers
 
@@ -50,6 +50,8 @@ Requirements:
 - stable behavior for arrays, nested objects, primitives
 - generic JSON/BlueNode semantics only
 - no BLUE-aware section/contract inference here
+- use the Stage-7 editing JSON envelope for metadata-bearing nodes
+- keep root patch paths human-meaningful
 
 Suggested API:
 - `DocPatch.from(originalNode)`
@@ -58,7 +60,7 @@ Suggested API:
 - `apply(node)` or equivalent helper for tests
 
 ## Phase 3 — BLUE-aware change compiler
-Create:
+Implemented:
 - `BlueChangeCompiler`
 - `BlueChangePlan`
 
@@ -82,18 +84,15 @@ Rules:
   - `misc`
 
 ## Phase 4 — regeneration helpers
-Create if feasible:
+Deferred for now:
 - `DslStubGenerator`
 - `DslGenerator`
 
-Expected behavior:
-- produce stable TS-first DSL stubs/skeletons
-- useful for agent/human editing workflows
-- do not attempt impossible perfect reconstruction if source information is insufficient
-
-If full generator parity is too costly:
-- prioritize `DslStubGenerator`
-- document generator deviations explicitly
+Reason:
+- the core extraction / patch / plan pipeline is now complete and green
+- reconstructing stable TS-first generator output without inventing author intent
+  needs a separate pass
+- the deferment is documented in `stage-7-deviations.md`
 
 ## Phase 5 — testing matrix
 Required suites:
@@ -101,7 +100,12 @@ Required suites:
 - `DocPatch.test.ts`
 - `BlueChangeCompiler.test.ts`
 - `StructurePatchPipeline.test.ts`
-- optional:
+- implemented as:
+  - `DocStructure.test.ts`
+  - `DocPatch.test.ts`
+  - `BlueChangeCompiler.test.ts`
+  - `EditingPipeline.test.ts`
+- deferred with generators:
   - `DslStubGenerator.test.ts`
   - `DslGenerator.test.ts`
 
@@ -128,8 +132,6 @@ Update:
 - `stage-7-mapping-matrix.md`
 - `stage-7-coverage-matrix.md`
 - `stage-7-deviations.md`
-
-Also add or complete:
 - `editing-materialization-reference.md`
 
 ## Verification

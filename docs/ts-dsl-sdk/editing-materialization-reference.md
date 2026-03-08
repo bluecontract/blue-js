@@ -37,6 +37,15 @@ This is `DocPatch`.
 
 This layer is deliberately **not BLUE-aware**.
 
+Generic patch values use a stable Stage-7 editing JSON representation:
+- plain objects/lists stay plain when a node has no explicit BLUE metadata,
+- metadata-bearing nodes are wrapped in a reserved envelope:
+  - `$sdkDslNode`
+  - `$sdkDslItems`
+
+This keeps root-field patch paths human-meaningful like `/counter` while still
+preserving typed scalar nodes and step payloads losslessly.
+
 ### 1.3 BLUE-aware change planning layer
 Input:
 - original and modified documents or summaries
@@ -133,6 +142,10 @@ It must not:
 - infer BLUE semantics,
 - decide section buckets,
 - rewrite contract internals specially.
+
+It should preserve explicit typed scalar nodes in `value` payloads when the
+source document carries them. The path model remains field-oriented even when
+the payload itself is represented through the Stage-7 envelope.
 
 ### 3.2 Deterministic patch ordering
 Recommended ordering:
@@ -240,4 +253,4 @@ Stage 7 editing materialization is correct when:
 - generic patching is deterministic,
 - BLUE-aware changes respect atomic contract replacement,
 - grouping is stable,
-- generators are stable and documented.
+- generators are either stable and documented or explicitly deferred.

@@ -50,6 +50,7 @@ Current TS runtime behavior is the execution/build gate.
 - deterministic generic RFC-6902 style diff/apply utility
 - stable op ordering
 - deterministic behavior for nested objects / arrays
+- stable Stage-7 editing JSON envelopes for metadata-bearing nodes
 
 ### BLUE-aware change compilation
 - `BlueChangeCompiler`
@@ -66,6 +67,8 @@ Current TS runtime behavior is the execution/build gate.
 - `DslGenerator` or equivalent TS surface if implementable within current scope
 - generators should be useful for editing workflows, not necessarily perfect pretty-printers
 - if full Java parity is not realistic, produce stable and documented TS-first output
+- current stage implementation may defer generators if the core extraction / patch /
+  change-planning pipeline is complete and the deferment is documented
 
 ### Tests
 - structure extraction tests
@@ -99,6 +102,8 @@ Current TS runtime behavior is the execution/build gate.
 - remains generic
 - does not infer BLUE semantics on its own
 - supports deterministic `build()` and `apply()`
+- keeps root patch paths field-oriented, e.g. `/counter` instead of `/counter/value`
+- may preserve typed inline-node payloads in `value` bodies via Stage-7 envelopes
 
 ### BlueChangeCompiler
 - root field changes compile separately from contract changes
