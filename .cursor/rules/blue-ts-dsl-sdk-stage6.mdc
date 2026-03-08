@@ -1,0 +1,95 @@
+---
+description: BLUE TS DSL SDK stage 6 guardrails with final mapping reference and complex-flow materialization rules
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 6
+
+## Goal
+
+Implement Stage 6 of the TypeScript DSL SDK inside `blue-js`.
+
+Stage 6 is the **payments / PayNote DSL** built on top of completed Stages 1–5.
+
+## Sources of truth
+
+1. `AGENTS.md`
+2. `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+3. `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
+4. `references/java-sdk/**`
+5. Existing public APIs in:
+   - `libs/language`
+   - `libs/document-processor`
+6. Existing Stage 1–5 implementation in `libs/sdk-dsl`
+
+## Scope in
+
+### Document builders
+- `PayNotes.payNote(name)`
+- `PayNotes.cardTransactionPayNote(name)`
+- `PayNotes.merchantToCustomerPayNote(name)` if the repo type is present on this branch and the mapping reference still supports it
+- `PayNotes.payNoteDelivery(name)`
+- `PayNotes.paymentMandate(name)`
+- document-level fluent setters clearly required by the final mapping reference and Java stage-6 scenarios
+
+### Step/event helper namespaces
+- `steps.paynote.*` typed event helpers for Stage-6-confirmed native payloads
+- `steps.conversation.documentBootstrapRequested/responded/completed/failed`
+- `steps.conversation.customerActionRequested/responded`
+
+### Higher-level action-flow builders
+- Stage-6 PayNote action builders discovered from Java refs, but only where they can be mapped cleanly using:
+  - the final mapping reference,
+  - the complex-flow materialization reference,
+  - current repo/runtime behavior.
+- This includes macro-style builders that intentionally materialize multiple workflows/contracts such as `capture()/reserve()/release()` style flows when those flows are confirmed by the provided references.
+
+### Tests and docs
+- stage-6 parity tests
+- stage-6 runtime integration tests
+- stage-6 docs / coverage / deviation tracking
+
+## Scope out
+
+- patch/editing compiler work
+- new Stage 7+ concerns
+- widening Stage 5 AI scope
+- changing runtime/platform code
+- inventing backend flows not backed by current mapping references
+
+## Mapping and design guardrails
+
+- Use `final-dsl-sdk-mapping-reference.md` as the source of truth for:
+  - PayNote document shapes,
+  - payment event payload shapes,
+  - Conversation bootstrap/customer-action payload shapes,
+  - field semantics and repo/runtime-confirmed optionality.
+- Use `complex-flow-materialization-reference.md` as the source of truth for:
+  - which DSL expressions are allowed to materialize multiple contracts/workflows,
+  - which contracts/workflows are created by those macro-style builders,
+  - when operations must be generated in addition to workflows,
+  - validation rules for lock/unlock/request flow builders.
+- Do not duplicate inherited contracts from repo types unless runtime/proof requires explicit duplication and the deviation is documented.
+- Do not invent fake repo-native fields.
+- Prefer typed event helpers over forcing users to manually write literal `type` strings for common paynote/conversation events.
+
+## Behavioral guardrails
+
+- PayNote document builders should materialize typed documents and explicit fields only; they must not blindly duplicate inherited contracts.
+- Macro-style PayNote flow builders are allowed to materialize multiple workflows/contracts, but only according to the complex-flow reference.
+- `steps.paynote.*` helpers should be thin typed wrappers over Stage 2/3 primitives, not a separate runtime.
+- Conversation bootstrap / customer-action helpers should stay generic enough to be reused outside PayNote, even if Stage 6 introduces them.
+- Any unavoidable deviation must be documented in `stage-6-deviations.md` and covered by a regression test.
+
+## Package boundary guardrails
+
+- Do not import `document-processor` into the runtime library surface.
+- Keep test-only helpers under test-only paths.
+- Keep public exports clean in `src/index.ts`.
+
+## Completion
+
+Do not claim completion unless verification commands were run and reported.

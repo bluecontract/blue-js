@@ -1,0 +1,65 @@
+---
+description: BLUE TS DSL SDK stage 6 testing and parity rules
+globs:
+  - libs/sdk-dsl/src/**
+  - libs/sdk-dsl/**/*.test.ts
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# BLUE TS DSL SDK — Stage 6 testing rules
+
+## Primary testing expectations
+
+Stage 6 must be proven through three layers:
+
+1. **Mapping/parity tests**
+   - compare preprocessed `official` JSON
+   - compare BlueIds where practical
+   - use readable expected YAML fixtures or explicit expected official JSON shapes
+
+2. **Runtime integration tests**
+   - run through `document-processor`
+   - prove document behavior or event/helper behavior, not only shape
+
+3. **Macro-flow materialization tests**
+   - for every higher-level Stage-6 builder that creates multiple workflows/contracts,
+     assert the exact materialized contracts and their linkage
+   - prove operation generation / workflow generation / trigger wiring deterministically
+
+## Required test areas
+
+### Document builders
+- base PayNote document
+- card transaction PayNote document
+- merchant-to-customer PayNote document if implemented
+- PayNote delivery document
+- payment mandate document
+
+### Event helpers
+- paynote request-event helpers
+- payment-mandate request/settlement helpers
+- conversation bootstrap helpers
+- conversation customer-action helpers
+
+### Macro-style flow builders
+- `capture()` family where implemented
+- `reserve()` family where implemented
+- `release()` family where implemented
+- validation rules such as lock-without-unlock where applicable
+
+## Test style rules
+
+- Keep fluent chains readable and indented.
+- Use explicit test names describing what is being materialized or proven.
+- Prefer canonical structural comparison over raw snapshot-only testing.
+- For runtime tests, assert the most important state changes / emitted event payloads directly.
+
+## Deviation discipline
+
+- Every deviation must be documented in `docs/ts-dsl-sdk/stage-6-deviations.md`.
+- Every documented deviation must have a regression test.
+
+### F. Canonical public PayNote scenario coverage
+At least one Stage 6 processor-backed integration test per major PayNote area must reconstruct a canonical PayNote business scenario from `docs/ts-dsl-sdk/canonical-scenarios/paynote-business.md`.
+Those tests must stand on their own as public canonical scenarios and must not mention private provenance.
