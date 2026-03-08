@@ -1,0 +1,38 @@
+---
+description: Blue TS DSL SDK stage 7 testing and verification rules
+globs:
+  - libs/sdk-dsl/**
+alwaysApply: false
+---
+
+# Stage 7 testing rules
+
+## Primary oracles
+1. canonical BLUE structure after preprocess
+2. deterministic patch/change-plan outputs
+3. stable structure summaries
+4. stable generated TS text where generators are implemented
+
+## Required suites
+- structure extraction tests
+- generic patch tests
+- BLUE-aware change compiler tests
+- roundtrip pipeline tests
+- optional generator/stub tests
+
+## Required representative documents
+At minimum:
+- counter
+- handlers/workflows
+- MyOS orchestration
+- AI
+- PayNote
+
+## Non-negotiable rules
+- do not use raw YAML snapshots as the primary oracle
+- compare canonical `official` JSON after preprocess
+- contract changes in BLUE-aware compilation must be atomic
+- every real deviation must have a focused regression test
+
+### E. Canonical scenario corpus coverage
+Stage 7 tests must exercise `DocStructure`, `DocPatch`, and `BlueChangeCompiler` against multiple public canonical scenarios from `docs/ts-dsl-sdk/canonical-scenarios/**`, not only tiny synthetic documents.

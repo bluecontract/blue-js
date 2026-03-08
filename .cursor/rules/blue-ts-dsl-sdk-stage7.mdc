@@ -1,0 +1,60 @@
+---
+description: Blue TS DSL SDK stage 7 guardrails
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# Blue TS DSL SDK — Stage 7
+
+## Goal
+Implement the editing pipeline for the TypeScript DSL SDK:
+- structure extraction,
+- generic patching,
+- BLUE-aware change planning,
+- optional regeneration helpers.
+
+## Sources of truth
+1. `AGENTS.md`
+2. `docs/ts-dsl-sdk/editing-materialization-reference.md`
+3. `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+4. `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
+5. Java references under `references/java-sdk/src/main/java/blue/language/sdk/structure/**`
+6. Java references under `references/java-sdk/src/main/java/blue/language/sdk/patch/**`
+7. public TS runtime APIs
+
+## Scope in
+- `DocStructure.from(...)`
+- `toSummaryJson()`
+- `toPromptText()`
+- `DocPatch.from(...)`
+- generic patch diff/apply
+- `BlueChangeCompiler`
+- `BlueChangePlan`
+- optional `DslStubGenerator`
+- optional `DslGenerator`
+- stage-7 tests and docs
+
+## Scope out
+- new authoring DSL features from earlier stages
+- runtime/platform changes
+- repository type changes
+- broad refactors unrelated to editing pipeline
+
+## Key rules
+- unknown contracts must not crash extraction
+- generic patching stays generic
+- BLUE-aware change compilation must treat contracts atomically
+- preserve known section grouping where possible
+- generator output must be TS-first and deterministic
+- do not invent missing semantics
+
+## Required docs
+- `docs/ts-dsl-sdk/editing-materialization-reference.md`
+- `docs/ts-dsl-sdk/stage-7-spec.md`
+- `docs/ts-dsl-sdk/stage-7-implementation-plan.md`
+- `docs/ts-dsl-sdk/stage-7-testing-strategy.md`
+- `docs/ts-dsl-sdk/stage-7-mapping-matrix.md`
+- `docs/ts-dsl-sdk/stage-7-deviations.md`
+- `docs/ts-dsl-sdk/stage-7-coverage-matrix.md`

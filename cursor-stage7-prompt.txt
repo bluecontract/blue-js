@@ -1,0 +1,108 @@
+Implement stage 7 of the TypeScript BLUE DSL SDK in this repo.
+
+Work on top of the already implemented stages 1–6.
+Do not rewrite the SDK from scratch.
+Do not widen scope beyond the editing pipeline.
+
+Read first:
+- AGENTS.md
+- .cursor/rules/blue-ts-dsl-sdk-stage7.mdc
+- .cursor/rules/blue-ts-dsl-sdk-stage7-testing.mdc
+- docs/ts-dsl-sdk/editing-materialization-reference.md
+- docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md
+- docs/ts-dsl-sdk/complex-flow-materialization-reference.md
+- docs/ts-dsl-sdk/stage-7-spec.md
+- docs/ts-dsl-sdk/stage-7-implementation-plan.md
+- docs/ts-dsl-sdk/stage-7-testing-strategy.md
+- docs/ts-dsl-sdk/stage-7-mapping-matrix.md
+- docs/ts-dsl-sdk/stage-7-coverage-matrix.md
+- docs/ts-dsl-sdk/stage-7-deviations.md
+- docs/ts-dsl-sdk/canonical-scenarios/overview.md
+- docs/ts-dsl-sdk/canonical-scenarios/seed-blueprints.md
+- docs/ts-dsl-sdk/canonical-scenarios/myos-foundations.md
+- docs/ts-dsl-sdk/canonical-scenarios/permissions-and-orchestration.md
+- docs/ts-dsl-sdk/canonical-scenarios/ai-provider-patterns.md
+- docs/ts-dsl-sdk/canonical-scenarios/paynote-business.md
+
+Read Java references:
+- references/java-sdk/src/main/java/blue/language/sdk/structure/DocStructure.java
+- references/java-sdk/src/main/java/blue/language/sdk/structure/ContractEntry.java
+- references/java-sdk/src/main/java/blue/language/sdk/structure/ContractKind.java
+- references/java-sdk/src/main/java/blue/language/sdk/structure/FieldEntry.java
+- references/java-sdk/src/main/java/blue/language/sdk/structure/SectionEntry.java
+- references/java-sdk/src/main/java/blue/language/sdk/structure/DslGenerator.java
+- references/java-sdk/src/main/java/blue/language/sdk/structure/DslStubGenerator.java
+- references/java-sdk/src/main/java/blue/language/sdk/patch/ChangeRequestCompiler.java
+- references/java-sdk/src/main/java/blue/language/sdk/patch/PatchSet.java
+- references/java-sdk/src/test/java/blue/language/sdk/structure/DocStructureTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/structure/DocStructurePipelineTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/structure/CounterCreationAndEditPipelineTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/structure/DslGeneratorTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/structure/DslStubGeneratorTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/patch/ChangeRequestCompilerTest.java
+- references/java-sdk/src/test/java/blue/language/sdk/patch/PatchSetTest.java
+
+Source-of-truth policy:
+- `editing-materialization-reference.md` is the primary spec for how stage-7 editing outputs should materialize.
+- `final-dsl-sdk-mapping-reference.md` and `complex-flow-materialization-reference.md` define document and macro-flow shapes that structure extraction and change planning must understand.
+- Java references are secondary guidance for concepts, API shape, and useful test scenarios.
+- Current public TypeScript runtime behavior is the verification gate.
+
+This prompt is stored in blue-js/cursor-stage7-prompt.txt for future reference.
+
+Mission:
+Implement the stage-7 editing pipeline:
+1. `DocStructure.from(...)`
+2. deterministic `toSummaryJson()` and `toPromptText()`
+3. `DocPatch.from(...)` as a generic patch diff/apply layer
+4. `BlueChangeCompiler`
+5. `BlueChangePlan`
+6. if feasible within scope:
+   - `DslStubGenerator`
+   - `DslGenerator`
+
+Required behavioral rules:
+- `DocStructure` must never throw on unknown contracts
+- structure ordering must be stable
+- `DocPatch` stays generic
+- `BlueChangeCompiler` must treat `/contracts/<key>` as atomic units
+- BLUE-aware change plans must preserve known section grouping where possible
+- generator output must be deterministic and TS-first
+- do not invent semantics not present in the document
+
+Testing requirements:
+- add structure extraction tests
+- add generic patch tests
+- add BLUE-aware change compiler tests
+- add roundtrip pipeline tests for:
+  - counter
+  - handlers/workflows
+  - MyOS orchestration
+  - AI
+  - PayNote
+- if generators are implemented, add deterministic generator/stub tests
+- use canonical `official` JSON after preprocess as the primary oracle for document equivalence
+
+Implementation constraints:
+- do not modify processor/runtime code
+- keep package boundary clean
+- do not weaken existing stage 1–6 tests
+- do not widen scope to stage 8 or unrelated refactors
+
+Deliverables:
+- implementation code under `libs/sdk-dsl`
+- updated docs listed in the rules
+- passing verification commands
+
+Verification commands to run:
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+When finished:
+- report exact files changed
+- summarize the design decisions
+- list any remaining deviations honestly
+- include the verification commands you ran and their outcome
