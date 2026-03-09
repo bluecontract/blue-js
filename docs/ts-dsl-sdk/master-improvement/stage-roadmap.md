@@ -196,6 +196,9 @@ If the donor reference exists and is high quality:
 
 ## Stage G — Final release hardening
 
+Status:
+- completed
+
 ### Scope
 - final docs refresh
 - examples refresh
@@ -206,3 +209,10 @@ If the donor reference exists and is high quality:
 - all categories reach 9–10/10
 - docs match behavior
 - no unresolved critical regressions
+
+### Delivered on mainline
+- master-improvement docs now reflect the final state of the uplift rather than the pre-uplift plan
+- canonical scenarios are explicitly positioned as the public example corpus for complex `sdk-dsl` authoring
+- final scorecard closure is complete with every category at 9 or above
+- final QA sweep kept the full `sdk-dsl` verification gate green
+- no new repo-hygiene regressions were introduced while closing the plan

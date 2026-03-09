@@ -1,6 +1,7 @@
 # BLUE TS DSL SDK — Canonical scenario corpus
 
 This folder defines the public, self-contained acceptance corpus for complex DSL-authored documents.
+It also serves as the public example corpus for the most complex `sdk-dsl` authoring surfaces.
 
 The purpose is not to test transport, persistence internals, bootstrap endpoints, or `initMode` / `LATE_START`. The purpose is to prove that the TypeScript DSL can generate the same authored BLUE documents and the same runtime-visible behavior as the canonical scenarios documented in this repository.
 
@@ -36,3 +37,9 @@ For every selected scenario:
 4. require zero functional drift unless a documented deviation applies.
 
 The DSL test may be more readable than the canonical fixture, but it may not change the document meaning.
+
+In the final mainline release, these canonical scenarios are the preferred examples for:
+- MyOS orchestration
+- permission and agency flows
+- AI/provider orchestration
+- PayNote business flows

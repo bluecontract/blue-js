@@ -148,6 +148,22 @@ Update it after every stage.
 - Deferring intake keeps the uplift focused on `sdk-dsl` itself instead of widening into HTTP clients, OpenAPI generation, and live-environment support.
 - The `sdk-dsl` score remains at or above the target bar without importing a companion package into this plan.
 
+## Final snapshot (after Stage G)
+
+| Category | After Stage F | Final | Target |
+|---|---:|---:|---:|
+| Java parity | 9/10 | 9/10 | 9–10/10 |
+| DSL/API ergonomics | 9/10 | 9/10 | 9–10/10 |
+| Runtime correctness | 10/10 | 10/10 | 9–10/10 |
+| Functional completeness | 9/10 | 9/10 | 9–10/10 |
+| Implementation/test quality | 10/10 | 10/10 | 9–10/10 |
+
+### Why Stage G closes the plan
+
+- Docs, roadmap, and score tracking now describe the finished mainline rather than an in-progress uplift.
+- The canonical scenario corpus now doubles as the public example corpus for the most complex authoring surfaces, which keeps examples aligned with the strongest proof set in the repository.
+- Final QA confirmed that the completed surface remains green across typecheck, lint, tests, and build.
+
 ## Completion bar
 
 Do not call the plan complete unless every category is credibly at **9 or above**.

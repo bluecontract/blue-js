@@ -8,6 +8,9 @@ It is the preferred path because it preserves the strongest existing assets:
 - editing pipeline correctness
 - real migration pressure from external consumer usage
 
+Status:
+- complete
+
 ## Goal
 
 Raise the current mainline to 9–10/10 in:
@@ -61,6 +64,10 @@ They are mostly:
   - the donor `libs/myos-js` is a separate transport/API client SDK, not an `sdk-dsl` authoring-layer extension
   - its value is real, but it is not required to reach the `sdk-dsl` quality target for this plan
   - importing it into this uplift would widen scope into HTTP client, OpenAPI, and live-environment concerns that are intentionally outside `sdk-dsl`
+- Stage G is complete on the current mainline:
+  - docs, roadmap, and scorecard are now aligned with the final uplift outcome
+  - canonical scenarios remain the public example and acceptance corpus for complex authoring surfaces
+  - the full verification gate remains green with all quality categories at 9 or above
 
 ## Strategy
 
@@ -173,3 +180,9 @@ The whole plan is done only when:
 - canonical scenarios remain green
 - the scorecard reaches 9–10/10 in all categories
 - public docs are consistent with the final implementation
+
+Current outcome:
+- all implementation stages A–E are complete
+- Stage F is explicitly deferred with justification
+- Stage G is complete
+- the scorecard is at or above the target bar in every category

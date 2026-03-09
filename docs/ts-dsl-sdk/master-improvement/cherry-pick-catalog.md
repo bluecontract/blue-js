@@ -239,3 +239,25 @@ Use this file to track what is intentionally adopted from the alternative implem
   `docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md`,
   `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
   `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage G — final release hardening
+
+- Source area in donor:
+  none
+- Target area in mainline:
+  `docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`,
+  `docs/ts-dsl-sdk/canonical-scenarios/overview.md`
+- What was adopted:
+  no donor implementation was adopted; this stage was final documentation, scorecard, and release-quality closure on the current mainline
+- How:
+  finalized directly on the mainline
+- Why:
+  the plan needed an explicit closure pass so the public docs describe the finished package, not an open-ended improvement program
+- Tests/docs added:
+  full `sdk-dsl` verification suite,
+  `docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`,
+  `docs/ts-dsl-sdk/canonical-scenarios/overview.md`
