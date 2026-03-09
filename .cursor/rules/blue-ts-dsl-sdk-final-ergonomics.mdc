@@ -1,0 +1,31 @@
+---
+description: Final sdk-dsl ergonomics and semantic correction pass
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# Final SDK ergonomics / semantics pass
+
+## Goal
+Finalize `libs/sdk-dsl` after the master uplift.
+
+## Scope in
+- `onChannelEvent(...)` direct matcher semantics for timeline channels
+- Stage-6 operation-triggered PayNote macro request semantics
+- one minimal generic workflow authoring helper
+- docs/deviations cleanup
+
+## Scope out
+- transport/API SDK work
+- myos-js companion intake
+- external consumer migration itself
+- broad new domains or new stages
+
+## Guardrails
+- preserve established runtime-correct behavior unless explicitly corrected by the final spec
+- do not re-introduce private provenance
+- do not weaken tests
+- prefer thin generic helpers over many domain-specific wrappers
+- keep the public API coherent with existing builder patterns

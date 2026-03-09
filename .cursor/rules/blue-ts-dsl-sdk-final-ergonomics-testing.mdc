@@ -1,0 +1,27 @@
+---
+description: Testing and verification requirements for final sdk-dsl pass
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# Testing / verification rules
+
+## Required test strategy
+- parity/basic shape tests for new or corrected APIs
+- positive runtime proof for `onChannelEvent(...)`
+- updated Stage-6 parity/integration/canonical tests for operation-triggered branches
+- section-tracking proof for any new generic workflow helper
+
+## Primary oracle
+- preprocess + official JSON + BlueId where structural comparison is appropriate
+- runtime integration proof for behavioral claims
+
+## Verification commands
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`

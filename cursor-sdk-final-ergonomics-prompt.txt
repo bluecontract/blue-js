@@ -1,0 +1,184 @@
+Work on the current mainline `libs/sdk-dsl` branch after the master uplift / final-corrections pass.
+
+This is the final SDK fit-and-finish pass focused on:
+1. fixing the remaining correctness mismatches discovered during review, and
+2. improving ergonomics based on real external-consumer migration patterns.
+
+This is NOT a new feature stage.
+Do not widen scope beyond the items below.
+Do not change established runtime-correct behavior unless explicitly required by the corrections below.
+
+Read first:
+- AGENTS.md
+- docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md
+- docs/ts-dsl-sdk/complex-flow-materialization-reference.md
+- docs/ts-dsl-sdk/stage-3-spec.md
+- docs/ts-dsl-sdk/stage-4-spec.md
+- docs/ts-dsl-sdk/stage-6-spec.md
+- docs/ts-dsl-sdk/canonical-scenarios/overview.md
+- docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md
+- docs/ts-dsl-sdk/final-ergonomics/final-ergonomics-spec.md
+- docs/ts-dsl-sdk/final-ergonomics/migration-driven-pain-points.md
+- docs/ts-dsl-sdk/final-ergonomics/final-ergonomics-checklist.md
+
+This prompt is stored in blue-js/cursor-sdk-final-ergonomics-prompt.txt for future reference.
+
+Mission:
+Take the current SDK from “very strong” to “finalized” by fixing the last known semantic mismatches and smoothing the external-consumer authoring experience.
+
+Important context from review:
+- `contract(...)` / `contracts(...)`, `buildJson()`, `nodeToAliasJson(...)`, `SimpleDocBuilder`, change-lifecycle helpers, anchors/links helpers, and convenience payment helpers are already present.
+- Do NOT re-implement those.
+- The remaining work is mostly:
+  1. `onChannelEvent(...)` semantics for timeline channels,
+  2. Stage-6 operation-triggered PayNote macro request semantics,
+  3. one or two carefully chosen generic authoring helpers that reduce external use of raw workflow contract objects.
+
+Non-negotiable rules:
+- Keep public repo hygiene intact.
+- Do NOT reintroduce private provenance.
+- Do NOT weaken tests.
+- Do NOT widen scope to transport/API clients.
+- Do NOT revert runtime-correct Stage 1–7 behavior.
+- Treat the current package as the base; do not rewrite from scratch.
+
+==================================================
+PART 1 — FIX `onChannelEvent(...)` TO MATCH REAL TIMELINE-CHANNEL SEMANTICS
+==================================================
+
+Current problem:
+`DocBuilder.onChannelEvent(...)` still wraps timeline-channel matchers under `event.message`, and parity/integration tests document that wrapper.
+
+Final intended behavior:
+- all incoming timeline events are still timeline entries internally,
+- but workflow event matching is authored against the underlying message/event type,
+- therefore the DSL should materialize workflow `event:` matchers directly against the underlying event type, not a synthetic `message:` wrapper.
+
+Required changes:
+1. Update `DocBuilder.onChannelEvent(...)` matcher materialization so timeline-like channels do NOT auto-wrap under `message:`.
+2. Update parity tests accordingly.
+3. Keep positive runtime proof tests and make them prove the direct matcher shape.
+4. Remove or rewrite any docs/comments that still claim timeline channels require `event.message` matcher wrapping.
+
+Acceptance for this part:
+- `onChannelEvent(...)` on timeline/MyOS timeline channels materializes direct event matchers.
+- parity tests reflect that.
+- runtime tests remain green.
+
+==================================================
+PART 2 — FIX STAGE-6 OPERATION-TRIGGERED PAYNOTE BRANCHES
+==================================================
+
+Current problem:
+Stage-6 operation-triggered macro branches still force request schemas like:
+- `Boolean` for trigger-only operations
+- `Integer` for partial-amount operations
+
+But real runtime usage shows operation implementations can work correctly without defining `request` when arbitrary/empty request is acceptable.
+
+Required changes:
+1. Rework Stage-6 macro materialization for:
+- `unlockOnOperation(...)`
+- `requestOnOperation(...)`
+- `requestPartialOnOperation(...)`
+so they do NOT force `Boolean` / `Integer` request schemas by default.
+2. The baseline should be:
+- omit `request` when the branch is just a trigger,
+- and do not artificially constrain payload type when the runtime can accept arbitrary/empty request.
+3. Update docs and tests accordingly.
+4. Re-verify canonical PayNote scenario tests.
+
+Important:
+- Do NOT guess new types.
+- Do NOT add fake “accept any” wrappers if simple omission of `request` is correct.
+- If a very narrow case still genuinely requires an explicit schema, document it precisely and test it.
+
+Acceptance for this part:
+- no synthetic `Boolean`/`Integer` request schema is emitted for those generic operation-triggered PayNote macro branches unless a specific case truly requires it.
+- parity/integration/canonical tests remain green.
+
+==================================================
+PART 3 — FINAL EXTERNAL-CONSUMER ERGONOMICS PASS
+==================================================
+
+The previous migration review showed that even with `contract(...)` and `contracts(...)`, external consumers still need to author some generic workflows as raw contract objects.
+
+Add ONLY the smallest useful generic helpers that clearly reduce that pain.
+
+Required work:
+1. Audit current remaining migration pain points described in:
+- `docs/ts-dsl-sdk/final-ergonomics/migration-driven-pain-points.md`
+2. Add a minimal generic workflow authoring helper on `DocBuilder`.
+
+Preferred shape:
+- `workflow(key)` returning a builder
+or equivalent thin API.
+
+Minimum required capabilities:
+- set workflow `channel(...)`
+- set workflow `event(...)` with either:
+  - a type input, or
+  - a full matcher object / BlueNode
+- set `steps(...)`
+- `.done()` back to parent
+
+Optional convenience overloads are acceptable if implementation stays clean:
+- `workflow(key, channelKey, steps => ...)`
+- `workflow(key, channelKey, eventMatcher, steps => ...)`
+
+Do NOT add a huge new DSL surface.
+Keep it generic, thin, and aligned with existing builder patterns.
+
+Requirements:
+- inserted generic workflows must participate in section tracking
+- helper must work with plain object matchers and `BlueNode`
+- keep escape hatches like `contract(...)` available
+
+Tests to add:
+- parity/basic shape for generic workflow helper
+- section tracking proof
+- at least one canonical-scenario test or realistic scenario updated to use the new helper instead of raw workflow contract insertion
+
+==================================================
+PART 4 — DOCS / DEVIATIONS CLEANUP
+==================================================
+
+Update these docs to match the final state:
+- docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md
+- docs/ts-dsl-sdk/complex-flow-materialization-reference.md
+- docs/ts-dsl-sdk/stage-3-deviations.md
+- docs/ts-dsl-sdk/stage-4-deviations.md
+- docs/ts-dsl-sdk/stage-6-deviations.md
+- docs/ts-dsl-sdk/final-ergonomics/final-ergonomics-spec.md
+- docs/ts-dsl-sdk/final-ergonomics/final-ergonomics-checklist.md
+
+Required outcomes:
+- `onChannelEvent(...)` is documented as supported with direct event matcher semantics.
+- Stage-6 operation-triggered request-schema deviation is either removed or rewritten to the new correct behavior.
+- already-delivered ergonomics helpers (`contract`, `contracts`, `buildJson`, `nodeToAliasJson`, `SimpleDocBuilder`) are described as available and no longer future work.
+- any remaining unsupported items are real and narrowly documented.
+
+==================================================
+PART 5 — VERIFICATION
+==================================================
+
+Run and report:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+==================================================
+PART 6 — WHAT TO REPORT BACK
+==================================================
+
+When finished, report:
+1. exact files changed
+2. whether `onChannelEvent(...)` direct matcher semantics are now implemented
+3. whether Stage-6 operation-triggered PayNote branches no longer force `Boolean` / `Integer` request schemas
+4. which ergonomic helper(s) were added in this final pass
+5. which scenario tests were updated to use them
+6. any remaining true unsupported/deferred items
+7. the exact verification commands run
