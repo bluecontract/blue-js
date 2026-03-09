@@ -219,3 +219,23 @@ Use this file to track what is intentionally adopted from the alternative implem
   `docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md`,
   `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
   `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage F — `myos-js` companion intake evaluation
+
+- Source area in donor:
+  `references/alternative-sdk-serious/libs/myos-js/**`
+- Target area in mainline:
+  `docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+- What was adopted:
+  no runtime/package code was adopted; only the evaluation outcome and deferment rationale
+- How:
+  evaluated and intentionally not adopted
+- Why:
+  the donor is a separate transport/API client SDK whose documented `sdk-dsl` touchpoint is already builder-input compatibility; importing it would widen scope beyond the `sdk-dsl` uplift without improving the authoring-layer score enough to justify it
+- Tests/docs added:
+  full `sdk-dsl` verification suite,
+  `docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`

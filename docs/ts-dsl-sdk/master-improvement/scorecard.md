@@ -132,6 +132,22 @@ Update it after every stage.
 - Public behavior stayed unchanged while the refactor remained fully covered by the existing parity, runtime, canonical, and editing suites.
 - Interaction-domain changes are now isolated enough to reduce regression risk for future maintenance work and targeted cherry-picks.
 
+## Current snapshot (after Stage F)
+
+| Category | After Stage E | Current | Target |
+|---|---:|---:|---:|
+| Java parity | 9/10 | 9/10 | 9–10/10 |
+| DSL/API ergonomics | 9/10 | 9/10 | 9–10/10 |
+| Runtime correctness | 10/10 | 10/10 | 9–10/10 |
+| Functional completeness | 9/10 | 9/10 | 9–10/10 |
+| Implementation/test quality | 10/10 | 10/10 | 9–10/10 |
+
+### Why Stage F did not move the score
+
+- The donor `libs/myos-js` package was evaluated and found to be a strong transport/API companion, but not a missing `sdk-dsl` authoring-layer capability.
+- Deferring intake keeps the uplift focused on `sdk-dsl` itself instead of widening into HTTP clients, OpenAPI generation, and live-environment support.
+- The `sdk-dsl` score remains at or above the target bar without importing a companion package into this plan.
+
 ## Completion bar
 
 Do not call the plan complete unless every category is credibly at **9 or above**.

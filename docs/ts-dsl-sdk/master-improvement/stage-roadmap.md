@@ -169,6 +169,9 @@ Status:
 
 ## Stage F — Optional `myos-js` companion intake
 
+Status:
+- deferred
+
 ### Scope
 If the donor reference exists and is high quality:
 - evaluate `libs/myos-js`
@@ -179,6 +182,15 @@ If the donor reference exists and is high quality:
 - `myos-js` remains separate from `sdk-dsl` runtime
 - integration points are documented
 - if not imported, deferment is documented clearly
+
+### Delivered on mainline
+- donor evaluation completed against the alternative `libs/myos-js`
+- intake deferred because the donor is a transport/API client SDK with:
+  - HTTP resources and request-option layering
+  - OpenAPI-generated types and operation catalogs
+  - live-environment test and credential gating
+- existing `sdk-dsl` needs are already covered by the current builder-input compatibility documented by the donor
+- no runtime or authoring gap inside `sdk-dsl` justified importing a separate companion package into this uplift
 
 ---
 

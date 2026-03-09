@@ -57,6 +57,10 @@ They are mostly:
   - interaction-domain builders were split out of the monolithic `DocBuilder` and `StepsBuilder` sources
   - public API remained unchanged while the interaction surface became easier to extend safely
   - maintainability improved without relaxing verification or canonical scenario coverage
+- Stage F was evaluated and explicitly deferred:
+  - the donor `libs/myos-js` is a separate transport/API client SDK, not an `sdk-dsl` authoring-layer extension
+  - its value is real, but it is not required to reach the `sdk-dsl` quality target for this plan
+  - importing it into this uplift would widen scope into HTTP client, OpenAPI, and live-environment concerns that are intentionally outside `sdk-dsl`
 
 ## Strategy
 
@@ -142,6 +146,14 @@ Goals:
 
 This stage is optional / conditional.
 If the donor reference is absent or unsuitable, document deferment and finish the rest of the plan.
+
+Delivered on mainline:
+- donor evaluation is complete
+- intake is deferred intentionally
+- rationale:
+  - the donor package is transport-first and centered on API resources, retries, OpenAPI-derived types, and live-test workflows
+  - its documented integration with `sdk-dsl` is already builder-input compatibility, not missing authoring-layer functionality inside `sdk-dsl`
+  - adopting it during this uplift would not raise the core `sdk-dsl` score meaningfully enough to justify the extra package and maintenance surface
 
 ### Stage G — Final release hardening
 Goals:
