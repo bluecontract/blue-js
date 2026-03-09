@@ -39,9 +39,8 @@ Materialization decisions:
 
 - init-triggered and event-triggered branches use normal sequential workflows
 - operation-triggered branches use sequential workflow operations
-- operation-triggered branches keep explicit request schemas required by the current public runtime:
-  - `Boolean` for trigger-only operations
-  - `Integer` for partial-amount operations
+- operation-triggered branches omit `request` by default on generated
+  `Conversation/Operation` contracts
 - reserve/release lock helpers remain unsupported because the current public repo does not provide confirmed native event types for them
 
 ## 4. Tests and canonical scenarios
@@ -66,5 +65,6 @@ Covered canonical runtime/business areas:
 Stage 6 docs were finalized to reflect the implemented public runtime subset and the narrow remaining deviations:
 
 - reserve/release lock helpers unsupported on the current public repo
-- correction-cycle re-verification confirmed that operation-triggered PayNote macros still require explicit request schemas on the current public runtime
+- correction-cycle follow-up re-verification confirmed that omitting `request`
+  is the runtime-correct generic path for operation-triggered PayNote macros
 - external events do not directly feed `triggeredEventChannel` on the current public runtime

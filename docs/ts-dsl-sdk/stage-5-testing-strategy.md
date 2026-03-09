@@ -51,15 +51,15 @@ This file reconstructs the canonical provider request/response correlation scena
 
 ## Runtime test rules
 
-### Use runtime-confirmed request schemas on caller operations
+### Caller-operation request schemas are optional
 
-Current `document-processor` operation matching requires:
-- the operation contract to declare a request schema
-- the incoming `Conversation/Operation Request` payload to match it
+Current runtime behavior allows `Conversation/Sequential Workflow Operation`
+handlers to execute when the parent operation omits `request`.
 
-Stage 5 runtime tests therefore give caller operations explicit request types when they are the entrypoint for `askAI(...)` or manual permission flows.
-
-This is required for executable runtime proofs. It does not change parity coverage for the higher-level AI helpers themselves.
+Stage 5 runtime tests may still give caller operations explicit request types
+when the scenario intentionally exercises repository-level request typing, but
+this is no longer treated as a generic runtime requirement for `askAI(...)` or
+manual permission flows.
 
 ### Named-event matcher coverage is end-to-end
 

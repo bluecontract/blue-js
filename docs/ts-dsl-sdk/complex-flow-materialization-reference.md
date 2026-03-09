@@ -50,6 +50,16 @@ Known global rules:
 
 Stage-specific builders should follow a deterministic scheme that is stable across test runs.
 
+### 1.6 Thin generic helpers stay thin
+
+`DocBuilder.workflow(...)` is not a macro builder.
+
+It materializes exactly one `Conversation/Sequential Workflow` and preserves the
+event matcher shape authored by the caller.
+
+It does not replace domain-aware helpers such as `onChannelEvent(...)`, which
+may still apply runtime-confirmed matcher adaptation for specific channel types.
+
 ## 2. Stage-3/4/5 materialization rules
 
 ### 2.1 `myOsAdmin(channelKey)` on non-admin document types
@@ -199,7 +209,7 @@ An explicit overload may bind to a concrete channel instead:
 Materializes:
 
 - one `Conversation/Operation` named `operationKey`
-- current public runtime subset: correction-cycle re-verification confirmed that requestless sequential workflow operations still do not match, so the generated operation must expose `request: { type: Boolean }`
+- the generated operation omits `request`
 - one `Conversation/Sequential Workflow Operation` named `<operationKey>Impl`
 - implementation steps ending with a `Conversation/Trigger Event` step emitting:
   - `PayNote/Card Transaction Capture Unlock Requested`
@@ -244,7 +254,7 @@ Runtime note:
 Materializes:
 
 - one `Conversation/Operation`
-- current public runtime subset: correction-cycle re-verification confirmed that requestless sequential workflow operations still do not match, so the generated operation must expose `request: { type: Boolean }`
+- the generated operation omits `request`
 - one `<operationKey>Impl` workflow operation
 - implementation steps ending with a trigger-event step emitting:
   - `PayNote/Capture Funds Requested`
@@ -254,7 +264,9 @@ Partial-request variants follow the same structure, including the explicit chann
 - `requestPartialOnEvent(channelKey, <matcher>, amountExpr)`
 
 When `channelKey` is timeline-like, the matcher is adapted under `event.message`.
-On the current public runtime the generated operation variants still must expose `request: { type: Integer }`.
+On the current public runtime the generated operation also omits `request`.
+Payload semantics stay in the authored workflow logic, for example through
+`event.message.request` expressions used by the generated steps.
 
 ### `reserve()` family
 

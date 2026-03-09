@@ -340,24 +340,15 @@ describe('PayNotes parity', () => {
         ?.getProperties()
         ?.amount?.getValue(),
     ).toBe("${document('/amount/total')}");
+    expect(built.get('/contracts/unlockCaptureByOperation/request')).toBe(
+      undefined,
+    );
+    expect(built.get('/contracts/requestCaptureByOperation/request')).toBe(
+      undefined,
+    );
     expect(
-      built
-        .getAsNode('/contracts/unlockCaptureByOperation/request')
-        ?.getType()
-        ?.getBlueId(),
-    ).toBe(resolveTypeInput('Boolean').getBlueId());
-    expect(
-      built
-        .getAsNode('/contracts/requestCaptureByOperation/request')
-        ?.getType()
-        ?.getBlueId(),
-    ).toBe(resolveTypeInput('Boolean').getBlueId());
-    expect(
-      built
-        .getAsNode('/contracts/requestCapturePartialByOperation/request')
-        ?.getType()
-        ?.getBlueId(),
-    ).toBe(resolveTypeInput('Integer').getBlueId());
+      built.get('/contracts/requestCapturePartialByOperation/request'),
+    ).toBe(undefined);
     expect(
       built
         .getAsNode(
@@ -442,24 +433,11 @@ describe('PayNotes parity', () => {
         ?.getProperties()
         ?.amount?.getValue(),
     ).toBe('${event.message.request}');
-    expect(
-      built
-        .getAsNode('/contracts/requestReserve/request')
-        ?.getType()
-        ?.getBlueId(),
-    ).toBe(resolveTypeInput('Boolean').getBlueId());
-    expect(
-      built
-        .getAsNode('/contracts/requestReservePartial/request')
-        ?.getType()
-        ?.getBlueId(),
-    ).toBe(resolveTypeInput('Integer').getBlueId());
-    expect(
-      built
-        .getAsNode('/contracts/requestRelease/request')
-        ?.getType()
-        ?.getBlueId(),
-    ).toBe(resolveTypeInput('Boolean').getBlueId());
+    expect(built.get('/contracts/requestReserve/request')).toBe(undefined);
+    expect(built.get('/contracts/requestReservePartial/request')).toBe(
+      undefined,
+    );
+    expect(built.get('/contracts/requestRelease/request')).toBe(undefined);
   });
 
   it('supports explicit timeline-channel listeners for event-driven PayNote macros', () => {

@@ -41,7 +41,9 @@ describe('PayNotes integration', () => {
       .done()
       .buildDocument();
 
-    const initialized = await initializeDocument(built);
+    const initialized = await initializeDocument(built, {
+      resolveOperationContracts: true,
+    });
     const storedBlueId = getStoredDocumentBlueId(initialized.document);
 
     expect(
@@ -121,7 +123,9 @@ describe('PayNotes integration', () => {
       .done()
       .buildDocument();
 
-    const initialized = await initializeDocument(built);
+    const initialized = await initializeDocument(built, {
+      resolveOperationContracts: true,
+    });
     const storedBlueId = getStoredDocumentBlueId(initialized.document);
 
     expect(
@@ -186,7 +190,9 @@ describe('PayNotes integration', () => {
       .done()
       .buildDocument();
 
-    const initialized = await initializeDocument(built);
+    const initialized = await initializeDocument(built, {
+      resolveOperationContracts: true,
+    });
     const storedBlueId = getStoredDocumentBlueId(initialized.document);
 
     expect(
@@ -217,7 +223,7 @@ describe('PayNotes integration', () => {
     ).toBe(true);
   });
 
-  it('confirms the current runtime still skips requestless operation-triggered handlers', async () => {
+  it('executes requestless operation-triggered handlers on the current runtime', async () => {
     const built = PayNotes.payNote('Requestless operation runtime proof')
       .currency('USD')
       .amountMinor(3200)
@@ -236,7 +242,9 @@ describe('PayNotes integration', () => {
       .done()
       .buildDocument();
 
-    const initialized = await initializeDocument(built);
+    const initialized = await initializeDocument(built, {
+      resolveOperationContracts: true,
+    });
     const storedBlueId = getStoredDocumentBlueId(initialized.document);
     const processed = await processOperationRequest({
       blue: initialized.blue,
@@ -249,7 +257,14 @@ describe('PayNotes integration', () => {
       documentBlueId: storedBlueId,
     });
 
-    expect(processed.triggeredEvents).toHaveLength(0);
+    expect(
+      processed.triggeredEvents.some(
+        (event) =>
+          event.getType()?.getBlueId() ===
+            payNoteBlueIds['PayNote/Capture Funds Requested'] &&
+          String(event.getProperties()?.amount?.getValue()) === '3200',
+      ),
+    ).toBe(true);
   });
 
   it('supports default triggeredEventChannel capture flows from emitted confirmation events', async () => {

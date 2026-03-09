@@ -95,8 +95,11 @@ Ergonomic overload:
 - `myOsAdmin()` remains the standard mapping-ref shorthand for `myOsAdminChannel`
 
 Current runtime note:
-- `myOsAdminUpdate` must carry `request: { type: List }` in the current processor build, otherwise the operation does not execute.
-- this is recorded as a Stage 3 deviation because mapping-reference section 5.1 only says the request schema is optional when runtime does not require it.
+- `myOsAdminUpdate` currently materializes `request: { type: List }`
+- this is a semantic choice for the helper, because the helper is specifically
+  for re-emitting a list of delivered events
+- it is not a generic runtime requirement for
+  `Conversation/Sequential Workflow Operation`
 
 ### Triggered-event matchers
 These helpers must generate deterministic workflows bound to `Core/Triggered Event Channel` and apply the matching constraints required by the processor/runtime.

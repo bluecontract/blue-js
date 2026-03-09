@@ -211,3 +211,15 @@ export interface OperationBuilder<TDone> {
   ): OperationBuilder<TDone>;
   done(): TDone;
 }
+
+export interface WorkflowBuilder<TDone> {
+  channel(channelKey: string): WorkflowBuilder<TDone>;
+  event(eventType: TypeInput): WorkflowBuilder<TDone>;
+  event(matcher: BlueValueInput): WorkflowBuilder<TDone>;
+  steps(
+    customizer: (
+      steps: import('./builders/steps-builder').StepsBuilder,
+    ) => void,
+  ): WorkflowBuilder<TDone>;
+  done(): TDone;
+}

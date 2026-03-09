@@ -167,13 +167,15 @@ to:
 
 ## Runtime notes
 
-### Parent operations still need request schemas
+### Parent operations may omit `request`
 
-When `askAI(...)` or `steps.ai(...).requestPermission(...)` is used inside a `Conversation/Sequential Workflow Operation`, the parent operation must still have a request schema that is compatible with the incoming operation request.
+When `askAI(...)` or `steps.ai(...).requestPermission(...)` is used inside a
+`Conversation/Sequential Workflow Operation`, the parent operation may omit
+`request` when it should accept arbitrary or empty payloads.
 
-This is a current `document-processor` requirement, not a Stage 5-specific builder rule.
-
-Processor-backed Stage 5 runtime tests therefore use explicit request types on caller operations when they invoke those flows through `Conversation/Operation Request`.
+Explicit request schemas remain valid and useful when the caller operation wants
+repository-level request typing or validation, but they are not a generic
+runtime prerequisite for Stage 5 flows.
 
 ### Named-event support uses the real repository type
 

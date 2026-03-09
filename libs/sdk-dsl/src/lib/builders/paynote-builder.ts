@@ -417,7 +417,6 @@ export class PayNoteActionBuilder<P extends AbstractPayNoteBuilder<P>> {
       .operation(operationKey)
       .channel(channelKey)
       .description(description)
-      .requestType('Boolean')
       .steps((steps) => {
         extraSteps?.(steps);
         this.emitTypedEvent(steps, unlockEventType, this.config.unlockStepName);
@@ -475,7 +474,6 @@ export class PayNoteActionBuilder<P extends AbstractPayNoteBuilder<P>> {
       .operation(operationKey)
       .channel(channelKey)
       .description(description)
-      .requestType('Boolean')
       .steps((steps) => this.emitRequestEvent(steps))
       .done();
     return this;
@@ -491,7 +489,6 @@ export class PayNoteActionBuilder<P extends AbstractPayNoteBuilder<P>> {
       .operation(operationKey)
       .channel(channelKey)
       .description(description)
-      .requestType('Integer')
       .steps((steps) => this.emitRequestEvent(steps, amountExpression))
       .done();
     return this;

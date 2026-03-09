@@ -29,6 +29,62 @@ counter: 1
     );
   });
 
+  it('builds generic workflow contracts through workflow(...) helpers', () => {
+    const built = DocBuilder.doc()
+      .name('Workflow parity')
+      .channel('auditChannel')
+      .workflow('whenReady')
+      .channel('auditChannel')
+      .event('Common/Named Event')
+      .steps((steps) => steps.replaceValue('MarkReady', '/status', 'ready'))
+      .done()
+      .workflow(
+        'whenApproved',
+        'auditChannel',
+        {
+          type: 'Conversation/Chat Message',
+          message: 'approved',
+        },
+        (steps) => steps.replaceValue('MarkApproved', '/status', 'approved'),
+      )
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      built,
+      `
+name: Workflow parity
+contracts:
+  auditChannel:
+    type: Core/Channel
+  whenReady:
+    type: Conversation/Sequential Workflow
+    channel: auditChannel
+    event:
+      type: Common/Named Event
+    steps:
+      - name: MarkReady
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: ready
+  whenApproved:
+    type: Conversation/Sequential Workflow
+    channel: auditChannel
+    event:
+      type: Conversation/Chat Message
+      message: approved
+    steps:
+      - name: MarkApproved
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: approved
+`,
+    );
+  });
+
   it('creates canEmit operation and impl contracts with typed and shaped list requests', () => {
     const built = DocBuilder.doc()
       .name('Can emit parity')

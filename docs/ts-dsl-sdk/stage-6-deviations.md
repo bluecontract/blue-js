@@ -18,28 +18,7 @@ PayNotes.payNote('Reserve lock unsupported').currency('USD').amountMinor(1000).r
 - **Regression test**:
   - `libs/sdk-dsl/src/__tests__/PayNotes.parity.test.ts`
 
-## 2. Operation-triggered PayNote macro branches still need explicit request schemas after re-verification
-
-- **Status**: accepted
-- **Construct / API**: `unlockOnOperation(...)`, `requestOnOperation(...)`, `requestPartialOnOperation(...)`
-- **Minimal DSL repro**:
-
-```ts
-PayNotes.payNote('Capture op trigger').currency('USD').amountMinor(1000).capture().requestOnOperation('requestCapture', 'payerChannel', 'Request capture').done();
-```
-
-- **Java expectation**: the Java POC materializes requestless operation branches for these macros.
-- **Final mapping reference expectation**: the flow structure is still `Conversation/Operation` plus `Conversation/Sequential Workflow Operation`, but the public runtime is the final execution gate.
-- **Actual runtime behavior**: the public `document-processor` executes sequential workflow operations only when the operation contract exposes a request schema compatible with the incoming `Conversation/Operation Request` payload. Empty object request schemas do not match on this runtime.
-- **Decision**: Stage 6 keeps executable request schemas:
-  - `Boolean` for trigger-only operation branches
-  - `Integer` for partial-amount operation branches
-- **Reason**: correction-cycle re-verification confirmed that requestless sequential workflow operations still do not match the current public runtime, so omitting `request` would make these macro branches non-executable.
-- **Regression test**:
-  - `libs/sdk-dsl/src/__tests__/PayNotes.parity.test.ts`
-  - `libs/sdk-dsl/src/__tests__/PayNotes.integration.test.ts`
-
-## 3. External events do not directly drive `triggeredEventChannel` workflows
+## 2. External events do not directly drive `triggeredEventChannel` workflows
 
 - **Status**: accepted
 - **Construct / API**: `requestOnEvent(...)`, `unlockOnEvent(...)`, `onEvent(...)`-driven PayNote business flows
@@ -58,7 +37,7 @@ PayNotes.payNote('Capture from external event').currency('USD').amountMinor(1800
   - `libs/sdk-dsl/src/__tests__/PayNotes.integration.test.ts`
   - `libs/sdk-dsl/src/__tests__/CanonicalPayNoteBusiness.test.ts`
 
-## 4. `requestBackwardPayment(...)` is runtime-guarded on the current public repo
+## 3. `requestBackwardPayment(...)` is runtime-guarded on the current public repo
 
 - **Status**: accepted
 - **Construct / API**: `steps.requestBackwardPayment(...)`

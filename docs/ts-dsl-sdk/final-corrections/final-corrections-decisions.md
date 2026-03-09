@@ -15,6 +15,6 @@
 | AI named-event runtime limitation | resolved | remove the old deviation and keep positive runtime proof |
 | TS `{ namedEvent: string }` | accepted TS adaptation | keep |
 | reserve/release lock helpers | deferred/unsupported | keep deferred |
-| operation-triggered PayNote branch typed requests | accepted adaptation | keep explicit request schemas after runtime re-check |
+| operation-triggered PayNote branch typed requests | resolved | omit `request` when the generated operation should accept arbitrary or empty payloads |
 | `requestBackwardPayment(...)` | deferred/runtime-guarded | keep guarded until public runtime/types support it |
 | event-driven Stage 6 explicit channel support | supported | keep default + explicit channel semantics |

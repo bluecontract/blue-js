@@ -263,6 +263,11 @@ name: <optional text>
 description: <optional text>
 ```
 
+DSL note:
+- `DocBuilder.workflow(...)` is the thin generic builder for this contract type,
+- it materializes exactly one `Conversation/Sequential Workflow`,
+- it preserves the matcher shape authored by the caller.
+
 ### `Conversation/Sequential Workflow Operation`
 Status: **runtime-confirmed**
 
@@ -612,6 +617,9 @@ Runtime note:
 - DSL matchers for `onChannelEvent(...)` should still be authored against the
   underlying message or event type,
 - timeline-aware materialization adapts those matchers under `event.message`.
+- generic `workflow(...)` authoring does not apply that convenience adaptation
+  automatically; for thin generic workflows on timeline-like channels, callers
+  should author the runtime-confirmed matcher shape directly.
 
 ## 4.3. `MyOS/MyOS Timeline Channel`
 Status: **runtime-confirmed**
@@ -738,9 +746,9 @@ contracts:
 Wnioski dla DSL:
 - `myOsAdmin(...)` powinno być helperem skrótowym dla powyższego zestawu kontraktów,
 - jeżeli dokument ma już typ `MyOS/MyOS Admin Base`, helper nie powinien dublować kontraktów,
-- na aktualnym publicznym runtime `myOsAdminUpdate` musi materializować
-  `request: { type: List }`, bo `Conversation/Sequential Workflow Operation`
-  nie wykonuje się bez kompatybilnego request schema.
+- `myOsAdminUpdate` może materializować `request: { type: List }`, ale jest to
+  zawężenie semantyczne helpera do listy eventów do re-emisji, a nie wymóg
+  samego runtime dla requestless `Conversation/Sequential Workflow Operation`.
 
 ## 5.2. Session interaction – requesty i update wrappers
 

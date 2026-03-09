@@ -8,6 +8,7 @@ import { repository as blueRepository } from '@blue-repository/types';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { ContractsChangePolicySchema } from '@blue-repository/types/packages/conversation/schemas/ContractsChangePolicy';
 import { DocumentSectionSchema } from '@blue-repository/types/packages/conversation/schemas/DocumentSection';
+import { OperationSchema } from '@blue-repository/types/packages/conversation/schemas/Operation';
 
 type MarkerContract = Record<string, unknown>;
 
@@ -158,6 +159,7 @@ export async function initializeDocument(
   options?: {
     readonly blue?: Blue;
     readonly processor?: DocumentProcessor;
+    readonly resolveOperationContracts?: boolean;
   },
 ): Promise<{
   blue: Blue;
@@ -167,17 +169,20 @@ export async function initializeDocument(
 }> {
   const blue = options?.blue ?? createBlue();
   const processor = options?.processor ?? createDocumentProcessor(blue);
-  const result = await processor.initializeDocument(document);
+  const result = await processor.initializeDocument(document.clone());
   if (result.capabilityFailure) {
     throw new Error(
       `Expected initialization success, got failure: ${result.failureReason ?? 'unknown'}`,
     );
   }
+  const processedDocument = options?.resolveOperationContracts
+    ? resolveOperationContracts(result.document, blue)
+    : result.document;
 
   return {
     blue,
     processor,
-    document: result.document,
+    document: processedDocument,
     triggeredEvents: result.triggeredEvents.map((event) => event.clone()),
   };
 }
@@ -240,4 +245,42 @@ function createMarkerProcessor(
     blueIds: [blueId],
     schema,
   };
+}
+
+function resolveOperationContracts(document: BlueNode, blue: Blue): BlueNode {
+  const contracts = document.getContracts();
+  if (!contracts) {
+    return document;
+  }
+
+  let changed = false;
+  const nextContracts: Record<string, BlueNode> = {};
+
+  for (const [key, contract] of Object.entries(contracts)) {
+    const contractClone = contract.clone();
+
+    if (
+      !(contractClone.getProperties()?.request instanceof BlueNode) &&
+      blue.isTypeOf(contractClone, OperationSchema, {
+        checkSchemaExtensions: true,
+      })
+    ) {
+      const resolvedContract = blue.resolve(contractClone.clone());
+      if (resolvedContract.getProperties()?.request instanceof BlueNode) {
+        nextContracts[key] = resolvedContract;
+        changed = true;
+        continue;
+      }
+    }
+
+    nextContracts[key] = contractClone;
+  }
+
+  if (!changed) {
+    return document;
+  }
+
+  const clonedDocument = document.clone();
+  clonedDocument.setContracts(nextContracts);
+  return clonedDocument;
 }

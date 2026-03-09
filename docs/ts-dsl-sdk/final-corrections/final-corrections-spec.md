@@ -43,11 +43,10 @@ Keep unsupported/deferred:
 - do not leave it as a silent no-op
 
 ### 8. PayNote operation-triggered branches
-- correction-cycle re-verification showed that the current public runtime still
-  requires explicit request schemas for operation-triggered PayNote macro
-  branches
-- keep executable `Boolean` / `Integer` request schemas until the runtime
-  actually accepts requestless sequential workflow operations
+- correction-cycle follow-up re-verification showed that the resolved-document
+  runtime path already accepts requestless operation handlers
+- prefer omitting `request` when the generated operation should accept arbitrary
+  or empty payloads and the runtime confirms that behavior
 
 ### 9. Stage 6 event-driven channels
 - defaulting to `triggeredEventChannel` is fine where appropriate

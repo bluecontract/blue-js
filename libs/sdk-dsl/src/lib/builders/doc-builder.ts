@@ -11,6 +11,7 @@ import type {
   FieldBuilder,
   OperationBuilder,
   TypeInput,
+  WorkflowBuilder,
 } from '../types';
 import { nodeToAliasJson } from '../alias-json';
 import { INTERNAL_BLUE } from '../internal/blue';
@@ -97,6 +98,13 @@ type OperationState = {
   readonly requestSchema: BlueValueInput | null;
   readonly clearRequest: boolean;
   readonly requestDescription: string | null;
+  readonly implementation: ((steps: StepsBuilder) => void) | null;
+};
+
+type WorkflowState = {
+  readonly key: string;
+  readonly channelKey: string | null;
+  readonly eventMatcher: BlueNode | null;
   readonly implementation: ((steps: StepsBuilder) => void) | null;
 };
 
@@ -604,6 +612,58 @@ export class DocBuilder {
       clearRequest: false,
       requestDescription: null,
       implementation,
+    });
+  }
+
+  workflow(key: string): WorkflowBuilder<this>;
+  workflow(
+    key: string,
+    channelKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  workflow(
+    key: string,
+    channelKey: string,
+    eventMatcher: TypeInput | BlueValueInput,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  workflow(
+    key: string,
+    ...args:
+      | []
+      | [channelKey: string, customizer: (steps: StepsBuilder) => void]
+      | [
+          channelKey: string,
+          eventMatcher: TypeInput | BlueValueInput,
+          customizer: (steps: StepsBuilder) => void,
+        ]
+  ): this | WorkflowBuilder<this> {
+    const workflowKey = requireNonEmpty(key, 'workflow key');
+
+    if (args.length === 0) {
+      return new WorkflowBuilderImpl({
+        parent: this,
+        key: workflowKey,
+        applyState: (state) => this.applyWorkflowState(state),
+      });
+    }
+
+    if (args.length === 2) {
+      const [channelKey, customizer] = args;
+      return this.applyWorkflowState({
+        key: workflowKey,
+        channelKey,
+        eventMatcher: null,
+        implementation: customizer,
+      });
+    }
+
+    const [channelKey, eventMatcher, customizer] = args;
+    return this.applyWorkflowState({
+      key: workflowKey,
+      channelKey,
+      eventMatcher: toWorkflowEventMatcher(eventMatcher),
+      implementation: customizer,
     });
   }
 
@@ -1987,6 +2047,17 @@ export class DocBuilder {
     return this;
   }
 
+  private applyWorkflowState(state: WorkflowState): this {
+    const channelKey = requireNonEmpty(state.channelKey, 'channel');
+    requireStepsCustomizer(state.implementation);
+    return this.applySequentialWorkflow(
+      state.key,
+      channelKey,
+      state.eventMatcher,
+      state.implementation,
+    );
+  }
+
   private buildTriggeredMatcher(
     eventType: TypeInput,
     matcher: BlueValueInput | null | undefined,
@@ -2255,6 +2326,44 @@ class OperationBuilderImpl<
   }
 }
 
+class WorkflowBuilderImpl<P extends DocBuilder> implements WorkflowBuilder<P> {
+  private channelKey: string | null = null;
+  private eventMatcher: BlueNode | null = null;
+  private implementation: ((steps: StepsBuilder) => void) | null = null;
+
+  constructor(
+    private readonly config: {
+      readonly parent: P;
+      readonly key: string;
+      readonly applyState: (state: WorkflowState) => P;
+    },
+  ) {}
+
+  channel(channelKey: string): WorkflowBuilder<P> {
+    this.channelKey = requireNonEmpty(channelKey, 'channel');
+    return this;
+  }
+
+  event(eventMatcher: TypeInput | BlueValueInput): WorkflowBuilder<P> {
+    this.eventMatcher = toWorkflowEventMatcher(eventMatcher);
+    return this;
+  }
+
+  steps(customizer: (steps: StepsBuilder) => void): WorkflowBuilder<P> {
+    this.implementation = customizer;
+    return this;
+  }
+
+  done(): P {
+    return this.config.applyState({
+      key: this.config.key,
+      channelKey: this.channelKey,
+      eventMatcher: this.eventMatcher,
+      implementation: this.implementation,
+    });
+  }
+}
+
 function cloneAiTaskMap(
   tasks: ReadonlyMap<string, AITaskTemplate>,
 ): ReadonlyMap<string, AITaskTemplate> {
@@ -2404,6 +2513,31 @@ function filterTypeInputs(values: readonly TypeInput[]): TypeInput[] {
   return values.filter((value): value is TypeInput => value != null);
 }
 
+function toWorkflowEventMatcher(
+  eventMatcher: TypeInput | BlueValueInput,
+): BlueNode {
+  if (eventMatcher instanceof BlueNode) {
+    if (isBlueNodeTypeInput(eventMatcher)) {
+      return new BlueNode().setType(
+        resolveTypeInput(eventMatcher, 'workflow event'),
+      );
+    }
+    return eventMatcher.clone();
+  }
+
+  if (
+    typeof eventMatcher === 'string' ||
+    isBlueIdObject(eventMatcher) ||
+    isLikelyTypeSchema(eventMatcher)
+  ) {
+    return new BlueNode().setType(
+      resolveTypeInput(eventMatcher as TypeInput, 'workflow event'),
+    );
+  }
+
+  return toBlueNode(eventMatcher as BlueValueInput);
+}
+
 function requireBlueValueInput(
   value: BlueValueInput | null,
   message: string,
@@ -2425,6 +2559,31 @@ function isLikelyTypeSchema(value: unknown): value is ZodTypeAny {
     typeof value === 'object' &&
     typeof (value as { safeParse?: unknown }).safeParse === 'function' &&
     '_def' in value
+  );
+}
+
+function isBlueIdObject(value: unknown): value is { blueId: string } {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    'blueId' in value &&
+    typeof (value as { blueId?: unknown }).blueId === 'string' &&
+    Object.keys(value as Record<string, unknown>).length === 1
+  );
+}
+
+function isBlueNodeTypeInput(node: BlueNode): boolean {
+  return (
+    node.getName() == null &&
+    node.getDescription() == null &&
+    node.getType() == null &&
+    node.getItemType() == null &&
+    node.getKeyType() == null &&
+    node.getValueType() == null &&
+    node.getBlue() == null &&
+    node.getItems() == null &&
+    node.getProperties() == null &&
+    (node.getValue() !== undefined || node.getBlueId() != null)
   );
 }
 

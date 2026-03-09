@@ -107,11 +107,13 @@ The `capture()/reserve()/release()` families materialize normal Conversation con
 Runtime-confirmed Stage 6 rules:
 
 - `lockOnInit()` validates that at least one unlock path exists before `buildDocument()`.
-- operation-triggered macro branches materialize executable request schemas on the current public runtime:
-  - `unlockOnOperation(...)` -> `request: { type: Boolean }`
-  - `requestOnOperation(...)` -> `request: { type: Boolean }`
-  - `requestPartialOnOperation(...)` -> `request: { type: Integer }`
-- correction-cycle re-verification confirmed that omitting `request` still leaves these sequential workflow operations unmatched on the current public runtime
+- operation-triggered macro branches omit `request` by default on the generated
+  `Conversation/Operation` contracts
+- on the current public runtime, omitting `request` keeps these branches open to
+  arbitrary or empty `Conversation/Operation Request.request` payloads
+- Stage 6 does not treat an explicit empty `request:` definition as a special
+  wildcard shape; the runtime-confirmed generic path is simply to omit
+  `request`
 - `requestOnEvent(...)` and `unlockOnEvent(...)` still materialize `triggeredEventChannel` workflows, but processor-backed runtime delivery requires the matched event to be internally emitted or re-emitted through a runtime-confirmed bridge such as `myOsAdminUpdate`.
 - event-driven macro branches support two listening modes:
   - default `(eventType, ...)` overloads bind to `triggeredEventChannel`

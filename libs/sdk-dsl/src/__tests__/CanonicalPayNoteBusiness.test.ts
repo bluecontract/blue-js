@@ -73,9 +73,6 @@ describe('Canonical PayNote business flows', () => {
             type: 'Conversation/Operation',
             channel: 'payerChannel',
             description: 'Unlock capture.',
-            request: {
-              type: 'Boolean',
-            },
           },
           unlockCaptureImpl: {
             type: 'Conversation/Sequential Workflow Operation',
@@ -105,9 +102,6 @@ describe('Canonical PayNote business flows', () => {
             type: 'Conversation/Operation',
             channel: 'payerChannel',
             description: 'Request capture.',
-            request: {
-              type: 'Boolean',
-            },
           },
           requestCaptureImpl: {
             type: 'Conversation/Sequential Workflow Operation',
@@ -128,7 +122,9 @@ describe('Canonical PayNote business flows', () => {
       fromDsl,
     );
 
-    const initialized = await initializeDocument(fromDsl);
+    const initialized = await initializeDocument(fromDsl, {
+      resolveOperationContracts: true,
+    });
     const storedBlueId = getStoredDocumentBlueId(initialized.document);
 
     expect(

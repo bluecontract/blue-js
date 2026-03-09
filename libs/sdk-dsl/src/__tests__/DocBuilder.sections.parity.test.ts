@@ -305,4 +305,52 @@ contracts:
 
     assertDslMatchesNode(fromDsl, expected);
   });
+
+  it('tracks generic workflow contracts when workflow(...) is defined inside a section', () => {
+    const matcher = new BlueNode().setType(
+      resolveTypeInput('Conversation/Chat Message'),
+    );
+    matcher.addProperty('message', toBlueNode('approved'));
+
+    const fromDsl = DocBuilder.doc()
+      .name('Sectioned workflow helper')
+      .section('customFlows', 'Custom flows')
+      .channel('auditChannel')
+      .workflow('onApprovedMessage')
+      .channel('auditChannel')
+      .event(matcher)
+      .steps((steps) => steps.replaceValue('SetStatus', '/status', 'approved'))
+      .done()
+      .endSection()
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      fromDsl,
+      `
+name: Sectioned workflow helper
+contracts:
+  auditChannel:
+    type: Core/Channel
+  onApprovedMessage:
+    type: Conversation/Sequential Workflow
+    channel: auditChannel
+    event:
+      type: Conversation/Chat Message
+      message: approved
+    steps:
+      - name: SetStatus
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: approved
+  customFlows:
+    type: Conversation/Document Section
+    title: Custom flows
+    relatedContracts:
+      - auditChannel
+      - onApprovedMessage
+`,
+    );
+  });
 });

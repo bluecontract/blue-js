@@ -21,25 +21,6 @@ Record only real, justified deviations.
 
 ## Entries
 
-### `myOsAdminUpdate` requires an explicit `List` request schema
-- **Status:** accepted
-- **Feature:** `DocBuilder.myOsAdmin(...)`
-- **Minimal DSL repro:**
-```ts
-DocBuilder.doc()
-  .myOsAdmin()
-  .channel('myOsAdminChannel', { timelineId: 'admin-timeline' })
-  .onEvent('onGranted', 'MyOS/Single Document Permission Granted', (steps) =>
-    steps.replaceValue('SetStatus', '/status', 'granted'),
-  );
-```
-- **Final mapping reference expectation:** section 5.1 allows omitting a materialized request schema when runtime does not require it.
-- **Java / legacy expectation:** Java POC `myOsAdmin()` materialized a list-based request through the older `myOsEmit` helper shape.
-- **Runtime / actual behavior:** current `document-processor` only executes `Conversation/Sequential Workflow Operation` when both the incoming request payload and the operation contract contain a `request` node that passes `isRequestTypeCompatible(...)`.
-- **Decision taken:** `myOsAdmin()` now materializes `myOsAdminUpdate.request` as `type: List`.
-- **Reason:** without an explicit request schema, the admin re-emission operation does not run at all.
-- **Regression test:** `libs/sdk-dsl/src/__tests__/DocBuilder.myos.parity.test.ts` and `libs/sdk-dsl/src/__tests__/DocBuilder.myos.integration.test.ts`
-
 ### `requestId` matchers bind to `inResponseTo.requestId`
 - **Status:** accepted
 - **Feature:** `DocBuilder.onTriggeredWithId(...)`, `DocBuilder.onMyOsResponse(...)`
