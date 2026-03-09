@@ -6,6 +6,7 @@ Java references:
 */
 
 import { BlueNode } from '@blue-labs/language';
+import { blueIds as commonBlueIds } from '@blue-repository/types/packages/common/blue-ids';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { DocBuilder } from '../lib';
@@ -57,7 +58,11 @@ describe('DocBuilder handler integration', () => {
     const built = DocBuilder.doc()
       .name('On named event integration')
       .field('/status', 'pending')
-      .onInit('bootstrap', (steps) => steps.namedEvent('EmitReady', 'READY'))
+      .onInit('bootstrap', (steps) =>
+        steps.namedEvent('EmitReady', 'READY', (event) =>
+          event.put('source', 'bootstrap'),
+        ),
+      )
       .onNamedEvent('onReady', 'READY', (steps) =>
         steps.replaceValue('SetStatus', '/status', 'ready'),
       )
@@ -66,12 +71,13 @@ describe('DocBuilder handler integration', () => {
     const initialized = await initializeDocument(built);
     const namedEvent = initialized.triggeredEvents.find(
       (event) =>
-        event.getType()?.getValue() === 'Common/Named Event' &&
-        event.getProperties()?.name?.getValue() === 'READY',
+        event.getType()?.getBlueId() === commonBlueIds['Common/Named Event'] &&
+        event.getName() === 'READY',
     );
 
     expect(String(initialized.document.get('/status'))).toBe('ready');
     expect(namedEvent).toBeDefined();
+    expect(namedEvent?.getProperties()?.source?.getValue()).toBe('bootstrap');
   });
 
   it('reacts to watched document updates via onDocChange workflows', async () => {

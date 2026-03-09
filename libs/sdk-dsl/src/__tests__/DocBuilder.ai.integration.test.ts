@@ -374,7 +374,7 @@ describe('DocBuilder AI integration', () => {
     expect(String(matched.document.get('/result/status'))).toBe('seen');
   });
 
-  it('documents the current public-runtime limitation for named-event AI response matching', async () => {
+  it('supports named-event AI response matching on the public runtime', async () => {
     const built = DocBuilder.doc()
       .name('AI named event response integration')
       .channel('ownerChannel', {
@@ -383,6 +383,7 @@ describe('DocBuilder AI integration', () => {
       })
       .field('/llmProviderSessionId', PROVIDER_SESSION_ID)
       .field('/result/status', 'idle')
+      .field('/result/planId', '')
       .ai('mealAI')
       .sessionId(DocBuilder.expr("document('/llmProviderSessionId')"))
       .permissionFrom('ownerChannel')
@@ -396,7 +397,14 @@ describe('DocBuilder AI integration', () => {
         'onNamedReady',
         { namedEvent: 'summary-ready' },
         'summarize',
-        (steps) => steps.replaceValue('MarkSeen', '/result/status', 'seen'),
+        (steps) =>
+          steps
+            .replaceValue('MarkSeen', '/result/status', 'seen')
+            .replaceExpression(
+              'SavePlanId',
+              '/result/planId',
+              'event.update.planId',
+            ),
       )
       .channel('myOsAdminChannel', {
         timelineId: ADMIN_TIMELINE_ID,
@@ -405,45 +413,38 @@ describe('DocBuilder AI integration', () => {
 
     const initialized = await initializeDocument(built);
     const storedBlueId = getStoredDocumentBlueId(initialized.document);
-
-    try {
-      await processOperationRequest({
-        blue: initialized.blue,
-        processor: initialized.processor,
-        document: initialized.document,
-        timelineId: ADMIN_TIMELINE_ID,
-        operation: 'myOsAdminUpdate',
-        request: [
-          {
-            type: 'MyOS/Subscription Update',
-            subscriptionId: 'SUB_MEALAI',
-            update: {
-              type: 'Common/Named Event',
-              name: 'summary-ready',
-              context: {
-                turn: 1,
-              },
-              inResponseTo: {
-                incomingEvent: {
-                  requester: 'MEAL_PLANNER',
-                  taskName: 'summarize',
-                },
+    const processed = await processOperationRequest({
+      blue: initialized.blue,
+      processor: initialized.processor,
+      document: initialized.document,
+      timelineId: ADMIN_TIMELINE_ID,
+      operation: 'myOsAdminUpdate',
+      request: [
+        {
+          type: 'MyOS/Subscription Update',
+          subscriptionId: 'SUB_MEALAI',
+          update: {
+            type: 'Common/Named Event',
+            name: 'summary-ready',
+            planId: 'plan-1',
+            context: {
+              turn: 1,
+            },
+            inResponseTo: {
+              incomingEvent: {
+                requester: 'MEAL_PLANNER',
+                taskName: 'summarize',
               },
             },
           },
-        ],
-        allowNewerVersion: false,
-        documentBlueId: storedBlueId,
-      });
-      throw new Error(
-        'Expected named-event AI matcher processing to fail on the public runtime',
-      );
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain(
-        'Unknown type "Common/Named Event"',
-      );
-    }
+        },
+      ],
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    expect(String(processed.document.get('/result/status'))).toBe('seen');
+    expect(String(processed.document.get('/result/planId'))).toBe('plan-1');
   });
 
   it('supports manual permission requests through steps.ai(...).requestPermission()', async () => {

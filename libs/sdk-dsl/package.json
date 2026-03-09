@@ -3,7 +3,7 @@
   "version": "3.5.0",
   "dependencies": {
     "@blue-labs/language": "*",
-    "@blue-repository/types": "0.19.0"
+    "@blue-repository/types": "0.21.0"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

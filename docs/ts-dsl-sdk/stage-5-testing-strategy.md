@@ -40,7 +40,7 @@ This file proves:
 - explicit response type + task filtering
 - manual permission requests
 - multi-integration isolation
-- public-runtime limitation for named-event AI response matching
+- named-event AI response matching on the public runtime
 
 ### Canonical scenario corpus
 
@@ -61,13 +61,13 @@ Stage 5 runtime tests therefore give caller operations explicit request types wh
 
 This is required for executable runtime proofs. It does not change parity coverage for the higher-level AI helpers themselves.
 
-### Named-event matcher coverage is split
+### Named-event matcher coverage is end-to-end
 
-Named-event matcher coverage is intentionally split:
-- parity tests prove the document shape
-- runtime tests prove the current public-runtime limitation
+Named-event matcher coverage now proves both:
+- parity shape using `Common/Named Event`
+- positive runtime execution on the public processor/runtime
 
-This keeps Stage 5 honest against:
+This keeps Stage 5 aligned with:
 - the final mapping reference section 2.3
 - the current repository/runtime schemas
 

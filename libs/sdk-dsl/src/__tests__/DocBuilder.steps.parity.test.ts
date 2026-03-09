@@ -4,6 +4,7 @@ Java references:
 */
 
 import { BlueNode } from '@blue-labs/language';
+import { blueIds as commonBlueIds } from '@blue-repository/types/packages/common/blue-ids';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { DocBuilder, StepsBuilder } from '../lib';
@@ -119,31 +120,17 @@ describe('DocBuilder step parity', () => {
       steps[5]?.getProperties()?.event?.getProperties()?.total?.getValue(),
     ).toBe("${document('/counter') + 3}");
 
-    expect(steps[6]?.getProperties()?.event?.getType()?.getValue()).toBe(
-      'Common/Named Event',
+    expect(steps[6]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      commonBlueIds['Common/Named Event'],
     );
+    expect(steps[6]?.getProperties()?.event?.getName()).toBe('AD_HOC');
     expect(
-      steps[6]?.getProperties()?.event?.getProperties()?.name?.getValue(),
-    ).toBe('AD_HOC');
-    expect(
-      steps[6]
-        ?.getProperties()
-        ?.event?.getProperties()
-        ?.payload?.getProperties()
-        ?.flag?.getValue(),
+      steps[6]?.getProperties()?.event?.getProperties()?.flag?.getValue(),
     ).toBe(true);
+    expect(steps[7]?.getProperties()?.event?.getName()).toBe('NAMED');
+    expect(steps[8]?.getProperties()?.event?.getName()).toBe('NAMED_PAYLOAD');
     expect(
-      steps[7]?.getProperties()?.event?.getProperties()?.name?.getValue(),
-    ).toBe('NAMED');
-    expect(
-      steps[8]?.getProperties()?.event?.getProperties()?.name?.getValue(),
-    ).toBe('NAMED_PAYLOAD');
-    expect(
-      steps[8]
-        ?.getProperties()
-        ?.event?.getProperties()
-        ?.payload?.getProperties()
-        ?.status?.getValue(),
+      steps[8]?.getProperties()?.event?.getProperties()?.status?.getValue(),
     ).toBe('ok');
 
     expect(
@@ -318,7 +305,9 @@ describe('DocBuilder step parity', () => {
         ?.steps?.getItems()?.[0]
         ?.getProperties()?.event ?? null;
 
-    expect(event?.getType()?.getValue()).toBe('Common/Named Event');
-    expect(event?.getProperties()?.name?.getValue()).toBe('EXT_SIGNAL');
+    expect(event?.getType()?.getBlueId()).toBe(
+      commonBlueIds['Common/Named Event'],
+    );
+    expect(event?.getName()).toBe('EXT_SIGNAL');
   });
 });

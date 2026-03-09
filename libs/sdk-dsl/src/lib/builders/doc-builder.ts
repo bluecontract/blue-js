@@ -837,7 +837,7 @@ export class DocBuilder {
     this.ensureTriggeredChannel();
 
     const matcher = new BlueNode().setType(resolveTypeInput(NAMED_EVENT_TYPE));
-    matcher.addProperty('name', toBlueNode(normalizedEventName));
+    matcher.setName(normalizedEventName);
     return this.applySequentialWorkflow(
       key,
       'triggeredEventChannel',
@@ -1174,11 +1174,8 @@ export class DocBuilder {
       : resolveTypeInput(responseType).clone();
 
     if (isAiNamedEventMatcher(responseType)) {
-      updateMatcher.addProperty(
-        'name',
-        toBlueNode(
-          requireNonEmpty(responseType.namedEvent, 'named event name'),
-        ),
+      updateMatcher.setName(
+        requireNonEmpty(responseType.namedEvent, 'named event name'),
       );
     }
 

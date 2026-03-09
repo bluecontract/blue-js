@@ -20,8 +20,8 @@
 | `onAIResponse(...)` default | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` response flow | `CanonicalAIProviderPatterns.test.ts` | green |
 | `onAIResponse(...)` explicit response type | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` explicit-type flow | none | green |
 | `onAIResponse(...)` task-filtered | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` explicit-type flow | none | green |
-| `onAIResponse(...)` named-event | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` limitation proof | none | accepted deviation |
-| `onAIResponse(...)` named-event + task filter | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` limitation proof | none | accepted deviation |
+| `onAIResponse(...)` named-event | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` named-event flow | none | green |
+| `onAIResponse(...)` named-event + task filter | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` named-event flow | none | green |
 | auto `_SaveAIContext` prepend | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` response flow | `CanonicalAIProviderPatterns.test.ts` | green |
 | multi-integration isolation | `DocBuilder.ai.parity.test.ts` | `DocBuilder.ai.integration.test.ts` isolation flow | none | green |
 | canonical provider request/response correlation | none | `CanonicalAIProviderPatterns.test.ts` | `CanonicalAIProviderPatterns.test.ts` | green |

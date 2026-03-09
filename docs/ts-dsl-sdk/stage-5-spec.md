@@ -175,9 +175,9 @@ This is a current `document-processor` requirement, not a Stage 5-specific build
 
 Processor-backed Stage 5 runtime tests therefore use explicit request types on caller operations when they invoke those flows through `Conversation/Operation Request`.
 
-### Named-event support is limited by the public runtime
+### Named-event support uses the real repository type
 
-Stage 5 keeps named-event matcher parity on the builder surface, but public-runtime processing still lacks a runtime-confirmed `Common/Named Event` path. The exact limitation is documented in `stage-5-deviations.md`.
+Stage 5 named-event matching now uses the real `Common/Named Event` support from the current public repository package and processor runtime.
 
 ## Canonical scenario coverage
 

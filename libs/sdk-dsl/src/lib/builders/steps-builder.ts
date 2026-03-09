@@ -165,15 +165,12 @@ export class StepsBuilder {
 
     const eventNode = NodeObjectBuilder.create()
       .type('Common/Named Event')
-      .put('name', eventName.trim());
+      .setName(eventName.trim());
 
     if (payloadCustomizer) {
-      const payload = NodeObjectBuilder.create();
-      payloadCustomizer(payload);
-      const payloadNode = payload.build();
-      if (hasMeaningfulContent(payloadNode)) {
-        eventNode.putNode('payload', payloadNode);
-      }
+      const fields = NodeObjectBuilder.create();
+      payloadCustomizer(fields);
+      mergeNamedEventFields(eventNode, fields.build());
     }
 
     return this.triggerEvent(name, eventNode.build());
@@ -1732,21 +1729,46 @@ function buildNamedEventExpectationNode(
 ): BlueNode {
   const event = NodeObjectBuilder.create()
     .type('Common/Named Event')
-    .put('name', expectation.name);
+    .setName(expectation.name);
 
   if (expectation.fields.length > 0) {
-    const payload = NodeObjectBuilder.create();
+    const fields = NodeObjectBuilder.create();
     for (const field of expectation.fields) {
       const descriptor = NodeObjectBuilder.create();
       if (field.description) {
         descriptor.setDescription(field.description);
       }
-      payload.putNode(field.name, descriptor.build());
+      fields.putNode(field.name, descriptor.build());
     }
-    event.putNode('payload', payload.build());
+    mergeNamedEventFields(event, fields.build());
   }
 
   return event.build();
+}
+
+function mergeNamedEventFields(
+  target: NodeObjectBuilder,
+  fieldsNode: BlueNode,
+): void {
+  if (fieldsNode.getName()) {
+    target.setName(fieldsNode.getName());
+  }
+  if (fieldsNode.getDescription()) {
+    target.setDescription(fieldsNode.getDescription());
+  }
+  const items = fieldsNode.getItems();
+  if (items) {
+    target.setItems(items.map((item: BlueNode) => item.clone()));
+  }
+  const properties = fieldsNode.getProperties();
+  if (!properties) {
+    return;
+  }
+  for (const [key, value] of Object.entries(properties) as Array<
+    [string, BlueNode]
+  >) {
+    target.putNode(key, value.clone());
+  }
 }
 
 function applyBootstrapOptions(

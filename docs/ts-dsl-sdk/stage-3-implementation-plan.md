@@ -40,7 +40,7 @@ Review points:
 - subscription id filtering
 - `inResponseTo` matching
 - exact triggered-event channel usage
-- no assumption of `Common/Named Event`
+- keep matcher/event semantics aligned with the current repository package
 
 ## Phase 3 — `MyOsSteps`
 

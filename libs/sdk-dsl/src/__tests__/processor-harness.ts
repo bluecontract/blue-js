@@ -12,7 +12,6 @@ import { DocumentSectionSchema } from '@blue-repository/types/packages/conversat
 type MarkerContract = Record<string, unknown>;
 
 const CUSTOM_TYPE_BLUE_ID = 'sdkdsl-custom-type';
-const NAMED_EVENT_BLUE_ID = 'sdkdsl-common-named-event';
 
 const sdkDslTestRepository: BlueRepository = {
   name: 'sdk-dsl.test.repo',
@@ -46,38 +45,6 @@ const sdkDslTestRepository: BlueRepository = {
   },
 };
 
-const sdkDslParityRepository: BlueRepository = {
-  name: 'sdk-dsl.parity.repo',
-  repositoryVersions: ['R0'],
-  packages: {
-    sdkdslParity: {
-      name: 'sdkdslParity',
-      aliases: {
-        'Common/Named Event': NAMED_EVENT_BLUE_ID,
-      },
-      typesMeta: {
-        [NAMED_EVENT_BLUE_ID]: {
-          status: 'stable',
-          name: 'Named Event',
-          versions: [
-            {
-              repositoryVersionIndex: 0,
-              typeBlueId: NAMED_EVENT_BLUE_ID,
-              attributesAdded: [],
-            },
-          ],
-        },
-      },
-      contents: {
-        [NAMED_EVENT_BLUE_ID]: {
-          name: 'Named Event',
-        },
-      },
-      schemas: {},
-    },
-  },
-};
-
 export function createBlue(): Blue {
   return new Blue({
     repositories: [blueRepository, sdkDslTestRepository],
@@ -86,11 +53,7 @@ export function createBlue(): Blue {
 
 export function createParityBlue(): Blue {
   return new Blue({
-    repositories: [
-      blueRepository,
-      sdkDslTestRepository,
-      sdkDslParityRepository,
-    ],
+    repositories: [blueRepository, sdkDslTestRepository],
   });
 }
 

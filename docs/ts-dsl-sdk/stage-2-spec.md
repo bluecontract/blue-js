@@ -54,7 +54,6 @@ When Java and runtime disagree, the SDK keeps the runtime-correct behavior, reco
 
 - `onNamedEvent(...)` also reuses `triggeredEventChannel`.
 - The workflow matcher event uses type `Common/Named Event`.
-- In the current public runtime this type is kept as an unresolved inline type node because the repo packages do not expose a canonical public alias or BlueId for it.
 - When `onNamedEvent(...)` is authored inside an open section, both `triggeredEventChannel` and the workflow key are added to that section's `relatedContracts`.
 
 - `onDocChange(...)` writes `<workflowKey>DocUpdateChannel` as `Core/Document Update Channel`.
@@ -67,7 +66,7 @@ When Java and runtime disagree, the SDK keeps the runtime-correct behavior, reco
 ### Step contracts
 - `updateDocument(...)` emits `Conversation/Update Document` with an inline `changeset` array.
 - `updateDocumentFromExpression(...)` emits `Conversation/Update Document` with an expression-valued `changeset`.
-- `namedEvent(...)` emits `Conversation/Trigger Event` whose `event` node has type `Common/Named Event`, a required `name`, and optional `payload`.
+- `namedEvent(...)` emits `Conversation/Trigger Event` whose `event` node has type `Common/Named Event`, a required root-level `name`, and optional additional root-level event fields.
 - `bootstrapDocument(...)` emits `Conversation/Trigger Event` with `event.type = Conversation/Document Bootstrap Requested`.
 - `bootstrapDocumentExpr(...)` emits the same event type, but stores `document` as a wrapped `${...}` expression string.
 - `ext(factory)` returns a custom extension bound to the current `StepsBuilder`.
@@ -125,7 +124,6 @@ Stage-2 payloads, bootstrap documents, changeset values, and matcher payloads su
 
 ## Current deviations
 - processor-managed Java shorthand aliases are emitted with runtime-correct `Core/*` aliases
-- named events use a runtime-compatible unresolved `Common/Named Event` type node
 - `onChannelEvent(...)` does not have a clean positive runtime path for timeline-message matchers through the current public processor API
 
 See `stage-2-deviations.md` for the confirmed details and regression coverage.

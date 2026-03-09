@@ -4,6 +4,7 @@ Java references:
 */
 
 import { BlueNode } from '@blue-labs/language';
+import { blueIds as commonBlueIds } from '@blue-repository/types/packages/common/blue-ids';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { blueIds as myOsBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 
@@ -20,6 +21,10 @@ function textAt(node: BlueNode, path: string): string {
 function blueIdAt(node: BlueNode, path: string): string | undefined {
   const target = node.getAsNode(path);
   return target?.getBlueId() ?? target?.getType()?.getBlueId();
+}
+
+function nameAt(node: BlueNode, path: string): string | undefined {
+  return node.getAsNode(path)?.getName();
 }
 
 describe('DocBuilder AI parity', () => {
@@ -288,19 +293,16 @@ describe('DocBuilder AI parity', () => {
     expect(blueIdAt(built, `${requestPath}/expectedResponses/0`)).toBe(
       conversationBlueIds['Conversation/Chat Message'],
     );
-    expect(textAt(built, `${requestPath}/expectedResponses/1/type`)).toBe(
-      'Common/Named Event',
+    expect(blueIdAt(built, `${requestPath}/expectedResponses/1`)).toBe(
+      commonBlueIds['Common/Named Event'],
     );
-    expect(textAt(built, `${requestPath}/expectedResponses/1/name`)).toBe(
+    expect(nameAt(built, `${requestPath}/expectedResponses/1`)).toBe(
       'meal-plan-ready',
     );
     expect(
-      textAt(
-        built,
-        `${requestPath}/expectedResponses/1/payload/planId/description`,
-      ),
+      textAt(built, `${requestPath}/expectedResponses/1/planId/description`),
     ).toBe('Plan identifier');
-    expect(textAt(built, `${requestPath}/expectedResponses/2/name`)).toBe(
+    expect(nameAt(built, `${requestPath}/expectedResponses/2`)).toBe(
       'meal-plan-warning',
     );
   });
@@ -332,16 +334,16 @@ describe('DocBuilder AI parity', () => {
       .buildDocument();
 
     const requestPath = '/contracts/runImpl/steps/0/event/request';
-    expect(textAt(built, `${requestPath}/expectedResponses/0/name`)).toBe(
+    expect(nameAt(built, `${requestPath}/expectedResponses/0`)).toBe(
       'summary-ready',
     );
     expect(
-      built.getAsNode(`${requestPath}/expectedResponses/0/payload/summaryId`),
+      built.getAsNode(`${requestPath}/expectedResponses/0/summaryId`),
     ).toBeDefined();
     expect(
-      built.getAsNode(`${requestPath}/expectedResponses/0/payload/quality`),
+      built.getAsNode(`${requestPath}/expectedResponses/0/quality`),
     ).toBeDefined();
-    expect(textAt(built, `${requestPath}/expectedResponses/1/name`)).toBe(
+    expect(nameAt(built, `${requestPath}/expectedResponses/1`)).toBe(
       'summary-warning',
     );
   });
@@ -488,10 +490,10 @@ describe('DocBuilder AI parity', () => {
     expect(
       textAt(built, '/contracts/onMealPlanReady/event/subscriptionId'),
     ).toBe('SUB_PROVIDER');
-    expect(textAt(built, '/contracts/onMealPlanReady/event/update/type')).toBe(
-      'Common/Named Event',
+    expect(blueIdAt(built, '/contracts/onMealPlanReady/event/update')).toBe(
+      commonBlueIds['Common/Named Event'],
     );
-    expect(textAt(built, '/contracts/onMealPlanReady/event/update/name')).toBe(
+    expect(nameAt(built, '/contracts/onMealPlanReady/event/update')).toBe(
       'meal-plan-ready',
     );
     expect(

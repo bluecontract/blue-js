@@ -38,7 +38,7 @@ Completed behavior:
 - task template registration
 - merged task + inline instructions
 - typed expected responses
-- named expected responses with optional payload-field descriptors
+- named expected responses with optional root-field descriptors
 - duplicate and unknown task guardrails
 
 ### 3. AI step helpers
@@ -86,7 +86,7 @@ Completed coverage:
 - AI orchestration remains a convenience layer over standard MyOS/session interaction.
 - `askAI(...)` emits `provideInstructions` call-operation requests instead of inventing new AI transport types.
 - `onAIResponse(...)` correlates through subscription id + requester, with optional task filtering.
-- named-event support remains parity-shape coverage on the public runtime and is documented as a deviation.
+- named-event support uses the real `Common/Named Event` type and is runtime-confirmed on the public processor.
 
 ## Follow-up constraints
 

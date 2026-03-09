@@ -30,8 +30,7 @@ Oracle:
 - compare BlueIds
 
 Named-event note:
-- the parity helper uses a parity-only supplemental repository alias for `Common/Named Event` so canonical comparison can still run
-- runtime tests do not use that supplemental alias
+- parity and runtime tests both use the real `Common/Named Event` support provided by the current `@blue-repository/types`
 
 ### 2. Guardrail tests
 Files:
@@ -63,7 +62,6 @@ Coverage:
 
 ### 4. Deviation regression tests
 Every accepted deviation is paired with a focused test:
-- named-event runtime-compatible matcher/emission coverage
 - `onChannelEvent(...)` public-runtime limitation coverage
 
 ## Java traceability

@@ -275,7 +275,7 @@ contracts:
     const event = new BlueNode().setType(
       resolveTypeInput('Common/Named Event'),
     );
-    event.addProperty('name', toBlueNode('READY'));
+    event.setName('READY');
     workflow.addProperty('event', event);
 
     const change = new BlueNode();

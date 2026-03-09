@@ -31,7 +31,7 @@ When Java POC and the final mapping reference disagree on MyOS/Conversation plat
 
 Use these sections directly:
 - 2.1 explicit channels in runtime documents
-- 2.3 no `Common/Named Event` in current repo
+- 2.3 `Common/Named Event` availability and root-level semantics
 - 3.4 pending actions and customer interactions
 - 3.5 bootstrap-related Conversation events
 - 4.3 `MyOS/MyOS Timeline Channel`

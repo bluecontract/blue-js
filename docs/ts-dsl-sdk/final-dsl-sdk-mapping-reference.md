@@ -121,14 +121,15 @@ Helpery DSL powinny więc:
 - wspierać `requestId` wszędzie tam, gdzie typ repo na to pozwala,
 - ale nie uzależniać od niego poprawności podstawowego flow.
 
-## 2.3. Brak `Common/Named Event` w aktualnym repo
+## 2.3. `Common/Named Event` w aktualnym repo
 
-W aktualnym `public repository schemas` nie ma typu `Common/Named Event`.
+W aktualnym `public repository schemas` typ `Common/Named Event` jest dostępny i powinien być używany bez fallbacku do `Conversation/Event`.
 
 Wniosek implementacyjny:
-- named-event DSL nie powinien mapować się do nieistniejącego typu,
-- named-event helper pozostaje wygodnym wrapperem nad istniejącymi typami, przede wszystkim `Conversation/Event`,
-- semantyka „named event” w DSL to convenience / matcher pattern, nie osobny repo-native typ.
+- named-event DSL materializuje `type: Common/Named Event`,
+- pola named eventu trafiają na root instancji,
+- `name` pozostaje głównym polem dopasowania,
+- dodatkowe pola event-specific są również root-level, a nie pod `payload`.
 
 ## 2.4. Nie duplikować kontraktów odziedziczonych z typu
 
@@ -2024,7 +2025,7 @@ Stage 6 (PayNote / payments) powinien mapować się do:
 Na koniec lista rzeczy, których ten dokument świadomie **nie zgaduje**:
 
 1. **Nie utożsamia** `Conversation/Document Bootstrap Requested` z bootstrap endpoint payloadem.
-2. **Nie tworzy** fikcyjnego `Common/Named Event`.
+2. **Nie tworzy** fallbacku `Conversation/Event` tam, gdzie repo potwierdza `Common/Named Event`.
 3. **Nie promuje** `payNoteInitialStateDescription` do natywnego helper API, mimo że pole istnieje w repo schema.
 4. **Nie dopisuje** `holdId` / `paymentMandateDocumentId` do reserve/capture/release helperów, jeśli repo schema ich nie ma.
 5. **Nie wprowadza** dodatkowych AI-specific payload types ponad obecny Request/Response/session-interaction pattern.

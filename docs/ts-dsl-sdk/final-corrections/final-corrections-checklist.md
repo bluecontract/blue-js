@@ -1,13 +1,13 @@
 # Final corrections checklist
 
 ## Cycle 1 — Named Event
-- [ ] align to `@blue-repository/types@0.21.0`
-- [ ] materialize `Common/Named Event`
-- [ ] remove fallback to `Conversation/Event`
-- [ ] named-event fields at root
-- [ ] update Stage 2 tests
-- [ ] update Stage 5 tests
-- [ ] remove obsolete deviations
+- [x] align to `@blue-repository/types@0.21.0`
+- [x] materialize `Common/Named Event`
+- [x] remove fallback to `Conversation/Event`
+- [x] named-event fields at root
+- [x] update Stage 2 tests
+- [x] update Stage 5 tests
+- [x] remove obsolete deviations
 
 ## Cycle 2 — onChannelEvent
 - [ ] re-audit implementation

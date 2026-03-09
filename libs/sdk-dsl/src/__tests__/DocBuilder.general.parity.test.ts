@@ -263,7 +263,7 @@ contracts:
     );
   });
 
-  it('matches onNamedEvent parity using the runtime-compatible named-event type node', () => {
+  it('matches onNamedEvent parity using the real named-event type node', () => {
     const fromDsl = DocBuilder.doc()
       .name('On named event parity')
       .onNamedEvent('onOrderReady', 'order-ready', (steps) =>
@@ -288,7 +288,7 @@ contracts:
     const event = new BlueNode().setType(
       resolveTypeInput('Common/Named Event'),
     );
-    event.addProperty('name', toBlueNode('order-ready'));
+    event.setName('order-ready');
     workflow.addProperty('event', event);
 
     const change = new BlueNode();

@@ -2,7 +2,7 @@
 
 | Item | Final classification | Target action |
 |---|---|---|
-| `Common/Named Event` | supported | implement fully using `@blue-repository/types@0.21.0` |
+| `Common/Named Event` | supported | use the real repo type with instance `name` and root-level fields |
 | `Core/*` aliases | accepted adaptation | keep canonical prefixed aliases |
 | `onChannelEvent(...)` | supported | add positive runtime proof, remove limitation wording |
 | `myOsAdminUpdate.request = List` | accepted adaptation | keep |
@@ -12,7 +12,7 @@
 | minimal revoke request shape | accepted adaptation | keep minimal confirmed shape |
 | direct initiated/failed transitions | accepted adaptation | keep |
 | start-worker-session runtime envelope | accepted adaptation | keep |
-| AI named-event runtime limitation | obsolete if Named Event is supported | remove once implemented |
+| AI named-event runtime limitation | resolved | remove the old deviation and keep positive runtime proof |
 | TS `{ namedEvent: string }` | accepted TS adaptation | keep |
 | reserve/release lock helpers | deferred/unsupported | keep deferred |
 | operation-triggered PayNote branch typed requests | to be rechecked | prefer omitted `request` if runtime-correct |
