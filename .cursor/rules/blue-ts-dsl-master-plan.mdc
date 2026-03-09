@@ -1,0 +1,55 @@
+---
+description: Master staged uplift plan for sdk-dsl mainline
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# TS DSL SDK — master uplift plan (Plan 1)
+
+## Goal
+Upgrade the current mainline `libs/sdk-dsl` to a 9–10/10 product by improving:
+- Java parity
+- API ergonomics
+- runtime-confirmed completeness
+- implementation and test quality
+
+Use the current mainline as the only base implementation.
+
+## Source priority
+1. current mainline runtime-confirmed behavior
+2. public mapping/materialization docs in this repo
+3. `references/java-sdk/**` for API shape/parity intent
+4. `references/alternative-sdk-serious/**` as donor only
+
+The alternative implementation is never the new base.
+
+## Iteration rule
+Work stage by stage.
+For every stage:
+1. implement the full stage scope
+2. add/expand tests
+3. run full verification
+4. critically review your own changes
+5. fix issues found
+6. update docs / scorecard / cherry-pick log
+7. commit with a conventional commit message (subject <= 72 chars)
+8. move to the next stage
+
+## Expected stage order
+- Stage A — ergonomics and public export surfaces
+- Stage B — generic authoring helpers and parity surface
+- Stage C — payment / conversation convenience APIs
+- Stage D — macro-builder hardening with canonical scenarios
+- Stage E — architecture and maintainability uplift
+- Stage F — optional `myos-js` companion intake
+- Stage G — final release hardening
+
+## Non-negotiable rules
+- Do not replace the current mainline with the donor implementation.
+- Do not weaken existing tests.
+- Do not regress canonical scenarios.
+- Do not add private provenance to public docs/tests.
+- Do not invent runtime behavior not confirmed by current mappings/runtime.
+- Do not silently skip stage deliverables.

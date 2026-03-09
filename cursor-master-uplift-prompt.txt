@@ -1,0 +1,188 @@
+Implement the full recommended uplift plan for `libs/sdk-dsl` in staged iterations.
+
+You are working on the **current mainline implementation**.
+Do NOT replace it with the alternative implementation.
+Your job is to upgrade the current mainline to a **9–10/10** product across:
+- Java parity
+- DSL/API ergonomics
+- runtime correctness / generated document correctness
+- functional completeness
+- implementation and test quality
+
+Read first:
+- AGENTS.md
+- .cursor/rules/blue-ts-dsl-master-plan.mdc
+- .cursor/rules/blue-ts-dsl-master-quality.mdc
+- docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md
+- docs/ts-dsl-sdk/master-improvement/stage-roadmap.md
+- docs/ts-dsl-sdk/master-improvement/iteration-protocol.md
+- docs/ts-dsl-sdk/master-improvement/reference-priority.md
+- docs/ts-dsl-sdk/master-improvement/scorecard.md
+- docs/ts-dsl-sdk/master-improvement/cherry-pick-catalog.md
+
+Also read the current public source-of-truth docs:
+- docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md
+- docs/ts-dsl-sdk/complex-flow-materialization-reference.md
+- docs/ts-dsl-sdk/editing-materialization-reference.md
+- docs/ts-dsl-sdk/canonical-scenarios/**
+
+If present, also inspect:
+- references/java-sdk/**
+- references/alternative-sdk-serious/**
+
+This prompt is stored in blue-js/cursor-master-uplift-prompt.txt for future reference.
+
+Source-of-truth policy:
+- Current mainline runtime-confirmed behavior wins.
+- Public mapping/materialization docs in this repo are the target shape/materialization authority.
+- Java is a parity/API-shape reference, not the final runtime authority.
+- The alternative implementation is a donor/reference only. Cherry-pick from it intentionally; do not adopt it wholesale.
+
+Mission:
+Execute the whole uplift plan in stages until the scorecard reaches 9–10/10 in all categories.
+
+Mandatory cycle for every stage:
+1. implement the full stage scope
+2. ensure high test coverage for the new scope
+3. run all verification (typecheck, linter, tests, build)
+4. ensure no regression for existing scope
+5. critically review the changes
+6. improve/fix issues found in review
+7. update docs / scorecard / cherry-pick catalog
+8. commit with a proper conventional commit message (subject <= 72 chars)
+9. move to the next stage
+
+Do not stop after one stage.
+Keep going until the full plan is complete or a true blocker is reached.
+
+If a true blocker appears:
+- finish all unblocked work in the current stage
+- document the blocker clearly
+- do not hide it
+- continue only if the next stage does not depend on that blocker
+
+## Stage order and required outcomes
+
+### Stage A — ergonomics and public export surfaces
+Implement:
+- a public alias-style JSON export:
+  - `buildJson()` and/or `nodeToAliasJson(...)`
+- `contract(key, contractLike)`
+- optional `contracts(record)`
+
+Requirements:
+- external repos should no longer need local alias-json helpers
+- external repos should no longer need `field('/contracts/...')` for normal contract insertion
+- section tracking must work with the new contract helper(s)
+- add docs and tests
+
+### Stage B — generic authoring helpers and parity surface
+Implement:
+- `SimpleDocBuilder`
+- `contractsPolicy(...)`
+- `directChange(...)`
+- `proposeChange(...)`
+- `acceptChange(...)`
+- `rejectChange(...)`
+- `anchors(...)`
+- `links(...)`
+- `canEmit(...)`
+
+Requirements:
+- use Java as API/parity guide
+- adapt to current runtime/mapping docs when parity conflicts with runtime
+- document deviations narrowly and honestly
+- add tests and docs
+
+### Stage C — payment / conversation convenience APIs
+Implement thin, runtime-confirmed convenience APIs such as:
+- `triggerPayment(...)`
+- `requestBackwardPayment(...)`
+and any other clearly justified convenience APIs that reduce unnecessary raw fallbacks.
+
+Requirements:
+- keep them thin
+- do not duplicate macro-builder behavior
+- add tests and docs
+
+### Stage D — macro-builder hardening with canonical scenarios
+Harden real orchestration surfaces with stronger proof:
+- `access(...)`
+- `accessLinked(...)`
+- `agency(...)`
+- `ai(...).done()`
+- `askAI(...)`
+- `onAIResponse(...)`
+- PayNote macro builders
+
+Requirements:
+- each major macro surface needs:
+  - parity proof where available
+  - runtime/integration proof
+  - canonical scenario proof
+- reduce raw fallback usage where the DSL can clearly express the behavior
+
+### Stage E — architecture and maintainability uplift
+Refactor internals for maintainability without breaking public API.
+Focus on:
+- splitting monolithic builders by domain
+- clarifying shared internals
+- preserving behavior
+- keeping tests green
+
+### Stage F — optional `myos-js` companion intake
+If `references/alternative-sdk-serious/libs/myos-js/**` exists and is strong:
+- evaluate it as a separate companion package
+- import/adapt it only if quality and fit are high
+- keep it separate from `sdk-dsl` runtime
+- add docs/examples for interop
+
+If it is absent or unsuitable:
+- document deferment cleanly
+- continue with the rest of the plan
+
+### Stage G — final release hardening
+Finalize:
+- docs refresh
+- examples refresh
+- scorecard closure
+- final QA sweep
+- final repo-hygiene sweep
+
+The whole plan is complete only when:
+- every category in the scorecard is at 9 or above
+- all relevant verification passes
+- canonical scenarios remain green
+- no major unresolved regression remains
+- docs match the final implementation
+
+## Specific donor items to evaluate from the alternative implementation
+Check whether to adopt/adapt these:
+- `buildJson()`
+- `SimpleDocBuilder`
+- `contract(...)` / `contracts(...)`
+- change lifecycle helpers
+- anchors / links helpers
+- `canEmit(...)`
+- payment convenience helpers
+- modularization patterns
+- `libs/myos-js` as separate companion package
+
+Track each intentional donor adoption in:
+- docs/ts-dsl-sdk/master-improvement/cherry-pick-catalog.md
+
+## Verification commands for every stage
+Run:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+When the whole plan is finished:
+- report all stages completed
+- report any deferred items
+- report final scorecard
+- report all verification commands run
+- report the commit sequence

@@ -1,0 +1,39 @@
+---
+description: Quality, testing, and commit discipline for sdk-dsl uplift
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# Quality bar for the full uplift
+
+## Testing expectations
+Every meaningful API addition should have:
+- focused unit coverage where relevant
+- parity coverage where Java parity exists
+- runtime/integration coverage where behavior matters
+- canonical scenario proof where the API is orchestration-heavy
+
+## Verification gate
+Run and keep green:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+## Commit discipline
+After each coherent stage:
+- review changes critically
+- fix obvious issues before moving on
+- commit with a conventional commit message
+- keep subject line <= 72 chars
+
+## Public-repo hygiene
+If `references/**` are present, they are development-only.
+Final committed public repo artifacts must not depend on those references.
+
+## Completion bar
+The whole uplift is complete only when the scorecard reaches 9–10/10 in all categories and all stages are either complete or explicitly deferred with justification.
