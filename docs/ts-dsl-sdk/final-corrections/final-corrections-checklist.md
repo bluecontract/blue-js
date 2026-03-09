@@ -30,12 +30,12 @@
 - [x] add tests for both paths
 
 ## Cycle 6 — Docs/deviations reconciliation
-- [ ] final mapping reference updated
-- [ ] materialization reference updated
-- [ ] stage deviations updated
-- [ ] only true deferred items remain
+- [x] final mapping reference updated
+- [x] materialization reference updated
+- [x] stage deviations updated
+- [x] only true deferred items remain
 
 ## Final
-- [ ] full verification green
-- [ ] self-review completed
+- [x] full verification green
+- [x] self-review completed
 - [ ] commits created per cycle

@@ -170,6 +170,7 @@ describe('Stage 7 editing pipeline', () => {
     const before = DocBuilder.doc()
       .name('Reserved payloads')
       .field('/payload', {
+        $sdkDslEnvelope: 'root-marker-before',
         $sdkDslNode: 'root-before',
         $sdkDslItems: ['a', 'b'],
       })
@@ -182,6 +183,7 @@ describe('Stage 7 editing pipeline', () => {
         steps.emit('EmitPayload', {
           type: 'Conversation/Event',
           payload: {
+            $sdkDslEnvelope: 'contract-marker-before',
             $sdkDslNode: 'contract-before',
             $sdkDslItems: ['x', 'y'],
           },
@@ -192,6 +194,7 @@ describe('Stage 7 editing pipeline', () => {
     const after = DocBuilder.doc()
       .name('Reserved payloads')
       .field('/payload', {
+        $sdkDslEnvelope: 'root-marker-after',
         $sdkDslNode: 'root-after',
         $sdkDslItems: ['c', 'd'],
       })
@@ -204,6 +207,7 @@ describe('Stage 7 editing pipeline', () => {
         steps.emit('EmitPayload', {
           type: 'Conversation/Event',
           payload: {
+            $sdkDslEnvelope: 'contract-marker-after',
             $sdkDslNode: 'contract-after',
             $sdkDslItems: ['z'],
           },

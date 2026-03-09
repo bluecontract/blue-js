@@ -175,6 +175,15 @@ describe('DocPatch', () => {
         $sdkDslItems: ['c', 'd'],
       } as ReservedPayload,
     },
+    {
+      label: '$sdkDslEnvelope marker-looking key',
+      beforePayload: {
+        $sdkDslEnvelope: 'before',
+      } as ReservedPayload,
+      afterPayload: {
+        $sdkDslEnvelope: 'after',
+      } as ReservedPayload,
+    },
   ])(
     'roundtrips root payload objects containing $label',
     ({ beforePayload, afterPayload }) => {

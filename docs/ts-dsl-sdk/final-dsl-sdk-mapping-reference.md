@@ -607,6 +607,12 @@ name: <optional text>
 description: <optional text>
 ```
 
+Runtime note:
+- workflow listeners bound to timeline-like channels receive timeline entries,
+- DSL matchers for `onChannelEvent(...)` should still be authored against the
+  underlying message or event type,
+- timeline-aware materialization adapts those matchers under `event.message`.
+
 ## 4.3. `MyOS/MyOS Timeline Channel`
 Status: **runtime-confirmed**
 
@@ -623,6 +629,9 @@ Runtime notes:
 - to jest podstawowy kanał uczestnika w MyOS,
 - binding może być częściowy (`accountId`, `email`, lub `accountId + timelineId`),
 - w wielu flow backend normalizuje bindingi do `{ accountId?, email?, timelineId? }`.
+- workflow listeners bound to this channel also receive timeline entries, so DSL
+  matchers for `onChannelEvent(...)` are authored against the underlying
+  message or event and materialized under `event.message`.
 
 ## 4.4. `Core/Lifecycle Event Channel`
 Status: **runtime-confirmed**
@@ -729,7 +738,9 @@ contracts:
 Wnioski dla DSL:
 - `myOsAdmin(...)` powinno być helperem skrótowym dla powyższego zestawu kontraktów,
 - jeżeli dokument ma już typ `MyOS/MyOS Admin Base`, helper nie powinien dublować kontraktów,
-- `myOsAdminUpdate` nie musi mieć obecnie jawnie materializowanego request schema, jeśli runtime go nie wymaga.
+- na aktualnym publicznym runtime `myOsAdminUpdate` musi materializować
+  `request: { type: List }`, bo `Conversation/Sequential Workflow Operation`
+  nie wykonuje się bez kompatybilnego request schema.
 
 ## 5.2. Session interaction – requesty i update wrappers
 
@@ -2017,6 +2028,16 @@ Stage 6 (PayNote / payments) powinien mapować się do:
   - repo-native fields,
   - runtime-required business conventions,
   - app-specific fields, które nie powinny być promoted do natywnego helpera bez dodatkowej potrzeby.
+
+Final runtime notes:
+- domyślne event-driven makra PayNote nadal materializują workflowy na
+  `triggeredEventChannel`,
+- overloady z `channelKey` mogą wiązać takie workflowy bezpośrednio z konkretnym
+  kanałem timeline i wtedy matcher jest materializowany pod `event.message`,
+- operation-triggered gałęzie PayNote nadal wymagają jawnego `request` schema na
+  aktualnym publicznym runtime,
+- `requestBackwardPayment(...)` pozostaje runtime-guarded, dopóki alias
+  `PayNote/Backward Payment Requested` nie jest dostępny w publicznych typach repo.
 
 ---
 

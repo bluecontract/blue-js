@@ -182,6 +182,12 @@ Recommended deterministic key pattern:
 
 - `captureUnlockOn<MatcherToken>`
 
+Runtime note:
+- domyślna postać pozostaje poprawna dla eventów dostarczonych przez
+  `triggeredEventChannel`,
+- jeżeli workflow ma bezpośrednio słuchać zewnętrznego kanału timeline, należy
+  użyć overloadu z `channelKey`.
+
 An explicit overload may bind to a concrete channel instead:
 
 - `unlockOnEvent(channelKey, <matcher>)`
@@ -228,6 +234,11 @@ An explicit overload may bind to a concrete channel instead:
 - materializes the workflow on `channelKey`
 - when `channelKey` is timeline-like, the matcher is adapted under `event.message`
 
+Runtime note:
+- default overload keeps the canonical `triggeredEventChannel` materialization,
+- explicit-channel overloads are the runtime-confirmed path for direct external
+  timeline-entry listeners.
+
 #### `requestOnOperation(operationKey, channelKey, description, amountExpr?)`
 
 Materializes:
@@ -248,6 +259,8 @@ On the current public runtime the generated operation variants still must expose
 ### `reserve()` family
 
 The same structural rules apply as for `capture()`, with the request/unlock event types swapped to the reserve equivalents confirmed by the current mapping references.
+
+Reserve/release lock helpers remain unsupported on the current public runtime.
 
 ### `release()` family
 

@@ -43,8 +43,11 @@ Keep unsupported/deferred:
 - do not leave it as a silent no-op
 
 ### 8. PayNote operation-triggered branches
-- if an operation should accept any Blue node (including empty), omit `request` instead of forcing `Boolean`/`Integer`
-- only add explicit request schema if runtime proof shows omission is not sufficient
+- correction-cycle re-verification showed that the current public runtime still
+  requires explicit request schemas for operation-triggered PayNote macro
+  branches
+- keep executable `Boolean` / `Integer` request schemas until the runtime
+  actually accepts requestless sequential workflow operations
 
 ### 9. Stage 6 event-driven channels
 - defaulting to `triggeredEventChannel` is fine where appropriate
