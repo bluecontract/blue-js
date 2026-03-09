@@ -1,4 +1,5 @@
 export * from './types';
+export * from './alias-json';
 export * from './editing/types';
 export * from './editing/doc-structure';
 export * from './editing/doc-patch';

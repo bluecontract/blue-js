@@ -36,6 +36,12 @@ They are mostly:
 - some monolithic implementation areas
 - optional companion-package opportunities
 
+## Progress
+
+- Stage A is complete on the current mainline:
+  - public alias-style JSON export is available through `buildJson()` and `nodeToAliasJson(...)`
+  - public `contract(...)` and `contracts(...)` helpers are available for normal contract insertion
+
 ## Strategy
 
 Use the current mainline as the only implementation base.

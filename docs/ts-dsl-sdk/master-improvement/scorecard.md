@@ -14,6 +14,22 @@ Update it after every stage.
 | Functional completeness | 7/10 | 9–10/10 |
 | Implementation/test quality | 8/10 | 9–10/10 |
 
+## Current snapshot (after Stage A)
+
+| Category | Baseline | Current | Target |
+|---|---:|---:|---:|
+| Java parity | 7/10 | 7/10 | 9–10/10 |
+| DSL/API ergonomics | 7/10 | 8/10 | 9–10/10 |
+| Runtime correctness | 9/10 | 9/10 | 9–10/10 |
+| Functional completeness | 7/10 | 8/10 | 9–10/10 |
+| Implementation/test quality | 8/10 | 8/10 | 9–10/10 |
+
+### Why Stage A moved the score
+
+- `buildJson()` and `nodeToAliasJson(...)` remove the need for consumer-side alias-normalization helpers.
+- `contract(...)` and `contracts(...)` remove the need for normal `/contracts/...` pointer hacks and preserve section tracking.
+- Full `sdk-dsl` verification remained green after the surface addition, so ergonomics improved without runtime drift.
+
 ## Target interpretation
 
 ### Java parity — 9–10/10 means

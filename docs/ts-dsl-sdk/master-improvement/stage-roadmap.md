@@ -4,6 +4,9 @@ This roadmap turns the master plan into implementation stages with explicit outp
 
 ## Stage A — Ergonomics and public export surfaces
 
+Status:
+- completed
+
 ### Scope
 - public alias-style JSON export:
   - `buildJson()` and/or `nodeToAliasJson(...)`
@@ -20,6 +23,13 @@ This removes the biggest migration pain from real external usage and gives immed
 - external consumers no longer need `field('/contracts/...')` for common contract insertion
 - tests prove section tracking for inserted contracts
 - docs updated
+
+### Delivered on mainline
+- public `nodeToAliasJson(...)`
+- builder-level `buildJson()`
+- `contract(key, contractLike)`
+- `contracts(record)`
+- regression coverage for alias export semantics, section tracking, and inherited builder surfaces
 
 ---
 

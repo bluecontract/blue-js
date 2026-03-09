@@ -8,6 +8,7 @@ import type {
   OperationBuilder,
   TypeInput,
 } from '../types';
+import { nodeToAliasJson } from '../alias-json';
 import { INTERNAL_BLUE } from '../internal/blue';
 import { ensureContracts, getContract } from '../internal/contracts';
 import {
@@ -206,6 +207,20 @@ export class DocBuilder {
 
     contracts[contractKey] = merged;
     this.trackContract(contractKey);
+    return this;
+  }
+
+  contract(key: string, contractLike: ContractLike): this {
+    const contractKey = requireNonEmpty(key, 'contract key');
+    ensureContracts(this.document)[contractKey] = toBlueNode(contractLike);
+    this.trackContract(contractKey);
+    return this;
+  }
+
+  contracts(record: Record<string, ContractLike>): this {
+    for (const [contractKey, contractLike] of Object.entries(record)) {
+      this.contract(contractKey, contractLike);
+    }
     return this;
   }
 
@@ -1030,6 +1045,10 @@ export class DocBuilder {
     }
 
     return this.document;
+  }
+
+  buildJson(): Record<string, unknown> {
+    return nodeToAliasJson(this.buildDocument()) as Record<string, unknown>;
   }
 
   private setTrackedPointer(path: string, node: BlueNode): this {
