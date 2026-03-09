@@ -116,6 +116,22 @@ Update it after every stage.
 - `steps.accessLinked(...)` and the richer `steps.viaAgency(...)` surface reduce another class of raw fallback for complex MyOS session orchestration.
 - PayNote macros now have canonical capture-lifecycle coverage in addition to parity and runtime integration tests, which closes the most obvious proof gap on the Stage 6 macro surface.
 
+## Current snapshot (after Stage E)
+
+| Category | After Stage D | Current | Target |
+|---|---:|---:|---:|
+| Java parity | 9/10 | 9/10 | 9–10/10 |
+| DSL/API ergonomics | 9/10 | 9/10 | 9–10/10 |
+| Runtime correctness | 10/10 | 10/10 | 9–10/10 |
+| Functional completeness | 9/10 | 9/10 | 9–10/10 |
+| Implementation/test quality | 9/10 | 10/10 | 9–10/10 |
+
+### Why Stage E moved the score
+
+- The largest interaction-related builder code is now split by domain instead of accumulating in two monolithic files.
+- Public behavior stayed unchanged while the refactor remained fully covered by the existing parity, runtime, canonical, and editing suites.
+- Interaction-domain changes are now isolated enough to reduce regression risk for future maintenance work and targeted cherry-picks.
+
 ## Completion bar
 
 Do not call the plan complete unless every category is credibly at **9 or above**.

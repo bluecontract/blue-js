@@ -53,6 +53,10 @@ They are mostly:
   - linked-access and agency helper namespaces now cover the richer request / call / subscribe / revoke composition surface
   - AI orchestration remains proven by parity, runtime, and canonical scenario coverage
   - PayNote macro builders now have explicit canonical proof in addition to parity and runtime coverage
+- Stage E is complete on the current mainline:
+  - interaction-domain builders were split out of the monolithic `DocBuilder` and `StepsBuilder` sources
+  - public API remained unchanged while the interaction surface became easier to extend safely
+  - maintainability improved without relaxing verification or canonical scenario coverage
 
 ## Strategy
 

@@ -196,3 +196,26 @@ Use this file to track what is intentionally adopted from the alternative implem
   `docs/ts-dsl-sdk/stage-4-coverage-matrix.md`,
   `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
   `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage E — modular interaction builder layout
+
+- Source area in donor:
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/interactions/*.ts`
+  and
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/steps/*.ts`
+- Target area in mainline:
+  `libs/sdk-dsl/src/lib/builders/doc-builder-interaction-builders.ts`,
+  `libs/sdk-dsl/src/lib/builders/interaction-step-builders.ts`,
+  `libs/sdk-dsl/src/lib/builders/doc-builder.ts`,
+  `libs/sdk-dsl/src/lib/builders/steps-builder.ts`
+- What was adopted:
+  domain-oriented modularization patterns for interaction builders and step helpers
+- How:
+  adapted and reimplemented
+- Why:
+  reduces change risk in the two largest builder files without changing public API or runtime behavior
+- Tests/docs added:
+  existing full `sdk-dsl` verification suite,
+  `docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`

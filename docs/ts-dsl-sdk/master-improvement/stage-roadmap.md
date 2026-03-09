@@ -144,6 +144,9 @@ Add stronger real-world proof for:
 
 ## Stage E — Architecture and maintainability uplift
 
+Status:
+- completed
+
 ### Scope
 - split monolithic builder files
 - isolate domain-specific internals
@@ -153,6 +156,14 @@ Add stronger real-world proof for:
 - no public API regressions
 - internals are cleaner and easier to change
 - tests remain green
+
+### Delivered on mainline
+- interaction-domain nested builders moved out of `doc-builder.ts` into:
+  - `doc-builder-interaction-builders.ts`
+- interaction-domain step helpers moved out of `steps-builder.ts` into:
+  - `interaction-step-builders.ts`
+- `StepsBuilder` now composes those domain modules instead of carrying all interaction helper implementations inline
+- public exports and runtime behavior stayed unchanged while verification and canonical scenarios remained green
 
 ---
 
