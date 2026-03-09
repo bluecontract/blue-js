@@ -13,8 +13,173 @@ import {
 const DELIVERY_ADMIN_TIMELINE_ID = 'stage6-delivery-admin';
 const DELIVERY_OPERATOR_TIMELINE_ID = 'stage6-delivery-operator';
 const MANDATE_GRANTEE_TIMELINE_ID = 'stage6-mandate-grantee';
+const PAYER_TIMELINE_ID = 'stage6-paynote-payer';
 
 describe('Canonical PayNote business flows', () => {
+  it('reconstructs the canonical capture lifecycle macro and proves unlock-to-capture behavior', async () => {
+    const fromDsl = PayNotes.payNote('Canonical capture lifecycle')
+      .currency('USD')
+      .amountMinor(2000)
+      .channel('payerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: PAYER_TIMELINE_ID,
+      })
+      .capture()
+      .lockOnInit()
+      .unlockOnOperation(
+        'unlockCapture',
+        'payerChannel',
+        'Unlock capture.',
+        (steps) =>
+          steps.replaceValue('MarkUnlocked', '/capture/unlockedByOp', true),
+      )
+      .requestOnOperation('requestCapture', 'payerChannel', 'Request capture.')
+      .done()
+      .buildDocument();
+
+    assertCanonicalDocMatchesDsl(
+      {
+        name: 'Canonical capture lifecycle',
+        type: 'PayNote/PayNote',
+        currency: 'USD',
+        amount: {
+          total: 2000,
+        },
+        contracts: {
+          payerChannel: {
+            type: 'Conversation/Timeline Channel',
+            timelineId: PAYER_TIMELINE_ID,
+          },
+          initLifecycleChannel: {
+            type: 'Core/Lifecycle Event Channel',
+            event: {
+              type: 'Core/Document Processing Initiated',
+            },
+          },
+          captureLockOnInit: {
+            type: 'Conversation/Sequential Workflow',
+            channel: 'initLifecycleChannel',
+            steps: [
+              {
+                name: 'RequestCaptureLock',
+                type: 'Conversation/Trigger Event',
+                event: {
+                  type: 'PayNote/Card Transaction Capture Lock Requested',
+                },
+              },
+            ],
+          },
+          unlockCapture: {
+            type: 'Conversation/Operation',
+            channel: 'payerChannel',
+            description: 'Unlock capture.',
+            request: {
+              type: 'Boolean',
+            },
+          },
+          unlockCaptureImpl: {
+            type: 'Conversation/Sequential Workflow Operation',
+            operation: 'unlockCapture',
+            steps: [
+              {
+                name: 'MarkUnlocked',
+                type: 'Conversation/Update Document',
+                changeset: [
+                  {
+                    op: 'replace',
+                    path: '/capture/unlockedByOp',
+                    val: true,
+                  },
+                ],
+              },
+              {
+                name: 'RequestCaptureUnlock',
+                type: 'Conversation/Trigger Event',
+                event: {
+                  type: 'PayNote/Card Transaction Capture Unlock Requested',
+                },
+              },
+            ],
+          },
+          requestCapture: {
+            type: 'Conversation/Operation',
+            channel: 'payerChannel',
+            description: 'Request capture.',
+            request: {
+              type: 'Boolean',
+            },
+          },
+          requestCaptureImpl: {
+            type: 'Conversation/Sequential Workflow Operation',
+            operation: 'requestCapture',
+            steps: [
+              {
+                name: 'CaptureFundsRequested',
+                type: 'Conversation/Trigger Event',
+                event: {
+                  type: 'PayNote/Capture Funds Requested',
+                  amount: "${document('/amount/total')}",
+                },
+              },
+            ],
+          },
+        },
+      },
+      fromDsl,
+    );
+
+    const initialized = await initializeDocument(fromDsl);
+    const storedBlueId = getStoredDocumentBlueId(initialized.document);
+
+    expect(
+      initialized.triggeredEvents.some(
+        (event) =>
+          event.getType()?.getBlueId() ===
+          payNoteBlueIds['PayNote/Card Transaction Capture Lock Requested'],
+      ),
+    ).toBe(true);
+
+    const unlocked = await processOperationRequest({
+      blue: initialized.blue,
+      processor: initialized.processor,
+      document: initialized.document,
+      timelineId: PAYER_TIMELINE_ID,
+      operation: 'unlockCapture',
+      request: true,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    expect(String(unlocked.document.get('/capture/unlockedByOp'))).toBe('true');
+    expect(
+      unlocked.triggeredEvents.some(
+        (event) =>
+          event.getType()?.getBlueId() ===
+          payNoteBlueIds['PayNote/Card Transaction Capture Unlock Requested'],
+      ),
+    ).toBe(true);
+
+    const requested = await processOperationRequest({
+      blue: initialized.blue,
+      processor: initialized.processor,
+      document: unlocked.document,
+      timelineId: PAYER_TIMELINE_ID,
+      operation: 'requestCapture',
+      request: true,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    expect(
+      requested.triggeredEvents.some(
+        (event) =>
+          event.getType()?.getBlueId() ===
+            payNoteBlueIds['PayNote/Capture Funds Requested'] &&
+          String(event.getProperties()?.amount?.getValue()) === '2000',
+      ),
+    ).toBe(true);
+  });
+
   it('reconstructs the canonical bootstrap delivery scenario and emits a bootstrap request at runtime', async () => {
     const blue = createBlue();
     const payNoteDocument = PayNotes.cardTransactionPayNote('Issued PayNote')

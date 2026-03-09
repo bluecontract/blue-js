@@ -92,6 +92,7 @@ Materialized behavior:
 #### `agency(agencyName)`
 Returns a nested builder with:
 - `.onBehalfOf(channelKey)`
+- `.targetSessionId(value)`
 - `.allowedTypes(...typeInputs)`
 - `.allowedOperations(...operationKeys)`
 - `.statusPath(path)`
@@ -138,11 +139,32 @@ These helpers delegate to the Stage 3 triggered-event machinery and keep request
   - `.call(operation, request)`
   - `.callExpr(operation, expression)`
   - `.subscribe(stepName?)`
+  - `.subscribe(eventType, ...eventTypes)`
+  - `.subscribe(stepName, eventType, ...eventTypes)`
+  - `.revokePermission(stepName?)`
+
+- `steps.accessLinked(linkedAccessName)` exposes:
+  - `.requestPermission(stepName?)`
+  - `.call(operation, request)`
+  - `.callExpr(operation, expression)`
+  - `.subscribe(stepName?)`
+  - `.subscribe(eventType, ...eventTypes)`
+  - `.subscribe(stepName, eventType, ...eventTypes)`
   - `.revokePermission(stepName?)`
 
 - `steps.viaAgency(agencyName)` exposes:
   - `.requestPermission(stepName?)`
+  - `.call(operation, request)`
+  - `.callExpr(operation, expression)`
+  - `.subscribe(stepName?)`
+  - `.subscribe(eventType, ...eventTypes)`
+  - `.subscribe(stepName, eventType, ...eventTypes)`
+  - `.revokePermission(stepName?)`
   - `.startSession(stepName, document, bindings?, options?)`
+
+`steps.viaAgency(...)` requires `.agency(...).targetSessionId(...)` for
+`call(...)`, `callExpr(...)`, and `subscribe(...)`, because those helpers
+target an existing remote session rather than a new worker-session request.
 
 #### Extended `steps.myOs()`
 

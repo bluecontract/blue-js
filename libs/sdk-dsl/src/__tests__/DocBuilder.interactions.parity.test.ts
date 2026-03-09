@@ -612,6 +612,211 @@ contracts:
     ).toBeUndefined();
   });
 
+  it('supports manual linked-access steps with request, call, subscribe, and revoke helpers', () => {
+    const built = DocBuilder.doc()
+      .name('Linked access manual parity')
+      .channel('ownerChannel')
+      .field('/projectSessionId', 'session-project-9')
+      .accessLinked('projectData')
+      .targetSessionId(DocBuilder.expr("document('/projectSessionId')"))
+      .onBehalfOf('ownerChannel')
+      .requestPermissionManually()
+      .link('invoices')
+      .read(true)
+      .operations('list')
+      .done()
+      .link('shipments')
+      .operations('track')
+      .done()
+      .done()
+      .operation('sync')
+      .channel('ownerChannel')
+      .description('Synchronize linked documents access')
+      .requestType('Boolean')
+      .steps((steps) =>
+        steps
+          .accessLinked('projectData')
+          .requestPermission('RequestProjectData')
+          .accessLinked('projectData')
+          .call('refreshLinked', {
+            mode: 'full',
+          })
+          .accessLinked('projectData')
+          .subscribe('WatchLinkedProject', 'MyOS/Session Epoch Advanced')
+          .accessLinked('projectData')
+          .revokePermission('RevokeProjectData'),
+      )
+      .done()
+      .buildDocument();
+
+    expect(
+      built.getContracts()?.linkedAccessPROJECTDATARequestPermission,
+    ).toBeUndefined();
+
+    const steps =
+      built.getContracts()?.syncImpl?.getProperties()?.steps?.getItems() ?? [];
+
+    expect(steps[0]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Linked Documents Permission Grant Requested'],
+    );
+    expect(
+      steps[0]?.getProperties()?.event?.getProperties()?.requestId?.getValue(),
+    ).toBe('REQ_LINKED_ACCESS_PROJECTDATA');
+    expect(
+      steps[0]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.links?.getType()
+        ?.getBlueId(),
+    ).toBe(myOsBlueIds['MyOS/Linked Documents Permission Set']);
+    expect(
+      steps[0]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.links?.getProperties()
+        ?.invoices?.getProperties()
+        ?.singleOps?.getItems()
+        ?.map((item) => item.getValue()),
+    ).toEqual(['list']);
+    expect(
+      steps[0]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.links?.getProperties()
+        ?.shipments?.getProperties()
+        ?.singleOps?.getItems()
+        ?.map((item) => item.getValue()),
+    ).toEqual(['track']);
+
+    expect(steps[1]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Call Operation Requested'],
+    );
+    expect(
+      steps[1]?.getProperties()?.event?.getProperties()?.operation?.getValue(),
+    ).toBe('refreshLinked');
+    expect(
+      steps[1]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.request?.getProperties()
+        ?.mode?.getValue(),
+    ).toBe('full');
+
+    expect(steps[2]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Subscribe to Session Requested'],
+    );
+    expect(
+      steps[2]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.subscription?.getProperties()
+        ?.id?.getValue(),
+    ).toBe('SUB_LINKED_ACCESS_PROJECTDATA');
+    expect(
+      steps[2]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.subscription?.getProperties()
+        ?.events?.getItems()?.[0]
+        ?.getType()
+        ?.getBlueId(),
+    ).toBe(myOsBlueIds['MyOS/Session Epoch Advanced']);
+
+    expect(steps[3]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Linked Documents Permission Revoke Requested'],
+    );
+    expect(
+      steps[3]?.getProperties()?.event?.getProperties()?.targetSessionId,
+    ).toBeUndefined();
+    expect(
+      steps[3]?.getProperties()?.event?.getProperties()?.onBehalfOf,
+    ).toBeUndefined();
+  });
+
+  it('supports agency call, subscribe, and revoke helpers when targetSessionId is configured', () => {
+    const built = DocBuilder.doc()
+      .name('Agency extended steps parity')
+      .channel('ownerChannel')
+      .field('/agencySessionId', 'session-worker-7')
+      .agency('procurement')
+      .onBehalfOf('ownerChannel')
+      .targetSessionId(DocBuilder.expr("document('/agencySessionId')"))
+      .allowedOperations('propose')
+      .requestPermissionManually()
+      .done()
+      .operation('coordinate')
+      .channel('ownerChannel')
+      .description('Coordinate agency steps')
+      .requestType('Boolean')
+      .steps((steps) =>
+        steps
+          .viaAgency('procurement')
+          .requestPermission('GrantProcurement')
+          .viaAgency('procurement')
+          .call('propose', {
+            requestKind: 'draft',
+          })
+          .viaAgency('procurement')
+          .subscribe('WatchProcurement', 'MyOS/Session Epoch Advanced')
+          .viaAgency('procurement')
+          .revokePermission('RevokeProcurement'),
+      )
+      .done()
+      .buildDocument();
+
+    expect(
+      built.getContracts()?.agencyPROCUREMENTRequestPermission,
+    ).toBeUndefined();
+
+    const steps =
+      built
+        .getContracts()
+        ?.coordinateImpl?.getProperties()
+        ?.steps?.getItems() ?? [];
+
+    expect(steps[0]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Worker Agency Permission Grant Requested'],
+    );
+    expect(
+      steps[0]?.getProperties()?.event?.getProperties()?.requestId?.getValue(),
+    ).toBe('REQ_AGENCY_PROCUREMENT');
+
+    expect(steps[1]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Call Operation Requested'],
+    );
+    expect(
+      steps[1]?.getProperties()?.event?.getProperties()?.operation?.getValue(),
+    ).toBe('propose');
+    expect(
+      steps[1]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.request?.getProperties()
+        ?.requestKind?.getValue(),
+    ).toBe('draft');
+
+    expect(steps[2]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Subscribe to Session Requested'],
+    );
+    expect(
+      steps[2]
+        ?.getProperties()
+        ?.event?.getProperties()
+        ?.subscription?.getProperties()
+        ?.id?.getValue(),
+    ).toBe('SUB_AGENCY_PROCUREMENT');
+
+    expect(steps[3]?.getProperties()?.event?.getType()?.getBlueId()).toBe(
+      myOsBlueIds['MyOS/Worker Agency Permission Revoke Requested'],
+    );
+    expect(
+      steps[3]?.getProperties()?.event?.getProperties()?.targetSessionId,
+    ).toBeUndefined();
+    expect(
+      steps[3]?.getProperties()?.event?.getProperties()?.onBehalfOf,
+    ).toBeUndefined();
+  });
+
   it('tracks contracts generated by interaction builders in sections', () => {
     const built = DocBuilder.doc()
       .name('Section tracking parity')
@@ -683,7 +888,7 @@ contracts:
     ).toBe('agencyPROCUREMENTRequestPermissionDocUpdateChannel');
   });
 
-  it('fails fast for invalid linked access and unknown access or agency step helpers', () => {
+  it('fails fast for invalid linked access and unknown or incomplete interaction step helpers', () => {
     expect(() =>
       DocBuilder.doc()
         .name('Invalid linked access')
@@ -712,6 +917,18 @@ contracts:
 
     expect(() =>
       DocBuilder.doc()
+        .name('Unknown linked access')
+        .operation('run')
+        .channel('ownerChannel')
+        .steps((steps) => steps.accessLinked('missing').requestPermission())
+        .done()
+        .buildDocument(),
+    ).toThrow(
+      'Unknown linked access: \'missing\'. Define it with .accessLinked("missing")...done().',
+    );
+
+    expect(() =>
+      DocBuilder.doc()
         .name('Unknown agency')
         .operation('run')
         .channel('ownerChannel')
@@ -720,6 +937,23 @@ contracts:
         .buildDocument(),
     ).toThrow(
       'Unknown agency: \'missing\'. Define it with .agency("missing")...done().',
+    );
+
+    expect(() =>
+      DocBuilder.doc()
+        .name('Agency call without target session')
+        .channel('ownerChannel')
+        .agency('procurement')
+        .onBehalfOf('ownerChannel')
+        .requestPermissionManually()
+        .done()
+        .operation('run')
+        .channel('ownerChannel')
+        .steps((steps) => steps.viaAgency('procurement').call('x', null))
+        .done()
+        .buildDocument(),
+    ).toThrow(
+      "agency('procurement'): targetSessionId is required for this step helper",
     );
   });
 });

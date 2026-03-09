@@ -31,6 +31,7 @@ export interface LinkedAccessConfig {
   readonly targetSessionId: BlueNode;
   readonly onBehalfOfChannel: string;
   readonly requestId: string;
+  readonly subscriptionId: string;
   readonly statusPath: string | null;
   readonly links: Readonly<Record<string, BlueNode>>;
   readonly permissionTiming: PermissionTiming;
@@ -41,6 +42,8 @@ export interface AgencyConfig {
   readonly token: string;
   readonly onBehalfOfChannel: string;
   readonly requestId: string;
+  readonly subscriptionId: string;
+  readonly targetSessionId: BlueNode | null;
   readonly allowedWorkerAgencyPermissions: readonly BlueNode[];
   readonly statusPath: string | null;
   readonly permissionTiming: PermissionTiming;

@@ -100,6 +100,22 @@ Update it after every stage.
 | F | ecosystem value / companion tooling |
 | G | final polish across all categories |
 
+## Current snapshot (after Stage D)
+
+| Category | After Stage C | Current | Target |
+|---|---:|---:|---:|
+| Java parity | 9/10 | 9/10 | 9–10/10 |
+| DSL/API ergonomics | 9/10 | 9/10 | 9–10/10 |
+| Runtime correctness | 9/10 | 10/10 | 9–10/10 |
+| Functional completeness | 9/10 | 9/10 | 9–10/10 |
+| Implementation/test quality | 8/10 | 9/10 | 9–10/10 |
+
+### Why Stage D moved the score
+
+- The highest-level orchestration surfaces now have explicit parity, runtime, and canonical proof instead of relying on partial evidence from earlier stages.
+- `steps.accessLinked(...)` and the richer `steps.viaAgency(...)` surface reduce another class of raw fallback for complex MyOS session orchestration.
+- PayNote macros now have canonical capture-lifecycle coverage in addition to parity and runtime integration tests, which closes the most obvious proof gap on the Stage 6 macro surface.
+
 ## Completion bar
 
 Do not call the plan complete unless every category is credibly at **9 or above**.

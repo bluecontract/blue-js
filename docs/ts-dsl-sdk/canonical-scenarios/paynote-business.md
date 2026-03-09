@@ -13,6 +13,18 @@ Primary DSL surfaces:
 - typed paynote document builders
 - bootstrap-request-related helpers where applicable
 
+### Capture lifecycle macro
+
+Why included:
+- proves the highest-level PayNote macro surface against a canonical flow
+- keeps Stage 6 macro materialization anchored to runtime-confirmed operation wiring
+
+Primary DSL surfaces:
+- `PayNotes.payNote(...)`
+- `.capture().lockOnInit()`
+- `.capture().unlockOnOperation(...)`
+- `.capture().requestOnOperation(...)`
+
 ### Bootstrap webhook handling
 
 Why included:
@@ -83,6 +95,7 @@ Reason:
 ## Acceptance rule
 
 For Stage 6, at minimum:
+- one capture/reserve/release macro scenario
 - one delivery or bootstrap scenario
 - one customer-action scenario
 - one payment-mandate extraction or bootstrap scenario

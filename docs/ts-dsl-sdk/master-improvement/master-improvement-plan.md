@@ -49,6 +49,10 @@ They are mostly:
   - thin payment convenience APIs are available through `triggerPayment(...)`
   - `requestBackwardPayment(...)` is available as a runtime-guarded helper that fails clearly when the installed repository package does not expose the required alias
   - payment payload authoring now has a public `PaymentRequestPayloadBuilder` with rail-specific builders and `ext(...)`
+- Stage D is complete on the current mainline:
+  - linked-access and agency helper namespaces now cover the richer request / call / subscribe / revoke composition surface
+  - AI orchestration remains proven by parity, runtime, and canonical scenario coverage
+  - PayNote macro builders now have explicit canonical proof in addition to parity and runtime coverage
 
 ## Strategy
 

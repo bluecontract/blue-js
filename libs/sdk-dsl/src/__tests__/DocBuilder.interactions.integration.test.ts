@@ -13,6 +13,7 @@ import {
 } from './processor-harness';
 
 const ADMIN_TIMELINE_ID = 'myos-admin-stage4';
+const OWNER_TIMELINE_ID = 'owner-stage4';
 const REMOTE_SESSION_ID = 'remote-provider-session';
 
 describe('DocBuilder interactions integration', () => {
@@ -327,5 +328,196 @@ describe('DocBuilder interactions integration', () => {
     });
 
     expect(String(updated.document.get('/epochStatus'))).toBe('advanced');
+  });
+
+  it('emits linked-access step-helper events from an operation workflow', async () => {
+    const built = DocBuilder.doc()
+      .name('Linked access helper integration')
+      .channel('ownerChannel', {
+        type: 'MyOS/MyOS Timeline Channel',
+        timelineId: OWNER_TIMELINE_ID,
+      })
+      .field('/projectSessionId', 'project-session-9')
+      .accessLinked('projectData')
+      .targetSessionId(DocBuilder.expr("document('/projectSessionId')"))
+      .onBehalfOf('ownerChannel')
+      .requestPermissionManually()
+      .link('invoices')
+      .read(true)
+      .operations('list')
+      .done()
+      .done()
+      .operation('sync')
+      .channel('ownerChannel')
+      .description('Synchronize linked project state')
+      .requestType('Boolean')
+      .steps((steps) =>
+        steps
+          .accessLinked('projectData')
+          .requestPermission('RequestLinkedProject')
+          .accessLinked('projectData')
+          .call('refreshProject', {
+            mode: 'full',
+          })
+          .accessLinked('projectData')
+          .subscribe('WatchProject', 'MyOS/Session Epoch Advanced')
+          .accessLinked('projectData')
+          .revokePermission('RevokeLinkedProject'),
+      )
+      .done()
+      .buildDocument();
+
+    const initialized = await initializeDocument(built);
+    const storedBlueId = getStoredDocumentBlueId(initialized.document);
+
+    const processed = await processOperationRequest({
+      blue: initialized.blue,
+      processor: initialized.processor,
+      document: initialized.document,
+      timelineId: OWNER_TIMELINE_ID,
+      operation: 'sync',
+      request: true,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const linkedGrant = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Linked Documents Permission Grant Requested'],
+    );
+    expect(linkedGrant).toBeDefined();
+    expect(linkedGrant?.getProperties()?.requestId?.getValue()).toBe(
+      'REQ_LINKED_ACCESS_PROJECTDATA',
+    );
+
+    const callRequest = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Call Operation Requested'],
+    );
+    expect(callRequest).toBeDefined();
+    expect(callRequest?.getProperties()?.operation?.getValue()).toBe(
+      'refreshProject',
+    );
+    expect(callRequest?.getProperties()?.targetSessionId?.getValue()).toBe(
+      'project-session-9',
+    );
+
+    const subscriptionRequest = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Subscribe to Session Requested'],
+    );
+    expect(subscriptionRequest).toBeDefined();
+    expect(
+      subscriptionRequest
+        ?.getProperties()
+        ?.subscription?.getProperties()
+        ?.id?.getValue(),
+    ).toBe('SUB_LINKED_ACCESS_PROJECTDATA');
+
+    const revokeRequest = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Linked Documents Permission Revoke Requested'],
+    );
+    expect(revokeRequest).toBeDefined();
+    expect(revokeRequest?.getProperties()?.requestId?.getValue()).toBe(
+      'REQ_LINKED_ACCESS_PROJECTDATA',
+    );
+  });
+
+  it('emits agency call, subscribe, and revoke helper events when targetSessionId is configured', async () => {
+    const built = DocBuilder.doc()
+      .name('Agency helper integration')
+      .channel('ownerChannel', {
+        type: 'MyOS/MyOS Timeline Channel',
+        timelineId: OWNER_TIMELINE_ID,
+      })
+      .field('/workerSessionId', 'worker-session-11')
+      .agency('procurement')
+      .onBehalfOf('ownerChannel')
+      .targetSessionId(DocBuilder.expr("document('/workerSessionId')"))
+      .allowedOperations('propose')
+      .requestPermissionManually()
+      .done()
+      .operation('coordinate')
+      .channel('ownerChannel')
+      .description('Coordinate the worker agency')
+      .requestType('Boolean')
+      .steps((steps) =>
+        steps
+          .viaAgency('procurement')
+          .requestPermission('GrantProcurement')
+          .viaAgency('procurement')
+          .call('propose', {
+            proposalId: 'P-1',
+          })
+          .viaAgency('procurement')
+          .subscribe('WatchWorker', 'MyOS/Session Epoch Advanced')
+          .viaAgency('procurement')
+          .revokePermission('RevokeProcurement'),
+      )
+      .done()
+      .buildDocument();
+
+    const initialized = await initializeDocument(built);
+    const storedBlueId = getStoredDocumentBlueId(initialized.document);
+
+    const processed = await processOperationRequest({
+      blue: initialized.blue,
+      processor: initialized.processor,
+      document: initialized.document,
+      timelineId: OWNER_TIMELINE_ID,
+      operation: 'coordinate',
+      request: true,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const agencyGrant = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Worker Agency Permission Grant Requested'],
+    );
+    expect(agencyGrant).toBeDefined();
+    expect(agencyGrant?.getProperties()?.requestId?.getValue()).toBe(
+      'REQ_AGENCY_PROCUREMENT',
+    );
+
+    const callRequest = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Call Operation Requested'],
+    );
+    expect(callRequest).toBeDefined();
+    expect(callRequest?.getProperties()?.targetSessionId?.getValue()).toBe(
+      'worker-session-11',
+    );
+    expect(callRequest?.getProperties()?.operation?.getValue()).toBe('propose');
+
+    const subscriptionRequest = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Subscribe to Session Requested'],
+    );
+    expect(subscriptionRequest).toBeDefined();
+    expect(
+      subscriptionRequest
+        ?.getProperties()
+        ?.subscription?.getProperties()
+        ?.id?.getValue(),
+    ).toBe('SUB_AGENCY_PROCUREMENT');
+
+    const revokeRequest = processed.triggeredEvents.find(
+      (event) =>
+        event.getType()?.getBlueId() ===
+        myOsBlueIds['MyOS/Worker Agency Permission Revoke Requested'],
+    );
+    expect(revokeRequest).toBeDefined();
+    expect(revokeRequest?.getProperties()?.requestId?.getValue()).toBe(
+      'REQ_AGENCY_PROCUREMENT',
+    );
   });
 });

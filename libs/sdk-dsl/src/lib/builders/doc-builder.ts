@@ -106,6 +106,7 @@ type LinkState = {
 type AgencyState = {
   readonly name: string;
   readonly onBehalfOfChannel: string | null;
+  readonly targetSessionId: BlueValueInput | null;
   readonly allowedTypes: readonly TypeInput[];
   readonly allowedOperations: readonly string[];
   readonly statusPath: string | null;
@@ -1434,6 +1435,7 @@ export class DocBuilder {
       targetSessionId,
       onBehalfOfChannel,
       requestId: `REQ_LINKED_ACCESS_${token}`,
+      subscriptionId: `SUB_LINKED_ACCESS_${token}`,
       statusPath: state.statusPath,
       links: Object.fromEntries(
         Object.entries(state.links).map(([linkName, linkState]) => [
@@ -1530,6 +1532,13 @@ export class DocBuilder {
       token,
       onBehalfOfChannel,
       requestId: `REQ_AGENCY_${token}`,
+      subscriptionId: `SUB_AGENCY_${token}`,
+      targetSessionId: state.targetSessionId
+        ? requireBlueValueInput(
+            state.targetSessionId,
+            `agency('${state.name}'): targetSessionId is required`,
+          )
+        : null,
       allowedWorkerAgencyPermissions: createWorkerAgencyPermissionList({
         allowedTypes: filterTypeInputs(state.allowedTypes),
         allowedOperations: state.allowedOperations,
@@ -2396,6 +2405,7 @@ export class LinkedAccessLinkBuilder<P extends DocBuilder> {
 
 export class AgencyBuilder<P extends DocBuilder> {
   private onBehalfOfChannel: string | null = null;
+  private targetSessionIdValue: BlueValueInput | null = null;
   private readonly allowedTypeInputs: TypeInput[] = [];
   private readonly allowedOperationKeys: string[] = [];
   private statusPathValue: string | null = null;
@@ -2411,6 +2421,11 @@ export class AgencyBuilder<P extends DocBuilder> {
 
   onBehalfOf(channelKey: string): AgencyBuilder<P> {
     this.onBehalfOfChannel = channelKey;
+    return this;
+  }
+
+  targetSessionId(targetSessionId: BlueValueInput): AgencyBuilder<P> {
+    this.targetSessionIdValue = targetSessionId;
     return this;
   }
 
@@ -2463,6 +2478,7 @@ export class AgencyBuilder<P extends DocBuilder> {
     return this.config.applyState({
       name: this.config.name,
       onBehalfOfChannel: this.onBehalfOfChannel,
+      targetSessionId: this.targetSessionIdValue,
       allowedTypes: this.allowedTypeInputs,
       allowedOperations: normalizeStringList(this.allowedOperationKeys),
       statusPath: this.statusPathValue,

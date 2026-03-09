@@ -99,6 +99,9 @@ Status:
 
 ## Stage D — Macro-builder hardening with canonical scenarios
 
+Status:
+- completed
+
 ### Scope
 Add stronger real-world proof for:
 - `access(...)`
@@ -115,6 +118,27 @@ Add stronger real-world proof for:
   - integration/runtime test
   - canonical-scenario proof
 - raw fallbacks are reduced where the DSL can express the behavior cleanly
+
+### Delivered on mainline
+- richer `steps.accessLinked(...)` composition:
+  - request permission
+  - call
+  - subscribe
+  - revoke
+- richer `steps.viaAgency(...)` composition:
+  - request permission
+  - call
+  - subscribe
+  - revoke
+  - worker-session start
+- agency configuration now supports `targetSessionId(...)` for session-oriented helper composition
+- canonical PayNote macro proof for the capture lifecycle
+- full parity / runtime / canonical coverage remains green for:
+  - access
+  - linked access
+  - agency
+  - AI orchestration
+  - PayNote macros
 
 ---
 

@@ -164,3 +164,35 @@ Use this file to track what is intentionally adopted from the alternative implem
   `libs/sdk-dsl/src/__tests__/StepsBuilder.convenience.integration.test.ts`,
   `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
   `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage D — richer interaction step namespaces
+
+- Source area in donor:
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/steps/access-steps.ts`
+  and
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/steps/agency-steps.ts`
+- Target area in mainline:
+  `libs/sdk-dsl/src/lib/builders/doc-builder.ts`,
+  `libs/sdk-dsl/src/lib/builders/steps-builder.ts`,
+  `libs/sdk-dsl/src/lib/internal/interactions.ts`
+- What was adopted:
+  richer linked-access and agency helper composition, including:
+  `steps.accessLinked(...)`,
+  `steps.viaAgency(...).call(...)`,
+  `steps.viaAgency(...).callExpr(...)`,
+  `steps.viaAgency(...).subscribe(...)`,
+  `steps.viaAgency(...).revokePermission(...)`,
+  and agency-side `targetSessionId(...)`
+- How:
+  adapted and reimplemented
+- Why:
+  closes another raw-fallback gap on the current mainline while keeping request/revoke payloads aligned to the current public runtime
+- Tests/docs added:
+  `libs/sdk-dsl/src/__tests__/DocBuilder.interactions.parity.test.ts`,
+  `libs/sdk-dsl/src/__tests__/DocBuilder.interactions.integration.test.ts`,
+  `libs/sdk-dsl/src/__tests__/CanonicalPayNoteBusiness.test.ts`,
+  `docs/ts-dsl-sdk/stage-4-spec.md`,
+  `docs/ts-dsl-sdk/stage-4-mapping-matrix.md`,
+  `docs/ts-dsl-sdk/stage-4-coverage-matrix.md`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`

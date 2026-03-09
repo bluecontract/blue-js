@@ -28,14 +28,18 @@ import type {
 import { BootstrapOptionsBuilder } from '../internal/bootstrap-options-builder';
 import { ChangesetBuilder } from '../internal/changeset-builder';
 import { isBlank, wrapExpression } from '../internal/expression';
+import {
+  createLinkedDocumentsPermissionSet,
+  EMPTY_INTERACTION_CONFIG_REGISTRY,
+} from '../internal/interactions';
 import type {
   AccessConfig,
   AIIntegrationConfig,
   AINamedEventExpectation,
   AgencyConfig,
   InteractionConfigRegistry,
+  LinkedAccessConfig,
 } from '../internal/interactions';
-import { EMPTY_INTERACTION_CONFIG_REGISTRY } from '../internal/interactions';
 import { NodeObjectBuilder } from '../internal/node-object-builder';
 import { assertRepositoryTypeAliasAvailable } from '../internal/runtime-type-support';
 import { resolveTypeInput } from '../internal/type-input';
@@ -347,6 +351,17 @@ export class StepsBuilder {
       );
     }
     return new AccessSteps(this, config);
+  }
+
+  accessLinked(linkedAccessName: string): LinkedAccessSteps {
+    const normalized = requireNonEmpty(linkedAccessName, 'linked access name');
+    const config = this.interactionConfigs.linkedAccessConfigs.get(normalized);
+    if (!config) {
+      throw new Error(
+        `Unknown linked access: '${normalized}'. Define it with .accessLinked("${normalized}")...done().`,
+      );
+    }
+    return new LinkedAccessSteps(this, config);
   }
 
   viaAgency(agencyName: string): AgencySteps {
@@ -1463,7 +1478,14 @@ export class AccessSteps {
       );
   }
 
-  subscribe(stepName = 'Subscribe'): StepsBuilder {
+  subscribe(
+    ...args: [stepName?: string, ...events: EventPatternInput[]]
+  ): StepsBuilder {
+    const { stepName, events } = resolveSubscribeArgs(
+      args,
+      this.config.subscriptionEvents,
+    );
+
     return this.parent
       .myOs()
       .subscribeToSessionRequested(
@@ -1471,7 +1493,7 @@ export class AccessSteps {
         this.config.subscriptionId,
         {
           stepName,
-          events: this.config.subscriptionEvents,
+          events,
         },
       );
   }
@@ -1480,6 +1502,67 @@ export class AccessSteps {
     return this.parent.myOs().revokeSingleDocPermission(this.config.requestId, {
       stepName,
     });
+  }
+}
+
+export class LinkedAccessSteps {
+  constructor(
+    private readonly parent: StepsBuilder,
+    private readonly config: LinkedAccessConfig,
+  ) {}
+
+  call(operation: string, request: BlueValueInput | null): StepsBuilder {
+    return this.parent
+      .myOs()
+      .callOperationRequested(
+        this.config.onBehalfOfChannel,
+        this.config.targetSessionId.clone(),
+        operation,
+        request ?? undefined,
+      );
+  }
+
+  callExpr(operation: string, requestExpression: string): StepsBuilder {
+    return this.call(operation, wrapExpression(requestExpression));
+  }
+
+  requestPermission(stepName = 'RequestPermission'): StepsBuilder {
+    return this.parent
+      .myOs()
+      .requestLinkedDocsPermission(
+        this.config.onBehalfOfChannel,
+        this.config.requestId,
+        this.config.targetSessionId.clone(),
+        createLinkedDocumentsPermissionSet(this.config.links),
+        {
+          stepName,
+        },
+      );
+  }
+
+  subscribe(
+    ...args: [stepName?: string, ...events: EventPatternInput[]]
+  ): StepsBuilder {
+    const { stepName, events } = resolveSubscribeArgs(args);
+
+    return this.parent
+      .myOs()
+      .subscribeToSessionRequested(
+        this.config.targetSessionId.clone(),
+        this.config.subscriptionId,
+        {
+          stepName,
+          events,
+        },
+      );
+  }
+
+  revokePermission(stepName = 'RevokePermission'): StepsBuilder {
+    return this.parent
+      .myOs()
+      .revokeLinkedDocsPermission(this.config.requestId, {
+        stepName,
+      });
   }
 }
 
@@ -1506,6 +1589,46 @@ export class AgencySteps {
       );
   }
 
+  call(operation: string, request: BlueValueInput | null): StepsBuilder {
+    return this.parent
+      .myOs()
+      .callOperationRequested(
+        this.config.onBehalfOfChannel,
+        this.requireTargetSessionId(),
+        operation,
+        request ?? undefined,
+      );
+  }
+
+  callExpr(operation: string, requestExpression: string): StepsBuilder {
+    return this.call(operation, wrapExpression(requestExpression));
+  }
+
+  subscribe(
+    ...args: [stepName?: string, ...events: EventPatternInput[]]
+  ): StepsBuilder {
+    const { stepName, events } = resolveSubscribeArgs(args);
+
+    return this.parent
+      .myOs()
+      .subscribeToSessionRequested(
+        this.requireTargetSessionId(),
+        this.config.subscriptionId,
+        {
+          stepName,
+          events,
+        },
+      );
+  }
+
+  revokePermission(stepName = 'RevokeAgencyPermission'): StepsBuilder {
+    return this.parent
+      .myOs()
+      .revokeWorkerAgencyPermission(this.config.requestId, {
+        stepName,
+      });
+  }
+
   startSession(
     stepName: string,
     document: BlueValueInput,
@@ -1524,6 +1647,16 @@ export class AgencySteps {
         optionsCustomizer,
         stepName,
       );
+  }
+
+  private requireTargetSessionId(): BlueNode {
+    if (this.config.targetSessionId) {
+      return this.config.targetSessionId.clone();
+    }
+
+    throw new Error(
+      `agency('${this.config.name}'): targetSessionId is required for this step helper`,
+    );
   }
 }
 
@@ -2054,6 +2187,46 @@ function hasMeaningfulContent(node: BlueNode): boolean {
     (node.getItems()?.length ?? 0) > 0 ||
     Object.keys(node.getProperties() ?? {}).length > 0
   );
+}
+
+function resolveSubscribeArgs(
+  args: readonly [string?, ...EventPatternInput[]],
+  fallbackEvents: readonly EventPatternInput[] = [],
+): {
+  stepName: string;
+  events: readonly EventPatternInput[] | undefined;
+} {
+  if (args.length === 0) {
+    return {
+      stepName: 'Subscribe',
+      events: fallbackEvents.length > 0 ? fallbackEvents : undefined,
+    };
+  }
+
+  const [first, ...rest] = args;
+  if (
+    first != null &&
+    (typeof first !== 'string' || looksLikeEventPatternString(first))
+  ) {
+    return {
+      stepName: 'Subscribe',
+      events: [first, ...rest],
+    };
+  }
+
+  return {
+    stepName: requireNonEmpty(first ?? 'Subscribe', 'step name'),
+    events:
+      rest.length > 0
+        ? rest
+        : fallbackEvents.length > 0
+          ? fallbackEvents
+          : undefined,
+  };
+}
+
+function looksLikeEventPatternString(value: string): boolean {
+  return value.includes('/');
 }
 
 function putOptionalStepMetadata(
