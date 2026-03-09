@@ -345,17 +345,30 @@ export class PayNoteActionBuilder<P extends AbstractPayNoteBuilder<P>> {
     return this;
   }
 
-  unlockOnEvent(eventType: TypeInput): PayNoteActionBuilder<P> {
+  unlockOnEvent(eventType: TypeInput): PayNoteActionBuilder<P>;
+  unlockOnEvent(
+    channelKey: string,
+    eventType: TypeInput,
+  ): PayNoteActionBuilder<P>;
+  unlockOnEvent(
+    channelKeyOrEventType: string | TypeInput,
+    maybeEventType?: TypeInput,
+  ): PayNoteActionBuilder<P> {
     const unlockEventType = requireSupportedEventType(
       this.config,
       'unlockOnEvent',
       this.config.unlockEventType,
     );
-    this.parent.onEvent(
+    const { channelKey, eventType } = resolveEventBinding(
+      channelKeyOrEventType,
+      maybeEventType,
+    );
+    this.bindEventTriggeredWorkflow(
       `${this.config.name}UnlockOn${tokenizeTypeInput(eventType)}`,
       eventType,
       (steps) =>
         this.emitTypedEvent(steps, unlockEventType, this.config.unlockStepName),
+      channelKey,
     );
     this.state.unlockPaths += 1;
     return this;
@@ -421,11 +434,24 @@ export class PayNoteActionBuilder<P extends AbstractPayNoteBuilder<P>> {
     return this;
   }
 
-  requestOnEvent(eventType: TypeInput): PayNoteActionBuilder<P> {
-    this.parent.onEvent(
+  requestOnEvent(eventType: TypeInput): PayNoteActionBuilder<P>;
+  requestOnEvent(
+    channelKey: string,
+    eventType: TypeInput,
+  ): PayNoteActionBuilder<P>;
+  requestOnEvent(
+    channelKeyOrEventType: string | TypeInput,
+    maybeEventType?: TypeInput,
+  ): PayNoteActionBuilder<P> {
+    const { channelKey, eventType } = resolveEventBinding(
+      channelKeyOrEventType,
+      maybeEventType,
+    );
+    this.bindEventTriggeredWorkflow(
       `${this.config.name}RequestOn${tokenizeTypeInput(eventType)}`,
       eventType,
       (steps) => this.emitRequestEvent(steps),
+      channelKey,
     );
     return this;
   }
@@ -474,11 +500,28 @@ export class PayNoteActionBuilder<P extends AbstractPayNoteBuilder<P>> {
   requestPartialOnEvent(
     eventType: TypeInput,
     amountExpression: string,
+  ): PayNoteActionBuilder<P>;
+  requestPartialOnEvent(
+    channelKey: string,
+    eventType: TypeInput,
+    amountExpression: string,
+  ): PayNoteActionBuilder<P>;
+  requestPartialOnEvent(
+    channelKeyOrEventType: string | TypeInput,
+    eventTypeOrAmountExpression: TypeInput | string,
+    maybeAmountExpression?: string,
   ): PayNoteActionBuilder<P> {
-    this.parent.onEvent(
+    const { channelKey, eventType, amountExpression } =
+      resolvePartialEventBinding(
+        channelKeyOrEventType,
+        eventTypeOrAmountExpression,
+        maybeAmountExpression,
+      );
+    this.bindEventTriggeredWorkflow(
       `${this.config.name}PartialOn${tokenizeTypeInput(eventType)}`,
       eventType,
       (steps) => this.emitRequestEvent(steps, amountExpression),
+      channelKey,
     );
     return this;
   }
@@ -539,6 +582,25 @@ export class PayNoteActionBuilder<P extends AbstractPayNoteBuilder<P>> {
         return;
     }
   }
+
+  private bindEventTriggeredWorkflow(
+    workflowKey: string,
+    eventType: TypeInput,
+    customizer: (steps: StepsBuilder) => void,
+    channelKey?: string | null,
+  ): void {
+    if (typeof channelKey === 'string' && channelKey.trim().length > 0) {
+      this.parent.onChannelEvent(
+        workflowKey,
+        requireNonEmpty(channelKey, 'channel key'),
+        eventType,
+        customizer,
+      );
+      return;
+    }
+
+    this.parent.onEvent(workflowKey, eventType, customizer);
+  }
 }
 
 function createActionState(): PayNoteActionState {
@@ -568,6 +630,53 @@ function requireSupportedEventType(
     );
   }
   return eventType;
+}
+
+function resolveEventBinding(
+  channelKeyOrEventType: string | TypeInput,
+  maybeEventType?: TypeInput,
+): {
+  channelKey: string | null;
+  eventType: TypeInput;
+} {
+  if (maybeEventType === undefined) {
+    return {
+      channelKey: null,
+      eventType: channelKeyOrEventType,
+    };
+  }
+
+  return {
+    channelKey: requireNonEmpty(String(channelKeyOrEventType), 'channel key'),
+    eventType: maybeEventType,
+  };
+}
+
+function resolvePartialEventBinding(
+  channelKeyOrEventType: string | TypeInput,
+  eventTypeOrAmountExpression: TypeInput | string,
+  maybeAmountExpression?: string,
+): {
+  channelKey: string | null;
+  eventType: TypeInput;
+  amountExpression: string;
+} {
+  if (typeof maybeAmountExpression === 'string') {
+    return {
+      channelKey: requireNonEmpty(String(channelKeyOrEventType), 'channel key'),
+      eventType: eventTypeOrAmountExpression as TypeInput,
+      amountExpression: maybeAmountExpression,
+    };
+  }
+
+  return {
+    channelKey: null,
+    eventType: channelKeyOrEventType,
+    amountExpression: requireNonEmpty(
+      eventTypeOrAmountExpression as string,
+      'amount expression',
+    ),
+  };
 }
 
 function tokenizeTypeInput(typeInput: TypeInput): string {

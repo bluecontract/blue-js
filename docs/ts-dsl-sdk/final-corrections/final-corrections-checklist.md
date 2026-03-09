@@ -25,9 +25,9 @@
 - [x] update tests/docs/deviations
 
 ## Cycle 5 — Stage 6 event-driven channels
-- [ ] verify default `triggeredEventChannel`
-- [ ] verify or add explicit-channel support
-- [ ] add tests for both paths
+- [x] verify default `triggeredEventChannel`
+- [x] verify or add explicit-channel support
+- [x] add tests for both paths
 
 ## Cycle 6 — Docs/deviations reconciliation
 - [ ] final mapping reference updated

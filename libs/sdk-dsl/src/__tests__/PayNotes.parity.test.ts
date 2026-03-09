@@ -462,6 +462,51 @@ describe('PayNotes parity', () => {
     ).toBe(resolveTypeInput('Boolean').getBlueId());
   });
 
+  it('supports explicit timeline-channel listeners for event-driven PayNote macros', () => {
+    const built = PayNotes.payNote('Explicit channel event parity')
+      .currency('USD')
+      .amountMinor(10000)
+      .channel('shipmentChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'shipment-timeline',
+      })
+      .capture()
+      .unlockOnEvent('shipmentChannel', 'Conversation/Chat Message')
+      .requestOnEvent('shipmentChannel', 'Conversation/Chat Message')
+      .requestPartialOnEvent(
+        'shipmentChannel',
+        'Conversation/Chat Message',
+        'event.message.amount',
+      )
+      .done()
+      .buildDocument();
+
+    expect(
+      built
+        .getAsNode('/contracts/captureUnlockOnChatMessage/event/message')
+        ?.getType()
+        ?.getBlueId(),
+    ).toBe(resolveTypeInput('Conversation/Chat Message').getBlueId());
+    expect(
+      built
+        .getAsNode('/contracts/captureRequestOnChatMessage/event/message')
+        ?.getType()
+        ?.getBlueId(),
+    ).toBe(resolveTypeInput('Conversation/Chat Message').getBlueId());
+    expect(
+      built
+        .getAsNode('/contracts/capturePartialOnChatMessage/event/message')
+        ?.getType()
+        ?.getBlueId(),
+    ).toBe(resolveTypeInput('Conversation/Chat Message').getBlueId());
+    expect(
+      built
+        .getAsNode('/contracts/capturePartialOnChatMessage/steps/0/event')
+        ?.getProperties()
+        ?.amount?.getValue(),
+    ).toBe('${event.message.amount}');
+  });
+
   it('requires an unlock path for capture lockOnInit and documents unsupported reserve/release lock helpers', () => {
     expect(() =>
       PayNotes.payNote('Capture lock only')

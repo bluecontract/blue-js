@@ -51,9 +51,9 @@ PayNotes.payNote('Capture from external event').currency('USD').amountMinor(1800
 
 - **Java expectation**: Java examples read as if an external matched event can directly trigger the generated workflow.
 - **Final mapping reference expectation**: `triggeredEventChannel` remains the correct structural materialization target for event-driven workflows, but public runtime behavior is authoritative for delivery semantics.
-- **Actual runtime behavior**: `processExternalEvent(...)` skips processor-managed channels such as `Core/Triggered Event Channel`. Event-driven workflows on that channel run only when the matched event is emitted internally or re-emitted through a runtime-confirmed bridge such as `myOsAdminUpdate`.
-- **Decision**: keep the canonical structural materialization on `triggeredEventChannel`, but write runtime proofs using internal emit or `myOsAdminUpdate` re-emission.
-- **Reason**: this preserves document shape parity while staying honest about the current public runtime's event delivery model.
+- **Actual runtime behavior**: `processExternalEvent(...)` skips processor-managed channels such as `Core/Triggered Event Channel`. Default event-driven workflows on that channel run only when the matched event is emitted internally or re-emitted through a runtime-confirmed bridge such as `myOsAdminUpdate`. Explicit channel-aware event overloads can listen on concrete timeline channels and process external timeline entries directly.
+- **Decision**: keep the canonical default materialization on `triggeredEventChannel`, and additionally support explicit channel-aware event overloads for concrete timeline-channel listeners.
+- **Reason**: this preserves the existing default macro shape while exposing the runtime-confirmed direct-listener path when callers need an actual external event source.
 - **Regression test**:
   - `libs/sdk-dsl/src/__tests__/PayNotes.integration.test.ts`
   - `libs/sdk-dsl/src/__tests__/CanonicalPayNoteBusiness.test.ts`

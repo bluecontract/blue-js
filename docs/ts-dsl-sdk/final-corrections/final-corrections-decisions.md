@@ -17,4 +17,4 @@
 | reserve/release lock helpers | deferred/unsupported | keep deferred |
 | operation-triggered PayNote branch typed requests | accepted adaptation | keep explicit request schemas after runtime re-check |
 | `requestBackwardPayment(...)` | deferred/runtime-guarded | keep guarded until public runtime/types support it |
-| event-driven Stage 6 explicit channel support | to be verified/expanded | support default + explicit channel semantics |
+| event-driven Stage 6 explicit channel support | supported | keep default + explicit channel semantics |

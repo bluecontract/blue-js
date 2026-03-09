@@ -10,7 +10,9 @@ import { PayNotes } from '../lib';
 import {
   getStoredDocumentBlueId,
   initializeDocument,
+  makeTimelineEntryEvent,
   processOperationRequest,
+  processExternalEvent,
 } from './processor-harness';
 
 const PAYER_TIMELINE_ID = 'stage6-paynote-payer';
@@ -250,7 +252,7 @@ describe('PayNotes integration', () => {
     expect(processed.triggeredEvents).toHaveLength(0);
   });
 
-  it('supports capture request flows triggered by emitted confirmation events', async () => {
+  it('supports default triggeredEventChannel capture flows from emitted confirmation events', async () => {
     const built = PayNotes.payNote('Capture from emitted event')
       .currency('USD')
       .amountMinor(1800)
@@ -269,6 +271,8 @@ describe('PayNotes integration', () => {
       )
       .done()
       .capture()
+      .lockOnInit()
+      .unlockOnEvent('PayNote/Funds Captured')
       .requestOnEvent('PayNote/Funds Captured')
       .done()
       .buildDocument();
@@ -286,6 +290,57 @@ describe('PayNotes integration', () => {
       documentBlueId: storedBlueId,
     });
 
+    expect(
+      processed.triggeredEvents.some(
+        (event) =>
+          event.getType()?.getBlueId() ===
+          payNoteBlueIds['PayNote/Card Transaction Capture Unlock Requested'],
+      ),
+    ).toBe(true);
+    expect(
+      processed.triggeredEvents.some(
+        (event) =>
+          event.getType()?.getBlueId() ===
+          payNoteBlueIds['PayNote/Capture Funds Requested'],
+      ),
+    ).toBe(true);
+  });
+
+  it('supports explicit timeline-channel capture flows with message-type matching', async () => {
+    const built = PayNotes.payNote('Capture from explicit timeline event')
+      .currency('USD')
+      .amountMinor(2100)
+      .channel('shipmentChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: SHIPMENT_TIMELINE_ID,
+      })
+      .capture()
+      .lockOnInit()
+      .unlockOnEvent('shipmentChannel', 'Conversation/Chat Message')
+      .requestOnEvent('shipmentChannel', 'Conversation/Chat Message')
+      .done()
+      .buildDocument();
+
+    const initialized = await initializeDocument(built);
+    const processed = await processExternalEvent({
+      processor: initialized.processor,
+      document: initialized.document,
+      event: makeTimelineEntryEvent(initialized.blue, {
+        timelineId: SHIPMENT_TIMELINE_ID,
+        message: {
+          type: 'Conversation/Chat Message',
+          message: 'shipment confirmed',
+        },
+      }),
+    });
+
+    expect(
+      processed.triggeredEvents.some(
+        (event) =>
+          event.getType()?.getBlueId() ===
+          payNoteBlueIds['PayNote/Card Transaction Capture Unlock Requested'],
+      ),
+    ).toBe(true);
     expect(
       processed.triggeredEvents.some(
         (event) =>

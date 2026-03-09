@@ -113,6 +113,9 @@ Runtime-confirmed Stage 6 rules:
   - `requestPartialOnOperation(...)` -> `request: { type: Integer }`
 - correction-cycle re-verification confirmed that omitting `request` still leaves these sequential workflow operations unmatched on the current public runtime
 - `requestOnEvent(...)` and `unlockOnEvent(...)` still materialize `triggeredEventChannel` workflows, but processor-backed runtime delivery requires the matched event to be internally emitted or re-emitted through a runtime-confirmed bridge such as `myOsAdminUpdate`.
+- event-driven macro branches support two listening modes:
+  - default `(eventType, ...)` overloads bind to `triggeredEventChannel`
+  - explicit `(channelKey, eventType, ...)` overloads bind to the supplied channel and use Stage 2 timeline-channel matcher adaptation when the channel is timeline-like
 
 ### Unsupported subset
 

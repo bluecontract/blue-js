@@ -35,7 +35,8 @@ What they prove:
 - capture request on document update,
 - reserve / release request flows,
 - requestless operation-triggered branches still do not execute on the current public runtime,
-- emitted-event request triggers,
+- emitted-event request triggers on the default `triggeredEventChannel`,
+- explicit timeline-channel event triggers,
 - bootstrap delivery runtime flow,
 - customer-action request + response handling,
 - payment-mandate authorization + settlement handling.

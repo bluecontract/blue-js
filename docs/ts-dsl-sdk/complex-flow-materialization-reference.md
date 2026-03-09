@@ -182,6 +182,12 @@ Recommended deterministic key pattern:
 
 - `captureUnlockOn<MatcherToken>`
 
+An explicit overload may bind to a concrete channel instead:
+
+- `unlockOnEvent(channelKey, <matcher>)`
+- materializes the workflow on `channelKey`
+- when `channelKey` is timeline-like, the matcher is adapted under `event.message`
+
 #### `unlockOnOperation(operationKey, channelKey, description)`
 
 Materializes:
@@ -216,6 +222,12 @@ Materializes:
 - one `Conversation/Trigger Event` step emitting:
   - `PayNote/Capture Funds Requested`
 
+An explicit overload may bind to a concrete channel instead:
+
+- `requestOnEvent(channelKey, <matcher>, amountExpr?)`
+- materializes the workflow on `channelKey`
+- when `channelKey` is timeline-like, the matcher is adapted under `event.message`
+
 #### `requestOnOperation(operationKey, channelKey, description, amountExpr?)`
 
 Materializes:
@@ -226,7 +238,12 @@ Materializes:
 - implementation steps ending with a trigger-event step emitting:
   - `PayNote/Capture Funds Requested`
 
-Partial-request variants follow the same structure, but on the current public runtime the generated operation must expose `request: { type: Integer }`.
+Partial-request variants follow the same structure, including the explicit channel overload:
+
+- `requestPartialOnEvent(channelKey, <matcher>, amountExpr)`
+
+When `channelKey` is timeline-like, the matcher is adapted under `event.message`.
+On the current public runtime the generated operation variants still must expose `request: { type: Integer }`.
 
 ### `reserve()` family
 
