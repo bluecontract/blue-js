@@ -4,7 +4,7 @@
 |---|---|---|
 | `Common/Named Event` | supported | use the real repo type with instance `name` and root-level fields |
 | `Core/*` aliases | accepted adaptation | keep canonical prefixed aliases |
-| `onChannelEvent(...)` | supported | add positive runtime proof, remove limitation wording |
+| `onChannelEvent(...)` | supported | keep positive runtime proof and timeline-channel matcher wrapping |
 | `myOsAdminUpdate.request = List` | accepted adaptation | keep |
 | `requestId -> inResponseTo.requestId` | accepted adaptation | keep |
 | `grantSessionSubscriptionOnResult` | deferred/unsupported | keep unsupported |

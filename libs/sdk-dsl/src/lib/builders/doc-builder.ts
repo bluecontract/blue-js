@@ -1,4 +1,6 @@
 import { BlueNode } from '@blue-labs/language';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 import type { ZodTypeAny } from 'zod';
 
 import type {
@@ -77,6 +79,15 @@ const MYOS_ADMIN_UPDATE_DESCRIPTION =
 const MYOS_ADMIN_UPDATE_IMPL_DESCRIPTION =
   'Implementation that re-emits the provided events';
 const MYOS_ADMIN_REEMIT_CODE = 'return { events: event.message.request };';
+const TIMELINE_ENTRY_TYPE_BLUE_IDS = new Set([
+  conversationBlueIds['Conversation/Timeline Entry'],
+  myosBlueIds['MyOS/MyOS Timeline Entry'],
+]);
+const TIMELINE_CHANNEL_TYPE_BLUE_IDS = new Set([
+  conversationBlueIds['Conversation/Timeline Channel'],
+  conversationBlueIds['Conversation/Composite Timeline Channel'],
+  myosBlueIds['MyOS/MyOS Timeline Channel'],
+]);
 
 type OperationState = {
   readonly key: string;
@@ -883,7 +894,7 @@ export class DocBuilder {
     return this.applySequentialWorkflow(
       key,
       normalizedChannel,
-      new BlueNode().setType(resolveTypeInput(eventType, 'event type')),
+      this.resolveChannelEventMatcher(normalizedChannel, eventType),
       customizer,
     );
   }
@@ -1281,6 +1292,64 @@ export class DocBuilder {
       this.document,
       normalizeRequiredPointer(path, 'field path'),
     );
+  }
+
+  private resolveChannelEventMatcher(
+    channelKey: string,
+    eventType: TypeInput,
+  ): BlueNode {
+    const matcher = new BlueNode().setType(
+      resolveTypeInput(eventType, 'event type'),
+    );
+    const channelContract = getContract(this.document, channelKey);
+    if (!this.isTimelineLikeChannel(channelContract)) {
+      return matcher;
+    }
+    if (this.isTimelineEntryMatcher(matcher)) {
+      return matcher;
+    }
+
+    // Timeline-like channels deliver the full entry to workflow handlers.
+    return new BlueNode().addProperty('message', matcher);
+  }
+
+  private isTimelineLikeChannel(channelContract: BlueNode | null): boolean {
+    const channelType = channelContract?.getType();
+    if (!channelType) {
+      return false;
+    }
+
+    return (
+      this.matchesTypeBlueId(channelType, TIMELINE_CHANNEL_TYPE_BLUE_IDS) ||
+      channelType.getValue() === 'Conversation/Timeline Channel' ||
+      channelType.getValue() === 'Conversation/Composite Timeline Channel' ||
+      channelType.getValue() === 'MyOS/MyOS Timeline Channel'
+    );
+  }
+
+  private isTimelineEntryMatcher(matcher: BlueNode): boolean {
+    if (matcher.getProperties()?.message) {
+      return true;
+    }
+
+    const matcherType = matcher.getType();
+    if (!matcherType) {
+      return false;
+    }
+
+    return (
+      this.matchesTypeBlueId(matcherType, TIMELINE_ENTRY_TYPE_BLUE_IDS) ||
+      matcherType.getValue() === 'Conversation/Timeline Entry' ||
+      matcherType.getValue() === 'MyOS/MyOS Timeline Entry'
+    );
+  }
+
+  private matchesTypeBlueId(
+    typeNode: BlueNode,
+    expectedBlueIds: ReadonlySet<string>,
+  ): boolean {
+    const blueId = typeNode.getBlueId();
+    return typeof blueId === 'string' && expectedBlueIds.has(blueId);
   }
 
   private applyAccessState(state: AccessState): this {

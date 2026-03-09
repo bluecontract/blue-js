@@ -170,4 +170,46 @@ contracts:
 `,
     );
   });
+
+  it('wraps onChannelEvent message matchers for timeline channels', () => {
+    const fromDsl = DocBuilder.doc()
+      .name('Timeline channel event parity')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'timeline-1',
+      })
+      .field('/counter', 0)
+      .onChannelEvent(
+        'onOwnerMessage',
+        'ownerChannel',
+        'Conversation/Chat Message',
+        (steps) => steps.replaceValue('SetCounter', '/counter', 1),
+      )
+      .buildDocument();
+
+    assertDslMatchesYaml(
+      fromDsl,
+      `
+name: Timeline channel event parity
+counter: 0
+contracts:
+  ownerChannel:
+    type: Conversation/Timeline Channel
+    timelineId: timeline-1
+  onOwnerMessage:
+    type: Conversation/Sequential Workflow
+    channel: ownerChannel
+    event:
+      message:
+        type: Conversation/Chat Message
+    steps:
+      - name: SetCounter
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: 1
+`,
+    );
+  });
 });

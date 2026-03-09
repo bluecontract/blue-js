@@ -10,9 +10,9 @@
 - [x] remove obsolete deviations
 
 ## Cycle 2 — onChannelEvent
-- [ ] re-audit implementation
-- [ ] add positive runtime proof
-- [ ] remove limitation wording from docs/deviations
+- [x] re-audit implementation
+- [x] add positive runtime proof
+- [x] remove limitation wording from docs/deviations
 
 ## Cycle 3 — Unsupported compatibility options
 - [ ] `subscribeToCreatedSessions(true)` fail-fast

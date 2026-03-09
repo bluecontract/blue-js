@@ -215,7 +215,7 @@ return {
     );
   });
 
-  it('preserves the current runtime limitation for onChannelEvent message matchers on timeline channels', async () => {
+  it('reacts to timeline channel chat messages via onChannelEvent workflows', async () => {
     const timelineId = 'owner-timeline-42';
     const built = DocBuilder.doc()
       .name('On channel event integration')
@@ -246,6 +246,41 @@ return {
       event,
     });
 
-    expect(String(processed.document.get('/status'))).toBe('idle');
+    expect(String(processed.document.get('/status'))).toBe('seen');
+  });
+
+  it('reacts to MyOS timeline channel named events via onChannelEvent workflows', async () => {
+    const timelineId = 'owner-timeline-99';
+    const built = DocBuilder.doc()
+      .name('On channel named event integration')
+      .field('/status', 'idle')
+      .channel('ownerChannel', {
+        type: 'MyOS/MyOS Timeline Channel',
+        timelineId,
+      })
+      .onChannelEvent(
+        'onOwnerSignal',
+        'ownerChannel',
+        'Common/Named Event',
+        (steps) => steps.replaceValue('SetStatus', '/status', 'named'),
+      )
+      .buildDocument();
+
+    const initialized = await initializeDocument(built);
+    const event = makeTimelineEntryEvent(initialized.blue, {
+      timelineId,
+      message: {
+        type: 'Common/Named Event',
+        name: 'READY',
+        source: 'timeline',
+      },
+    });
+    const processed = await processExternalEvent({
+      processor: initialized.processor,
+      document: initialized.document,
+      event,
+    });
+
+    expect(String(processed.document.get('/status'))).toBe('named');
   });
 });

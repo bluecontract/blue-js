@@ -58,11 +58,8 @@ Coverage:
 - `updateDocumentFromExpression(...)`
 - bootstrap request emission
 - bootstrap request emission from `bootstrapDocumentExpr(...)`
+- `onChannelEvent(...)` on timeline-like channels with message-type matching
 - stage-1 counter vertical slice
-
-### 4. Deviation regression tests
-Every accepted deviation is paired with a focused test:
-- `onChannelEvent(...)` public-runtime limitation coverage
 
 ## Java traceability
 Each TypeScript test file starts with a short comment listing the Java source file(s) it ports or adapts.
@@ -82,10 +79,10 @@ Stage-2 Java cases covered:
   - `extRejectsNullFactoriesAndNullExtensions`
   - `extSupportsCustomStepExtensions`
 
-## Public-runtime limitation handling
-- `onChannelEvent(...)` keeps parity coverage
-- the current public processor does not expose a clean positive runtime path for timeline-message matcher dispatch
-- instead of fabricating a green-path harness, the suite records the limitation as a documented deviation plus a regression test
+## Timeline channel handling
+- `onChannelEvent(...)` keeps the Java-style public API
+- when the bound channel is timeline-like, the SDK adapts the matcher to the channelized timeline-entry shape used by the current public runtime
+- runtime tests cover both `Conversation/Timeline Channel` and `MyOS/MyOS Timeline Channel` with underlying message-type matching
 
 ## Required verification
 ```bash

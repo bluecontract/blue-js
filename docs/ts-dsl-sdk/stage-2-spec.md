@@ -60,7 +60,9 @@ When Java and runtime disagree, the SDK keeps the runtime-correct behavior, reco
 - The generated channel stores the provided `path` string.
 - The workflow is emitted as `Conversation/Sequential Workflow` bound to that generated channel with event type `Core/Document Update`.
 
-- `onChannelEvent(...)` writes a `Conversation/Sequential Workflow` bound to the provided channel key and uses the provided stage-1 `TypeInput` as the workflow event matcher.
+- `onChannelEvent(...)` writes a `Conversation/Sequential Workflow` bound to the provided channel key.
+- For ordinary channels, the workflow-level `event` matcher uses the provided stage-1 `TypeInput` directly.
+- For timeline-like channels (`Conversation/Timeline Channel`, `Conversation/Composite Timeline Channel`, `MyOS/MyOS Timeline Channel`), the SDK materializes the matcher against the channelized timeline entry `message`, so a type such as `Conversation/Chat Message` becomes `event.message.type = Conversation/Chat Message`.
 - The SDK does not silently replace the channel contract at that key.
 
 ### Step contracts
@@ -124,6 +126,5 @@ Stage-2 payloads, bootstrap documents, changeset values, and matcher payloads su
 
 ## Current deviations
 - processor-managed Java shorthand aliases are emitted with runtime-correct `Core/*` aliases
-- `onChannelEvent(...)` does not have a clean positive runtime path for timeline-message matchers through the current public processor API
 
 See `stage-2-deviations.md` for the confirmed details and regression coverage.
