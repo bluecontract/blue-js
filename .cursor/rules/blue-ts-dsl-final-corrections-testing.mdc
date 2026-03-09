@@ -1,0 +1,38 @@
+---
+description: Testing and verification discipline for final corrections
+globs:
+  - libs/sdk-dsl/src/**
+  - libs/sdk-dsl/vite.config.ts
+  - docs/ts-dsl-sdk/**
+alwaysApply: false
+---
+
+# Final Corrections — Testing & Verification
+
+## Required testing expectations
+- Add positive runtime proof where a previously claimed limitation is no longer real
+- Remove parity-only claims when runtime is now supported
+- Keep canonical scenario coverage green
+- Update stage-specific tests where named-event/runtime semantics changed
+- Add regression tests for unsupported/fail-fast behavior where appropriate
+
+## Required verification
+Run after each logical correction cycle:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+## Commit discipline
+After each completed correction cycle:
+- commit with a conventional commit message
+- keep subject <= 72 chars
+- keep commits focused and reviewable
+
+## Final review
+Before stopping:
+- critically review your own changes
+- fix issues you find
+- ensure docs and deviations match the real implementation

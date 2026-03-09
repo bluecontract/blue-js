@@ -1,0 +1,43 @@
+---
+description: Final corrections pass for sdk-dsl
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/**
+  - .cursor/rules/**
+alwaysApply: false
+---
+
+# Blue TS DSL SDK — Final Corrections Pass
+
+## Objective
+Push the current mainline `libs/sdk-dsl` as close to 10/10 as practical without widening scope.
+
+## Source of truth priority
+1. Current public runtime behavior
+2. `@blue-repository/types@0.21.0`
+3. Canonical scenarios + current stage tests
+4. Final mapping/materialization docs
+5. Java SDK only where there is no conflict
+
+## Corrections in scope
+- Real `Common/Named Event` support
+- Correct `onChannelEvent(...)` understanding + positive proof
+- Unsupported compatibility methods must fail fast
+- Remove artificial request schemas from operation-triggered PayNote branches where runtime does not require them
+- Reconcile Stage 6 event-driven channel semantics
+- Clean docs/deviations accordingly
+
+## Out of scope
+- `myos-js` companion intake
+- external-consumer / lcloud runtime proof
+- transport/API SDK work
+- new product areas
+- broad redesigns
+
+## Guardrails
+- Do not weaken tests
+- Do not keep obsolete deviations once runtime/types support the feature
+- Do not silently no-op unsupported API options
+- Prefer explicit unsupported/fail-fast behavior
+- Keep public API source-compatible unless converting a no-op into explicit unsupported behavior
+- Keep aliases canonical with namespace prefixes (e.g. `Core/*`)

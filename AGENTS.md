@@ -23,5 +23,5 @@ Example commands (adjust to your workspace):
 
 ### Important rules
 Read and adhere to defined cursor rules:
-- .cursor/rules/blue-ts-dsl-master-plan.mdc
-- .cursor/rules/blue-ts-dsl-master-quality.mdc
+- .cursor/rules/blue-ts-dsl-final-corrections.mdc
+- .cursor/rules/blue-ts-dsl-final-corrections-testing.mdc

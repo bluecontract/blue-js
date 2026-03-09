@@ -1,0 +1,260 @@
+Work on the current `blue-js` mainline branch for `libs/sdk-dsl`.
+
+This is a focused final-corrections pass intended to pull the SDK as close to 10/10 as practical.
+Do NOT widen scope into new product areas.
+Do NOT rewrite the SDK from scratch.
+Do NOT regress Stages 1–7.
+
+Read first:
+- AGENTS.md
+- docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md
+- docs/ts-dsl-sdk/complex-flow-materialization-reference.md
+- docs/ts-dsl-sdk/editing-materialization-reference.md
+- docs/ts-dsl-sdk/canonical-scenarios/overview.md
+- docs/ts-dsl-sdk/canonical-scenarios/manifest.md
+- docs/ts-dsl-sdk/master-improvement/master-improvement-plan.md
+- docs/ts-dsl-sdk/master-improvement/scorecard.md
+- docs/ts-dsl-sdk/final-corrections/final-corrections-spec.md
+- docs/ts-dsl-sdk/final-corrections/final-corrections-checklist.md
+- docs/ts-dsl-sdk/final-corrections/final-corrections-decisions.md
+
+This prompt is stored in blue-js/cursor-final-corrections-prompt.txt for future reference.
+
+
+Source-of-truth priority for this pass:
+1. current public runtime behavior
+2. `@blue-repository/types@0.21.0`
+3. current canonical scenarios and stage tests
+4. final DSL mapping/materialization docs
+5. Java SDK only where it does not conflict with the current runtime/types
+
+Mission:
+Implement the correction items listed below, keep verification green after each logical step, and critically review/fix your own work before declaring completion.
+
+Execution protocol:
+For each correction cycle:
+- implement the full scoped change
+- add or update tests with strong coverage
+- run full verification
+- ensure no regression for existing scope
+- critically review the change and improve/fix issues
+- update docs/deviations if needed
+- commit with a proper conventional commit message (72 chars max)
+- move to the next correction cycle
+
+Non-negotiable rules:
+- Do not weaken tests.
+- Do not leave behavior ambiguous if the runtime/types clarify it.
+- Do not keep an accepted deviation if it is now supported by `@blue-repository/types@0.21.0` or the current runtime.
+- Do not introduce private provenance or references to private repos.
+- Do not widen scope into `myos-js` intake or external-consumer proof work.
+- Keep public APIs source-compatible unless a method is being tightened into explicit unsupported/fail-fast behavior.
+
+====================
+CORRECTION CYCLE 1 — Named Event support on current types/runtime
+====================
+
+Goal:
+Use real `Common/Named Event` support from `@blue-repository/types@0.21.0`.
+
+Required changes:
+1. Ensure the workspace uses `@blue-repository/types@0.21.0` if not already.
+2. Replace any fallback mapping of named events to `Conversation/Event`.
+3. Ensure named-event documents/helpers use root-level fields, not `payload`.
+4. Update Stage 2 and Stage 5 implementations and tests:
+   - `onNamedEvent(...)`
+   - AI named-event response matching
+5. Remove or rewrite deviations/docs that still claim named-event runtime limitation if it is no longer true.
+
+Acceptance:
+- Named events materialize as `Common/Named Event`.
+- Fields are on the event root.
+- Positive runtime tests exist where the current runtime supports them.
+- No remaining docs say that named-event support is parity-only if it is now runtime-confirmed.
+
+====================
+CORRECTION CYCLE 2 — Fix `onChannelEvent(...)` understanding and proof
+====================
+
+Goal:
+Treat `onChannelEvent(...)` as a supported timeline-channel matcher path, not as an inherent runtime limitation.
+
+Final intended understanding:
+A workflow can declare:
+- `channel: <timelineChannel>`
+- `event: <message/event matcher>`
+and the processor will unwrap the timeline entry and match the real underlying event/message type.
+
+Required changes:
+1. Re-audit the implementation of `onChannelEvent(...)`.
+2. If the implementation already materializes the correct shape, keep code minimal and focus on tests/docs.
+3. If the implementation incorrectly routes through `triggeredEventChannel` or a wrong matcher envelope, fix it.
+4. Add positive runtime tests that prove examples like:
+   - timeline channel + `Conversation/Chat Message`
+   - timeline channel + another representative event/message type
+5. Remove or rewrite any docs/deviations that still describe `onChannelEvent(...)` as a runtime limitation.
+
+Acceptance:
+- `onChannelEvent(...)` is treated as supported.
+- Positive runtime proof exists.
+- Docs/mapping/deviations reflect the corrected understanding.
+
+====================
+CORRECTION CYCLE 3 — Unsupported compatibility methods must fail fast
+====================
+
+Goal:
+Methods that are exposed for parity/compatibility but are not currently supported must be explicit unsupported/fail-fast, not silent no-ops.
+
+Required changes:
+1. Change `subscribeToCreatedSessions(true)` from compatibility-only/non-materializing behavior to explicit unsupported/fail-fast behavior.
+2. Ensure docs state clearly that:
+   - the method exists for API-shape compatibility
+   - the behavior is unsupported on the current public runtime
+3. Keep `grantSessionSubscriptionOnResult` unsupported/deferred.
+4. Review any similar "compatibility-only / non-materializing" surfaces and either:
+   - make them supported, OR
+   - make them explicit unsupported/fail-fast
+
+Acceptance:
+- No silent no-op remains for unsupported Stage 3/4 orchestration options.
+- Users/LLMs get a clear failure instead of silently generating incomplete documents.
+
+====================
+CORRECTION CYCLE 4 — PayNote operation-triggered branch schemas
+====================
+
+Goal:
+Do not force artificial `Boolean` / `Integer` request schemas on operation-triggered PayNote macro branches if the runtime accepts omitted request schema for "any / empty" semantics.
+
+User-provided direction:
+If an operation should accept any Blue node, including empty, the operation request should normally be omitted rather than forced to `Boolean`/`Integer`.
+
+Representative shape:
+```yaml
+sendPayNote:
+  type: Conversation/Operation
+  channel: merchantChannel
+  description: Submit a PayNote Delivery for processing.
+
+sendPayNoteImpl:
+  type: Conversation/Sequential Workflow Operation
+  operation: sendPayNote
+  steps:
+    - name: Request Delivery Bootstrap
+      type: Conversation/JavaScript Code
+      code: |
+        return {
+          events: [
+            event.message.request
+          ]
+        };
+```
+
+Required changes:
+1. Re-verify the current runtime semantics for operation-triggered macro branches.
+2. For generic trigger branches (e.g. unlock/request on operation), prefer omitting `request` entirely when the semantics are "accept any/empty".
+3. Re-check partial-amount branches:
+   - if runtime proof shows they also work with omitted `request`, prefer omission
+   - only keep explicit request schema if there is runtime-confirmed necessity
+4. Remove the previous assumption that `Boolean` or `Integer` schemas are required by default.
+5. Update Stage 6 tests/docs/deviations accordingly.
+
+Acceptance:
+- Operation-triggered PayNote branches no longer force artificial request schemas where omission is runtime-correct.
+- Tests prove the chosen behavior.
+- Docs match the actual runtime-confirmed semantics.
+
+====================
+CORRECTION CYCLE 5 — Event-driven Stage 6 channel semantics
+====================
+
+Goal:
+Ensure event-driven Stage 6 helpers support the correct channel semantics.
+
+Final understanding:
+- Every event arrives on some channel.
+- Defaulting to `triggeredEventChannel` is valid only when that is the intended source.
+- The DSL should also allow explicitly choosing the listening channel, so the workflow can listen on a concrete timeline channel with an event filter.
+
+Required changes:
+1. Re-audit event-driven Stage 6 macro helpers such as:
+   - `unlockOnEvent(...)`
+   - `requestOnEvent(...)`
+   - doc-path/event-driven related branches
+2. Verify whether the current API/implementation already allows explicit channel choice.
+3. If not, add a channel-aware API path while preserving current defaults:
+   - keep current default behavior where appropriate
+   - add a way to specify the channel explicitly
+4. Add tests for:
+   - default `triggeredEventChannel` behavior
+   - explicit timeline-channel behavior with event matcher
+5. Update docs/materialization references to describe the default + explicit-channel behavior clearly.
+
+Acceptance:
+- Stage 6 event-driven macros have correct channel semantics.
+- Tests prove both default and explicit-channel cases where supported.
+- Docs no longer blur "event source" and "default triggered channel".
+
+====================
+CORRECTION CYCLE 6 — Final docs/deviation reconciliation
+====================
+
+Goal:
+After implementation, reconcile all docs/deviations so they reflect the real final state.
+
+Required changes:
+1. Update:
+   - `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+   - `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
+   - relevant stage deviation docs (`stage-2`, `stage-3`, `stage-5`, `stage-6`)
+2. Remove deviations that are no longer true.
+3. Keep only true unsupported/deferred items, such as:
+   - `grantSessionSubscriptionOnResult`
+   - reserve/release lock helpers
+   - `requestBackwardPayment(...)` if still not runtime-confirmed
+4. Ensure docs clearly distinguish:
+   - supported runtime behavior
+   - accepted runtime adaptations
+   - truly unsupported/deferred functionality
+
+Acceptance:
+- Deviation docs are current and minimal.
+- Public docs describe the final supported behavior clearly.
+
+====================
+DESIRABLE BUT OPTIONAL MINI-CLEANUP
+====================
+
+If it is trivial and low-risk, also add one regression test for a user field named:
+- `$sdkDslEnvelope`
+to further strengthen Stage 7 collision-safety coverage.
+
+Do not let this distract from the main correction cycles.
+
+====================
+REQUIRED VERIFICATION
+====================
+
+After each logical correction cycle and again at the end, run:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+Completion criteria:
+- all correction cycles implemented
+- all verification green
+- no regression in existing scope
+- docs/deviations reconciled
+- commits created per cycle with conventional commit messages (72-char max)
+- final self-review performed and issues fixed before stopping
+
+When done, report:
+- exact files changed
+- exact commits created
+- which prior deviations were removed
+- which unsupported items remain and why
+- final verification results
