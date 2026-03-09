@@ -41,6 +41,10 @@ They are mostly:
 - Stage A is complete on the current mainline:
   - public alias-style JSON export is available through `buildJson()` and `nodeToAliasJson(...)`
   - public `contract(...)` and `contracts(...)` helpers are available for normal contract insertion
+- Stage B is complete on the current mainline:
+  - generic parity helpers are available through `SimpleDocBuilder`
+  - change-lifecycle helper surface is available through `contractsPolicy(...)`, `directChange(...)`, `proposeChange(...)`, `acceptChange(...)`, and `rejectChange(...)`
+  - marker/link/emission helpers are available through `anchors(...)`, `links(...)`, and `canEmit(...)`
 
 ## Strategy
 

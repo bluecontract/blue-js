@@ -80,3 +80,62 @@ Use this file to track what is intentionally adopted from the alternative implem
   `libs/sdk-dsl/src/__tests__/DocBuilder.ergonomics.test.ts`,
   `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
   `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage B — SimpleDocBuilder
+
+- Source area in donor:
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/doc-builder/simple-doc-builder.ts`
+- Target area in mainline:
+  `libs/sdk-dsl/src/lib/builders/doc-builder.ts`
+- What was adopted:
+  public `SimpleDocBuilder` plus `DocBuilder.doc/edit/from()` returning that generic surface
+- How:
+  adapted and reimplemented
+- Why:
+  closes the generic Java parity entrypoint gap while keeping the current mainline builder implementation
+- Tests/docs added:
+  `libs/sdk-dsl/src/__tests__/DocBuilder.generic.parity.test.ts`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage B — change lifecycle helper surface
+
+- Source area in donor:
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/doc-builder/doc-builder.ts`
+- Target area in mainline:
+  `libs/sdk-dsl/src/lib/builders/doc-builder.ts`
+- What was adopted:
+  `contractsPolicy(...)`,
+  `directChange(...)`,
+  `proposeChange(...)`,
+  `acceptChange(...)`,
+  `rejectChange(...)`
+- How:
+  adapted and reimplemented
+- Why:
+  closes the main generic authoring gap for change-lifecycle contracts using repo-confirmed `Conversation/* Change *` shapes
+- Tests/docs added:
+  `libs/sdk-dsl/src/__tests__/DocBuilder.generic.parity.test.ts`,
+  `libs/sdk-dsl/src/__tests__/DocBuilder.generic.integration.test.ts`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage B — marker/link/emission helpers
+
+- Source area in donor:
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/doc-builder/doc-builder.ts`
+- Target area in mainline:
+  `libs/sdk-dsl/src/lib/builders/doc-builder.ts`
+- What was adopted:
+  `anchors(...)`,
+  `links(...)`,
+  `canEmit(...)`
+- How:
+  adapted and reimplemented
+- Why:
+  reduces raw contract insertion for common marker/link flows and closes the generic event-emission helper gap
+- Tests/docs added:
+  `libs/sdk-dsl/src/__tests__/DocBuilder.generic.parity.test.ts`,
+  `libs/sdk-dsl/src/__tests__/DocBuilder.generic.integration.test.ts`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`

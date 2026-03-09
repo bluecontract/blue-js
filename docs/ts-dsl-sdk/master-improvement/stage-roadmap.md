@@ -35,6 +35,9 @@ This removes the biggest migration pain from real external usage and gives immed
 
 ## Stage B — Generic authoring helpers and parity surface
 
+Status:
+- completed
+
 ### Scope
 - `SimpleDocBuilder`
 - change lifecycle helpers:
@@ -52,6 +55,19 @@ This removes the biggest migration pain from real external usage and gives immed
 - parity tests added or adapted
 - runtime proofs added where applicable
 - public docs explain runtime-confirmed deviations vs Java where needed
+
+### Delivered on mainline
+- `SimpleDocBuilder`
+- `contractsPolicy(...)`
+- `directChange(...)`
+- `proposeChange(...)`
+- `acceptChange(...)`
+- `rejectChange(...)`
+- `anchors(...)`
+- `links(...)`
+- `canEmit(...)`
+- parity coverage for generic builder, change lifecycle, marker/link helpers, and `canEmit(...)`
+- runtime coverage for `directChange(...)` and `canEmit(...)`
 
 ---
 

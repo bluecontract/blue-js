@@ -1,9 +1,11 @@
 import { BlueNode } from '@blue-labs/language';
+import type { ZodTypeAny } from 'zod';
 
 import type {
   AIResponseNamedEventMatcher,
   BlueValueInput,
   ContractLike,
+  EventPatternInput,
   FieldBuilder,
   OperationBuilder,
   TypeInput,
@@ -130,16 +132,16 @@ export class DocBuilder {
 
   protected constructor(private readonly document: BlueNode) {}
 
-  static doc(): DocBuilder {
-    return new DocBuilder(new BlueNode());
+  static doc(): SimpleDocBuilder {
+    return SimpleDocBuilder.doc();
   }
 
-  static edit(existingNode: BlueNode): DocBuilder {
-    return new DocBuilder(existingNode);
+  static edit(existingNode: BlueNode): SimpleDocBuilder {
+    return SimpleDocBuilder.edit(existingNode);
   }
 
-  static from(existingNode: BlueNode): DocBuilder {
-    return new DocBuilder(existingNode.clone());
+  static from(existingNode: BlueNode): SimpleDocBuilder {
+    return SimpleDocBuilder.from(existingNode);
   }
 
   static expr(expression: string): string {
@@ -245,6 +247,170 @@ export class DocBuilder {
     ensureContracts(this.document)[contractKey] = composite;
     this.trackContract(contractKey);
     return this;
+  }
+
+  canEmit(
+    channelKey: string,
+    ...allowedEventPatterns: EventPatternInput[]
+  ): this {
+    const normalizedChannel = requireNonEmpty(channelKey, 'channel key');
+    const operationKey = deriveEmitOperationKey(normalizedChannel);
+    const requestSchema = createListRequestSchema(
+      allowedEventPatterns.map((pattern) => toEmitAllowedItem(pattern)),
+    );
+
+    return this.operation(operationKey)
+      .channel(normalizedChannel)
+      .request(requestSchema)
+      .steps((steps) =>
+        steps.jsRaw('EmitEvents', 'return { events: event.message.request };'),
+      )
+      .done();
+  }
+
+  contractsPolicy(
+    requireSectionChanges = true,
+    contractKey = 'contractsPolicy',
+  ): this {
+    return this.contract(requireNonEmpty(contractKey, 'contract key'), {
+      type: 'Conversation/Contracts Change Policy',
+      requireSectionChanges,
+    });
+  }
+
+  directChange(
+    operationKey = 'changeDocument',
+    channelKey = 'ownerChannel',
+    description = 'Apply Conversation/Change Request directly',
+  ): this {
+    const normalizedOperationKey = requireNonEmpty(
+      operationKey,
+      'operation key',
+    );
+    const normalizedChannelKey = requireNonEmpty(channelKey, 'channel key');
+
+    this.contractsPolicy(true);
+    this.contract(normalizedOperationKey, {
+      type: 'Conversation/Change Operation',
+      channel: normalizedChannelKey,
+      description: requireNonEmpty(description, 'description'),
+      request: {
+        type: 'Conversation/Change Request',
+      },
+    });
+    return this.contract(
+      `${normalizedOperationKey}Impl`,
+      new BlueNode()
+        .setType(resolveTypeInput('Conversation/Change Workflow'))
+        .addProperty('operation', toBlueNode(normalizedOperationKey))
+        .addProperty(
+          'steps',
+          new BlueNode().setItems(
+            new StepsBuilder()
+              .jsRaw(
+                'CollectChangeset',
+                'const request = event?.message?.request ?? {}; return { changeset: request.changeset ?? [] };',
+              )
+              .updateDocumentFromExpression(
+                'ApplyChangeset',
+                'steps.CollectChangeset.changeset',
+              )
+              .build(),
+          ),
+        ),
+    );
+  }
+
+  proposeChange(
+    operationKey = 'proposeChange',
+    channelKey = 'ownerChannel',
+    postfix = '',
+  ): this {
+    return this.applyChangeLifecycleContractPair({
+      operationKey,
+      channelKey,
+      operationType: 'Conversation/Propose Change Operation',
+      workflowType: 'Conversation/Propose Change Workflow',
+      postfix,
+      includeRequest: true,
+    });
+  }
+
+  acceptChange(
+    operationKey = 'acceptChange',
+    channelKey = 'ownerChannel',
+    postfix = '',
+  ): this {
+    return this.applyChangeLifecycleContractPair({
+      operationKey,
+      channelKey,
+      operationType: 'Conversation/Accept Change Operation',
+      workflowType: 'Conversation/Accept Change Workflow',
+      postfix,
+      includeRequest: false,
+    });
+  }
+
+  rejectChange(
+    operationKey = 'rejectChange',
+    channelKey = 'ownerChannel',
+    postfix = '',
+  ): this {
+    return this.applyChangeLifecycleContractPair({
+      operationKey,
+      channelKey,
+      operationType: 'Conversation/Reject Change Operation',
+      workflowType: 'Conversation/Reject Change Workflow',
+      postfix,
+      includeRequest: false,
+    });
+  }
+
+  anchors(
+    anchorsInput: readonly string[] | Record<string, BlueValueInput>,
+    contractKey = 'anchors',
+  ): this {
+    const normalizedContractKey = requireNonEmpty(contractKey, 'contract key');
+    const contract = new BlueNode().setType(
+      resolveTypeInput('MyOS/Document Anchors'),
+    );
+
+    if (Array.isArray(anchorsInput)) {
+      for (const anchorName of anchorsInput) {
+        contract.addProperty(
+          requireNonEmpty(anchorName, 'anchor name'),
+          new BlueNode().setType(resolveTypeInput('MyOS/Document Anchor')),
+        );
+      }
+      return this.contract(normalizedContractKey, contract);
+    }
+
+    for (const [anchorName, anchorDefinition] of Object.entries(anchorsInput)) {
+      const node = toBlueNode(anchorDefinition);
+      if (!node.getType()) {
+        node.setType(resolveTypeInput('MyOS/Document Anchor'));
+      }
+      contract.addProperty(requireNonEmpty(anchorName, 'anchor name'), node);
+    }
+
+    return this.contract(normalizedContractKey, contract);
+  }
+
+  links(
+    linksInput: Record<string, BlueValueInput>,
+    contractKey = 'links',
+  ): this {
+    const normalizedContractKey = requireNonEmpty(contractKey, 'contract key');
+    const contract = new BlueNode().setType(
+      resolveTypeInput('MyOS/Document Links'),
+    );
+
+    for (const [linkName, linkDefinition] of Object.entries(linksInput)) {
+      const node = inferDocumentLinkType(toBlueNode(linkDefinition));
+      contract.addProperty(requireNonEmpty(linkName, 'link name'), node);
+    }
+
+    return this.contract(normalizedContractKey, contract);
   }
 
   section(key: string): this;
@@ -1049,6 +1215,44 @@ export class DocBuilder {
 
   buildJson(): Record<string, unknown> {
     return nodeToAliasJson(this.buildDocument()) as Record<string, unknown>;
+  }
+
+  private applyChangeLifecycleContractPair(options: {
+    readonly operationKey: string;
+    readonly channelKey: string;
+    readonly operationType: string;
+    readonly workflowType: string;
+    readonly postfix: string;
+    readonly includeRequest: boolean;
+  }): this {
+    const normalizedOperationKey = requireNonEmpty(
+      options.operationKey,
+      'operation key',
+    );
+    const normalizedChannelKey = requireNonEmpty(
+      options.channelKey,
+      'channel key',
+    );
+    const postfix = options.postfix.trim();
+
+    this.contractsPolicy(true);
+    this.contract(normalizedOperationKey, {
+      type: options.operationType,
+      channel: normalizedChannelKey,
+      ...(options.includeRequest
+        ? {
+            request: {
+              type: 'Conversation/Change Request',
+            },
+          }
+        : {}),
+    });
+
+    return this.contract(`${normalizedOperationKey}Impl`, {
+      type: options.workflowType,
+      operation: normalizedOperationKey,
+      ...(postfix.length > 0 ? { postfix } : {}),
+    });
   }
 
   private setTrackedPointer(path: string, node: BlueNode): this {
@@ -2484,6 +2688,112 @@ function createDefaultChannelContract(): BlueNode {
   return new BlueNode().setType(resolveTypeInput(DEFAULT_CHANNEL_TYPE));
 }
 
+function createListRequestSchema(items: readonly BlueNode[] = []): BlueNode {
+  const request = new BlueNode().setType(resolveTypeInput('List'));
+  if (items.length > 0) {
+    request.setItems([...items]);
+  }
+  return request;
+}
+
+function toEmitAllowedItem(pattern: EventPatternInput): BlueNode {
+  if (typeof pattern === 'string') {
+    return new BlueNode().setType(
+      resolveTypeInput(pattern, 'allowed event type'),
+    );
+  }
+
+  if (
+    pattern != null &&
+    typeof pattern === 'object' &&
+    'blueId' in pattern &&
+    typeof (pattern as { blueId?: unknown }).blueId === 'string' &&
+    Object.keys(pattern as Record<string, unknown>).length === 1
+  ) {
+    return new BlueNode().setType(
+      resolveTypeInput(pattern as { blueId: string }, 'allowed event type'),
+    );
+  }
+
+  if (isLikelyTypeSchema(pattern)) {
+    return new BlueNode().setType(
+      resolveTypeInput(pattern, 'allowed event type'),
+    );
+  }
+
+  return toBlueNode(pattern);
+}
+
+function deriveEmitOperationKey(channelKey: string): string {
+  if (channelKey.endsWith('Channel')) {
+    return `${channelKey.slice(0, -'Channel'.length)}Emit`;
+  }
+  return `${channelKey}Emit`;
+}
+
+function inferDocumentLinkType(node: BlueNode): BlueNode {
+  if (node.getType()) {
+    normalizeDocumentTypeProperty(node);
+    return node;
+  }
+
+  const properties = node.getProperties() ?? {};
+  if (properties.sessionId) {
+    node.setType(resolveTypeInput('MyOS/MyOS Session Link'));
+    normalizeDocumentTypeProperty(node);
+    return node;
+  }
+  if (properties.documentId) {
+    node.setType(resolveTypeInput('MyOS/Document Link'));
+    normalizeDocumentTypeProperty(node);
+    return node;
+  }
+  if (properties.documentType) {
+    node.setType(resolveTypeInput('MyOS/Document Type Link'));
+    normalizeDocumentTypeProperty(node);
+    return node;
+  }
+  normalizeDocumentTypeProperty(node);
+  return node;
+}
+
+function normalizeDocumentTypeProperty(node: BlueNode): void {
+  const documentType = node.getProperties()?.documentType;
+  if (!documentType) {
+    return;
+  }
+
+  if (
+    typeof documentType.getValue() === 'string' &&
+    documentType.getProperties() == null
+  ) {
+    node.addProperty(
+      'documentType',
+      new BlueNode().setType(
+        resolveTypeInput(documentType.getValue() as string, 'documentType'),
+      ),
+    );
+    return;
+  }
+
+  if (
+    !documentType.getType() &&
+    typeof documentType.getBlueId() === 'string' &&
+    documentType.getProperties() == null &&
+    documentType.getValue() == null
+  ) {
+    node.addProperty(
+      'documentType',
+      new BlueNode().setType(
+        resolveTypeInput(
+          { blueId: documentType.getBlueId() as string },
+          'documentType',
+        ),
+      ),
+    );
+  }
+}
+
 function filterTypeInputs(values: readonly TypeInput[]): TypeInput[] {
   return values.filter((value): value is TypeInput => value != null);
 }
@@ -2503,6 +2813,15 @@ function requireBlueValueInput(
   return toBlueNode(value);
 }
 
+function isLikelyTypeSchema(value: unknown): value is ZodTypeAny {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    typeof (value as { safeParse?: unknown }).safeParse === 'function' &&
+    '_def' in value
+  );
+}
+
 function requireNonEmpty(
   value: string | null | undefined,
   label: string,
@@ -2519,5 +2838,23 @@ function requireStepsCustomizer(
 ): asserts customizer is (steps: StepsBuilder) => void {
   if (typeof customizer !== 'function') {
     throw new Error('steps is required');
+  }
+}
+
+export class SimpleDocBuilder extends DocBuilder {
+  private constructor(document: BlueNode) {
+    super(document);
+  }
+
+  static override doc(): SimpleDocBuilder {
+    return new SimpleDocBuilder(new BlueNode());
+  }
+
+  static override edit(existingNode: BlueNode): SimpleDocBuilder {
+    return new SimpleDocBuilder(existingNode);
+  }
+
+  static override from(existingNode: BlueNode): SimpleDocBuilder {
+    return new SimpleDocBuilder(existingNode.clone());
   }
 }

@@ -30,6 +30,23 @@ Update it after every stage.
 - `contract(...)` and `contracts(...)` remove the need for normal `/contracts/...` pointer hacks and preserve section tracking.
 - Full `sdk-dsl` verification remained green after the surface addition, so ergonomics improved without runtime drift.
 
+## Current snapshot (after Stage B)
+
+| Category | After Stage A | Current | Target |
+|---|---:|---:|---:|
+| Java parity | 7/10 | 8/10 | 9–10/10 |
+| DSL/API ergonomics | 8/10 | 9/10 | 9–10/10 |
+| Runtime correctness | 9/10 | 9/10 | 9–10/10 |
+| Functional completeness | 8/10 | 9/10 | 9–10/10 |
+| Implementation/test quality | 8/10 | 8/10 | 9–10/10 |
+
+### Why Stage B moved the score
+
+- `SimpleDocBuilder` closes a long-standing Java parity gap without breaking the current mainline builder surface.
+- `contractsPolicy(...)`, `directChange(...)`, `proposeChange(...)`, `acceptChange(...)`, and `rejectChange(...)` close the generic change-lifecycle authoring gap on top of repo-confirmed contract types.
+- `anchors(...)`, `links(...)`, and `canEmit(...)` remove more raw fallback pressure and cover common marker/link/emission authoring directly.
+- Runtime proofs now exist for both `directChange(...)` and `canEmit(...)`, so the new surface is not parity-only.
+
 ## Target interpretation
 
 ### Java parity — 9–10/10 means
