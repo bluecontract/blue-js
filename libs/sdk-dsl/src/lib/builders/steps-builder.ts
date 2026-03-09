@@ -37,6 +37,7 @@ import type {
 } from '../internal/interactions';
 import { EMPTY_INTERACTION_CONFIG_REGISTRY } from '../internal/interactions';
 import { NodeObjectBuilder } from '../internal/node-object-builder';
+import { assertRepositoryTypeAliasAvailable } from '../internal/runtime-type-support';
 import { resolveTypeInput } from '../internal/type-input';
 import { toBlueNode } from '../internal/value-to-node';
 
@@ -57,6 +58,8 @@ type SimpleStepOptions = {
 type RevokeRequestOptions = SimpleStepOptions & {
   readonly reason?: string | null | undefined;
 };
+
+type PaymentStepCustomizer = (payload: PaymentRequestPayloadBuilder) => void;
 
 export class StepsBuilder {
   private readonly steps: BlueNode[] = [];
@@ -239,6 +242,72 @@ export class StepsBuilder {
     return new AISteps(this, this.requireAiIntegration(aiName));
   }
 
+  triggerPayment(
+    paymentEventType: TypeInput,
+    payloadCustomizer: PaymentStepCustomizer,
+  ): this;
+  triggerPayment(
+    stepName: string,
+    paymentEventType: TypeInput,
+    payloadCustomizer: PaymentStepCustomizer,
+  ): this;
+  triggerPayment(
+    stepNameOrType: string | TypeInput,
+    typeOrCustomizer: TypeInput | PaymentStepCustomizer,
+    maybeCustomizer?: PaymentStepCustomizer,
+  ): this {
+    const stepName =
+      typeof maybeCustomizer === 'function'
+        ? requireNonEmpty(stepNameOrType as string, 'step name')
+        : 'TriggerPayment';
+    const paymentEventType =
+      typeof maybeCustomizer === 'function'
+        ? (typeOrCustomizer as TypeInput)
+        : (stepNameOrType as TypeInput);
+    const payloadCustomizer =
+      typeof maybeCustomizer === 'function'
+        ? maybeCustomizer
+        : (typeOrCustomizer as PaymentStepCustomizer);
+
+    return this.emitPaymentRequest(
+      'triggerPayment',
+      stepName,
+      paymentEventType,
+      payloadCustomizer,
+    );
+  }
+
+  requestBackwardPayment(payloadCustomizer: PaymentStepCustomizer): this;
+  requestBackwardPayment(
+    stepName: string,
+    payloadCustomizer: PaymentStepCustomizer,
+  ): this;
+  requestBackwardPayment(
+    stepNameOrCustomizer: string | PaymentStepCustomizer,
+    maybeCustomizer?: PaymentStepCustomizer,
+  ): this {
+    const stepName =
+      typeof stepNameOrCustomizer === 'function'
+        ? 'RequestBackwardPayment'
+        : requireNonEmpty(stepNameOrCustomizer, 'step name');
+    const payloadCustomizer =
+      typeof stepNameOrCustomizer === 'function'
+        ? stepNameOrCustomizer
+        : maybeCustomizer;
+
+    assertRepositoryTypeAliasAvailable(
+      'PayNote/Backward Payment Requested',
+      'requestBackwardPayment',
+    );
+
+    return this.emitPaymentRequest(
+      'requestBackwardPayment',
+      stepName,
+      'PayNote/Backward Payment Requested',
+      payloadCustomizer,
+    );
+  }
+
   askAI(aiName: string, askCustomizer: (ask: AskAIBuilder) => void): this;
   askAI(
     aiName: string,
@@ -318,6 +387,350 @@ export class StepsBuilder {
       );
     }
     return config;
+  }
+
+  private emitPaymentRequest(
+    context: string,
+    stepName: string,
+    paymentEventType: TypeInput,
+    payloadCustomizer: PaymentStepCustomizer | undefined,
+  ): this {
+    if (typeof payloadCustomizer !== 'function') {
+      throw new Error(`${context} requires a payload customizer`);
+    }
+
+    const payload = new PaymentRequestPayloadBuilder();
+    payloadCustomizer(payload);
+
+    const processor = payload.processorName();
+    if (!processor) {
+      throw new Error('triggerPayment requires non-empty processor field');
+    }
+
+    const eventNode = payload.build().clone();
+    eventNode.setType(resolveTypeInput(paymentEventType));
+    return this.triggerEvent(stepName, eventNode);
+  }
+}
+
+abstract class PaymentRailBuilderBase<TParent> {
+  constructor(protected readonly parent: TParent) {}
+
+  done(): TParent {
+    return this.parent;
+  }
+}
+
+export class AchRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  routingNumber(value: BlueValueInput): this {
+    this.parent.putCustom('routingNumber', value);
+    return this;
+  }
+
+  accountNumber(value: BlueValueInput): this {
+    this.parent.putCustom('accountNumber', value);
+    return this;
+  }
+
+  accountType(value: BlueValueInput): this {
+    this.parent.putCustom('accountType', value);
+    return this;
+  }
+
+  network(value: BlueValueInput): this {
+    this.parent.putCustom('network', value);
+    return this;
+  }
+
+  companyEntryDescription(value: BlueValueInput): this {
+    this.parent.putCustom('companyEntryDescription', value);
+    return this;
+  }
+}
+
+export class SepaRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  ibanFrom(value: BlueValueInput): this {
+    this.parent.putCustom('ibanFrom', value);
+    return this;
+  }
+
+  ibanTo(value: BlueValueInput): this {
+    this.parent.putCustom('ibanTo', value);
+    return this;
+  }
+
+  bicTo(value: BlueValueInput): this {
+    this.parent.putCustom('bicTo', value);
+    return this;
+  }
+
+  remittanceInformation(value: BlueValueInput): this {
+    this.parent.putCustom('remittanceInformation', value);
+    return this;
+  }
+}
+
+export class WireRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  bankSwift(value: BlueValueInput): this {
+    this.parent.putCustom('bankSwift', value);
+    return this;
+  }
+
+  bankName(value: BlueValueInput): this {
+    this.parent.putCustom('bankName', value);
+    return this;
+  }
+
+  accountNumber(value: BlueValueInput): this {
+    this.parent.putCustom('accountNumber', value);
+    return this;
+  }
+
+  beneficiaryName(value: BlueValueInput): this {
+    this.parent.putCustom('beneficiaryName', value);
+    return this;
+  }
+
+  beneficiaryAddress(value: BlueValueInput): this {
+    this.parent.putCustom('beneficiaryAddress', value);
+    return this;
+  }
+}
+
+export class CardRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  cardOnFileRef(value: BlueValueInput): this {
+    this.parent.putCustom('cardOnFileRef', value);
+    return this;
+  }
+
+  merchantDescriptor(value: BlueValueInput): this {
+    this.parent.putCustom('merchantDescriptor', value);
+    return this;
+  }
+}
+
+export class TokenizedCardRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  networkToken(value: BlueValueInput): this {
+    this.parent.putCustom('networkToken', value);
+    return this;
+  }
+
+  tokenProvider(value: BlueValueInput): this {
+    this.parent.putCustom('tokenProvider', value);
+    return this;
+  }
+
+  cryptogram(value: BlueValueInput): this {
+    this.parent.putCustom('cryptogram', value);
+    return this;
+  }
+}
+
+export class CreditLineRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  creditLineId(value: BlueValueInput): this {
+    this.parent.putCustom('creditLineId', value);
+    return this;
+  }
+
+  merchantAccountId(value: BlueValueInput): this {
+    this.parent.putCustom('merchantAccountId', value);
+    return this;
+  }
+
+  cardholderAccountId(value: BlueValueInput): this {
+    this.parent.putCustom('cardholderAccountId', value);
+    return this;
+  }
+}
+
+export class LedgerRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  ledgerAccountFrom(value: BlueValueInput): this {
+    this.parent.putCustom('ledgerAccountFrom', value);
+    return this;
+  }
+
+  ledgerAccountTo(value: BlueValueInput): this {
+    this.parent.putCustom('ledgerAccountTo', value);
+    return this;
+  }
+
+  memo(value: BlueValueInput): this {
+    this.parent.putCustom('memo', value);
+    return this;
+  }
+}
+
+export class CryptoRailBuilder<
+  TParent extends PaymentRequestPayloadBuilder,
+> extends PaymentRailBuilderBase<TParent> {
+  asset(value: BlueValueInput): this {
+    this.parent.putCustom('asset', value);
+    return this;
+  }
+
+  chain(value: BlueValueInput): this {
+    this.parent.putCustom('chain', value);
+    return this;
+  }
+
+  fromWalletRef(value: BlueValueInput): this {
+    this.parent.putCustom('fromWalletRef', value);
+    return this;
+  }
+
+  toAddress(value: BlueValueInput): this {
+    this.parent.putCustom('toAddress', value);
+    return this;
+  }
+
+  txPolicy(value: BlueValueInput): this {
+    this.parent.putCustom('txPolicy', value);
+    return this;
+  }
+}
+
+export class PaymentRequestPayloadBuilder {
+  private readonly payload = NodeObjectBuilder.create();
+  private processorValue: string | null = null;
+
+  processor(processor: string): this {
+    this.processorValue = requireNonEmpty(processor, 'processor');
+    this.payload.put('processor', this.processorValue);
+    return this;
+  }
+
+  payer(payer: BlueValueInput): this {
+    this.payload.putNode('payer', payer);
+    return this;
+  }
+
+  payee(payee: BlueValueInput): this {
+    this.payload.putNode('payee', payee);
+    return this;
+  }
+
+  from(from: BlueValueInput): this {
+    this.payload.putNode('from', from);
+    return this;
+  }
+
+  to(to: BlueValueInput): this {
+    this.payload.putNode('to', to);
+    return this;
+  }
+
+  currency(currency: string): this {
+    this.payload.put('currency', requireNonEmpty(currency, 'currency'));
+    return this;
+  }
+
+  amountMinor(amountMinor: number): this {
+    this.payload.put('amountMinor', amountMinor);
+    return this;
+  }
+
+  amountMinorExpression(expression: string): this {
+    this.payload.putExpression('amountMinor', expression);
+    return this;
+  }
+
+  attachPayNote(payNote: BlueValueInput): this {
+    this.payload.putNode('attachedPayNote', payNote);
+    return this;
+  }
+
+  reason(reason: string): this {
+    this.payload.put('reason', requireNonEmpty(reason, 'reason'));
+    return this;
+  }
+
+  viaAch(): AchRailBuilder<this> {
+    return new AchRailBuilder(this);
+  }
+
+  viaSepa(): SepaRailBuilder<this> {
+    return new SepaRailBuilder(this);
+  }
+
+  viaWire(): WireRailBuilder<this> {
+    return new WireRailBuilder(this);
+  }
+
+  viaCard(): CardRailBuilder<this> {
+    return new CardRailBuilder(this);
+  }
+
+  viaTokenizedCard(): TokenizedCardRailBuilder<this> {
+    return new TokenizedCardRailBuilder(this);
+  }
+
+  viaCreditLine(): CreditLineRailBuilder<this> {
+    return new CreditLineRailBuilder(this);
+  }
+
+  viaLedger(): LedgerRailBuilder<this> {
+    return new LedgerRailBuilder(this);
+  }
+
+  viaCrypto(): CryptoRailBuilder<this> {
+    return new CryptoRailBuilder(this);
+  }
+
+  ext<TExtension>(
+    extensionFactory: (payload: PaymentRequestPayloadBuilder) => TExtension,
+  ): TExtension {
+    if (extensionFactory == null) {
+      throw new Error('extensionFactory cannot be null');
+    }
+
+    const extension = extensionFactory(this);
+    if (extension == null) {
+      throw new Error('extensionFactory cannot return null');
+    }
+
+    return extension;
+  }
+
+  putCustom(key: string, value: BlueValueInput): this {
+    const normalized = requireNonEmpty(key, 'custom key');
+    if (normalized === 'processor') {
+      throw new Error('Use processor(...) to set processor');
+    }
+
+    this.payload.putNode(normalized, value);
+    return this;
+  }
+
+  putCustomExpression(key: string, expression: string): this {
+    const normalized = requireNonEmpty(key, 'custom key');
+    if (normalized === 'processor') {
+      throw new Error('Use processor(...) to set processor');
+    }
+
+    this.payload.putExpression(normalized, expression);
+    return this;
+  }
+
+  build(): BlueNode {
+    return this.payload.build();
+  }
+
+  processorName(): string | null {
+    return this.processorValue;
   }
 }
 

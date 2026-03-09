@@ -42,6 +42,8 @@ When Java POC and the public mapping/runtime differ, Stage 6 follows the public 
 
 ### Typed PayNote step helpers
 
+- `steps.triggerPayment(...)`
+- `steps.requestBackwardPayment(...)`
 - `steps.paynote().reserveFundsRequested(...)`
 - `steps.paynote().captureFundsRequested(...)`
 - `steps.paynote().reserveFundsAndCaptureImmediatelyRequested(...)`
@@ -96,6 +98,8 @@ The typed builders set the correct document type and expose only repo-confirmed 
 
 The typed step helpers are thin wrappers over the existing Stage 2 trigger-event APIs. They do not introduce a new runtime abstraction.
 
+`steps.triggerPayment(...)` adds a thin generic payment-emission convenience layer with a shared `PaymentRequestPayloadBuilder` and rail-specific builders. `steps.requestBackwardPayment(...)` uses the same payload builder but is guarded by runtime repository alias availability.
+
 ### Macro materialization
 
 The `capture()/reserve()/release()` families materialize normal Conversation contracts using deterministic keys.
@@ -112,6 +116,8 @@ Runtime-confirmed Stage 6 rules:
 ### Unsupported subset
 
 The public repo does not currently confirm native reserve/release lock and unlock event types. Stage 6 therefore does not materialize reserve/release lock helpers and treats them as documented deviations.
+
+The public repo also does not currently expose `PayNote/Backward Payment Requested`, so `requestBackwardPayment(...)` fails clearly instead of materializing an unresolved event type.
 
 ## Acceptance scenarios covered
 

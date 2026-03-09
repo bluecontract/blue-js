@@ -47,6 +47,23 @@ Update it after every stage.
 - `anchors(...)`, `links(...)`, and `canEmit(...)` remove more raw fallback pressure and cover common marker/link/emission authoring directly.
 - Runtime proofs now exist for both `directChange(...)` and `canEmit(...)`, so the new surface is not parity-only.
 
+## Current snapshot (after Stage C)
+
+| Category | After Stage B | Current | Target |
+|---|---:|---:|---:|
+| Java parity | 8/10 | 9/10 | 9–10/10 |
+| DSL/API ergonomics | 9/10 | 9/10 | 9–10/10 |
+| Runtime correctness | 9/10 | 9/10 | 9–10/10 |
+| Functional completeness | 9/10 | 9/10 | 9–10/10 |
+| Implementation/test quality | 8/10 | 8/10 | 9–10/10 |
+
+### Why Stage C moved the score
+
+- `triggerPayment(...)` closes the thin payment-emission convenience gap without introducing a second macro layer next to the Stage 6 PayNote builders.
+- `PaymentRequestPayloadBuilder` and its rail builders remove another common reason to drop to raw payload objects for payment events.
+- `requestBackwardPayment(...)` now fails explicitly against the currently installed repository surface instead of inviting consumers to author an event that cannot resolve on the public runtime.
+- Shape tests and runtime proof exist for the new convenience layer, but larger orchestration surfaces and internal modularity work still remain for later stages.
+
 ## Target interpretation
 
 ### Java parity — 9–10/10 means

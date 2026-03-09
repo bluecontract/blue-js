@@ -73,6 +73,9 @@ Status:
 
 ## Stage C — Payment / conversation convenience APIs
 
+Status:
+- completed
+
 ### Scope
 - thin convenience APIs confirmed by mapping/runtime, for example:
   - `triggerPayment(...)`
@@ -83,6 +86,14 @@ Status:
 - new APIs are thin, documented, and runtime-confirmed
 - tests cover both shape and runtime behavior
 - no duplication with existing macro builders
+
+### Delivered on mainline
+- `StepsBuilder.triggerPayment(...)`
+- `StepsBuilder.requestBackwardPayment(...)`
+- public `PaymentRequestPayloadBuilder` with rail-specific builder chains and `ext(...)`
+- parity coverage for payment payload fields, guardrails, and extension hooks
+- runtime proof that `triggerPayment(...)` emits runtime-processed payment events from init workflows
+- explicit runtime guard for the currently unavailable `PayNote/Backward Payment Requested` repository alias
 
 ---
 

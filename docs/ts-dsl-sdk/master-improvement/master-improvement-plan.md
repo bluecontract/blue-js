@@ -45,6 +45,10 @@ They are mostly:
   - generic parity helpers are available through `SimpleDocBuilder`
   - change-lifecycle helper surface is available through `contractsPolicy(...)`, `directChange(...)`, `proposeChange(...)`, `acceptChange(...)`, and `rejectChange(...)`
   - marker/link/emission helpers are available through `anchors(...)`, `links(...)`, and `canEmit(...)`
+- Stage C is complete on the current mainline:
+  - thin payment convenience APIs are available through `triggerPayment(...)`
+  - `requestBackwardPayment(...)` is available as a runtime-guarded helper that fails clearly when the installed repository package does not expose the required alias
+  - payment payload authoring now has a public `PaymentRequestPayloadBuilder` with rail-specific builders and `ext(...)`
 
 ## Strategy
 

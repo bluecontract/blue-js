@@ -139,3 +139,28 @@ Use this file to track what is intentionally adopted from the alternative implem
   `libs/sdk-dsl/src/__tests__/DocBuilder.generic.integration.test.ts`,
   `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
   `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
+
+### Stage C — payment convenience helpers
+
+- Source area in donor:
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/steps/steps-builder.ts`
+  and
+  `references/alternative-sdk-serious/libs/sdk-dsl/src/lib/core/runtime-type-support.ts`
+- Target area in mainline:
+  `libs/sdk-dsl/src/lib/builders/steps-builder.ts`,
+  `libs/sdk-dsl/src/lib/internal/runtime-type-support.ts`
+- What was adopted:
+  `triggerPayment(...)`,
+  `requestBackwardPayment(...)`,
+  `PaymentRequestPayloadBuilder`,
+  rail-specific payment payload builders,
+  runtime alias availability guard
+- How:
+  adapted and reimplemented
+- Why:
+  closes the thin payment convenience gap, reduces raw payload fallbacks, and makes the missing backward-payment alias fail clearly on the current public runtime
+- Tests/docs added:
+  `libs/sdk-dsl/src/__tests__/StepsBuilder.convenience.test.ts`,
+  `libs/sdk-dsl/src/__tests__/StepsBuilder.convenience.integration.test.ts`,
+  `docs/ts-dsl-sdk/master-improvement/scorecard.md`,
+  `docs/ts-dsl-sdk/master-improvement/stage-roadmap.md`
