@@ -111,6 +111,7 @@ Runtime-confirmed Stage 6 rules:
   - `unlockOnOperation(...)` -> `request: { type: Boolean }`
   - `requestOnOperation(...)` -> `request: { type: Boolean }`
   - `requestPartialOnOperation(...)` -> `request: { type: Integer }`
+- correction-cycle re-verification confirmed that omitting `request` still leaves these sequential workflow operations unmatched on the current public runtime
 - `requestOnEvent(...)` and `unlockOnEvent(...)` still materialize `triggeredEventChannel` workflows, but processor-backed runtime delivery requires the matched event to be internally emitted or re-emitted through a runtime-confirmed bridge such as `myOsAdminUpdate`.
 
 ### Unsupported subset

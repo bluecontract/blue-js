@@ -187,7 +187,7 @@ Recommended deterministic key pattern:
 Materializes:
 
 - one `Conversation/Operation` named `operationKey`
-- current public runtime subset: the generated operation must expose `request: { type: Boolean }`
+- current public runtime subset: correction-cycle re-verification confirmed that requestless sequential workflow operations still do not match, so the generated operation must expose `request: { type: Boolean }`
 - one `Conversation/Sequential Workflow Operation` named `<operationKey>Impl`
 - implementation steps ending with a `Conversation/Trigger Event` step emitting:
   - `PayNote/Card Transaction Capture Unlock Requested`
@@ -221,7 +221,7 @@ Materializes:
 Materializes:
 
 - one `Conversation/Operation`
-- current public runtime subset: the generated operation must expose `request: { type: Boolean }`
+- current public runtime subset: correction-cycle re-verification confirmed that requestless sequential workflow operations still do not match, so the generated operation must expose `request: { type: Boolean }`
 - one `<operationKey>Impl` workflow operation
 - implementation steps ending with a trigger-event step emitting:
   - `PayNote/Capture Funds Requested`

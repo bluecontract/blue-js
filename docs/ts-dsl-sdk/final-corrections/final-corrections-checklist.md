@@ -20,9 +20,9 @@
 - [x] review similar silent no-ops
 
 ## Cycle 4 — PayNote operation branches
-- [ ] re-check generic operation-triggered branch shape
-- [ ] remove artificial `Boolean` / `Integer` request schemas where omission is correct
-- [ ] update tests/docs/deviations
+- [x] re-check generic operation-triggered branch shape
+- [x] remove artificial `Boolean` / `Integer` request schemas where omission is correct
+- [x] update tests/docs/deviations
 
 ## Cycle 5 — Stage 6 event-driven channels
 - [ ] verify default `triggeredEventChannel`

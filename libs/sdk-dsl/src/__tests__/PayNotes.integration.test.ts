@@ -215,6 +215,41 @@ describe('PayNotes integration', () => {
     ).toBe(true);
   });
 
+  it('confirms the current runtime still skips requestless operation-triggered handlers', async () => {
+    const built = PayNotes.payNote('Requestless operation runtime proof')
+      .currency('USD')
+      .amountMinor(3200)
+      .channel('payerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: PAYER_TIMELINE_ID,
+      })
+      .operation('requestCaptureWithoutSchema')
+      .channel('payerChannel')
+      .description('Request capture without an explicit request schema.')
+      .steps((steps) =>
+        steps.paynote().captureFundsRequested('CaptureFundsRequested', {
+          amount: 3200,
+        }),
+      )
+      .done()
+      .buildDocument();
+
+    const initialized = await initializeDocument(built);
+    const storedBlueId = getStoredDocumentBlueId(initialized.document);
+    const processed = await processOperationRequest({
+      blue: initialized.blue,
+      processor: initialized.processor,
+      document: initialized.document,
+      timelineId: PAYER_TIMELINE_ID,
+      operation: 'requestCaptureWithoutSchema',
+      request: true,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    expect(processed.triggeredEvents).toHaveLength(0);
+  });
+
   it('supports capture request flows triggered by emitted confirmation events', async () => {
     const built = PayNotes.payNote('Capture from emitted event')
       .currency('USD')

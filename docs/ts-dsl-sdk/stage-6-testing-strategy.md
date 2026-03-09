@@ -34,6 +34,7 @@ What they prove:
 - capture lock / unlock / request flows,
 - capture request on document update,
 - reserve / release request flows,
+- requestless operation-triggered branches still do not execute on the current public runtime,
 - emitted-event request triggers,
 - bootstrap delivery runtime flow,
 - customer-action request + response handling,
