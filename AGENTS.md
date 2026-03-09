@@ -23,5 +23,5 @@ Example commands (adjust to your workspace):
 
 ### Important rules
 Read and adhere to defined cursor rules:
-- .cursor/rules/blue-ts-dsl-sdk-final-ergonomics.mdc
-- .cursor/rules/blue-ts-dsl-sdk-final-ergonomics-testing.mdc
+- .cursor/rules/blue-ts-dsl-demo-app-compat.mdc
+- .cursor/rules/blue-ts-dsl-demo-app-compat-testing.mdc

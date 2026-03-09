@@ -1,0 +1,113 @@
+Work on the current `blue-js` repo.
+
+This is a focused compatibility / ergonomics pass for `libs/sdk-dsl`.
+The goal is to make migration of the local `demo-app` SDK surface to the final mainline `@blue-labs/sdk-dsl` require as little syntax churn as possible, while preserving current runtime-correct behavior and mappings.
+
+Read first:
+- AGENTS.md
+- .cursor/rules/blue-ts-dsl-demo-app-compat.mdc
+- .cursor/rules/blue-ts-dsl-demo-app-compat-testing.mdc
+- docs/ts-dsl-sdk/demo-app-compat/demo-app-compat-spec.md
+- docs/ts-dsl-sdk/demo-app-compat/demo-app-compat-gap-catalog.md
+- docs/ts-dsl-sdk/demo-app-compat/demo-app-compat-checklist.md
+- docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md
+- docs/ts-dsl-sdk/complex-flow-materialization-reference.md
+- docs/ts-dsl-sdk/canonical-scenarios/overview.md
+
+This prompt is stored in blue-js/cursor-demo-app-sdk-compat-prompt.txt for future reference.
+
+If available in the repo, also inspect the local compatibility reference extracted from demo app under:
+- references/demo-app-main/**
+Especially:
+- references/demo-app-main/libs/sdk-dsl/**
+- references/demo-app-main/libs/myos-js/**
+- references/demo-app-main/apps/blue-studio-web/lib/prompts/blueprint-to-js-dsl-prompt.md
+
+Mission:
+Bring the mainline `libs/sdk-dsl` surface closer to the local demo-app DSL surface so the future migration is mostly “replace + integrate”, not broad callsite rewrites.
+
+Important constraints:
+- Do NOT replace the mainline SDK with the demo-app SDK.
+- Do NOT regress runtime correctness.
+- Do NOT revert to older repo/runtime assumptions.
+- Do NOT change accepted final mappings just to mimic old syntax.
+- `requestBackwardPayment(...)` stays deferred/runtime-guarded. Do NOT try to unlock it in this pass.
+- If a demo-app helper can be implemented as a thin compatibility alias/wrapper over existing mainline behavior, do that.
+- Prefer additive compatibility shims over behavioral rewrites.
+
+Required outcomes:
+
+1. Add/confirm compatibility exports expected by demo app:
+   - `BasicBlueTypes`
+   - `JsonObject`
+   - `JsonValue`
+   - `toOfficialJson(...)`
+   - `toOfficialYaml(...)` if trivial and already semantically correct
+
+2. Add/confirm doc-level convenience wrappers expected by demo app, implemented as thin compatibility helpers over current mainline behavior:
+   - `sessionInteraction(contractKey?, contract?)`
+   - `participantsOrchestration(contractKey?, contract?)`
+   - `workerAgency(contractKey?, contract?)`
+   - `documentAnchors(anchors, contractKey?)`
+   - `documentLinks(links, contractKey?)`
+   - `sessionLink(linkName, anchor, sessionId, contractKey?)`
+   - `documentLink(linkName, anchor, documentId, contractKey?)`
+   - `documentTypeLink(linkName, anchor, documentTypeBlueId, contractKey?)`
+
+3. Add/confirm AI compatibility aliases expected by demo app:
+   - `onAIResponseForTask(...)`
+   - `onAINamedResponse(...)`
+   These should delegate to the existing mainline `onAIResponse(...)` machinery.
+
+4. Add/confirm interactions/session convenience aliases expected by demo app where they can be expressed faithfully on current mainline behavior:
+   - `onSessionCreated(...)`
+   - `onLinkedDocGranted(...)`
+   If these are thin aliases over existing helpers, implement them as aliases.
+
+5. Add/confirm MyOS permission convenience builder expected by demo app:
+   - `MyOsPermissions.create()`
+   - `.read(...)`
+   - `.write(...)`
+   - `.allOps(...)`
+   - `.singleOps(...)`
+   - `.build()`
+   Keep it as a thin authored-permission builder, not a new semantic layer.
+
+6. Add/confirm `steps.myOs().subscribeToSessionWithMatchers(...)` if it is missing or behaviorally divergent.
+   It should remain runtime-correct and produce matcher arrays compatible with current final mappings.
+
+7. Add at least one public, focused test for each compatibility surface group:
+   - exports/serialization helpers
+   - document marker/link/anchor helpers
+   - AI alias helpers
+   - MyOS permission helper
+   - subscribe-with-matchers helper
+
+8. Update docs so these new helpers are clearly marked as:
+   - compatibility/ergonomic wrappers
+   - thin aliases over mainline behavior
+   - not separate semantic systems
+
+9. Keep all existing Stage 1–7 and canonical scenario tests green.
+
+Testing requirements:
+- Add parity/behavior tests where appropriate.
+- Prefer proving compatibility wrappers generate the same final document shape as the lower-level mainline equivalents.
+- If a helper only aliases another helper, test that equivalence explicitly.
+- Do not weaken or delete existing tests.
+
+Verification requirements:
+Run and report:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+When finished, report:
+- exact APIs/exports added
+- whether each item in the compatibility gap catalog is now covered, intentionally deferred, or intentionally rejected
+- exact files changed
+- exact tests added/updated
+- verification results

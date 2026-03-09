@@ -1,0 +1,28 @@
+---
+description: Demo-app compatibility uplift testing and verification
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/demo-app-compat/**
+alwaysApply: false
+---
+
+# Testing requirements
+- Every new compatibility surface must have at least one focused test.
+- Prefer equivalence tests: compatibility helper vs lower-level mainline shape.
+- Preserve all existing tests.
+- Keep names explicit and public-repo-safe.
+
+# Verification
+Run all of:
+- `npm install`
+- `npx tsc -p libs/sdk-dsl/tsconfig.lib.json --noEmit`
+- `npx tsc -p libs/sdk-dsl/tsconfig.spec.json --noEmit`
+- `npx eslint libs/sdk-dsl`
+- `npx vitest run --config libs/sdk-dsl/vite.config.ts`
+- `npx vite build --config libs/sdk-dsl/vite.config.ts`
+
+# Documentation
+Update the compatibility catalog and checklist to reflect:
+- covered items
+- deferred items
+- intentionally rejected items

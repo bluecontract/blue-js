@@ -1,0 +1,36 @@
+---
+description: Demo-app compatibility uplift for blue-js sdk-dsl
+globs:
+  - libs/sdk-dsl/**
+  - docs/ts-dsl-sdk/demo-app-compat/**
+alwaysApply: false
+---
+
+# Goal
+Reduce migration diff from the local demo-app DSL surface to the current mainline `libs/sdk-dsl` without regressing runtime-correct behavior.
+
+# Source priority
+1. Current mainline runtime-correct `libs/sdk-dsl`
+2. `docs/ts-dsl-sdk/final-dsl-sdk-mapping-reference.md`
+3. `docs/ts-dsl-sdk/complex-flow-materialization-reference.md`
+4. `references/demo-app-main/**` only as a compatibility donor/reference
+
+# Key principles
+- Prefer thin aliases/wrappers over behavioral rewrites.
+- Do not reintroduce old runtime assumptions from demo app.
+- Do not widen scope into transport/API client concerns.
+- `requestBackwardPayment(...)` remains deferred/runtime-guarded.
+- If a helper already exists semantically, add a compatibility alias instead of duplicating logic.
+
+# Required helper families
+- serialization/export compatibility helpers
+- document marker/link/anchor wrappers
+- AI alias helpers
+- MyOS permission builder
+- MyOS subscribe-with-matchers helper
+
+# Must not do
+- Do not replace the mainline SDK with demo-app code wholesale.
+- Do not regress canonical scenarios.
+- Do not add private-provenance references.
+- Do not change final mappings only to preserve old syntax.

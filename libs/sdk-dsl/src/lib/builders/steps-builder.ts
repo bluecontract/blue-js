@@ -940,6 +940,18 @@ export class MyOsSteps {
     });
   }
 
+  subscribeToSessionWithMatchers(
+    targetSessionId: BlueValueInput,
+    subscriptionId: string,
+    eventMatchers: readonly EventPatternInput[],
+    options?: Omit<MyOsSubscribeToSessionRequestedOptions, 'events'>,
+  ): StepsBuilder {
+    return this.subscribeToSessionRequested(targetSessionId, subscriptionId, {
+      ...options,
+      events: [...eventMatchers],
+    });
+  }
+
   callOperationRequested(
     onBehalfOf: string,
     targetSessionId: BlueValueInput,

@@ -398,6 +398,39 @@ export class DocBuilder {
     });
   }
 
+  participantsOrchestration(
+    contractKey = 'participantsOrchestration',
+    contractLike?: ContractLike,
+  ): this {
+    return this.setMarkerContract(
+      contractKey,
+      'MyOS/MyOS Participants Orchestration',
+      contractLike,
+    );
+  }
+
+  sessionInteraction(
+    contractKey = 'sessionInteraction',
+    contractLike?: ContractLike,
+  ): this {
+    return this.setMarkerContract(
+      contractKey,
+      'MyOS/MyOS Session Interaction',
+      contractLike,
+    );
+  }
+
+  workerAgency(
+    contractKey = 'workerAgency',
+    contractLike?: ContractLike,
+  ): this {
+    return this.setMarkerContract(
+      contractKey,
+      'MyOS/MyOS Worker Agency',
+      contractLike,
+    );
+  }
+
   anchors(
     anchorsInput: readonly string[] | Record<string, BlueValueInput>,
     contractKey = 'anchors',
@@ -428,6 +461,22 @@ export class DocBuilder {
     return this.contract(normalizedContractKey, contract);
   }
 
+  documentAnchors(
+    anchorsInput:
+      | readonly string[]
+      | Record<string, BlueValueInput>
+      | ((anchors: Record<string, BlueValueInput>) => void),
+    contractKey = 'anchors',
+  ): this {
+    if (typeof anchorsInput === 'function') {
+      const builtAnchors: Record<string, BlueValueInput> = {};
+      anchorsInput(builtAnchors);
+      return this.anchors(builtAnchors, contractKey);
+    }
+
+    return this.anchors(anchorsInput, contractKey);
+  }
+
   links(
     linksInput: Record<string, BlueValueInput>,
     contractKey = 'links',
@@ -443,6 +492,80 @@ export class DocBuilder {
     }
 
     return this.contract(normalizedContractKey, contract);
+  }
+
+  documentLinks(
+    linksInput:
+      | Record<string, BlueValueInput>
+      | ((links: Record<string, BlueValueInput>) => void),
+    contractKey = 'links',
+  ): this {
+    if (typeof linksInput === 'function') {
+      const builtLinks: Record<string, BlueValueInput> = {};
+      linksInput(builtLinks);
+      return this.links(builtLinks, contractKey);
+    }
+
+    return this.links(linksInput, contractKey);
+  }
+
+  sessionLink(
+    linkName: string,
+    anchor: string,
+    sessionId: string,
+    contractKey = 'links',
+  ): this {
+    return this.addDocumentLink(
+      contractKey,
+      linkName,
+      new BlueNode()
+        .setType(resolveTypeInput('MyOS/MyOS Session Link'))
+        .addProperty('anchor', toBlueNode(requireNonEmpty(anchor, 'anchor')))
+        .addProperty(
+          'sessionId',
+          toBlueNode(requireNonEmpty(sessionId, 'sessionId')),
+        ),
+    );
+  }
+
+  documentLink(
+    linkName: string,
+    anchor: string,
+    documentId: string,
+    contractKey = 'links',
+  ): this {
+    return this.addDocumentLink(
+      contractKey,
+      linkName,
+      new BlueNode()
+        .setType(resolveTypeInput('MyOS/Document Link'))
+        .addProperty('anchor', toBlueNode(requireNonEmpty(anchor, 'anchor')))
+        .addProperty(
+          'documentId',
+          toBlueNode(requireNonEmpty(documentId, 'documentId')),
+        ),
+    );
+  }
+
+  documentTypeLink(
+    linkName: string,
+    anchor: string,
+    documentTypeBlueId: string,
+    contractKey = 'links',
+  ): this {
+    return this.addDocumentLink(
+      contractKey,
+      linkName,
+      new BlueNode()
+        .setType(resolveTypeInput('MyOS/Document Type Link'))
+        .addProperty('anchor', toBlueNode(requireNonEmpty(anchor, 'anchor')))
+        .addProperty(
+          'documentType',
+          toBlueNode({
+            blueId: requireNonEmpty(documentTypeBlueId, 'documentTypeBlueId'),
+          }),
+        ),
+    );
   }
 
   section(key: string): this;
@@ -1284,6 +1407,112 @@ export class DocBuilder {
     );
   }
 
+  onAIResponseForTask(
+    integrationName: string,
+    workflowKey: string,
+    taskName: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onAIResponseForTask(
+    integrationName: string,
+    workflowKey: string,
+    responseType: TypeInput,
+    taskName: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onAIResponseForTask(
+    integrationName: string,
+    workflowKey: string,
+    responseTypeOrTaskName: TypeInput | string,
+    taskNameOrCustomizer: string | ((steps: StepsBuilder) => void),
+    maybeCustomizer?: (steps: StepsBuilder) => void,
+  ): this {
+    if (typeof taskNameOrCustomizer === 'function') {
+      return this.onAIResponse(
+        integrationName,
+        workflowKey,
+        'Conversation/Response',
+        requireNonEmpty(responseTypeOrTaskName as string, 'task name'),
+        taskNameOrCustomizer,
+      );
+    }
+
+    const customizer = maybeCustomizer;
+    requireStepsCustomizer(customizer);
+    return this.onAIResponse(
+      integrationName,
+      workflowKey,
+      responseTypeOrTaskName as TypeInput,
+      requireNonEmpty(taskNameOrCustomizer, 'task name'),
+      customizer,
+    );
+  }
+
+  onAINamedResponse(
+    integrationName: string,
+    workflowKey: string,
+    namedEventName: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onAINamedResponse(
+    integrationName: string,
+    workflowKey: string,
+    namedEventName: string,
+    taskName: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this;
+  onAINamedResponse(
+    integrationName: string,
+    workflowKey: string,
+    namedEventName: string,
+    taskNameOrCustomizer: string | ((steps: StepsBuilder) => void),
+    maybeCustomizer?: (steps: StepsBuilder) => void,
+  ): this {
+    if (typeof taskNameOrCustomizer === 'function') {
+      return this.onAIResponse(
+        integrationName,
+        workflowKey,
+        { namedEvent: requireNonEmpty(namedEventName, 'named event name') },
+        taskNameOrCustomizer,
+      );
+    }
+
+    const customizer = maybeCustomizer;
+    requireStepsCustomizer(customizer);
+    return this.onAIResponse(
+      integrationName,
+      workflowKey,
+      { namedEvent: requireNonEmpty(namedEventName, 'named event name') },
+      requireNonEmpty(taskNameOrCustomizer, 'task name'),
+      customizer,
+    );
+  }
+
+  onSessionCreated(
+    accessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    this.requireAccessConfig(accessName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Subscription to Session Initiated',
+      customizer,
+    );
+  }
+
+  onLinkedDocGranted(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    return this.onLinkedAccessGranted(
+      linkedAccessName,
+      workflowKey,
+      customizer,
+    );
+  }
+
   buildDocument(): BlueNode {
     if (this.currentSection) {
       throw new Error(
@@ -1334,6 +1563,51 @@ export class DocBuilder {
       operation: normalizedOperationKey,
       ...(postfix.length > 0 ? { postfix } : {}),
     });
+  }
+
+  private setMarkerContract(
+    contractKey: string,
+    markerType: TypeInput,
+    contractLike?: ContractLike,
+  ): this {
+    const normalizedContractKey = requireNonEmpty(contractKey, 'contract key');
+    const base = new BlueNode().setType(resolveTypeInput(markerType));
+
+    if (contractLike == null) {
+      return this.contract(normalizedContractKey, base);
+    }
+
+    const merged = mergeBlueNodes(base, toBlueNode(contractLike));
+    if (!merged.getType()) {
+      merged.setType(resolveTypeInput(markerType));
+    }
+
+    return this.contract(normalizedContractKey, merged);
+  }
+
+  private addDocumentLink(
+    contractKey: string,
+    linkName: string,
+    linkNode: BlueNode,
+  ): this {
+    const normalizedContractKey = requireNonEmpty(contractKey, 'contract key');
+    const normalizedLinkName = requireNonEmpty(linkName, 'link name');
+    const contracts = ensureContracts(this.document);
+    const linksContract =
+      getContract(this.document, normalizedContractKey) ??
+      new BlueNode().setType(resolveTypeInput('MyOS/Document Links'));
+
+    if (!linksContract.getType()) {
+      linksContract.setType(resolveTypeInput('MyOS/Document Links'));
+    }
+
+    linksContract.addProperty(
+      normalizedLinkName,
+      inferDocumentLinkType(linkNode),
+    );
+    contracts[normalizedContractKey] = linksContract;
+    this.trackContract(normalizedContractKey);
+    return this;
   }
 
   private setTrackedPointer(path: string, node: BlueNode): this {

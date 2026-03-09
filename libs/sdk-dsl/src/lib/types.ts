@@ -1,6 +1,13 @@
 import type { BlueNode, JsonBlueValue } from '@blue-labs/language';
 import type { ZodTypeAny } from 'zod';
 
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonValue[] | JsonObject;
+
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+
 export type BlueValueInput = BlueNode | JsonBlueValue;
 
 export type ContractLike = BlueValueInput;
