@@ -449,6 +449,20 @@ contracts:
     );
   });
 
+  it('fails fast for unsupported subscribeToCreatedSessions(true)', () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Access created sessions unsupported')
+        .channel('ownerChannel')
+        .access('catalog')
+        .targetSessionId('session-catalog-2')
+        .onBehalfOf('ownerChannel')
+        .subscribeToCreatedSessions(true),
+    ).toThrow(
+      'access(...).subscribeToCreatedSessions(true) is not supported on the current public runtime',
+    );
+  });
+
   it('supports manual access steps and omits unsupported grantSessionSubscriptionOnResult', () => {
     const built = DocBuilder.doc()
       .name('Access manual parity')
@@ -457,7 +471,6 @@ contracts:
       .access('catalog')
       .targetSessionId(DocBuilder.expr("document('/catalogSessionId')"))
       .onBehalfOf('ownerChannel')
-      .subscribeToCreatedSessions(true)
       .requestPermissionManually()
       .done()
       .operation('activate')

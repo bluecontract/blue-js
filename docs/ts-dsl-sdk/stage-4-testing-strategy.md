@@ -62,7 +62,8 @@ Guardrail coverage is split between:
 Covered guardrails:
 - unknown `steps.access(...)` / `steps.viaAgency(...)` references,
 - missing linked-access links,
-- unsupported legacy fields staying absent,
+- `subscribeToCreatedSessions(true)` fail-fast behavior,
+- unsupported legacy fields staying absent from generated request payloads,
 - runtime-correct worker-session envelope,
 - section tracking for generated contracts.
 

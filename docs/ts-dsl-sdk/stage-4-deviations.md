@@ -21,7 +21,7 @@ Record only real, justified Stage 4 deviations.
 
 ## Entries
 
-### `subscribeToCreatedSessions(true)` is accepted but non-materializing
+### `subscribeToCreatedSessions(true)` is unsupported and fails fast
 - **Status:** accepted
 - **Feature:** `DocBuilder.access(...).subscribeToCreatedSessions(...)`
 - **Minimal DSL repro:**
@@ -36,8 +36,8 @@ DocBuilder.doc()
 - **Final mapping reference expectation:** sections 5.2 and 5.4 do not define `grantSessionSubscriptionOnResult` or another runtime-confirmed "subscribe to created sessions" field on `MyOS/Single Document Permission Grant Requested`.
 - **Java / legacy expectation:** the Java POC exposed `.subscribeToCreatedSessions(true)` and materialized `grantSessionSubscriptionOnResult: true`.
 - **Runtime / actual behavior:** current repo schemas do not expose that field and Stage 3 already established that `grantSessionSubscriptionOnResult` is unsupported by current runtime types.
-- **Decision taken:** the builder method remains for fluent-shape compatibility, but Stage 4 does not materialize any extra request payload field from it.
-- **Reason:** keeping the method is lower-risk for parity ergonomics than removing it, but emitting a fake field would drift away from the runtime source of truth.
+- **Decision taken:** the builder method remains for fluent-shape compatibility, but calling it with `true` throws immediately instead of silently generating an incomplete request shape.
+- **Reason:** fail-fast behavior is clearer and safer than a compatibility no-op when the current public runtime does not support the legacy field.
 - **Regression test:** `libs/sdk-dsl/src/__tests__/DocBuilder.interactions.parity.test.ts`
 
 ### Single-document and linked-document revoke requests use the minimal runtime schema

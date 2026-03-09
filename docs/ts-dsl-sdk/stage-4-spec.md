@@ -67,6 +67,7 @@ Materialized behavior:
 - materializes the permission-request workflow unless permission timing is manual,
 - materializes granted/rejected/revoked handlers,
 - when `.subscribeAfterGranted()` is enabled, materializes follow-up subscribe and subscription-ready / subscription-failed handlers.
+- `.subscribeToCreatedSessions(true)` is intentionally unsupported on the current public runtime and throws instead of silently omitting a legacy field.
 
 #### `accessLinked(linkedAccessName)`
 Returns a nested builder with:

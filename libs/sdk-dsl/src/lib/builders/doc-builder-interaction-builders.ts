@@ -19,7 +19,6 @@ type AccessBuilderState = {
   readonly statusPath: string | null;
   readonly subscribeAfterGranted: boolean;
   readonly subscriptionEvents: readonly TypeInput[];
-  readonly subscribeToCreatedSessions: boolean;
   readonly permissionTiming: PermissionTiming;
 };
 
@@ -66,7 +65,6 @@ export class AccessBuilder<P extends DocBuilder> {
   private statusPathValue: string | null = null;
   private subscribeAfterGrantedValue = false;
   private readonly subscriptionEventTypes: TypeInput[] = [];
-  private subscribeToCreatedSessionsValue = false;
   private permissionTiming: PermissionTiming = { kind: 'onInit' };
 
   constructor(
@@ -117,7 +115,11 @@ export class AccessBuilder<P extends DocBuilder> {
   }
 
   subscribeToCreatedSessions(enabled: boolean): AccessBuilder<P> {
-    this.subscribeToCreatedSessionsValue = enabled;
+    if (enabled) {
+      throw new Error(
+        'access(...).subscribeToCreatedSessions(true) is not supported on the current public runtime',
+      );
+    }
     return this;
   }
 
@@ -157,7 +159,6 @@ export class AccessBuilder<P extends DocBuilder> {
       statusPath: this.statusPathValue,
       subscribeAfterGranted: this.subscribeAfterGrantedValue,
       subscriptionEvents: this.subscriptionEventTypes,
-      subscribeToCreatedSessions: this.subscribeToCreatedSessionsValue,
       permissionTiming: this.permissionTiming,
     });
   }

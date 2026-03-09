@@ -15,9 +15,9 @@
 - [x] remove limitation wording from docs/deviations
 
 ## Cycle 3 — Unsupported compatibility options
-- [ ] `subscribeToCreatedSessions(true)` fail-fast
-- [ ] `grantSessionSubscriptionOnResult` remains unsupported
-- [ ] review similar silent no-ops
+- [x] `subscribeToCreatedSessions(true)` fail-fast
+- [x] `grantSessionSubscriptionOnResult` remains unsupported
+- [x] review similar silent no-ops
 
 ## Cycle 4 — PayNote operation branches
 - [ ] re-check generic operation-triggered branch shape

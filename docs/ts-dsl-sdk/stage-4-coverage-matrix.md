@@ -2,7 +2,7 @@
 
 | Construct | Java reference(s) | Parity / guardrail coverage | Runtime coverage | Status | Deviation link | Notes |
 |---|---|---|---|---|---|---|
-| `DocBuilder.access(...)` lifecycle | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | `stage-4-deviations.md#subscribetocreatedsessionstrue-is-accepted-but-non-materializing` | Covers init-triggered request flow, granted/rejected/revoked handlers, and optional subscribe flow |
+| `DocBuilder.access(...)` lifecycle | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | `stage-4-deviations.md#subscribetocreatedsessionstrue-is-unsupported-and-fails-fast` | Covers init-triggered request flow, granted/rejected/revoked handlers, optional subscribe flow, and the fail-fast compatibility guardrail |
 | Access timing variants | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | N/A | Done | none | Includes init, event, doc-change, and manual timing |
 | `steps.access(...)` composition | `DocBuilderInteractionsDslParityTest.java`, `internal/StepsBuilder.java` | `DocBuilder.interactions.parity.test.ts` | covered indirectly by access integration flow | Done | `stage-4-deviations.md#single-document-and-linked-document-revoke-requests-use-the-minimal-runtime-schema` | Includes request, call, subscribe, and revoke helpers |
 | `DocBuilder.accessLinked(...)` lifecycle | `DocBuilderInteractionsDslParityTest.java` | `DocBuilder.interactions.parity.test.ts` | `DocBuilder.interactions.integration.test.ts` | Done | none | Covers multi-link permission set materialization and requestId correlation |

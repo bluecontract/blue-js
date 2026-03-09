@@ -21,7 +21,6 @@ export interface AccessConfig {
   readonly statusPath: string | null;
   readonly subscribeAfterGranted: boolean;
   readonly subscriptionEvents: readonly TypeInput[];
-  readonly subscribeToCreatedSessions: boolean;
   readonly permissionTiming: PermissionTiming;
 }
 

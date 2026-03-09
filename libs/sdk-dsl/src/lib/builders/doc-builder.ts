@@ -109,7 +109,6 @@ type AccessState = {
   readonly statusPath: string | null;
   readonly subscribeAfterGranted: boolean;
   readonly subscriptionEvents: readonly TypeInput[];
-  readonly subscribeToCreatedSessions: boolean;
   readonly permissionTiming: PermissionTiming;
 };
 
@@ -1379,7 +1378,6 @@ export class DocBuilder {
       statusPath: state.statusPath,
       subscribeAfterGranted: state.subscribeAfterGranted,
       subscriptionEvents: filterTypeInputs(state.subscriptionEvents),
-      subscribeToCreatedSessions: state.subscribeToCreatedSessions,
       permissionTiming: state.permissionTiming,
     };
 
