@@ -90,5 +90,14 @@ describe('StepsBuilder demo-app compatibility helpers', () => {
       .map((step) => nodeToAliasJson(step));
 
     expect(viaCompat).toEqual(viaMainline);
+    expect(viaCompat[0]).toMatchObject({
+      event: {
+        type: 'MyOS/Subscribe to Session Requested',
+        targetSessionId: 'SESSION_1',
+        subscription: {
+          id: 'SUB_1',
+        },
+      },
+    });
   });
 });

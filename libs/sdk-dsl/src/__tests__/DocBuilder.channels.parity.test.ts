@@ -137,7 +137,7 @@ contracts:
     );
   });
 
-  it('matches onChannelEvent parity', () => {
+  it('uses direct onChannelEvent matchers for non-timeline channels', () => {
     const fromDsl = DocBuilder.doc()
       .name('Channel event parity')
       .channel('ownerChannel')
@@ -171,7 +171,7 @@ contracts:
     );
   });
 
-  it('wraps onChannelEvent message matchers for timeline channels', () => {
+  it('wraps onChannelEvent matchers under event.message for timeline channels', () => {
     const fromDsl = DocBuilder.doc()
       .name('Timeline channel event parity')
       .channel('ownerChannel', {

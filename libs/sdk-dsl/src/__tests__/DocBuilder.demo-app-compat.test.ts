@@ -82,7 +82,7 @@ contracts:
     });
   });
 
-  it('aliases AI and interaction listener helpers to the same document shape', () => {
+  it('aliases AI response helpers to the same document shape', () => {
     const viaCompat = createCompatibilityDocument()
       .onAIResponseForTask('assistant', 'handleTask', 'summarize', (steps) =>
         steps.replaceValue('MarkTask', '/taskHandled', true),
@@ -93,12 +93,6 @@ contracts:
         'assistant-approved',
         'summarize',
         (steps) => steps.replaceValue('MarkNamed', '/namedHandled', true),
-      )
-      .onSessionCreated('orders', 'captureSessionCreated', (steps) =>
-        steps.replaceValue('MarkSession', '/sessionCreated', true),
-      )
-      .onLinkedDocGranted('linkedOrders', 'captureLinkedGranted', (steps) =>
-        steps.replaceValue('MarkLinked', '/linkedGranted', true),
       )
       .buildDocument();
 
@@ -117,17 +111,92 @@ contracts:
         'summarize',
         (steps) => steps.replaceValue('MarkNamed', '/namedHandled', true),
       )
+      .buildDocument();
+
+    assertDslMatchesNode(viaCompat, viaMainline);
+  });
+
+  it('maps onSessionCreated to the runtime-confirmed subscription initiated event', () => {
+    const viaCompat = createCompatibilityDocument()
+      .onSessionCreated('orders', 'captureSessionCreated', (steps) =>
+        steps.replaceValue('MarkSession', '/sessionCreated', true),
+      )
+      .buildDocument();
+
+    const viaMainline = createCompatibilityDocument()
       .onEvent(
         'captureSessionCreated',
         'MyOS/Subscription to Session Initiated',
         (steps) => steps.replaceValue('MarkSession', '/sessionCreated', true),
       )
-      .onLinkedAccessGranted('linkedOrders', 'captureLinkedGranted', (steps) =>
+      .buildDocument();
+
+    assertDslMatchesNode(viaCompat, viaMainline);
+  });
+
+  it('maps linked-document helpers to explicit notification and lifecycle semantics', () => {
+    const viaCompat = createCompatibilityDocument()
+      .onLinkedDocGranted('linkedOrders', 'captureLinkedGranted', (steps) =>
         steps.replaceValue('MarkLinked', '/linkedGranted', true),
+      )
+      .onLinkedDocRejected('linkedOrders', 'captureLinkedRejected', (steps) =>
+        steps.replaceValue('MarkLinkedRejected', '/linkedRejected', true),
+      )
+      .onLinkedDocRevoked('linkedOrders', 'captureLinkedRevoked', (steps) =>
+        steps.replaceValue('MarkLinkedRevoked', '/linkedRevoked', true),
+      )
+      .buildDocument();
+
+    const viaMainline = createCompatibilityDocument()
+      .onEvent(
+        'captureLinkedGranted',
+        'MyOS/Single Document Permission Granted',
+        (steps) => steps.replaceValue('MarkLinked', '/linkedGranted', true),
+      )
+      .onLinkedAccessRejected(
+        'linkedOrders',
+        'captureLinkedRejected',
+        (steps) =>
+          steps.replaceValue('MarkLinkedRejected', '/linkedRejected', true),
+      )
+      .onLinkedAccessRevoked('linkedOrders', 'captureLinkedRevoked', (steps) =>
+        steps.replaceValue('MarkLinkedRevoked', '/linkedRevoked', true),
       )
       .buildDocument();
 
     assertDslMatchesNode(viaCompat, viaMainline);
+  });
+
+  it('materializes linked-document and linked-documents lifecycle helper event types explicitly', () => {
+    const json = createCompatibilityDocument()
+      .onLinkedDocGranted('linkedOrders', 'captureLinkedGranted', (steps) =>
+        steps.replaceValue('MarkLinked', '/linkedGranted', true),
+      )
+      .onLinkedDocRejected('linkedOrders', 'captureLinkedRejected', (steps) =>
+        steps.replaceValue('MarkLinkedRejected', '/linkedRejected', true),
+      )
+      .onLinkedDocRevoked('linkedOrders', 'captureLinkedRevoked', (steps) =>
+        steps.replaceValue('MarkLinkedRevoked', '/linkedRevoked', true),
+      )
+      .buildJson();
+
+    expect(json.contracts).toMatchObject({
+      captureLinkedGranted: {
+        event: {
+          type: 'MyOS/Single Document Permission Granted',
+        },
+      },
+      captureLinkedRejected: {
+        event: {
+          type: 'MyOS/Linked Documents Permission Rejected',
+        },
+      },
+      captureLinkedRevoked: {
+        event: {
+          type: 'MyOS/Linked Documents Permission Revoked',
+        },
+      },
+    });
   });
 });
 

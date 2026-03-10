@@ -26,6 +26,9 @@
 - [x] `onLinkedDocGranted(...)`
 - [x] `MyOsPermissions`
 - [x] `steps.myOs().subscribeToSessionWithMatchers(...)`
+- [x] linked-document helper semantics clarified and tested
+- [x] subscribe helper `onBehalfOf` difference documented as intentional
+- [x] `onChannelEvent(...)` timeline matcher semantics documented as correct
 
 ## Tests
 - [x] export/serialization compatibility tests

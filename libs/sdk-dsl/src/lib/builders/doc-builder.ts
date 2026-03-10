@@ -1506,7 +1506,32 @@ export class DocBuilder {
     workflowKey: string,
     customizer: (steps: StepsBuilder) => void,
   ): this {
-    return this.onLinkedAccessGranted(
+    this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onEvent(
+      workflowKey,
+      'MyOS/Single Document Permission Granted',
+      customizer,
+    );
+  }
+
+  onLinkedDocRejected(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    return this.onLinkedAccessRejected(
+      linkedAccessName,
+      workflowKey,
+      customizer,
+    );
+  }
+
+  onLinkedDocRevoked(
+    linkedAccessName: string,
+    workflowKey: string,
+    customizer: (steps: StepsBuilder) => void,
+  ): this {
+    return this.onLinkedAccessRevoked(
       linkedAccessName,
       workflowKey,
       customizer,

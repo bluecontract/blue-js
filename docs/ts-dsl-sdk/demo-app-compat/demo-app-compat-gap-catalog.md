@@ -19,11 +19,22 @@ This catalog lists concrete compatibility/ergonomic surfaces used by the local d
 | `onAIResponseForTask(...)` | Covered | Thin alias over `onAIResponse(...)` task-filtered matching. |
 | `onAINamedResponse(...)` | Covered | Thin alias over `onAIResponse(...)` named-event matching. |
 | `onSessionCreated(...)` | Covered | Compatibility alias for `MyOS/Subscription to Session Initiated` listeners after access config validation. |
-| `onLinkedDocGranted(...)` | Covered | Thin alias over `onLinkedAccessGranted(...)`. |
+| `onLinkedDocGranted(...)` | Covered | Concrete linked-document notification helper for `MyOS/Single Document Permission Granted`. |
 | `MyOsPermissions` | Covered | Thin authored-permission helper; `.write(...)` maps to runtime-confirmed `share`. |
-| `steps.myOs().subscribeToSessionWithMatchers(...)` | Covered | Thin alias over `subscribeToSessionRequested(...)` with matcher arrays. |
+| `steps.myOs().subscribeToSessionWithMatchers(...)` | Covered | Thin alias over `subscribeToSessionRequested(...)` with matcher arrays. It intentionally does not accept `onBehalfOf`. |
+
+## Additional compatibility aliases delivered in the follow-up pass
+| Surface | Status | Notes |
+| --- | --- | --- |
+| `onLinkedDocRejected(...)` | Covered | Optional compatibility alias over linked-documents permission lifecycle rejection. |
+| `onLinkedDocRevoked(...)` | Covered | Optional compatibility alias over linked-documents permission lifecycle revocation. |
 
 ## Notes
 - These are primarily ergonomics / compatibility items, not new runtime mappings.
 - Implement as thin wrappers or aliases over current mainline behavior whenever possible.
 - `requestBackwardPayment(...)` is intentionally excluded from this pass and remains deferred/runtime-guarded.
+- Subscribe helpers intentionally differ from the legacy demo-app call shape by
+  omitting `onBehalfOf`, because the final runtime event shape does not support
+  it.
+- `onChannelEvent(...)` timeline-channel matcher wrapping under `event.message`
+  is correct on the current runtime and not treated as a limitation.

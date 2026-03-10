@@ -43,10 +43,20 @@ Make the current mainline `libs/sdk-dsl` close enough to the local demo-app DSL 
 - `onSessionCreated(...)` is a convenience alias for listening to the
   runtime-confirmed `MyOS/Subscription to Session Initiated` event after access
   configuration validation.
-- `onLinkedDocGranted(...)` is a compatibility alias over
-  `onLinkedAccessGranted(...)`.
+- `onLinkedDocGranted(...)` listens for the concrete linked-document
+  notification event `MyOS/Single Document Permission Granted`.
+- `onLinkedDocRejected(...)` and `onLinkedDocRevoked(...)` are optional
+  compatibility aliases over the linked-documents permission lifecycle helpers
+  `onLinkedAccessRejected(...)` and `onLinkedAccessRevoked(...)`.
 - `MyOsPermissions.create()` is a thin authored-permission helper. Its
   demo-app-style `.write(...)` method maps to the runtime-confirmed `share`
   field used by current repository types and mappings.
 - `steps.myOs().subscribeToSessionWithMatchers(...)` is a thin alias over
   `subscribeToSessionRequested(...)` with `events` matcher arrays.
+- `steps.myOs().subscribeToSession(...)` and
+  `steps.myOs().subscribeToSessionWithMatchers(...)` intentionally do not accept
+  or materialize `onBehalfOf`, because `MyOS/Subscribe to Session Requested`
+  does not support it in the final runtime shape.
+- `onChannelEvent(...)` keeps the runtime-confirmed distinction:
+  timeline-like channels match under `event.message`, while non-timeline
+  channels match directly on `event`.
