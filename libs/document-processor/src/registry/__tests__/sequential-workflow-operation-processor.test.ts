@@ -19,7 +19,7 @@ const OPERATION_KEY = 'increment';
 
 type DocumentBuildOptions = {
   operationChannel?: string | null;
-  requestTypeYaml?: string;
+  requestTypeYaml?: string | null;
   handlerEventYaml?: string;
   stepExpression?: string;
   handlerChannel?: string | null;
@@ -64,6 +64,10 @@ function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
   const handlerEventSection = handlerEventYaml
     ? `    event:\n${indentBlock(handlerEventYaml.trim(), 6)}\n`
     : '';
+  const requestSection =
+    requestTypeYaml === null
+      ? ''
+      : `    request:\n${indentBlock(requestTypeYaml.trim(), 6)}\n`;
 
   const resolvedChangesetYaml =
     changesetYaml?.trim() ??
@@ -79,9 +83,7 @@ contracts:
     timelineId: ${TIMELINE_ID}
   ${OPERATION_KEY}:
     type: ${operationType}
-${operationChannelLine}    request:
-${indentBlock(requestTypeYaml.trim(), 6)}
-  ${OPERATION_KEY}Handler:
+${operationChannelLine}${requestSection}  ${OPERATION_KEY}Handler:
     type: ${handlerType}
 ${handlerChannelLine}    operation: ${OPERATION_KEY}
 ${handlerEventSection}    steps:
@@ -91,6 +93,58 @@ ${handlerEventSection}    steps:
 ${indentBlock(resolvedChangesetYaml, 10)}
 `;
   return blue.yamlToNode(yaml);
+}
+
+function buildBuiltInChangeOperationDocument(options?: {
+  operationKey?: string;
+  inlineRequest?: boolean;
+  resolved?: boolean;
+}): {
+  document: BlueNode;
+  operationKey: string;
+} {
+  const {
+    operationKey = 'changeByAlice',
+    inlineRequest = false,
+    resolved = false,
+  } = options ?? {};
+  const inlineRequestSection = inlineRequest
+    ? `    request:
+      type: Conversation/Change Request
+`
+    : '';
+  const document = blue.yamlToNode(`name: Change Workflow Doc
+counter: 0
+contracts:
+  ownerChannel:
+    type: Conversation/Timeline Channel
+    timelineId: ${TIMELINE_ID}
+  ${operationKey}:
+    type: Conversation/Change Operation
+    channel: ownerChannel
+${inlineRequestSection}  ${operationKey}Handler:
+    type: Conversation/Change Workflow
+    operation: ${operationKey}
+`);
+  return {
+    document: resolved ? blue.resolve(document) : document,
+    operationKey,
+  };
+}
+
+function buildTypedChangeRequest(value: number): Record<string, unknown> {
+  return {
+    type: { blueId: conversationBlueIds['Conversation/Change Request'] },
+    summary: `Update counter to ${value}`,
+    changeset: [
+      {
+        type: { blueId: coreBlueIds['Core/Json Patch Entry'] },
+        op: 'replace',
+        path: '/counter',
+        val: value,
+      },
+    ],
+  };
 }
 
 function operationRequestEvent(options?: {
@@ -280,34 +334,93 @@ contracts:
     expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 
-  it('executes derived change workflow with change request payloads', async () => {
+  it('change operation matcher: unresolved document + inline request executes workflow', async () => {
     const processor = buildProcessor(blue);
-    const derivedChangesetYaml = `- op: "\${event.message.request.changeset[0].op}"
-  path: "\${event.message.request.changeset[0].path}"
-  val: "\${event.message.request.changeset[0].val}"`;
-    const init = await expectOk(
-      processor.initializeDocument(
-        buildOperationDocument({
-          operationType: 'Conversation/Change Operation',
-          handlerType: 'Conversation/Change Workflow',
-          requestTypeYaml: 'type: Conversation/Change Request',
-          changesetYaml: derivedChangesetYaml,
-        }),
-      ),
-    );
-
+    const { document, operationKey } = buildBuiltInChangeOperationDocument({
+      operationKey: 'changeInlineUnresolved',
+      inlineRequest: true,
+    });
+    const init = await expectOk(processor.initializeDocument(document));
+    const storedBlueId = storedDocumentBlueId(init.document);
     const event = operationRequestEvent({
-      request: {
-        type: 'Conversation/Change Request',
-        changeset: [{ op: 'replace', path: '/counter', val: 11 }],
-      },
+      request: buildTypedChangeRequest(7),
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      operation: operationKey,
     });
 
     const result = await expectOk(
       processor.processDocument(init.document.clone(), event),
     );
 
-    expect(numericValue(property(result.document, 'counter'))).toBe(11);
+    expect(numericValue(property(result.document, 'counter'))).toBe(7);
+  });
+
+  it('change operation matcher: unresolved document + inherited request executes workflow', async () => {
+    const processor = buildProcessor(blue);
+    const { document, operationKey } = buildBuiltInChangeOperationDocument({
+      operationKey: 'changeInheritedUnresolved',
+      inlineRequest: false,
+    });
+    const init = await expectOk(processor.initializeDocument(document));
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: buildTypedChangeRequest(8),
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      operation: operationKey,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(8);
+  });
+
+  it('change operation matcher: resolved document + inline request executes workflow', async () => {
+    const processor = buildProcessor(blue);
+    const { document, operationKey } = buildBuiltInChangeOperationDocument({
+      operationKey: 'changeInlineResolved',
+      inlineRequest: true,
+      resolved: true,
+    });
+    const init = await expectOk(processor.initializeDocument(document));
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: buildTypedChangeRequest(9),
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      operation: operationKey,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(9);
+  });
+
+  it('change operation matcher: resolved document + inherited request executes workflow', async () => {
+    const processor = buildProcessor(blue);
+    const { document, operationKey } = buildBuiltInChangeOperationDocument({
+      operationKey: 'changeInheritedResolved',
+      inlineRequest: false,
+      resolved: true,
+    });
+    const init = await expectOk(processor.initializeDocument(document));
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: buildTypedChangeRequest(10),
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      operation: operationKey,
+    });
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(10);
   });
 
   it('derives channel from Operation when handler omits channel', async () => {
@@ -410,7 +523,96 @@ entries:
     expect(numericValue(property(result.document, 'counter'))).toBe(3);
   });
 
+  it('operation matcher: unresolved document + missing Operation.request allows any request payload', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          requestTypeYaml: null,
+          stepExpression:
+            "${event.message.request.amount + document('/counter')}",
+        }),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: {
+        amount: 3,
+        metadata: { note: 'boost' },
+      },
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(3);
+  });
+
+  it('operation matcher: resolved document + missing Operation.request allows any request payload', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        blue.resolve(
+          buildOperationDocument({
+            requestTypeYaml: null,
+            stepExpression:
+              "${event.message.request.amount + document('/counter')}",
+          }),
+        ),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: {
+        amount: 4,
+        metadata: { note: 'resolved-doc' },
+      },
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(4);
+  });
+
   it('applies handler event patterns to Operation requests', async () => {
+    const processor = buildProcessor(blue);
+    const doc = buildOperationDocument({
+      handlerEventYaml: `message:
+  type: Conversation/Operation Request
+  allowNewerVersion: false`,
+    });
+    const init = await expectOk(processor.initializeDocument(doc));
+
+    const matchingEvent = operationRequestEvent({
+      request: 2,
+      allowNewerVersion: false,
+    });
+    const matchedResult = await expectOk(
+      processor.processDocument(init.document.clone(), matchingEvent),
+    );
+    expect(numericValue(property(matchedResult.document, 'counter'))).toBe(2);
+
+    const nonMatchingEvent = operationRequestEvent({
+      request: 5,
+      allowNewerVersion: true,
+    });
+    const skippedResult = await expectOk(
+      processor.processDocument(
+        matchedResult.document.clone(),
+        nonMatchingEvent,
+      ),
+    );
+    expect(numericValue(property(skippedResult.document, 'counter'))).toBe(2);
+  });
+
+  it('handler event patterns still match when Operation Request pins runtime document blueId', async () => {
     const processor = buildProcessor(blue);
     const doc = buildOperationDocument({
       handlerEventYaml: `message:
@@ -428,67 +630,7 @@ entries:
     const matchedResult = await expectOk(
       processor.processDocument(init.document.clone(), matchingEvent),
     );
+
     expect(numericValue(property(matchedResult.document, 'counter'))).toBe(2);
-
-    const nonMatchingEvent = operationRequestEvent({
-      request: 5,
-      allowNewerVersion: true,
-      documentBlueId: storedBlueId,
-    });
-    const skippedResult = await expectOk(
-      processor.processDocument(
-        matchedResult.document.clone(),
-        nonMatchingEvent,
-      ),
-    );
-    expect(numericValue(property(skippedResult.document, 'counter'))).toBe(2);
-  });
-
-  it('executes derived Change Operation workflow and updates document', async () => {
-    const processor = buildProcessor(blue);
-    const operationKey = 'changeByAlice';
-    const yaml = `name: Change Workflow Doc
-counter: 0
-contracts:
-  ownerChannel:
-    type: Conversation/Timeline Channel
-    timelineId: ${TIMELINE_ID}
-  ${operationKey}:
-    type: Conversation/Change Operation
-    channel: ownerChannel
-    request:
-      type: Conversation/Change Request
-  ${operationKey}Handler:
-    type: Conversation/Change Workflow
-    operation: ${operationKey}
-`;
-    const init = await expectOk(
-      processor.initializeDocument(blue.resolve(blue.yamlToNode(yaml))),
-    );
-    expect(processor.isInitialized(init.document)).toBe(true);
-    const storedBlueId = storedDocumentBlueId(init.document);
-    const event = operationRequestEvent({
-      request: {
-        type: { blueId: conversationBlueIds['Conversation/Change Request'] },
-        changeDescription: 'Update counter',
-        changeset: [
-          {
-            type: { blueId: coreBlueIds['Core/Json Patch Entry'] },
-            op: 'replace',
-            path: '/counter',
-            val: 7,
-          },
-        ],
-      },
-      allowNewerVersion: false,
-      documentBlueId: storedBlueId,
-      operation: operationKey,
-    });
-
-    const result = await expectOk(
-      processor.processDocument(init.document.clone(), event),
-    );
-
-    expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 });

@@ -43,7 +43,9 @@ contracts:
 `;
 
     const original = blue.yamlToNode(yaml);
-    const expectedDocumentId = blue.calculateBlueIdSync(original.clone());
+    const expectedDocumentId = blue.calculateBlueIdSync(
+      blue.resolve(original.clone()),
+    );
 
     const initResult = await expectOk(
       processor.initializeDocument(original.clone()),
@@ -243,8 +245,7 @@ contracts:
     );
     const yaml = `name: Remove Doc
 x:
-  type:
-    blueId: Text
+  type: Text
 contracts:
   lifecycleChannel:
     type: Core/Lifecycle Event Channel

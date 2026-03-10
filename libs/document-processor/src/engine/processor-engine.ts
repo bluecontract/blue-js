@@ -506,7 +506,8 @@ export class ProcessorEngine {
     if (this.isInitialized(document)) {
       throw new IllegalStateException('Document already initialized');
     }
-    const execution = this.createExecution(document.clone());
+    const normalizedDocument = this.normalizeDocument(document);
+    const execution = this.createExecution(normalizedDocument);
     return this.run(document, execution, async () => {
       await execution.initializeScope('/', true);
     });
@@ -519,7 +520,8 @@ export class ProcessorEngine {
     if (!this.isInitialized(document)) {
       throw new IllegalStateException('Document not initialized');
     }
-    const execution = this.createExecution(document.clone());
+    const normalizedDocument = this.normalizeDocument(document);
+    const execution = this.createExecution(normalizedDocument);
     const eventClone = event.clone();
     return this.run(document, execution, async () => {
       execution.loadBundles('/');
@@ -538,6 +540,14 @@ export class ProcessorEngine {
       this.blue,
       document,
     );
+  }
+
+  private normalizeDocument(document: BlueNode): BlueNode {
+    const clone = document.clone();
+    if (clone.isResolved()) {
+      return this.blue.createResolvedNode(clone);
+    }
+    return this.blue.resolve(clone);
   }
 
   private async run(

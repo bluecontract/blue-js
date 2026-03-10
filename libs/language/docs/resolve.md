@@ -136,7 +136,9 @@ Each top-level `resolve()` call creates one context:
 1. Rejects nodes that still contain `blue:` directives (must be preprocessed first).
 2. If `source.type` exists:
    - Resolve type node (`resolveTypeNode`).
-   - Build `typeOverlay = resolvedType.clone().setType(undefined)` and merge it into target.
+   - Build
+     `typeOverlay = resolvedType.clone().setType(undefined).setBlueId(undefined)`
+     and merge it into target.
    - Merge original `source` after replacing its `type` with resolved type clone.
 3. If `source.type` is absent: merge `source` directly.
 
@@ -177,7 +179,10 @@ There are three modes:
 
 2. **Source uses inherited-prefix marker**
    - Marker is recognized when:
+     `source.items[0]` is a **blueId-only node** and
      `source.items[0].blueId === BlueId(target.items[])` (aggregated list BlueId).
+   - If first item has marker blueId **and extra fields**, resolver throws:
+     `Invalid inherited-list marker: first list item must contain only blueId.`
    - Meaning: "keep inherited target prefix, then append source items from index 1".
    - Resolver copies all target items and appends `source[1..]` (respecting limits).
    - With `PathLimits`, marker-appended items are checked against logical merged
@@ -199,9 +204,13 @@ There are three modes:
 
 For each source property allowed by limits:
 
-1. Resolve/cloned-resolve source property node.
+1. Usually resolve/cloned-resolve source property node.
 2. If target property does not exist: set resolved value.
 3. If target property exists: recursively `mergeObject(existing, resolved, ctx)`.
+4. Special case under `PathLimits`: when either side is list-like (`items` present),
+   resolver merges unresolved source via `mergeWithContext(existing, source, ctx)`
+   (without pre-resolving), to preserve logical list index semantics and inherited
+   marker metadata.
 
 For child-node metadata (`name`, `description`), explicit source values override
 inherited type values on that same child path. Missing source metadata keeps the

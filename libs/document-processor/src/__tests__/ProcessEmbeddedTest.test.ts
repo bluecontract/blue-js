@@ -55,8 +55,9 @@ contracts:
 `;
 
     const original = blue.yamlToNode(yaml);
-    const rootId = blue.calculateBlueIdSync(original.clone());
-    const originalChild = property(original, 'x');
+    const resolvedOriginal = blue.resolve(original.clone());
+    const rootId = blue.calculateBlueIdSync(resolvedOriginal.clone());
+    const originalChild = property(resolvedOriginal, 'x');
     const childId = blue.calculateBlueIdSync(originalChild.clone());
 
     const result = await expectOk(processor.initializeDocument(original));
