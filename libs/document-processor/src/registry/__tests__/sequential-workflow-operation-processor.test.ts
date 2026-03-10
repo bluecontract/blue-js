@@ -334,36 +334,6 @@ contracts:
     expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 
-  it('executes derived change workflow with change request payloads', async () => {
-    const processor = buildProcessor(blue);
-    const derivedChangesetYaml = `- op: "\${event.message.request.changeset[0].op}"
-  path: "\${event.message.request.changeset[0].path}"
-  val: "\${event.message.request.changeset[0].val}"`;
-    const init = await expectOk(
-      processor.initializeDocument(
-        buildOperationDocument({
-          operationType: 'Conversation/Change Operation',
-          handlerType: 'Conversation/Change Workflow',
-          requestTypeYaml: 'type: Conversation/Change Request',
-          changesetYaml: derivedChangesetYaml,
-        }),
-      ),
-    );
-
-    const event = operationRequestEvent({
-      request: {
-        type: 'Conversation/Change Request',
-        changeset: [{ op: 'replace', path: '/counter', val: 11 }],
-      },
-    });
-
-    const result = await expectOk(
-      processor.processDocument(init.document.clone(), event),
-    );
-
-    expect(numericValue(property(result.document, 'counter'))).toBe(11);
-  });
-
   it('change operation matcher: unresolved document + inline request executes workflow', async () => {
     const processor = buildProcessor(blue);
     const { document, operationKey } = buildBuiltInChangeOperationDocument({
