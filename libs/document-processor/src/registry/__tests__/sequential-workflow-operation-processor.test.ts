@@ -589,6 +589,37 @@ entries:
   allowNewerVersion: false`,
     });
     const init = await expectOk(processor.initializeDocument(doc));
+
+    const matchingEvent = operationRequestEvent({
+      request: 2,
+      allowNewerVersion: false,
+    });
+    const matchedResult = await expectOk(
+      processor.processDocument(init.document.clone(), matchingEvent),
+    );
+    expect(numericValue(property(matchedResult.document, 'counter'))).toBe(2);
+
+    const nonMatchingEvent = operationRequestEvent({
+      request: 5,
+      allowNewerVersion: true,
+    });
+    const skippedResult = await expectOk(
+      processor.processDocument(
+        matchedResult.document.clone(),
+        nonMatchingEvent,
+      ),
+    );
+    expect(numericValue(property(skippedResult.document, 'counter'))).toBe(2);
+  });
+
+  it('handler event patterns still match when Operation Request pins runtime document blueId', async () => {
+    const processor = buildProcessor(blue);
+    const doc = buildOperationDocument({
+      handlerEventYaml: `message:
+  type: Conversation/Operation Request
+  allowNewerVersion: false`,
+    });
+    const init = await expectOk(processor.initializeDocument(doc));
     const storedBlueId = storedDocumentBlueId(init.document);
 
     const matchingEvent = operationRequestEvent({
@@ -599,19 +630,7 @@ entries:
     const matchedResult = await expectOk(
       processor.processDocument(init.document.clone(), matchingEvent),
     );
-    expect(numericValue(property(matchedResult.document, 'counter'))).toBe(2);
 
-    const nonMatchingEvent = operationRequestEvent({
-      request: 5,
-      allowNewerVersion: true,
-      documentBlueId: storedBlueId,
-    });
-    const skippedResult = await expectOk(
-      processor.processDocument(
-        matchedResult.document.clone(),
-        nonMatchingEvent,
-      ),
-    );
-    expect(numericValue(property(skippedResult.document, 'counter'))).toBe(2);
+    expect(numericValue(property(matchedResult.document, 'counter'))).toBe(2);
   });
 });
