@@ -149,7 +149,7 @@ export function isPinnedDocumentAllowed(
     return true;
   }
 
-  const pinnedBlueId = extractPinnedDocumentBlueId(requestNode, context);
+  const pinnedBlueId = extractPinnedDocumentBlueId(requestNode);
   if (!pinnedBlueId) {
     return true;
   }
