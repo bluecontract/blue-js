@@ -1,3 +1,13 @@
+## 3.6.0 (2026-03-11)
+
+### 🚀 Features
+
+- update blue-repository/types to 0.18.0 ([e58707b](https://github.com/bluecontract/blue-js/commit/e58707b))
+
+### 🩹 Fixes
+
+- **document-processor:** move marker inheritance to registry defaults ([0edc7e4](https://github.com/bluecontract/blue-js/commit/0edc7e4))
+
 ## 3.5.0 (2026-03-02)
 
 ### 🚀 Features
