@@ -1,5 +1,6 @@
 import { createBlue } from '../../test-support/blue.js';
 import { describe, expect, it } from 'vitest';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { DocumentProcessor } from '../document-processor.js';
 import {
@@ -132,5 +133,28 @@ contracts:
 
     const markers = processor.markersFor(init.document, '/');
     expect(markers.has('initialized')).toBe(true);
+  });
+
+  it('loads inherited marker subtypes with default registry', () => {
+    const processor = new DocumentProcessor({ blue });
+    const original = blue.jsonValueToNode({
+      name: 'Marker Inheritance Example',
+      contracts: {
+        section: {
+          type: {
+            blueId: conversationBlueIds['Conversation/Document Section'],
+          },
+        },
+        policy: {
+          type: {
+            blueId: conversationBlueIds['Conversation/Contracts Change Policy'],
+          },
+        },
+      },
+    });
+
+    const markers = processor.markersFor(original, '/');
+    expect(markers.has('section')).toBe(true);
+    expect(markers.has('policy')).toBe(true);
   });
 });
