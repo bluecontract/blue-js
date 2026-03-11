@@ -470,7 +470,7 @@ contracts:
     const event = operationRequestEvent({
       request: {
         type: { blueId: conversationBlueIds['Conversation/Change Request'] },
-        changeDescription: 'Update counter',
+        summary: 'Update counter',
         changeset: [
           {
             type: { blueId: coreBlueIds['Core/Json Patch Entry'] },
