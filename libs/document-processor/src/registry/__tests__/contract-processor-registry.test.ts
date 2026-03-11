@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { createBlue } from '../../test-support/blue.js';
 import {
@@ -79,6 +81,45 @@ describe('ContractProcessorRegistry', () => {
     expect(resolved).toBe(timelineProcessor);
   });
 
+  it('resolves marker subtypes from a generic marker processor', () => {
+    const blue = createBlue();
+    const registry = new ContractProcessorRegistry();
+    const genericMarker: MarkerProcessor<object> = {
+      kind: 'marker',
+      blueIds: [coreBlueIds['Core/Marker']],
+      schema: z.object({}),
+    };
+    registry.registerMarker(genericMarker);
+
+    const derivedNode = blue.yamlToNode('type: Conversation/Document Section');
+    const resolved = registry.lookupMarkerForNode(blue, derivedNode);
+
+    expect(resolved).toBe(genericMarker);
+  });
+
+  it('prefers specific marker processor over generic marker processor', () => {
+    const blue = createBlue();
+    const registry = new ContractProcessorRegistry();
+    const genericMarker: MarkerProcessor<object> = {
+      kind: 'marker',
+      blueIds: [coreBlueIds['Core/Marker']],
+      schema: z.object({}),
+    };
+    const specificMarker: MarkerProcessor<object> = {
+      kind: 'marker',
+      blueIds: [conversationBlueIds['Conversation/Document Section']],
+      schema: z.object({}),
+    };
+
+    registry.registerMarker(genericMarker);
+    registry.registerMarker(specificMarker);
+
+    const derivedNode = blue.yamlToNode('type: Conversation/Document Section');
+    const resolved = registry.lookupMarkerForNode(blue, derivedNode);
+
+    expect(resolved).toBe(specificMarker);
+  });
+
   it('throws when processors lack BlueIds', () => {
     const registry = new ContractProcessorRegistry();
     const badProcessor: MarkerProcessor<unknown> = {
@@ -98,5 +139,13 @@ describe('ContractProcessorRegistryBuilder', () => {
       .build();
 
     expect(registry.lookupMarker('Marker.Contracts.Test')).toBe(marker);
+  });
+
+  it('registerDefaults registers generic marker processor', () => {
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+
+    expect(registry.lookupMarker(coreBlueIds['Core/Marker'])).toBeDefined();
   });
 });

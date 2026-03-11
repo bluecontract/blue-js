@@ -19,6 +19,10 @@ const blueIdProcessEmbedded = blueIds['Core/Process Embedded'];
 const blueIdCheckpoint = blueIds['Core/Channel Event Checkpoint'];
 const blueIdCompositeTimeline =
   conversationBlueIds['Conversation/Composite Timeline Channel'];
+const blueIdDocumentSection =
+  conversationBlueIds['Conversation/Document Section'];
+const blueIdContractsChangePolicy =
+  conversationBlueIds['Conversation/Contracts Change Policy'];
 
 function buildScopeNode(
   blue: ReturnType<typeof createBlue>,
@@ -132,6 +136,27 @@ describe('ContractLoader', () => {
     expect(bundle.marker('workerAgency')).toBeDefined();
   });
 
+  it('loads marker subtypes without explicit marker processors', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      section: {
+        type: { blueId: blueIdDocumentSection },
+      },
+      policy: {
+        type: { blueId: blueIdContractsChangePolicy },
+      },
+    });
+
+    const bundle = loader.load(scopeNode, '/');
+
+    expect(bundle.marker('section')).toBeDefined();
+    expect(bundle.marker('policy')).toBeDefined();
+  });
+
   it('loads custom handler contracts using registry schema', () => {
     const blue = createBlue();
     const registry = new ContractProcessorRegistry();
@@ -167,6 +192,42 @@ describe('ContractLoader', () => {
     const handlers = bundle.handlersFor('main');
     expect(handlers).toHaveLength(1);
     expect(handlers[0].key()).toBe('handler');
+  });
+
+  it('returns capability failure for marker subtypes without marker processors', () => {
+    const blue = createBlue();
+    const loader = new ContractLoader(new ContractProcessorRegistry(), blue);
+    const scopeNode = buildScopeNode(blue, {
+      section: {
+        type: { blueId: blueIdDocumentSection },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(
+      MustUnderstandFailure,
+    );
+  });
+
+  it('prefers dedicated marker processor schema over generic marker processor', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const markerSchema = z.union([z.string(), z.number()]);
+    registry.registerMarker({
+      kind: 'marker',
+      blueIds: [blueIdDocumentSection],
+      schema: markerSchema,
+    });
+
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      section: {
+        type: { blueId: blueIdDocumentSection },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
   });
 
   it('surfaces illegal state when handler omits channel key', () => {

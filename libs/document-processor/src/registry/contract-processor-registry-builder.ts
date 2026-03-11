@@ -3,6 +3,7 @@ import { CompositeTimelineChannelProcessor } from './processors/composite-timeli
 import { MyOSTimelineChannelProcessor } from './processors/myos-timeline-channel-processor.js';
 import { TimelineChannelProcessor } from './processors/timeline-channel-processor.js';
 import { SequentialWorkflowHandlerProcessor } from './processors/sequential-workflow-processor.js';
+import { GenericMarkerProcessor } from './processors/generic-marker-processor.js';
 import { OperationMarkerProcessor } from './processors/operation-marker-processor.js';
 import { SequentialWorkflowOperationProcessor } from './processors/sequential-workflow-operation-processor.js';
 import { AnyContractProcessor } from './types.js';
@@ -22,6 +23,7 @@ export class ContractProcessorRegistryBuilder {
     this.registry.register(new TimelineChannelProcessor());
     this.registry.register(new SequentialWorkflowHandlerProcessor());
     this.registry.register(new OperationMarkerProcessor());
+    this.registry.register(new GenericMarkerProcessor());
     this.registry.register(new SequentialWorkflowOperationProcessor());
     return this;
   }
