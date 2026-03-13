@@ -1,3 +1,4 @@
+import { BlueNode } from '@blue-labs/language';
 import { describe, expect, it } from 'vitest';
 import { DocBuilder } from '../../doc-builder/doc-builder.js';
 import {
@@ -15,6 +16,81 @@ function expectReadPermissionEnabled(
   expect(permissions?.read === true || permissions?.read === undefined).toBe(
     true,
   );
+}
+
+type CallResponseEvent = Record<string, unknown>;
+
+function createCallResponseBaseDocument(name: string): DocBuilder {
+  return DocBuilder.doc()
+    .name(name)
+    .field('/handled', false)
+    .field('/approvedHandled', false)
+    .field('/capturedHandled', false)
+    .field('/matchCount', 0)
+    .field('/lastAmountCaptured', 0)
+    .field('/responseCount', 0)
+    .field('/lastTargetSessionId', '')
+    .channel('ownerChannel', {
+      type: 'Conversation/Timeline Channel',
+      timelineId: 'owner-timeline',
+    })
+    .access('counterAccess')
+    .permissionFrom('ownerChannel')
+    .targetSessionId('target-session')
+    .requestId('REQ_CALL')
+    .done();
+}
+
+function withCallResponseEnvelopeOperation(
+  document: DocBuilder,
+  events: CallResponseEvent[],
+  operation = 'emitCallEnvelope',
+): DocBuilder {
+  return document.operation(
+    operation,
+    'ownerChannel',
+    Number,
+    'emit call response envelope',
+    (steps) =>
+      steps.emitType(
+        'EmitCallEnvelope',
+        'MyOS/Call Operation Responded',
+        (payload) => {
+          payload.put('targetSessionId', 'target-session');
+          payload.put('inResponseTo', {
+            requestId: 'REQ_CALL',
+          });
+          payload.put('events', events);
+        },
+      ),
+  );
+}
+
+async function processCallResponseOperation(
+  document: BlueNode,
+  operation = 'emitCallEnvelope',
+): Promise<Record<string, unknown>> {
+  const blue = createTestBlue();
+  const processor = createTestDocumentProcessor(blue);
+  const initialized = await expectSuccess(
+    processor.initializeDocument(document),
+    'call response initialization failed',
+  );
+  const documentBlueId = storedDocumentBlueId(initialized.document);
+  const processed = await expectSuccess(
+    processor.processDocument(
+      initialized.document.clone(),
+      operationRequestEvent(blue, {
+        operation,
+        request: 1,
+        timelineId: 'owner-timeline',
+        documentBlueId,
+        allowNewerVersion: false,
+      }),
+    ),
+    'call response operation failed',
+  );
+  return toOfficialJson(processed.document);
 }
 
 describe('access step helpers execution', () => {
@@ -1451,6 +1527,428 @@ describe('access step helpers execution', () => {
         }),
       ]),
     );
+  });
+
+  it('matches typed call responses only through MyOS call-response envelopes', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = createCallResponseBaseDocument(
+      'Typed Call Response Runtime',
+    )
+      .onCallResponse(
+        'counterAccess',
+        'markTypedCallResponse',
+        'Conversation/Response',
+        (steps) => steps.replaceValue('SetHandled', '/handled', true),
+      )
+      .operation(
+        'emitDirectResponse',
+        'ownerChannel',
+        Number,
+        'emit direct response',
+        (steps) =>
+          steps.emitType('EmitDirectResponse', 'Conversation/Response'),
+      )
+      .operation(
+        'emitCallEnvelope',
+        'ownerChannel',
+        Number,
+        'emit call response envelope',
+        (steps) =>
+          steps.emitType(
+            'EmitCallEnvelope',
+            'MyOS/Call Operation Responded',
+            (payload) => {
+              payload.put('events', [
+                {
+                  type: 'Conversation/Response',
+                  requestId: 'REQ_CALL',
+                  inResponseTo: {
+                    requestId: 'REQ_CALL',
+                  },
+                },
+              ]);
+            },
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'typed call response initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const directResponseProcessed = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'emitDirectResponse',
+          request: 1,
+          timelineId: 'owner-timeline',
+          documentBlueId,
+          allowNewerVersion: false,
+        }),
+      ),
+      'direct response operation failed',
+    );
+    expect(toOfficialJson(directResponseProcessed.document).handled).toBe(
+      false,
+    );
+
+    const envelopeProcessed = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'emitCallEnvelope',
+          request: 1,
+          timelineId: 'owner-timeline',
+          documentBlueId,
+          allowNewerVersion: false,
+        }),
+      ),
+      'call envelope operation failed',
+    );
+    expect(toOfficialJson(envelopeProcessed.document).handled).toBe(true);
+  });
+
+  it('keeps untyped onCallResponse bound to the full MyOS call-response envelope', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Untyped Call Response Envelope',
+      ).onCallResponse('counterAccess', 'captureEnvelope', (steps) =>
+        steps
+          .replaceExpression(
+            'SaveTargetSession',
+            '/lastTargetSessionId',
+            'event.targetSessionId',
+          )
+          .replaceExpression(
+            'SaveResponseCount',
+            '/responseCount',
+            'event.events.length',
+          ),
+      ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.lastTargetSessionId).toBe('target-session');
+    expect(processedJson.responseCount).toBe(2);
+  });
+
+  it('matches exact typed call response when the matching item is second and ignores a nonmatching sibling', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Typed Call Response Second Item',
+      ).onCallResponse(
+        'counterAccess',
+        'onCaptured',
+        'PayNote/Funds Captured',
+        (steps) =>
+          steps
+            .replaceValue('SetHandled', '/handled', true)
+            .replaceExpression(
+              'IncrementMatchCount',
+              '/matchCount',
+              "document('/matchCount') + 1",
+            )
+            .replaceExpression(
+              'SaveCapturedAmount',
+              '/lastAmountCaptured',
+              'event.amountCaptured',
+            ),
+      ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.handled).toBe(true);
+    expect(processedJson.matchCount).toBe(1);
+    expect(processedJson.lastAmountCaptured).toBe(42);
+  });
+
+  it('does not match exact typed call response when only nonmatching response types are emitted', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Exact Typed Call Response Mismatch',
+      ).onCallResponse(
+        'counterAccess',
+        'onCaptured',
+        'PayNote/Funds Captured',
+        (steps) =>
+          steps
+            .replaceValue('SetHandled', '/handled', true)
+            .replaceExpression(
+              'IncrementMatchCount',
+              '/matchCount',
+              "document('/matchCount') + 1",
+            ),
+      ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'MyOS/Call Operation Accepted',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.handled).toBe(false);
+    expect(processedJson.matchCount).toBe(0);
+    expect(processedJson.lastAmountCaptured).toBe(0);
+  });
+
+  it('matches base Conversation/Response listener for derived response items regardless of order', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Derived Response Type Match',
+      ).onCallResponse(
+        'counterAccess',
+        'onAnyResponse',
+        'Conversation/Response',
+        (steps) =>
+          steps.replaceExpression(
+            'IncrementMatchCount',
+            '/matchCount',
+            "document('/matchCount') + 1",
+          ),
+      ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.matchCount).toBe(2);
+  });
+
+  it('runs two different typed listeners for two different response types from one envelope', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument('Two Typed Call Responses')
+        .onCallResponse(
+          'counterAccess',
+          'onApproved',
+          'PayNote/PayNote Approved',
+          (steps) =>
+            steps.replaceValue('SetApprovedHandled', '/approvedHandled', true),
+        )
+        .onCallResponse(
+          'counterAccess',
+          'onCaptured',
+          'PayNote/Funds Captured',
+          (steps) =>
+            steps.replaceValue('SetCapturedHandled', '/capturedHandled', true),
+        ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.approvedHandled).toBe(true);
+    expect(processedJson.capturedHandled).toBe(true);
+  });
+
+  it('typed listener receives the matched inner response as event payload', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Inner Response Payload Access',
+      ).onCallResponse(
+        'counterAccess',
+        'onCaptured',
+        'PayNote/Funds Captured',
+        (steps) =>
+          steps.replaceExpression(
+            'SaveCapturedAmount',
+            '/lastAmountCaptured',
+            'event.amountCaptured',
+          ),
+      ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.lastAmountCaptured).toBe(42);
+  });
+
+  it('matches field-only response matcher when the matching item is second and ignores a nonmatching sibling', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Field Matcher Second Item',
+      ).onCallResponse(
+        'counterAccess',
+        'onCaptured42',
+        {
+          amountCaptured: 42,
+        },
+        (steps) =>
+          steps
+            .replaceValue('SetHandled', '/handled', true)
+            .replaceExpression(
+              'IncrementMatchCount',
+              '/matchCount',
+              "document('/matchCount') + 1",
+            )
+            .replaceExpression(
+              'SaveCapturedAmount',
+              '/lastAmountCaptured',
+              'event.amountCaptured',
+            ),
+      ),
+      [
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 13,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.handled).toBe(true);
+    expect(processedJson.matchCount).toBe(1);
+    expect(processedJson.lastAmountCaptured).toBe(42);
+  });
+
+  it('does not match field-only response matcher when emitted fields do not match', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument('Field Matcher Mismatch').onCallResponse(
+        'counterAccess',
+        'onCaptured42',
+        {
+          amountCaptured: 42,
+        },
+        (steps) =>
+          steps
+            .replaceValue('SetHandled', '/handled', true)
+            .replaceExpression(
+              'IncrementMatchCount',
+              '/matchCount',
+              "document('/matchCount') + 1",
+            ),
+      ),
+      [
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 13,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 21,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.handled).toBe(false);
+    expect(processedJson.matchCount).toBe(0);
+    expect(processedJson.lastAmountCaptured).toBe(0);
   });
 
   it('emits basic start worker session request through agency helper', async () => {

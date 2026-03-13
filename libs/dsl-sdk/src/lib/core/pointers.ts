@@ -22,12 +22,16 @@ function parseArrayIndex(segment: string): number {
   return Number.parseInt(segment, 10);
 }
 
+function decodePointerSegment(segment: string): string {
+  return segment.replace(/~1/gu, '/').replace(/~0/gu, '~');
+}
+
 function splitSegments(pointer: string): string[] {
   const normalized = normalizePointer(pointer);
   if (normalized === '/') {
     return [];
   }
-  return normalized.split('/').slice(1);
+  return normalized.split('/').slice(1).map(decodePointerSegment);
 }
 
 function ensureObjectChild(parent: JsonObject, key: string): JsonObject {

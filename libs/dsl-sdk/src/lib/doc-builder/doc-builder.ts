@@ -58,6 +58,85 @@ function aiToken(name: string): string {
     .toUpperCase();
 }
 
+type CallResponseListenerMatcher = {
+  readonly eventType: string;
+  readonly matcher: JsonObject;
+};
+
+function isCallResponseMatcherObject(value: unknown): value is JsonObject {
+  if (!isObject(value as JsonValue | undefined)) {
+    return false;
+  }
+  const matcherRecord = value as Record<string, unknown>;
+  const keys = Object.keys(matcherRecord);
+  return (
+    Object.prototype.hasOwnProperty.call(matcherRecord, 'type') ||
+    keys.some((key) => key !== 'name')
+  );
+}
+
+function toCallResponseListenerMatcher(
+  responseTypeOrMatcher: TypeLike | JsonObject,
+): CallResponseListenerMatcher {
+  if (!isCallResponseMatcherObject(responseTypeOrMatcher)) {
+    return {
+      eventType: toTypeAlias(responseTypeOrMatcher as TypeLike),
+      matcher: {},
+    };
+  }
+
+  const matcherRecord = structuredClone(responseTypeOrMatcher) as Record<
+    string,
+    unknown
+  >;
+  const matcherType = matcherRecord.type;
+  delete matcherRecord.type;
+
+  return {
+    eventType:
+      matcherType === undefined
+        ? 'Conversation/Response'
+        : toTypeAlias(matcherType as TypeLike),
+    matcher: matcherRecord as JsonObject,
+  };
+}
+
+function callResponseEnvelopeWorkflowKey(workflowKey: string): string {
+  return `${workflowKey}OnCallResponseEnvelope`;
+}
+
+function callResponseFanoutStepName(workflowKey: string): string {
+  return `Emit${aiToken(workflowKey)}OnCallResponseItems`;
+}
+
+function withRequestIdCorrelationMatcher(
+  matcher: JsonObject,
+  requestId: string,
+): JsonObject {
+  const nextMatcher = structuredClone(matcher) as Record<string, unknown>;
+  nextMatcher.requestId = requestId;
+  const inResponseTo = isObject(
+    nextMatcher.inResponseTo as JsonValue | undefined,
+  )
+    ? (structuredClone(nextMatcher.inResponseTo as JsonObject) as Record<
+        string,
+        unknown
+      >)
+    : {};
+  inResponseTo.requestId = requestId;
+  nextMatcher.inResponseTo = inResponseTo;
+  return nextMatcher as JsonObject;
+}
+
+function createCallResponseFanoutCode(): string {
+  return `const responses = Array.isArray(event.events) ? event.events : [];
+return {
+  events: responses.filter(
+    (response) => response && typeof response === 'object' && !Array.isArray(response),
+  ),
+};`;
+}
+
 export class DocBuilder {
   protected readonly state: DocJsonState;
   private readonly aiIntegrations = new Map<string, AIIntegrationConfig>();
@@ -854,20 +933,41 @@ export class DocBuilder {
   onCallResponse(
     accessName: string,
     workflowKey: string,
-    responseTypeOrCustomizer: TypeLike | StepsCustomizer,
+    responseMatcher: JsonObject,
+    customizer: StepsCustomizer,
+  ): this;
+  onCallResponse(
+    accessName: string,
+    workflowKey: string,
+    responseTypeOrMatcherOrCustomizer: TypeLike | JsonObject | StepsCustomizer,
     customizerMaybe?: StepsCustomizer,
   ): this {
-    this.requireAccessConfig(accessName);
+    const config = this.requireAccessConfig(accessName);
     if (customizerMaybe === undefined) {
       return this.onEvent(
         workflowKey,
         'MyOS/Call Operation Responded',
-        responseTypeOrCustomizer as StepsCustomizer,
+        responseTypeOrMatcherOrCustomizer as StepsCustomizer,
       );
     }
-    return this.onEvent(
-      workflowKey,
-      responseTypeOrCustomizer as TypeLike,
+
+    const workflow = requireText(workflowKey, 'workflow key');
+    const listener = toCallResponseListenerMatcher(
+      responseTypeOrMatcherOrCustomizer as TypeLike | JsonObject,
+    );
+    this.onEvent(
+      callResponseEnvelopeWorkflowKey(workflow),
+      'MyOS/Call Operation Responded',
+      (steps) =>
+        steps.jsRaw(
+          callResponseFanoutStepName(workflow),
+          createCallResponseFanoutCode(),
+        ),
+    );
+    return this.onTriggeredWithMatcher(
+      workflow,
+      listener.eventType,
+      withRequestIdCorrelationMatcher(listener.matcher, config.requestId),
       customizerMaybe,
     );
   }
@@ -1445,7 +1545,13 @@ export class DocBuilder {
   }
 
   protected buildSteps(customizer: StepsCustomizer): JsonObject[] {
-    const steps = new StepsBuilder({
+    const steps = this.createStepsBuilder();
+    customizer(steps);
+    return steps.build();
+  }
+
+  createStepsBuilder(): StepsBuilder {
+    return new StepsBuilder({
       aiIntegrations: Object.fromEntries(this.aiIntegrations.entries()),
       accessConfigs: Object.fromEntries(this.accessConfigs.entries()),
       linkedAccessConfigs: Object.fromEntries(
@@ -1453,8 +1559,6 @@ export class DocBuilder {
       ),
       agencyConfigs: Object.fromEntries(this.agencyConfigs.entries()),
     });
-    customizer(steps);
-    return steps.build();
   }
 
   private onAIResponseWithMatcher(

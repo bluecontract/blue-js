@@ -91,6 +91,75 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`type: MyOS/Participant Resolved`);
   });
 
+  it('maps typed call-response listeners through an internal envelope workflow and request correlation', () => {
+    const document = DocBuilder.doc()
+      .name('Typed Call Response Mapping')
+      .field('/handled', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_COUNTER')
+      .done()
+      .onCallResponse(
+        'counterAccess',
+        'captureTypedCallResponse',
+        'Conversation/Response',
+        (steps) => steps.replaceValue('SetHandled', '/handled', true),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`captureTypedCallResponseOnCallResponseEnvelope:
+    type: Conversation/Sequential Workflow
+    channel: triggeredEventChannel
+    event:
+      type: MyOS/Call Operation Responded`);
+    expect(yaml).toContain(`type: Conversation/JavaScript Code`);
+    expect(yaml).toContain(`captureTypedCallResponse:
+    type: Conversation/Sequential Workflow
+    channel: triggeredEventChannel
+    event:
+      type: Conversation/Response`);
+    expect(yaml).toContain(`requestId: REQ_COUNTER`);
+    expect(yaml).toContain(`inResponseTo:`);
+  });
+
+  it('maps field-only call-response matchers onto response listeners with request correlation', () => {
+    const document = DocBuilder.doc()
+      .name('Field Call Response Mapping')
+      .field('/handled', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_COUNTER')
+      .done()
+      .onCallResponse(
+        'counterAccess',
+        'captureAmount42',
+        { amountCaptured: 42 },
+        (steps) => steps.replaceValue('SetHandled', '/handled', true),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`captureAmount42:
+    type: Conversation/Sequential Workflow
+    channel: triggeredEventChannel
+    event:
+      type: Conversation/Response`);
+    expect(yaml).toContain(`amountCaptured: 42`);
+    expect(yaml).toContain(`requestId: REQ_COUNTER`);
+    expect(yaml).toContain(`inResponseTo:`);
+  });
+
   it('maps linked access subscribe and call helper steps', () => {
     const document = DocBuilder.doc()
       .name('Linked Access Steps Mapping')
@@ -166,6 +235,33 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`share: true`);
     expect(yaml).toContain(`id: SUB_COUNTER`);
     expect(yaml).toContain(`type: Conversation/Response`);
+  });
+
+  it('keeps fluent operation builder steps scoped to registered integrations', () => {
+    const document = DocBuilder.doc()
+      .name('Fluent Access Steps Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .subscriptionId('SUB_COUNTER')
+      .done()
+      .operation('bootstrapAccess')
+      .channel('ownerChannel')
+      .requestType(Number)
+      .description('bootstrap access')
+      .steps((steps) => steps.access('counterAccess').subscribe())
+      .done()
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`bootstrapAccessImpl:
+    type: Conversation/Sequential Workflow Operation`);
+    expect(yaml).toContain(`id: SUB_COUNTER`);
+    expect(yaml).toContain(`type: MyOS/Subscribe to Session Requested`);
   });
 
   it('fails fast for unsupported subscribeToCreatedSessions(true)', () => {

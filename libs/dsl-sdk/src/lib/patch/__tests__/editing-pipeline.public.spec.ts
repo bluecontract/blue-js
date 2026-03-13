@@ -119,4 +119,24 @@ describe('editing pipeline public surface', () => {
       applyBlueChangePlan(before, BlueChangeCompiler.compile(before, after)),
     ).toEqual(toOfficialJson(after));
   });
+
+  it('roundtrips escaped JSON Pointer keys through patch and change plan application', () => {
+    const before = {
+      name: 'Escaped keys',
+      'a/b': {
+        '~flag': false,
+      },
+    };
+    const after = {
+      name: 'Escaped keys',
+      'a/b': {
+        '~flag': true,
+      },
+    };
+
+    expect(DocPatch.from(before).diff(after).toTargetJson()).toEqual(after);
+    expect(
+      applyBlueChangePlan(before, BlueChangeCompiler.compile(before, after)),
+    ).toEqual(after);
+  });
 });

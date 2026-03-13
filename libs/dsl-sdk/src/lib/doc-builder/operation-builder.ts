@@ -13,6 +13,7 @@ export interface OperationDefinition {
 
 type OperationBuilderParent<P> = {
   applyOperationDefinition(definition: OperationDefinition): P;
+  createStepsBuilder(): StepsBuilder;
 };
 
 function asRequestFromType(typeAlias: string): JsonObject {
@@ -86,7 +87,7 @@ export class OperationBuilder<P> {
     customizer: (steps: StepsBuilder) => void,
     existingBuilder?: StepsBuilder,
   ): this {
-    const builder = existingBuilder ?? new StepsBuilder();
+    const builder = existingBuilder ?? this.parent.createStepsBuilder();
     customizer(builder);
     this.stepsValue = builder.build();
     return this;

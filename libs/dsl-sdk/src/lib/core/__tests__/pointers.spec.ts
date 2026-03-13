@@ -48,4 +48,16 @@ describe('core/pointers', () => {
       setPointer(root, '/missing/path', 'value', { createMissing: false }),
     ).toThrow(/missing/i);
   });
+
+  it('decodes escaped JSON Pointer segments during traversal', () => {
+    const root: JsonObject = {};
+
+    setPointer(root, '/a~1b/~0key', 7);
+
+    expect(root).toEqual({ 'a/b': { '~key': 7 } });
+    expect(getPointer(root, '/a~1b/~0key')).toBe(7);
+
+    removePointer(root, '/a~1b/~0key');
+    expect(root).toEqual({ 'a/b': {} });
+  });
 });
