@@ -31,7 +31,6 @@
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
   "peerDependencies": {
-    "@blue-repository/types": ">=0.1.0 <1",
-    "zod": "^3.20.0"
+    "@blue-repository/types": ">=0.1.0 <1"
   }
 }
