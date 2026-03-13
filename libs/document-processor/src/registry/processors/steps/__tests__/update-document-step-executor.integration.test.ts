@@ -101,6 +101,35 @@ contracts:
     expect(snapshot.history).toEqual(['booted']);
   });
 
+  it('supports deterministic JSON.parse and JSON.stringify in expressions', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Update Document Deterministic JSON Workflow
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  handler:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Apply
+        type: Conversation/Update Document
+        changeset:
+          - op: ADD
+            path: /canonicalJson
+            val: '\${JSON.stringify(JSON.parse(''{"aa":1,"b":2}''))}'
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+      canonicalJson?: string;
+    };
+    expect(snapshot.canonicalJson).toBe('{"b":2,"aa":1}');
+  });
+
   it('applies changesets returned from a JavaScript step result', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Test Changeset Step Output
