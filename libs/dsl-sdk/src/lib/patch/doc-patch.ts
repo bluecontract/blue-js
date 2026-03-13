@@ -1,7 +1,11 @@
 import { BlueNode, applyBlueNodePatch } from '@blue-labs/language';
 import { DocBuilder } from '../doc-builder/doc-builder.js';
 import { fromJsonDocument, toOfficialJson } from '../core/serialization.js';
-import { removePointer, setPointer } from '../core/pointers.js';
+import {
+  escapePointerSegment,
+  removePointer,
+  setPointer,
+} from '../core/pointers.js';
 import type { JsonObject, JsonValue } from '../core/types.js';
 import { diffJsonDocuments, type JsonPatchOperation } from './diff.js';
 
@@ -22,6 +26,10 @@ function assertPatchPaths(operations: readonly JsonPatchOperation[]): void {
       );
     }
   }
+}
+
+function contractPointerPath(key: string): string {
+  return `/contracts/${escapePointerSegment(key)}`;
 }
 
 export class DocPatch {
@@ -60,12 +68,16 @@ export class DocPatch {
   }
 
   contract(key: string, contract: JsonObject): this {
-    setPointer(this.nextJson, `/contracts/${key}`, structuredClone(contract));
+    setPointer(
+      this.nextJson,
+      contractPointerPath(key),
+      structuredClone(contract),
+    );
     return this;
   }
 
   removeContract(key: string): this {
-    removePointer(this.nextJson, `/contracts/${key}`);
+    removePointer(this.nextJson, contractPointerPath(key));
     return this;
   }
 

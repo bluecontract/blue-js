@@ -162,4 +162,46 @@ describe('BlueChangeCompiler', () => {
     const applied = applyBlueChangePlan(before, plan);
     expect(applied).toEqual(toOfficialJson(after));
   });
+
+  it('escapes contract keys in compiled patch operations', () => {
+    const before = {
+      name: 'Escaped Contract Keys',
+      contracts: {
+        'obsolete/channel~v0': {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'obsolete-timeline',
+        },
+        'ops/channel~v1': {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'ops-before',
+        },
+      },
+    };
+    const after = {
+      name: 'Escaped Contract Keys',
+      contracts: {
+        'notify/channel~v2': {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'notify-timeline',
+        },
+        'ops/channel~v1': {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'ops-after',
+        },
+      },
+    };
+
+    const plan = BlueChangeCompiler.compile(before, after);
+
+    expect(
+      plan.patchOperations.map(
+        (operation) => `${operation.op}:${operation.path}`,
+      ),
+    ).toEqual([
+      'remove:/contracts/obsolete~1channel~0v0',
+      'add:/contracts/notify~1channel~0v2',
+      'replace:/contracts/ops~1channel~0v1',
+    ]);
+    expect(applyBlueChangePlan(before, plan)).toEqual(after);
+  });
 });

@@ -1572,6 +1572,7 @@ export class DocBuilder {
     if (taskName) {
       this.assertAiTaskExists(integration, taskName);
     }
+    const normalizedTaskName = taskName?.trim();
     return this.onTriggeredWithMatcher(
       workflowKey,
       'MyOS/Subscription Update',
@@ -1583,7 +1584,7 @@ export class DocBuilder {
           inResponseTo: {
             incomingEvent: {
               requester: integration.requesterId,
-              ...(taskName ? { taskName } : {}),
+              ...(normalizedTaskName ? { taskName: normalizedTaskName } : {}),
             },
           },
         },

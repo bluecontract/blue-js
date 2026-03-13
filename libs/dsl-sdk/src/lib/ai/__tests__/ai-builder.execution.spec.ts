@@ -66,14 +66,14 @@ describe('ai integration execution', () => {
         'provider',
         'handleSummaryResponse',
         'Conversation/Response',
-        'summarize',
+        ' summarize ',
         (steps) => steps.replaceValue('SetTaskHandled', '/taskHandled', true),
       )
       .onAINamedResponse(
         'provider',
         'handleSummaryNamedResponse',
         'summary-ready',
-        'summarize',
+        ' summarize ',
         (steps) => steps.replaceValue('SetNamedHandled', '/namedHandled', true),
       )
       .operation(

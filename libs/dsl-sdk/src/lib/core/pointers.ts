@@ -22,6 +22,10 @@ function parseArrayIndex(segment: string): number {
   return Number.parseInt(segment, 10);
 }
 
+export function escapePointerSegment(segment: string): string {
+  return segment.replace(/~/gu, '~0').replace(/\//gu, '~1');
+}
+
 function decodePointerSegment(segment: string): string {
   return segment.replace(/~1/gu, '/').replace(/~0/gu, '~');
 }

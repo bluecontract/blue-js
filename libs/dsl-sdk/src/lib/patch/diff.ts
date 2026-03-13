@@ -1,3 +1,4 @@
+import { escapePointerSegment } from '../core/pointers.js';
 import type { JsonObject, JsonValue } from '../core/types.js';
 
 export type JsonPatchOperation =
@@ -7,10 +8,6 @@ export type JsonPatchOperation =
 
 function isObject(value: JsonValue): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function escapePointerSegment(segment: string): string {
-  return segment.replace(/~/gu, '~0').replace(/\//gu, '~1');
 }
 
 function pathJoin(path: string, segment: string): string {

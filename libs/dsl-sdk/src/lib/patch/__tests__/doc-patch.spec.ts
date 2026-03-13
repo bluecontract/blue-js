@@ -78,6 +78,63 @@ describe('DocPatch', () => {
     ]);
   });
 
+  it('escapes contract keys containing JSON Pointer control characters', () => {
+    const original = {
+      name: 'Patch Escaped Contract Keys',
+      contracts: {},
+    };
+
+    const patch = DocPatch.from(original).contract('audit/channel~v1', {
+      type: 'Conversation/Timeline Channel',
+      timelineId: 'audit-timeline',
+    });
+
+    expect(patch.build()).toEqual([
+      {
+        op: 'add',
+        path: '/contracts/audit~1channel~0v1',
+        val: {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'audit-timeline',
+        },
+      },
+    ]);
+    expect(patch.toTargetJson()).toEqual({
+      name: 'Patch Escaped Contract Keys',
+      contracts: {
+        'audit/channel~v1': {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'audit-timeline',
+        },
+      },
+    });
+  });
+
+  it('removes escaped contract keys as literal contract entries', () => {
+    const original = {
+      name: 'Patch Escaped Contract Removal',
+      contracts: {
+        'audit/channel~v1': {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'audit-timeline',
+        },
+      },
+    };
+
+    const patch = DocPatch.from(original).removeContract('audit/channel~v1');
+
+    expect(patch.build()).toEqual([
+      {
+        op: 'remove',
+        path: '/contracts/audit~1channel~0v1',
+      },
+    ]);
+    expect(patch.toTargetJson()).toEqual({
+      name: 'Patch Escaped Contract Removal',
+      contracts: {},
+    });
+  });
+
   it('supports nested pointer updates and mutateOriginal application mode', () => {
     const original = DocBuilder.doc()
       .name('Patch Nested')

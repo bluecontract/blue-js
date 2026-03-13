@@ -52,14 +52,14 @@ describe('ai integration mapping', () => {
         'provider',
         'onSummaryResponse',
         'Conversation/Response',
-        'summarize',
+        ' summarize ',
         (steps) => steps.replaceValue('SetDone', '/status', 'done'),
       )
       .onAINamedResponse(
         'provider',
         'onSummaryNamedEvent',
         'summary-ready',
-        'summarize',
+        ' summarize ',
         (steps) => steps.replaceValue('SetNamedDone', '/status', 'named-done'),
       )
       .buildDocument();
@@ -68,6 +68,7 @@ describe('ai integration mapping', () => {
     expect(yaml).toContain(`onSummaryResponse:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`taskName: summarize`);
+    expect(yaml).not.toContain(`taskName:  summarize `);
     expect(yaml).toContain(`requester: PROVIDER`);
     expect(yaml).toContain(`onSummaryNamedEvent:
     type: Conversation/Sequential Workflow`);

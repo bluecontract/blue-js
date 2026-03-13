@@ -1,5 +1,9 @@
 import { BlueNode } from '@blue-labs/language';
-import { removePointer, setPointer } from '../core/pointers.js';
+import {
+  escapePointerSegment,
+  removePointer,
+  setPointer,
+} from '../core/pointers.js';
 import { toOfficialJson } from '../core/serialization.js';
 import type { JsonObject, JsonValue } from '../core/types.js';
 import {
@@ -81,6 +85,10 @@ function stableStringify(value: JsonValue): string {
         `${JSON.stringify(key)}:${stableStringify(object[key] as JsonValue)}`,
     )
     .join(',')}}`;
+}
+
+function contractPointerPath(key: string): string {
+  return `/contracts/${escapePointerSegment(key)}`;
 }
 
 function removeRootKey(document: JsonObject, key: string): JsonObject {
@@ -384,7 +392,7 @@ function compilePatchOperations(
   for (const change of sortedRemovals) {
     operations.push({
       op: 'remove',
-      path: `/contracts/${change.contractKey}`,
+      path: contractPointerPath(change.contractKey),
     });
   }
 
@@ -392,7 +400,7 @@ function compilePatchOperations(
     .filter((change) => change.op !== 'remove')
     .sort((left, right) => left.contractKey.localeCompare(right.contractKey));
   for (const change of sortedAddsOrReplaces) {
-    const path = `/contracts/${change.contractKey}`;
+    const path = contractPointerPath(change.contractKey);
     operations.push({
       op: change.op,
       path,
