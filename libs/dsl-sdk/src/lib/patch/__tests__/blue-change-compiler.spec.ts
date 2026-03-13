@@ -1,0 +1,165 @@
+import { describe, expect, it } from 'vitest';
+import { DocBuilder } from '../../doc-builder/doc-builder.js';
+import { toOfficialJson } from '../../core/serialization.js';
+import {
+  applyBlueChangePlan,
+  BlueChangeCompiler,
+  compileContractChanges,
+  compileRootChanges,
+} from '../blue-change-compiler.js';
+
+describe('BlueChangeCompiler', () => {
+  it('compiles root changes without touching contracts/policies', () => {
+    const before = DocBuilder.doc()
+      .name('Root Change Compiler')
+      .field('/counter', 0)
+      .field('/status', 'idle')
+      .contractsPolicy(true)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .buildDocument();
+
+    const after = DocBuilder.from(before)
+      .field('/counter', 5)
+      .field('/status', 'ready')
+      .buildDocument();
+
+    expect(compileRootChanges(before, after)).toEqual([
+      {
+        op: 'replace',
+        path: '/counter',
+        val: 5,
+      },
+      {
+        op: 'replace',
+        path: '/status',
+        val: 'ready',
+      },
+    ]);
+  });
+
+  it('compiles contract changes as whole-node add/replace/remove operations', () => {
+    const before = DocBuilder.doc()
+      .name('Contract Change Compiler')
+      .section('participants', 'Participants')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .endSection()
+      .section('logic', 'Logic')
+      .operation(
+        'increment',
+        'ownerChannel',
+        Number,
+        'Increment counter',
+        (steps) =>
+          steps.replaceExpression(
+            'IncrementCounter',
+            '/counter',
+            "document('/counter') + event.message.request",
+          ),
+      )
+      .endSection()
+      .buildDocument();
+
+    const after = DocBuilder.from(before)
+      .channel('reviewerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'reviewer-timeline',
+      })
+      .operation('increment')
+      .description('Increment counter (v2)')
+      .done()
+      .remove('/contracts/incrementImpl')
+      .buildDocument();
+
+    const changes = compileContractChanges(before, after);
+    expect(changes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          op: 'add',
+          contractKey: 'reviewerChannel',
+        }),
+        expect.objectContaining({
+          op: 'replace',
+          contractKey: 'increment',
+          sectionKey: 'logic',
+        }),
+        expect.objectContaining({
+          op: 'remove',
+          contractKey: 'incrementImpl',
+        }),
+      ]),
+    );
+    const incrementChange = changes.find(
+      (change) => change.contractKey === 'increment',
+    );
+    expect(incrementChange?.after).toEqual(
+      expect.objectContaining({
+        description: 'Increment counter (v2)',
+      }),
+    );
+  });
+
+  it('produces deterministic patch plans and applies them to match rebuilt document', () => {
+    const before = DocBuilder.doc()
+      .name('Patch Plan Source')
+      .field('/counter', 0)
+      .field('/status', 'idle')
+      .section('participants', 'Participants')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .endSection()
+      .section('logic', 'Logic')
+      .operation(
+        'increment',
+        'ownerChannel',
+        Number,
+        'Increment counter',
+        (steps) =>
+          steps.replaceExpression(
+            'IncrementCounter',
+            '/counter',
+            "document('/counter') + event.message.request",
+          ),
+      )
+      .endSection()
+      .buildDocument();
+
+    const after = DocBuilder.from(before)
+      .field('/counter', 8)
+      .field('/status', 'ready')
+      .operation('increment')
+      .description('Increment counter v2')
+      .done()
+      .channel('auditChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'audit-timeline',
+      })
+      .buildDocument();
+
+    const plan = BlueChangeCompiler.compile(before, after);
+    expect(plan.rootChanges).toEqual([
+      { op: 'replace', path: '/counter', val: 8 },
+      { op: 'replace', path: '/status', val: 'ready' },
+    ]);
+    expect(
+      plan.patchOperations.map(
+        (operation) => `${operation.op}:${operation.path}`,
+      ),
+    ).toEqual([
+      'replace:/counter',
+      'replace:/status',
+      'add:/contracts/auditChannel',
+      'replace:/contracts/increment',
+    ]);
+
+    const applied = applyBlueChangePlan(before, plan);
+    expect(applied).toEqual(toOfficialJson(after));
+  });
+});
