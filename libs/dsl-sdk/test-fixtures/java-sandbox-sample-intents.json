@@ -7,14 +7,8 @@
     "MyOS/Adding Participant Requested",
     "MyOS/Session Epoch Advanced"
   ],
-  "agentCallsRemoteOperation": [
-    "processData",
-    "MyOS/Call Operation Requested"
-  ],
-  "cvClassifierAgent": [
-    "REQ_RECRUITMENT_PROVIDER",
-    "REQ_RECRUITMENT_CVS"
-  ],
+  "agentCallsRemoteOperation": ["processData", "MyOS/Call Operation Requested"],
+  "cvClassifierAgent": ["REQ_RECRUITMENT_PROVIDER", "REQ_RECRUITMENT_CVS"],
   "orchestratorWithAccessAndAgency": [
     "MyOS/Worker Agency Permission Grant Requested",
     "operation: provideInstructions"
@@ -23,34 +17,16 @@
     "REQ_LINKED_PROJECTDATA",
     "MyOS/Linked Documents Permission Grant Requested"
   ],
-  "simplePermissionAndSubscribe": [
-    "REQ_WEATHER",
-    "SUB_WEATHER"
-  ],
-  "callRemoteOperation": [
-    "REQ_LLM",
-    "provideInstructions"
-  ],
-  "addParticipantsDynamically": [
-    "alice@company.com",
-    "bob@company.com"
-  ],
-  "linkedDocsWithUpdates": [
-    "REQ_INVOICES",
-    "SUB_INVOICES"
-  ],
-  "cvClassifierFull": [
-    "REQ_RECRUITMENT_PROVIDER",
-    "SUB_RECRUITMENT_PROVIDER"
-  ],
+  "simplePermissionAndSubscribe": ["REQ_WEATHER", "SUB_WEATHER"],
+  "callRemoteOperation": ["REQ_LLM", "provideInstructions"],
+  "addParticipantsDynamically": ["alice@company.com", "bob@company.com"],
+  "linkedDocsWithUpdates": ["REQ_INVOICES", "SUB_INVOICES"],
+  "cvClassifierFull": ["REQ_RECRUITMENT_PROVIDER", "SUB_RECRUITMENT_PROVIDER"],
   "accessAndAgencyOrchestrator": [
     "MyOS/Worker Agency Permission Grant Requested",
     "findDeal"
   ],
-  "linkedAccessPermissions": [
-    "invoices",
-    "shipments"
-  ],
+  "linkedAccessPermissions": ["invoices", "shipments"],
   "bootstrapVoucherOnCapture": [
     "BootstrapVoucherDoc",
     "Conversation/Document Bootstrap Requested"
@@ -59,10 +35,7 @@
     "BootstrapChildDoc",
     "Conversation/Document Bootstrap Requested"
   ],
-  "bootstrapWithMessages": [
-    "BootstrapDeal",
-    "initialMessages"
-  ],
+  "bootstrapWithMessages": ["BootstrapDeal", "initialMessages"],
   "shipmentEscrowSimple": [
     "confirmDelivery",
     "PayNote/Card Transaction Capture Unlock Requested"
@@ -91,10 +64,7 @@
     "rejectKyc",
     "PayNote/Capture Funds Requested"
   ],
-  "releaseLockedUntilWindowOpens": [
-    "openReleaseWindow",
-    "requestRelease"
-  ],
+  "releaseLockedUntilWindowOpens": ["openReleaseWindow", "requestRelease"],
   "armchairProtectionWithVoucherPayNoteTemplate": [
     "confirmSatisfaction",
     "VoucherCredit"
