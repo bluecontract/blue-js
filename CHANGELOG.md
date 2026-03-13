@@ -1,3 +1,9 @@
+## 3.7.0 (2026-03-13)
+
+### 🚀 Features
+
+- **document-processor:** add deterministic JSON parse and stringify ([4f41814](https://github.com/bluecontract/blue-js/commit/4f41814))
+
 ## 3.6.0 (2026-03-11)
 
 ### 🚀 Features
