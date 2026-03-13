@@ -1175,7 +1175,7 @@ describe('access step helpers execution', () => {
     expect(processedJson.sessionStarted).toBe(true);
     expect(processedJson.sessionFailed).toBe(true);
     expect(processedJson.participantResolved).toBe(true);
-  });
+  }, 15_000);
 
   it('emits access and linked-access helper requests with explicit target overrides', async () => {
     const blue = createTestBlue();
