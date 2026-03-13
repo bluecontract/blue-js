@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "3.5.0",
+  "version": "3.7.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -21,9 +21,9 @@
   "dependencies": {
     "@blue-labs/language": "*",
     "@blue-labs/shared-utils": "*",
-    "@blue-quickjs/abi-manifest": "0.4.0",
-    "@blue-quickjs/dv": "0.4.0",
-    "@blue-quickjs/quickjs-runtime": "0.4.0",
+    "@blue-quickjs/abi-manifest": "0.4.1",
+    "@blue-quickjs/dv": "0.4.1",
+    "@blue-quickjs/quickjs-runtime": "0.4.1",
     "picomatch": "4.0.3"
   },
   "license": "MIT",

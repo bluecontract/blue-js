@@ -167,6 +167,46 @@ contracts:
     expect(message).toBe('Triggered via Triggered Event Channel');
   });
 
+  it('supports deterministic JSON.parse and JSON.stringify inside JS code', async () => {
+    const processor = buildProcessor(blue);
+
+    const yaml = `name: JS Code Deterministic JSON Workflow
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Canonicalize
+        type: Conversation/JavaScript Code
+        code: |
+          const parsed = JSON.parse('{"aa":1,"b":2}');
+          const canonical = JSON.stringify(parsed);
+          return {
+            events: [
+              {
+                type: "Conversation/Chat Message",
+                message: canonical
+              }
+            ]
+          };
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const emissions = result.triggeredEvents;
+    const chatEvents = emissions.filter(
+      (e) => typeBlueId(e) === conversationBlueIds['Conversation/Chat Message'],
+    );
+    expect(chatEvents.length).toBe(1);
+    const message = property(chatEvents[0], 'message').getValue();
+    expect(message).toBe('{"b":2,"aa":1}');
+  });
+
   it('executes a sequential workflow step and charges wasm gas', async () => {
     const executor = new JavaScriptCodeStepExecutor();
     const code =
