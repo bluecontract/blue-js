@@ -174,14 +174,8 @@ export function compileRootChanges(
 ): JsonPatchOperation[] {
   const beforeJson = toJsonDocument(beforeDocument);
   const afterJson = toJsonDocument(afterDocument);
-  const beforeComparable = removeRootKey(
-    removeRootKey(beforeJson, 'contracts'),
-    'policies',
-  );
-  const afterComparable = removeRootKey(
-    removeRootKey(afterJson, 'contracts'),
-    'policies',
-  );
+  const beforeComparable = removeRootKey(beforeJson, 'contracts');
+  const afterComparable = removeRootKey(afterJson, 'contracts');
   return diffJsonDocuments(beforeComparable, afterComparable);
 }
 
@@ -366,12 +360,17 @@ function buildPlanNotes(
 
 function compilePatchOperations(
   beforeDocument: ExistingDocument,
+  afterDocument: ExistingDocument,
   rootChanges: readonly JsonPatchOperation[],
   contractChanges: readonly BlueContractChange[],
 ): JsonPatchOperation[] {
   const beforeJson = toJsonDocument(beforeDocument);
+  const afterJson = toJsonDocument(afterDocument);
   const hasContractsRoot = Boolean(
     asJsonObject(beforeJson.contracts as JsonValue),
+  );
+  const hasNextContractsRoot = Boolean(
+    asJsonObject(afterJson.contracts as JsonValue),
   );
 
   const operations: JsonPatchOperation[] = [...rootChanges];
@@ -393,6 +392,17 @@ function compilePatchOperations(
     operations.push({
       op: 'remove',
       path: contractPointerPath(change.contractKey),
+    });
+  }
+  if (
+    hasContractsRoot &&
+    !hasNextContractsRoot &&
+    sortedRemovals.length > 0 &&
+    contractAddsOrReplaces.length === 0
+  ) {
+    operations.push({
+      op: 'remove',
+      path: '/contracts',
     });
   }
 
@@ -573,6 +583,7 @@ export class BlueChangeCompiler {
     const notes = buildPlanNotes(rootChanges, contractChanges);
     const patchOperations = compilePatchOperations(
       beforeDocument,
+      afterDocument,
       rootChanges,
       contractChanges,
     );

@@ -9,7 +9,7 @@ import {
 } from '../blue-change-compiler.js';
 
 describe('BlueChangeCompiler', () => {
-  it('compiles root changes without touching contracts/policies', () => {
+  it('compiles root changes without touching contracts', () => {
     const before = DocBuilder.doc()
       .name('Root Change Compiler')
       .field('/counter', 0)
@@ -38,6 +38,48 @@ describe('BlueChangeCompiler', () => {
         val: 'ready',
       },
     ]);
+  });
+
+  it('preserves root policy add/remove/replace operations in patch plans', () => {
+    const before = {
+      name: 'Root Policies',
+      policies: {
+        changeGuard: {
+          type: 'Conversation/Contracts Change Policy',
+          requireSectionChanges: true,
+        },
+        legacyGuard: {
+          type: 'Conversation/Contracts Change Policy',
+          requireSectionChanges: false,
+        },
+      },
+    };
+    const after = {
+      name: 'Root Policies',
+      policies: {
+        changeGuard: {
+          type: 'Conversation/Contracts Change Policy',
+          requireSectionChanges: false,
+        },
+        releaseGuard: {
+          type: 'Conversation/Contracts Change Policy',
+          requireSectionChanges: true,
+        },
+      },
+    };
+
+    const plan = BlueChangeCompiler.compile(before, after);
+
+    expect(
+      plan.patchOperations.map(
+        (operation) => `${operation.op}:${operation.path}`,
+      ),
+    ).toEqual([
+      'remove:/policies/legacyGuard',
+      'replace:/policies/changeGuard/requireSectionChanges',
+      'add:/policies/releaseGuard',
+    ]);
+    expect(applyBlueChangePlan(before, plan)).toEqual(after);
   });
 
   it('compiles contract changes as whole-node add/replace/remove operations', () => {
@@ -202,6 +244,30 @@ describe('BlueChangeCompiler', () => {
       'add:/contracts/notify~1channel~0v2',
       'replace:/contracts/ops~1channel~0v1',
     ]);
+    expect(applyBlueChangePlan(before, plan)).toEqual(after);
+  });
+
+  it('removes the contracts root when the target document omits it entirely', () => {
+    const before = {
+      name: 'Drop Contracts Root',
+      contracts: {
+        ownerChannel: {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        },
+      },
+    };
+    const after = {
+      name: 'Drop Contracts Root',
+    };
+
+    const plan = BlueChangeCompiler.compile(before, after);
+
+    expect(
+      plan.patchOperations.map(
+        (operation) => `${operation.op}:${operation.path}`,
+      ),
+    ).toEqual(['remove:/contracts/ownerChannel', 'remove:/contracts']);
     expect(applyBlueChangePlan(before, plan)).toEqual(after);
   });
 });
