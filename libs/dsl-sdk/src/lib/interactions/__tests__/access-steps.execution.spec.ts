@@ -1065,6 +1065,14 @@ describe('access step helpers execution', () => {
             .emitType(
               'EmitSessionCreated',
               'MyOS/Subscription to Session Initiated',
+              (payload) => {
+                payload.put('subscriptionId', 'SUB_ACCESS');
+                payload.put('targetSessionId', 'target-session');
+                payload.put('epoch', 0);
+                payload.put('document', {
+                  name: 'Target Session',
+                });
+              },
             )
             .emitType(
               'EmitLinkedDocGranted',
@@ -1176,6 +1184,89 @@ describe('access step helpers execution', () => {
     expect(processedJson.sessionFailed).toBe(true);
     expect(processedJson.participantResolved).toBe(true);
   }, 15_000);
+
+  it('correlates onSessionCreated listeners to the configured access subscriptionId', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Access Session Created Correlation Runtime')
+      .field('/counterSessionCreated', false)
+      .field('/otherSessionCreated', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('counter-target')
+      .requestId('REQ_COUNTER')
+      .subscriptionId('SUB_COUNTER')
+      .done()
+      .access('otherAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('other-target')
+      .requestId('REQ_OTHER')
+      .subscriptionId('SUB_OTHER')
+      .done()
+      .onSessionCreated('counterAccess', 'markCounterSessionCreated', (steps) =>
+        steps.replaceValue(
+          'SetCounterSessionCreated',
+          '/counterSessionCreated',
+          true,
+        ),
+      )
+      .onSessionCreated('otherAccess', 'markOtherSessionCreated', (steps) =>
+        steps.replaceValue(
+          'SetOtherSessionCreated',
+          '/otherSessionCreated',
+          true,
+        ),
+      )
+      .operation(
+        'emitOtherSessionCreated',
+        'ownerChannel',
+        Number,
+        'emit session created for other access only',
+        (steps) =>
+          steps.emitType(
+            'EmitSessionCreated',
+            'MyOS/Subscription to Session Initiated',
+            (payload) => {
+              payload.put('subscriptionId', 'SUB_OTHER');
+              payload.put('targetSessionId', 'other-target');
+              payload.put('epoch', 0);
+              payload.put('document', {
+                name: 'Other Target Session',
+              });
+            },
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'session created correlation initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const processed = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'emitOtherSessionCreated',
+          request: 1,
+          timelineId: 'owner-timeline',
+          documentBlueId,
+          allowNewerVersion: false,
+        }),
+      ),
+      'session created correlation operation failed',
+    );
+
+    expect(toOfficialJson(processed.document)).toMatchObject({
+      counterSessionCreated: false,
+      otherSessionCreated: true,
+    });
+  });
 
   it('emits access and linked-access helper requests with explicit target overrides', async () => {
     const blue = createTestBlue();

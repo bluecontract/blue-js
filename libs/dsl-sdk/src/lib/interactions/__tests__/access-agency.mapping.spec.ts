@@ -74,6 +74,7 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`captureSessionCreated:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Subscription to Session Initiated`);
+    expect(yaml).toContain(`subscriptionId: SUB_ACCESS_COUNTERACCESS`);
     expect(yaml).toContain(`captureLinkedDocGranted:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Single Document Permission Granted`);

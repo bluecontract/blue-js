@@ -977,10 +977,12 @@ export class DocBuilder {
     workflowKey: string,
     customizer: StepsCustomizer,
   ): this {
-    this.requireAccessConfig(accessName);
-    return this.onEvent(
+    const config = this.requireAccessConfig(accessName);
+    return this.onTriggeredWithId(
       workflowKey,
       'MyOS/Subscription to Session Initiated',
+      'subscriptionId',
+      config.subscriptionId,
       customizer,
     );
   }

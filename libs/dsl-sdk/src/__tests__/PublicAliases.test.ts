@@ -101,9 +101,11 @@ describe('public convenience aliases', () => {
       .buildDocument();
 
     const viaExplicit = createPublicAliasDocument()
-      .onEvent(
+      .onTriggeredWithId(
         'captureSessionCreated',
         'MyOS/Subscription to Session Initiated',
+        'subscriptionId',
+        'SUB_ACCESS_ORDERS',
         (steps) => steps.replaceValue('MarkSession', '/sessionCreated', true),
       )
       .buildDocument();
