@@ -99,8 +99,8 @@ describe('paynote execution', () => {
         .requestPartialOnOperation(
           'capturePartial',
           'guarantorChannel',
-          'event.message.request',
-          'Request partial capture',
+          'event.message.request.amount',
+          'Request partial capture from event.message.request.amount',
         )
         .done()
       .buildDocument();
@@ -137,7 +137,7 @@ describe('paynote execution', () => {
         unlockResponse.document.clone(),
         operationRequestEvent(blue, {
           operation: 'capturePartial',
-          request: '900',
+          request: { amount: '900' },
           timelineId: 'guarantor-timeline',
           allowNewerVersion: false,
           documentBlueId,

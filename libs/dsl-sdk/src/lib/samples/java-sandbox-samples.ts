@@ -634,8 +634,8 @@ function balancedBowlVoucherPayNoteBuilder() {
     .requestPartialOnOperation(
       'captureReportedSpend',
       'merchantChannel',
-      'Capture reported amount.',
       'event.message.request.amount',
+      'Capture reported amount.',
     )
     .done()
     .onEvent('onMonitoringApproved', 'Conversation/Event', (steps) =>
@@ -818,34 +818,34 @@ export function milestoneReservePartialCapture(): BlueNode {
     .requestPartialOnOperation(
       'approveMilestone1',
       'guarantorChannel',
-      'Approve milestone 1 (25%)',
       '500000',
+      'Approve milestone 1 (25%)',
     )
     .requestPartialOnOperation(
       'approveMilestone2',
       'guarantorChannel',
-      'Approve milestone 2 (25%)',
       '500000',
+      'Approve milestone 2 (25%)',
     )
     .requestPartialOnOperation(
       'approveMilestone3',
       'guarantorChannel',
-      'Approve milestone 3 (25%)',
       '500000',
+      'Approve milestone 3 (25%)',
     )
     .requestPartialOnOperation(
       'approveMilestone4',
       'guarantorChannel',
-      'Approve milestone 4 (25%)',
       '500000',
+      'Approve milestone 4 (25%)',
     )
     .done()
     .release()
     .requestPartialOnOperation(
       'releaseUnfinishedWork',
       'payerChannel',
-      'Release unfinished work.',
       'event.message.request.amount',
+      'Release unfinished work.',
     )
     .done()
     .buildDocument();

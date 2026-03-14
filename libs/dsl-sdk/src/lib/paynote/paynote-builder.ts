@@ -1,17 +1,14 @@
 import { DocBuilder } from '../doc-builder/doc-builder.js';
-import type { TypeLike } from '../core/type-alias.js';
+import { toTypeAlias, type TypeLike } from '../core/type-alias.js';
 import type { JsonObject } from '../core/types.js';
 import { assertRepositoryTypeAliasAvailable } from '../core/runtime-type-support.js';
 import type { StepsBuilder } from '../steps/steps-builder.js';
 
 function sanitizeTypeLabel(typeLike: TypeLike): string {
-  if (typeof typeLike === 'string') {
-    return typeLike
-      .replace(/[^A-Za-z0-9]+/gu, ' ')
-      .trim()
-      .replace(/\s+/gu, '');
-  }
-  return typeLike.name.replace(/[^A-Za-z0-9]+/gu, '');
+  return toTypeAlias(typeLike)
+    .replace(/[^A-Za-z0-9]+/gu, ' ')
+    .trim()
+    .replace(/\s+/gu, '');
 }
 
 function toMinor(amountMajor: string): number {
@@ -81,7 +78,7 @@ export class PayNoteActionBuilder {
     const eventSuffix = sanitizeTypeLabel(eventTypeRef);
     this.parent.onEvent(
       `${this.mode}UnlockOn${eventSuffix}`,
-      typeof eventTypeRef === 'string' ? eventTypeRef : eventTypeRef.name,
+      eventTypeRef,
       (steps) =>
         steps.triggerEvent('Unlock', { type: eventType(this.mode, 'unlock') }),
     );
@@ -107,32 +104,9 @@ export class PayNoteActionBuilder {
   requestPartialOnOperation(
     operationKey: string,
     channelKey: string,
-    description: string,
     amountExpression: string,
-  ): this;
-  requestPartialOnOperation(
-    operationKey: string,
-    channelKey: string,
-    amountExpressionOrDescription: string,
-    descriptionOrAmountExpression?: string,
+    description?: string,
   ): this {
-    const isExpressionLike = (value: string): boolean =>
-      /^\d+([.]\d+)?$/u.test(value) ||
-      value.includes('event.') ||
-      value.includes("document('") ||
-      value.startsWith('${');
-    const amountExpression =
-      descriptionOrAmountExpression === undefined
-        ? amountExpressionOrDescription
-        : isExpressionLike(amountExpressionOrDescription)
-          ? amountExpressionOrDescription
-          : descriptionOrAmountExpression;
-    const description =
-      descriptionOrAmountExpression === undefined
-        ? undefined
-        : isExpressionLike(amountExpressionOrDescription)
-          ? descriptionOrAmountExpression
-          : amountExpressionOrDescription;
     this.parent.operationTrigger(
       operationKey,
       channelKey,
@@ -212,7 +186,7 @@ export class PayNoteActionBuilder {
     const eventSuffix = sanitizeTypeLabel(eventTypeRef);
     this.parent.onEvent(
       `${this.mode}RequestOn${eventSuffix}`,
-      typeof eventTypeRef === 'string' ? eventTypeRef : eventTypeRef.name,
+      eventTypeRef,
       (steps) =>
         steps.triggerEvent('Request', {
           type: eventType(this.mode, 'request'),

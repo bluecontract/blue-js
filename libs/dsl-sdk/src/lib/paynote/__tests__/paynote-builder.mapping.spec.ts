@@ -109,8 +109,8 @@ amount:
         .requestPartialOnOperation(
           'capturePartial',
           'guarantorChannel',
-          'event.message.request',
-          'Request partial capture',
+          'event.message.request.amount',
+          'Request partial capture from event.message.request.amount',
         )
         .done()
       .buildDocument();
@@ -124,10 +124,10 @@ amount:
       `type: PayNote/Card Transaction Capture Unlock Requested`,
     );
     expect(yaml).toContain(`capturePartial:
-    description: Request partial capture
+    description: Request partial capture from event.message.request.amount
     type: Conversation/Operation
     channel: guarantorChannel`);
-    expect(yaml).toContain(`amount: \${event.message.request}`);
+    expect(yaml).toContain(`amount: \${event.message.request.amount}`);
 
     const json = toOfficialJson(payNote);
     const contracts = contractsOf(json);
@@ -153,6 +153,28 @@ amount:
     expect(yaml).toContain(
       `type: PayNote/Card Transaction Capture Unlock Requested`,
     );
+  });
+
+  it('maps built-in TypeLike aliases in paynote event hooks', () => {
+    // prettier-ignore
+    const payNote = PayNotes.payNote('Typed Event Hooks')
+      .currency('USD')
+      .amountMinor(3300)
+      .capture()
+        .unlockOnEvent(Number)
+        .requestOnEvent(String)
+        .done()
+      .buildDocument();
+
+    const yaml = toOfficialYaml(payNote);
+    expect(yaml).toContain(`captureUnlockOnInteger:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`captureRequestOnText:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`event:
+      type: Integer`);
+    expect(yaml).toContain(`event:
+      type: Text`);
   });
 
   it('maps capture request and release partial operation helpers', () => {
