@@ -581,6 +581,7 @@ describe('access step helpers execution', () => {
     );
     expect(callRequest).toMatchObject({
       targetSessionId: 'target-session',
+      requestId: 'REQ_AGENCY',
       operation: 'syncState',
       request: {
         type: 'Conversation/Event',
@@ -737,6 +738,7 @@ describe('access step helpers execution', () => {
     );
     expect(callRequest).toMatchObject({
       targetSessionId: 'override-target',
+      requestId: 'REQ_AGENCY',
       operation: 'syncOverride',
     });
   });
@@ -1369,10 +1371,12 @@ describe('access step helpers execution', () => {
       expect.arrayContaining([
         expect.objectContaining({
           targetSessionId: 'override-access-target',
+          requestId: 'REQ_ACCESS',
           operation: 'syncAccess',
         }),
         expect.objectContaining({
           targetSessionId: 'override-linked-target',
+          requestId: 'REQ_LINKED',
           operation: 'syncLinked',
         }),
       ]),

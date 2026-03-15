@@ -324,6 +324,67 @@ describe('steps-builder execution', () => {
     expect(subscriptionRequest).not.toHaveProperty('onBehalfOf');
   });
 
+  it('emits requestId for explicit MyOS call-operation requests', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step MyOS Call RequestId Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'emitMyOsCall',
+        'ownerChannel',
+        Number,
+        'Emit MyOS call helper with requestId',
+        (steps) =>
+          steps
+            .myOs()
+            .callOperation(
+              'ownerChannel',
+              'target-session',
+              'syncState',
+              {
+                type: 'Conversation/Event',
+              },
+              'REQ_MYOS_CALL',
+            ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'step myos call requestId initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'emitMyOsCall',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'step myos call requestId operation failed',
+    );
+
+    const callRequest = processed.triggeredEvents
+      .map((triggeredEvent) => toOfficialJson(triggeredEvent))
+      .find(
+        (triggeredEvent) =>
+          triggeredEvent.type === 'MyOS/Call Operation Requested',
+      );
+    expect(callRequest).toMatchObject({
+      operation: 'syncState',
+      targetSessionId: 'target-session',
+      requestId: 'REQ_MYOS_CALL',
+    });
+  });
+
   it('emits filtered matcher subscriptions through MyOS helper namespace', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

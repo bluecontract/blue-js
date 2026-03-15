@@ -241,6 +241,7 @@ export class MyOsSteps {
     targetSessionId: JsonValue,
     operation: string,
     request?: JsonValue,
+    requestId?: string,
   ): StepsBuilder {
     return this.parent.emitType(
       'CallOperation',
@@ -253,6 +254,12 @@ export class MyOsSteps {
         );
         if (request !== undefined) {
           payload.put('request', request);
+        }
+        if (requestId !== undefined) {
+          payload.put(
+            'requestId',
+            requireText(requestId, 'requestId is required'),
+          );
         }
       },
     );

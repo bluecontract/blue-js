@@ -174,6 +174,7 @@ export class AccessSteps {
         this.config.targetSessionId,
         operation,
         request,
+        this.config.requestId,
       );
   }
 
@@ -189,6 +190,7 @@ export class AccessSteps {
         targetSessionId,
         operation,
         request,
+        this.config.requestId,
       );
   }
 
@@ -360,6 +362,7 @@ export class LinkedAccessSteps {
         this.config.targetSessionId,
         operation,
         request,
+        this.config.requestId,
       );
   }
 
@@ -375,6 +378,7 @@ export class LinkedAccessSteps {
         targetSessionId,
         operation,
         request,
+        this.config.requestId,
       );
   }
 

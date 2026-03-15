@@ -92,6 +92,7 @@ export class AgencySteps {
         this.requireTargetSessionId(),
         operation,
         request,
+        this.config.requestId,
       );
   }
 
@@ -107,6 +108,7 @@ export class AgencySteps {
         targetSessionId,
         operation,
         request,
+        this.config.requestId,
       );
   }
 
