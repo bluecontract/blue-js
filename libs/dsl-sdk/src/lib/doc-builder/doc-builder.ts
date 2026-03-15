@@ -1067,10 +1067,15 @@ export class DocBuilder {
     workflowKey: string,
     customizer: StepsCustomizer,
   ): this {
-    this.requireAgencyConfig(agencyName);
-    return this.onEvent(
+    const config = this.requireAgencyConfig(agencyName);
+    return this.onTriggeredWithMatcher(
       workflowKey,
       'MyOS/Worker Session Starting',
+      {
+        inResponseTo: {
+          requestId: config.requestId,
+        },
+      },
       customizer,
     );
   }

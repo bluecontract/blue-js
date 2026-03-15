@@ -535,6 +535,7 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`onSessionStartingWF:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Worker Session Starting`);
+    expect(yaml).toContain(`requestId: REQ_AGENCY`);
     expect(yaml).toContain(`onSessionFailedWF:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Bootstrap Failed`);

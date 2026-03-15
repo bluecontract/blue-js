@@ -894,7 +894,15 @@ describe('access step helpers execution', () => {
                 });
               },
             )
-            .emitType('EmitSessionStarting', 'MyOS/Worker Session Starting')
+            .emitType(
+              'EmitSessionStarting',
+              'MyOS/Worker Session Starting',
+              (payload) => {
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_AGENCY',
+                });
+              },
+            )
             .emitType(
               'EmitAllParticipantsReady',
               'MyOS/All Participants Ready',
@@ -925,6 +933,61 @@ describe('access step helpers execution', () => {
     expect(processedJson.agencyRejected).toBe(true);
     expect(processedJson.sessionState).toBe('starting');
     expect(processedJson.participantsReady).toBe(true);
+  });
+
+  it('ignores unrelated worker session starting events for agency listeners', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Session Starting Correlation Runtime')
+      .field('/sessionState', 'pending')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .requestId('REQ_AGENCY')
+      .done()
+      .onSessionStarting('workerAgency', 'markSessionStarting', (steps) =>
+        steps.replaceValue('SetSessionStarting', '/sessionState', 'starting'),
+      )
+      .operation(
+        'emitUnrelatedSessionStarting',
+        'ownerChannel',
+        Number,
+        'emit unrelated worker session starting',
+        (steps) =>
+          steps.emitType(
+            'EmitSessionStarting',
+            'MyOS/Worker Session Starting',
+            (payload) => {
+              payload.put('inResponseTo', {
+                requestId: 'REQ_OTHER',
+              });
+            },
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency session-starting correlation initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'emitUnrelatedSessionStarting',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'agency session-starting correlation operation failed',
+    );
+
+    expect(toOfficialJson(processed.document).sessionState).toBe('pending');
   });
 
   it('handles agency subscription updates through onAgencyUpdate listener helper', async () => {
