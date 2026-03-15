@@ -192,19 +192,8 @@ export class DocJsonState {
       throw new Error('Not in a section.');
     }
 
-    const snapshot = this.snapshotSection(this.currentSection.key);
     this.sections.set(this.currentSection.key, this.currentSection);
-    this.ensureContractsRoot()[this.currentSection.key] = {
-      type: 'Conversation/Document Section',
-      title: snapshot.title,
-      ...(snapshot.summary ? { summary: snapshot.summary } : {}),
-      ...(snapshot.relatedFields.length > 0
-        ? { relatedFields: [...snapshot.relatedFields] }
-        : {}),
-      ...(snapshot.relatedContracts.length > 0
-        ? { relatedContracts: [...snapshot.relatedContracts] }
-        : {}),
-    };
+    this.syncPersistedSection(this.currentSection);
     this.currentSection = null;
     return this;
   }
@@ -221,12 +210,14 @@ export class DocJsonState {
   }
 
   untrackField(path: string): this {
-    if (!this.currentSection) {
+    const normalized = path.trim();
+    if (!normalized.startsWith('/')) {
       return this;
     }
-    const normalized = path.trim();
-    if (normalized.startsWith('/')) {
-      this.currentSection.relatedFields.delete(normalized);
+    this.currentSection?.relatedFields.delete(normalized);
+    for (const section of this.sections.values()) {
+      section.relatedFields.delete(normalized);
+      this.syncPersistedSection(section);
     }
     return this;
   }
@@ -285,5 +276,19 @@ export class DocJsonState {
     if (rootKey && RESERVED_ROOT_KEYS.has(rootKey)) {
       throw new Error(`Path points at reserved root key: /${rootKey}`);
     }
+  }
+
+  private syncPersistedSection(section: SectionContext): void {
+    this.ensureContractsRoot()[section.key] = {
+      type: 'Conversation/Document Section',
+      title: section.title,
+      ...(section.summary ? { summary: section.summary } : {}),
+      ...(section.relatedFields.size > 0
+        ? { relatedFields: [...section.relatedFields] }
+        : {}),
+      ...(section.relatedContracts.size > 0
+        ? { relatedContracts: [...section.relatedContracts] }
+        : {}),
+    };
   }
 }

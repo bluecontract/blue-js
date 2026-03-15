@@ -71,6 +71,23 @@ describe('core/DocJsonState', () => {
     });
   });
 
+  it('removes deleted field paths from closed section metadata', () => {
+    const state = new DocJsonState()
+      .section('counterOps', 'Counter Operations')
+      .setValue('/counter', 0)
+      .endSection()
+      .removeValue('/counter');
+
+    expect(state.build()).toEqual({
+      contracts: {
+        counterOps: {
+          type: 'Conversation/Document Section',
+          title: 'Counter Operations',
+        },
+      },
+    });
+  });
+
   it('reopens an existing section and preserves related entries', () => {
     const state = new DocJsonState()
       .section('participants', 'Participants')
