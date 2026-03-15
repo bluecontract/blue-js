@@ -1,4 +1,5 @@
 import { BlueNode } from '@blue-labs/language';
+import { escapePointerSegment } from '../core/pointers.js';
 import { toOfficialJson } from '../core/serialization.js';
 import type { JsonObject, JsonValue } from '../core/types.js';
 
@@ -162,7 +163,11 @@ function walkFields(
     return;
   }
   for (const key of keys) {
-    walkFields(object[key] as JsonValue, `${pointer}/${key}`, output);
+    walkFields(
+      object[key] as JsonValue,
+      `${pointer}/${escapePointerSegment(key)}`,
+      output,
+    );
   }
 }
 
@@ -300,7 +305,11 @@ export class DocStructure implements DocStructureSummary {
       if (RESERVED_ROOT_KEYS.has(key)) {
         continue;
       }
-      walkFields(json[key] as JsonValue, `/${key}`, fields);
+      walkFields(
+        json[key] as JsonValue,
+        `/${escapePointerSegment(key)}`,
+        fields,
+      );
     }
 
     const contractsRoot = asJsonObject(json.contracts as JsonValue) ?? {};

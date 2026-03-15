@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DocBuilder } from '../../doc-builder/doc-builder.js';
+import { getPointer } from '../../core/pointers.js';
 import { DocStructure } from '../doc-structure.js';
 
 describe('DocStructure', () => {
@@ -137,5 +138,22 @@ describe('DocStructure', () => {
     );
     expect(structure.toPromptText()).toContain('Fields (2)');
     expect(structure.toPromptText()).toContain('unknownContract [other]');
+  });
+
+  it('escapes JSON Pointer control characters in emitted field paths', () => {
+    const document = {
+      'a/b': 1,
+      'x~1y': {
+        'nested/key': true,
+      },
+    };
+
+    const structure = DocStructure.from(document);
+    const fieldPaths = structure.fields.map((entry) => entry.path).sort();
+
+    expect(fieldPaths).toEqual(['/a~1b', '/x~01y/nested~1key']);
+    expect(
+      structure.fields.map((entry) => getPointer(document, entry.path)),
+    ).toEqual([1, true]);
   });
 });
