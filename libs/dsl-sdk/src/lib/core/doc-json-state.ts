@@ -102,6 +102,7 @@ export class DocJsonState {
 
   removeValue(path: string): this {
     removePointer(this.document, path);
+    this.untrackField(path);
     return this;
   }
 
@@ -214,6 +215,17 @@ export class DocJsonState {
     const normalized = path.trim();
     if (normalized.startsWith('/')) {
       this.currentSection.relatedFields.add(normalized);
+    }
+    return this;
+  }
+
+  untrackField(path: string): this {
+    if (!this.currentSection) {
+      return this;
+    }
+    const normalized = path.trim();
+    if (normalized.startsWith('/')) {
+      this.currentSection.relatedFields.delete(normalized);
     }
     return this;
   }
