@@ -194,4 +194,30 @@ contracts:
     expect(yaml).toContain(`workerAgency:
     type: MyOS/MyOS Worker Agency`);
   });
+
+  it('keeps channel contracts intact when canEmit is used on keys without Channel suffix', () => {
+    const json = DocBuilder.doc()
+      .name('CanEmit Mapping')
+      .channel('owner', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .canEmit('owner')
+      .buildJson();
+
+    expect(json.contracts).toMatchObject({
+      owner: {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      },
+      ownerUpdate: {
+        type: 'Conversation/Operation',
+        channel: 'owner',
+      },
+      ownerUpdateImpl: {
+        type: 'Conversation/Sequential Workflow Operation',
+        operation: 'ownerUpdate',
+      },
+    });
+  });
 });

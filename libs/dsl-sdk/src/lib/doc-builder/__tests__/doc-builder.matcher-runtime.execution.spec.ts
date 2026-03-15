@@ -369,4 +369,37 @@ describe('doc-builder matcher runtime execution', () => {
       },
     ]);
   });
+
+  it('runs generated canEmit operation for channels without Channel suffix', async () => {
+    const document = DocBuilder.doc()
+      .name('CanEmit Bare Channel Runtime')
+      .channel('owner', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .canEmit('owner')
+      .buildDocument();
+
+    const { processed } = await processOperation(
+      document,
+      'ownerUpdate',
+      [
+        {
+          type: 'Conversation/Event',
+          topic: 'runtime-can-emit-owner',
+        },
+      ],
+      'owner-timeline',
+    );
+
+    const triggeredEvents = processed.triggeredEvents.map((event) =>
+      toOfficialJson(event),
+    );
+    expect(triggeredEvents).toEqual([
+      {
+        type: 'Conversation/Event',
+        topic: 'runtime-can-emit-owner',
+      },
+    ]);
+  });
 });

@@ -58,6 +58,12 @@ function aiToken(name: string): string {
     .toUpperCase();
 }
 
+function canEmitOperationKey(channelKey: string): string {
+  return channelKey.endsWith('Channel')
+    ? channelKey.replace(/Channel$/u, 'Update')
+    : `${channelKey}Update`;
+}
+
 type CallResponseListenerMatcher = {
   readonly eventType: string;
   readonly matcher: JsonObject;
@@ -1263,7 +1269,7 @@ export class DocBuilder {
 
   canEmit(channelKey: string, ...allowedEventTypes: TypeLike[]): this {
     const normalizedChannel = requireText(channelKey, 'channel key');
-    const operationKey = normalizedChannel.replace(/Channel$/u, 'Update');
+    const operationKey = canEmitOperationKey(normalizedChannel);
     const request: JsonObject = { type: 'List' };
     if (allowedEventTypes.length > 0) {
       request.events = allowedEventTypes.map((typeLike) => ({
