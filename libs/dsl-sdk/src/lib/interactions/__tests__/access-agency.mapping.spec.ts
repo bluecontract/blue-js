@@ -296,7 +296,8 @@ describe('interaction builders mapping', () => {
     const requestStep = Object.values(contracts)
       .flatMap((contract) => contract.steps ?? [])
       .find(
-        (step) => step.event?.type === 'MyOS/Worker Agency Permission Grant Requested',
+        (step) =>
+          step.event?.type === 'MyOS/Worker Agency Permission Grant Requested',
       );
 
     expect(requestStep).toEqual(
@@ -945,13 +946,10 @@ describe('interaction builders mapping', () => {
           Number,
           'start worker basic',
           (steps) =>
-            steps.viaAgency('workerAgency').startWorkerSession(
-              'ownerChannel',
-              {
-                name: 'Basic Worker',
-                type: 'MyOS/MyOS Admin Base',
-              },
-            ),
+            steps.viaAgency('workerAgency').startWorkerSession('ownerChannel', {
+              name: 'Basic Worker',
+              type: 'MyOS/MyOS Admin Base',
+            }),
         ),
     ).toThrow(
       'viaAgency(...).startSession(...) requires channel bindings; use startSessionWith(...)',

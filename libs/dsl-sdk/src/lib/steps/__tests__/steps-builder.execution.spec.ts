@@ -470,15 +470,13 @@ describe('steps-builder execution', () => {
         Number,
         'Emit object matcher subscription request',
         (steps) =>
-          steps.myOs().subscribeToSessionWithMatchers(
-            'target-session',
-            'SUB_OBJECT_MATCHERS',
-            [
-              {},
-              { name: 'deal-found' },
-              { type: String, name: 'note' },
-            ],
-          ),
+          steps
+            .myOs()
+            .subscribeToSessionWithMatchers(
+              'target-session',
+              'SUB_OBJECT_MATCHERS',
+              [{}, { name: 'deal-found' }, { type: String, name: 'note' }],
+            ),
       )
       .buildDocument();
 
@@ -530,9 +528,7 @@ describe('steps-builder execution', () => {
         Number,
         'Emit wildcard subscription request',
         (steps) =>
-          steps
-            .myOs()
-            .subscribeToSession('target-session', 'SUB_WILDCARD'),
+          steps.myOs().subscribeToSession('target-session', 'SUB_WILDCARD'),
       )
       .buildDocument();
 

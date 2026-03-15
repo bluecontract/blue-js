@@ -155,14 +155,12 @@ export class AgencySteps {
   ): StepsBuilder {
     return this.parent
       .myOs()
-      .subscribeToSession(
-        targetSessionId,
-        subscriptionId,
-        ...eventTypes,
-      );
+      .subscribeToSession(targetSessionId, subscriptionId, ...eventTypes);
   }
 
-  startSession(_agentChannelKey: string, _document: JsonObject): StepsBuilder {
+  startSession(agentChannelKey: string, document: JsonObject): StepsBuilder {
+    void agentChannelKey;
+    void document;
     throw new Error(
       'viaAgency(...).startSession(...) requires channel bindings; use startSessionWith(...)',
     );

@@ -152,7 +152,7 @@ export class AccessSteps {
       stepName,
       'MyOS/Subscribe to Session Requested',
       (payload) => {
-        const subscription: Record<string, unknown> = {
+        const subscription: JsonObject = {
           id: this.config.subscriptionId,
         };
         if (eventTypes.length > 0) {
@@ -343,7 +343,7 @@ export class LinkedAccessSteps {
       stepName,
       'MyOS/Subscribe to Session Requested',
       (payload) => {
-        const subscription: Record<string, unknown> = {
+        const subscription: JsonObject = {
           id: subscriptionId,
         };
         if (eventTypes.length > 0) {

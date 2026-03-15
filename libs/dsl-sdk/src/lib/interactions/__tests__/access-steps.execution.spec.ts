@@ -431,7 +431,8 @@ describe('access step helpers execution', () => {
     const workerAgencyRequest = processed.triggeredEvents
       .map((event) => toOfficialJson(event))
       .find(
-        (event) => event.type === 'MyOS/Worker Agency Permission Grant Requested',
+        (event) =>
+          event.type === 'MyOS/Worker Agency Permission Grant Requested',
       );
     expect(workerAgencyRequest).toMatchObject({
       allowedWorkerAgencyPermissions: [
@@ -473,7 +474,8 @@ describe('access step helpers execution', () => {
     const permissionRequest = initialized.triggeredEvents
       .map((event) => toOfficialJson(event))
       .find(
-        (event) => event.type === 'MyOS/Linked Documents Permission Grant Requested',
+        (event) =>
+          event.type === 'MyOS/Linked Documents Permission Grant Requested',
       );
     expect(permissionRequest).toMatchObject({
       links: {
@@ -509,7 +511,8 @@ describe('access step helpers execution', () => {
     const workerAgencyRequest = initialized.triggeredEvents
       .map((event) => toOfficialJson(event))
       .find(
-        (event) => event.type === 'MyOS/Worker Agency Permission Grant Requested',
+        (event) =>
+          event.type === 'MyOS/Worker Agency Permission Grant Requested',
       );
     expect(workerAgencyRequest).toMatchObject({
       onBehalfOf: 'ownerChannel',
@@ -2553,13 +2556,10 @@ describe('access step helpers execution', () => {
           Number,
           'start worker basic',
           (steps) =>
-            steps.viaAgency('workerAgency').startWorkerSession(
-              'ownerChannel',
-              {
-                name: 'Basic Worker',
-                type: 'MyOS/MyOS Admin Base',
-              },
-            ),
+            steps.viaAgency('workerAgency').startWorkerSession('ownerChannel', {
+              name: 'Basic Worker',
+              type: 'MyOS/MyOS Admin Base',
+            }),
         ),
     ).toThrow(
       'viaAgency(...).startSession(...) requires channel bindings; use startSessionWith(...)',
