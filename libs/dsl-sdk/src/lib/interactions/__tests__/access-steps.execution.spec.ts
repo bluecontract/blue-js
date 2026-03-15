@@ -181,6 +181,41 @@ describe('access step helpers execution', () => {
     });
   });
 
+  it('defaults access grants to read permission', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Access Default Read Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .operations('search')
+      .done()
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'access default-read initialization failed',
+    );
+
+    const permissionRequest = initialized.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find(
+        (event) =>
+          event.type === 'MyOS/Single Document Permission Grant Requested',
+      );
+    expect(permissionRequest).toMatchObject({
+      permissions: {
+        read: true,
+        singleOps: ['search'],
+      },
+    });
+  });
+
   it('marks access subscribed from a direct subscription initiated event', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

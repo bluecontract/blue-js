@@ -453,6 +453,23 @@ describe('interaction builders mapping', () => {
     );
   });
 
+  it('fails fast for access read(false)', () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Access read false unsupported')
+        .channel('ownerChannel', {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        })
+        .access('counterAccess')
+        .permissionFrom('ownerChannel')
+        .targetSessionId('target-session')
+        .read(false),
+    ).toThrow(
+      'access(...).read(false) is not supported; MyOS single-document permissions require read=true',
+    );
+  });
+
   it('maps rejection and revocation listeners across access variants', () => {
     const document = DocBuilder.doc()
       .name('Interaction Listener Matrix')

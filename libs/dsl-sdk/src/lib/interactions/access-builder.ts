@@ -70,7 +70,7 @@ export class AccessBuilder<P> {
   private targetSessionIdValue: string | undefined;
   private requestIdValue: string | undefined;
   private subscriptionIdValue: string | undefined;
-  private readValue = false;
+  private readValue = true;
   private readonly operationsValue: string[] = [];
   private statusPathValue: string | undefined;
   private subscribeAfterGrantedValue = false;
@@ -111,6 +111,11 @@ export class AccessBuilder<P> {
   }
 
   read(read: boolean): this {
+    if (read === false) {
+      throw new Error(
+        'access(...).read(false) is not supported; MyOS single-document permissions require read=true',
+      );
+    }
     this.readValue = read;
     return this;
   }
