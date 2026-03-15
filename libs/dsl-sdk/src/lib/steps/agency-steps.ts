@@ -113,14 +113,12 @@ export class AgencySteps {
   }
 
   subscribe(subscriptionId: string, ...eventTypes: TypeLike[]): StepsBuilder {
-    const resolvedEventTypes =
-      eventTypes.length > 0 ? eventTypes : ['Conversation/Event'];
     return this.parent
       .myOs()
       .subscribeToSession(
         this.requireTargetSessionId(),
         subscriptionId,
-        ...resolvedEventTypes,
+        ...eventTypes,
       );
   }
 
@@ -129,14 +127,12 @@ export class AgencySteps {
     subscriptionId: string,
     ...eventTypes: TypeLike[]
   ): StepsBuilder {
-    const resolvedEventTypes =
-      eventTypes.length > 0 ? eventTypes : ['Conversation/Event'];
     return this.parent
       .myOs()
       .subscribeToSession(
         targetSessionId,
         subscriptionId,
-        ...resolvedEventTypes,
+        ...eventTypes,
       );
   }
 

@@ -454,6 +454,61 @@ describe('steps-builder execution', () => {
     });
   });
 
+  it('omits subscription filters for wildcard MyOS subscriptions', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step MyOS Wildcard Subscription Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'emitWildcardSubscribe',
+        'ownerChannel',
+        Number,
+        'Emit wildcard subscription request',
+        (steps) =>
+          steps
+            .myOs()
+            .subscribeToSession('target-session', 'SUB_WILDCARD'),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'wildcard subscribe document initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'emitWildcardSubscribe',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'wildcard subscribe operation failed',
+    );
+
+    const subscribeRequest = processed.triggeredEvents
+      .map((triggeredEvent) => toOfficialJson(triggeredEvent))
+      .find(
+        (triggeredEvent) =>
+          triggeredEvent.type === 'MyOS/Subscribe to Session Requested',
+      );
+    expect(subscribeRequest).toMatchObject({
+      targetSessionId: 'target-session',
+      subscription: {
+        id: 'SUB_WILDCARD',
+      },
+    });
+    expect(subscribeRequest?.subscription).not.toHaveProperty('events');
+  });
+
   it('emits events from raw extension hook steps', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

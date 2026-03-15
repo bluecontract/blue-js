@@ -147,21 +147,21 @@ export class AccessSteps {
   subscribe(): StepsBuilder;
   subscribe(stepName: string): StepsBuilder;
   subscribe(stepName = 'SubscribeToSession'): StepsBuilder {
-    const eventTypes =
-      this.config.subscriptionEvents.length > 0
-        ? this.config.subscriptionEvents
-        : ['Conversation/Event'];
+    const eventTypes = this.config.subscriptionEvents;
     return this.parent.emitType(
       stepName,
       'MyOS/Subscribe to Session Requested',
       (payload) => {
-        payload.put('targetSessionId', this.config.targetSessionId);
-        payload.put('subscription', {
+        const subscription: Record<string, unknown> = {
           id: this.config.subscriptionId,
-          events: eventTypes.map((eventType) => ({
+        };
+        if (eventTypes.length > 0) {
+          subscription.events = eventTypes.map((eventType) => ({
             type: toTypeAlias(eventType),
-          })),
-        });
+          }));
+        }
+        payload.put('targetSessionId', this.config.targetSessionId);
+        payload.put('subscription', subscription);
       },
     );
   }
@@ -338,18 +338,21 @@ export class LinkedAccessSteps {
     const eventTypes =
       (this.config.subscriptionEvents?.length ?? 0) > 0
         ? (this.config.subscriptionEvents as readonly string[])
-        : ['Conversation/Event'];
+        : [];
     return this.parent.emitType(
       stepName,
       'MyOS/Subscribe to Session Requested',
       (payload) => {
-        payload.put('targetSessionId', this.config.targetSessionId);
-        payload.put('subscription', {
+        const subscription: Record<string, unknown> = {
           id: subscriptionId,
-          events: eventTypes.map((eventType) => ({
+        };
+        if (eventTypes.length > 0) {
+          subscription.events = eventTypes.map((eventType) => ({
             type: toTypeAlias(eventType),
-          })),
-        });
+          }));
+        }
+        payload.put('targetSessionId', this.config.targetSessionId);
+        payload.put('subscription', subscription);
       },
     );
   }

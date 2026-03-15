@@ -171,6 +171,64 @@ describe('ai integration execution', () => {
     );
   });
 
+  it('emits wildcard subscription requests from manual AI subscribe helpers', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    // prettier-ignore
+    const document = DocBuilder.doc()
+      .name('AI Manual Subscribe Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .ai('provider')
+        .sessionId('provider-session')
+        .permissionFrom('ownerChannel')
+        .requestPermissionManually()
+        .subscriptionId('SUB_PROVIDER')
+        .done()
+      .operation(
+        'subscribeProvider',
+        'ownerChannel',
+        Number,
+        'emit ai subscription request',
+        (steps) => steps.ai('provider').subscribe(),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'ai manual subscribe initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const processed = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'subscribeProvider',
+          request: 1,
+          timelineId: 'owner-timeline',
+          documentBlueId,
+          allowNewerVersion: false,
+        }),
+      ),
+      'ai manual subscribe operation failed',
+    );
+
+    const subscriptionRequest = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'MyOS/Subscribe to Session Requested');
+
+    expect(subscriptionRequest).toMatchObject({
+      targetSessionId: 'provider-session',
+      subscription: {
+        id: 'SUB_PROVIDER',
+      },
+    });
+    expect(subscriptionRequest?.subscription).not.toHaveProperty('events');
+  });
+
   it('normalizes task expected response aliases in emitted AI requests', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

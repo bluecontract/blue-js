@@ -252,6 +252,70 @@ describe('access step helpers execution', () => {
     );
   });
 
+  it('emits wildcard subscription requests after access grants when no filters are configured', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Access Wildcard Subscription Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_ACCESS')
+      .subscriptionId('SUB_ACCESS')
+      .subscribeAfterGranted()
+      .done()
+      .operation(
+        'emitGranted',
+        'ownerChannel',
+        Number,
+        'emit access grant',
+        (steps) =>
+          steps.emitType(
+            'EmitAccessGranted',
+            'MyOS/Single Document Permission Granted',
+            (payload) => {
+              payload.put('inResponseTo', {
+                requestId: 'REQ_ACCESS',
+              });
+            },
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'access wildcard initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'emitGranted',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'access wildcard operation failed',
+    );
+
+    const subscribeRequest = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'MyOS/Subscribe to Session Requested');
+
+    expect(subscribeRequest).toMatchObject({
+      targetSessionId: 'target-session',
+      subscription: {
+        id: 'SUB_ACCESS',
+      },
+    });
+    expect(subscribeRequest?.subscription).not.toHaveProperty('events');
+  });
+
   it('emits linked and agency permission requests through helper namespaces', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

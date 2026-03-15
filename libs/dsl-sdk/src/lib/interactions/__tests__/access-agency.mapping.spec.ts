@@ -300,6 +300,93 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`type: MyOS/Subscribe to Session Requested`);
   });
 
+  it('omits subscription filters for zero-arg access, linked, and agency helpers', () => {
+    const document = DocBuilder.doc()
+      .name('Wildcard Subscribe Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('access-target')
+      .subscriptionId('SUB_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('linked-target')
+      .link('anchorA')
+      .read(true)
+      .done()
+      .subscriptionId('SUB_LINKED')
+      .done()
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('agency-target')
+      .done()
+      .operation(
+        'subscribeAll',
+        'ownerChannel',
+        Number,
+        'subscribe without filters',
+        (steps) =>
+          steps
+            .access('counterAccess')
+            .subscribe()
+            .accessLinked('linkedAccess')
+            .subscribe()
+            .viaAgency('workerAgency')
+            .subscribe('SUB_AGENCY'),
+      )
+      .buildJson();
+
+    const contracts = document.contracts as Record<
+      string,
+      { steps?: Array<{ event?: Record<string, unknown> }> }
+    >;
+    const subscribeSteps = Object.values(contracts)
+      .flatMap((contract) => contract.steps ?? [])
+      .filter(
+        (step) => step.event?.type === 'MyOS/Subscribe to Session Requested',
+      );
+
+    expect(subscribeSteps).toHaveLength(3);
+    expect(subscribeSteps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: {
+            type: 'MyOS/Subscribe to Session Requested',
+            targetSessionId: 'access-target',
+            subscription: {
+              id: 'SUB_ACCESS',
+            },
+          },
+        }),
+        expect.objectContaining({
+          event: {
+            type: 'MyOS/Subscribe to Session Requested',
+            targetSessionId: 'linked-target',
+            subscription: {
+              id: 'SUB_LINKED',
+            },
+          },
+        }),
+        expect.objectContaining({
+          event: {
+            type: 'MyOS/Subscribe to Session Requested',
+            targetSessionId: 'agency-target',
+            subscription: {
+              id: 'SUB_AGENCY',
+            },
+          },
+        }),
+      ]),
+    );
+    for (const step of subscribeSteps) {
+      expect(step.event?.subscription).not.toHaveProperty('events');
+    }
+  });
+
   it('fails fast for unsupported subscribeToCreatedSessions(true)', () => {
     expect(() =>
       DocBuilder.doc()

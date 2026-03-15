@@ -67,6 +67,19 @@ function putTargetSessionId(
   }
 }
 
+function buildSubscriptionPayload(
+  subscriptionId: string,
+  eventMatchers?: JsonObject[],
+): JsonObject {
+  const subscription: JsonObject = {
+    id: requireText(subscriptionId, 'subscriptionId is required'),
+  };
+  if (eventMatchers && eventMatchers.length > 0) {
+    subscription.events = eventMatchers;
+  }
+  return subscription;
+}
+
 function toSubscriptionMatcher(
   eventMatcher: JsonObject | TypeLike,
 ): JsonObject {
@@ -275,10 +288,13 @@ export class MyOsSteps {
       'MyOS/Subscribe to Session Requested',
       (payload) => {
         putTargetSessionId(payload, targetSessionId);
-        payload.put('subscription', {
-          id: requireText(subscriptionId, 'subscriptionId is required'),
-          events: eventTypes.map((typeRef) => ({ type: toTypeAlias(typeRef) })),
-        });
+        payload.put(
+          'subscription',
+          buildSubscriptionPayload(
+            subscriptionId,
+            eventTypes.map((typeRef) => ({ type: toTypeAlias(typeRef) })),
+          ),
+        );
       },
     );
   }
@@ -293,12 +309,15 @@ export class MyOsSteps {
       'MyOS/Subscribe to Session Requested',
       (payload) => {
         putTargetSessionId(payload, targetSessionId);
-        payload.put('subscription', {
-          id: requireText(subscriptionId, 'subscriptionId is required'),
-          events: eventMatchers.map((eventMatcher) =>
-            toSubscriptionMatcher(eventMatcher),
+        payload.put(
+          'subscription',
+          buildSubscriptionPayload(
+            subscriptionId,
+            eventMatchers.map((eventMatcher) =>
+              toSubscriptionMatcher(eventMatcher),
+            ),
           ),
-        });
+        );
       },
     );
   }

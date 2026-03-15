@@ -496,7 +496,6 @@ export class AISteps {
         payload.put('targetSessionId', this.integration.sessionId);
         payload.put('subscription', {
           id: this.integration.subscriptionId,
-          events: [],
         });
       },
     );
