@@ -49,6 +49,24 @@ describe('core/pointers', () => {
     ).toThrow(/missing/i);
   });
 
+  it('rejects out-of-bounds array writes in strict mode', () => {
+    const root: JsonObject = { items: [] };
+
+    expect(() =>
+      setPointer(root, '/items/2', 'value', { createMissing: false }),
+    ).toThrow(/out of bounds/i);
+    expect(root).toEqual({ items: [] });
+  });
+
+  it('rejects scalar array traversal in strict mode', () => {
+    const root: JsonObject = { items: [1] };
+
+    expect(() =>
+      setPointer(root, '/items/0/name', 'value', { createMissing: false }),
+    ).toThrow(/scalar array element/i);
+    expect(root).toEqual({ items: [1] });
+  });
+
   it('decodes escaped JSON Pointer segments during traversal', () => {
     const root: JsonObject = {};
 

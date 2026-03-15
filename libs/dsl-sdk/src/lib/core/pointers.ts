@@ -61,8 +61,12 @@ function ensureArrayChild(parent: JsonObject, key: string): JsonValue[] {
 function ensureArrayIndex(
   array: JsonValue[],
   index: number,
+  createMissing: boolean,
   nextSegment?: string,
 ): JsonObject {
+  if (!createMissing && index >= array.length) {
+    throw new Error(`Array index out of bounds while traversing: ${index}`);
+  }
   while (array.length <= index) {
     array.push(nextSegment && /^\d+$/.test(nextSegment) ? [] : {});
   }
@@ -74,6 +78,9 @@ function ensureArrayIndex(
     throw new Error(
       'Array-in-array traversal is not supported for object hops',
     );
+  }
+  if (!createMissing) {
+    throw new Error(`Cannot traverse scalar array element at index ${index}`);
   }
   const created: JsonObject = {};
   array[index] = created;
@@ -102,12 +109,12 @@ export function setPointer(
 
     if (currentArray) {
       const arrayIndex = parseArrayIndex(segment);
-      if (!createMissing && arrayIndex >= currentArray.length) {
-        throw new Error(
-          `Array index out of bounds while traversing: ${segment}`,
-        );
-      }
-      currentObject = ensureArrayIndex(currentArray, arrayIndex, next);
+      currentObject = ensureArrayIndex(
+        currentArray,
+        arrayIndex,
+        createMissing,
+        next,
+      );
       currentArray = null;
       continue;
     }
@@ -130,6 +137,9 @@ export function setPointer(
   const leaf = segments[segments.length - 1] as string;
   if (currentArray) {
     const arrayIndex = parseArrayIndex(leaf);
+    if (!createMissing && arrayIndex >= currentArray.length) {
+      throw new Error(`Array index out of bounds while writing: ${arrayIndex}`);
+    }
     while (currentArray.length <= arrayIndex) {
       currentArray.push(null);
     }
