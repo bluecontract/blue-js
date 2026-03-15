@@ -56,4 +56,14 @@ describe('DocBuilder public surface', () => {
       },
     });
   });
+
+  it('rejects whitespace-only event type aliases with a clear error', () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Whitespace alias')
+        .onEvent('watch', '   ', (steps) =>
+          steps.replaceValue('Set', '/status', 'ok'),
+        ),
+    ).toThrow(/cannot resolve type alias from empty string/i);
+  });
 });

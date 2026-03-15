@@ -8,7 +8,11 @@ export type TypeLike = string | TypeLikeObject;
 
 export function toTypeAlias(typeLike: TypeLike): string {
   if (typeof typeLike === 'string') {
-    return typeLike.trim();
+    const alias = typeLike.trim();
+    if (!alias) {
+      throw new Error('Cannot resolve type alias from empty string');
+    }
+    return alias;
   }
   const name = typeLike.name?.trim();
   if (!name) {
