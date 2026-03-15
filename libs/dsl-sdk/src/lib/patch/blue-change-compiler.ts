@@ -397,7 +397,6 @@ function compilePatchOperations(
   if (
     hasContractsRoot &&
     !hasNextContractsRoot &&
-    sortedRemovals.length > 0 &&
     contractAddsOrReplaces.length === 0
   ) {
     operations.push({

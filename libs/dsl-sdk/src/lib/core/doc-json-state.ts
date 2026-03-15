@@ -129,7 +129,20 @@ export class DocJsonState {
 
   removeContract(contractKey: string): this {
     const normalizedKey = assertNonEmpty(contractKey, 'contract key');
-    delete this.ensureContractsRoot()[normalizedKey];
+    const contracts = this.document.contracts;
+    if (
+      !contracts ||
+      typeof contracts !== 'object' ||
+      Array.isArray(contracts)
+    ) {
+      return this;
+    }
+
+    const contractsRoot = contracts as JsonObject;
+    delete contractsRoot[normalizedKey];
+    if (Object.keys(contractsRoot).length === 0) {
+      delete this.document.contracts;
+    }
     return this;
   }
 

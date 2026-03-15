@@ -270,4 +270,24 @@ describe('BlueChangeCompiler', () => {
     ).toEqual(['remove:/contracts/ownerChannel', 'remove:/contracts']);
     expect(applyBlueChangePlan(before, plan)).toEqual(after);
   });
+
+  it('removes an empty contracts root when the target omits contracts', () => {
+    const before = {
+      name: 'Drop Empty Contracts Root',
+      contracts: {},
+    };
+    const after = {
+      name: 'Drop Empty Contracts Root',
+    };
+
+    const plan = BlueChangeCompiler.compile(before, after);
+
+    expect(plan.patchOperations).toEqual([
+      {
+        op: 'remove',
+        path: '/contracts',
+      },
+    ]);
+    expect(applyBlueChangePlan(before, plan)).toEqual(after);
+  });
 });

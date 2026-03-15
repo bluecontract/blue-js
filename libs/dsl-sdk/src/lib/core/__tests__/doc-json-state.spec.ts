@@ -83,4 +83,28 @@ describe('core/DocJsonState', () => {
       "${document('/counter') + 1}",
     );
   });
+
+  it('does not create an empty contracts root when removing from a document without contracts', () => {
+    const state = new DocJsonState()
+      .setName('Counter')
+      .removeContract('missing');
+
+    expect(state.build()).toEqual({
+      name: 'Counter',
+    });
+  });
+
+  it('removes the contracts root when deleting the last contract', () => {
+    const state = new DocJsonState()
+      .setName('Counter')
+      .setContract('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .removeContract('ownerChannel');
+
+    expect(state.build()).toEqual({
+      name: 'Counter',
+    });
+  });
 });
