@@ -197,6 +197,50 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`inResponseTo:`);
   });
 
+  it('reuses one call-response envelope workflow for multiple typed listeners on the same access', () => {
+    const json = DocBuilder.doc()
+      .name('Shared Call Response Envelope Mapping')
+      .field('/approvedHandled', false)
+      .field('/capturedHandled', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_COUNTER')
+      .done()
+      .onCallResponse(
+        'counterAccess',
+        'onApproved',
+        'PayNote/PayNote Approved',
+        (steps) => steps.replaceValue('SetApprovedHandled', '/approvedHandled', true),
+      )
+      .onCallResponse(
+        'counterAccess',
+        'onCaptured',
+        'PayNote/Funds Captured',
+        (steps) => steps.replaceValue('SetCapturedHandled', '/capturedHandled', true),
+      )
+      .buildJson();
+
+    const envelopeWorkflows = Object.entries(json.contracts ?? {}).filter(
+      ([, contract]) =>
+        typeof contract === 'object' &&
+        contract !== null &&
+        !Array.isArray(contract) &&
+        (contract as Record<string, unknown>).type ===
+          'Conversation/Sequential Workflow' &&
+        typeof (contract as Record<string, unknown>).event === 'object' &&
+        (contract as Record<string, unknown>).event !== null &&
+        ((contract as Record<string, unknown>).event as Record<string, unknown>)
+          .type === 'MyOS/Call Operation Responded',
+    );
+
+    expect(envelopeWorkflows).toHaveLength(1);
+  });
+
   it('maps linked access subscribe and call helper steps', () => {
     const document = DocBuilder.doc()
       .name('Linked Access Steps Mapping')

@@ -141,6 +141,7 @@ export class DocBuilder {
   private readonly accessConfigs = new Map<string, AccessConfig>();
   private readonly linkedAccessConfigs = new Map<string, LinkedAccessConfig>();
   private readonly agencyConfigs = new Map<string, AgencyConfig>();
+  private readonly callResponseEnvelopeWorkflows = new Map<string, string>();
 
   protected constructor(initial?: JsonObject) {
     this.state = new DocJsonState(initial);
@@ -958,15 +959,7 @@ export class DocBuilder {
     const listener = toCallResponseListenerMatcher(
       responseTypeOrMatcherOrCustomizer as TypeLike | JsonObject,
     );
-    this.onEvent(
-      callResponseEnvelopeWorkflowKey(workflow),
-      'MyOS/Call Operation Responded',
-      (steps) =>
-        steps.jsRaw(
-          callResponseFanoutStepName(workflow),
-          createCallResponseFanoutCode(),
-        ),
-    );
+    this.ensureCallResponseEnvelopeWorkflow(accessName, workflow);
     return this.onTriggeredWithMatcher(
       workflow,
       listener.eventType,
@@ -1668,6 +1661,33 @@ export class DocBuilder {
       throw new Error(`Unknown agency: ${name}`);
     }
     return config;
+  }
+
+  private ensureCallResponseEnvelopeWorkflow(
+    accessName: string,
+    workflowKey: string,
+  ): string {
+    const normalizedAccessName = requireText(accessName, 'access name');
+    const existing = this.callResponseEnvelopeWorkflows.get(normalizedAccessName);
+    if (existing) {
+      return existing;
+    }
+
+    const envelopeWorkflowKey = callResponseEnvelopeWorkflowKey(workflowKey);
+    this.onEvent(
+      envelopeWorkflowKey,
+      'MyOS/Call Operation Responded',
+      (steps) =>
+        steps.jsRaw(
+          callResponseFanoutStepName(workflowKey),
+          createCallResponseFanoutCode(),
+        ),
+    );
+    this.callResponseEnvelopeWorkflows.set(
+      normalizedAccessName,
+      envelopeWorkflowKey,
+    );
+    return envelopeWorkflowKey;
   }
 
   private ensureTriggeredEventChannel(): void {

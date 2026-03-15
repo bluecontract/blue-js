@@ -2335,6 +2335,51 @@ describe('access step helpers execution', () => {
     expect(processedJson.capturedHandled).toBe(true);
   });
 
+  it('does not duplicate inner response fanout when multiple typed listeners share one access request', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument('Shared Call Response Fanout')
+        .onCallResponse(
+          'counterAccess',
+          'countAnyResponse',
+          'Conversation/Response',
+          (steps) =>
+            steps.replaceExpression(
+              'IncrementResponseCount',
+              '/responseCount',
+              "document('/responseCount') + 1",
+            ),
+        )
+        .onCallResponse(
+          'counterAccess',
+          'onCaptured',
+          'PayNote/Funds Captured',
+          (steps) =>
+            steps.replaceValue('SetCapturedHandled', '/capturedHandled', true),
+        ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.responseCount).toBe(2);
+    expect(processedJson.capturedHandled).toBe(true);
+  });
+
   it('typed listener receives the matched inner response as event payload', async () => {
     const document = withCallResponseEnvelopeOperation(
       createCallResponseBaseDocument(
