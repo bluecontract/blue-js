@@ -103,6 +103,35 @@ counter: 0
     });
   });
 
+  it('preserves existing field constraints when partially updating metadata', () => {
+    const json = DocBuilder.edit({
+      name: 'Metadata',
+      age: {
+        type: 'Integer',
+        constraints: {
+          required: true,
+          maximum: 120,
+        },
+      },
+    })
+      .field('/age')
+      .minimum(18)
+      .done()
+      .buildJson();
+
+    expect(json).toEqual({
+      name: 'Metadata',
+      age: {
+        type: 'Integer',
+        constraints: {
+          required: true,
+          minimum: 18,
+          maximum: 120,
+        },
+      },
+    });
+  });
+
   it('maps document anchors and link wrappers', () => {
     const document = DocBuilder.doc()
       .name('Anchors and Links')

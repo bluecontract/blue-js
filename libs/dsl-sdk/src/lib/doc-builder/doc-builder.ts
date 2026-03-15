@@ -1501,17 +1501,23 @@ export class DocBuilder {
       next.description = field.description;
     }
 
-    const constraints: JsonObject = {};
+    const constraints = isObject(next.constraints)
+      ? cloneObject(next.constraints)
+      : {};
+    let hasConstraintUpdate = false;
     if (field.required !== undefined) {
       constraints.required = field.required;
+      hasConstraintUpdate = true;
     }
     if (field.minimum !== undefined) {
       constraints.minimum = field.minimum;
+      hasConstraintUpdate = true;
     }
     if (field.maximum !== undefined) {
       constraints.maximum = field.maximum;
+      hasConstraintUpdate = true;
     }
-    if (Object.keys(constraints).length > 0) {
+    if (hasConstraintUpdate) {
       next.constraints = constraints;
     }
 
