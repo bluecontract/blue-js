@@ -2534,62 +2534,35 @@ describe('access step helpers execution', () => {
     expect(processedJson.lastAmountCaptured).toBe(0);
   });
 
-  it('emits basic start worker session request through agency helper', async () => {
-    const blue = createTestBlue();
-    const processor = createTestDocumentProcessor(blue);
-    const document = DocBuilder.doc()
-      .name('Agency Start Worker Basic Runtime')
-      .channel('ownerChannel', {
-        type: 'Conversation/Timeline Channel',
-        timelineId: 'owner-timeline',
-      })
-      .agency('workerAgency')
-      .permissionFrom('ownerChannel')
-      .allowedTypes('MyOS/MyOS Admin Base')
-      .requestId('REQ_AGENCY')
-      .done()
-      .operation(
-        'startWorkerBasic',
-        'ownerChannel',
-        Number,
-        'start worker basic',
-        (steps) =>
-          steps.viaAgency('workerAgency').startWorkerSession('ownerChannel', {
-            name: 'Basic Worker',
-            type: 'MyOS/MyOS Admin Base',
-          }),
-      )
-      .buildDocument();
-
-    const initialized = await expectSuccess(
-      processor.initializeDocument(document),
-      'agency start worker basic initialization failed',
+  it('fails fast for basic start worker session agency helper without bindings', async () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Agency Start Worker Basic Runtime')
+        .channel('ownerChannel', {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        })
+        .agency('workerAgency')
+        .permissionFrom('ownerChannel')
+        .allowedTypes('MyOS/MyOS Admin Base')
+        .requestId('REQ_AGENCY')
+        .done()
+        .operation(
+          'startWorkerBasic',
+          'ownerChannel',
+          Number,
+          'start worker basic',
+          (steps) =>
+            steps.viaAgency('workerAgency').startWorkerSession(
+              'ownerChannel',
+              {
+                name: 'Basic Worker',
+                type: 'MyOS/MyOS Admin Base',
+              },
+            ),
+        ),
+    ).toThrow(
+      'viaAgency(...).startSession(...) requires channel bindings; use startSessionWith(...)',
     );
-    const documentBlueId = storedDocumentBlueId(initialized.document);
-    const request = operationRequestEvent(blue, {
-      operation: 'startWorkerBasic',
-      request: 1,
-      timelineId: 'owner-timeline',
-      documentBlueId,
-      allowNewerVersion: false,
-    });
-    const processed = await expectSuccess(
-      processor.processDocument(initialized.document.clone(), request),
-      'agency start worker basic operation failed',
-    );
-
-    const startEvent = processed.triggeredEvents
-      .map((event) => toOfficialJson(event))
-      .find((event) => event.type === 'MyOS/Start Worker Session Requested');
-    expect(startEvent).toBeDefined();
-    expect(startEvent).toMatchObject({
-      onBehalfOf: 'ownerChannel',
-      document: {
-        name: 'Basic Worker',
-      },
-    });
-    expect(startEvent).not.toHaveProperty('channelBindings');
-    expect(startEvent).not.toHaveProperty('initialMessages');
-    expect(startEvent).not.toHaveProperty('capabilities');
   });
 });

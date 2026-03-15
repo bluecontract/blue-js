@@ -162,8 +162,10 @@ export class AgencySteps {
       );
   }
 
-  startSession(agentChannelKey: string, document: JsonObject): StepsBuilder {
-    return this.parent.myOs().startWorkerSession(agentChannelKey, document);
+  startSession(_agentChannelKey: string, _document: JsonObject): StepsBuilder {
+    throw new Error(
+      'viaAgency(...).startSession(...) requires channel bindings; use startSessionWith(...)',
+    );
   }
 
   startSessionWith(

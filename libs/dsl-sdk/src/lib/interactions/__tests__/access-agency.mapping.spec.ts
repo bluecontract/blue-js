@@ -926,35 +926,35 @@ describe('interaction builders mapping', () => {
     );
   });
 
-  it('maps agency startWorkerSession basic helper variant', () => {
-    const document = DocBuilder.doc()
-      .name('Agency Start Worker Basic Mapping')
-      .channel('ownerChannel', {
-        type: 'Conversation/Timeline Channel',
-        timelineId: 'owner-timeline',
-      })
-      .agency('workerAgency')
-      .permissionFrom('ownerChannel')
-      .allowedTypes('MyOS/MyOS Admin Base')
-      .requestId('REQ_AGENCY')
-      .done()
-      .operation(
-        'startWorkerBasic',
-        'ownerChannel',
-        Number,
-        'start worker basic',
-        (steps) =>
-          steps.viaAgency('workerAgency').startWorkerSession('ownerChannel', {
-            name: 'Basic Worker',
-            type: 'MyOS/MyOS Admin Base',
-          }),
-      )
-      .buildDocument();
-
-    const yaml = toOfficialYaml(document);
-    expect(yaml).toContain(`operation: startWorkerBasic`);
-    expect(yaml).toContain(`type: MyOS/Start Worker Session Requested`);
-    expect(yaml).toContain(`onBehalfOf: ownerChannel`);
-    expect(yaml).toContain(`name: Basic Worker`);
+  it('fails fast for agency startWorkerSession basic helper variant', () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Agency Start Worker Basic Mapping')
+        .channel('ownerChannel', {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        })
+        .agency('workerAgency')
+        .permissionFrom('ownerChannel')
+        .allowedTypes('MyOS/MyOS Admin Base')
+        .requestId('REQ_AGENCY')
+        .done()
+        .operation(
+          'startWorkerBasic',
+          'ownerChannel',
+          Number,
+          'start worker basic',
+          (steps) =>
+            steps.viaAgency('workerAgency').startWorkerSession(
+              'ownerChannel',
+              {
+                name: 'Basic Worker',
+                type: 'MyOS/MyOS Admin Base',
+              },
+            ),
+        ),
+    ).toThrow(
+      'viaAgency(...).startSession(...) requires channel bindings; use startSessionWith(...)',
+    );
   });
 });

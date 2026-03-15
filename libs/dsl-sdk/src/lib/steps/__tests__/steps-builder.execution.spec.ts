@@ -569,6 +569,30 @@ describe('steps-builder execution', () => {
     expect(subscribeRequest?.subscription).not.toHaveProperty('events');
   });
 
+  it('fails fast for start worker session requests without channel bindings', async () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Step MyOS Start Worker Missing Bindings')
+        .channel('ownerChannel', {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        })
+        .operation(
+          'startWorker',
+          'ownerChannel',
+          Number,
+          'Emit invalid start worker request',
+          (steps) =>
+            steps.myOs().startWorkerSession('ownerChannel', {
+              name: 'Child Worker',
+              type: 'MyOS/MyOS Admin Base',
+            }),
+        ),
+    ).toThrow(
+      'MyOS/Start Worker Session Requested requires non-empty channelBindings',
+    );
+  });
+
   it('emits events from raw extension hook steps', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

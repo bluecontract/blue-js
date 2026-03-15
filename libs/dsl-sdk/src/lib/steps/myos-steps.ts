@@ -322,6 +322,11 @@ export class MyOsSteps {
     channelBindings?: Record<string, JsonObject>,
     options?: JsonObject,
   ): StepsBuilder {
+    if (!channelBindings || Object.keys(channelBindings).length === 0) {
+      throw new Error(
+        'MyOS/Start Worker Session Requested requires non-empty channelBindings',
+      );
+    }
     return this.parent.emitType(
       'StartWorkerSession',
       'MyOS/Start Worker Session Requested',
@@ -331,9 +336,7 @@ export class MyOsSteps {
           requireText(onBehalfOf, 'onBehalfOf is required'),
         );
         payload.put('document', structuredClone(document));
-        if (channelBindings && Object.keys(channelBindings).length > 0) {
-          payload.put('channelBindings', structuredClone(channelBindings));
-        }
+        payload.put('channelBindings', structuredClone(channelBindings));
         if (options && Object.keys(options).length > 0) {
           const normalizedOptions = structuredClone(options);
           if (
