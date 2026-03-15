@@ -21,12 +21,28 @@ function token(name: string): string {
   return normalized.length > 0 ? normalized : 'AGENCY';
 }
 
+function buildAllowedWorkerAgencyPermissions(
+  workerTypes: readonly string[],
+  allowedOperations: readonly string[],
+): Record<string, unknown>[] {
+  return workerTypes.map((workerType) => ({
+    type: 'MyOS/Worker Agency Permission',
+    workerType,
+    permissions: {
+      read: true,
+      ...(allowedOperations.length > 0
+        ? { singleOps: [...allowedOperations] }
+        : {}),
+    },
+  }));
+}
+
 type StepsCustomizer = (steps: {
   myOs: (adminChannelKey?: string) => {
     grantWorkerAgencyPermission: (
       onBehalfOf: string,
       requestId: string,
-      workerAgencyPermissions: Record<string, unknown>,
+      workerAgencyPermissions: unknown,
       targetSessionId?: string,
     ) => unknown;
   };
@@ -141,6 +157,9 @@ export class AgencyBuilder<P> {
 
   done(): P {
     const baseToken = token(this.name);
+    if (this.allowedTypesValue.length === 0) {
+      throw new Error('agency(...).allowedTypes(...) is required');
+    }
     const config: AgencyConfig = {
       name: this.name,
       token: baseToken,
@@ -173,17 +192,10 @@ export class AgencyBuilder<P> {
 
     const workflowPrefix = `agency${config.token}`;
     const requestPermissionWorkflow: StepsCustomizer = (steps) => {
-      const workerAgencyPermissions: Record<string, unknown> = {};
-      if (config.allowedTypes.length > 0) {
-        workerAgencyPermissions.allowedDocumentTypes = config.allowedTypes.map(
-          (type) => ({ type }),
-        );
-      }
-      if (config.allowedOperations.length > 0) {
-        workerAgencyPermissions.allowedOperations = [
-          ...config.allowedOperations,
-        ];
-      }
+      const workerAgencyPermissions = buildAllowedWorkerAgencyPermissions(
+        config.allowedTypes,
+        config.allowedOperations,
+      );
       steps
         .myOs()
         .grantWorkerAgencyPermission(

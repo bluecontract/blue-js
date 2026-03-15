@@ -336,6 +336,7 @@ describe('access step helpers execution', () => {
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .done()
       .operation(
@@ -391,6 +392,67 @@ describe('access step helpers execution', () => {
     expect(eventTypes).toContain(
       'MyOS/Worker Agency Permission Grant Requested',
     );
+
+    const workerAgencyRequest = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find(
+        (event) => event.type === 'MyOS/Worker Agency Permission Grant Requested',
+      );
+    expect(workerAgencyRequest).toMatchObject({
+      allowedWorkerAgencyPermissions: [
+        {
+          type: 'MyOS/Worker Agency Permission',
+          workerType: 'MyOS/MyOS Admin Base',
+          permissions: {
+            read: true,
+          },
+        },
+      ],
+    });
+    expect(workerAgencyRequest).not.toHaveProperty('workerAgencyPermissions');
+  });
+
+  it('emits runtime-shaped worker agency permission requests on init', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Agency Init Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
+      .allowedOperations('proposeOffer', 'accept')
+      .done()
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'agency init initialization failed',
+    );
+
+    const workerAgencyRequest = initialized.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find(
+        (event) => event.type === 'MyOS/Worker Agency Permission Grant Requested',
+      );
+    expect(workerAgencyRequest).toMatchObject({
+      onBehalfOf: 'ownerChannel',
+      requestId: 'REQ_AGENCY_WORKERAGENCY',
+      allowedWorkerAgencyPermissions: [
+        {
+          type: 'MyOS/Worker Agency Permission',
+          workerType: 'MyOS/MyOS Admin Base',
+          permissions: {
+            read: true,
+            singleOps: ['proposeOffer', 'accept'],
+          },
+        },
+      ],
+    });
+    expect(workerAgencyRequest).not.toHaveProperty('workerAgencyPermissions');
   });
 
   it('emits start worker session requests with bindings and options', async () => {
@@ -404,6 +466,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .done()
       .operation(
@@ -495,6 +558,7 @@ describe('access step helpers execution', () => {
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('target-session')
       .done()
@@ -584,6 +648,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('target-session')
       .done()
@@ -742,6 +807,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('default-target')
       .done()
@@ -839,6 +905,7 @@ describe('access step helpers execution', () => {
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('target-session')
       .done()
@@ -947,6 +1014,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .done()
       .onSessionStarting('workerAgency', 'markSessionStarting', (steps) =>
@@ -1002,6 +1070,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('target-session')
       .done()
@@ -1096,6 +1165,7 @@ describe('access step helpers execution', () => {
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('target-session')
       .done()
@@ -1637,6 +1707,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('default-target')
       .done()
@@ -1688,6 +1759,15 @@ describe('access step helpers execution', () => {
         expect.objectContaining({
           type: 'MyOS/Worker Agency Permission Grant Requested',
           targetSessionId: 'override-target',
+          allowedWorkerAgencyPermissions: [
+            {
+              type: 'MyOS/Worker Agency Permission',
+              workerType: 'MyOS/MyOS Admin Base',
+              permissions: {
+                read: true,
+              },
+            },
+          ],
         }),
         expect.objectContaining({
           type: 'MyOS/Worker Agency Permission Revoke Requested',
@@ -1708,6 +1788,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('default-target')
       .done()
@@ -1756,6 +1837,15 @@ describe('access step helpers execution', () => {
         expect.objectContaining({
           type: 'MyOS/Worker Agency Permission Grant Requested',
           targetSessionId: 'explicit-target',
+          allowedWorkerAgencyPermissions: [
+            {
+              type: 'MyOS/Worker Agency Permission',
+              workerType: 'MyOS/MyOS Admin Base',
+              permissions: {
+                read: true,
+              },
+            },
+          ],
         }),
         expect.objectContaining({
           type: 'MyOS/Worker Agency Permission Revoke Requested',
@@ -2382,6 +2472,7 @@ describe('access step helpers execution', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .done()
       .operation(

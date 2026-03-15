@@ -9,25 +9,48 @@ function resolveOnBehalfOf(config: AgencyConfig): string {
   return config.onBehalfOf ?? config.permissionFrom ?? 'ownerChannel';
 }
 
+function buildAllowedWorkerAgencyPermissions(
+  workerTypes: readonly string[],
+  allowedOperations: readonly string[],
+): JsonObject[] {
+  return workerTypes.map((workerType) => ({
+    type: 'MyOS/Worker Agency Permission',
+    workerType,
+    permissions: {
+      read: true,
+      ...(allowedOperations.length > 0
+        ? { singleOps: [...allowedOperations] }
+        : {}),
+    },
+  }));
+}
+
+function normalizeWorkerAgencyPermissionsInput(
+  input: JsonObject,
+): JsonObject[] | JsonValue {
+  if (Array.isArray(input.allowedWorkerAgencyPermissions)) {
+    return input.allowedWorkerAgencyPermissions as JsonObject[];
+  }
+  if (
+    typeof input.workerType === 'string' ||
+    input.type === 'MyOS/Worker Agency Permission'
+  ) {
+    return [input];
+  }
+  return input;
+}
+
 export class AgencySteps {
   constructor(
     private readonly parent: StepsBuilder,
     private readonly config: AgencyConfig,
   ) {}
 
-  private defaultPermissions(): JsonObject {
-    const permissions: JsonObject = {};
-    if (this.config.allowedTypes.length > 0) {
-      permissions.allowedDocumentTypes = this.config.allowedTypes.map(
-        (type) => ({
-          type,
-        }),
-      );
-    }
-    if (this.config.allowedOperations.length > 0) {
-      permissions.allowedOperations = [...this.config.allowedOperations];
-    }
-    return permissions;
+  private defaultPermissions(): JsonObject[] {
+    return buildAllowedWorkerAgencyPermissions(
+      this.config.allowedTypes,
+      this.config.allowedOperations,
+    );
   }
 
   requestPermission(): StepsBuilder;
@@ -44,14 +67,17 @@ export class AgencySteps {
         (payload) => {
           payload.put('onBehalfOf', resolveOnBehalfOf(this.config));
           payload.put('requestId', this.config.requestId);
-          payload.put('workerAgencyPermissions', this.defaultPermissions());
-          if (this.config.targetSessionId) {
-            payload.put('targetSessionId', this.config.targetSessionId);
-          }
+          payload.put(
+            'allowedWorkerAgencyPermissions',
+            this.defaultPermissions(),
+          );
         },
       );
     }
-    const workerAgencyPermissions = arg1 ?? this.defaultPermissions();
+    const workerAgencyPermissions =
+      arg1 === undefined
+        ? this.defaultPermissions()
+        : normalizeWorkerAgencyPermissionsInput(arg1);
     const targetSessionId = arg2;
     return this.parent
       .myOs()

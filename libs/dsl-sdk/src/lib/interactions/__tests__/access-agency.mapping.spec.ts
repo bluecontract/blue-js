@@ -24,6 +24,7 @@ describe('interaction builders mapping', () => {
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .done()
       .onAccessGranted('counterAccess', 'markAccessGranted', (steps) =>
         steps.replaceValue('SetGranted', '/granted', true),
@@ -273,6 +274,53 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`type: Conversation/Response`);
   });
 
+  it('maps agency permission requests onto allowed worker agency permissions', () => {
+    const document = DocBuilder.doc()
+      .name('Agency Permission Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .agency('workerAgency')
+      .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
+      .allowedOperations('proposeOffer', 'accept')
+      .requestId('REQ_AGENCY')
+      .done()
+      .buildJson();
+
+    const contracts = document.contracts as Record<
+      string,
+      { steps?: Array<{ event?: Record<string, unknown> }> }
+    >;
+    const requestStep = Object.values(contracts)
+      .flatMap((contract) => contract.steps ?? [])
+      .find(
+        (step) => step.event?.type === 'MyOS/Worker Agency Permission Grant Requested',
+      );
+
+    expect(requestStep).toEqual(
+      expect.objectContaining({
+        event: {
+          type: 'MyOS/Worker Agency Permission Grant Requested',
+          onBehalfOf: 'ownerChannel',
+          requestId: 'REQ_AGENCY',
+          allowedWorkerAgencyPermissions: [
+            {
+              type: 'MyOS/Worker Agency Permission',
+              workerType: 'MyOS/MyOS Admin Base',
+              permissions: {
+                read: true,
+                singleOps: ['proposeOffer', 'accept'],
+              },
+            },
+          ],
+        },
+      }),
+    );
+    expect(requestStep?.event).not.toHaveProperty('workerAgencyPermissions');
+  });
+
   it('keeps fluent operation builder steps scoped to registered integrations', () => {
     const document = DocBuilder.doc()
       .name('Fluent Access Steps Mapping')
@@ -322,6 +370,7 @@ describe('interaction builders mapping', () => {
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .targetSessionId('agency-target')
       .done()
       .operation(
@@ -428,6 +477,7 @@ describe('interaction builders mapping', () => {
       .done()
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .done()
       .onAccessRejected('counterAccess', 'onAccessRejectedWF', (steps) =>
@@ -556,6 +606,7 @@ describe('interaction builders mapping', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('target-session')
       .done()
@@ -594,6 +645,7 @@ describe('interaction builders mapping', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('default-target')
       .done()
@@ -759,6 +811,7 @@ describe('interaction builders mapping', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('default-target')
       .done()
@@ -804,6 +857,7 @@ describe('interaction builders mapping', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .targetSessionId('default-target')
       .done()
@@ -846,6 +900,7 @@ describe('interaction builders mapping', () => {
       })
       .agency('workerAgency')
       .permissionFrom('ownerChannel')
+      .allowedTypes('MyOS/MyOS Admin Base')
       .requestId('REQ_AGENCY')
       .done()
       .operation(

@@ -366,7 +366,7 @@ export class MyOsSteps {
   grantWorkerAgencyPermission(
     onBehalfOf: string,
     requestId: string,
-    workerAgencyPermissions: JsonValue | JsonObject,
+    allowedWorkerAgencyPermissions: JsonValue | JsonObject,
     targetSessionId?: JsonValue,
   ): StepsBuilder {
     return this.parent.emitType(
@@ -379,8 +379,8 @@ export class MyOsSteps {
           requireText(requestId, 'requestId is required'),
         );
         payload.put(
-          'workerAgencyPermissions',
-          toNodeValue(workerAgencyPermissions),
+          'allowedWorkerAgencyPermissions',
+          toNodeValue(allowedWorkerAgencyPermissions),
         );
       },
     );
