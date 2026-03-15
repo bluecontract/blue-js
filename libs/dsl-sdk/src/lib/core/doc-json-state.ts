@@ -46,6 +46,9 @@ function sanitizeSectionValue(
     return null;
   }
   const raw = value as JsonObject;
+  if (raw.type !== 'Conversation/Document Section') {
+    return null;
+  }
   const title = typeof raw.title === 'string' ? raw.title : sectionKey;
   const summary = typeof raw.summary === 'string' ? raw.summary : undefined;
   const relatedFields = Array.isArray(raw.relatedFields)
@@ -153,14 +156,22 @@ export class DocJsonState {
       );
     }
     const normalizedKey = assertNonEmpty(key, 'section key');
-    const existing =
-      this.sections.get(normalizedKey) ??
-      sanitizeSectionValue(
-        this.ensureContractsRoot()[normalizedKey],
-        normalizedKey,
+    const existingSection = this.sections.get(normalizedKey);
+    const existingContract = this.ensureContractsRoot()[normalizedKey];
+    const restoredSection =
+      existingSection ?? sanitizeSectionValue(existingContract, normalizedKey);
+
+    if (
+      !existingSection &&
+      existingContract !== undefined &&
+      !restoredSection
+    ) {
+      throw new Error(
+        `Section key '${normalizedKey}' conflicts with an existing non-section contract.`,
       );
+    }
     this.currentSection =
-      existing ??
+      restoredSection ??
       newSection(
         normalizedKey,
         assertNonEmpty(title ?? normalizedKey, 'section title'),

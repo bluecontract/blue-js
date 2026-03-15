@@ -70,6 +70,54 @@ describe('core/DocJsonState', () => {
     expect(section.relatedContracts).toEqual(['ownerChannel', 'adminChannel']);
   });
 
+  it('resumes an existing persisted section contract', () => {
+    const state = new DocJsonState({
+      contracts: {
+        participants: {
+          type: 'Conversation/Document Section',
+          title: 'Participants',
+          relatedContracts: ['ownerChannel'],
+        },
+        ownerChannel: {
+          type: 'MyOS/MyOS Timeline Channel',
+        },
+      },
+    })
+      .section('participants')
+      .setContract('adminChannel', { type: 'MyOS/MyOS Timeline Channel' })
+      .endSection();
+
+    const contracts = state.build().contracts as Record<string, unknown>;
+    expect(contracts.participants).toEqual({
+      type: 'Conversation/Document Section',
+      title: 'Participants',
+      relatedContracts: ['ownerChannel', 'adminChannel'],
+    });
+  });
+
+  it('fails when a section key collides with a non-section contract', () => {
+    const state = new DocJsonState({
+      contracts: {
+        ownerChannel: {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        },
+      },
+    });
+
+    expect(() => state.section('ownerChannel', 'Owner')).toThrow(
+      /conflicts with an existing non-section contract/i,
+    );
+    expect(state.build()).toEqual({
+      contracts: {
+        ownerChannel: {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        },
+      },
+    });
+  });
+
   it('fails when build is called with unclosed section', () => {
     const state = new DocJsonState().section('open', 'Open');
     expect(() => state.build()).toThrow(/unclosed section/i);
