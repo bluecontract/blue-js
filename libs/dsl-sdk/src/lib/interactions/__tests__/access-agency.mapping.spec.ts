@@ -215,13 +215,15 @@ describe('interaction builders mapping', () => {
         'counterAccess',
         'onApproved',
         'PayNote/PayNote Approved',
-        (steps) => steps.replaceValue('SetApprovedHandled', '/approvedHandled', true),
+        (steps) =>
+          steps.replaceValue('SetApprovedHandled', '/approvedHandled', true),
       )
       .onCallResponse(
         'counterAccess',
         'onCaptured',
         'PayNote/Funds Captured',
-        (steps) => steps.replaceValue('SetCapturedHandled', '/capturedHandled', true),
+        (steps) =>
+          steps.replaceValue('SetCapturedHandled', '/capturedHandled', true),
       )
       .buildJson();
 

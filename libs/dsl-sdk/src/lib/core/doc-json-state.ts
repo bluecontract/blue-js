@@ -135,9 +135,7 @@ export class DocJsonState {
       return undefined;
     }
     const contract = (contracts as JsonObject)[normalizedKey];
-    return contract &&
-      typeof contract === 'object' &&
-      !Array.isArray(contract)
+    return contract && typeof contract === 'object' && !Array.isArray(contract)
       ? (contract as JsonObject)
       : undefined;
   }

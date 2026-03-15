@@ -1672,7 +1672,8 @@ export class DocBuilder {
     workflowKey: string,
   ): string {
     const normalizedAccessName = requireText(accessName, 'access name');
-    const existing = this.callResponseEnvelopeWorkflows.get(normalizedAccessName);
+    const existing =
+      this.callResponseEnvelopeWorkflows.get(normalizedAccessName);
     if (existing) {
       return existing;
     }
