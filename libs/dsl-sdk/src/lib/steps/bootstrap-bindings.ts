@@ -1,3 +1,4 @@
+import { escapePointerSegment } from '../core/pointers.js';
 import type { JsonObject } from '../core/types.js';
 
 function requireChannelKey(channelKey: string): string {
@@ -12,7 +13,7 @@ function fromParentField(
   channelKey: string,
   field: 'accountId' | 'email',
 ): JsonObject {
-  const key = requireChannelKey(channelKey);
+  const key = escapePointerSegment(requireChannelKey(channelKey));
   return {
     [field]: "${document('/contracts/" + key + '/' + field + "')}",
   };

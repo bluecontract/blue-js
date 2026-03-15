@@ -2130,6 +2130,77 @@ describe('access step helpers execution', () => {
     expect(processedJson.lastAmountCaptured).toBe(42);
   });
 
+  it('matches empty call-response matcher as a base response listener', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Empty Call Response Matcher',
+      ).onCallResponse('counterAccess', 'onAnyResponse', {}, (steps) =>
+        steps
+          .replaceValue('SetHandled', '/handled', true)
+          .replaceExpression(
+            'IncrementMatchCount',
+            '/matchCount',
+            "document('/matchCount') + 1",
+          ),
+      ),
+      [
+        {
+          type: 'PayNote/PayNote Approved',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+        {
+          type: 'PayNote/Funds Captured',
+          amountCaptured: 42,
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.handled).toBe(true);
+    expect(processedJson.matchCount).toBe(2);
+  });
+
+  it('does not reinterpret name-only call-response matchers as type aliases', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument(
+        'Named Call Response Matcher',
+      ).onCallResponse(
+        'counterAccess',
+        'onNamedResponse',
+        { name: 'Conversation/Event' },
+        (steps) =>
+          steps
+            .replaceValue('SetHandled', '/handled', true)
+            .replaceExpression(
+              'IncrementMatchCount',
+              '/matchCount',
+              "document('/matchCount') + 1",
+            ),
+      ),
+      [
+        {
+          type: 'Conversation/Event',
+          name: 'Conversation/Event',
+          requestId: 'REQ_CALL',
+          inResponseTo: {
+            requestId: 'REQ_CALL',
+          },
+        },
+      ],
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.handled).toBe(false);
+    expect(processedJson.matchCount).toBe(0);
+  });
+
   it('does not match field-only response matcher when emitted fields do not match', async () => {
     const document = withCallResponseEnvelopeOperation(
       createCallResponseBaseDocument('Field Matcher Mismatch').onCallResponse(

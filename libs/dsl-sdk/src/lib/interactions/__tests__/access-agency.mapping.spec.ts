@@ -164,6 +164,38 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`inResponseTo:`);
   });
 
+  it('maps name-only call-response matchers onto base response listeners', () => {
+    const document = DocBuilder.doc()
+      .name('Named Call Response Mapping')
+      .field('/handled', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_COUNTER')
+      .done()
+      .onCallResponse(
+        'counterAccess',
+        'captureNamedResponse',
+        { name: 'CallCompletedResponse' },
+        (steps) => steps.replaceValue('SetHandled', '/handled', true),
+      )
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`captureNamedResponse:
+    type: Conversation/Sequential Workflow
+    channel: triggeredEventChannel
+    event:`);
+    expect(yaml).toContain(`name: CallCompletedResponse
+      type: Conversation/Response`);
+    expect(yaml).toContain(`requestId: REQ_COUNTER`);
+    expect(yaml).toContain(`inResponseTo:`);
+  });
+
   it('maps linked access subscribe and call helper steps', () => {
     const document = DocBuilder.doc()
       .name('Linked Access Steps Mapping')

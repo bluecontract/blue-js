@@ -70,15 +70,7 @@ type CallResponseListenerMatcher = {
 };
 
 function isCallResponseMatcherObject(value: unknown): value is JsonObject {
-  if (!isObject(value as JsonValue | undefined)) {
-    return false;
-  }
-  const matcherRecord = value as Record<string, unknown>;
-  const keys = Object.keys(matcherRecord);
-  return (
-    Object.prototype.hasOwnProperty.call(matcherRecord, 'type') ||
-    keys.some((key) => key !== 'name')
-  );
+  return isObject(value as JsonValue | undefined);
 }
 
 function toCallResponseListenerMatcher(

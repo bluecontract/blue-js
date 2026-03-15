@@ -23,6 +23,15 @@ describe('bootstrap binding helpers', () => {
     });
   });
 
+  it('escapes JSON Pointer control characters in channel keys', () => {
+    expect(fromChannel('a/b~c')).toEqual({
+      accountId: "${document('/contracts/a~1b~0c/accountId')}",
+    });
+    expect(fromEmail('a/b~c')).toEqual({
+      email: "${document('/contracts/a~1b~0c/email')}",
+    });
+  });
+
   it('rejects blank channel keys', () => {
     expect(() => fromChannel('   ')).toThrow('channelKey is required');
     expect(() => fromEmail('')).toThrow('channelKey is required');
