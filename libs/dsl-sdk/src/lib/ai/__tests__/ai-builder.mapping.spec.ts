@@ -32,6 +32,30 @@ describe('ai integration mapping', () => {
     context: {}`);
   });
 
+  it('subscribes auto-managed ai integrations to response and named-event updates', () => {
+    // prettier-ignore
+    const document = DocBuilder.doc()
+      .name('AI Auto Subscription Mapping')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .ai('provider')
+        .sessionId('provider-session')
+        .permissionFrom('ownerChannel')
+        .done()
+      .buildDocument();
+
+    const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`subscribePROVIDEROnGranted:
+    type: Conversation/Sequential Workflow`);
+    expect(yaml).toContain(`subscription:
+            id: SUB_PROVIDER
+            events:
+              - type: Conversation/Response
+              - type: Common/Named Event`);
+  });
+
   it('maps task-filtered and named AI response helpers', () => {
     // prettier-ignore
     const document = DocBuilder.doc()

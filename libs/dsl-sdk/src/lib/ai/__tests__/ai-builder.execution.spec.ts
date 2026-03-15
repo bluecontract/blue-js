@@ -39,6 +39,76 @@ describe('ai integration execution', () => {
     );
   });
 
+  it('emits named-event-aware subscription request after ai permission is granted', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    // prettier-ignore
+    const document = DocBuilder.doc()
+      .name('AI Granted Subscription Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .ai('provider')
+        .sessionId('provider-session')
+        .permissionFrom('ownerChannel')
+        .requestId('REQ_PROVIDER')
+        .subscriptionId('SUB_PROVIDER')
+        .done()
+      .operation(
+        'emitGranted',
+        'ownerChannel',
+        Number,
+        'emit permission granted',
+        (steps) =>
+          steps.emitType(
+            'EmitPermissionGranted',
+            'MyOS/Single Document Permission Granted',
+            (payload) => {
+              payload.put('inResponseTo', {
+                requestId: 'REQ_PROVIDER',
+              });
+            },
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'ai granted subscription initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const processed = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'emitGranted',
+          request: 1,
+          timelineId: 'owner-timeline',
+          documentBlueId,
+          allowNewerVersion: false,
+        }),
+      ),
+      'ai granted subscription operation failed',
+    );
+
+    const subscriptionRequest = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'MyOS/Subscribe to Session Requested');
+
+    expect(subscriptionRequest).toMatchObject({
+      targetSessionId: 'provider-session',
+      subscription: {
+        id: 'SUB_PROVIDER',
+        events: [
+          { type: 'Conversation/Response' },
+          { type: 'Common/Named Event' },
+        ],
+      },
+    });
+  });
+
   it('normalizes type-like event aliases for AI permission triggers', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

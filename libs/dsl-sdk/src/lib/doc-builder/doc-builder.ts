@@ -1224,10 +1224,15 @@ export class DocBuilder {
         (steps) =>
           steps
             .myOs()
-            .subscribeToSession(
+            .subscribeToSessionWithMatchers(
               config.sessionId,
               config.subscriptionId,
-              'Conversation/Response',
+              [
+                'Conversation/Response',
+                {
+                  type: RuntimeEventTypes.NamedEvent,
+                },
+              ],
             ),
       );
     }
