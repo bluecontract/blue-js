@@ -92,26 +92,20 @@ function toSubscriptionMatcher(
     eventMatcher !== null &&
     !Array.isArray(eventMatcher)
   ) {
-    const matcherRecord = structuredClone(eventMatcher) as Record<
-      string,
-      unknown
-    >;
-    if (
-      Object.prototype.hasOwnProperty.call(matcherRecord, 'type') ||
-      Object.keys(matcherRecord).some((key) => key !== 'name')
-    ) {
-      const matcherType = matcherRecord.type;
-      if (matcherType === undefined) {
-        return matcherRecord as JsonObject;
-      }
-      return {
-        ...(matcherRecord as JsonObject),
-        type:
-          typeof matcherType === 'string'
-            ? matcherType
-            : toTypeAlias(matcherType as TypeLike),
-      };
+    const matcherRecord = {
+      ...(eventMatcher as Record<string, unknown>),
+    };
+    const matcherType = matcherRecord.type;
+    if (matcherType === undefined) {
+      return matcherRecord as JsonObject;
     }
+    return {
+      ...(matcherRecord as JsonObject),
+      type:
+        typeof matcherType === 'string'
+          ? matcherType
+          : toTypeAlias(matcherType as TypeLike),
+    };
   }
 
   return { type: toTypeAlias(eventMatcher as TypeLike) };

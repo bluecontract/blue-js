@@ -454,6 +454,66 @@ describe('steps-builder execution', () => {
     });
   });
 
+  it('preserves object matchers when subscribing with matcher filters', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    const document = DocBuilder.doc()
+      .name('Step MyOS Object Matcher Subscription Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .operation(
+        'emitObjectMatcherSubscribe',
+        'ownerChannel',
+        Number,
+        'Emit object matcher subscription request',
+        (steps) =>
+          steps.myOs().subscribeToSessionWithMatchers(
+            'target-session',
+            'SUB_OBJECT_MATCHERS',
+            [
+              {},
+              { name: 'deal-found' },
+              { type: String, name: 'note' },
+            ],
+          ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'object matcher subscribe initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+
+    const event = operationRequestEvent(blue, {
+      operation: 'emitObjectMatcherSubscribe',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), event),
+      'object matcher subscribe operation failed',
+    );
+
+    const subscribeRequest = processed.triggeredEvents
+      .map((triggeredEvent) => toOfficialJson(triggeredEvent))
+      .find(
+        (triggeredEvent) =>
+          triggeredEvent.type === 'MyOS/Subscribe to Session Requested',
+      );
+    expect(subscribeRequest).toMatchObject({
+      subscription: {
+        id: 'SUB_OBJECT_MATCHERS',
+        events: [{}, { name: 'deal-found' }, { type: 'Text', name: 'note' }],
+      },
+    });
+  });
+
   it('omits subscription filters for wildcard MyOS subscriptions', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);
