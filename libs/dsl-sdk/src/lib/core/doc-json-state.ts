@@ -234,12 +234,14 @@ export class DocJsonState {
   }
 
   untrackContract(contractKey: string): this {
-    if (!this.currentSection) {
+    const normalized = contractKey.trim();
+    if (normalized.length === 0) {
       return this;
     }
-    const normalized = contractKey.trim();
-    if (normalized.length > 0) {
-      this.currentSection.relatedContracts.delete(normalized);
+    this.currentSection?.relatedContracts.delete(normalized);
+    for (const section of this.sections.values()) {
+      section.relatedContracts.delete(normalized);
+      this.syncPersistedSection(section);
     }
     return this;
   }
