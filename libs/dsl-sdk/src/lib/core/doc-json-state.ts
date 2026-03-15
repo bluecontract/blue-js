@@ -124,6 +124,24 @@ export class DocJsonState {
     return created;
   }
 
+  getContract(contractKey: string): JsonObject | undefined {
+    const normalizedKey = assertNonEmpty(contractKey, 'contract key');
+    const contracts = this.document.contracts;
+    if (
+      !contracts ||
+      typeof contracts !== 'object' ||
+      Array.isArray(contracts)
+    ) {
+      return undefined;
+    }
+    const contract = (contracts as JsonObject)[normalizedKey];
+    return contract &&
+      typeof contract === 'object' &&
+      !Array.isArray(contract)
+      ? (contract as JsonObject)
+      : undefined;
+  }
+
   setContract(contractKey: string, contract: JsonObject): this {
     const normalizedKey = assertNonEmpty(contractKey, 'contract key');
     if (this.currentSection?.key === normalizedKey) {

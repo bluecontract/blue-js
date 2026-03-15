@@ -92,6 +92,17 @@ counter: 0
     });
   });
 
+  it('does not create contracts when requestDescription targets a missing operation', () => {
+    const json = DocBuilder.doc()
+      .name('Request Description Noop')
+      .requestDescription('missingOperation', 'Ignored')
+      .buildJson();
+
+    expect(json).toEqual({
+      name: 'Request Description Noop',
+    });
+  });
+
   it('maps document anchors and link wrappers', () => {
     const document = DocBuilder.doc()
       .name('Anchors and Links')

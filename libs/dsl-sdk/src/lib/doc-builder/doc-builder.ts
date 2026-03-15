@@ -348,9 +348,8 @@ export class DocBuilder {
   }
 
   requestDescription(operationKey: string, requestDescription: string): this {
-    const contracts = this.state.ensureContractsRoot();
-    const existing = contracts[operationKey];
-    if (!isObject(existing)) {
+    const existing = this.state.getContract(operationKey);
+    if (!existing) {
       return this;
     }
     const request = isObject(existing.request)
