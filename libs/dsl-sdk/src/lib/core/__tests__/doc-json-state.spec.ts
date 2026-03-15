@@ -193,4 +193,24 @@ describe('core/DocJsonState', () => {
       name: 'Counter',
     });
   });
+
+  it('removes deleted contracts from active section metadata', () => {
+    const state = new DocJsonState()
+      .section('permissions', 'Permissions')
+      .setContract('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .removeContract('ownerChannel')
+      .endSection();
+
+    expect(state.build()).toEqual({
+      contracts: {
+        permissions: {
+          type: 'Conversation/Document Section',
+          title: 'Permissions',
+        },
+      },
+    });
+  });
 });

@@ -149,6 +149,7 @@ export class DocJsonState {
 
     const contractsRoot = contracts as JsonObject;
     delete contractsRoot[normalizedKey];
+    this.untrackContract(normalizedKey);
     if (Object.keys(contractsRoot).length === 0) {
       delete this.document.contracts;
     }
@@ -237,6 +238,17 @@ export class DocJsonState {
     const normalized = contractKey.trim();
     if (normalized.length > 0) {
       this.currentSection.relatedContracts.add(normalized);
+    }
+    return this;
+  }
+
+  untrackContract(contractKey: string): this {
+    if (!this.currentSection) {
+      return this;
+    }
+    const normalized = contractKey.trim();
+    if (normalized.length > 0) {
+      this.currentSection.relatedContracts.delete(normalized);
     }
     return this;
   }
