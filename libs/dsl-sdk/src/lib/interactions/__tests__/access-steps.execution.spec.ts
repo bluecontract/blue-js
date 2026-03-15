@@ -1083,6 +1083,11 @@ describe('access step helpers execution', () => {
             .emitType(
               'EmitLinkedDocGranted',
               'MyOS/Single Document Permission Granted',
+              (payload) => {
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_LINKED',
+                });
+              },
             )
             .emitType(
               'EmitAccessRevoked',
@@ -1127,6 +1132,11 @@ describe('access step helpers execution', () => {
             .emitType(
               'EmitLinkedDocRevoked',
               'MyOS/Single Document Permission Revoked',
+              (payload) => {
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_LINKED',
+                });
+              },
             )
             .emitType(
               'EmitAgencyGranted',
@@ -1783,6 +1793,86 @@ describe('access step helpers execution', () => {
     const processedJson = await processCallResponseOperation(document);
     expect(processedJson.handled).toBe(false);
     expect(processedJson.otherHandled).toBe(true);
+  });
+
+  it('does not run linked-doc listeners for direct access permission events', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Linked Doc Listener Correlation Runtime')
+      .field('/linkedDocGranted', false)
+      .field('/linkedDocRevoked', false)
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .access('counterAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .requestId('REQ_ACCESS')
+      .done()
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .link('anchorA')
+      .read(true)
+      .done()
+      .requestId('REQ_LINKED')
+      .done()
+      .onLinkedDocGranted('linkedAccess', 'markLinkedDocGranted', (steps) =>
+        steps.replaceValue('SetLinkedDocGranted', '/linkedDocGranted', true),
+      )
+      .onLinkedDocRevoked('linkedAccess', 'markLinkedDocRevoked', (steps) =>
+        steps.replaceValue('SetLinkedDocRevoked', '/linkedDocRevoked', true),
+      )
+      .operation(
+        'emitDirectPermissionEvents',
+        'ownerChannel',
+        Number,
+        'emit direct access permission events',
+        (steps) =>
+          steps
+            .emitType(
+              'EmitDirectGranted',
+              'MyOS/Single Document Permission Granted',
+              (payload) => {
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_ACCESS',
+                });
+              },
+            )
+            .emitType(
+              'EmitDirectRevoked',
+              'MyOS/Single Document Permission Revoked',
+              (payload) => {
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_ACCESS',
+                });
+              },
+            ),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'linked doc listener correlation initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const request = operationRequestEvent(blue, {
+      operation: 'emitDirectPermissionEvents',
+      request: 1,
+      timelineId: 'owner-timeline',
+      documentBlueId,
+      allowNewerVersion: false,
+    });
+    const processed = await expectSuccess(
+      processor.processDocument(initialized.document.clone(), request),
+      'linked doc listener correlation operation failed',
+    );
+
+    const processedJson = toOfficialJson(processed.document);
+    expect(processedJson.linkedDocGranted).toBe(false);
+    expect(processedJson.linkedDocRevoked).toBe(false);
   });
 
   it('matches exact typed call response when the matching item is second and ignores a nonmatching sibling', async () => {

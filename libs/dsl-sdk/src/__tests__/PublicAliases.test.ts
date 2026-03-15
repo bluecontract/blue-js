@@ -145,14 +145,24 @@ describe('public convenience aliases', () => {
       .buildDocument();
 
     const viaExplicit = createPublicAliasDocument()
-      .onEvent(
+      .onTriggeredWithMatcher(
         'captureLinkedGranted',
         'MyOS/Single Document Permission Granted',
+        {
+          inResponseTo: {
+            requestId: 'REQ_LINKED_LINKEDORDERS',
+          },
+        },
         (steps) => steps.replaceValue('MarkLinked', '/linkedGranted', true),
       )
-      .onEvent(
+      .onTriggeredWithMatcher(
         'captureLinkedRevoked',
         'MyOS/Single Document Permission Revoked',
+        {
+          inResponseTo: {
+            requestId: 'REQ_LINKED_LINKEDORDERS',
+          },
+        },
         (steps) =>
           steps.replaceValue('MarkLinkedRevoked', '/linkedRevoked', true),
       )
@@ -175,11 +185,17 @@ describe('public convenience aliases', () => {
       captureLinkedGranted: {
         event: {
           type: 'MyOS/Single Document Permission Granted',
+          inResponseTo: {
+            requestId: 'REQ_LINKED_LINKEDORDERS',
+          },
         },
       },
       captureLinkedRevoked: {
         event: {
           type: 'MyOS/Single Document Permission Revoked',
+          inResponseTo: {
+            requestId: 'REQ_LINKED_LINKEDORDERS',
+          },
         },
       },
     });

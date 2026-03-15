@@ -1033,10 +1033,15 @@ export class DocBuilder {
     workflowKey: string,
     customizer: StepsCustomizer,
   ): this {
-    this.requireLinkedAccessConfig(linkedAccessName);
-    return this.onEvent(
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onTriggeredWithMatcher(
       workflowKey,
       'MyOS/Single Document Permission Granted',
+      {
+        inResponseTo: {
+          requestId: config.requestId,
+        },
+      },
       customizer,
     );
   }
@@ -1046,10 +1051,15 @@ export class DocBuilder {
     workflowKey: string,
     customizer: StepsCustomizer,
   ): this {
-    this.requireLinkedAccessConfig(linkedAccessName);
-    return this.onEvent(
+    const config = this.requireLinkedAccessConfig(linkedAccessName);
+    return this.onTriggeredWithMatcher(
       workflowKey,
       'MyOS/Single Document Permission Revoked',
+      {
+        inResponseTo: {
+          requestId: config.requestId,
+        },
+      },
       customizer,
     );
   }

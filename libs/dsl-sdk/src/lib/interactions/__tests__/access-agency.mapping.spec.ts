@@ -79,12 +79,14 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`captureLinkedDocGranted:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Single Document Permission Granted`);
+    expect(yaml).toContain(`requestId: REQ_LINKED_LINKEDCOUNTERACCESS`);
     expect(yaml).toContain(`captureLinkedAccessRejected:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Linked Documents Permission Rejected`);
     expect(yaml).toContain(`captureLinkedDocRevoked:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Single Document Permission Revoked`);
+    expect(yaml).toContain(`requestId: REQ_LINKED_LINKEDCOUNTERACCESS`);
     expect(yaml).toContain(`captureSessionStarted:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Target Document Session Started`);
