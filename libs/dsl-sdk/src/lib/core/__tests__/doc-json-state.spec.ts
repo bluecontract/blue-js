@@ -118,6 +118,27 @@ describe('core/DocJsonState', () => {
     });
   });
 
+  it('fails when a contract key collides with the active section key', () => {
+    const state = new DocJsonState().section('billing', 'Billing');
+
+    expect(() =>
+      state.setContract('billing', {
+        type: 'Conversation/Operation',
+        channel: 'ownerChannel',
+      }),
+    ).toThrow(/conflicts with the active section key/i);
+
+    state.endSection();
+    expect(state.build()).toEqual({
+      contracts: {
+        billing: {
+          type: 'Conversation/Document Section',
+          title: 'Billing',
+        },
+      },
+    });
+  });
+
   it('fails when build is called with unclosed section', () => {
     const state = new DocJsonState().section('open', 'Open');
     expect(() => state.build()).toThrow(/unclosed section/i);

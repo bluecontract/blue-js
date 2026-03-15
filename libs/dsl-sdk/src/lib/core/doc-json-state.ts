@@ -125,6 +125,11 @@ export class DocJsonState {
 
   setContract(contractKey: string, contract: JsonObject): this {
     const normalizedKey = assertNonEmpty(contractKey, 'contract key');
+    if (this.currentSection?.key === normalizedKey) {
+      throw new Error(
+        `Contract key '${normalizedKey}' conflicts with the active section key.`,
+      );
+    }
     this.ensureContractsRoot()[normalizedKey] = structuredClone(contract);
     this.trackContract(normalizedKey);
     return this;
