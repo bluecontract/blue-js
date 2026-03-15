@@ -340,17 +340,15 @@ describe('steps-builder execution', () => {
         Number,
         'Emit MyOS call helper with requestId',
         (steps) =>
-          steps
-            .myOs()
-            .callOperation(
-              'ownerChannel',
-              'target-session',
-              'syncState',
-              {
-                type: 'Conversation/Event',
-              },
-              'REQ_MYOS_CALL',
-            ),
+          steps.myOs().callOperation(
+            'ownerChannel',
+            'target-session',
+            'syncState',
+            {
+              type: 'Conversation/Event',
+            },
+            'REQ_MYOS_CALL',
+          ),
       )
       .buildDocument();
 
