@@ -470,6 +470,24 @@ describe('interaction builders mapping', () => {
     );
   });
 
+  it('fails fast for linked-access read(false)', () => {
+    expect(() =>
+      DocBuilder.doc()
+        .name('Linked access read false unsupported')
+        .channel('ownerChannel', {
+          type: 'Conversation/Timeline Channel',
+          timelineId: 'owner-timeline',
+        })
+        .accessLinked('linkedAccess')
+        .permissionFrom('ownerChannel')
+        .targetSessionId('target-session')
+        .link('anchorA')
+        .read(false),
+    ).toThrow(
+      'accessLinked(...).link(...).read(false) is not supported; MyOS linked-document permissions require read=true',
+    );
+  });
+
   it('maps rejection and revocation listeners across access variants', () => {
     const document = DocBuilder.doc()
       .name('Interaction Listener Matrix')

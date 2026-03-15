@@ -447,6 +447,44 @@ describe('access step helpers execution', () => {
     expect(workerAgencyRequest).not.toHaveProperty('workerAgencyPermissions');
   });
 
+  it('defaults linked-access grants to read permission', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+    const document = DocBuilder.doc()
+      .name('Linked Access Default Read Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .accessLinked('linkedAccess')
+      .permissionFrom('ownerChannel')
+      .targetSessionId('target-session')
+      .link('anchorA')
+      .operations('syncState')
+      .done()
+      .done()
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'linked-access default-read initialization failed',
+    );
+
+    const permissionRequest = initialized.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find(
+        (event) => event.type === 'MyOS/Linked Documents Permission Grant Requested',
+      );
+    expect(permissionRequest).toMatchObject({
+      links: {
+        anchorA: {
+          read: true,
+          singleOps: ['syncState'],
+        },
+      },
+    });
+  });
+
   it('emits runtime-shaped worker agency permission requests on init', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

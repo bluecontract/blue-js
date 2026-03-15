@@ -110,7 +110,7 @@ export class LinkedAccessBuilder<P> {
   link(name: string): LinkedAccessLinkBuilder<P> {
     const normalizedName = requireText(name, 'link name');
     const draft = this.linksValue.get(normalizedName) ?? {
-      read: false,
+      read: true,
       operations: [],
     };
     this.linksValue.set(normalizedName, draft);
@@ -296,6 +296,11 @@ class LinkedAccessLinkBuilder<P> {
   ) {}
 
   read(read: boolean): this {
+    if (read === false) {
+      throw new Error(
+        'accessLinked(...).link(...).read(false) is not supported; MyOS linked-document permissions require read=true',
+      );
+    }
     this.draft.read = read;
     return this;
   }
