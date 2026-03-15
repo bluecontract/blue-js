@@ -290,4 +290,25 @@ describe('BlueChangeCompiler', () => {
     ]);
     expect(applyBlueChangePlan(before, plan)).toEqual(after);
   });
+
+  it('adds an empty contracts root when the target introduces it', () => {
+    const before = {
+      name: 'Add Empty Contracts Root',
+    };
+    const after = {
+      name: 'Add Empty Contracts Root',
+      contracts: {},
+    };
+
+    const plan = BlueChangeCompiler.compile(before, after);
+
+    expect(plan.patchOperations).toEqual([
+      {
+        op: 'add',
+        path: '/contracts',
+        val: {},
+      },
+    ]);
+    expect(applyBlueChangePlan(before, plan)).toEqual(after);
+  });
 });

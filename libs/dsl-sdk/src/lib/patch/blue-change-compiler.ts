@@ -377,7 +377,7 @@ function compilePatchOperations(
   const contractAddsOrReplaces = contractChanges.filter(
     (change) => change.op === 'add' || change.op === 'replace',
   );
-  if (!hasContractsRoot && contractAddsOrReplaces.length > 0) {
+  if (!hasContractsRoot && hasNextContractsRoot) {
     operations.push({
       op: 'add',
       path: '/contracts',
