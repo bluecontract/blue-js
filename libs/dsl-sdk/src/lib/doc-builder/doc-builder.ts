@@ -944,9 +944,14 @@ export class DocBuilder {
   ): this {
     const config = this.requireAccessConfig(accessName);
     if (customizerMaybe === undefined) {
-      return this.onEvent(
+      return this.onTriggeredWithMatcher(
         workflowKey,
         'MyOS/Call Operation Responded',
+        {
+          inResponseTo: {
+            requestId: config.requestId,
+          },
+        },
         responseTypeOrMatcherOrCustomizer as StepsCustomizer,
       );
     }

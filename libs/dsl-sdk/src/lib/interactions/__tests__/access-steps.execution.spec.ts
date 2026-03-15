@@ -45,6 +45,7 @@ function withCallResponseEnvelopeOperation(
   document: DocBuilder,
   events: CallResponseEvent[],
   operation = 'emitCallEnvelope',
+  requestId = 'REQ_CALL',
 ): DocBuilder {
   return document.operation(
     operation,
@@ -58,7 +59,7 @@ function withCallResponseEnvelopeOperation(
         (payload) => {
           payload.put('targetSessionId', 'target-session');
           payload.put('inResponseTo', {
-            requestId: 'REQ_CALL',
+            requestId,
           });
           payload.put('events', events);
         },
@@ -1059,6 +1060,9 @@ describe('access step helpers execution', () => {
               'EmitCallResponse',
               'MyOS/Call Operation Responded',
               (payload) => {
+                payload.put('inResponseTo', {
+                  requestId: 'REQ_ACCESS',
+                });
                 payload.put('response', {
                   type: 'Conversation/Response',
                 });
@@ -1746,6 +1750,39 @@ describe('access step helpers execution', () => {
     const processedJson = await processCallResponseOperation(document);
     expect(processedJson.lastTargetSessionId).toBe('target-session');
     expect(processedJson.responseCount).toBe(2);
+  });
+
+  it('does not run untyped onCallResponse for a different access requestId', async () => {
+    const document = withCallResponseEnvelopeOperation(
+      createCallResponseBaseDocument('Untyped Call Response Correlation')
+        .field('/otherHandled', false)
+        .access('otherAccess')
+        .permissionFrom('ownerChannel')
+        .targetSessionId('other-session')
+        .requestId('REQ_OTHER')
+        .done()
+        .onCallResponse('counterAccess', 'captureCounterEnvelope', (steps) =>
+          steps.replaceValue('SetCounterHandled', '/handled', true),
+        )
+        .onCallResponse('otherAccess', 'captureOtherEnvelope', (steps) =>
+          steps.replaceValue('SetOtherHandled', '/otherHandled', true),
+        ),
+      [
+        {
+          type: 'Conversation/Response',
+          requestId: 'REQ_OTHER',
+          inResponseTo: {
+            requestId: 'REQ_OTHER',
+          },
+        },
+      ],
+      'emitCallEnvelope',
+      'REQ_OTHER',
+    ).buildDocument();
+
+    const processedJson = await processCallResponseOperation(document);
+    expect(processedJson.handled).toBe(false);
+    expect(processedJson.otherHandled).toBe(true);
   });
 
   it('matches exact typed call response when the matching item is second and ignores a nonmatching sibling', async () => {

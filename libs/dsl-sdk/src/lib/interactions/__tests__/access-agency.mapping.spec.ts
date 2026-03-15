@@ -71,6 +71,7 @@ describe('interaction builders mapping', () => {
     expect(yaml).toContain(`captureCallResponse:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Call Operation Responded`);
+    expect(yaml).toContain(`requestId: REQ_ACCESS_COUNTERACCESS`);
     expect(yaml).toContain(`captureSessionCreated:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Subscription to Session Initiated`);
