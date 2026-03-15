@@ -1,3 +1,9 @@
+## 3.8.0 (2026-03-15)
+
+### 🚀 Features
+
+- dsl sdk ([#166](https://github.com/bluecontract/blue-js/pull/166))
+
 ## 3.7.0 (2026-03-13)
 
 ### 🚀 Features
