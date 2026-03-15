@@ -132,6 +132,26 @@ counter: 0
     });
   });
 
+  it('does not track a section field until field metadata actually writes a value', () => {
+    const json = DocBuilder.doc()
+      .name('Deferred Field Tracking')
+      .section('details', 'Details')
+      .field('/placeholder')
+      .done()
+      .endSection()
+      .buildJson();
+
+    expect(json).toEqual({
+      name: 'Deferred Field Tracking',
+      contracts: {
+        details: {
+          type: 'Conversation/Document Section',
+          title: 'Details',
+        },
+      },
+    });
+  });
+
   it('maps document anchors and link wrappers', () => {
     const document = DocBuilder.doc()
       .name('Anchors and Links')

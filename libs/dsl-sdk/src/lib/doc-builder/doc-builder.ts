@@ -189,7 +189,6 @@ export class DocBuilder {
   field(path: string, value: JsonValue): this;
   field(path: string, value?: JsonValue): FieldBuilder<this> | this {
     if (arguments.length === 1) {
-      this.state.trackField(path);
       return new FieldBuilder<this>(this, path);
     }
     this.state.setValue(path, value as JsonValue);
