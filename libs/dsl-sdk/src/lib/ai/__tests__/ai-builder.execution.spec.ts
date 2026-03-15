@@ -39,6 +39,134 @@ describe('ai integration execution', () => {
     );
   });
 
+  it('normalizes type-like event aliases for AI permission triggers', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    // prettier-ignore
+    const document = DocBuilder.doc()
+      .name('AI Event Permission Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .ai('provider')
+        .sessionId('provider-session')
+        .permissionFrom('ownerChannel')
+        .requestPermissionOnEvent(String)
+        .done()
+      .operation(
+        'emitTextTrigger',
+        'ownerChannel',
+        Number,
+        'emit text trigger',
+        (steps) => steps.emitType('EmitTextTrigger', String),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'ai event permission initialization failed',
+    );
+    const initializedEventTypes = initialized.triggeredEvents.map(
+      (event) => toOfficialJson(event).type as string,
+    );
+    expect(initializedEventTypes).not.toContain(
+      'MyOS/Single Document Permission Grant Requested',
+    );
+
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const processed = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'emitTextTrigger',
+          request: 1,
+          timelineId: 'owner-timeline',
+          documentBlueId,
+          allowNewerVersion: false,
+        }),
+      ),
+      'ai event permission operation failed',
+    );
+
+    const processedEventTypes = processed.triggeredEvents.map(
+      (event) => toOfficialJson(event).type as string,
+    );
+    expect(processedEventTypes).toContain(
+      'MyOS/Single Document Permission Grant Requested',
+    );
+    expect(toOfficialJson(processed.document).ai.provider.status).toBe(
+      'pending',
+    );
+  });
+
+  it('normalizes task expected response aliases in emitted AI requests', async () => {
+    const blue = createTestBlue();
+    const processor = createTestDocumentProcessor(blue);
+
+    // prettier-ignore
+    const document = DocBuilder.doc()
+      .name('AI Expected Response Runtime')
+      .channel('ownerChannel', {
+        type: 'Conversation/Timeline Channel',
+        timelineId: 'owner-timeline',
+      })
+      .ai('provider')
+        .sessionId('provider-session')
+        .permissionFrom('ownerChannel')
+        .requestPermissionManually()
+        .task('summarize')
+          .instruction('Summarize response')
+          .expects(String)
+          .expects('  Text  ')
+          .done()
+        .done()
+      .operation(
+        'askProvider',
+        'ownerChannel',
+        Number,
+        'emit ai request',
+        (steps) =>
+          steps.askAI('provider', 'AskProvider', (ask) => ask.task('summarize')),
+      )
+      .buildDocument();
+
+    const initialized = await expectSuccess(
+      processor.initializeDocument(document),
+      'ai expected response initialization failed',
+    );
+    const documentBlueId = storedDocumentBlueId(initialized.document);
+    const processed = await expectSuccess(
+      processor.processDocument(
+        initialized.document.clone(),
+        operationRequestEvent(blue, {
+          operation: 'askProvider',
+          request: 1,
+          timelineId: 'owner-timeline',
+          documentBlueId,
+          allowNewerVersion: false,
+        }),
+      ),
+      'ai expected response operation failed',
+    );
+
+    const requestEvent = processed.triggeredEvents
+      .map((event) => toOfficialJson(event))
+      .find((event) => event.type === 'MyOS/Call Operation Requested') as {
+      request: {
+        expectedResponses: Array<{ type: string }>;
+        taskName?: string;
+      };
+    };
+
+    expect(requestEvent.request.taskName).toBe('summarize');
+    expect(requestEvent.request.expectedResponses).toEqual([
+      { type: 'Text' },
+      { type: 'Text' },
+    ]);
+  });
+
   it('applies requester/task/name matching for AI response listeners', async () => {
     const blue = createTestBlue();
     const processor = createTestDocumentProcessor(blue);

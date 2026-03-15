@@ -1,4 +1,4 @@
-import type { TypeLike } from '../core/type-alias.js';
+import { toTypeAlias, type TypeLike } from '../core/type-alias.js';
 
 export type PermissionTiming = 'onInit' | 'onEvent' | 'onDocChange' | 'manual';
 
@@ -43,8 +43,5 @@ export interface AiIntegrationRegistrationHost<P> {
 }
 
 export function normalizeTypeLike(typeLike: TypeLike): string {
-  if (typeof typeLike === 'string') {
-    return typeLike;
-  }
-  return typeLike.name;
+  return toTypeAlias(typeLike);
 }
