@@ -1,3 +1,9 @@
+## 3.9.0 (2026-03-18)
+
+### 🚀 Features
+
+- **dsl-sdk:** bind myOsAdmin channels to account 0 ([c2cfdda](https://github.com/bluecontract/blue-js/commit/c2cfdda))
+
 ## 3.8.0 (2026-03-15)
 
 ### 🚀 Features
