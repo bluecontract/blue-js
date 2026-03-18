@@ -280,4 +280,26 @@ contracts:
       },
     });
   });
+
+  it('maps myOsAdmin helper to a reserved admin timeline binding', () => {
+    const json = DocBuilder.doc()
+      .name('MyOS Admin Mapping')
+      .myOsAdmin('opsAdminChannel')
+      .buildJson();
+
+    expect(json.contracts).toMatchObject({
+      opsAdminChannel: {
+        type: 'MyOS/MyOS Timeline Channel',
+        accountId: '0',
+      },
+      opsAdminUpdate: {
+        type: 'Conversation/Operation',
+        channel: 'opsAdminChannel',
+      },
+      opsAdminUpdateImpl: {
+        type: 'Conversation/Sequential Workflow Operation',
+        operation: 'opsAdminUpdate',
+      },
+    });
+  });
 });
