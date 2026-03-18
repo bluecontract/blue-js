@@ -1138,7 +1138,10 @@ export class DocBuilder {
   }
 
   myOsAdmin(channelKey = 'myOsAdminChannel'): this {
-    this.channel(channelKey, { type: 'MyOS/MyOS Timeline Channel' });
+    this.channel(channelKey, {
+      type: 'MyOS/MyOS Timeline Channel',
+      accountId: '0',
+    });
     this.canEmit(channelKey);
     return this;
   }

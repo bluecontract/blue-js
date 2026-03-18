@@ -63,6 +63,9 @@ describe('interaction builders mapping', () => {
       .buildDocument();
 
     const yaml = toOfficialYaml(document);
+    expect(yaml).toContain(`myOsAdminChannel:
+    type: MyOS/MyOS Timeline Channel
+    accountId: '0'`);
     expect(yaml).toContain(`markAccessGranted:
     type: Conversation/Sequential Workflow`);
     expect(yaml).toContain(`type: MyOS/Single Document Permission Granted`);
