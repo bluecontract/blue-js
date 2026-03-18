@@ -20,7 +20,8 @@ describe('ai integration mapping', () => {
 
     const yaml = toOfficialYaml(document);
     expect(yaml).toContain(`myOsAdminChannel:
-    type: MyOS/MyOS Timeline Channel`);
+    type: MyOS/MyOS Timeline Channel
+    accountId: '0'`);
     expect(yaml).toContain(`myOsAdminUpdate:
     description: Operation for emitting events through channel
     type: Conversation/Operation`);
