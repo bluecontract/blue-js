@@ -437,30 +437,48 @@ export class NodeTypeMatcher {
     );
   }
 
-  private expandSchemaTypeReferences(node: BlueNode): BlueNode {
+  private expandSchemaTypeReferences(
+    node: BlueNode,
+    visitedBlueIds: ReadonlySet<string> = new Set<string>(),
+  ): BlueNode {
+    const nextVisitedBlueIds = this.withVisitedBlueId(
+      visitedBlueIds,
+      node.getBlueId(),
+    );
+
     const type = node.getType();
     if (type) {
-      node.setType(this.expandReferencedTypeNode(type));
+      node.setType(this.expandReferencedTypeNode(type, nextVisitedBlueIds));
     }
 
     const itemType = node.getItemType();
     if (itemType) {
-      node.setItemType(this.expandReferencedTypeNode(itemType));
+      node.setItemType(
+        this.expandReferencedTypeNode(itemType, nextVisitedBlueIds),
+      );
     }
 
     const keyType = node.getKeyType();
     if (keyType) {
-      node.setKeyType(this.expandReferencedTypeNode(keyType));
+      node.setKeyType(
+        this.expandReferencedTypeNode(keyType, nextVisitedBlueIds),
+      );
     }
 
     const valueType = node.getValueType();
     if (valueType) {
-      node.setValueType(this.expandReferencedTypeNode(valueType));
+      node.setValueType(
+        this.expandReferencedTypeNode(valueType, nextVisitedBlueIds),
+      );
     }
 
     const items = node.getItems();
     if (items) {
-      node.setItems(items.map((item) => this.expandSchemaTypeReferences(item)));
+      node.setItems(
+        items.map((item) =>
+          this.expandSchemaTypeReferences(item, nextVisitedBlueIds),
+        ),
+      );
     }
 
     const properties = node.getProperties();
@@ -469,7 +487,7 @@ export class NodeTypeMatcher {
         Object.fromEntries(
           Object.entries(properties).map(([key, value]) => [
             key,
-            this.expandSchemaTypeReferences(value),
+            this.expandSchemaTypeReferences(value, nextVisitedBlueIds),
           ]),
         ),
       );
@@ -478,18 +496,41 @@ export class NodeTypeMatcher {
     return node;
   }
 
-  private expandReferencedTypeNode(typeNode: BlueNode): BlueNode {
+  private expandReferencedTypeNode(
+    typeNode: BlueNode,
+    visitedBlueIds: ReadonlySet<string>,
+  ): BlueNode {
     if (!this.isBareBlueIdReference(typeNode)) {
-      return this.expandSchemaTypeReferences(typeNode.clone());
+      return this.expandSchemaTypeReferences(typeNode.clone(), visitedBlueIds);
     }
 
-    const fetched = this.blue
-      .getNodeProvider()
-      .fetchByBlueId(typeNode.getBlueId()!);
+    const referencedBlueId = typeNode.getBlueId();
+    if (!referencedBlueId) {
+      return typeNode.clone();
+    }
+
+    if (visitedBlueIds.has(referencedBlueId)) {
+      return typeNode.clone();
+    }
+
+    const fetched = this.blue.getNodeProvider().fetchByBlueId(referencedBlueId);
     if (!fetched || fetched.length !== 1) {
       return typeNode.clone();
     }
 
-    return this.expandSchemaTypeReferences(fetched[0].clone());
+    return this.expandSchemaTypeReferences(fetched[0].clone(), visitedBlueIds);
+  }
+
+  private withVisitedBlueId(
+    visitedBlueIds: ReadonlySet<string>,
+    blueId: string | undefined,
+  ): ReadonlySet<string> {
+    if (!blueId || visitedBlueIds.has(blueId)) {
+      return visitedBlueIds;
+    }
+
+    const nextVisitedBlueIds = new Set(visitedBlueIds);
+    nextVisitedBlueIds.add(blueId);
+    return nextVisitedBlueIds;
   }
 }
