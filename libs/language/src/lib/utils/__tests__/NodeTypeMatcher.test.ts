@@ -157,6 +157,26 @@ x:
     expect(matcher.matchesType(node, blue.yamlToNode(fail))).toBe(false);
   });
 
+  test('explicit blueId matchers reject mismatched node blueIds even when type blueId matches', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`name: Alpha`, `name: Beta`);
+
+    const alphaId = nodeProvider.getBlueIdByName('Alpha');
+    const betaId = nodeProvider.getBlueIdByName('Beta');
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const node = blue.yamlToNode(`blueId: ${betaId}
+type:
+  blueId: ${alphaId}`);
+
+    const targetType = blue.yamlToNode(`blueId: ${alphaId}`);
+
+    expect(matcher.matchesType(node, targetType)).toBe(false);
+  });
+
   test('schema-owned matchers reject untyped nodes with unrelated blueIds', () => {
     const nodeProvider = new BasicNodeProvider();
 
