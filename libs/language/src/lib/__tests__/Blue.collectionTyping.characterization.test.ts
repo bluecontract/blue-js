@@ -69,24 +69,12 @@ describe('collection-backed Blue repository type characterization', () => {
     });
   });
 
-  it('isolates the narrower failing family around specific complex collection payloads', () => {
+  it('shows that the previously failing itemType family now survives the simple round-trip', () => {
     const blue = createBlue();
 
-    // These are the currently broken shapes we found during the LDPG
-    // investigation. They all carry richer collection payloads, but the
-    // failure is not universal across all dict/list usage.
-    expect(
-      inspectRoundTrip(blue, {
-        type: 'MyOS/Linked Documents Permission Set',
-        orders: {
-          read: true,
-        },
-      }),
-    ).toEqual({
-      resolvedSelfTypeOf: false,
-      roundTrippedSelfTypeOf: false,
-    });
-
+    // These cases used to fail because repository-resolved itemType/valueType
+    // references collapsed to bare blueId matchers. The matcher now expands
+    // schema-owned references before comparing nested collection members.
     expect(
       inspectRoundTrip(blue, {
         type: 'MyOS/Document Links',
@@ -96,8 +84,8 @@ describe('collection-backed Blue repository type characterization', () => {
         },
       }),
     ).toEqual({
-      resolvedSelfTypeOf: false,
-      roundTrippedSelfTypeOf: false,
+      resolvedSelfTypeOf: true,
+      roundTrippedSelfTypeOf: true,
     });
 
     expect(
@@ -112,28 +100,26 @@ describe('collection-backed Blue repository type characterization', () => {
         ],
       }),
     ).toEqual({
-      resolvedSelfTypeOf: false,
-      roundTrippedSelfTypeOf: false,
+      resolvedSelfTypeOf: true,
+      roundTrippedSelfTypeOf: true,
     });
 
     expect(
       inspectRoundTrip(blue, {
         type: 'MyOS/Worker Agency Permission Granting in Progress',
-        inResponseTo: {
-          requestId: 'req-worker',
-        },
-        targetAccountId: 'merchant-1',
+        granteeDocumentId: 'doc-1',
         allowedWorkerAgencyPermissions: [
           {
-            document: {
+            workerType: 'MyOS/Agent',
+            permissions: {
               read: true,
             },
           },
         ],
       }),
     ).toEqual({
-      resolvedSelfTypeOf: false,
-      roundTrippedSelfTypeOf: false,
+      resolvedSelfTypeOf: true,
+      roundTrippedSelfTypeOf: true,
     });
 
     expect(
@@ -154,12 +140,33 @@ describe('collection-backed Blue repository type characterization', () => {
     });
   });
 
-  it('shows the current root cause around collection item/value typing', () => {
+  it('shows broader compatibility across implicit members, explicit members, and subtypes', () => {
     const blue = createBlue();
 
-    // Exact typed entries repair several failing cases. This shows the problem
-    // is not "the collection itself", but how structured collection members are
-    // checked against itemType/valueType.
+    // Implicit structured values under named valueType/itemType now pass.
+    expect(
+      inspectRoundTrip(blue, {
+        type: 'MyOS/Linked Documents Permission Set',
+        orders: {
+          read: true,
+        },
+      }),
+    ).toEqual({
+      resolvedSelfTypeOf: true,
+      roundTrippedSelfTypeOf: true,
+    });
+
+    expect(
+      inspectRoundTrip(blue, {
+        type: 'MyOS/Document Anchors',
+        orders: {},
+      }),
+    ).toEqual({
+      resolvedSelfTypeOf: true,
+      roundTrippedSelfTypeOf: true,
+    });
+
+    // Explicit member types and subtypes also stay compatible after the fix.
     expect(
       inspectRoundTrip(blue, {
         type: 'MyOS/Linked Documents Permission Set',
@@ -196,11 +203,12 @@ describe('collection-backed Blue repository type characterization', () => {
         inResponseTo: {
           requestId: 'req-worker',
         },
-        targetAccountId: 'merchant-1',
+        granteeDocumentId: 'doc-1',
         allowedWorkerAgencyPermissions: [
           {
             type: 'MyOS/Worker Agency Permission',
-            document: {
+            workerType: 'MyOS/Agent',
+            permissions: {
               read: true,
             },
           },
@@ -211,22 +219,7 @@ describe('collection-backed Blue repository type characterization', () => {
       roundTrippedSelfTypeOf: true,
     });
 
-    expect(
-      inspectRoundTrip(blue, {
-        type: 'MyOS/Document Anchors',
-        orders: {
-          type: 'MyOS/Document Anchor',
-        },
-      }),
-    ).toEqual({
-      resolvedSelfTypeOf: true,
-      roundTrippedSelfTypeOf: true,
-    });
-
-    // Document Links exposes the second bug: valueType is the base type
-    // MyOS/Link, but a valid subtype entry is still rejected. This means the
-    // collection matcher currently requires exact blueId equality instead of
-    // accepting subtypes in valueType/itemType positions.
+    // valueType with a base type now also accepts valid explicit subtypes.
     expect(
       inspectRoundTrip(blue, {
         type: 'MyOS/Document Links',
@@ -250,8 +243,8 @@ describe('collection-backed Blue repository type characterization', () => {
         },
       }),
     ).toEqual({
-      resolvedSelfTypeOf: false,
-      roundTrippedSelfTypeOf: false,
+      resolvedSelfTypeOf: true,
+      roundTrippedSelfTypeOf: true,
     });
   });
 });

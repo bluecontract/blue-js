@@ -28,10 +28,17 @@ export class NodeTypeMatcher {
 
     const resolvedNode = this.extendAndResolve(node, compositeLimits);
     const resolvedType = this.blue.resolve(targetType, compositeLimits);
+    const comparisonTargetType =
+      this.expandSchemaOwnedTypeReferences(targetType);
 
     return (
       this.verifyMatch(resolvedNode, targetType, compositeLimits) &&
-      this.recursiveValueComparison(resolvedNode, resolvedType)
+      this.recursiveValueComparison(
+        resolvedNode,
+        resolvedType,
+        comparisonTargetType,
+        compositeLimits,
+      )
     );
   }
 
@@ -125,12 +132,21 @@ export class NodeTypeMatcher {
   private recursiveValueComparison(
     node: BlueNode,
     targetType: BlueNode,
+    comparisonTargetType: BlueNode = targetType,
+    limits: Limits = NO_LIMITS,
   ): boolean {
     const targetTypeType = targetType.getType();
-    const isImplicitStructureMatch = this.matchesImplicitStructure(
-      node,
-      targetTypeType,
-    );
+    const isImplicitStructureMatch =
+      this.matchesImplicitStructure(node, targetTypeType) ||
+      this.matchesImplicitCoreCollectionType(node, targetType);
+
+    if (
+      node.getType() === undefined &&
+      this.isCoreCollectionType(targetType) &&
+      !isImplicitStructureMatch
+    ) {
+      return false;
+    }
     if (targetTypeType && !isImplicitStructureMatch) {
       const nodeType = node.getType();
       if (!nodeType) {
@@ -148,21 +164,24 @@ export class NodeTypeMatcher {
     }
 
     const targetBlueId = targetType.getBlueId();
-    if (!isImplicitStructureMatch) {
-      if (targetBlueId !== undefined) {
+    if (!isImplicitStructureMatch && targetBlueId !== undefined) {
+      if (this.isExplicitBlueIdMatcher(comparisonTargetType)) {
         const nodeBlueId = node.getBlueId();
         const nodeTypeBlueId = node.getType()?.getBlueId();
-        if (nodeBlueId !== undefined) {
-          if (targetBlueId !== nodeBlueId) {
-            return false;
-          }
-        } else {
-          if (nodeTypeBlueId === undefined) {
-            return false;
-          }
-          if (targetBlueId !== nodeTypeBlueId) {
-            return false;
-          }
+        if (nodeBlueId !== targetBlueId && nodeTypeBlueId !== targetBlueId) {
+          return false;
+        }
+      } else {
+        const nodeType = node.getType();
+        if (
+          nodeType &&
+          !NodeTypes.isSubtype(
+            nodeType,
+            targetType,
+            this.blue.getNodeProvider(),
+          )
+        ) {
+          return false;
         }
       }
     }
@@ -184,11 +203,19 @@ export class NodeTypeMatcher {
     }
 
     const targetItems = targetType.getItems();
+    const comparisonTargetItems = comparisonTargetType.getItems();
     if (targetItems !== undefined) {
       const nodeItems = node.getItems() ?? [];
       for (let i = 0; i < targetItems.length; i++) {
         if (i < nodeItems.length) {
-          if (!this.recursiveValueComparison(nodeItems[i], targetItems[i])) {
+          if (
+            !this.recursiveValueComparison(
+              nodeItems[i],
+              targetItems[i],
+              comparisonTargetItems?.[i] ?? targetItems[i],
+              limits,
+            )
+          ) {
             return false;
           }
         } else {
@@ -201,21 +228,45 @@ export class NodeTypeMatcher {
     }
 
     const targetItemType = targetType.getItemType();
+    const comparisonTargetItemType = comparisonTargetType.getItemType();
     if (targetItemType !== undefined) {
       const nodeItems = node.getItems() ?? [];
       for (const item of nodeItems) {
-        if (!this.recursiveValueComparison(item, targetItemType)) {
+        const contextuallyResolvedItem =
+          item.getType() === undefined &&
+          !this.isExplicitBlueIdMatcher(
+            comparisonTargetItemType ?? targetItemType,
+          )
+            ? (this.resolveAgainstTargetType(item, targetItemType, limits) ??
+              item)
+            : item;
+        if (
+          !this.recursiveValueComparison(
+            contextuallyResolvedItem,
+            targetItemType,
+            comparisonTargetItemType ?? targetItemType,
+            limits,
+          )
+        ) {
           return false;
         }
       }
     }
 
     const targetProps = targetType.getProperties();
+    const comparisonTargetProps = comparisonTargetType.getProperties();
     if (targetProps !== undefined) {
       const nodeProps = node.getProperties() ?? {};
       for (const [key, value] of Object.entries(targetProps)) {
         if (key in nodeProps) {
-          if (!this.recursiveValueComparison(nodeProps[key], value)) {
+          if (
+            !this.recursiveValueComparison(
+              nodeProps[key],
+              value,
+              comparisonTargetProps?.[key] ?? value,
+              limits,
+            )
+          ) {
             return false;
           }
         } else {
@@ -227,10 +278,18 @@ export class NodeTypeMatcher {
     }
 
     const targetValueType = targetType.getValueType();
+    const comparisonTargetValueType = comparisonTargetType.getValueType();
     if (targetValueType !== undefined) {
       const nodeProps = Object.values(node.getProperties() ?? {});
       for (const value of nodeProps) {
-        if (!this.recursiveValueComparison(value, targetValueType)) {
+        if (
+          !this.recursiveValueComparison(
+            value,
+            targetValueType,
+            comparisonTargetValueType ?? targetValueType,
+            limits,
+          )
+        ) {
           return false;
         }
       }
@@ -290,11 +349,147 @@ export class NodeTypeMatcher {
     return false;
   }
 
+  private matchesImplicitCoreCollectionType(
+    node: BlueNode,
+    targetType: BlueNode,
+  ): boolean {
+    if (node.getType() !== undefined) {
+      return false;
+    }
+
+    if (NodeTypes.isListType(targetType, this.blue.getNodeProvider())) {
+      return this.isImplicitListStructure(node);
+    }
+
+    if (NodeTypes.isDictionaryType(targetType, this.blue.getNodeProvider())) {
+      return this.isImplicitDictionaryStructure(node);
+    }
+
+    return false;
+  }
+
+  private isCoreCollectionType(targetType: BlueNode): boolean {
+    return (
+      NodeTypes.isListType(targetType, this.blue.getNodeProvider()) ||
+      NodeTypes.isDictionaryType(targetType, this.blue.getNodeProvider())
+    );
+  }
+
   private isImplicitListStructure(node: BlueNode): boolean {
     return node.getItems() !== undefined && node.getValue() === undefined;
   }
 
   private isImplicitDictionaryStructure(node: BlueNode): boolean {
     return node.getProperties() !== undefined && node.getValue() === undefined;
+  }
+
+  private isBareBlueIdReference(node: BlueNode): boolean {
+    return (
+      node.getBlueId() !== undefined &&
+      node.getType() === undefined &&
+      node.getValue() === undefined &&
+      node.getItems() === undefined &&
+      node.getItemType() === undefined &&
+      node.getProperties() === undefined &&
+      node.getValueType() === undefined
+    );
+  }
+
+  private isExplicitBlueIdMatcher(node: BlueNode): boolean {
+    return this.isBareBlueIdReference(node);
+  }
+
+  private resolveAgainstTargetType(
+    node: BlueNode,
+    targetType: BlueNode,
+    limits: Limits,
+  ): BlueNode | null {
+    try {
+      const originalClone = node.clone();
+      const typedClone = originalClone.clone().setType(targetType.clone());
+      const resolved = this.blue.resolve(typedClone, limits);
+      this.restoreMissingStructure(resolved, originalClone);
+      return resolved;
+    } catch {
+      return null;
+    }
+  }
+
+  private expandSchemaOwnedTypeReferences(targetType: BlueNode): BlueNode {
+    if (!this.isSchemaDefinitionNode(targetType)) {
+      return targetType;
+    }
+
+    return this.expandSchemaTypeReferences(targetType.clone());
+  }
+
+  private isSchemaDefinitionNode(node: BlueNode): boolean {
+    return (
+      node.getBlueId() !== undefined &&
+      (node.getName() !== undefined ||
+        node.getDescription() !== undefined ||
+        node.getType() !== undefined ||
+        node.getItemType() !== undefined ||
+        node.getKeyType() !== undefined ||
+        node.getValueType() !== undefined ||
+        node.getItems() !== undefined ||
+        node.getProperties() !== undefined)
+    );
+  }
+
+  private expandSchemaTypeReferences(node: BlueNode): BlueNode {
+    const type = node.getType();
+    if (type) {
+      node.setType(this.expandReferencedTypeNode(type));
+    }
+
+    const itemType = node.getItemType();
+    if (itemType) {
+      node.setItemType(this.expandReferencedTypeNode(itemType));
+    }
+
+    const keyType = node.getKeyType();
+    if (keyType) {
+      node.setKeyType(this.expandReferencedTypeNode(keyType));
+    }
+
+    const valueType = node.getValueType();
+    if (valueType) {
+      node.setValueType(this.expandReferencedTypeNode(valueType));
+    }
+
+    const items = node.getItems();
+    if (items) {
+      node.setItems(items.map((item) => this.expandSchemaTypeReferences(item)));
+    }
+
+    const properties = node.getProperties();
+    if (properties) {
+      node.setProperties(
+        Object.fromEntries(
+          Object.entries(properties).map(([key, value]) => [
+            key,
+            this.expandSchemaTypeReferences(value),
+          ]),
+        ),
+      );
+    }
+
+    return node;
+  }
+
+  private expandReferencedTypeNode(typeNode: BlueNode): BlueNode {
+    if (!this.isBareBlueIdReference(typeNode)) {
+      return this.expandSchemaTypeReferences(typeNode.clone());
+    }
+
+    const fetched = this.blue
+      .getNodeProvider()
+      .fetchByBlueId(typeNode.getBlueId()!);
+    if (!fetched || fetched.length !== 1) {
+      return typeNode.clone();
+    }
+
+    return this.expandSchemaTypeReferences(fetched[0].clone());
   }
 }

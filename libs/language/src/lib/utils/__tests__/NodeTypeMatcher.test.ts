@@ -3,6 +3,7 @@ import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 import { BlueNode } from '../../model';
 import { NodeTypeMatcher } from '../NodeTypeMatcher';
 import { DICTIONARY_TYPE_BLUE_ID } from '../Properties';
+import { repository } from '@blue-repository/types';
 
 describe('NodeTypeMatcher', () => {
   test('basic type/value/shape cases (no constraints)', () => {
@@ -344,4 +345,79 @@ value: wrong`;
   });
 
   // Note: dictionary event-like case is covered in implicit structural tests above.
+
+  test('repository valueType accepts implicit structured values when the type schema matches', () => {
+    const blue = new Blue({ repositories: [repository] });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const node = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'MyOS/Linked Documents Permission Set',
+        orders: {
+          read: true,
+        },
+      }),
+    );
+
+    expect(matcher.matchesType(node, node.getType()!)).toBe(true);
+  });
+
+  test('repository valueType accepts explicit subtypes of the declared base type', () => {
+    const blue = new Blue({ repositories: [repository] });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const node = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'MyOS/Document Links',
+        shopOrdersLink: {
+          type: 'MyOS/MyOS Session Link',
+          sessionId: 'shop-session',
+          anchor: 'orders',
+        },
+      }),
+    );
+
+    expect(matcher.matchesType(node, node.getType()!)).toBe(true);
+  });
+
+  test('repository itemType accepts implicit structured items when the type schema matches', () => {
+    const blue = new Blue({ repositories: [repository] });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const changeRequest = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'Conversation/Change Request',
+        changeset: [
+          {
+            op: 'replace',
+            path: '/title',
+            val: 'Updated',
+          },
+        ],
+      }),
+    );
+
+    expect(matcher.matchesType(changeRequest, changeRequest.getType()!)).toBe(
+      true,
+    );
+
+    const workerAgencyGrant = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'MyOS/Worker Agency Permission Granting in Progress',
+        granteeDocumentId: 'doc-1',
+        allowedWorkerAgencyPermissions: [
+          {
+            workerType: 'MyOS/Agent',
+            permissions: {
+              read: true,
+            },
+          },
+        ],
+      }),
+    );
+
+    expect(
+      matcher.matchesType(workerAgencyGrant, workerAgencyGrant.getType()!),
+    ).toBe(true);
+  });
 });
