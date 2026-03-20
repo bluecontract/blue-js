@@ -2,7 +2,7 @@ import { Blue } from '../../Blue';
 import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 import { BlueNode } from '../../model';
 import { NodeTypeMatcher } from '../NodeTypeMatcher';
-import { DICTIONARY_TYPE_BLUE_ID } from '../Properties';
+import { DICTIONARY_TYPE_BLUE_ID, TEXT_TYPE_BLUE_ID } from '../Properties';
 import { repository } from '@blue-repository/types';
 
 describe('NodeTypeMatcher', () => {
@@ -155,6 +155,32 @@ x:
     const fail = `x:
   blueId: ${betaId}`;
     expect(matcher.matchesType(node, blue.yamlToNode(fail))).toBe(false);
+  });
+
+  test('schema-owned matchers reject untyped nodes with unrelated blueIds', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(
+      `name: Expected Schema
+label:
+  type: Text`,
+      `name: Other Schema
+label:
+  type: Text`,
+    );
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const expectedSchema = nodeProvider.getNodeByName('Expected Schema');
+    const otherSchemaId = nodeProvider.getBlueIdByName('Other Schema');
+
+    const structuralNode = blue.yamlToNode(`label: ok`);
+    const wrongBlueIdNode = blue.yamlToNode(`blueId: ${otherSchemaId}
+label: ok`);
+
+    expect(matcher.matchesType(structuralNode, expectedSchema)).toBe(true);
+    expect(matcher.matchesType(wrongBlueIdNode, expectedSchema)).toBe(false);
   });
 
   test('list itemType enforces item shape', () => {
@@ -390,6 +416,19 @@ read:
     read: yes`);
 
     expect(matcher.matchesType(node, targetType)).toBe(true);
+  });
+
+  test('blueId references with keyType are not treated as bare references', () => {
+    const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+    const matcher = new NodeTypeMatcher(blue) as unknown as {
+      isBareBlueIdReference(node: BlueNode): boolean;
+    };
+
+    const constrainedReference = new BlueNode()
+      .setBlueId(DICTIONARY_TYPE_BLUE_ID)
+      .setKeyType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    expect(matcher.isBareBlueIdReference(constrainedReference)).toBe(false);
   });
 
   // Note: dictionary event-like case is covered in implicit structural tests above.

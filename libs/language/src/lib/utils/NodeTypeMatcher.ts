@@ -166,7 +166,15 @@ export class NodeTypeMatcher {
           return false;
         }
       } else {
+        const nodeBlueId = node.getBlueId();
         const nodeType = node.getType();
+        if (
+          nodeType === undefined &&
+          nodeBlueId !== undefined &&
+          nodeBlueId !== targetBlueId
+        ) {
+          return false;
+        }
         if (
           nodeType &&
           !NodeTypes.isSubtype(
@@ -402,6 +410,7 @@ export class NodeTypeMatcher {
       node.getValue() === undefined &&
       node.getItems() === undefined &&
       node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
       node.getProperties() === undefined &&
       node.getValueType() === undefined
     );
