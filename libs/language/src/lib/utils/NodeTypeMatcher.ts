@@ -16,12 +16,6 @@ export class NodeTypeMatcher {
     targetType: BlueNode,
     globalLimits: Limits = NO_LIMITS,
   ): boolean {
-    // Quick structural match for implicit core types (List/Dictionary)
-    const quickTargetType = targetType.getType();
-    if (this.matchesImplicitStructure(node, quickTargetType)) {
-      return true;
-    }
-
     // Derive path limits from the target type structure
     const pathLimits = PathLimits.fromNode(targetType);
     const compositeLimits = CompositeLimits.of(globalLimits, pathLimits);
@@ -232,17 +226,14 @@ export class NodeTypeMatcher {
     if (targetItemType !== undefined) {
       const nodeItems = node.getItems() ?? [];
       for (const item of nodeItems) {
-        const contextuallyResolvedItem =
-          item.getType() === undefined &&
-          !this.isExplicitBlueIdMatcher(
-            comparisonTargetItemType ?? targetItemType,
-          )
-            ? (this.resolveAgainstTargetType(item, targetItemType, limits) ??
-              item)
-            : item;
         if (
           !this.recursiveValueComparison(
-            contextuallyResolvedItem,
+            this.resolveUntypedNodeAgainstMatcherType(
+              item,
+              targetItemType,
+              comparisonTargetItemType ?? targetItemType,
+              limits,
+            ),
             targetItemType,
             comparisonTargetItemType ?? targetItemType,
             limits,
@@ -284,7 +275,12 @@ export class NodeTypeMatcher {
       for (const value of nodeProps) {
         if (
           !this.recursiveValueComparison(
-            value,
+            this.resolveUntypedNodeAgainstMatcherType(
+              value,
+              targetValueType,
+              comparisonTargetValueType ?? targetValueType,
+              limits,
+            ),
             targetValueType,
             comparisonTargetValueType ?? targetValueType,
             limits,
@@ -296,6 +292,22 @@ export class NodeTypeMatcher {
     }
 
     return true;
+  }
+
+  private resolveUntypedNodeAgainstMatcherType(
+    node: BlueNode,
+    targetType: BlueNode,
+    comparisonTargetType: BlueNode,
+    limits: Limits,
+  ): BlueNode {
+    if (
+      node.getType() !== undefined ||
+      this.isExplicitBlueIdMatcher(comparisonTargetType)
+    ) {
+      return node;
+    }
+
+    return this.resolveAgainstTargetType(node, targetType, limits) ?? node;
   }
 
   private hasValueInNestedStructure(node: BlueNode): boolean {

@@ -265,6 +265,26 @@ items:
     ).toBe(false);
   });
 
+  test('top-level implicit collections should still honor matcher constraints', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const implicitListNode = blue.jsonValueToNode([1, 2, 3]);
+    const implicitDictNode = blue.jsonValueToNode({
+      first: 1,
+      second: 2,
+    });
+
+    const listMatcher = blue.yamlToNode(`type: List
+itemType: Text`);
+    const dictMatcher = blue.yamlToNode(`type: Dictionary
+valueType: Text`);
+
+    expect(matcher.matchesType(implicitListNode, listMatcher)).toBe(false);
+    expect(matcher.matchesType(implicitDictNode, dictMatcher)).toBe(false);
+  });
+
   test('event-like json payloads: request as implicit list vs explicit List', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
@@ -342,6 +362,34 @@ value: wrong`;
 
     const mismatchedNode = createNodeWithValueBlueId(wrongStateId);
     expect(matcher.matchesType(mismatchedNode, targetType)).toBe(false);
+  });
+
+  test('dictionary valueType should contextually resolve implicit structured values', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`name: Participant State
+read:
+  type: Text`);
+
+    const participantStateId =
+      nodeProvider.getBlueIdByName('Participant State');
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const targetType = blue.yamlToNode(`participantsState:
+  type: Dictionary
+  valueType:
+    type:
+      blueId: ${participantStateId}`);
+
+    const node = blue.yamlToNode(`participantsState:
+  alice:
+    read: ok
+  bob:
+    read: yes`);
+
+    expect(matcher.matchesType(node, targetType)).toBe(true);
   });
 
   // Note: dictionary event-like case is covered in implicit structural tests above.
