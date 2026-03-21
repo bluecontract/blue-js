@@ -1,3 +1,7 @@
+## 3.9.2 (2026-03-21)
+
+This was a version bump only, there were no code changes.
+
 ## 3.9.1 (2026-03-21)
 
 ### 🩹 Fixes
