@@ -2,7 +2,8 @@ import { Blue } from '../../Blue';
 import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 import { BlueNode } from '../../model';
 import { NodeTypeMatcher } from '../NodeTypeMatcher';
-import { DICTIONARY_TYPE_BLUE_ID } from '../Properties';
+import { DICTIONARY_TYPE_BLUE_ID, TEXT_TYPE_BLUE_ID } from '../Properties';
+import { repository } from '@blue-repository/types';
 
 describe('NodeTypeMatcher', () => {
   test('basic type/value/shape cases (no constraints)', () => {
@@ -156,6 +157,52 @@ x:
     expect(matcher.matchesType(node, blue.yamlToNode(fail))).toBe(false);
   });
 
+  test('explicit blueId matchers reject mismatched node blueIds even when type blueId matches', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`name: Alpha`, `name: Beta`);
+
+    const alphaId = nodeProvider.getBlueIdByName('Alpha');
+    const betaId = nodeProvider.getBlueIdByName('Beta');
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const node = blue.yamlToNode(`blueId: ${betaId}
+type:
+  blueId: ${alphaId}`);
+
+    const targetType = blue.yamlToNode(`blueId: ${alphaId}`);
+
+    expect(matcher.matchesType(node, targetType)).toBe(false);
+  });
+
+  test('schema-owned matchers reject untyped nodes with unrelated blueIds', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(
+      `name: Expected Schema
+label:
+  type: Text`,
+      `name: Other Schema
+label:
+  type: Text`,
+    );
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const expectedSchema = nodeProvider.getNodeByName('Expected Schema');
+    const otherSchemaId = nodeProvider.getBlueIdByName('Other Schema');
+
+    const structuralNode = blue.yamlToNode(`label: ok`);
+    const wrongBlueIdNode = blue.yamlToNode(`blueId: ${otherSchemaId}
+label: ok`);
+
+    expect(matcher.matchesType(structuralNode, expectedSchema)).toBe(true);
+    expect(matcher.matchesType(wrongBlueIdNode, expectedSchema)).toBe(false);
+  });
+
   test('list itemType enforces item shape', () => {
     const nodeProvider = new BasicNodeProvider();
 
@@ -264,6 +311,26 @@ items:
     ).toBe(false);
   });
 
+  test('top-level implicit collections should still honor matcher constraints', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const implicitListNode = blue.jsonValueToNode([1, 2, 3]);
+    const implicitDictNode = blue.jsonValueToNode({
+      first: 1,
+      second: 2,
+    });
+
+    const listMatcher = blue.yamlToNode(`type: List
+itemType: Text`);
+    const dictMatcher = blue.yamlToNode(`type: Dictionary
+valueType: Text`);
+
+    expect(matcher.matchesType(implicitListNode, listMatcher)).toBe(false);
+    expect(matcher.matchesType(implicitDictNode, dictMatcher)).toBe(false);
+  });
+
   test('event-like json payloads: request as implicit list vs explicit List', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
@@ -343,5 +410,143 @@ value: wrong`;
     expect(matcher.matchesType(mismatchedNode, targetType)).toBe(false);
   });
 
+  test('dictionary valueType should contextually resolve implicit structured values', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`name: Participant State
+read:
+  type: Text`);
+
+    const participantStateId =
+      nodeProvider.getBlueIdByName('Participant State');
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const targetType = blue.yamlToNode(`participantsState:
+  type: Dictionary
+  valueType:
+    type:
+      blueId: ${participantStateId}`);
+
+    const node = blue.yamlToNode(`participantsState:
+  alice:
+    read: ok
+  bob:
+    read: yes`);
+
+    expect(matcher.matchesType(node, targetType)).toBe(true);
+  });
+
+  test('blueId references with keyType are not treated as bare references', () => {
+    const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+    const matcher = new NodeTypeMatcher(blue) as unknown as {
+      isBareBlueIdReference(node: BlueNode): boolean;
+    };
+
+    const constrainedReference = new BlueNode()
+      .setBlueId(DICTIONARY_TYPE_BLUE_ID)
+      .setKeyType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
+
+    expect(matcher.isBareBlueIdReference(constrainedReference)).toBe(false);
+  });
+
   // Note: dictionary event-like case is covered in implicit structural tests above.
+
+  test('self-referential schema types do not overflow during comparison', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`name: Recursive Type
+label:
+  type: Text
+next:
+  type:
+    blueId: this`);
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+    const recursiveType = nodeProvider.getNodeByName('Recursive Type');
+    const recursiveTypeId = recursiveType.getBlueId()!;
+
+    const instance = blue.yamlToNode(`type:
+  blueId: ${recursiveTypeId}
+label: root`);
+
+    expect(matcher.matchesType(instance, recursiveType)).toBe(true);
+  });
+
+  test('repository valueType accepts implicit structured values when the type schema matches', () => {
+    const blue = new Blue({ repositories: [repository] });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const node = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'MyOS/Linked Documents Permission Set',
+        orders: {
+          read: true,
+        },
+      }),
+    );
+
+    expect(matcher.matchesType(node, node.getType()!)).toBe(true);
+  });
+
+  test('repository valueType accepts explicit subtypes of the declared base type', () => {
+    const blue = new Blue({ repositories: [repository] });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const node = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'MyOS/Document Links',
+        shopOrdersLink: {
+          type: 'MyOS/MyOS Session Link',
+          sessionId: 'shop-session',
+          anchor: 'orders',
+        },
+      }),
+    );
+
+    expect(matcher.matchesType(node, node.getType()!)).toBe(true);
+  });
+
+  test('repository itemType accepts implicit structured items when the type schema matches', () => {
+    const blue = new Blue({ repositories: [repository] });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const changeRequest = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'Conversation/Change Request',
+        changeset: [
+          {
+            op: 'replace',
+            path: '/title',
+            val: 'Updated',
+          },
+        ],
+      }),
+    );
+
+    expect(matcher.matchesType(changeRequest, changeRequest.getType()!)).toBe(
+      true,
+    );
+
+    const workerAgencyGrant = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'MyOS/Worker Agency Permission Granting in Progress',
+        granteeDocumentId: 'doc-1',
+        allowedWorkerAgencyPermissions: [
+          {
+            workerType: 'MyOS/Agent',
+            permissions: {
+              read: true,
+            },
+          },
+        ],
+      }),
+    );
+
+    expect(
+      matcher.matchesType(workerAgencyGrant, workerAgencyGrant.getType()!),
+    ).toBe(true);
+  });
 });
