@@ -3,7 +3,146 @@ import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 import { BlueNode } from '../../model';
 import { NodeTypeMatcher } from '../NodeTypeMatcher';
 import { DICTIONARY_TYPE_BLUE_ID, TEXT_TYPE_BLUE_ID } from '../Properties';
-import { repository } from '@blue-repository/types';
+import { BlueIdCalculator } from '../BlueIdCalculator';
+import type { BlueRepository } from '../../types/BlueRepository';
+
+const matcherRepository = buildMatcherRepository();
+
+function buildMatcherRepository(): BlueRepository {
+  const blue = new Blue();
+  const definitions = [
+    {
+      alias: 'Matcher/Permission',
+      name: 'Permission',
+      json: {
+        name: 'Permission',
+        read: { type: 'Boolean' },
+      },
+    },
+    {
+      alias: 'Matcher/Permission Set',
+      name: 'Permission Set',
+      json: {
+        name: 'Permission Set',
+        type: 'Dictionary',
+        keyType: 'Text',
+        valueType: 'Matcher/Permission',
+      },
+    },
+    {
+      alias: 'Matcher/Link',
+      name: 'Link',
+      json: {
+        name: 'Link',
+        anchor: { type: 'Text' },
+      },
+    },
+    {
+      alias: 'Matcher/Session Link',
+      name: 'Session Link',
+      json: {
+        name: 'Session Link',
+        type: 'Matcher/Link',
+        sessionId: { type: 'Text' },
+      },
+    },
+    {
+      alias: 'Matcher/Document Links',
+      name: 'Document Links',
+      json: {
+        name: 'Document Links',
+        type: 'Dictionary',
+        keyType: 'Text',
+        valueType: 'Matcher/Link',
+      },
+    },
+    {
+      alias: 'Matcher/Change Entry',
+      name: 'Change Entry',
+      json: {
+        name: 'Change Entry',
+        op: { type: 'Text' },
+        path: { type: 'Text' },
+        val: { type: 'Text' },
+      },
+    },
+    {
+      alias: 'Matcher/Change Request',
+      name: 'Change Request',
+      json: {
+        name: 'Change Request',
+        changeset: {
+          type: 'List',
+          itemType: 'Matcher/Change Entry',
+        },
+      },
+    },
+    {
+      alias: 'Matcher/Worker Permission',
+      name: 'Worker Permission',
+      json: {
+        name: 'Worker Permission',
+        workerType: { type: 'Text' },
+        permissions: {
+          type: 'Dictionary',
+          keyType: 'Text',
+          valueType: 'Boolean',
+        },
+      },
+    },
+    {
+      alias: 'Matcher/Grant Progress',
+      name: 'Grant Progress',
+      json: {
+        name: 'Grant Progress',
+        granteeDocumentId: { type: 'Text' },
+        allowedWorkerAgencyPermissions: {
+          type: 'List',
+          itemType: 'Matcher/Worker Permission',
+        },
+      },
+    },
+  ] as const;
+
+  const aliases: Record<string, string> = {};
+  const typesMeta: BlueRepository['packages'][string]['typesMeta'] = {};
+  const contents: BlueRepository['packages'][string]['contents'] = {};
+
+  for (const definition of definitions) {
+    const node = blue.jsonValueToNode(definition.json);
+    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+
+    blue.registerBlueIds({ [definition.alias]: blueId });
+
+    aliases[definition.alias] = blueId;
+    typesMeta[blueId] = {
+      status: 'stable',
+      name: definition.name,
+      versions: [
+        {
+          repositoryVersionIndex: 0,
+          typeBlueId: blueId,
+          attributesAdded: [],
+        },
+      ],
+    };
+    contents[blueId] = blue.nodeToJson(node);
+  }
+
+  return {
+    name: 'matcher.repo',
+    repositoryVersions: ['R0'],
+    packages: {
+      matcher: {
+        name: 'matcher',
+        aliases,
+        typesMeta,
+        contents,
+        schemas: {},
+      },
+    },
+  };
+}
 
 describe('NodeTypeMatcher', () => {
   test('basic type/value/shape cases (no constraints)', () => {
@@ -476,12 +615,12 @@ label: root`);
   });
 
   test('repository valueType accepts implicit structured values when the type schema matches', () => {
-    const blue = new Blue({ repositories: [repository] });
+    const blue = new Blue({ repositories: [matcherRepository] });
     const matcher = new NodeTypeMatcher(blue);
 
     const node = blue.resolve(
       blue.jsonValueToNode({
-        type: 'MyOS/Linked Documents Permission Set',
+        type: 'Matcher/Permission Set',
         orders: {
           read: true,
         },
@@ -492,14 +631,14 @@ label: root`);
   });
 
   test('repository valueType accepts explicit subtypes of the declared base type', () => {
-    const blue = new Blue({ repositories: [repository] });
+    const blue = new Blue({ repositories: [matcherRepository] });
     const matcher = new NodeTypeMatcher(blue);
 
     const node = blue.resolve(
       blue.jsonValueToNode({
-        type: 'MyOS/Document Links',
+        type: 'Matcher/Document Links',
         shopOrdersLink: {
-          type: 'MyOS/MyOS Session Link',
+          type: 'Matcher/Session Link',
           sessionId: 'shop-session',
           anchor: 'orders',
         },
@@ -510,12 +649,12 @@ label: root`);
   });
 
   test('repository itemType accepts implicit structured items when the type schema matches', () => {
-    const blue = new Blue({ repositories: [repository] });
+    const blue = new Blue({ repositories: [matcherRepository] });
     const matcher = new NodeTypeMatcher(blue);
 
     const changeRequest = blue.resolve(
       blue.jsonValueToNode({
-        type: 'Conversation/Change Request',
+        type: 'Matcher/Change Request',
         changeset: [
           {
             op: 'replace',
@@ -532,11 +671,11 @@ label: root`);
 
     const workerAgencyGrant = blue.resolve(
       blue.jsonValueToNode({
-        type: 'MyOS/Worker Agency Permission Granting in Progress',
+        type: 'Matcher/Grant Progress',
         granteeDocumentId: 'doc-1',
         allowedWorkerAgencyPermissions: [
           {
-            workerType: 'MyOS/Agent',
+            workerType: 'agent',
             permissions: {
               read: true,
             },
