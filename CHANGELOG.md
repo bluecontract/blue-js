@@ -1,3 +1,9 @@
+## 3.9.1 (2026-03-21)
+
+### 🩹 Fixes
+
+- event matcher bug fixes ([a310bff](https://github.com/bluecontract/blue-js/commit/a310bff))
+
 ## 3.9.0 (2026-03-18)
 
 ### 🚀 Features
