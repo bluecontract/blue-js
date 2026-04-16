@@ -1,0 +1,884 @@
+name: PayNote
+description: >
+  A document attached to exactly one transaction that governs what should happen
+  with that transaction.
+
+status:
+  type: Text
+  description: >
+    Current lifecycle state of this PayNote.
+    Expected values include:
+    Pending, Accepted, Initiated, Secured, Completed,
+    Cancelled, Reversed, Rejected, Failed.
+
+currency:
+  type: Common/Currency
+  description: ISO 4217 currency code.
+
+amount:
+  description: Amount values associated with this PayNote.
+  expectedTotal:
+    type: Integer
+    description: >
+      The initially expected total amount in minor units.
+  finalResolved:
+    type: Integer
+    description: >
+      The final resolved amount for completion, if known.
+  secured:
+    type: Integer
+    description: >
+      Amount currently secured / under guarantor control.
+  completed:
+    type: Integer
+    description: >
+      Amount already completed / finalized.
+  reversed:
+    type: Integer
+    description: >
+      Amount already reversed after completion.
+
+transactionDetails:
+  description: >
+    Transaction attachment information confirmed by the Guarantor.
+
+controls:
+  completionLocked:
+    type: Boolean
+  reversalLocked:
+    type: Boolean
+  transactionDetailsUpdateLocked:
+    type: Boolean
+
+payNoteInitialStateDescription:
+  summary:
+    type: Text
+    description: >
+      Short explanation of what this PayNote is for.
+  details:
+    type: Text
+    description: >
+      Full explanation of the process, conditions, and special rules.
+      Markdown recommended.
+
+contracts:
+  payerChannel:
+    type: Core/Channel
+
+  payeeChannel:
+    type: Core/Channel
+    # May remain unbound initially if payee/recipient is unresolved.
+
+  guarantorChannel:
+    type: Core/Channel
+
+  initLifecycleChannel:
+    type: Core/Lifecycle Event Channel
+    event:
+      type: Core/Document Processing Initiated
+
+  initialize:
+    type: Conversation/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: Initialize PayNote Runtime State
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Pending
+          - op: replace
+            path: /amount/finalResolved
+            val: 0
+          - op: replace
+            path: /amount/secured
+            val: 0
+          - op: replace
+            path: /amount/completed
+            val: 0
+          - op: replace
+            path: /amount/reversed
+            val: 0
+          - op: replace
+            path: /controls/completionLocked
+            val: false
+          - op: replace
+            path: /controls/reversalLocked
+            val: false
+          - op: replace
+            path: /controls/transactionDetailsUpdateLocked
+            val: false
+          - op: replace
+            path: /transactionDetails
+            val: {}
+
+  # --- Guarantor operations ---
+  acceptPayNote:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/PayNote Acceptance Requested
+
+  acceptPayNoteImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: acceptPayNote
+    steps:
+      - name: Mark PayNote Accepted
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Accepted
+
+      - name: Emit PayNote Accepted
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/PayNote Accepted
+
+  rejectPayNote:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/PayNote Rejected
+
+  rejectPayNoteImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: rejectPayNote
+    steps:
+      - name: Validate and Forward Rejection
+        type: Conversation/JavaScript Code
+        code: |
+          const request =
+            event && event.message ? event.message.request : null;
+
+          if (!request || typeof request !== 'object' || Array.isArray(request)) {
+            throw new Error('PayNote rejection request must be an object.');
+          }
+
+          return { events: [request] };
+
+      - name: Mark PayNote Rejected
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Rejected
+
+  recordTransactionInitiated:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Initiated
+
+  recordTransactionInitiatedImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: recordTransactionInitiated
+    steps:
+      - name: Merge Initiation Transaction Details
+        type: Conversation/JavaScript Code
+        code: |
+          const request =
+            event && event.message ? event.message.request : null;
+
+          if (!request || typeof request !== 'object' || Array.isArray(request)) {
+            throw new Error('Transaction initiated payload must be an object.');
+          }
+
+          const current = document('/transactionDetails');
+          const next =
+            current && typeof current === 'object' && !Array.isArray(current)
+              ? { ...current }
+              : {};
+          const keys = Object.keys(request);
+          let index = 0;
+          while (index < keys.length) {
+            const key = keys[index];
+            if (key !== 'type') {
+              next[key] = request[key];
+            }
+            index += 1;
+          }
+
+          return { nextTransactionDetails: next, events: [request] };
+
+      - name: Update Initiation State
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Initiated
+          - op: replace
+            path: /transactionDetails
+            val: "${steps['Merge Initiation Transaction Details'].nextTransactionDetails}"
+
+  recordTransactionInitiationFailed:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Initiation Failed
+
+  recordTransactionInitiationFailedImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: recordTransactionInitiationFailed
+    steps:
+      - name: Mark Initiation Failed
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Failed
+
+      - name: Emit Transaction Initiation Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Transaction Initiation Failed
+          reason: "${event.message.request.reason}"
+
+  confirmPayeeAssignment:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payee Assignment Confirmed
+
+  confirmPayeeAssignmentImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: confirmPayeeAssignment
+    steps:
+      - name: Merge Payee Assignment
+        type: Conversation/JavaScript Code
+        code: |
+          const request =
+            event && event.message ? event.message.request : null;
+
+          if (!request || typeof request !== 'object' || Array.isArray(request)) {
+            throw new Error('Payee assignment payload must be an object.');
+          }
+          if (typeof request.payeeRef !== 'string') {
+            throw new Error('Payee assignment payload must include payeeRef.');
+          }
+
+          const current = document('/transactionDetails');
+          const next =
+            current && typeof current === 'object' && !Array.isArray(current)
+              ? { ...current }
+              : {};
+          next.payeeRef = request.payeeRef;
+
+          return { nextTransactionDetails: next, events: [request] };
+
+      - name: Update Payee Assignment
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /transactionDetails
+            val: "${steps['Merge Payee Assignment'].nextTransactionDetails}"
+
+  rejectPayeeAssignment:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payee Assignment Rejected
+
+  rejectPayeeAssignmentImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: rejectPayeeAssignment
+    steps:
+      - name: Emit Payee Assignment Rejected
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payee Assignment Rejected
+          reason: "${event.message.request.reason}"
+
+  confirmTransactionDetailsUpdated:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Details Updated
+
+  confirmTransactionDetailsUpdatedImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: confirmTransactionDetailsUpdated
+    steps:
+      - name: Merge Transaction Details Update
+        type: Conversation/JavaScript Code
+        code: |
+          const request =
+            event && event.message ? event.message.request : null;
+
+          if (!request || typeof request !== 'object' || Array.isArray(request)) {
+            throw new Error('Transaction details update payload must be an object.');
+          }
+          if (
+            !request.transactionDetails ||
+            typeof request.transactionDetails !== 'object' ||
+            Array.isArray(request.transactionDetails)
+          ) {
+            throw new Error(
+              'Transaction details update payload must include transactionDetails object.'
+            );
+          }
+
+          const current = document('/transactionDetails');
+          const next =
+            current && typeof current === 'object' && !Array.isArray(current)
+              ? { ...current }
+              : {};
+          const patch = request.transactionDetails;
+
+          const patchKeys = Object.keys(patch);
+          let index = 0;
+          while (index < patchKeys.length) {
+            const key = patchKeys[index];
+            next[key] = patch[key];
+            index += 1;
+          }
+
+          return { nextTransactionDetails: next, events: [request] };
+
+      - name: Apply Transaction Details Update
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /transactionDetails
+            val: "${steps['Merge Transaction Details Update'].nextTransactionDetails}"
+
+  rejectTransactionDetailsUpdate:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Details Update Rejected
+
+  rejectTransactionDetailsUpdateImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: rejectTransactionDetailsUpdate
+    steps:
+      - name: Emit Transaction Details Update Rejected
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Transaction Details Update Rejected
+          reason: "${event.message.request.reason}"
+
+  failTransactionDetailsUpdate:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Details Update Failed
+
+  failTransactionDetailsUpdateImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failTransactionDetailsUpdate
+    steps:
+      - name: Emit Transaction Details Update Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Transaction Details Update Failed
+          reason: "${event.message.request.reason}"
+
+  secureFunds:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Funds Secured
+
+  secureFundsImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: secureFunds
+    steps:
+      - name: Update Secured Amount
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Secured
+          - op: replace
+            path: /amount/secured
+            val: "${event.message.request.amountSecured}"
+
+      - name: Emit Funds Secured
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Funds Secured
+          amountSecured: "${event.message.request.amountSecured}"
+
+  declineSecureFunds:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Funds Securing Declined
+
+  declineSecureFundsImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: declineSecureFunds
+    steps:
+      - name: Mark Funds Securing Declined
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Rejected
+
+      - name: Emit Funds Securing Declined
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Funds Securing Declined
+          reason: "${event.message.request.reason}"
+
+  failSecureFunds:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Funds Securing Failed
+
+  failSecureFundsImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failSecureFunds
+    steps:
+      - name: Mark Funds Securing Failed
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Failed
+
+      - name: Emit Funds Securing Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Funds Securing Failed
+          reason: "${event.message.request.reason}"
+
+  completePayment:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Completed
+
+  completePaymentImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: completePayment
+    steps:
+      - name: Update Completed Amount
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Completed
+          - op: replace
+            path: /amount/completed
+            val: "${event.message.request.amountCompleted}"
+
+      - name: Emit Payment Completed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Completed
+          amountCompleted: "${event.message.request.amountCompleted}"
+
+  declineCompletePayment:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Completion Declined
+
+  declineCompletePaymentImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: declineCompletePayment
+    steps:
+      - name: Mark Payment Completion Declined
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Rejected
+
+      - name: Emit Payment Completion Declined
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Completion Declined
+          reason: "${event.message.request.reason}"
+
+  failCompletePayment:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Completion Failed
+
+  failCompletePaymentImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failCompletePayment
+    steps:
+      - name: Mark Payment Completion Failed
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Failed
+
+      - name: Emit Payment Completion Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Completion Failed
+          reason: "${event.message.request.reason}"
+
+  cancelBeforeCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Cancel Before Completion Requested
+
+  cancelBeforeCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: cancelBeforeCompletion
+    steps:
+      - name: Mark Cancelled Before Completion
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Cancelled
+
+      - name: Emit Payment Cancelled Before Completion
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Cancelled Before Completion
+
+  declineCancelBeforeCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Cancellation Declined
+
+  declineCancelBeforeCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: declineCancelBeforeCompletion
+    steps:
+      - name: Mark Payment Cancellation Declined
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Rejected
+
+      - name: Emit Payment Cancellation Declined
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Cancellation Declined
+          reason: "${event.message.request.reason}"
+
+  failCancelBeforeCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Cancellation Failed
+
+  failCancelBeforeCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failCancelBeforeCompletion
+    steps:
+      - name: Mark Payment Cancellation Failed
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Failed
+
+      - name: Emit Payment Cancellation Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Cancellation Failed
+          reason: "${event.message.request.reason}"
+
+  reverseAfterCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Reversed After Completion
+
+  reverseAfterCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: reverseAfterCompletion
+    steps:
+      - name: Update Reversed Amount
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Reversed
+          - op: replace
+            path: /amount/reversed
+            val: "${event.message.request.amountReversed}"
+
+      - name: Emit Payment Reversed After Completion
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Reversed After Completion
+          amountReversed: "${event.message.request.amountReversed}"
+
+  declineReverseAfterCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Reversal Declined
+
+  declineReverseAfterCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: declineReverseAfterCompletion
+    steps:
+      - name: Mark Payment Reversal Declined
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Rejected
+
+      - name: Emit Payment Reversal Declined
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Reversal Declined
+          reason: "${event.message.request.reason}"
+
+  failReverseAfterCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Reversal Failed
+
+  failReverseAfterCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failReverseAfterCompletion
+    steps:
+      - name: Mark Payment Reversal Failed
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /status
+            val: Failed
+
+      - name: Emit Payment Reversal Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Reversal Failed
+          reason: "${event.message.request.reason}"
+
+  resolveFinalAmount:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Final Amount Resolved
+
+  resolveFinalAmountImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: resolveFinalAmount
+    steps:
+      - name: Update Final Amount
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /amount/finalResolved
+            val: "${event.message.request.finalAmount}"
+
+      - name: Emit Final Amount Resolved
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Final Amount Resolved
+          finalAmount: "${event.message.request.finalAmount}"
+
+  rejectFinalAmountResolution:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Final Amount Resolution Rejected
+
+  rejectFinalAmountResolutionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: rejectFinalAmountResolution
+    steps:
+      - name: Emit Final Amount Resolution Rejected
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Final Amount Resolution Rejected
+          reason: "${event.message.request.reason}"
+
+  lockPaymentCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Completion Locked
+
+  lockPaymentCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: lockPaymentCompletion
+    steps:
+      - name: Enable Completion Lock
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /controls/completionLocked
+            val: true
+
+      - name: Emit Payment Completion Locked
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Completion Locked
+          lockedAt: "${event.message.request.lockedAt}"
+
+  unlockPaymentCompletion:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Completion Unlocked
+
+  unlockPaymentCompletionImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: unlockPaymentCompletion
+    steps:
+      - name: Disable Completion Lock
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /controls/completionLocked
+            val: false
+
+      - name: Emit Payment Completion Unlocked
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Completion Unlocked
+          unlockedAt: "${event.message.request.unlockedAt}"
+
+  failPaymentCompletionLockChange:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Completion Lock Change Failed
+
+  failPaymentCompletionLockChangeImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failPaymentCompletionLockChange
+    steps:
+      - name: Emit Payment Completion Lock Change Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Completion Lock Change Failed
+          reason: "${event.message.request.reason}"
+
+  lockPaymentReversal:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Reversal Locked
+
+  lockPaymentReversalImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: lockPaymentReversal
+    steps:
+      - name: Enable Reversal Lock
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /controls/reversalLocked
+            val: true
+
+      - name: Emit Payment Reversal Locked
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Reversal Locked
+          lockedAt: "${event.message.request.lockedAt}"
+
+  unlockPaymentReversal:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Reversal Unlocked
+
+  unlockPaymentReversalImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: unlockPaymentReversal
+    steps:
+      - name: Disable Reversal Lock
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /controls/reversalLocked
+            val: false
+
+      - name: Emit Payment Reversal Unlocked
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Reversal Unlocked
+          unlockedAt: "${event.message.request.unlockedAt}"
+
+  failPaymentReversalLockChange:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Reversal Lock Change Failed
+
+  failPaymentReversalLockChangeImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failPaymentReversalLockChange
+    steps:
+      - name: Emit Payment Reversal Lock Change Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Payment Reversal Lock Change Failed
+          reason: "${event.message.request.reason}"
+
+  lockTransactionDetailsUpdate:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Details Update Locked
+
+  lockTransactionDetailsUpdateImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: lockTransactionDetailsUpdate
+    steps:
+      - name: Enable Transaction Details Update Lock
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /controls/transactionDetailsUpdateLocked
+            val: true
+
+      - name: Emit Transaction Details Update Locked
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Transaction Details Update Locked
+          lockedAt: "${event.message.request.lockedAt}"
+
+  unlockTransactionDetailsUpdate:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Details Update Unlocked
+
+  unlockTransactionDetailsUpdateImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: unlockTransactionDetailsUpdate
+    steps:
+      - name: Disable Transaction Details Update Lock
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /controls/transactionDetailsUpdateLocked
+            val: false
+
+      - name: Emit Transaction Details Update Unlocked
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Transaction Details Update Unlocked
+          unlockedAt: "${event.message.request.unlockedAt}"
+
+  failTransactionDetailsUpdateLockChange:
+    type: Conversation/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Details Update Lock Change Failed
+
+  failTransactionDetailsUpdateLockChangeImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: failTransactionDetailsUpdateLockChange
+    steps:
+      - name: Emit Transaction Details Update Lock Change Failed
+        type: Conversation/Trigger Event
+        event:
+          type: PayNote/Transaction Details Update Lock Change Failed
+          reason: "${event.message.request.reason}"
