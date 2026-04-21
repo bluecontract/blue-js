@@ -1,3 +1,9 @@
+## 3.10.0 (2026-04-21)
+
+### 🚀 Features
+
+- bump @blue-repository/types to 0.30.0 ([#173](https://github.com/bluecontract/blue-js/pull/173), [#174](https://github.com/bluecontract/blue-js/pull/174))
+
 ## 3.9.2 (2026-03-21)
 
 This was a version bump only, there were no code changes.
