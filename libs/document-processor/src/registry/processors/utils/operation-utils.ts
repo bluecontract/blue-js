@@ -1,8 +1,6 @@
 import { BlueNode } from '@blue-labs/language';
 import type { Operation } from '@blue-repository/types/packages/conversation/schemas/Operation';
 
-import type { ContractProcessorContext } from '../../types.js';
-
 export function extractOperationChannelKey(
   operation: Operation,
 ): string | null {
@@ -20,11 +18,11 @@ export function extractOperationChannelKey(
 
 export function extractPinnedDocumentBlueId(
   eventNode: BlueNode,
-  context: ContractProcessorContext,
 ): string | null {
   const documentNode = eventNode.getProperties()?.document;
   if (!(documentNode instanceof BlueNode)) {
     return null;
   }
-  return context.blue.calculateBlueIdSync(documentNode);
+  const blueId = documentNode.getBlueId?.();
+  return typeof blueId === 'string' && blueId.length > 0 ? blueId : null;
 }
