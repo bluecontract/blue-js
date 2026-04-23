@@ -1,3 +1,14 @@
+## 3.11.0 (2026-04-23)
+
+### 🚀 Features
+
+- **document-processor:** support actor policy contract ([05a0491](https://github.com/bluecontract/blue-js/commit/05a0491))
+
+### 🩹 Fixes
+
+- **document-processor:** enforce actor policy uniqueness across subtypes ([33ecffc](https://github.com/bluecontract/blue-js/commit/33ecffc))
+- **document-processor:** classify invalid actor policy literals ([e2837b6](https://github.com/bluecontract/blue-js/commit/e2837b6))
+
 ## 3.10.0 (2026-04-21)
 
 ### 🚀 Features
