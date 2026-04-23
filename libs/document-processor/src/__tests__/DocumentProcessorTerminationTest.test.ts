@@ -15,6 +15,7 @@ import {
 import {
   buildProcessor,
   expectOk,
+  numericProperty,
   property,
   propertyOptional,
   stringProperty,
@@ -108,6 +109,74 @@ contracts:
     );
     expect(stringProperty(terminatedEvent, 'cause')).toBe('fatal');
     expect(stringProperty(terminatedEvent, 'reason')).toBe('panic');
+  });
+
+  it('does not reinitialize an already initialized document after a JS runtime failure', async () => {
+    const yaml = `name: JS Failing Process
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  testChannel:
+    type:
+      blueId: TestEventChannel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: MarkInitialized
+        type: Conversation/Update Document
+        changeset:
+          - op: ADD
+            path: /initCount
+            val: 1
+  onTestEvent:
+    type: Conversation/Sequential Workflow
+    channel: testChannel
+    steps:
+      - name: Boom
+        type: Conversation/JavaScript Code
+        code: |
+          throw new Error("boom");
+`;
+
+    const initialized = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    expect(numericProperty(initialized.document, 'initCount')).toBe(1);
+
+    const event = blue.jsonValueToNode({
+      type: { blueId: 'TestEvent' },
+      eventId: 'evt-4',
+      x: 1,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(initialized.document.clone(), event),
+    );
+
+    expect(processor.isInitialized(result.document)).toBe(true);
+    expect(numericProperty(result.document, 'initCount')).toBe(1);
+
+    const contracts = property(result.document, 'contracts');
+    const terminated = property(contracts, 'terminated');
+    expect(stringProperty(terminated, 'cause')).toBe('fatal');
+    expect(stringProperty(terminated, 'reason')).toMatch(
+      /Failed to evaluate code block/i,
+    );
+
+    const initiatedEvents = result.triggeredEvents.filter(
+      (event) =>
+        typeBlueId(event) === blueIds['Core/Document Processing Initiated'],
+    );
+    expect(initiatedEvents).toHaveLength(0);
+
+    const terminatedEvents = result.triggeredEvents.filter(
+      (event) =>
+        typeBlueId(event) === blueIds['Core/Document Processing Terminated'],
+    );
+    expect(terminatedEvents).toHaveLength(1);
   });
 
   it('childTerminationBridgesToParent', async () => {
