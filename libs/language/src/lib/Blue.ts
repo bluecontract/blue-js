@@ -32,7 +32,6 @@ import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultMergingProcessor } from './merge';
-import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
 import { RepositoryRegistry } from './repository/RepositoryRuntime';
@@ -43,6 +42,8 @@ import {
   NodeToJsonFormat,
   NodeToJsonOptions,
 } from './types/BlueContext';
+import { Minimizer } from './utils/Minimizer';
+import { UnsupportedFeatureGuard } from './utils/blueId';
 
 export type { BlueRepository } from './types/BlueRepository';
 
@@ -184,9 +185,38 @@ export class Blue {
     return new ResolvedBlueNode(resolvedNode);
   }
 
+  /**
+   * Legacy alias for minimization.
+   * Prefer {@link minimize} for new code.
+   */
   public reverse(node: BlueNode) {
-    const reverser = new MergeReverser();
-    return reverser.reverse(node);
+    return this.minimize(node);
+  }
+
+  public minimize(
+    nodeOrResolved: BlueNode | ResolvedBlueNode,
+    limits: Limits = NO_LIMITS,
+  ): BlueNode {
+    const resolved =
+      nodeOrResolved instanceof ResolvedBlueNode
+        ? nodeOrResolved
+        : this.resolve(nodeOrResolved, limits);
+    return this.minimizeResolved(resolved);
+  }
+
+  public minimizeResolved(resolved: ResolvedBlueNode): BlueNode {
+    const minimal = new Minimizer().minimize(resolved);
+    const minimalJson = NodeToMapListOrValue.get(minimal) as JsonBlueValue;
+    UnsupportedFeatureGuard.assertSupported(minimalJson);
+    return minimal;
+  }
+
+  public resolveAndMinimize(
+    node: BlueNode,
+    limits: Limits = NO_LIMITS,
+  ): BlueNode {
+    const resolved = this.resolve(node, limits);
+    return this.minimizeResolved(resolved);
   }
 
   /**

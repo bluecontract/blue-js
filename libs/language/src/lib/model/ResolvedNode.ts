@@ -1,6 +1,9 @@
 import { BlueNode } from './Node';
 import { MergeReverser } from '../utils/MergeReverser';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
+import { UnsupportedFeatureGuard } from '../utils/blueId';
+import { NodeToMapListOrValue } from '../utils/NodeToMapListOrValue';
+import { JsonBlueValue } from '../../schema';
 
 /**
  * Represents a resolved BlueNode. This is a simple marker class that indicates
@@ -33,7 +36,11 @@ export class ResolvedBlueNode extends BlueNode {
    */
   public getMinimalNode(): BlueNode {
     const reverser = new MergeReverser();
-    return reverser.reverse(this);
+    const minimalNode = reverser.reverse(this);
+    UnsupportedFeatureGuard.assertSupported(
+      NodeToMapListOrValue.get(minimalNode) as JsonBlueValue,
+    );
+    return minimalNode;
   }
 
   public getMinimalBlueId(): string {

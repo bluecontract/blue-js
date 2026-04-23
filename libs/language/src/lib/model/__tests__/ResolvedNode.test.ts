@@ -6,6 +6,7 @@ import { BasicNodeProvider } from '../../provider';
 import { Merger } from '../../merge/Merger';
 import { createDefaultMergingProcessor } from '../../merge';
 import { NO_LIMITS } from '../../utils/limits';
+import { UnsupportedFeatureError } from '../../utils/blueId';
 
 describe('ResolvedBlueNode Integration Tests', () => {
   it('should create ResolvedBlueNode through Merger and verify resolved state', () => {
@@ -239,5 +240,17 @@ prop3: final3
 
     // Type reference is kept but just as blueId
     expect(minimalNode.getType()?.getBlueId()).toBe(baseTypeBlueId);
+  });
+
+  it('should throw when minimal form contains unsupported deferred controls', () => {
+    const resolved = new ResolvedBlueNode(
+      new BlueNode().setProperties({
+        ref: new BlueNode().setProperties({
+          blueId: new BlueNode().setValue('this#1'),
+        }),
+      }),
+    );
+
+    expect(() => resolved.getMinimalNode()).toThrow(UnsupportedFeatureError);
   });
 });
