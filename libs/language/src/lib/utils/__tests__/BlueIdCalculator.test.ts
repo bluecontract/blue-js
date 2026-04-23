@@ -11,6 +11,8 @@ import {
 } from '../Properties';
 import { isBigNumber } from '../../../utils/typeGuards';
 import { Base58Sha256Provider } from '../Base58Sha256Provider';
+import { UnsupportedFeatureError } from '../blueId';
+import { NodeToMapListOrValue } from '../NodeToMapListOrValue';
 
 const stringify = (obj: unknown): string => {
   if (
@@ -300,7 +302,7 @@ describe('BlueIdCalculator', () => {
     expect(blueId2).toEqual(blueId);
   });
 
-  it('should remove null and empty values when calculating BlueId', async () => {
+  it('should remove null and empty object values while preserving empty lists when calculating BlueId', async () => {
     const yaml1 = `
 a: 1
 b: null`;
@@ -316,7 +318,7 @@ c: []
 d: null`;
     const yaml5 = `
 a: 1
-d: {}`;
+d: []`;
 
     const node1 = NodeDeserializer.deserialize(
       yamlBlueParse(yaml1) as JsonBlueValue,
@@ -342,8 +344,8 @@ d: {}`;
 
     expect(result2).toEqual(result1);
     expect(result3).toEqual(result1);
-    expect(result4).toEqual(result1);
-    expect(result5).toEqual(result1);
+    expect(result4).not.toEqual(result1);
+    expect(result5).not.toEqual(result1);
   });
 });
 
@@ -413,6 +415,74 @@ abc:
     const blueId3 = await BlueIdCalculator.calculateBlueId(node3);
 
     expect(blueId2).toEqual(blueId3);
+  });
+
+  it('should only short-circuit pure blueId references', async () => {
+    const pureReference = NodeDeserializer.deserialize({
+      blueId: '6dQj5r4SpmVaJmbL4rW4HsdvSkQ7rM2Ezx1w7XgH7C3f',
+    });
+    const extendedReference = NodeDeserializer.deserialize({
+      blueId: '6dQj5r4SpmVaJmbL4rW4HsdvSkQ7rM2Ezx1w7XgH7C3f',
+      foo: 1,
+    });
+
+    const pureBlueId = await BlueIdCalculator.calculateBlueId(pureReference);
+    const extendedBlueId =
+      await BlueIdCalculator.calculateBlueId(extendedReference);
+
+    expect(pureBlueId).toEqual('6dQj5r4SpmVaJmbL4rW4HsdvSkQ7rM2Ezx1w7XgH7C3f');
+    expect(extendedBlueId).not.toEqual(pureBlueId);
+  });
+
+  it('should treat wrapper-equivalent object and list forms equally', async () => {
+    const scalarA = NodeDeserializer.deserialize({ x: 1 });
+    const scalarB = NodeDeserializer.deserialize({ x: { value: 1 } });
+    const listA = NodeDeserializer.deserialize({ x: [1, 2] });
+    const listB = NodeDeserializer.deserialize({ x: { items: [1, 2] } });
+
+    const scalarIdA = await BlueIdCalculator.calculateBlueId(scalarA);
+    const scalarIdB = await BlueIdCalculator.calculateBlueId(scalarB);
+    const listIdA = await BlueIdCalculator.calculateBlueId(listA);
+    const listIdB = await BlueIdCalculator.calculateBlueId(listB);
+
+    expect(scalarIdA).toEqual(scalarIdB);
+    expect(listIdA).toEqual(listIdB);
+  });
+
+  it('should retain $empty as content', async () => {
+    const withEmpty = NodeDeserializer.deserialize({
+      marker: { $empty: true },
+    });
+    const withoutEmpty = NodeDeserializer.deserialize({
+      marker: { value: 'x' },
+    });
+
+    const withEmptyId = await BlueIdCalculator.calculateBlueId(withEmpty);
+    const withoutEmptyId = await BlueIdCalculator.calculateBlueId(withoutEmpty);
+
+    expect(withEmptyId).not.toEqual(withoutEmptyId);
+  });
+
+  it('should fail fast for unsupported milestone forms', async () => {
+    const withThisRef = NodeDeserializer.deserialize({
+      type: { blueId: 'this#1' },
+    });
+    const withPos = NodeDeserializer.deserialize({
+      list: { $pos: 1, value: 'A' },
+    });
+    const withPrevious = NodeDeserializer.deserialize({
+      list: { $previous: true },
+    });
+
+    await expect(BlueIdCalculator.calculateBlueId(withThisRef)).rejects.toThrow(
+      UnsupportedFeatureError,
+    );
+    await expect(BlueIdCalculator.calculateBlueId(withPos)).rejects.toThrow(
+      UnsupportedFeatureError,
+    );
+    await expect(
+      BlueIdCalculator.calculateBlueId(withPrevious),
+    ).rejects.toThrow(UnsupportedFeatureError);
   });
 
   it('should calculate a blue id for object', async () => {
@@ -504,6 +574,65 @@ abc:
     expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
   });
 
+  it('treats objects with blueId and extra fields as regular content, not pure references', async () => {
+    const pureReference = NodeDeserializer.deserialize({
+      ref: { blueId: 'ABCD1234RefBlueIdValueLike' },
+    });
+    const extendedReference = NodeDeserializer.deserialize({
+      ref: { blueId: 'ABCD1234RefBlueIdValueLike', foo: 1 },
+    });
+
+    const pureReferenceId =
+      await BlueIdCalculator.calculateBlueId(pureReference);
+    const extendedReferenceId =
+      await BlueIdCalculator.calculateBlueId(extendedReference);
+
+    expect(extendedReferenceId).not.toEqual(pureReferenceId);
+  });
+
+  it('keeps $empty as content and supports wrapper equivalence', async () => {
+    const wrapped = NodeDeserializer.deserialize({
+      list: { items: [] },
+      marker: { $empty: true },
+    });
+    const authoring = NodeDeserializer.deserialize({
+      list: [],
+      marker: { $empty: true },
+    });
+    const withoutEmpty = NodeDeserializer.deserialize({
+      marker: { $empty: true },
+    });
+
+    const wrappedId = await BlueIdCalculator.calculateBlueId(wrapped);
+    const authoringId = await BlueIdCalculator.calculateBlueId(authoring);
+    const withoutEmptyId = await BlueIdCalculator.calculateBlueId(withoutEmpty);
+
+    expect(wrappedId).toEqual(authoringId);
+    expect(wrappedId).not.toEqual(withoutEmptyId);
+  });
+
+  it('throws explicit unsupported errors for this#, $pos and $previous forms', async () => {
+    const withThisReference = NodeDeserializer.deserialize({
+      ref: { blueId: 'this#1' },
+    });
+    const withPos = NodeDeserializer.deserialize({
+      list: { $pos: 1, value: 'A' },
+    });
+    const withPrevious = NodeDeserializer.deserialize({
+      list: { $previous: true, value: 'A' },
+    });
+
+    await expect(
+      BlueIdCalculator.calculateBlueId(withThisReference),
+    ).rejects.toThrow("Unsupported feature 'this#'");
+    await expect(BlueIdCalculator.calculateBlueId(withPos)).rejects.toThrow(
+      "Unsupported feature '$pos'",
+    );
+    await expect(
+      BlueIdCalculator.calculateBlueId(withPrevious),
+    ).rejects.toThrow("Unsupported feature '$previous'");
+  });
+
   /**
    * @vitest-environment jsdom
    */
@@ -515,7 +644,7 @@ abc:
     const node = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`,
+      `"3ucepuMi6nGf3rY3re2mMj5htghCJ5HRk2NDUdtXx4iy"`,
     );
   });
 
@@ -532,7 +661,65 @@ abc:
     const blueId2 = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId1).toEqual(blueId2);
     expect(blueId2).toMatchInlineSnapshot(
-      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`,
+      `"3ucepuMi6nGf3rY3re2mMj5htghCJ5HRk2NDUdtXx4iy"`,
+    );
+  });
+
+  it('should short-circuit only exact pure blueId references', async () => {
+    const pureReference = NodeDeserializer.deserialize({
+      blueId: 'ReferenceBlueId',
+    });
+    const extendedReference = NodeDeserializer.deserialize({
+      blueId: 'ReferenceBlueId',
+      foo: 1,
+    });
+
+    const pureBlueId = await fakeBlueIdCalculator.calculate(
+      NodeToMapListOrValue.get(pureReference) as JsonBlueValue,
+    );
+    const extendedBlueId = await fakeBlueIdCalculator.calculate(
+      NodeToMapListOrValue.get(extendedReference) as JsonBlueValue,
+    );
+
+    expect(pureBlueId).toBe('ReferenceBlueId');
+    expect(extendedBlueId).not.toBe('ReferenceBlueId');
+  });
+
+  it('should keep $empty as content affecting BlueId', () => {
+    const withEmptyMarker = NodeDeserializer.deserialize({
+      list: { $empty: true },
+    });
+    const withoutEmptyMarker = NodeDeserializer.deserialize({
+      value: 'without-empty-marker',
+    });
+
+    const withMarkerBlueId =
+      BlueIdCalculator.calculateBlueIdSync(withEmptyMarker);
+    const withoutMarkerBlueId =
+      BlueIdCalculator.calculateBlueIdSync(withoutEmptyMarker);
+
+    expect(withMarkerBlueId).not.toEqual(withoutMarkerBlueId);
+  });
+
+  it('should throw unsupported errors for deferred control forms', () => {
+    const withThisReference = NodeDeserializer.deserialize({
+      type: { blueId: 'this#1' },
+    });
+    const withPos = NodeDeserializer.deserialize({
+      list: [{ $pos: 0, value: 'A' }],
+    });
+    const withPrevious = NodeDeserializer.deserialize({
+      list: [{ $previous: true }],
+    });
+
+    expect(() =>
+      BlueIdCalculator.calculateBlueIdSync(withThisReference),
+    ).toThrow(UnsupportedFeatureError);
+    expect(() => BlueIdCalculator.calculateBlueIdSync(withPos)).toThrow(
+      UnsupportedFeatureError,
+    );
+    expect(() => BlueIdCalculator.calculateBlueIdSync(withPrevious)).toThrow(
+      UnsupportedFeatureError,
     );
   });
 });

@@ -41,6 +41,15 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
       parsedContent.blueId,
       parsedContent.isMultipleDocuments,
     );
+    const explicitBlueId = node.getBlueId();
+    if (
+      explicitBlueId &&
+      explicitBlueId.length > 0 &&
+      explicitBlueId !== parsedContent.blueId
+    ) {
+      this.blueIdToContentMap.set(explicitBlueId, parsedContent.content);
+      this.blueIdToMultipleDocumentsMap.set(explicitBlueId, false);
+    }
     const nodeName = node.getName();
     if (nodeName) {
       this.addToNameMap(nodeName, parsedContent.blueId);
@@ -64,6 +73,15 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
       const nodeName = item.getName();
       if (nodeName) {
         this.addToNameMap(nodeName, `${parsedContent.blueId}#${i}`);
+      }
+
+      const explicitBlueId = item.getBlueId();
+      if (explicitBlueId && explicitBlueId.length > 0) {
+        this.blueIdToContentMap.set(
+          explicitBlueId,
+          NodeToMapListOrValue.get(item),
+        );
+        this.blueIdToMultipleDocumentsMap.set(explicitBlueId, false);
       }
     });
   }

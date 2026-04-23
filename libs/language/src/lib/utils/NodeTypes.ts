@@ -14,6 +14,10 @@ import {
   CORE_TYPE_BLUE_ID_TO_NAME_MAP,
 } from './Properties';
 
+function getEffectiveBlueId(node: BlueNode): string {
+  return node.getBlueId() ?? BlueIdCalculator.calculateBlueIdSync(node);
+}
+
 /**
  * Gets the type of a node, resolving it from the node provider if necessary
  */
@@ -65,8 +69,8 @@ export function isSubtype(
   supertype: BlueNode,
   nodeProvider: NodeProvider,
 ): boolean {
-  const subtypeBlueId = BlueIdCalculator.calculateBlueIdSync(subtype);
-  const supertypeBlueId = BlueIdCalculator.calculateBlueIdSync(supertype);
+  const subtypeBlueId = getEffectiveBlueId(subtype);
+  const supertypeBlueId = getEffectiveBlueId(supertype);
 
   if (subtypeBlueId === supertypeBlueId) {
     return true;
@@ -81,7 +85,7 @@ export function isSubtype(
   ) {
     let current: BlueNode | undefined = supertype;
     while (current !== undefined) {
-      const currentBlueId = BlueIdCalculator.calculateBlueIdSync(current);
+      const currentBlueId = getEffectiveBlueId(current);
       if (currentBlueId === subtypeBlueId) {
         return true;
       }
@@ -105,7 +109,7 @@ export function isSubtype(
   // Walk up the type hierarchy from the resolved subtype to see if it extends supertype
   let current: BlueNode | undefined = resolvedSubtype;
   while (current !== undefined) {
-    const blueId = BlueIdCalculator.calculateBlueIdSync(current);
+    const blueId = getEffectiveBlueId(current);
     if (blueId === supertypeBlueId) {
       return true;
     }
