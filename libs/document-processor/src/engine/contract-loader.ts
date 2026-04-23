@@ -194,7 +194,14 @@ export class ContractLoader {
       BUILTIN_MARKER_SCHEMAS,
     );
     if (builtinMarkerSchema) {
-      this.handleMarker(builder, key, node, builtinMarkerSchema, blueId);
+      this.handleMarker(
+        builder,
+        key,
+        node,
+        builtinMarkerSchema,
+        blueId,
+        scopeContracts,
+      );
       return;
     }
 
@@ -255,6 +262,7 @@ export class ContractLoader {
         node,
         markerProcessor.schema as ZodType<MarkerContract>,
         blueId,
+        scopeContracts,
       );
       return;
     }
@@ -415,14 +423,13 @@ export class ContractLoader {
     node: BlueNode,
     schema: ZodType<MarkerContract>,
     blueId: string,
+    scopeContracts: ScopeContractsIndex,
   ): void {
     try {
-      if (
-        this.blue.isTypeOfBlueId(
-          node,
-          conversationBlueIds['Conversation/Actor Policy'],
-        )
-      ) {
+      const actorPolicyBlueId =
+        conversationBlueIds['Conversation/Actor Policy'];
+      if (this.blue.isTypeOfBlueId(node, actorPolicyBlueId)) {
+        this.assertSingleActorPolicyMarker(key, scopeContracts, blueId);
         validateActorPolicyNode(node);
       }
       const marker = this.blue.nodeToSchemaOutput(
@@ -431,6 +438,12 @@ export class ContractLoader {
       ) as MarkerContract;
       builder.addMarker(key, marker, blueId);
     } catch (error) {
+      if (
+        error instanceof ProcessorFatalError ||
+        error instanceof MustUnderstandFailure
+      ) {
+        throw error;
+      }
       if (isZodError(error)) {
         throw new ProcessorFatalError(
           'Failed to parse marker contract',
@@ -450,6 +463,33 @@ export class ContractLoader {
         ProcessorErrors.illegalState(reason),
       );
     }
+  }
+
+  private assertSingleActorPolicyMarker(
+    key: string,
+    scopeContracts: ScopeContractsIndex,
+    blueId: string,
+  ): void {
+    const actorPolicyBlueId = conversationBlueIds['Conversation/Actor Policy'];
+    const conflictingEntry = Array.from(scopeContracts.entries()).find(
+      ([entryKey, entry]) =>
+        entryKey !== key &&
+        this.blue.isTypeOfBlueId(entry.node, actorPolicyBlueId),
+    );
+
+    if (!conflictingEntry) {
+      return;
+    }
+
+    const [conflictingKey] = conflictingEntry;
+    throw new ProcessorFatalError(
+      `Multiple Actor Policy markers declared in the same scope: '${key}' conflicts with '${conflictingKey}'`,
+      ProcessorErrors.invalidContract(
+        blueId,
+        'Multiple Actor Policy markers declared in the same scope',
+        `/contracts/${key}`,
+      ),
+    );
   }
 
   private buildScopeContractsIndex(

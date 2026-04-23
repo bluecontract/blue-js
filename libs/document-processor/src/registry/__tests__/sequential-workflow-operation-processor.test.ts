@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, type Blue } from '@blue-labs/language';
 
-import { createBlue } from '../../test-support/blue.js';
+import {
+  createBlue,
+  createBlueWithDerivedTypes,
+} from '../../test-support/blue.js';
 import {
   buildProcessor,
   expectOk,
@@ -40,7 +43,17 @@ function indentBlock(block: string, spaces: number): string {
 const DEFAULT_STEP_EXPRESSION =
   "${event.message.request + document('/counter')}";
 
-function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
+function derivedActorPolicyTypeYaml(name: string): string {
+  return `name: ${name}
+type:
+  blueId: ${conversationBlueIds['Conversation/Actor Policy']}
+`;
+}
+
+function buildOperationDocument(
+  options?: DocumentBuildOptions,
+  blueInstance: Blue = blue,
+): BlueNode {
   const {
     actorPolicyYaml,
     operationChannel,
@@ -95,17 +108,20 @@ ${handlerEventSection}    steps:
         changeset:
 ${indentBlock(resolvedChangesetYaml, 10)}
 `;
-  return blue.yamlToNode(yaml);
+  return blueInstance.yamlToNode(yaml);
 }
 
-function operationRequestEvent(options?: {
-  request?: unknown;
-  allowNewerVersion?: boolean;
-  actor?: unknown;
-  documentBlueId?: string;
-  operation?: string;
-  source?: unknown;
-}): BlueNode {
+function operationRequestEvent(
+  options?: {
+    request?: unknown;
+    allowNewerVersion?: boolean;
+    actor?: unknown;
+    documentBlueId?: string;
+    operation?: string;
+    source?: unknown;
+  },
+  blueInstance: Blue = blue,
+): BlueNode {
   const {
     request = 1,
     allowNewerVersion = true,
@@ -136,7 +152,7 @@ function operationRequestEvent(options?: {
     entry.source = source;
   }
   entry.message = message;
-  return blue.jsonValueToNode(entry);
+  return blueInstance.jsonValueToNode(entry);
 }
 
 function storedDocumentBlueId(document: BlueNode): string {
@@ -199,6 +215,54 @@ operations:
         uiSessionNonce: 'sess-1',
       },
     });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(2);
+  });
+
+  it('applies derived Actor Policy rules for principal actors in browser sessions', async () => {
+    const { blue: derivedBlue, derivedBlueIds } = createBlueWithDerivedTypes([
+      {
+        name: 'Derived Actor Policy',
+        yaml: derivedActorPolicyTypeYaml('Derived Actor Policy'),
+      },
+    ]);
+    const processor = buildProcessor(derivedBlue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument(
+          {
+            actorPolicyYaml: `type:
+  blueId: ${derivedBlueIds['Derived Actor Policy']}
+operations:
+  ${OPERATION_KEY}:
+    requiresActor: principal
+    requiresSource: browserSession`,
+          },
+          derivedBlue,
+        ),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent(
+      {
+        request: 2,
+        allowNewerVersion: false,
+        documentBlueId: storedBlueId,
+        actor: {
+          type: 'MyOS/MyOS Principal Actor',
+          accountId: 'alice-id',
+        },
+        source: {
+          type: 'Conversation/Browser Session',
+          uiSessionNonce: 'sess-1',
+        },
+      },
+      derivedBlue,
+    );
 
     const result = await expectOk(
       processor.processDocument(init.document.clone(), event),
