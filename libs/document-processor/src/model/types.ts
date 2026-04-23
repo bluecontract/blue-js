@@ -2,6 +2,7 @@ import type { ChannelContractBase } from './shared/channel-contract-base.js';
 import type { HandlerContractBase } from './shared/handler-contract-base.js';
 import type { MarkerContractBase } from './shared/marker-contract-base.js';
 import type {
+  ActorPolicyMarker,
   ChannelEventCheckpoint,
   InitializationMarker,
   ProcessEmbeddedMarker,
@@ -33,6 +34,7 @@ export type GenericChannelContract = ChannelContractBase &
   Record<string, unknown>;
 
 export type MarkerContract =
+  | ActorPolicyMarker
   | ProcessEmbeddedMarker
   | InitializationMarker
   | ProcessingTerminatedMarker

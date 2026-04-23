@@ -16,6 +16,87 @@ describe('QuickJSEvaluator', () => {
     expect(result).toBe(42);
   });
 
+  it('supports Array.isArray', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    const result = (await evaluator.evaluate({
+      code: `
+        return {
+          typeofIsArray: typeof Array.isArray,
+          empty: Array.isArray([]),
+          nested: Array.isArray([1, [2]]),
+          object: Array.isArray({ 0: 'a', length: 1 }),
+          nullish: Array.isArray(null),
+          undef: Array.isArray(undefined),
+        };
+      `,
+    })) as Record<string, unknown>;
+
+    expect(result.typeofIsArray).toBe('function');
+    expect(result.empty).toBe(true);
+    expect(result.nested).toBe(true);
+    expect(result.object).toBe(false);
+    expect(result.nullish).toBe(false);
+    expect(result.undef).toBe(false);
+  });
+
+  it('supports Number.isFinite', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    const result = (await evaluator.evaluate({
+      code: `
+        return {
+          typeofFn: typeof Number.isFinite,
+          ok: Number.isFinite(1),
+          zero: Number.isFinite(0),
+          nan: Number.isFinite(NaN),
+          infPos: Number.isFinite(Infinity),
+          infNeg: Number.isFinite(-Infinity),
+          coercesString: Number.isFinite('1'),
+        };
+      `,
+    })) as Record<string, unknown>;
+
+    expect(result.typeofFn).toBe('function');
+    expect(result.ok).toBe(true);
+    expect(result.zero).toBe(true);
+    expect(result.nan).toBe(false);
+    expect(result.infPos).toBe(false);
+    expect(result.infNeg).toBe(false);
+    expect(result.coercesString).toBe(false);
+  });
+
+  it('supports Array.prototype.join with newline separators (including spread)', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    const result = (await evaluator.evaluate({
+      code: `
+        const lines = ['a', 'b', 'c'];
+        return {
+          joinNewline: lines.join('\\n'),
+          joinLiteralBackslashN: lines.join('\\\\n'),
+          spreadJoin: [...lines].join('\\n'),
+        };
+      `,
+    })) as Record<string, unknown>;
+
+    expect(result.joinNewline).toBe('a\nb\nc');
+    expect(result.spreadJoin).toBe('a\nb\nc');
+    expect(result.joinLiteralBackslashN).toBe('a\\nb\\nc');
+  });
+
+  it('throws from deterministic JSON.stringify when object values are undefined', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    await expect(
+      evaluator.evaluate({
+        code: `return JSON.stringify({ a: 1, b: undefined });`,
+      }),
+    ).rejects.toThrow(
+      /JSON\.stringify only supports null, booleans, strings, finite numbers, arrays, and plain objects/,
+    );
+  });
+
   it('rejects async/await syntax in deterministic mode', async () => {
     const evaluator = new QuickJSEvaluator();
 

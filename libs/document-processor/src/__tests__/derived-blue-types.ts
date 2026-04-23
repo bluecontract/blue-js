@@ -2,7 +2,7 @@ import type { JsonValue } from '@blue-labs/shared-utils';
 import { Blue, BlueIdCalculator, Properties } from '@blue-labs/language';
 import type { BlueRepository } from '@blue-labs/language';
 import { repository as blueRepository } from '@blue-repository/types';
-import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
+
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 
 const FALLBACK_BLUE_IDS = [
@@ -40,7 +40,6 @@ const fallbackContents = Object.fromEntries(
     },
   ]),
 );
-
 const fallbackTypesMeta = Object.fromEntries(
   FALLBACK_BLUE_IDS.map((id) => [
     id,
@@ -68,17 +67,14 @@ const testFallbackRepository: BlueRepository = {
   },
 };
 
-export function createBlue(): Blue {
-  return new Blue({
-    repositories: [blueRepository, testFallbackRepository],
-    mergingProcessor: createDefaultMergingProcessor(),
-  });
-}
-
 export function createBlueWithDerivedTypes(
   definitions: Array<{ name: string; yaml: string }>,
 ): { blue: Blue; derivedBlueIds: Record<string, string> } {
-  const seedBlue = createBlue();
+  const seedBlue = new Blue({
+    repositories: [blueRepository, testFallbackRepository],
+    mergingProcessor: createDefaultMergingProcessor(),
+  });
+
   const types = definitions.map(({ name, yaml }) => {
     const node = seedBlue.yamlToNode(yaml);
     const blueId = BlueIdCalculator.calculateBlueIdSync(node);
@@ -103,8 +99,6 @@ export function createBlueWithDerivedTypes(
   };
 }
 
-export const blueIds = coreBlueIds;
-
 function buildDerivedTestRepository(
   types: Array<{ name: string; blueId: string; json: JsonValue }>,
 ): BlueRepository {
@@ -124,7 +118,6 @@ function buildDerivedTestRepository(
       },
     ]),
   );
-
   const contents = Object.fromEntries(
     types.map(({ blueId, json }) => [blueId, json]),
   );

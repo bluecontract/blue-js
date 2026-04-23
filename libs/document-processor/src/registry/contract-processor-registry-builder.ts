@@ -1,4 +1,5 @@
 import { ContractProcessorRegistry } from './contract-processor-registry.js';
+import { ActorPolicyMarkerProcessor } from './processors/actor-policy-marker-processor.js';
 import { CompositeTimelineChannelProcessor } from './processors/composite-timeline-channel-processor.js';
 import { MyOSTimelineChannelProcessor } from './processors/myos-timeline-channel-processor.js';
 import { TimelineChannelProcessor } from './processors/timeline-channel-processor.js';
@@ -22,6 +23,7 @@ export class ContractProcessorRegistryBuilder {
     this.registry.register(new MyOSTimelineChannelProcessor());
     this.registry.register(new TimelineChannelProcessor());
     this.registry.register(new SequentialWorkflowHandlerProcessor());
+    this.registry.register(new ActorPolicyMarkerProcessor());
     this.registry.register(new OperationMarkerProcessor());
     this.registry.register(new GenericMarkerProcessor());
     this.registry.register(new SequentialWorkflowOperationProcessor());
