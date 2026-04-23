@@ -33,6 +33,13 @@ export type ActorPolicyMarker = z.infer<typeof actorPolicyMarkerSchema>;
 const VALID_ACTOR_POLICY_ACTORS = new Set<string>(ACTOR_POLICY_ACTOR_VALUES);
 const VALID_ACTOR_POLICY_SOURCES = new Set<string>(ACTOR_POLICY_SOURCE_VALUES);
 
+export class ActorPolicyLiteralValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ActorPolicyLiteralValidationError';
+  }
+}
+
 export function validateActorPolicyNode(node: BlueNode): void {
   const operationsNode = node.getProperties()?.operations;
   if (!(operationsNode instanceof BlueNode)) {
@@ -90,7 +97,7 @@ function validateActorPolicyField(
   }
 
   if (typeof rawValue !== 'string' || !allowedValues.has(rawValue)) {
-    throw new Error(
+    throw new ActorPolicyLiteralValidationError(
       `Actor Policy operation '${operationKey}' declares unsupported ${fieldName} '${String(
         rawValue,
       )}'`,

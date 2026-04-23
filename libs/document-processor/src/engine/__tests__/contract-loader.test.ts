@@ -11,11 +11,9 @@ import type { HandlerContract } from '../../model/index.js';
 import type { HandlerProcessor } from '../../registry/index.js';
 import { MustUnderstandFailure } from '../must-understand-failure.js';
 import { ProcessorFatalError } from '../processor-fatal-error.js';
-import {
-  blueIds,
-  createBlue,
-  createBlueWithDerivedTypes,
-} from '../../test-support/blue.js';
+import type { InvalidContractError } from '../../types/errors.js';
+import { blueIds, createBlue } from '../../test-support/blue.js';
+import { createBlueWithDerivedTypes } from '../../__tests__/derived-blue-types.js';
 
 const blueIdDocumentUpdate = blueIds['Core/Document Update Channel'];
 const blueIdInitialization = blueIds['Core/Processing Initialized Marker'];
@@ -41,6 +39,31 @@ function derivedActorPolicyTypeYaml(name: string): string {
 type:
   blueId: ${blueIdActorPolicy}
 `;
+}
+
+function captureProcessorFatalError(action: () => void): ProcessorFatalError {
+  try {
+    action();
+  } catch (error) {
+    expect(error).toBeInstanceOf(ProcessorFatalError);
+    return error as ProcessorFatalError;
+  }
+
+  throw new Error('Expected ProcessorFatalError');
+}
+
+function expectInvalidContractError(
+  error: ProcessorFatalError,
+): InvalidContractError {
+  expect(error.processorError?.kind).toBe('InvalidContract');
+  if (
+    !error.processorError ||
+    error.processorError.kind !== 'InvalidContract'
+  ) {
+    throw new Error('Expected InvalidContract processor error');
+  }
+
+  return error.processorError;
 }
 
 describe('ContractLoader', () => {
@@ -323,7 +346,58 @@ describe('ContractLoader', () => {
       },
     });
 
-    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
+    const error = captureProcessorFatalError(() => loader.load(scopeNode, '/'));
+    const processorError = expectInvalidContractError(error);
+
+    expect(error.message).toBe(
+      "Actor Policy operation 'authorizeFunds' declares unsupported requiresActor 'robot'",
+    );
+    expect(processorError).toMatchObject({
+      kind: 'InvalidContract',
+      contractId: blueIdActorPolicy,
+      pointer: 'actorPolicy',
+      reason:
+        "Actor Policy operation 'authorizeFunds' declares unsupported requiresActor 'robot'",
+    });
+    expect(processorError.details).toBeInstanceOf(Error);
+  });
+
+  it('rejects derived Actor Policy markers with unsupported rule literals as invalid contracts', () => {
+    const { blue, derivedBlueIds } = createBlueWithDerivedTypes([
+      {
+        name: 'Derived Actor Policy',
+        yaml: derivedActorPolicyTypeYaml('Derived Actor Policy'),
+      },
+    ]);
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicy: {
+        type: { blueId: derivedBlueIds['Derived Actor Policy'] },
+        operations: {
+          authorizeFunds: {
+            requiresActor: 'robot',
+          },
+        },
+      },
+    });
+
+    const error = captureProcessorFatalError(() => loader.load(scopeNode, '/'));
+    const processorError = expectInvalidContractError(error);
+
+    expect(error.message).toBe(
+      "Actor Policy operation 'authorizeFunds' declares unsupported requiresActor 'robot'",
+    );
+    expect(processorError).toMatchObject({
+      kind: 'InvalidContract',
+      contractId: derivedBlueIds['Derived Actor Policy'],
+      pointer: 'actorPolicy',
+      reason:
+        "Actor Policy operation 'authorizeFunds' declares unsupported requiresActor 'robot'",
+    });
+    expect(processorError.details).toBeInstanceOf(Error);
   });
 
   it('loads custom handler contracts using registry schema', () => {

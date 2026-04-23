@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BlueNode, type Blue } from '@blue-labs/language';
 
-import {
-  createBlue,
-  createBlueWithDerivedTypes,
-} from '../../test-support/blue.js';
+import { createBlue } from '../../test-support/blue.js';
+import { createBlueWithDerivedTypes } from '../../__tests__/derived-blue-types.js';
 import {
   buildProcessor,
   expectOk,

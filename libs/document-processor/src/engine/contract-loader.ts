@@ -20,6 +20,7 @@ import {
   myosWorkerAgencyMarkerSchema,
   validateActorPolicyNode,
 } from '../model/index.js';
+import { ActorPolicyLiteralValidationError } from '../model/markers/actor-policy.js';
 import { isProcessorManagedChannelBlueId } from '../constants/processor-contract-constants.js';
 import { ContractBundle, ContractBundleBuilder } from './contract-bundle.js';
 import { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
@@ -443,6 +444,12 @@ export class ContractLoader {
         error instanceof MustUnderstandFailure
       ) {
         throw error;
+      }
+      if (error instanceof ActorPolicyLiteralValidationError) {
+        throw new ProcessorFatalError(
+          error.message,
+          ProcessorErrors.invalidContract(blueId, error.message, key, error),
+        );
       }
       if (isZodError(error)) {
         throw new ProcessorFatalError(
