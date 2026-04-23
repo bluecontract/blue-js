@@ -19,6 +19,7 @@ const blueIdProcessEmbedded = blueIds['Core/Process Embedded'];
 const blueIdCheckpoint = blueIds['Core/Channel Event Checkpoint'];
 const blueIdCompositeTimeline =
   conversationBlueIds['Conversation/Composite Timeline Channel'];
+const blueIdActorPolicy = conversationBlueIds['Conversation/Actor Policy'];
 const blueIdDocumentSection =
   conversationBlueIds['Conversation/Document Section'];
 const blueIdContractsChangePolicy =
@@ -155,6 +156,74 @@ describe('ContractLoader', () => {
 
     expect(bundle.marker('section')).toBeDefined();
     expect(bundle.marker('policy')).toBeDefined();
+  });
+
+  it('loads Actor Policy markers with parsed operations', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicy: {
+        type: { blueId: blueIdActorPolicy },
+        operations: {
+          authorizeFunds: {
+            requiresActor: 'principal',
+            requiresSource: 'browserSession',
+          },
+        },
+      },
+    });
+
+    const bundle = loader.load(scopeNode, '/');
+
+    expect(bundle.marker('actorPolicy')).toMatchObject({
+      operations: {
+        authorizeFunds: {
+          requiresActor: 'principal',
+          requiresSource: 'browserSession',
+        },
+      },
+    });
+  });
+
+  it('rejects duplicate Actor Policy markers in one scope', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicyA: {
+        type: { blueId: blueIdActorPolicy },
+      },
+      actorPolicyB: {
+        type: { blueId: blueIdActorPolicy },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
+  });
+
+  it('rejects Actor Policy markers with unsupported rule literals', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicy: {
+        type: { blueId: blueIdActorPolicy },
+        operations: {
+          authorizeFunds: {
+            requiresActor: 'robot',
+          },
+        },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
   });
 
   it('loads custom handler contracts using registry schema', () => {

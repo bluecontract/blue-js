@@ -1,5 +1,6 @@
 import { BlueNode } from '@blue-labs/language';
 import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
 import type {
@@ -21,6 +22,7 @@ type StoredHandler = HandlerContractEntry;
 
 const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
   blueIds['Core/Channel Event Checkpoint'];
+const ACTOR_POLICY_BLUE_ID = conversationBlueIds['Conversation/Actor Policy'];
 
 function contractOrder(contract: { readonly order?: number | null }): number {
   return typeof contract.order === 'number' ? contract.order : 0;
@@ -287,6 +289,16 @@ export class ContractBundleBuilder {
         );
       }
       this.checkpointDeclared = true;
+    }
+    if (
+      blueId === ACTOR_POLICY_BLUE_ID &&
+      Array.from(this.markerStore.values()).some(
+        (entry) => entry.blueId === ACTOR_POLICY_BLUE_ID,
+      )
+    ) {
+      throw new Error(
+        'Multiple Actor Policy markers detected in same contracts map',
+      );
     }
     this.markerStore.set(key, { key, contract, blueId });
     return this;

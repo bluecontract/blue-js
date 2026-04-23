@@ -18,6 +18,7 @@ import {
   myosParticipantsOrchestrationMarkerSchema,
   myosSessionInteractionMarkerSchema,
   myosWorkerAgencyMarkerSchema,
+  validateActorPolicyNode,
 } from '../model/index.js';
 import { isProcessorManagedChannelBlueId } from '../constants/processor-contract-constants.js';
 import { ContractBundle, ContractBundleBuilder } from './contract-bundle.js';
@@ -416,6 +417,14 @@ export class ContractLoader {
     blueId: string,
   ): void {
     try {
+      if (
+        this.blue.isTypeOfBlueId(
+          node,
+          conversationBlueIds['Conversation/Actor Policy'],
+        )
+      ) {
+        validateActorPolicyNode(node);
+      }
       const marker = this.blue.nodeToSchemaOutput(
         node,
         schema,

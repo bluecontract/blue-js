@@ -28,6 +28,7 @@ import {
   isRequestTypeCompatible,
   loadOperation,
 } from './workflow/operation-matcher.js';
+import { matchesActorPolicyForOperation } from './workflow/actor-policy.js';
 export class SequentialWorkflowOperationProcessor implements HandlerProcessor<SequentialWorkflowOperation> {
   readonly kind = 'handler' as const;
   readonly blueIds = [
@@ -129,6 +130,15 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
       request?.allowNewerVersion === false &&
       !isPinnedDocumentAllowed(request, operationRequestNode, context)
     ) {
+      return false;
+    }
+
+    const operationKey = contract.operation;
+    if (!operationKey) {
+      return false;
+    }
+
+    if (!matchesActorPolicyForOperation(operationKey, eventNode, context)) {
       return false;
     }
 
