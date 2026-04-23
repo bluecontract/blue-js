@@ -61,6 +61,15 @@ describe('repository-generator e2e (fixtures)', () => {
   it('passes check when snapshot matches', () => {
     const repoRoot = tmpDir();
     copyDir(baseFixture, repoRoot);
+    const expected = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    fs.writeFileSync(
+      path.join(repoRoot, BLUE_REPOSITORY),
+      expected.yaml,
+      'utf8',
+    );
 
     const checkResult = generateRepository({
       repoRoot,

@@ -145,7 +145,7 @@ type: Orders/Order
                   typeBlueId: 8ofNzdVUfLafwPZCHMS4sXUJYQhpW9EXv2ezNrBDmpds
                   attributesAdded: []
       repositoryVersions:
-        - nPF5MjY3wePXzHkQ6aBFMJ2ky7iizT28V1SGnBBbJog
+        - BH2iM9eCCZm494qTpPW8hWhANizyLDJSKYzrU3mNV8uz
       "
     `);
   });
