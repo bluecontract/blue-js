@@ -348,7 +348,7 @@ export class ProcessorExecution implements ExecutionHooks {
       return { matches: false };
     }
 
-    const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
+    const explicitEventId = this.extractEventId(event);
 
     const eventClone = event.clone();
     const contract = channel.contract() as ChannelContract;
@@ -387,9 +387,22 @@ export class ProcessorExecution implements ExecutionHooks {
 
     return {
       matches: true,
-      eventId: eventBlueId,
+      eventId: explicitEventId,
       eventNode: channelizedResult ?? eventClone.clone(),
     };
+  }
+
+  private extractEventId(event: BlueNode): string | null {
+    const eventIdNode = event.getProperties()?.eventId;
+    const eventIdValue = eventIdNode?.getValue();
+    if (typeof eventIdValue === 'string' && eventIdValue.length > 0) {
+      return eventIdValue;
+    }
+
+    const explicitBlueId = event.getBlueId();
+    return typeof explicitBlueId === 'string' && explicitBlueId.length > 0
+      ? explicitBlueId
+      : null;
   }
 
   private async executeHandler(

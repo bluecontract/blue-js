@@ -42,6 +42,25 @@ export interface ChannelRunnerDependencies {
   channelProcessorFor(node: BlueNode): ChannelProcessor<unknown> | null;
 }
 
+function extractEventId(eventNode: BlueNode | null): string | null {
+  if (!eventNode) {
+    return null;
+  }
+
+  const eventIdNode = eventNode.getProperties()?.eventId;
+  const eventIdValue = eventIdNode?.getValue();
+  if (typeof eventIdValue === 'string' && eventIdValue.length > 0) {
+    return eventIdValue;
+  }
+
+  const explicitBlueId = eventNode.getBlueId();
+  if (typeof explicitBlueId === 'string' && explicitBlueId.length > 0) {
+    return explicitBlueId;
+  }
+
+  return null;
+}
+
 export class ChannelRunner {
   constructor(
     private readonly runtime: DocumentProcessingRuntime,
@@ -82,9 +101,12 @@ export class ChannelRunner {
       bundle,
       channel.key(),
     );
-    const eventSignature =
-      match.eventId ?? this.deps.canonicalSignature(checkpointEvent);
-    if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
+    const eventId = match.eventId ?? extractEventId(checkpointEvent);
+    const canonicalSignature = this.deps.canonicalSignature(checkpointEvent);
+    const eventSignature = eventId ?? canonicalSignature;
+    if (
+      this.checkpointManager.isDuplicate(checkpoint, eventSignature, eventId)
+    ) {
       return;
     }
 
@@ -142,8 +164,11 @@ export class ChannelRunner {
         bundle,
         checkpointKey,
       );
-      const eventSignature = delivery.eventId ?? fallbackSignature;
-      if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
+      const eventId = delivery.eventId ?? extractEventId(checkpointEvent);
+      const eventSignature = eventId ?? fallbackSignature;
+      if (
+        this.checkpointManager.isDuplicate(checkpoint, eventSignature, eventId)
+      ) {
         continue;
       }
 

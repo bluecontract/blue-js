@@ -27,6 +27,17 @@ export function extractOperationRequestNode(
   eventNode: BlueNode,
   blue: Blue,
 ): BlueNode | null {
+  const timelineEntryMessage = eventNode.getProperties()?.message;
+  if (timelineEntryMessage instanceof BlueNode) {
+    if (
+      blue.isTypeOf(timelineEntryMessage, OperationRequestSchema, {
+        checkSchemaExtensions: true,
+      })
+    ) {
+      return timelineEntryMessage;
+    }
+  }
+
   if (
     blue.isTypeOf(eventNode, OperationRequestSchema, {
       checkSchemaExtensions: true,

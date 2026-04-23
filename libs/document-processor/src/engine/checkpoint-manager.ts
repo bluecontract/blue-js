@@ -21,6 +21,23 @@ function createEmptyCheckpointNode(blue: Blue): BlueNode {
   });
 }
 
+function extractEventId(eventNode: BlueNode | null): string | null {
+  if (!eventNode) {
+    return null;
+  }
+
+  const eventIdNode = eventNode.getProperties()?.eventId;
+  const eventIdValue = eventIdNode?.getValue();
+  if (typeof eventIdValue === 'string' && eventIdValue.length > 0) {
+    return eventIdValue;
+  }
+
+  const explicitBlueId = eventNode.getBlueId();
+  return typeof explicitBlueId === 'string' && explicitBlueId.length > 0
+    ? explicitBlueId
+    : null;
+}
+
 function createEmptyCheckpointContract(): ChannelEventCheckpoint {
   return {
     lastEvents: {},
@@ -53,7 +70,17 @@ export class CheckpointRecord {
     this.lastEventSignature = lastEventSignature;
   }
 
-  matches(signature: string | null | undefined): boolean {
+  matches(
+    signature: string | null | undefined,
+    eventId?: string | null | undefined,
+  ): boolean {
+    if (eventId != null) {
+      return (
+        this.lastEventNode != null &&
+        extractEventId(this.lastEventNode) === eventId
+      );
+    }
+
     return signature != null && signature === this.lastEventSignature;
   }
 }
@@ -106,8 +133,9 @@ export class CheckpointManager {
   isDuplicate(
     record: CheckpointRecord | null,
     signature: string | null | undefined,
+    eventId?: string | null | undefined,
   ): boolean {
-    return record != null && record.matches(signature);
+    return record != null && record.matches(signature, eventId);
   }
 
   persist(
