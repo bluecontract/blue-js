@@ -11,7 +11,11 @@ import type { HandlerContract } from '../../model/index.js';
 import type { HandlerProcessor } from '../../registry/index.js';
 import { MustUnderstandFailure } from '../must-understand-failure.js';
 import { ProcessorFatalError } from '../processor-fatal-error.js';
-import { blueIds, createBlue } from '../../test-support/blue.js';
+import {
+  blueIds,
+  createBlue,
+  createBlueWithDerivedTypes,
+} from '../../test-support/blue.js';
 
 const blueIdDocumentUpdate = blueIds['Core/Document Update Channel'];
 const blueIdInitialization = blueIds['Core/Processing Initialized Marker'];
@@ -19,6 +23,7 @@ const blueIdProcessEmbedded = blueIds['Core/Process Embedded'];
 const blueIdCheckpoint = blueIds['Core/Channel Event Checkpoint'];
 const blueIdCompositeTimeline =
   conversationBlueIds['Conversation/Composite Timeline Channel'];
+const blueIdActorPolicy = conversationBlueIds['Conversation/Actor Policy'];
 const blueIdDocumentSection =
   conversationBlueIds['Conversation/Document Section'];
 const blueIdContractsChangePolicy =
@@ -29,6 +34,13 @@ function buildScopeNode(
   contracts: Record<string, unknown>,
 ): BlueNode {
   return blue.jsonValueToNode({ contracts });
+}
+
+function derivedActorPolicyTypeYaml(name: string): string {
+  return `name: ${name}
+type:
+  blueId: ${blueIdActorPolicy}
+`;
 }
 
 describe('ContractLoader', () => {
@@ -155,6 +167,163 @@ describe('ContractLoader', () => {
 
     expect(bundle.marker('section')).toBeDefined();
     expect(bundle.marker('policy')).toBeDefined();
+  });
+
+  it('loads Actor Policy markers with parsed operations', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicy: {
+        type: { blueId: blueIdActorPolicy },
+        operations: {
+          authorizeFunds: {
+            requiresActor: 'principal',
+            requiresSource: 'browserSession',
+          },
+        },
+      },
+    });
+
+    const bundle = loader.load(scopeNode, '/');
+
+    expect(bundle.marker('actorPolicy')).toMatchObject({
+      operations: {
+        authorizeFunds: {
+          requiresActor: 'principal',
+          requiresSource: 'browserSession',
+        },
+      },
+    });
+  });
+
+  it('loads derived Actor Policy markers with parsed operations', () => {
+    const { blue, derivedBlueIds } = createBlueWithDerivedTypes([
+      {
+        name: 'Derived Actor Policy',
+        yaml: derivedActorPolicyTypeYaml('Derived Actor Policy'),
+      },
+    ]);
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicy: {
+        type: { blueId: derivedBlueIds['Derived Actor Policy'] },
+        operations: {
+          authorizeFunds: {
+            requiresActor: 'principal',
+            requiresSource: 'browserSession',
+          },
+        },
+      },
+    });
+
+    const bundle = loader.load(scopeNode, '/');
+
+    expect(bundle.marker('actorPolicy')).toMatchObject({
+      operations: {
+        authorizeFunds: {
+          requiresActor: 'principal',
+          requiresSource: 'browserSession',
+        },
+      },
+    });
+  });
+
+  it('rejects duplicate Actor Policy markers in one scope', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicyA: {
+        type: { blueId: blueIdActorPolicy },
+      },
+      actorPolicyB: {
+        type: { blueId: blueIdActorPolicy },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
+  });
+
+  it('rejects base and derived Actor Policy markers in one scope', () => {
+    const { blue, derivedBlueIds } = createBlueWithDerivedTypes([
+      {
+        name: 'Derived Actor Policy',
+        yaml: derivedActorPolicyTypeYaml('Derived Actor Policy'),
+      },
+    ]);
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicyBase: {
+        type: { blueId: blueIdActorPolicy },
+      },
+      actorPolicyDerived: {
+        type: { blueId: derivedBlueIds['Derived Actor Policy'] },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(
+      /Multiple Actor Policy markers declared in the same scope/,
+    );
+  });
+
+  it('rejects multiple derived Actor Policy markers in one scope', () => {
+    const { blue, derivedBlueIds } = createBlueWithDerivedTypes([
+      {
+        name: 'Derived Actor Policy A',
+        yaml: derivedActorPolicyTypeYaml('Derived Actor Policy A'),
+      },
+      {
+        name: 'Derived Actor Policy B',
+        yaml: derivedActorPolicyTypeYaml('Derived Actor Policy B'),
+      },
+    ]);
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicyA: {
+        type: { blueId: derivedBlueIds['Derived Actor Policy A'] },
+      },
+      actorPolicyB: {
+        type: { blueId: derivedBlueIds['Derived Actor Policy B'] },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(
+      /Multiple Actor Policy markers declared in the same scope/,
+    );
+  });
+
+  it('rejects Actor Policy markers with unsupported rule literals', () => {
+    const blue = createBlue();
+    const registry = ContractProcessorRegistryBuilder.create()
+      .registerDefaults()
+      .build();
+    const loader = new ContractLoader(registry, blue);
+    const scopeNode = buildScopeNode(blue, {
+      actorPolicy: {
+        type: { blueId: blueIdActorPolicy },
+        operations: {
+          authorizeFunds: {
+            requiresActor: 'robot',
+          },
+        },
+      },
+    });
+
+    expect(() => loader.load(scopeNode, '/')).toThrowError(ProcessorFatalError);
   });
 
   it('loads custom handler contracts using registry schema', () => {

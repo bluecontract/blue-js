@@ -1,3 +1,4 @@
+export * from './actor-policy.js';
 export * from './channel-event-checkpoint.js';
 export * from './initialization-marker.js';
 export * from './process-embedded.js';

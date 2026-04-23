@@ -1,4 +1,5 @@
-import { Blue, Properties } from '@blue-labs/language';
+import type { JsonValue } from '@blue-labs/shared-utils';
+import { Blue, BlueIdCalculator, Properties } from '@blue-labs/language';
 import type { BlueRepository } from '@blue-labs/language';
 import { repository as blueRepository } from '@blue-repository/types';
 import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
@@ -74,4 +75,71 @@ export function createBlue(): Blue {
   });
 }
 
+export function createBlueWithDerivedTypes(
+  definitions: Array<{ name: string; yaml: string }>,
+): { blue: Blue; derivedBlueIds: Record<string, string> } {
+  const seedBlue = createBlue();
+  const types = definitions.map(({ name, yaml }) => {
+    const node = seedBlue.yamlToNode(yaml);
+    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+    return { name, blueId, json: seedBlue.nodeToJson(node) };
+  });
+
+  const derivedRepository = buildDerivedTestRepository(types);
+  const blue = new Blue({
+    repositories: [blueRepository, testFallbackRepository, derivedRepository],
+    mergingProcessor: createDefaultMergingProcessor(),
+  });
+
+  for (const { name, blueId } of types) {
+    blue.registerBlueIds({ [name]: blueId });
+  }
+
+  return {
+    blue,
+    derivedBlueIds: Object.fromEntries(
+      types.map(({ name, blueId }) => [name, blueId]),
+    ),
+  };
+}
+
 export const blueIds = coreBlueIds;
+
+function buildDerivedTestRepository(
+  types: Array<{ name: string; blueId: string; json: JsonValue }>,
+): BlueRepository {
+  const typesMeta = Object.fromEntries(
+    types.map(({ name, blueId }) => [
+      blueId,
+      {
+        status: 'stable' as const,
+        name,
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: blueId,
+            attributesAdded: [],
+          },
+        ],
+      },
+    ]),
+  );
+
+  const contents = Object.fromEntries(
+    types.map(({ blueId, json }) => [blueId, json]),
+  );
+
+  return {
+    name: 'test.derived.repo',
+    repositoryVersions: ['R0'],
+    packages: {
+      derived: {
+        name: 'derived',
+        aliases: {},
+        typesMeta,
+        contents,
+        schemas: {},
+      },
+    },
+  };
+}

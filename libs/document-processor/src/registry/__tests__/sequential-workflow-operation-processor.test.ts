@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, type Blue } from '@blue-labs/language';
 
-import { createBlue } from '../../test-support/blue.js';
+import {
+  createBlue,
+  createBlueWithDerivedTypes,
+} from '../../test-support/blue.js';
 import {
   buildProcessor,
   expectOk,
@@ -18,6 +21,7 @@ const TIMELINE_ID = 'owner-42';
 const OPERATION_KEY = 'increment';
 
 type DocumentBuildOptions = {
+  actorPolicyYaml?: string;
   operationChannel?: string | null;
   requestTypeYaml?: string;
   handlerEventYaml?: string;
@@ -39,8 +43,19 @@ function indentBlock(block: string, spaces: number): string {
 const DEFAULT_STEP_EXPRESSION =
   "${event.message.request + document('/counter')}";
 
-function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
+function derivedActorPolicyTypeYaml(name: string): string {
+  return `name: ${name}
+type:
+  blueId: ${conversationBlueIds['Conversation/Actor Policy']}
+`;
+}
+
+function buildOperationDocument(
+  options?: DocumentBuildOptions,
+  blueInstance: Blue = blue,
+): BlueNode {
   const {
+    actorPolicyYaml,
     operationChannel,
     requestTypeYaml = 'type: Integer',
     handlerEventYaml,
@@ -64,6 +79,9 @@ function buildOperationDocument(options?: DocumentBuildOptions): BlueNode {
   const handlerEventSection = handlerEventYaml
     ? `    event:\n${indentBlock(handlerEventYaml.trim(), 6)}\n`
     : '';
+  const actorPolicySection = actorPolicyYaml
+    ? `  actorPolicy:\n${indentBlock(actorPolicyYaml.trim(), 4)}\n`
+    : '';
 
   const resolvedChangesetYaml =
     changesetYaml?.trim() ??
@@ -77,7 +95,7 @@ contracts:
   ownerChannel:
     type: Conversation/Timeline Channel
     timelineId: ${TIMELINE_ID}
-  ${OPERATION_KEY}:
+${actorPolicySection}  ${OPERATION_KEY}:
     type: ${operationType}
 ${operationChannelLine}    request:
 ${indentBlock(requestTypeYaml.trim(), 6)}
@@ -90,21 +108,32 @@ ${handlerEventSection}    steps:
         changeset:
 ${indentBlock(resolvedChangesetYaml, 10)}
 `;
-  return blue.yamlToNode(yaml);
+  return blueInstance.yamlToNode(yaml);
 }
 
-function operationRequestEvent(options?: {
-  request?: unknown;
-  allowNewerVersion?: boolean;
-  documentBlueId?: string;
-  operation?: string;
-}): BlueNode {
+function operationRequestEvent(
+  options?: {
+    request?: unknown;
+    allowNewerVersion?: boolean;
+    actor?: unknown;
+    documentBlueId?: string;
+    operation?: string;
+    source?: unknown;
+  },
+  blueInstance: Blue = blue,
+): BlueNode {
   const {
     request = 1,
     allowNewerVersion = true,
+    actor,
     documentBlueId,
     operation = OPERATION_KEY,
+    source,
   } = options ?? {};
+  const entry: Record<string, unknown> = {
+    type: 'Conversation/Timeline Entry',
+    timeline: { timelineId: TIMELINE_ID },
+  };
   const message: Record<string, unknown> = {
     type: 'Conversation/Operation Request',
     operation,
@@ -116,11 +145,14 @@ function operationRequestEvent(options?: {
   if (documentBlueId) {
     message.document = { blueId: documentBlueId };
   }
-  return blue.jsonValueToNode({
-    type: 'Conversation/Timeline Entry',
-    timeline: { timelineId: TIMELINE_ID },
-    message,
-  });
+  if (actor !== undefined) {
+    entry.actor = actor;
+  }
+  if (source !== undefined) {
+    entry.source = source;
+  }
+  entry.message = message;
+  return blueInstance.jsonValueToNode(entry);
 }
 
 function storedDocumentBlueId(document: BlueNode): string {
@@ -154,6 +186,229 @@ describe('SequentialWorkflowOperationProcessor', () => {
     const counterNode = property(result.document, 'counter');
     expect(numericValue(counterNode)).toBe(5);
     expect(result.triggeredEvents.length).toBe(0);
+  });
+
+  it('applies Actor Policy rules for principal actors in browser sessions', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          actorPolicyYaml: `type: Conversation/Actor Policy
+operations:
+  ${OPERATION_KEY}:
+    requiresActor: principal
+    requiresSource: browserSession`,
+        }),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 2,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      actor: {
+        type: 'MyOS/MyOS Principal Actor',
+        accountId: 'alice-id',
+      },
+      source: {
+        type: 'Conversation/Browser Session',
+        uiSessionNonce: 'sess-1',
+      },
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(2);
+  });
+
+  it('applies derived Actor Policy rules for principal actors in browser sessions', async () => {
+    const { blue: derivedBlue, derivedBlueIds } = createBlueWithDerivedTypes([
+      {
+        name: 'Derived Actor Policy',
+        yaml: derivedActorPolicyTypeYaml('Derived Actor Policy'),
+      },
+    ]);
+    const processor = buildProcessor(derivedBlue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument(
+          {
+            actorPolicyYaml: `type:
+  blueId: ${derivedBlueIds['Derived Actor Policy']}
+operations:
+  ${OPERATION_KEY}:
+    requiresActor: principal
+    requiresSource: browserSession`,
+          },
+          derivedBlue,
+        ),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent(
+      {
+        request: 2,
+        allowNewerVersion: false,
+        documentBlueId: storedBlueId,
+        actor: {
+          type: 'MyOS/MyOS Principal Actor',
+          accountId: 'alice-id',
+        },
+        source: {
+          type: 'Conversation/Browser Session',
+          uiSessionNonce: 'sess-1',
+        },
+      },
+      derivedBlue,
+    );
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(2);
+  });
+
+  it('skips workflow when Actor Policy rejects the actor category', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          actorPolicyYaml: `type: Conversation/Actor Policy
+operations:
+  ${OPERATION_KEY}:
+    requiresActor: principal`,
+        }),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 3,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      actor: {
+        type: 'MyOS/MyOS Agent Actor',
+        accountId: 'openclaw-id',
+        onBehalfOf: {
+          type: 'MyOS/MyOS Principal Actor',
+          accountId: 'alice-id',
+        },
+      },
+      source: {
+        type: 'Conversation/API Call',
+        apiKeyId: 'key-123',
+      },
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(0);
+  });
+
+  it('accepts Actor Policy matches for agent actors and API sources', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          actorPolicyYaml: `type: Conversation/Actor Policy
+operations:
+  ${OPERATION_KEY}:
+    requiresActor: agent
+    requiresSource: apiCall`,
+        }),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 4,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      actor: {
+        type: 'MyOS/MyOS Agent Actor',
+        accountId: 'openclaw-id',
+        onBehalfOf: {
+          type: 'MyOS/MyOS Principal Actor',
+          accountId: 'alice-id',
+        },
+      },
+      source: {
+        type: 'Conversation/API Call',
+        apiKeyId: 'key-123',
+      },
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(4);
+  });
+
+  // CHECK IT
+  it('treats requiresActor:any as requiring a recognized actor category', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          actorPolicyYaml: `type: Conversation/Actor Policy
+operations:
+  ${OPERATION_KEY}:
+    requiresActor: any`,
+        }),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 5,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(0);
+  });
+
+  it('skips workflow when Actor Policy excludes the current source', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        buildOperationDocument({
+          actorPolicyYaml: `type: Conversation/Actor Policy
+operations:
+  ${OPERATION_KEY}:
+    requiresActor: any
+    excludeSource: documentRequest`,
+        }),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: 6,
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      actor: {
+        type: 'MyOS/MyOS Principal Actor',
+        accountId: 'alice-id',
+      },
+      source: {
+        type: 'Conversation/Document Request',
+        documentId: 'doc-1',
+        epoch: 14,
+      },
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(0);
   });
 
   it('exposes derived channel in currentContract bindings', async () => {

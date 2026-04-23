@@ -150,11 +150,30 @@ contracts:
             blueId: conversationBlueIds['Conversation/Contracts Change Policy'],
           },
         },
+        actorPolicy: {
+          type: {
+            blueId: conversationBlueIds['Conversation/Actor Policy'],
+          },
+          operations: {
+            authorizeFunds: {
+              requiresActor: 'principal',
+              requiresSource: 'browserSession',
+            },
+          },
+        },
       },
     });
 
     const markers = processor.markersFor(original, '/');
     expect(markers.has('section')).toBe(true);
     expect(markers.has('policy')).toBe(true);
+    expect(markers.get('actorPolicy')).toMatchObject({
+      operations: {
+        authorizeFunds: {
+          requiresActor: 'principal',
+          requiresSource: 'browserSession',
+        },
+      },
+    });
   });
 });
