@@ -10,12 +10,15 @@ blueId(value):
   if value is primitive or Big:
     return hash(value.toString)
   if value is array:
+    if value is []:
+      return hash([])
     h = blueId(value[0])
     for i=1..n-1:
       h = hash([{blueId:h}, {blueId: blueId(value[i])}])
     return h
   if value is object:
-    if value.blueId present: return value.blueId
+    if value is exactly { blueId: string }: return value.blueId
+    ignore value.blueId when additional fields exist
     entries = []
     for each (k,v):
       if k in {name, value, description}:
@@ -32,5 +35,10 @@ blueId(value):
 
 **Tips**
 
-- Empty lists are invalid (will throw).
+- Empty lists are valid content and affect BlueId.
 - `name`, `value`, `description` contribute raw (not hashed sub-ids) for stability.
+- `$empty` is treated as normal content and contributes to BlueId.
+- Milestone-1 deferred forms throw `UnsupportedFeatureError` in BlueId/minimization paths:
+  - `this#<n>`
+  - `$pos`
+  - `$previous`
