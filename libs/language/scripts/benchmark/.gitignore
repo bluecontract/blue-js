@@ -1,3 +1,5 @@
 data/*
 !data/.gitkeep
 !data/*-baseline*.json
+!data/phase-comparisons/
+!data/phase-comparisons/*.json

@@ -12,6 +12,8 @@ BlueId/minimization/runtime performance tracking.
   save/compare
 - `minimize.mjs` — minimization benchmark (resolve/minimize shape-reduction +
   timing) with optional baseline save/compare
+- `phaseHarness.mjs` — cross-commit harness for before/after phase comparisons
+  (writes JSON snapshots for delta analysis)
 
 ## Recommended phase-0 baseline flow
 
@@ -54,6 +56,12 @@ Default baseline files:
 - shared mode: `scripts/benchmark/data/resolve-baseline.json`
 - unique mode: `scripts/benchmark/data/resolve-baseline-unique.json`
 - minimize: `scripts/benchmark/data/minimize-baseline.json`
+
+Phase comparison outputs:
+
+- `scripts/benchmark/data/phase-comparisons/*.json`
+- companion report:
+  `docs/blueid-phase-benchmark-comparisons.md`
 
 ## Notes
 

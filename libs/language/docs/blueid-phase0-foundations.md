@@ -73,3 +73,13 @@ It lists language/internal and cross-lib callsites for:
 - `BlueIdCalculator.calculateBlueId*`
 - `Blue.calculateBlueId*`
 - fallback/derived identity calls in repository-generator and document-processor.
+
+## Before/after phase performance comparisons
+
+True cross-commit before/after results are recorded in:
+
+- `libs/language/docs/blueid-phase-benchmark-comparisons.md`
+
+Supporting machine-readable artifacts:
+
+- `libs/language/scripts/benchmark/data/phase-comparisons/*.json`

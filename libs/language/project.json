@@ -88,6 +88,14 @@
         "cwd": "libs/language",
         "commands": ["node scripts/benchmark/minimize.mjs"]
       }
+    },
+    "benchmark:phase-harness": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "libs/language",
+        "commands": ["node scripts/benchmark/phaseHarness.mjs"]
+      }
     }
   }
 }

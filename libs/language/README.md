@@ -153,6 +153,7 @@ const json = blue.nodeToJson(node, {
 - `docs/blueid-adr-roadmap.md` – ADR-001..006 and Milestones 1–3 roadmap.
 - `docs/blueid-phase0-foundations.md` – Phase 0 scope, tests and baseline definition.
 - `docs/blueid-callsites-inventory.md` – monorepo inventory of BlueId calculation callsites.
+- `docs/blueid-phase-benchmark-comparisons.md` – true before/after benchmark deltas per implemented phase.
 - `scripts/benchmark/README.md` – benchmark fixtures and before/after baseline workflow.
 
 ## Changelog

@@ -1,0 +1,26 @@
+{
+  "commit": "7d23ad1",
+  "config": {
+    "warmupIterations": 2,
+    "measuredIterations": 20,
+    "inheritedPropertyCount": 120,
+    "extraPropertyCount": 60
+  },
+  "metrics": {
+    "blueIdAvgMs": 1.6351813499999976,
+    "blueIdP95Ms": 2.347656999999998,
+    "resolveAvgMs": 15.582764749999992,
+    "resolveP95Ms": 17.010301999999996,
+    "minimizeAvgMs": 0.4761882000000014,
+    "minimizeP95Ms": 1.0744750000000067
+  },
+  "structure": {
+    "resolvedProps": 180,
+    "minimizedProps": 60,
+    "reducedProps": 120
+  },
+  "invariants": {
+    "hasMinimizeApi": true,
+    "blueIdEqual": false
+  }
+}
