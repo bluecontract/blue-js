@@ -80,6 +80,14 @@
           "BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs"
         ]
       }
+    },
+    "benchmark:snapshot-patch": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "libs/language",
+        "commands": ["node scripts/benchmark/snapshotPatch.mjs"]
+      }
     }
   }
 }

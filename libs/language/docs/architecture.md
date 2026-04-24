@@ -15,6 +15,9 @@
    - Compute BlueId, convert to DTO (Zod), patch (RFC-6902), limit traversal (`PathLimits`), match types, reverse to minimal node.
    - Serialize to a target repository version with `nodeToJson/nodeToYaml` + `BlueContext`
 
+For identity terminology and planned semantic boundaries, see
+`docs/glossary.md` and the ADRs in `docs/adr/`.
+
 **Provider composition**
 
 ```ts

@@ -1,51 +1,14 @@
-import { mkdir, readFile, writeFile } from 'fs/promises';
-import { dirname } from 'path';
 import { performance } from 'perf_hooks';
 import { Blue, BlueNode, BasicNodeProvider } from '../../dist/index.mjs';
-
-const readPositiveInt = (name, fallback) => {
-  const raw = process.env[name];
-  if (raw === undefined) {
-    return fallback;
-  }
-
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`Expected ${name} to be a positive integer, got: ${raw}`);
-  }
-
-  return parsed;
-};
-
-const readBooleanFlag = (name, fallback = false) => {
-  const raw = process.env[name];
-  if (raw === undefined) {
-    return fallback;
-  }
-
-  const normalized = raw.trim().toLowerCase();
-  return (
-    normalized === '1' ||
-    normalized === 'true' ||
-    normalized === 'yes' ||
-    normalized === 'on'
-  );
-};
-
-const readEnum = (name, allowedValues, fallback) => {
-  const raw = process.env[name];
-  if (raw === undefined) {
-    return fallback;
-  }
-
-  const normalized = raw.trim().toLowerCase();
-  if (!allowedValues.includes(normalized)) {
-    throw new Error(
-      `Expected ${name} to be one of: ${allowedValues.join(', ')}, got: ${raw}`,
-    );
-  }
-  return normalized;
-};
+import {
+  calculateStats,
+  createBaselineOptions,
+  formatStats,
+  handleBaseline,
+  installCloneCounter,
+  readEnum,
+  readPositiveInt,
+} from './benchmarkUtils.mjs';
 
 const TYPE_MODES = ['shared', 'unique'];
 const typeMode = readEnum('BENCH_TYPE_MODE', TYPE_MODES, 'shared');
@@ -65,12 +28,9 @@ const defaultBaselineFilePathByMode = {
   unique: 'scripts/benchmark/data/resolve-baseline-unique.json',
 };
 
-const baselineOptions = {
-  filePath:
-    process.env.BENCH_BASELINE_FILE ?? defaultBaselineFilePathByMode[typeMode],
-  save: readBooleanFlag('BENCH_SAVE_BASELINE'),
-  compare: readBooleanFlag('BENCH_COMPARE_BASELINE'),
-};
+const baselineOptions = createBaselineOptions(
+  defaultBaselineFilePathByMode[typeMode],
+);
 
 const createTypeDefinitionNode = (name, typePropertyCount, typeIndex) => {
   const typeProperties = {};
@@ -161,167 +121,6 @@ const createTypePlan = () => {
   };
 };
 
-const installCloneCounter = () => {
-  const originalClone = BlueNode.prototype.clone;
-  const originalCloneShallow = BlueNode.prototype.cloneShallow;
-  if (typeof originalCloneShallow !== 'function') {
-    throw new Error(
-      'BlueNode.prototype.cloneShallow is not available. Build libs/language first.',
-    );
-  }
-
-  let cloneCount = 0;
-  let cloneShallowCount = 0;
-
-  BlueNode.prototype.clone = function cloneWithCounter() {
-    cloneCount += 1;
-    return originalClone.call(this);
-  };
-  BlueNode.prototype.cloneShallow = function cloneShallowWithCounter() {
-    cloneShallowCount += 1;
-    return originalCloneShallow.call(this);
-  };
-
-  return {
-    reset() {
-      cloneCount = 0;
-      cloneShallowCount = 0;
-    },
-    deepValue() {
-      return cloneCount;
-    },
-    shallowValue() {
-      return cloneShallowCount;
-    },
-    totalValue() {
-      return cloneCount + cloneShallowCount;
-    },
-    restore() {
-      BlueNode.prototype.clone = originalClone;
-      BlueNode.prototype.cloneShallow = originalCloneShallow;
-    },
-  };
-};
-
-const calculateStats = (values) => {
-  const total = values.reduce((sum, value) => sum + value, 0);
-  return {
-    min: Math.min(...values),
-    max: Math.max(...values),
-    avg: total / values.length,
-  };
-};
-
-const calculatePercentDelta = (current, baseline) => {
-  if (baseline === 0) {
-    return 'n/a';
-  }
-
-  const percent = ((current - baseline) / baseline) * 100;
-  return `${percent >= 0 ? '+' : ''}${percent.toFixed(2)}%`;
-};
-
-const hasSameConfig = (left, right) =>
-  JSON.stringify(left) === JSON.stringify(right);
-
-const compareWithBaseline = async (result) => {
-  try {
-    const raw = await readFile(baselineOptions.filePath, 'utf8');
-    const baseline = JSON.parse(raw);
-
-    const baselineTimeAvg = baseline?.metrics?.timeMs?.avg;
-    const baselineCloneAvg = baseline?.metrics?.cloneCalls?.avg;
-    const baselineCloneShallowAvg = baseline?.metrics?.cloneShallowCalls?.avg;
-    const baselineCloneTotalAvg = baseline?.metrics?.cloneTotalCalls?.avg;
-    if (
-      !Number.isFinite(baselineTimeAvg) ||
-      !Number.isFinite(baselineCloneAvg)
-    ) {
-      throw new Error(
-        `Baseline file has unsupported format: ${baselineOptions.filePath}`,
-      );
-    }
-
-    console.log('\nBaseline comparison');
-    if (!hasSameConfig(config, baseline.config)) {
-      console.log(
-        '- warning: baseline config differs from current run; treat comparison as approximate',
-      );
-    }
-
-    const timeDelta = result.metrics.timeMs.avg - baselineTimeAvg;
-    const cloneDelta = result.metrics.cloneCalls.avg - baselineCloneAvg;
-    const hasShallowBaseline = Number.isFinite(baselineCloneShallowAvg);
-    const hasTotalBaseline = Number.isFinite(baselineCloneTotalAvg);
-
-    console.log(
-      `- resolve avg delta: ${timeDelta >= 0 ? '+' : ''}${timeDelta.toFixed(
-        2,
-      )} ms (${calculatePercentDelta(result.metrics.timeMs.avg, baselineTimeAvg)})`,
-    );
-    console.log(
-      `- clone avg delta: ${cloneDelta >= 0 ? '+' : ''}${cloneDelta.toFixed(
-        2,
-      )} (${calculatePercentDelta(
-        result.metrics.cloneCalls.avg,
-        baselineCloneAvg,
-      )})`,
-    );
-    if (hasShallowBaseline) {
-      const cloneShallowDelta =
-        result.metrics.cloneShallowCalls.avg - baselineCloneShallowAvg;
-      console.log(
-        `- cloneShallow avg delta: ${
-          cloneShallowDelta >= 0 ? '+' : ''
-        }${cloneShallowDelta.toFixed(2)} (${calculatePercentDelta(
-          result.metrics.cloneShallowCalls.avg,
-          baselineCloneShallowAvg,
-        )})`,
-      );
-    } else {
-      console.log(
-        '- cloneShallow avg delta: n/a (baseline does not contain cloneShallowCalls)',
-      );
-    }
-
-    if (hasTotalBaseline) {
-      const cloneTotalDelta =
-        result.metrics.cloneTotalCalls.avg - baselineCloneTotalAvg;
-      console.log(
-        `- total clone avg delta: ${
-          cloneTotalDelta >= 0 ? '+' : ''
-        }${cloneTotalDelta.toFixed(2)} (${calculatePercentDelta(
-          result.metrics.cloneTotalCalls.avg,
-          baselineCloneTotalAvg,
-        )})`,
-      );
-    } else {
-      console.log(
-        '- total clone avg delta: n/a (baseline does not contain cloneTotalCalls)',
-      );
-    }
-  } catch (error) {
-    if (error && typeof error === 'object' && error.code === 'ENOENT') {
-      console.log(
-        `\nBaseline comparison skipped: file not found (${baselineOptions.filePath})`,
-      );
-      return;
-    }
-
-    throw error;
-  }
-};
-
-const saveBaseline = async (result) => {
-  await mkdir(dirname(baselineOptions.filePath), { recursive: true });
-  await writeFile(
-    baselineOptions.filePath,
-    `${JSON.stringify(result, null, 2)}\n`,
-    'utf8',
-  );
-  console.log(`Baseline saved to ${baselineOptions.filePath}`);
-};
-
 const runBenchmark = async () => {
   const nodeProvider = new BasicNodeProvider();
   const typePlan = createTypePlan();
@@ -334,7 +133,7 @@ const runBenchmark = async () => {
   const benchmarkSource = createBenchmarkSource(typeBlueIds);
   const blue = new Blue({ nodeProvider });
 
-  const cloneCounter = installCloneCounter();
+  const cloneCounter = installCloneCounter(BlueNode);
   const durations = [];
   const cloneCounts = [];
   const cloneShallowCounts = [];
@@ -403,9 +202,7 @@ const runBenchmark = async () => {
   const cloneTotalStats = calculateStats(cloneTotalCounts);
 
   console.log('\nSummary');
-  console.log(
-    `- resolve time (ms): avg=${timeStats.avg.toFixed(2)} min=${timeStats.min.toFixed(2)} max=${timeStats.max.toFixed(2)}`,
-  );
+  console.log(`- resolve time (ms): ${formatStats(timeStats)}`);
   console.log(
     `- clone() calls: avg=${cloneStats.avg.toFixed(2)} min=${cloneStats.min} max=${cloneStats.max}`,
   );
@@ -431,13 +228,25 @@ const runBenchmark = async () => {
     },
   };
 
-  if (baselineOptions.compare) {
-    await compareWithBaseline(result);
-  }
-
-  if (baselineOptions.save) {
-    await saveBaseline(result);
-  }
+  await handleBaseline(result, baselineOptions, [
+    {
+      label: 'resolve avg',
+      path: 'metrics.timeMs.avg',
+      unit: 'ms',
+    },
+    {
+      label: 'clone avg',
+      path: 'metrics.cloneCalls.avg',
+    },
+    {
+      label: 'cloneShallow avg',
+      path: 'metrics.cloneShallowCalls.avg',
+    },
+    {
+      label: 'total clone avg',
+      path: 'metrics.cloneTotalCalls.avg',
+    },
+  ]);
 };
 
 runBenchmark().catch((error) => {

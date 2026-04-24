@@ -148,6 +148,8 @@ const json = blue.nodeToJson(node, {
 - `docs/resolve.md` – resolver & merging pipeline.
 - `docs/preprocessor.md` – blue directive, inference & mappings.
 - `docs/blue-id.md` – BlueId algorithm and APIs.
+- `docs/glossary.md` – identity, minimization, storage, and snapshot terminology.
+- `docs/adr/` – architecture decisions for semantic BlueId, minimal storage, snapshots, list controls, and direct cycles.
 - `docs/mapping.md` – Zod mapping and serialization.
 - `docs/architecture.md` – end-to-end architecture.
 
