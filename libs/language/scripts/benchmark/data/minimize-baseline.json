@@ -1,0 +1,32 @@
+{
+  "createdAt": "2026-04-24T07:28:09.516Z",
+  "config": {
+    "warmupIterations": 2,
+    "measuredIterations": 10,
+    "typePropertyCount": 300,
+    "typeItemCount": 0,
+    "authoringPropertyCount": 420,
+    "authoringItemCount": 0
+  },
+  "typeBlueId": "4QNmVaMDDCRyTnQkvrVLzrB3Ny1Yz4CJMjoxNgDNyVHi",
+  "expectedBlueId": "Ao4z7bRjJkuEeVCA3C2jLbaXeMhKe5sYjYwDk9LWFqxP",
+  "metrics": {
+    "timeMs": {
+      "min": 0.5190189999999859,
+      "max": 1.3121739999999988,
+      "avg": 0.8786358000000007
+    },
+    "propertyReduction": {
+      "min": 300,
+      "max": 300,
+      "avg": 300
+    },
+    "itemReduction": {
+      "min": 0,
+      "max": 0,
+      "avg": 0
+    },
+    "blueIdMismatchCount": 10,
+    "blueIdMismatchRatio": 1
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "createdAt": "2026-04-24T07:27:37.867Z",
+  "config": {
+    "warmupIterations": 2,
+    "measuredIterations": 10,
+    "objectPropertyCount": 300,
+    "listItemCount": 300,
+    "typePropertyCount": 60,
+    "perNodePayloadProperties": 6,
+    "typeMode": "shared"
+  },
+  "typeMode": "shared",
+  "typeDefinitionsCount": 1,
+  "duplicateTypeReferenceCount": 599,
+  "sharedTypeBlueId": "7LZ2GHDBCV8ajU7bygHojTocaL5TR2icoqNDHcb7b9sH",
+  "metrics": {
+    "timeMs": {
+      "min": 230.77856599999996,
+      "max": 248.55947500000002,
+      "avg": 241.61966719999995
+    },
+    "cloneCalls": {
+      "min": 518765,
+      "max": 518765,
+      "avg": 518765
+    },
+    "cloneShallowCalls": {
+      "min": 15973,
+      "max": 15973,
+      "avg": 15973
+    },
+    "cloneTotalCalls": {
+      "min": 534738,
+      "max": 534738,
+      "avg": 534738
+    }
+  }
+}

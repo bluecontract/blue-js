@@ -150,6 +150,10 @@ const json = blue.nodeToJson(node, {
 - `docs/blue-id.md` – BlueId algorithm and APIs.
 - `docs/mapping.md` – Zod mapping and serialization.
 - `docs/architecture.md` – end-to-end architecture.
+- `docs/blueid-adr-roadmap.md` – ADR-001..006 and Milestones 1–3 roadmap.
+- `docs/blueid-phase0-foundations.md` – Phase 0 scope, tests and baseline definition.
+- `docs/blueid-callsites-inventory.md` – monorepo inventory of BlueId calculation callsites.
+- `scripts/benchmark/README.md` – benchmark fixtures and before/after baseline workflow.
 
 ## Changelog
 

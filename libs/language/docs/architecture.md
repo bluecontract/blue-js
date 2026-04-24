@@ -32,3 +32,10 @@ const wrapped = NodeProviderWrapper.wrap(myProvider, repositories);
 **Patching**
 
 - `applyBlueNodePatch(es)` implements `add/replace/remove/copy/move/test` on BlueNode trees with JSON Pointer paths.
+
+## BlueId / minimization roadmap references
+
+- `docs/blueid-adr-roadmap.md` — ADR-001..006 and milestone roadmap (1/2/3).
+- `docs/blueid-phase0-foundations.md` — explicit Phase 0 scope, test and benchmark baseline.
+- `docs/blueid-callsites-inventory.md` — monorepo inventory of BlueId calculation callsites.
+- `scripts/benchmark/README.md` — reproducible benchmark fixture and baseline workflow.

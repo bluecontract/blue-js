@@ -1,0 +1,14 @@
+{
+  "createdAt": "2026-04-24T07:27:28.378Z",
+  "config": {
+    "warmupIterations": 2,
+    "measuredIterations": 10
+  },
+  "metrics": {
+    "timeMs": {
+      "min": 14085.84844500001,
+      "max": 14820.345086000001,
+      "avg": 14439.6180819
+    }
+  }
+}

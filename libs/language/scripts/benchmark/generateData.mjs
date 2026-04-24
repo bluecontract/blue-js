@@ -1,4 +1,4 @@
-import { writeFile } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -56,7 +56,7 @@ const testData = {
       employees: 50 + i * 5,
       facilities: Array.from({ length: 3 }, (_, j) => ({
         id: `fac${j}`,
-        type: ['office', 'warehouse', 'laboratory'][j % 3],
+        facilityType: ['office', 'warehouse', 'laboratory'][j % 3],
         capacity: 100 + j * 50,
       })),
     })),
@@ -64,9 +64,9 @@ const testData = {
 };
 
 const json = JSON.stringify(testData, null, 2);
-
-writeFile(
-  join(__dirname, 'data/testData.mjs'),
-  `export const testData = ${json}`,
-);
-writeFile(join(__dirname, 'data/testData.json'), json);
+const dataDir = join(__dirname, 'data');
+await mkdir(dataDir, { recursive: true });
+await Promise.all([
+  writeFile(join(dataDir, 'testData.mjs'), `export const testData = ${json}`),
+  writeFile(join(dataDir, 'testData.json'), json),
+]);

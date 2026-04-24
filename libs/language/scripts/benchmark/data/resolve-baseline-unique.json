@@ -1,0 +1,38 @@
+{
+  "createdAt": "2026-04-24T07:28:03.129Z",
+  "config": {
+    "warmupIterations": 2,
+    "measuredIterations": 10,
+    "objectPropertyCount": 300,
+    "listItemCount": 300,
+    "typePropertyCount": 60,
+    "perNodePayloadProperties": 6,
+    "typeMode": "unique"
+  },
+  "typeMode": "unique",
+  "typeDefinitionsCount": 600,
+  "duplicateTypeReferenceCount": 0,
+  "sharedTypeBlueId": null,
+  "metrics": {
+    "timeMs": {
+      "min": 1502.511281,
+      "max": 1617.1443550000004,
+      "avg": 1559.4191596000003
+    },
+    "cloneCalls": {
+      "min": 735603,
+      "max": 735603,
+      "avg": 735603
+    },
+    "cloneShallowCalls": {
+      "min": 234608,
+      "max": 234608,
+      "avg": 234608
+    },
+    "cloneTotalCalls": {
+      "min": 970211,
+      "max": 970211,
+      "avg": 970211
+    }
+  }
+}
