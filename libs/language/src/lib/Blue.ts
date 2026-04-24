@@ -4,7 +4,6 @@ import { BlueNode, NodeDeserializer } from './model';
 import { ResolvedBlueNode } from './model/ResolvedNode';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
 import {
-  BlueIdCalculator,
   NodeToMapListOrValue,
   NodeTransformer,
   NodeTypes,
@@ -32,12 +31,13 @@ import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultMergingProcessor } from './merge';
-import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
 import { RepositoryRegistry } from './repository/RepositoryRuntime';
 import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
 import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
+import { SemanticIdentityService } from './identity/SemanticIdentityService';
+import { StorageShapeValidator } from './utils/StorageShapeValidator';
 import {
   BlueContext,
   NodeToJsonFormat,
@@ -184,9 +184,22 @@ export class Blue {
     return new ResolvedBlueNode(resolvedNode);
   }
 
+  /**
+   * @deprecated Use {@link minimize}. Reverse is the legacy name for producing
+   * a minimal overlay from a resolved tree.
+   */
   public reverse(node: BlueNode) {
-    const reverser = new MergeReverser();
-    return reverser.reverse(node);
+    return this.minimize(node);
+  }
+
+  /**
+   * Produces a minimal overlay that re-resolves to the same semantic BlueId.
+   */
+  public minimize(node: BlueNode) {
+    return new SemanticIdentityService({
+      nodeProvider: this.nodeProvider,
+      mergingProcessor: this.mergingProcessor,
+    }).minimize(node);
   }
 
   /**
@@ -211,14 +224,24 @@ export class Blue {
 
   public jsonValueToNode(json: unknown) {
     const preprocessed = this.preprocess(NodeDeserializer.deserialize(json));
-    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
+    const normalized = normalizeNodeBlueIds(
+      preprocessed,
+      this.repositoryRegistry,
+    );
+    StorageShapeValidator.validateNoMixedReferencePayload(normalized);
+    return normalized;
   }
 
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
     const preprocessed = await this.preprocessAsync(
       NodeDeserializer.deserialize(json),
     );
-    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
+    const normalized = normalizeNodeBlueIds(
+      preprocessed,
+      this.repositoryRegistry,
+    );
+    StorageShapeValidator.validateNoMixedReferencePayload(normalized);
+    return normalized;
   }
 
   public yamlToNode(yaml: string) {
@@ -261,7 +284,10 @@ export class Blue {
     value: JsonBlueValue | BlueNode | BlueNode[],
   ) => {
     const prepared = await this.prepareForBlueIdCalculation(value);
-    return BlueIdCalculator.calculateBlueId(prepared);
+    return new SemanticIdentityService({
+      nodeProvider: this.nodeProvider,
+      mergingProcessor: this.mergingProcessor,
+    }).calculateBlueId(prepared);
   };
 
   private prepareForBlueIdCalculationSync = (
@@ -283,7 +309,10 @@ export class Blue {
 
   public calculateBlueIdSync(value: JsonBlueValue | BlueNode | BlueNode[]) {
     const prepared = this.prepareForBlueIdCalculationSync(value);
-    return BlueIdCalculator.calculateBlueIdSync(prepared);
+    return new SemanticIdentityService({
+      nodeProvider: this.nodeProvider,
+      mergingProcessor: this.mergingProcessor,
+    }).calculateBlueIdSync(prepared);
   }
 
   /**
@@ -524,7 +553,7 @@ export class Blue {
     if (!nodeType) {
       return false;
     }
-    const targetType = new BlueNode().setBlueId(trimmed);
+    const targetType = new BlueNode().setReferenceBlueId(trimmed);
     return NodeTypes.isSubtype(nodeType, targetType, this.nodeProvider);
   }
 

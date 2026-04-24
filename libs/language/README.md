@@ -7,7 +7,7 @@ Small, fast TypeScript runtime for the Blue Language: parse YAML/JSON into BlueN
 - **BlueNode graph**: single, list, map, typed values, metadata (name/description), `contracts`, and references by `blueId`.
 - **Preprocessing**: `blue:` directive (aliases, BlueId, or URL fetch with allow-list), inline-type mappings, implicit type inference for primitives.
 - **Resolution/Merge**: deterministic resolver with a pluggable MergingProcessor pipeline (value propagation, type checking, list/dict validators, metadata propagation, basic-type guard).
-- **BlueId**: canonical JSON → SHA-256 → Base58; sync/async, lists supported; CIDv1 conversion.
+- **BlueId**: semantic content identity via `Blue.calculateBlueId*`; low-level Section 8 hashing via `BlueIdCalculator`; CIDv1 conversion.
 - **Providers**: resolve by BlueId from memory, repositories or built-in bootstrap content; sequential composition.
 - **Zod mapping**: convert nodes to typed objects with schema extensions & Blue annotations; serialize objects back to Blue-shaped JSON.
 - **Limits & paths**: restrict extension/merge by path or depth; compose limits.
@@ -43,7 +43,7 @@ const node = blue.yamlToNode(yaml);
 // 3) Resolve (merge types/references), optionally with limits
 const resolved = blue.resolve(node, PathLimits.withMaxDepth(10));
 
-// 4) Compute BlueId
+// 4) Compute semantic BlueId
 const blueId = blue.calculateBlueIdSync(resolved);
 
 // 5) Map to a Zod schema (with annotations supported)
@@ -92,7 +92,7 @@ const json = blue.nodeToJson(node, {
 
 ### Core graph
 
-- `BlueNode` – node model (name, description, type, itemType, keyType, valueType, value, items, properties, blueId, blue directive).
+- `BlueNode` – node model (name, description, type, itemType, keyType, valueType, value, items, properties, reference `blueId`, blue directive).
 - `ResolvedBlueNode` – wrapper for resolved nodes; includes `getMinimalNode()` and `getMinimalBlueId()`.
 
 ### Entry point
@@ -101,11 +101,11 @@ const json = blue.nodeToJson(node, {
   - Parsing: `yamlToNode(_)/jsonValueToNode(_)` (+ async variants), which preprocess and normalize.
   - Preprocess: blue directive (`BlueDirectivePreprocessor`) + default pipeline (`Preprocessor`).
   - Resolve: `resolve(node, limits)` → `ResolvedBlueNode`.
-  - IDs: `calculateBlueId(_)/calculateBlueIdSync(_)`.
+  - IDs: `calculateBlueId(_)/calculateBlueIdSync(_)` for semantic BlueId.
   - Mapping: `nodeToJson(node, 'official'|'simple'|'original'|{ format, blueContext })`, `nodeToSchemaOutput(node, zod)`.
   - Type checks: `isTypeOf(node, zod)`, `isTypeOfNode(node, typeNode)`, `isTypeOfBlueId(node, blueId)`.
   - Type aliases: `getTypeAliasByBlueId(blueId)` (returns inline aliases like `Text` for core types and `Package/Type` for repository types, including historical `blueId` values resolved to current aliases; `undefined` for empty/unknown ids).
-  - Helpers: `extend(node, limits)`, `transform(node, fn)`, `reverse(node)`, `restoreInlineTypes(node)`.
+  - Helpers: `extend(node, limits)`, `transform(node, fn)`, `minimize(node)`, `reverse(node)` (deprecated alias), `restoreInlineTypes(node)`.
   - Config: URL fetch allow-list (`enablePreprocessingDirectivesFetchForDomains([...])`), global limits, repositories.
 
 ### Resolution & merge
@@ -131,8 +131,19 @@ const json = blue.nodeToJson(node, {
 
 ### Blue IDs & CIDs
 
-- `BlueIdCalculator` (sync/async); `Base58Sha256Provider`.
+- `Blue.calculateBlueId*` computes semantic BlueId by resolving and minimizing.
+- `BlueIdCalculator` is the low-level Section 8 hasher for already prepared shapes.
 - `BlueIds` validator; `BlueIdToCid` and `CidToBlueId` converters.
+
+### Identity and storage terms
+
+- **official / wrapped**: spec representation using `value` and `items`.
+- **minimal overlay**: compact authoring/storage form that resolves back to the same semantic identity.
+- **resolved tree**: mutable runtime `ResolvedBlueNode` produced by `resolve()`.
+- **semantic BlueId**: public identity stable across equivalent authoring, resolved, and minimal forms.
+- **reference BlueId**: the document `blueId` field, exposed as `getReferenceBlueId()` / `setReferenceBlueId()` with legacy `getBlueId()` / `setBlueId()` aliases.
+
+Provider ingest is strict: mixed `blueId + payload` is rejected for authoring/storage input, and supplied repository IDs must match computed IDs. Spec-native list controls and direct cyclic `this#k` identities are planned for the final identity conformance phase.
 
 ### Limits
 

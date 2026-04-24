@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { Blue } from '../Blue';
+import { NodeDeserializer } from '../model';
 import { BasicNodeProvider } from '../provider';
+import { BlueIdCalculator } from '../utils';
 import { PathLimits } from '../utils/limits';
+import { yamlBlueParse } from '../../utils/yamlBlue';
 import {
   getIdentityFixture,
   IdentityFixture,
   identityFixtures,
 } from '../__fixtures__/identity/identityFixtures';
 
-const describeContract =
-  process.env.BLUE_SPEC_CONTRACT_RED === '1' ? describe : describe.skip;
+const describeContract = describe;
 
 const nodeFromFixture = (blue: Blue, fixture: IdentityFixture) => {
   if (fixture.input.kind === 'yaml') {
@@ -42,9 +44,18 @@ describeContract('Blue identity specification contracts', () => {
   it('short-circuits only exact pure references', () => {
     const blue = new Blue();
     const referenceId = 'IdentityFixtureReferenceBlueId';
+    const mixedFixture = getIdentityFixture('mixedBlueIdPayload');
+    if (mixedFixture.input.kind !== 'yaml') {
+      throw new Error('mixedBlueIdPayload fixture must be YAML');
+    }
+    const mixedNode = NodeDeserializer.deserialize(
+      yamlBlueParse(mixedFixture.input.value),
+    );
 
     expect(blueIdForFixture(blue, 'pureRef')).toBe(referenceId);
-    expect(blueIdForFixture(blue, 'mixedBlueIdPayload')).not.toBe(referenceId);
+    expect(BlueIdCalculator.calculateBlueIdSync(mixedNode)).not.toBe(
+      referenceId,
+    );
   });
 
   it('preserves a present-empty list as identity content distinct from absent', () => {

@@ -77,35 +77,31 @@ describe('BlueIdCalculator', () => {
     const map1 = yamlBlueParse(yaml1) as JsonBlueValue;
     const result1 = await fakeBlueIdCalculator.calculate(map1);
 
+    const ghiId = 'hash({jkl={blueId=hash(2)}, mno={blueId=hash(x)}})';
+    const abcId = `hash({def={blueId=hash(1)}, ghi={blueId=${ghiId}}})`;
+    const expectedResult = `hash({abc={blueId=${abcId}}, pqr={blueId=hash(1)}})`;
+
     const yaml2 =
       'abc:\n' +
       '  def:\n' +
       '    value: 1\n' +
       '  ghi:\n' +
-      '    blueId: hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})\n' +
+      `    blueId: ${ghiId}\n` +
       'pqr:\n' +
       '  value: 1';
 
     const map2 = yamlBlueParse(yaml2) as JsonBlueValue;
     const result2 = await fakeBlueIdCalculator.calculate(map2);
 
-    const yaml3 =
-      'abc:\n' +
-      '  blueId: hash({def={blueId=hash({value=1})}, ghi={blueId=hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})}})\n' +
-      'pqr:\n' +
-      '  value: 1';
+    const yaml3 = 'abc:\n' + `  blueId: ${abcId}\n` + 'pqr:\n' + '  value: 1';
 
     const map3 = yamlBlueParse(yaml3) as JsonBlueValue;
     const result3 = await fakeBlueIdCalculator.calculate(map3);
 
-    const yaml4 =
-      'blueId: hash({abc={blueId=hash({def={blueId=hash({value=1})}, ghi={blueId=hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})}})}, pqr={blueId=hash({value=1})}})';
+    const yaml4 = `blueId: ${expectedResult}`;
 
     const map4 = yamlBlueParse(yaml4) as JsonBlueValue;
     const result4 = await fakeBlueIdCalculator.calculate(map4);
-
-    const expectedResult =
-      'hash({abc={blueId=hash({def={blueId=hash({value=1})}, ghi={blueId=hash({jkl={blueId=hash({value=2})}, mno={blueId=hash({value=x})}})}})}, pqr={blueId=hash({value=1})}})';
 
     expect(result1).toEqual(expectedResult);
     expect(result2).toEqual(expectedResult);
@@ -122,21 +118,21 @@ describe('BlueIdCalculator', () => {
     const result1 = await fakeBlueIdCalculator.calculate(map1);
 
     const list2 = `abc:
-      - blueId: hash([{blueId=hash(1)}, {blueId=hash(2)}])
-      - 3`;
+      items:
+        - 1
+        - 2
+        - 3`;
     const map2 = yamlBlueParse(list2) as JsonBlueValue;
     const result2 = await fakeBlueIdCalculator.calculate(map2);
 
-    const list3 = `abc:
-      - blueId: hash([{blueId=hash([{blueId=hash(1)}, {blueId=hash(2)}])}, {blueId=hash(3)}])`;
-    const map3 = yamlBlueParse(list3) as JsonBlueValue;
-    const result3 = await fakeBlueIdCalculator.calculate(map3);
+    const emptyListId = 'hash({$list=empty})';
+    const firstFoldId = `hash({$listCons={elem={blueId=hash(1)}, prev={blueId=${emptyListId}}}})`;
+    const secondFoldId = `hash({$listCons={elem={blueId=hash(2)}, prev={blueId=${firstFoldId}}}})`;
+    const thirdFoldId = `hash({$listCons={elem={blueId=hash(3)}, prev={blueId=${secondFoldId}}}})`;
 
-    const expectedResult =
-      'hash({abc={blueId=hash([{blueId=hash([{blueId=hash(1)}, {blueId=hash(2)}])}, {blueId=hash(3)}])}})';
+    const expectedResult = `hash({abc={blueId=${thirdFoldId}}})`;
     expect(result1).toEqual(expectedResult);
     expect(result2).toEqual(expectedResult);
-    expect(result3).toEqual(expectedResult);
   });
 
   it('testObjectVsList', async () => {
@@ -150,9 +146,7 @@ describe('BlueIdCalculator', () => {
     const map2 = yamlBlueParse(list2) as JsonBlueValue;
     const result2 = await fakeBlueIdCalculator.calculate(map2);
 
-    const expectedResult = 'hash({abc={blueId=hash({value=x})}})';
-    expect(result1).toEqual(expectedResult);
-    expect(result2).toEqual(expectedResult);
+    expect(result1).not.toEqual(result2);
   });
 
   it('testSortingOfObjectProperties', async () => {
@@ -342,7 +336,7 @@ d: {}`;
 
     expect(result2).toEqual(result1);
     expect(result3).toEqual(result1);
-    expect(result4).toEqual(result1);
+    expect(result4).not.toEqual(result1);
     expect(result5).toEqual(result1);
   });
 });
@@ -362,13 +356,13 @@ describe('BlueIdCalculator - additional tests', () => {
 
       const result1 = await fakeBlueIdCalculator.calculate(object);
       expect(result1).toBe(
-        'hash({abc={blueId=hash({def={blueId=hash({value=132452345234524739582739458723948572934875})}, ghi={blueId=hash({jkl={blueId=hash({value=132452345234524739582739458723948572934875.132452345234524739582739458723948572934875})}})}})}})',
+        'hash({abc={blueId=hash({def={blueId=hash(1.32452345234524739582739458723948572934875e+41)}, ghi={blueId=hash({jkl={blueId=hash(1.3245234523452473e+41)}})}})}})',
       );
 
       const node = NodeDeserializer.deserialize(object);
       const result2 = await BlueIdCalculator.calculateBlueId(node);
       expect(result2).toMatchInlineSnapshot(
-        '"FuFBarhV7G7jed3Zi39CNEWscvJ2k6JcE1M41eA6Fwox"',
+        `"Af8jcuPffgLpA7EEbjVe6H8Pt5BkjsRHjAiHuSNFx68k"`,
       );
     });
   });
@@ -434,7 +428,7 @@ abc:
     const result1 = await BlueIdCalculator.calculateBlueId(node);
 
     expect(result1).toMatchInlineSnapshot(
-      `"AZp8hjSjSdZy3rgpit56EW8eU3miZAKV44GUhNHEj8gw"`,
+      `"GfUpUPT6zc6D7x1VaykHjbG3bLS2Ead8bu4vMqFHFvR3"`,
     );
   });
 
@@ -453,7 +447,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"Gzq7ffwvERnxEvU1X41U66bJi9UhxFi4wzJ5ghx1tkVU"`,
+      `"3wFa5KuCRzTVSAFfDEFyFyoG7RwXHPz61R8LhDXAj2ce"`,
     );
   });
 
@@ -469,7 +463,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"9tERNTyVtcuQCvbTWui5Db8dbNhk7yvmcu8yAiJQFDb4"`,
+      `"59DKGjTnfJNCJmCYagQMq7F8EdwcxFwdmD42UcJmZL1h"`,
     );
   });
 
@@ -487,20 +481,20 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"8wVTgTtD7GjMu8iecyRdG63tihkCqp44d7XFHrTwCHwG"`,
+      `"5C4FYBCQgu7vXnepcuQWZq29v4ACKDKCoiq79ceBVLYM"`,
     );
   });
 
-  it('should calculate a blue id with less characters than 44', async () => {
+  it('should calculate a blue id for a scalar string node', async () => {
     const json = { value: '74f516a81a920fc5b465f2c6fd31ff41' };
 
     const node = NodeDeserializer.deserialize(json);
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
     expect(blueId).toMatchInlineSnapshot(
-      `"1yASa1bb5eu4KpWCQRnpi4Edbk67FzLjd8AcfyiaoT"`,
+      `"Gv4bRABwrK7MLyt62Kxi6EnxzFiwVHhWFA1y5oEzvy9j"`,
     );
-    expect(blueId).toHaveLength(42);
+    expect(blueId).toHaveLength(44);
     expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
   });
 
@@ -515,7 +509,7 @@ abc:
     const node = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`,
+      `"Dp2aAte7cVuTaMZJibWUxjNdgUAXpSR9pcGc9tFHVhMu"`,
     );
   });
 
@@ -532,7 +526,7 @@ abc:
     const blueId2 = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId1).toEqual(blueId2);
     expect(blueId2).toMatchInlineSnapshot(
-      `"BpVqpMvv6og7Y2mwCz16kcVvfUqWdFmUxTCrtn17nbuv"`,
+      `"Dp2aAte7cVuTaMZJibWUxjNdgUAXpSR9pcGc9tFHVhMu"`,
     );
   });
 });

@@ -26,8 +26,13 @@ export interface PreprocessorOptions {
  * Preprocessor class for transforming BlueNodes
  */
 export class Preprocessor {
+  /**
+   * BlueId of the static DefaultBlue.yaml content registered by BootstrapProvider.
+   * Dynamic repository mappings are appended separately and intentionally do not
+   * change the bootstrap key used to reference the default transformation set.
+   */
   public static readonly DEFAULT_BLUE_BLUE_ID =
-    '6sqUywMoBRyj9hgQxSu2nDPnqcyiSM7xu9AB9sN98YJK';
+    'BF4xn5LN3HzQJSmqcXRyUq4tZEtkj2eBZ8UPCDJMnhG9';
 
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;
@@ -157,6 +162,10 @@ export class Preprocessor {
    * @returns Enriched YAML content with dynamic mappings
    */
   private enrichDefaultBlue(defaultBlue: string): string {
+    if (this.blueIdsMappingGenerator.getTotalBlueIdCount() === 0) {
+      return defaultBlue;
+    }
+
     const dynamicMappings = this.blueIdsMappingGenerator.generateMappingsYaml();
 
     return `

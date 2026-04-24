@@ -2,7 +2,7 @@
 
 This glossary fixes the terms used by the identity, minimization, storage, and
 snapshot work. The normative source is the Blue language specification in
-`/Users/mjonak/www-apps/work/Blue/language-blue/content/spec.md`, especially
+`https://language.blue/docs/reference/specification`, especially
 sections 8 through 12.
 
 **official / wrapped form**
@@ -40,13 +40,14 @@ and cache derived values such as minimal overlay and semantic BlueId.
 
 The public content identity for a Blue node. It is stable across equivalent
 authoring, official, minimal, expanded, and resolved forms. Public
-`Blue.calculateBlueId*` APIs should converge on this meaning.
+`Blue.calculateBlueId*` APIs use this meaning.
 
 **referenceBlueId**
 
 The BlueId stored in a node's `blueId` field when the node references another
 node. It is not the node's own computed identity. Existing `getBlueId()` and
-`setBlueId()` names are legacy model names for this reference field.
+`setBlueId()` names are legacy model names for this reference field;
+`getReferenceBlueId()` and `setReferenceBlueId()` are preferred in new code.
 
 **expansion**
 
@@ -58,3 +59,14 @@ semantic BlueId.
 
 Normalizing a resolved snapshot or resolved tree back to a minimal overlay.
 Minimization must preserve the resolved snapshot semantics and semantic BlueId.
+
+**low-level Section 8 hash**
+
+The direct hash of an already prepared node or JSON shape, exposed through
+`BlueIdCalculator`. This does not resolve provider references and is distinct
+from semantic identity APIs.
+
+**strict provider storage**
+
+Provider ingest rejects ambiguous `blueId + payload` authoring/storage shapes
+and rejects supplied IDs that do not match computed storage identity.

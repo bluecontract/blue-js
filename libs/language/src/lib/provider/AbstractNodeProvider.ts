@@ -35,12 +35,9 @@ export abstract class AbstractNodeProvider extends NodeProvider {
         if (Array.isArray(resolvedContent) && index < resolvedContent.length) {
           const item = resolvedContent[index];
           const node = NodeDeserializer.deserialize(item);
-
-          node.setBlueId(blueId);
           return [node];
         } else if (index === 0) {
           const node = NodeDeserializer.deserialize(resolvedContent);
-          node.setBlueId(blueId);
           return [node];
         } else {
           return null;
@@ -55,7 +52,6 @@ export abstract class AbstractNodeProvider extends NodeProvider {
       });
     } else {
       const node = NodeDeserializer.deserialize(resolvedContent);
-      node.setBlueId(baseBlueId);
       return [node];
     }
   }

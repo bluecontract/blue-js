@@ -5,7 +5,7 @@ import { JsonBlueValue } from '../../schema';
 import { BlueRepository } from '../types/BlueRepository';
 import { Preprocessor } from '../preprocess/Preprocessor';
 import { BlueIdsMappingGenerator } from '../preprocess/utils/BlueIdsMappingGenerator';
-import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
+import { BlueError, BlueErrorCode } from '../errors/BlueError';
 
 /**
  * A NodeProvider that processes content from BlueRepository definitions.
@@ -86,7 +86,10 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       this.preprocessor,
     );
 
-    const blueId = providedBlueId || parsedContent.blueId;
+    const blueId = this.resolveProvidedBlueId(
+      parsedContent.blueId,
+      providedBlueId,
+    );
     this.blueIdToContentMap.set(blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(blueId, false);
 
@@ -110,17 +113,22 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       (node) => node,
     );
 
-    const blueId = providedBlueId || parsedContent.blueId;
+    const blueId = this.resolveProvidedBlueId(
+      parsedContent.blueId,
+      providedBlueId,
+    );
     this.blueIdToContentMap.set(blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(blueId, true);
 
     nodes.forEach((node, index) => {
       const itemBlueId = `${blueId}#${index}`;
-      const itemContent = NodeToMapListOrValue.get(node);
-
-      const individualBlueId = BlueIdCalculator.calculateBlueIdSync(node);
-      this.blueIdToContentMap.set(individualBlueId, itemContent);
-      this.blueIdToMultipleDocumentsMap.set(individualBlueId, false);
+      const itemParsedContent =
+        NodeContentHandler.parseAndCalculateBlueIdForNode(node, (n) => n);
+      this.blueIdToContentMap.set(
+        itemParsedContent.blueId,
+        itemParsedContent.content,
+      );
+      this.blueIdToMultipleDocumentsMap.set(itemParsedContent.blueId, false);
 
       const nodeName = node.getName();
       if (nodeName) {
@@ -160,5 +168,31 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   public hasBlueId(blueId: string): boolean {
     const baseBlueId = blueId.split('#')[0];
     return this.blueIdToContentMap.has(baseBlueId);
+  }
+
+  private resolveProvidedBlueId(
+    computedBlueId: string,
+    providedBlueId?: string,
+  ): string {
+    if (providedBlueId === undefined) {
+      return computedBlueId;
+    }
+
+    if (providedBlueId !== computedBlueId) {
+      throw new BlueError(
+        BlueErrorCode.BLUE_ID_MISMATCH,
+        `Provided BlueId '${providedBlueId}' does not match computed BlueId '${computedBlueId}'.`,
+        [
+          {
+            code: BlueErrorCode.BLUE_ID_MISMATCH,
+            message:
+              'Repository content BlueId does not match its computed semantic storage identity.',
+            context: { providedBlueId, computedBlueId },
+          },
+        ],
+      );
+    }
+
+    return providedBlueId;
   }
 }

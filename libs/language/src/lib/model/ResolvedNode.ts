@@ -1,6 +1,6 @@
 import { BlueNode } from './Node';
-import { MergeReverser } from '../utils/MergeReverser';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
+import { Minimizer } from '../utils/Minimizer';
 
 /**
  * Represents a resolved BlueNode. This is a simple marker class that indicates
@@ -32,8 +32,8 @@ export class ResolvedBlueNode extends BlueNode {
    * @returns The minimal node representation
    */
   public getMinimalNode(): BlueNode {
-    const reverser = new MergeReverser();
-    return reverser.reverse(this);
+    const minimizer = new Minimizer();
+    return minimizer.minimize(this);
   }
 
   public getMinimalBlueId(): string {

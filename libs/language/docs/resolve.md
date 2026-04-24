@@ -89,22 +89,25 @@ steps:
 
 After `resolve`, `steps` has all three objects (`draft`, `sign`, `archive`).
 
-### Example 3: `resolve -> official -> reverse -> resolve` for inherited lists
+### Example 3: `resolve -> official -> minimize -> resolve` for inherited lists
 
 Flow:
 
 1. `resolved = blue.resolve(node)`
 2. `official = blue.nodeToJson(resolved, 'official')`
 3. `loaded = blue.jsonValueToNode(official)`
-4. `minimal = blue.reverse(loaded)`
+4. `minimal = blue.minimize(loaded)`
 5. `resolvedAgain = blue.resolve(minimal)`
 
 Rules for list fields in `minimal`:
 
-- If derived appended list items, `reverse` may emit inherited-list marker + appended items.
-- If derived did not override list at all, `reverse` now leaves that list absent.
+- If derived appended list items, `minimize` may emit inherited-list marker + appended items.
+- If derived did not override list at all, `minimize` leaves that list absent.
 
 In both cases above, `resolvedAgain` should be semantically equivalent to `resolved`.
+
+`blue.reverse(node)` remains as a deprecated compatibility alias for
+`blue.minimize(node)`.
 
 ## Extended algorithm (optional deep dive)
 
@@ -218,18 +221,18 @@ inherited value.
 
 Copy-on-write map update is used to avoid unnecessary object recreation.
 
-## Interaction with `reverse()` and official roundtrip
+## Interaction with `minimize()` and official roundtrip
 
-`reverse()` can emit a compact representation for inherited lists. Current behavior:
+`minimize()` can emit a compact representation for inherited lists. Current behavior:
 
-- If a derived list appends items, reverse emits inherited-prefix marker:
+- If a derived list appends items, minimize emits inherited-prefix marker:
   first list item is `blueId` of inherited list, followed by appended items.
-- If derived does not override list at all, reverse now leaves list absent
+- If derived does not override list at all, minimize now leaves list absent
   (no marker-only list).
 
 Resolver (`mergeChildren`) understands this marker format, so this roundtrip is valid:
 
-`resolve -> nodeToJson('official') -> jsonValueToNode -> reverse -> resolve`
+`resolve -> nodeToJson('official') -> jsonValueToNode -> minimize -> resolve`
 
 for both:
 
@@ -247,3 +250,5 @@ because marker resolution uses logical merged indexes.
 - With path-based limits, subtrees are re-resolved to keep path filtering correct.
 - Type resolution cache is local to one `resolve()` call.
 - Resolution expects current type BlueIds; ingestion helpers normalize historical IDs.
+- `Blue.calculateBlueId*` uses resolve + minimize so path limits affect
+  materialization, not semantic identity.

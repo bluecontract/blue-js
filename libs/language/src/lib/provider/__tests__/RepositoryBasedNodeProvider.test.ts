@@ -6,9 +6,8 @@ import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
 describe('RepositoryBasedNodeProvider', () => {
   it('does not map historical BlueIds automatically', () => {
     const historicalId = 'old-id';
-    const currentId = 'current-id';
-
     const typeNode = new BlueNode('TestType');
+    const currentId = BlueIdCalculator.calculateBlueIdSync(typeNode);
     const typesMeta = {
       [currentId]: {
         status: 'stable' as const,
@@ -44,12 +43,12 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(provider.fetchByBlueId(historicalId)).toBeNull();
     expect(provider.hasBlueId(currentId)).toBe(true);
     const fetched = provider.fetchByBlueId(currentId);
-    expect(fetched?.[0]?.getBlueId()).toEqual(currentId);
+    expect(fetched?.[0]?.getBlueId()).toBeUndefined();
   });
 
   it('indexes names for new-style repositories', () => {
-    const typeId = 'type-1';
     const typeNode = new BlueNode('NamedType');
+    const typeId = BlueIdCalculator.calculateBlueIdSync(typeNode);
     const typesMeta = {
       [typeId]: {
         status: 'stable' as const,
@@ -82,12 +81,16 @@ describe('RepositoryBasedNodeProvider', () => {
 
     const provider = new RepositoryBasedNodeProvider([repository]);
     const found = provider.findNodeByName('NamedType');
-    expect(found?.getBlueId()).toEqual(typeId);
+    expect(found?.getBlueId()).toBeUndefined();
   });
 
   it('preprocesses repository content using alias mappings', () => {
-    const childId = 'child-id';
-    const parentId = 'parent-id';
+    const childNode = new BlueNode('Child');
+    const childId = BlueIdCalculator.calculateBlueIdSync(childNode);
+    const parentNode = new BlueNode('Parent').setProperties({
+      child: new BlueNode().setType(new BlueNode().setBlueId(childId)),
+    });
+    const parentId = BlueIdCalculator.calculateBlueIdSync(parentNode);
 
     const typesMeta = {
       [childId]: {
@@ -123,7 +126,7 @@ describe('RepositoryBasedNodeProvider', () => {
           aliases: { 'test/Child': childId, 'test/Parent': parentId },
           typesMeta,
           contents: {
-            [childId]: { name: 'Child' },
+            [childId]: NodeToMapListOrValue.get(childNode),
             [parentId]: {
               name: 'Parent',
               child: {
@@ -146,9 +149,9 @@ describe('RepositoryBasedNodeProvider', () => {
   });
 
   it('preserves # references for multi-document content', () => {
-    const listId = 'multi-doc';
     const first = new BlueNode('First');
     const second = new BlueNode('Second');
+    const listId = BlueIdCalculator.calculateBlueIdSync([first, second]);
     const typesMeta = {
       [listId]: {
         status: 'stable' as const,
@@ -187,13 +190,13 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(items?.map((n) => n.getBlueId())).toEqual([undefined, undefined]);
 
     const byIndex = provider.fetchByBlueId(`${listId}#0`);
-    expect(byIndex?.[0]?.getBlueId()).toEqual(`${listId}#0`);
+    expect(byIndex?.[0]?.getBlueId()).toBeUndefined();
 
     const individualBlueId = BlueIdCalculator.calculateBlueIdSync(first);
     const byIndividual = provider.fetchByBlueId(individualBlueId);
-    expect(byIndividual?.[0]?.getBlueId()).toEqual(individualBlueId);
+    expect(byIndividual?.[0]?.getBlueId()).toBeUndefined();
 
     const byName = provider.findNodeByName('First');
-    expect(byName?.getBlueId()).toEqual(`${listId}#0`);
+    expect(byName?.getBlueId()).toBeUndefined();
   });
 });

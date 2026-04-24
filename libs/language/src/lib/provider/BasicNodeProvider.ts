@@ -2,7 +2,7 @@ import { BlueNode, NodeDeserializer } from '../model';
 import { PreloadedNodeProvider } from './PreloadedNodeProvider';
 import { Preprocessor } from '../preprocess/Preprocessor';
 import { NodeContentHandler } from './NodeContentHandler';
-import { BlueIdCalculator, NodeToMapListOrValue, Nodes } from '../utils';
+import { Nodes } from '../utils';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue } from '../../schema';
 
@@ -69,11 +69,12 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
   }
 
   public processNodeList(nodes: BlueNode[]): void {
-    const listBlueId = BlueIdCalculator.calculateBlueIdSync(nodes);
-    // Convert nodes to JSON representation for storage
-    const jsonContent = nodes.map((n) => NodeToMapListOrValue.get(n));
-    this.blueIdToContentMap.set(listBlueId, jsonContent);
-    this.blueIdToMultipleDocumentsMap.set(listBlueId, true);
+    const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
+      nodes,
+      this.preprocessor,
+    );
+    this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
+    this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);
   }
 
   protected override fetchContentByBlueId(

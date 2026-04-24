@@ -1,5 +1,7 @@
 import { BlueNode, NodeDeserializer } from '../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
+import { Minimizer } from '../utils/Minimizer';
+import { StorageShapeValidator } from '../utils/StorageShapeValidator';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue, JsonBlueObject } from '../../schema';
 
@@ -13,6 +15,7 @@ export class ParsedContent {
 
 export class NodeContentHandler {
   private static readonly THIS_REFERENCE_PATTERN = /^this(#\d+)?$/;
+  private static readonly minimizer = new Minimizer();
 
   public static parseAndCalculateBlueId(
     content: string,
@@ -35,15 +38,17 @@ export class NodeContentHandler {
     const isMultipleDocuments = Array.isArray(jsonNode) && jsonNode.length > 1;
 
     if (isMultipleDocuments) {
-      const nodes = (jsonNode as JsonBlueValue[]).map((item: JsonBlueValue) => {
-        const node = NodeDeserializer.deserialize(item);
-        return preprocessor(node);
-      });
+      const nodes = (jsonNode as JsonBlueValue[]).map((item: JsonBlueValue) =>
+        this.prepareStorageNode(
+          NodeDeserializer.deserialize(item),
+          preprocessor,
+        ),
+      );
       blueId = BlueIdCalculator.calculateBlueIdSync(nodes);
       resultContent = nodes.map((node) => NodeToMapListOrValue.get(node));
     } else {
       const node = NodeDeserializer.deserialize(jsonNode);
-      const processedNode = preprocessor(node);
+      const processedNode = this.prepareStorageNode(node, preprocessor);
       blueId = BlueIdCalculator.calculateBlueIdSync(processedNode);
       resultContent = NodeToMapListOrValue.get(processedNode);
     }
@@ -55,7 +60,7 @@ export class NodeContentHandler {
     node: BlueNode,
     preprocessor: (node: BlueNode) => BlueNode,
   ): ParsedContent {
-    const preprocessedNode = preprocessor(node);
+    const preprocessedNode = this.prepareStorageNode(node, preprocessor);
     const blueId = BlueIdCalculator.calculateBlueIdSync(preprocessedNode);
     const jsonNode = NodeToMapListOrValue.get(preprocessedNode);
 
@@ -70,7 +75,9 @@ export class NodeContentHandler {
       throw new Error('List of nodes cannot be null or empty');
     }
 
-    const preprocessedNodes = nodes.map(preprocessor);
+    const preprocessedNodes = nodes.map((node) =>
+      this.prepareStorageNode(node, preprocessor),
+    );
     const blueId = BlueIdCalculator.calculateBlueIdSync(preprocessedNodes);
     const jsonNodes = preprocessedNodes.map((node) =>
       NodeToMapListOrValue.get(node),
@@ -78,6 +85,16 @@ export class NodeContentHandler {
     const isMultipleDocuments = nodes.length > 1;
 
     return new ParsedContent(blueId, jsonNodes, isMultipleDocuments);
+  }
+
+  private static prepareStorageNode(
+    node: BlueNode,
+    preprocessor: (node: BlueNode) => BlueNode,
+  ): BlueNode {
+    StorageShapeValidator.validateNoMixedReferencePayload(node);
+    const preprocessedNode = preprocessor(node);
+    StorageShapeValidator.validateNoMixedReferencePayload(preprocessedNode);
+    return this.minimizer.minimize(preprocessedNode);
   }
 
   public static resolveThisReferences(
