@@ -110,6 +110,14 @@ nested:
     expect(blue.calculateBlueIdSync(limitedResolved)).toBe(
       blue.calculateBlueIdSync(fullResolved),
     );
+    const limitedResolvedMetadata = limitedResolved as unknown as {
+      getCompleteness(): string;
+      getSourceSemanticBlueId(): string | undefined;
+    };
+    expect(limitedResolvedMetadata.getCompleteness()).toBe('path-limited');
+    expect(limitedResolvedMetadata.getSourceSemanticBlueId()).toBe(
+      blue.calculateBlueIdSync(source),
+    );
   });
 
   it('rejects mixed blueId plus payload in storage or authoring ingest', () => {
@@ -121,6 +129,50 @@ nested:
     const yaml = fixture.input.value;
 
     expect(() => provider.addSingleDocs(yaml)).toThrow(/ambiguous blueId/i);
+  });
+
+  it('stores provider content under the same semantic BlueId as the public API', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: Base
+x: 1
+y: 2
+`);
+
+    const baseId = provider.getBlueIdByName('Base');
+    const blue = new Blue({ nodeProvider: provider });
+    const child = blue.yamlToNode(`
+name: Child
+type:
+  blueId: ${baseId}
+x: 1
+z: 3
+`);
+
+    const publicId = blue.calculateBlueIdSync(child);
+
+    provider.addSingleNodes(child);
+    const providerId = provider.getBlueIdByName('Child');
+    const fetched = provider.fetchByBlueId(providerId);
+
+    expect(providerId).toBe(publicId);
+    expect(fetched).toHaveLength(1);
+    expect(fetched?.[0].getProperties()?.x).toBeUndefined();
+    expect(blue.calculateBlueIdSync(blue.resolve(fetched![0]))).toBe(publicId);
+  });
+
+  it('does not collapse untrusted blueId plus payload during minimization', () => {
+    const blue = new Blue();
+    const untrustedRuntimeNode = NodeDeserializer.deserialize({
+      blueId: 'UntrustedReferenceBlueId',
+      local: 'must-stay',
+    });
+
+    const minimal = blue.minimize(untrustedRuntimeNode);
+
+    expect(minimal.getBlueId()).toBe('UntrustedReferenceBlueId');
+    expect(minimal.get('/local/value')).toBe('must-stay');
   });
 });
 

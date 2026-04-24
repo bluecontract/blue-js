@@ -16,6 +16,11 @@ import {
   OBJECT_TYPE,
   OBJECT_VALUE,
   OBJECT_VALUE_TYPE,
+  TEXT_TYPE_BLUE_ID,
+  INTEGER_TYPE_BLUE_ID,
+  DOUBLE_TYPE_BLUE_ID,
+  BOOLEAN_TYPE_BLUE_ID,
+  LIST_TYPE_BLUE_ID,
 } from '../utils/Properties';
 
 type HashProvider = {
@@ -80,7 +85,15 @@ export class BlueIdHasher {
       return this.calculateInternal(value[OBJECT_VALUE], isSync);
     }
 
+    if (this.isBasicTypedScalarWrapper(value)) {
+      return this.calculateInternal(value[OBJECT_VALUE], isSync);
+    }
+
     if (this.isListWrapper(value)) {
+      return this.calculateInternal(value[OBJECT_ITEMS], isSync);
+    }
+
+    if (this.isBasicTypedListWrapper(value)) {
       return this.calculateInternal(value[OBJECT_ITEMS], isSync);
     }
 
@@ -294,6 +307,15 @@ export class BlueIdHasher {
     return entries.length === 1 && entries[0]?.[0] === OBJECT_VALUE;
   }
 
+  private isBasicTypedScalarWrapper(value: {
+    [key: string]: HashValue;
+  }): boolean {
+    return (
+      this.hasOnlyKeys(value, [OBJECT_TYPE, OBJECT_VALUE]) &&
+      this.isBasicScalarTypeReference(value[OBJECT_TYPE])
+    );
+  }
+
   private isListWrapper(value: { [key: string]: HashValue }): boolean {
     const entries = Object.entries(value);
     return (
@@ -301,6 +323,54 @@ export class BlueIdHasher {
       entries[0]?.[0] === OBJECT_ITEMS &&
       Array.isArray(entries[0]?.[1])
     );
+  }
+
+  private isBasicTypedListWrapper(value: {
+    [key: string]: HashValue;
+  }): boolean {
+    return (
+      this.hasOnlyKeys(value, [OBJECT_TYPE, OBJECT_ITEMS]) &&
+      this.isTypeReference(value[OBJECT_TYPE], LIST_TYPE_BLUE_ID) &&
+      Array.isArray(value[OBJECT_ITEMS])
+    );
+  }
+
+  private hasOnlyKeys(
+    value: { [key: string]: HashValue },
+    expectedKeys: string[],
+  ): boolean {
+    const keys = Object.keys(value);
+    return (
+      keys.length === expectedKeys.length &&
+      expectedKeys.every((key) =>
+        Object.prototype.hasOwnProperty.call(value, key),
+      )
+    );
+  }
+
+  private isBasicScalarTypeReference(value: HashValue | undefined): boolean {
+    return (
+      this.isTypeReference(value, TEXT_TYPE_BLUE_ID) ||
+      this.isTypeReference(value, INTEGER_TYPE_BLUE_ID) ||
+      this.isTypeReference(value, DOUBLE_TYPE_BLUE_ID) ||
+      this.isTypeReference(value, BOOLEAN_TYPE_BLUE_ID)
+    );
+  }
+
+  private isTypeReference(
+    value: HashValue | undefined,
+    blueId: string,
+  ): boolean {
+    if (
+      typeof value !== 'object' ||
+      value === null ||
+      Array.isArray(value) ||
+      isBigNumber(value)
+    ) {
+      return false;
+    }
+
+    return this.isPureReference(value) && value[OBJECT_BLUE_ID] === blueId;
   }
 
   private isScalar(value: unknown): value is HashScalar {

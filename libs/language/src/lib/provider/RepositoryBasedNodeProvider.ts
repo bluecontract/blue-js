@@ -5,6 +5,8 @@ import { JsonBlueValue } from '../../schema';
 import { BlueRepository } from '../types/BlueRepository';
 import { Preprocessor } from '../preprocess/Preprocessor';
 import { BlueIdsMappingGenerator } from '../preprocess/utils/BlueIdsMappingGenerator';
+import { SemanticStorageService } from '../identity/SemanticStorageService';
+import { NodeToMapListOrValue } from '../utils';
 import { BlueError, BlueErrorCode } from '../errors/BlueError';
 
 /**
@@ -14,7 +16,15 @@ import { BlueError, BlueErrorCode } from '../errors/BlueError';
 export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
+
+  // Repository contents can reference each other while the provider is still
+  // being built. These bootstrap maps are readable only during construction and
+  // are cleared once strict semantic storage keys have been verified.
+  private bootstrapBlueIdToContentMap: Map<string, JsonBlueValue> = new Map();
+  private bootstrapBlueIdToMultipleDocumentsMap: Map<string, boolean> =
+    new Map();
   private readonly preprocessor: (node: BlueNode) => BlueNode;
+  private readonly storageService: SemanticStorageService;
 
   constructor(repositories: BlueRepository[]) {
     super();
@@ -32,6 +42,9 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     });
     this.preprocessor = (node: BlueNode) =>
       defaultPreprocessor.preprocessWithDefaultBlue(node);
+    this.storageService = new SemanticStorageService({
+      nodeProvider: this,
+    });
 
     // Process all repository contents
     this.loadRepositories(repositories);
@@ -56,6 +69,16 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   }
 
   private loadRepositories(repositories: BlueRepository[]): void {
+    // First pass makes package-provided keys available so semantic resolve can
+    // follow intra-repository references while each content item is processed.
+    for (const repository of repositories) {
+      Object.values(repository.packages).forEach((pkg) => {
+        for (const [providedBlueId, content] of Object.entries(pkg.contents)) {
+          this.seedPreprocessedContent(providedBlueId, content);
+        }
+      });
+    }
+
     for (const repository of repositories) {
       Object.values(repository.packages).forEach((pkg) => {
         for (const [providedBlueId, content] of Object.entries(pkg.contents)) {
@@ -63,6 +86,38 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
         }
       });
     }
+
+    // After this point only semantic storage IDs remain externally fetchable.
+    this.bootstrapBlueIdToContentMap.clear();
+    this.bootstrapBlueIdToMultipleDocumentsMap.clear();
+  }
+
+  private seedPreprocessedContent(
+    providedBlueId: string,
+    content: JsonBlueValue,
+  ): void {
+    if (Array.isArray(content)) {
+      const preprocessed = content.map((item) =>
+        NodeToMapListOrValue.get(
+          this.preprocessor(NodeDeserializer.deserialize(item)),
+        ),
+      );
+      this.bootstrapBlueIdToContentMap.set(providedBlueId, preprocessed);
+      this.bootstrapBlueIdToMultipleDocumentsMap.set(
+        providedBlueId,
+        content.length > 1,
+      );
+      return;
+    }
+
+    const preprocessed = this.preprocessor(
+      NodeDeserializer.deserialize(content),
+    );
+    this.bootstrapBlueIdToContentMap.set(
+      providedBlueId,
+      NodeToMapListOrValue.get(preprocessed),
+    );
+    this.bootstrapBlueIdToMultipleDocumentsMap.set(providedBlueId, false);
   }
 
   private processContent(
@@ -84,18 +139,15 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNode(
       node,
       this.preprocessor,
+      this.storageService,
     );
 
-    const blueId = this.resolveProvidedBlueId(
-      parsedContent.blueId,
-      providedBlueId,
-    );
-    this.blueIdToContentMap.set(blueId, parsedContent.content);
-    this.blueIdToMultipleDocumentsMap.set(blueId, false);
+    this.assertProvidedBlueId(parsedContent.blueId, providedBlueId);
+    this.storeContent(parsedContent.blueId, parsedContent.content, false);
 
     const nodeName = node.getName();
     if (nodeName) {
-      this.addToNameMap(nodeName, blueId);
+      this.addToNameMap(nodeName, parsedContent.blueId);
     }
   }
 
@@ -111,19 +163,20 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
       nodes,
       (node) => node,
+      this.storageService,
     );
 
-    const blueId = this.resolveProvidedBlueId(
-      parsedContent.blueId,
-      providedBlueId,
-    );
-    this.blueIdToContentMap.set(blueId, parsedContent.content);
-    this.blueIdToMultipleDocumentsMap.set(blueId, true);
+    this.assertProvidedBlueId(parsedContent.blueId, providedBlueId);
+    this.storeContent(parsedContent.blueId, parsedContent.content, true);
 
     nodes.forEach((node, index) => {
-      const itemBlueId = `${blueId}#${index}`;
+      const itemBlueId = `${parsedContent.blueId}#${index}`;
       const itemParsedContent =
-        NodeContentHandler.parseAndCalculateBlueIdForNode(node, (n) => n);
+        NodeContentHandler.parseAndCalculateBlueIdForNode(
+          node,
+          (n) => n,
+          this.storageService,
+        );
       this.blueIdToContentMap.set(
         itemParsedContent.blueId,
         itemParsedContent.content,
@@ -140,9 +193,24 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   protected override fetchContentByBlueId(
     baseBlueId: string,
   ): JsonBlueValue | null {
-    const content = this.blueIdToContentMap.get(baseBlueId);
-    const isMultipleDocuments =
+    const finalContent = this.blueIdToContentMap.get(baseBlueId);
+    const finalIsMultipleDocuments =
       this.blueIdToMultipleDocumentsMap.get(baseBlueId);
+
+    if (finalContent !== undefined && finalIsMultipleDocuments !== undefined) {
+      return NodeContentHandler.resolveThisReferences(
+        finalContent,
+        baseBlueId,
+        finalIsMultipleDocuments,
+      );
+    }
+
+    // Bootstrap lookup is only populated during constructor-time processing.
+    // It is not a historical-ID compatibility path after loadRepositories()
+    // clears the maps.
+    const content = this.bootstrapBlueIdToContentMap.get(baseBlueId);
+    const isMultipleDocuments =
+      this.bootstrapBlueIdToMultipleDocumentsMap.get(baseBlueId);
 
     if (content !== undefined && isMultipleDocuments !== undefined) {
       return NodeContentHandler.resolveThisReferences(
@@ -153,6 +221,15 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     }
 
     return null;
+  }
+
+  private storeContent(
+    blueId: string,
+    content: JsonBlueValue,
+    isMultipleDocuments: boolean,
+  ): void {
+    this.blueIdToContentMap.set(blueId, content);
+    this.blueIdToMultipleDocumentsMap.set(blueId, isMultipleDocuments);
   }
 
   /**
@@ -170,29 +247,27 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     return this.blueIdToContentMap.has(baseBlueId);
   }
 
-  private resolveProvidedBlueId(
+  private assertProvidedBlueId(
     computedBlueId: string,
     providedBlueId?: string,
-  ): string {
+  ): void {
     if (providedBlueId === undefined) {
-      return computedBlueId;
+      return;
     }
 
     if (providedBlueId !== computedBlueId) {
       throw new BlueError(
         BlueErrorCode.BLUE_ID_MISMATCH,
-        `Provided BlueId '${providedBlueId}' does not match computed BlueId '${computedBlueId}'.`,
+        `Repository content key '${providedBlueId}' does not match semantic BlueId '${computedBlueId}'.`,
         [
           {
             code: BlueErrorCode.BLUE_ID_MISMATCH,
             message:
-              'Repository content BlueId does not match its computed semantic storage identity.',
+              'Repository contents must be keyed by the semantic BlueId of their minimal storage form.',
             context: { providedBlueId, computedBlueId },
           },
         ],
       );
     }
-
-    return providedBlueId;
   }
 }

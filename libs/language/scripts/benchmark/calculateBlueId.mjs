@@ -41,7 +41,7 @@ const node = nodeFromJson(testData);
 const runBenchmark = async () => {
   const durations = [];
 
-  console.log('Calculate BlueId benchmark configuration:');
+  console.log('Low-level hash BlueId benchmark configuration:');
   console.log(`- warmup iterations: ${config.warmupIterations}`);
   console.log(`- measured iterations: ${config.measuredIterations}`);
 
@@ -65,7 +65,7 @@ const runBenchmark = async () => {
   const timeStats = calculateStats(durations);
 
   console.log('\nSummary');
-  console.log(`- calculateBlueId time (ms): ${formatStats(timeStats)}`);
+  console.log(`- low-level hash time (ms): ${formatStats(timeStats)}`);
 
   const result = {
     createdAt: new Date().toISOString(),
@@ -77,7 +77,7 @@ const runBenchmark = async () => {
 
   await handleBaseline(result, baselineOptions, [
     {
-      label: 'calculateBlueId avg',
+      label: 'low-level hash avg',
       path: 'metrics.timeMs.avg',
       unit: 'ms',
     },

@@ -2,18 +2,33 @@ import { BlueNode } from './Node';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { Minimizer } from '../utils/Minimizer';
 
+export type ResolvedNodeCompleteness = 'full' | 'path-limited';
+
+export interface ResolvedBlueNodeMetadata {
+  completeness?: ResolvedNodeCompleteness;
+  sourceSemanticBlueId?: string;
+  expandedFromBlueId?: string;
+}
+
 /**
  * Represents a resolved BlueNode. This is a simple marker class that indicates
  * a node has been resolved through the merge process. The minimal/original
  * representation can be computed on demand using MergeReverser.
  */
 export class ResolvedBlueNode extends BlueNode {
+  private completeness: ResolvedNodeCompleteness;
+  private sourceSemanticBlueId?: string;
+  private expandedFromBlueId?: string;
+
   /**
    * Creates a new ResolvedBlueNode from a resolved BlueNode
    * @param resolvedNode - The fully resolved node after merge operations
    */
-  constructor(resolvedNode: BlueNode) {
+  constructor(resolvedNode: BlueNode, metadata: ResolvedBlueNodeMetadata = {}) {
     super(resolvedNode.getName());
+    this.completeness = metadata.completeness ?? 'full';
+    this.sourceSemanticBlueId = metadata.sourceSemanticBlueId;
+    this.expandedFromBlueId = metadata.expandedFromBlueId;
     this.createFrom(resolvedNode);
   }
 
@@ -33,7 +48,7 @@ export class ResolvedBlueNode extends BlueNode {
    */
   public getMinimalNode(): BlueNode {
     const minimizer = new Minimizer();
-    return minimizer.minimize(this);
+    return minimizer.minimizeResolved(this);
   }
 
   public getMinimalBlueId(): string {
@@ -47,7 +62,7 @@ export class ResolvedBlueNode extends BlueNode {
    */
   public override clone(): ResolvedBlueNode {
     const clonedBase = super.clone();
-    return new ResolvedBlueNode(clonedBase);
+    return new ResolvedBlueNode(clonedBase, this.getMetadata());
   }
 
   /**
@@ -57,7 +72,37 @@ export class ResolvedBlueNode extends BlueNode {
    */
   public override cloneShallow(): ResolvedBlueNode {
     const clonedBase = super.cloneShallow();
-    return new ResolvedBlueNode(clonedBase);
+    return new ResolvedBlueNode(clonedBase, this.getMetadata());
+  }
+
+  public getCompleteness(): ResolvedNodeCompleteness {
+    return this.completeness;
+  }
+
+  public getSourceSemanticBlueId(): string | undefined {
+    return this.sourceSemanticBlueId;
+  }
+
+  public setSourceSemanticBlueId(blueId: string | undefined): this {
+    this.sourceSemanticBlueId = blueId;
+    return this;
+  }
+
+  public getExpandedFromBlueId(): string | undefined {
+    return this.expandedFromBlueId;
+  }
+
+  public setExpandedFromBlueId(blueId: string | undefined): this {
+    this.expandedFromBlueId = blueId;
+    return this;
+  }
+
+  private getMetadata(): ResolvedBlueNodeMetadata {
+    return {
+      completeness: this.completeness,
+      sourceSemanticBlueId: this.sourceSemanticBlueId,
+      expandedFromBlueId: this.expandedFromBlueId,
+    };
   }
 
   /**

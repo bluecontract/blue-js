@@ -9,6 +9,7 @@ describe('Merger with Limits', () => {
   let nodeProvider: BasicNodeProvider;
   let merger: Merger;
   let mergingProcessor: MergingProcessor;
+  let derivedNode: BlueNode;
 
   beforeEach(() => {
     // Simple merging processor that just copies values
@@ -34,7 +35,8 @@ y:
     baseExtra: baseAdditional
     value: base`);
 
-    nodeProvider.addSingleDocs(`
+    derivedNode = NodeDeserializer.deserialize(
+      yamlBlueParse(`
 name: DerivedType
 type:
   blueId: ${nodeProvider.getBlueIdByName('BaseType')}
@@ -43,34 +45,13 @@ y:
   z: 20
   nested:
     value: derived
-    extra: additional`);
-
-    nodeProvider.addSingleDocs(`
-name: ComplexType
-items:
-  - name: Item1
-    value: 1
-  - name: Item2
-    value: 2
-properties:
-  a:
-    type:
-      blueId: ${nodeProvider.getBlueIdByName('BaseType')}
-    x: 100
-  b:
-    name: PropB
-    data: test`);
+    extra: additional`)!,
+    );
 
     merger = new Merger(mergingProcessor, nodeProvider);
   });
 
   test('should handle type extension with limits', async () => {
-    const derivedNode = nodeProvider.findNodeByName('DerivedType');
-
-    if (!derivedNode) {
-      throw new Error('Derived node not found');
-    }
-
     // Only allow merging specific paths from the type
     const limits = new PathLimitsBuilder()
       .addPath('/x')

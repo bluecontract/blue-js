@@ -70,7 +70,7 @@ const runBenchmark = async () => {
   const cloneShallowCounts = [];
   const cloneTotalCounts = [];
 
-  console.log('Snapshot patch placeholder benchmark configuration:');
+  console.log('Patch-then-full-resolve benchmark configuration:');
   console.log(`- warmup iterations: ${config.warmupIterations}`);
   console.log(`- measured iterations: ${config.measuredIterations}`);
   console.log(`- object properties: ${config.objectPropertyCount}`);
@@ -117,9 +117,7 @@ const runBenchmark = async () => {
   const cloneTotalStats = calculateStats(cloneTotalCounts);
 
   console.log('\nSummary');
-  console.log(
-    `- snapshot patch placeholder time (ms): ${formatStats(timeStats)}`,
-  );
+  console.log(`- patch-then-full-resolve time (ms): ${formatStats(timeStats)}`);
   console.log(
     `- clone() calls: avg=${cloneStats.avg.toFixed(2)} min=${cloneStats.min} max=${cloneStats.max}`,
   );
@@ -146,7 +144,7 @@ const runBenchmark = async () => {
 
   await handleBaseline(result, baselineOptions, [
     {
-      label: 'snapshot patch placeholder avg',
+      label: 'patch-then-full-resolve avg',
       path: 'metrics.timeMs.avg',
       unit: 'ms',
     },

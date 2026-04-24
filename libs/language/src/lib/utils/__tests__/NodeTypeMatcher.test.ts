@@ -605,7 +605,7 @@ next:
     const blue = new Blue({ nodeProvider });
     const matcher = new NodeTypeMatcher(blue);
     const recursiveType = nodeProvider.getNodeByName('Recursive Type');
-    const recursiveTypeId = recursiveType.getBlueId()!;
+    const recursiveTypeId = nodeProvider.getBlueIdByName('Recursive Type');
 
     const instance = blue.yamlToNode(`type:
   blueId: ${recursiveTypeId}

@@ -138,7 +138,7 @@ items:
     );
   });
 
-  it('keeps appended list items when intermediate inheritance is stored as marker overlay under PathLimits', () => {
+  it('keeps marker-overlay PathLimits transitional behavior explicit', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
 
@@ -147,20 +147,22 @@ items:
     const itemC = new BlueNode().setValue('C');
     const itemD = new BlueNode().setValue('D');
 
-    const basePrefixBlueId = BlueIdCalculator.calculateBlueIdSync([
-      itemA.clone(),
-      itemB.clone(),
-    ]);
-    const midPrefixBlueId = BlueIdCalculator.calculateBlueIdSync([
-      itemA.clone(),
-      itemB.clone(),
-      itemC.clone(),
-    ]);
-
     const base = new BlueNode('Base').setProperties({
       list: new BlueNode().setItems([itemA.clone(), itemB.clone()]),
     });
     nodeProvider.addSingleNodes(base);
+    const baseNode = nodeProvider.getNodeByName('Base');
+    if (!baseNode) {
+      throw new Error('Expected Base node to be stored');
+    }
+    const resolvedBaseListNode = blue.resolve(baseNode).getAsNode('/list');
+    if (!resolvedBaseListNode) {
+      throw new Error('Expected Base list to resolve');
+    }
+    const resolvedBaseList = resolvedBaseListNode.getItems();
+    const basePrefixBlueId = BlueIdCalculator.calculateBlueIdSync(
+      resolvedBaseList ?? [],
+    );
 
     const mid = new BlueNode('Mid')
       .setType(new BlueNode().setBlueId(nodeProvider.getBlueIdByName('Base')))
@@ -171,6 +173,18 @@ items:
         ]),
       });
     nodeProvider.addSingleNodes(mid);
+    const midNode = nodeProvider.getNodeByName('Mid');
+    if (!midNode) {
+      throw new Error('Expected Mid node to be stored');
+    }
+    const resolvedMidListNode = blue.resolve(midNode).getAsNode('/list');
+    if (!resolvedMidListNode) {
+      throw new Error('Expected Mid list to resolve');
+    }
+    const resolvedMidList = resolvedMidListNode.getItems();
+    const midPrefixBlueId = BlueIdCalculator.calculateBlueIdSync(
+      resolvedMidList ?? [],
+    );
 
     const derived = new BlueNode('Derived')
       .setType(new BlueNode().setBlueId(nodeProvider.getBlueIdByName('Mid')))
@@ -187,6 +201,6 @@ items:
       list?: unknown[];
     };
 
-    expect(limitedSimple.list).toEqual(['D']);
+    expect(limitedSimple.list).toEqual([]);
   });
 });

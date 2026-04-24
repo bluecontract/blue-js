@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { BasicNodeProvider } from '../BasicNodeProvider';
 import { BlueNode, NodeDeserializer } from '../../model';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
-import { BlueIdCalculator } from '../../utils';
+import { Blue } from '../../Blue';
+import { InMemoryNodeProvider } from '../InMemoryNodeProvider';
+import { BlueErrorCode } from '../../errors/BlueError';
 
 describe('BasicNodeProvider', () => {
   it('should handle single nodes', () => {
@@ -59,9 +61,12 @@ type: Text`;
     const listNode = new BlueNode().setItems(items);
 
     const provider = new BasicNodeProvider([listNode]);
+    const blue = new Blue({ nodeProvider: provider });
 
     // Items should be accessible by their name with #index
-    const listBlueId = BlueIdCalculator.calculateBlueIdSync(items);
+    const listBlueId = blue.calculateBlueIdSync(
+      items.map((item) => blue.preprocess(item)),
+    );
     const foundItems = provider.fetchByBlueId(listBlueId);
     expect(foundItems).toHaveLength(2);
 
@@ -91,8 +96,9 @@ type: Text`;
   it('should fetch by Blue ID', () => {
     const node = new BlueNode('TestBlueId').setValue('test');
     const provider = new BasicNodeProvider([node]);
+    const blue = new Blue({ nodeProvider: provider });
 
-    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+    const blueId = blue.calculateBlueIdSync(blue.preprocess(node));
     const fetched = provider.fetchByBlueId(blueId);
 
     expect(fetched).toHaveLength(1);
@@ -126,6 +132,41 @@ value: this`;
 
     expect(() => provider.getBlueIdByName('NonExistent')).toThrow(
       'No node with name "NonExistent"',
+    );
+  });
+
+  it('rejects content whose semantic storage resolve fails', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+name: InvalidTypedNode
+type:
+  blueId: MissingTypeBlueId
+`),
+    ).toThrow(/MissingTypeBlueId/);
+  });
+
+  it('rejects root blueId plus payload during ingest', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+blueId: ExistingReferenceBlueId
+name: AmbiguousRoot
+`),
+    ).toThrow(/Ambiguous blueId plus payload at \//);
+  });
+});
+
+describe('InMemoryNodeProvider', () => {
+  it('rejects provided BlueIds that do not match semantic storage identity', () => {
+    const provider = new InMemoryNodeProvider();
+
+    expect(() =>
+      provider.addNodeWithBlueId('WrongBlueId', new BlueNode('MemoryNode')),
+    ).toThrow(
+      expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
     );
   });
 });

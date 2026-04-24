@@ -1,6 +1,7 @@
 import { BlueNode } from '../model';
 import { NodeProvider } from '../NodeProvider';
 import { BlueIdCalculator } from './BlueIdCalculator';
+import { Nodes } from './Nodes';
 import {
   TEXT_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
@@ -13,6 +14,20 @@ import {
   CORE_TYPE_BLUE_IDS,
   CORE_TYPE_BLUE_ID_TO_NAME_MAP,
 } from './Properties';
+
+const SUBTYPE_CACHE = Symbol('blue.subtypeCache');
+
+export interface SubtypeCacheProvider extends NodeProvider {
+  [SUBTYPE_CACHE]?: Map<string, boolean>;
+}
+
+export function attachSubtypeCache(
+  nodeProvider: NodeProvider,
+  cache: Map<string, boolean>,
+): NodeProvider {
+  (nodeProvider as SubtypeCacheProvider)[SUBTYPE_CACHE] = cache;
+  return nodeProvider;
+}
 
 /**
  * Gets the type of a node, resolving it from the node provider if necessary
@@ -51,7 +66,7 @@ function getType(
         `Expected a single node for type with blueId '${typeBlueId}', but found multiple.`,
       );
     }
-    return typeNodes[0];
+    return typeNodes[0].cloneShallow().setBlueId(typeBlueId);
   }
 
   return type;
@@ -65,9 +80,125 @@ export function isSubtype(
   supertype: BlueNode,
   nodeProvider: NodeProvider,
 ): boolean {
-  const subtypeBlueId = BlueIdCalculator.calculateBlueIdSync(subtype);
-  const supertypeBlueId = BlueIdCalculator.calculateBlueIdSync(supertype);
+  const subtypeBlueId = calculateStructuralTypeBlueId(subtype);
+  const supertypeBlueId = calculateStructuralTypeBlueId(supertype);
+  const subtypeCache = (nodeProvider as SubtypeCacheProvider)[SUBTYPE_CACHE];
+  const cacheKey = `${subtypeBlueId}|${supertypeBlueId}`;
+  const cached = subtypeCache?.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
 
+  const result = isSubtypeUncached(
+    subtype,
+    supertype,
+    nodeProvider,
+    subtypeBlueId,
+    supertypeBlueId,
+  );
+  subtypeCache?.set(cacheKey, result);
+  return result;
+}
+
+function calculateStructuralTypeBlueId(node: BlueNode): string {
+  const referenceBlueId = node.getReferenceBlueId();
+  if (referenceBlueId !== undefined) {
+    return referenceBlueId;
+  }
+
+  return BlueIdCalculator.calculateBlueIdSync(
+    normalizeMaterializedReferences(node),
+  );
+}
+
+function normalizeMaterializedReferences(node: BlueNode): BlueNode {
+  if (!hasMaterializedReference(node)) {
+    return node;
+  }
+
+  const normalized = node.cloneShallow();
+  if (
+    normalized.getReferenceBlueId() !== undefined &&
+    !Nodes.hasBlueIdOnly(normalized)
+  ) {
+    normalized.setReferenceBlueId(undefined);
+  }
+
+  const type = normalized.getType();
+  if (type !== undefined) {
+    normalized.setType(normalizeMaterializedReferences(type));
+  }
+
+  const itemType = normalized.getItemType();
+  if (itemType !== undefined) {
+    normalized.setItemType(normalizeMaterializedReferences(itemType));
+  }
+
+  const keyType = normalized.getKeyType();
+  if (keyType !== undefined) {
+    normalized.setKeyType(normalizeMaterializedReferences(keyType));
+  }
+
+  const valueType = normalized.getValueType();
+  if (valueType !== undefined) {
+    normalized.setValueType(normalizeMaterializedReferences(valueType));
+  }
+
+  const blue = normalized.getBlue();
+  if (blue !== undefined) {
+    normalized.setBlue(normalizeMaterializedReferences(blue));
+  }
+
+  const items = normalized.getItems();
+  if (items !== undefined) {
+    normalized.setItems(
+      items.map((item) => normalizeMaterializedReferences(item)),
+    );
+  }
+
+  const properties = normalized.getProperties();
+  if (properties !== undefined) {
+    normalized.setProperties(
+      Object.fromEntries(
+        Object.entries(properties).map(([key, value]) => [
+          key,
+          normalizeMaterializedReferences(value),
+        ]),
+      ),
+    );
+  }
+
+  return normalized;
+}
+
+function hasMaterializedReference(node: BlueNode): boolean {
+  if (node.getReferenceBlueId() !== undefined && !Nodes.hasBlueIdOnly(node)) {
+    return true;
+  }
+
+  const children = [
+    node.getType(),
+    node.getItemType(),
+    node.getKeyType(),
+    node.getValueType(),
+    node.getBlue(),
+    ...(node.getItems() ?? []),
+    ...Object.values(node.getProperties() ?? {}),
+  ];
+
+  return children.some(
+    (child): child is BlueNode =>
+      child !== undefined && hasMaterializedReference(child),
+  );
+}
+
+function isSubtypeUncached(
+  subtype: BlueNode,
+  supertype: BlueNode,
+  nodeProvider: NodeProvider,
+  subtypeBlueId: string,
+  supertypeBlueId: string,
+): boolean {
   if (subtypeBlueId === supertypeBlueId) {
     return true;
   }
@@ -81,7 +212,7 @@ export function isSubtype(
   ) {
     let current: BlueNode | undefined = supertype;
     while (current !== undefined) {
-      const currentBlueId = BlueIdCalculator.calculateBlueIdSync(current);
+      const currentBlueId = calculateStructuralTypeBlueId(current);
       if (currentBlueId === subtypeBlueId) {
         return true;
       }
@@ -105,7 +236,7 @@ export function isSubtype(
   // Walk up the type hierarchy from the resolved subtype to see if it extends supertype
   let current: BlueNode | undefined = resolvedSubtype;
   while (current !== undefined) {
-    const blueId = BlueIdCalculator.calculateBlueIdSync(current);
+    const blueId = calculateStructuralTypeBlueId(current);
     if (blueId === supertypeBlueId) {
       return true;
     }

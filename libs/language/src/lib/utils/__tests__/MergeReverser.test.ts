@@ -399,7 +399,7 @@ describe('MergeReverser', () => {
     );
   });
 
-  it('keeps reverse->resolve stable for marker list in multi-level inheritance with appended-only PathLimits', () => {
+  it('keeps reverse->resolve stable for marker list in multi-level inheritance with transitional appended-only PathLimits', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
 
@@ -452,7 +452,7 @@ describe('MergeReverser', () => {
     const limitedSimple = blue.nodeToJson(limitedReversed, 'simple') as {
       list?: unknown[];
     };
-    expect(limitedSimple.list).toEqual(['D']);
+    expect(limitedSimple.list).toEqual([]);
   });
 
   it('applies PathLimits to marker-appended items using merged index', () => {

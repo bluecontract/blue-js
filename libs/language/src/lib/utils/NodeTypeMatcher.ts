@@ -25,14 +25,19 @@ export class NodeTypeMatcher {
     const comparisonTargetType =
       this.expandSchemaOwnedTypeReferences(targetType);
 
+    const valuesMatch = this.recursiveValueComparison(
+      resolvedNode,
+      resolvedType,
+      comparisonTargetType,
+      compositeLimits,
+    );
+    if (!valuesMatch) {
+      return false;
+    }
+
     return (
-      this.verifyMatch(resolvedNode, targetType, compositeLimits) &&
-      this.recursiveValueComparison(
-        resolvedNode,
-        resolvedType,
-        comparisonTargetType,
-        compositeLimits,
-      )
+      this.verifyMatch(resolvedNode, targetType, compositeLimits) ||
+      targetType.getType() === undefined
     );
   }
 
@@ -162,7 +167,11 @@ export class NodeTypeMatcher {
       if (this.isExplicitBlueIdMatcher(comparisonTargetType)) {
         const nodeBlueId = node.getBlueId();
         const nodeTypeBlueId = node.getType()?.getBlueId();
-        if (nodeBlueId !== targetBlueId && nodeTypeBlueId !== targetBlueId) {
+        if (
+          nodeBlueId !== targetBlueId &&
+          nodeTypeBlueId !== targetBlueId &&
+          !this.matchesCalculatedBlueId(node, targetBlueId)
+        ) {
           return false;
         }
       } else {
@@ -186,6 +195,19 @@ export class NodeTypeMatcher {
           return false;
         }
       }
+    }
+
+    const nodeBlueId = node.getBlueId();
+    if (
+      !isImplicitStructureMatch &&
+      targetBlueId === undefined &&
+      nodeBlueId !== undefined &&
+      node.getType() === undefined &&
+      targetType.getItems() === undefined &&
+      this.hasMatcherShape(targetType) &&
+      !this.matchesCalculatedBlueId(targetType, nodeBlueId)
+    ) {
+      return false;
     }
 
     const targetValue = targetType.getValue();
@@ -342,6 +364,26 @@ export class NodeTypeMatcher {
     }
 
     return false;
+  }
+
+  private hasMatcherShape(node: BlueNode): boolean {
+    return (
+      node.getValue() !== undefined ||
+      node.getType() !== undefined ||
+      node.getItemType() !== undefined ||
+      node.getKeyType() !== undefined ||
+      node.getValueType() !== undefined ||
+      node.getItems() !== undefined ||
+      node.getProperties() !== undefined
+    );
+  }
+
+  private matchesCalculatedBlueId(node: BlueNode, blueId: string): boolean {
+    try {
+      return this.blue.calculateBlueIdSync(node) === blueId;
+    } catch {
+      return false;
+    }
   }
 
   /**

@@ -10,12 +10,18 @@ import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { PathLimits } from '../utils/limits/PathLimits';
 import { NoLimits } from '../utils/limits';
 import { Nodes } from '../utils/Nodes';
+import { attachSubtypeCache } from '../utils/NodeTypes';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 
 interface ResolutionContext {
   limits: Limits;
   nodeProvider: NodeProvider;
   resolvedTypeCache: Map<string, ResolvedBlueNode>;
+  typeOverlayCache: Map<string, BlueNode>;
+  nodeHashCache: WeakMap<BlueNode, string>;
+  nodeListHashCache: WeakMap<BlueNode[], string>;
+  providerFetchCache: Map<string, BlueNode[] | null>;
+  subtypeCache: Map<string, boolean>;
   inheritedItemsPrefixByPath: Map<string, { blueId: string; length: number }>;
   pathStack: string[];
 }
@@ -69,14 +75,11 @@ export class Merger extends NodeResolver {
 
     if (isNonNullable(typeNode)) {
       const resolvedType = this.resolveTypeNode(typeNode, context);
-      const typeOverlay = resolvedType
-        .clone()
-        .setType(undefined)
-        .setBlueId(undefined);
+      const typeOverlay = this.getTypeOverlay(typeNode, resolvedType, context);
       newTarget = this.mergeObject(newTarget, typeOverlay, context);
       const sourceWithResolvedType = source
         .cloneShallow()
-        .setType(resolvedType.clone());
+        .setType(resolvedType);
       return this.mergeObject(newTarget, sourceWithResolvedType, context);
     }
     return this.mergeObject(newTarget, source, context);
@@ -151,6 +154,7 @@ export class Merger extends NodeResolver {
     this.rememberInheritedItemsPrefix(
       sourceChildren,
       inheritedItemsPrefixLength,
+      targetChildren ?? [],
       context,
     );
 
@@ -209,11 +213,13 @@ export class Merger extends NodeResolver {
           newTargetChildren.push(resolvedAppendedChild);
           continue;
         }
-        const sourceBlueId = BlueIdCalculator.calculateBlueIdSync(
+        const sourceBlueId = this.calculateNodeBlueId(
           sourceChildren[i],
+          context,
         );
-        const targetBlueId = BlueIdCalculator.calculateBlueIdSync(
+        const targetBlueId = this.calculateNodeBlueId(
           newTargetChildren[i],
+          context,
         );
         if (sourceBlueId !== targetBlueId) {
           throw new Error(
@@ -246,8 +252,10 @@ export class Merger extends NodeResolver {
 
     let inheritedItemsPrefixLength: number | undefined;
     if (targetChildren.length > 0) {
-      const inheritedItemsBlueId =
-        BlueIdCalculator.calculateBlueIdSync(targetChildren);
+      const inheritedItemsBlueId = this.calculateNodeListBlueId(
+        targetChildren,
+        context,
+      );
       if (firstSourceBlueId === inheritedItemsBlueId) {
         inheritedItemsPrefixLength = targetChildren.length;
       }
@@ -284,6 +292,7 @@ export class Merger extends NodeResolver {
   private rememberInheritedItemsPrefix(
     sourceChildren: BlueNode[],
     inheritedItemsPrefixLength: number | undefined,
+    targetChildren: BlueNode[],
     context: ResolutionContext,
   ): void {
     const pointer = this.getCurrentPointer(context);
@@ -304,8 +313,15 @@ export class Merger extends NodeResolver {
       return;
     }
 
+    const prefixChildren =
+      isMarkerEncodedSource && isNonNullable(inheritedItemsPrefixLength)
+        ? [
+            ...targetChildren.slice(0, inheritedItemsPrefixLength),
+            ...sourceChildren.slice(1),
+          ]
+        : sourceChildren;
     const nextPrefix = {
-      blueId: BlueIdCalculator.calculateBlueIdSync(sourceChildren),
+      blueId: this.calculateNodeListBlueId(prefixChildren, context),
       length: fullSourceLength,
     };
     const currentPrefix = context.inheritedItemsPrefixByPath.get(pointer);
@@ -455,19 +471,34 @@ export class Merger extends NodeResolver {
     const resultNode = new BlueNode();
     const mergedNode = this.mergeWithContext(resultNode, node, context);
     const finalNode = mergedNode
-      .clone()
+      .cloneShallow()
       .setName(node.getName())
       .setDescription(node.getDescription())
       .setBlueId(node.getBlueId());
 
-    return new ResolvedBlueNode(finalNode);
+    return new ResolvedBlueNode(finalNode, {
+      completeness:
+        context.limits instanceof NoLimits ? 'full' : 'path-limited',
+    });
   }
 
   private createResolutionContext(limits: Limits): ResolutionContext {
+    const providerFetchCache = new Map<string, BlueNode[] | null>();
+    const subtypeCache = new Map<string, boolean>();
+    const cachedProvider = attachSubtypeCache(
+      this.createResolutionNodeProvider(this.nodeProvider, providerFetchCache),
+      subtypeCache,
+    );
+
     return {
       limits,
-      nodeProvider: this.nodeProvider,
+      nodeProvider: cachedProvider,
       resolvedTypeCache: new Map<string, ResolvedBlueNode>(),
+      typeOverlayCache: new Map<string, BlueNode>(),
+      nodeHashCache: new WeakMap<BlueNode, string>(),
+      nodeListHashCache: new WeakMap<BlueNode[], string>(),
+      providerFetchCache,
+      subtypeCache,
       inheritedItemsPrefixByPath: new Map<
         string,
         { blueId: string; length: number }
@@ -511,6 +542,31 @@ export class Merger extends NodeResolver {
     return this.resolveWithContext(clonedTypeNode, context);
   }
 
+  private getTypeOverlay(
+    typeNode: BlueNode,
+    resolvedType: ResolvedBlueNode,
+    context: ResolutionContext,
+  ): BlueNode {
+    const typeBlueId = typeNode.getBlueId();
+    if (isNullable(typeBlueId)) {
+      return this.createTypeOverlay(resolvedType);
+    }
+
+    const cacheKey = this.createResolvedTypeCacheKey(typeBlueId, context);
+    const cachedOverlay = context.typeOverlayCache.get(cacheKey);
+    if (isNonNullable(cachedOverlay)) {
+      return cachedOverlay;
+    }
+
+    const typeOverlay = this.createTypeOverlay(resolvedType);
+    context.typeOverlayCache.set(cacheKey, typeOverlay);
+    return typeOverlay;
+  }
+
+  private createTypeOverlay(resolvedType: ResolvedBlueNode): BlueNode {
+    return resolvedType.cloneShallow().setType(undefined).setBlueId(undefined);
+  }
+
   private createResolvedTypeCacheKey(
     typeBlueId: string,
     context: ResolutionContext,
@@ -533,6 +589,51 @@ export class Merger extends NodeResolver {
 
   private canReuseResolvedSubtree(context: ResolutionContext): boolean {
     return context.limits instanceof NoLimits;
+  }
+
+  private calculateNodeBlueId(
+    node: BlueNode,
+    context: ResolutionContext,
+  ): string {
+    const cachedBlueId = context.nodeHashCache.get(node);
+    if (isNonNullable(cachedBlueId)) {
+      return cachedBlueId;
+    }
+
+    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+    context.nodeHashCache.set(node, blueId);
+    return blueId;
+  }
+
+  private calculateNodeListBlueId(
+    nodes: BlueNode[],
+    context: ResolutionContext,
+  ): string {
+    const cachedBlueId = context.nodeListHashCache.get(nodes);
+    if (isNonNullable(cachedBlueId)) {
+      return cachedBlueId;
+    }
+
+    const blueId = BlueIdCalculator.calculateBlueIdSync(nodes);
+    context.nodeListHashCache.set(nodes, blueId);
+    return blueId;
+  }
+
+  private createResolutionNodeProvider(
+    nodeProvider: NodeProvider,
+    cache: Map<string, BlueNode[] | null>,
+  ): NodeProvider {
+    return new (class extends NodeProvider {
+      override fetchByBlueId(blueId: string): BlueNode[] | null {
+        if (cache.has(blueId)) {
+          return cache.get(blueId) ?? null;
+        }
+
+        const nodes = nodeProvider.fetchByBlueId(blueId);
+        cache.set(blueId, nodes);
+        return nodes;
+      }
+    })();
   }
 
   private getCurrentPointer(context: ResolutionContext): string {

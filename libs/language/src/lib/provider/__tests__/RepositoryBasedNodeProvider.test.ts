@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RepositoryBasedNodeProvider } from '../RepositoryBasedNodeProvider';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
+import { BlueErrorCode } from '../../errors/BlueError';
 
 describe('RepositoryBasedNodeProvider', () => {
   it('does not map historical BlueIds automatically', () => {
@@ -44,6 +45,87 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(provider.hasBlueId(currentId)).toBe(true);
     const fetched = provider.fetchByBlueId(currentId);
     expect(fetched?.[0]?.getBlueId()).toBeUndefined();
+  });
+
+  it('does not expose historical version BlueIds as repository storage keys', () => {
+    const historicalId = 'historical-type-id';
+    const typeNode = new BlueNode('VersionedType');
+    const currentId = BlueIdCalculator.calculateBlueIdSync(typeNode);
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0', 'R1'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: { 'test/VersionedType': currentId },
+          typesMeta: {
+            [currentId]: {
+              status: 'stable' as const,
+              name: 'VersionedType',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: historicalId,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: currentId,
+                  attributesAdded: [],
+                },
+              ],
+            },
+          },
+          contents: {
+            [currentId]: NodeToMapListOrValue.get(typeNode),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+
+    expect(provider.hasBlueId(historicalId)).toBe(false);
+    expect(provider.fetchByBlueId(historicalId)).toBeNull();
+    expect(provider.hasBlueId(currentId)).toBe(true);
+  });
+
+  it('rejects repository content keys that do not match semantic BlueIds', () => {
+    const typeNode = new BlueNode('StrictType');
+    const semanticId = BlueIdCalculator.calculateBlueIdSync(typeNode);
+    const wrongId = 'wrong-repository-content-id';
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: { 'test/StrictType': semanticId },
+          typesMeta: {
+            [semanticId]: {
+              status: 'stable' as const,
+              name: 'StrictType',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: semanticId,
+                  attributesAdded: [],
+                },
+              ],
+            },
+          },
+          contents: {
+            [wrongId]: NodeToMapListOrValue.get(typeNode),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    expect(() => new RepositoryBasedNodeProvider([repository])).toThrow(
+      expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
+    );
   });
 
   it('indexes names for new-style repositories', () => {

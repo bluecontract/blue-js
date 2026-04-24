@@ -127,6 +127,13 @@ export class MergeReverser {
     const hasAppendedItems =
       isNonNullable(fromTypeItems) && mergedItems.length > fromTypeItems.length;
 
+    if (mergedItems.length === 0) {
+      if (isNullable(fromTypeItems) || fromTypeItems.length > 0) {
+        minimal.setItems([]);
+      }
+      return;
+    }
+
     if (
       hasAppendedItems &&
       isNonNullable(fromTypeItems) &&

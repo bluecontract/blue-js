@@ -45,6 +45,21 @@ export const readEnum = (name, allowedValues, fallback) => {
   return normalized;
 };
 
+export const readNonNegativeFloat = (name, fallback) => {
+  const raw = process.env[name];
+  if (raw === undefined) {
+    return fallback;
+  }
+
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(
+      `Expected ${name} to be a non-negative number, got: ${raw}`,
+    );
+  }
+  return parsed;
+};
+
 export const createBaselineOptions = (defaultFilePath) => ({
   filePath: process.env.BENCH_BASELINE_FILE ?? defaultFilePath,
   save: readBooleanFlag('BENCH_SAVE_BASELINE'),
@@ -118,6 +133,18 @@ export const compareWithBaseline = async (
           2,
         )}${suffix} (${calculatePercentDelta(currentValue, baselineValue)})`,
       );
+
+      if (comparison.maxRegressionPercent !== undefined && baselineValue > 0) {
+        const percentDelta =
+          ((currentValue - baselineValue) / baselineValue) * 100;
+        if (percentDelta > comparison.maxRegressionPercent) {
+          throw new Error(
+            `${comparison.label} regressed by ${percentDelta.toFixed(
+              2,
+            )}%, exceeding ${comparison.maxRegressionPercent.toFixed(2)}%.`,
+          );
+        }
+      }
     }
   } catch (error) {
     if (error && typeof error === 'object' && error.code === 'ENOENT') {

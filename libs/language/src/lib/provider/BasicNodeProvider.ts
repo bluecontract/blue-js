@@ -5,11 +5,13 @@ import { NodeContentHandler } from './NodeContentHandler';
 import { Nodes } from '../utils';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue } from '../../schema';
+import { SemanticStorageService } from '../identity/SemanticStorageService';
 
 export class BasicNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
   private preprocessor: (node: BlueNode) => BlueNode;
+  private storageService: SemanticStorageService;
 
   constructor(nodes: BlueNode[] = []) {
     super();
@@ -18,6 +20,9 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const defaultPreprocessor = new Preprocessor({ nodeProvider: this });
     this.preprocessor = (node: BlueNode) =>
       defaultPreprocessor.preprocessWithDefaultBlue(node);
+    this.storageService = new SemanticStorageService({
+      nodeProvider: this,
+    });
 
     // Process initial nodes
     nodes.forEach((node) => this.processNode(node));
@@ -35,6 +40,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNode(
       node,
       this.preprocessor,
+      this.storageService,
     );
     this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(
@@ -56,6 +62,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
       items,
       this.preprocessor,
+      this.storageService,
     );
     this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);
@@ -72,6 +79,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
       nodes,
       this.preprocessor,
+      this.storageService,
     );
     this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);

@@ -7,6 +7,7 @@ import {
   handleBaseline,
   installCloneCounter,
   readEnum,
+  readNonNegativeFloat,
   readPositiveInt,
 } from './benchmarkUtils.mjs';
 
@@ -20,6 +21,10 @@ const config = {
   listItemCount: readPositiveInt('BENCH_LIST_ITEMS', 300),
   typePropertyCount: readPositiveInt('BENCH_TYPE_PROPERTIES', 60),
   perNodePayloadProperties: readPositiveInt('BENCH_NODE_PAYLOAD_PROPERTIES', 6),
+  maxRegressionPercent: readNonNegativeFloat(
+    'BENCH_MAX_REGRESSION_PERCENT',
+    10,
+  ),
   typeMode,
 };
 
@@ -153,6 +158,9 @@ const runBenchmark = async () => {
   console.log(
     `- per-node payload properties: ${config.perNodePayloadProperties}`,
   );
+  console.log(
+    `- max baseline regression: ${config.maxRegressionPercent.toFixed(2)}%`,
+  );
   if (config.typeMode === 'shared') {
     console.log(`- shared type blueId: ${typeBlueIds[0]}`);
   } else {
@@ -233,6 +241,7 @@ const runBenchmark = async () => {
       label: 'resolve avg',
       path: 'metrics.timeMs.avg',
       unit: 'ms',
+      maxRegressionPercent: config.maxRegressionPercent,
     },
     {
       label: 'clone avg',

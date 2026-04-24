@@ -21,11 +21,13 @@ import {
   UrlContentFetcher,
   UrlFetchStrategy,
 } from './provider/UrlContentFetcher';
+import { RepositoryBasedNodeProvider } from './provider/RepositoryBasedNodeProvider';
+import { SequentialNodeProvider } from './provider/SequentialNodeProvider';
 import {
   BlueIdsMappingGenerator,
   BlueIdsRecord,
 } from './preprocess/utils/BlueIdsMappingGenerator';
-import { Limits, NO_LIMITS } from './utils/limits';
+import { Limits, NO_LIMITS, NoLimits } from './utils/limits';
 import { NodeExtender } from './utils/NodeExtender';
 import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
@@ -37,7 +39,6 @@ import { RepositoryRegistry } from './repository/RepositoryRuntime';
 import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
 import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
 import { SemanticIdentityService } from './identity/SemanticIdentityService';
-import { StorageShapeValidator } from './utils/StorageShapeValidator';
 import {
   BlueContext,
   NodeToJsonFormat,
@@ -83,9 +84,8 @@ export class Blue {
       blueIdMapper: this.repositoryRegistry,
     });
 
-    // Use NodeProviderWrapper to create the provider chain with repositories
     const defaultProvider = createNodeProvider(() => []);
-    this.nodeProvider = NodeProviderWrapper.wrap(
+    this.nodeProvider = this.wrapNodeProviderWithRepositories(
       nodeProvider || defaultProvider,
       repositories,
     );
@@ -166,7 +166,16 @@ export class Blue {
   public resolve(node: BlueNode, limits: Limits = NO_LIMITS): ResolvedBlueNode {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
-    return merger.resolve(node, effectiveLimits);
+    const resolved = merger.resolve(node, effectiveLimits);
+    if (!(effectiveLimits instanceof NoLimits)) {
+      try {
+        resolved.setSourceSemanticBlueId(this.calculateBlueIdSync(node));
+      } catch {
+        // Some transient matcher inputs are empty structural nodes and do not
+        // have a hashable storage identity.
+      }
+    }
+    return resolved;
   }
 
   /**
@@ -228,7 +237,6 @@ export class Blue {
       preprocessed,
       this.repositoryRegistry,
     );
-    StorageShapeValidator.validateNoMixedReferencePayload(normalized);
     return normalized;
   }
 
@@ -240,7 +248,6 @@ export class Blue {
       preprocessed,
       this.repositoryRegistry,
     );
-    StorageShapeValidator.validateNoMixedReferencePayload(normalized);
     return normalized;
   }
 
@@ -369,7 +376,7 @@ export class Blue {
   }
 
   public setNodeProvider(nodeProvider: NodeProvider): Blue {
-    this.nodeProvider = NodeProviderWrapper.wrap(
+    this.nodeProvider = this.wrapNodeProviderWithRepositories(
       nodeProvider,
       this.repositories,
     );
@@ -602,6 +609,22 @@ export class Blue {
       format: strategyOrOptions?.format ?? 'official',
       blueContext: strategyOrOptions?.blueContext,
     };
+  }
+
+  private wrapNodeProviderWithRepositories(
+    nodeProvider: NodeProvider,
+    repositories?: BlueRepository[],
+  ): NodeProvider {
+    if (repositories && repositories.length > 0) {
+      return NodeProviderWrapper.wrap(
+        new SequentialNodeProvider([
+          new RepositoryBasedNodeProvider(repositories),
+          nodeProvider,
+        ]),
+      );
+    }
+
+    return NodeProviderWrapper.wrap(nodeProvider);
   }
 
   private combineWithGlobalLimits(methodLimits: Limits) {

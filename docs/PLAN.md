@@ -312,6 +312,93 @@ Po tej fazie:
 
 ---
 
+## Current status — Phase 1 stabilization
+
+Status after implementing the 1E/1F/1G stabilization block and the strict
+provider cleanup: semantic storage is now the only provider ingest path.
+Provider ingest either stores minimal content under its semantic `BlueId` or
+fails immediately.
+
+### Done
+
+- `BasicNodeProvider`, `InMemoryNodeProvider`, and
+  `RepositoryBasedNodeProvider` now use the shared semantic storage identity
+  path instead of deriving storage truth without a full `resolve()`.
+- `BasicNodeProvider` and `InMemoryNodeProvider` no longer have a resolve-error
+  fallback to storage overlay.
+- Repository `contents` keys are checked against semantic `BlueId`; historical
+  package keys are no longer exposed as fetchable storage IDs.
+- Repository ingest still uses constructor-local bootstrap maps so repository
+  entries can resolve references to each other while loading. Those maps are
+  cleared after strict semantic ID verification and are not a public
+  historical-ID compatibility path.
+- `providedBlueId` and repository content keys are checked against the semantic
+  `BlueId`, not against the old hash of the preprocessed/minimized authoring
+  form.
+- `NodeContentHandler` delegates storage processing, and semantic storage runs
+  preprocess, full resolve, `minimizeResolved()`, and low-level hashing of the
+  minimal form.
+- Root `blueId + payload` is rejected during provider ingest, the same as nested
+  mixed reference payloads.
+- Multi-doc direct cycles using `this#k` are explicitly rejected until Phase 3.
+  Single-doc `this` remains supported.
+- `SemanticIdentityService` has separate internal paths:
+  `minimizeResolved()`, `minimizeAuthoring()`, and `hashMinimalTrusted()`.
+- The minimizer no longer collapses every `blueId + payload` node to
+  `{ blueId }`. Collapse is allowed only for trusted materialization paths or
+  after confirming that the payload matches known provider content.
+- Resolved/runtime nodes carry the minimum completeness metadata:
+  `completeness: 'full' | 'path-limited'`, `sourceSemanticBlueId`, and optional
+  `expandedFromBlueId`.
+- `resolve()` now has caches for type overlays, node hashes, list hashes,
+  subtype checks, and provider fetches per `blueId`; the per-typed-node clone of
+  the resolved type overlay was removed.
+- `calculateBlueId` is treated as a low-level hash benchmark, while the separate
+  semantic API benchmark covers authoring, resolved, trusted minimal, and
+  provider ingest cases.
+- `snapshot-patch` remains a `patch-then-full-resolve` benchmark until Phase 2.
+- Resolver-invalid tests use direct/raw test providers instead of relying on
+  provider fallback to ingest invalid content.
+
+### Verification run
+
+- `nx tsc language --skip-nx-cache` — passed.
+- `nx lint language` — passed.
+- `nx build language --skip-nx-cache` — passed.
+- `nx test language --skip-nx-cache` — passed.
+- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/resolve.mjs`:
+  shared type case passed the regression limit.
+- `BENCH_COMPARE_BASELINE=1 BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs`:
+  unique type case passed the regression limit.
+- `node scripts/benchmark/semanticBlueId.mjs` — passed.
+
+### Deliberate transitional behavior
+
+1. **Legacy list marker storage overlay.** The storage service still has an
+   explicit transitional path for inherited lists that use the legacy
+   marker-shaped first item. This is not a resolve-error fallback and should be
+   removed in Phase 3 when lists move to `$previous`, `$pos`, and `$empty`.
+2. **Path-limited list marker behavior.** Partial materialization must not
+   pretend to be a full resolved snapshot or become a normal hash source without
+   `sourceSemanticBlueId`. Inherited lists that rely on the legacy marker remain
+   transitional until Phase 3 replaces them with spec-native `$previous`, `$pos`,
+   and `$empty`.
+3. **External Blue Repository Types.** The installed `@blue-repository/types`
+   package still uses historical/pre-semantic storage keys. Characterization
+   tests that consume that package are skipped until the package is reindexed to
+   semantic IDs.
+
+### Decisions before Phase 2
+
+- When to migrate Blue Repository Types to semantic IDs. The strict provider
+  path does not include a dual-index/alias period.
+- Whether path-limited nodes need a stronger public contract now, or should
+  remain internal metadata until snapshots.
+- Whether to remove the legacy list marker storage overlay before snapshots, or
+  keep it until the Phase 3 list-control cleanup.
+
+---
+
 ## Faza 1E — Semantic provider/storage parity
 
 ### Cel

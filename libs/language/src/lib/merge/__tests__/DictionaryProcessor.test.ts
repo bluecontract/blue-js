@@ -13,6 +13,7 @@ import {
   CORE_TYPE_BLUE_ID_TO_NAME_MAP,
 } from '../../utils/Properties';
 import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
+import { Blue } from '../../Blue';
 
 describe('DictionaryProcessor', () => {
   it('testKeyTypeAndValueTypeAssignment', () => {
@@ -117,7 +118,9 @@ key2:
 type: Dictionary
 keyType: ${DICTIONARY_TYPE}
 valueType: ${TEXT_TYPE}`;
-    nodeProvider.addSingleDocs(dictWithInvalidKeyType);
+    const dictNode = new Blue({ nodeProvider }).yamlToNode(
+      dictWithInvalidKeyType,
+    );
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -125,12 +128,6 @@ valueType: ${TEXT_TYPE}`;
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const dictNode = nodeProvider.findNodeByName('DictWithInvalidKeyType');
-    if (!dictNode) {
-      throw new Error('DictWithInvalidKeyType not found');
-    }
-    new NodeExtender(nodeProvider).extend(dictNode, NO_LIMITS);
-
     expect(() => merger.resolve(dictNode, NO_LIMITS)).toThrow();
   });
 
@@ -147,7 +144,9 @@ valueType:
   blueId: ${nodeProvider.getBlueIdByName('A')}
 key1:
   type: ${TEXT_TYPE}`; // This should cause an error
-    nodeProvider.addSingleDocs(dictWithInvalidValue);
+    const dictNode = new Blue({ nodeProvider }).yamlToNode(
+      dictWithInvalidValue,
+    );
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -155,12 +154,6 @@ key1:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const dictNode = nodeProvider.findNodeByName('DictWithInvalidValue');
-    if (!dictNode) {
-      throw new Error('DictWithInvalidValue not found');
-    }
-    new NodeExtender(nodeProvider).extend(dictNode, NO_LIMITS);
-
     expect(() => merger.resolve(dictNode, NO_LIMITS)).toThrow();
   });
 
@@ -170,7 +163,9 @@ key1:
     const nonDictWithKeyType = `name: NonDictWithKeyType
 type: ${TEXT_TYPE}
 keyType: ${TEXT_TYPE}`;
-    nodeProvider.addSingleDocs(nonDictWithKeyType);
+    const nonDictNode = new Blue({ nodeProvider }).yamlToNode(
+      nonDictWithKeyType,
+    );
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -178,12 +173,6 @@ keyType: ${TEXT_TYPE}`;
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const nonDictNode = nodeProvider.findNodeByName('NonDictWithKeyType');
-    if (!nonDictNode) {
-      throw new Error('NonDictWithKeyType not found');
-    }
-    new NodeExtender(nodeProvider).extend(nonDictNode, NO_LIMITS);
-
     expect(() => merger.resolve(nonDictNode, NO_LIMITS)).toThrow();
   });
 });

@@ -356,7 +356,7 @@ describe('BlueIdCalculator - additional tests', () => {
 
       const result1 = await fakeBlueIdCalculator.calculate(object);
       expect(result1).toBe(
-        'hash({abc={blueId=hash({def={blueId=hash(1.32452345234524739582739458723948572934875e+41)}, ghi={blueId=hash({jkl={blueId=hash(1.3245234523452473e+41)}})}})}})',
+        'hash({abc={blueId=hash({def={blueId=hash(132452345234524739582739458723948572934875)}, ghi={blueId=hash({jkl={blueId=hash(1.3245234523452473e+41)}})}})}})',
       );
 
       const node = NodeDeserializer.deserialize(object);
