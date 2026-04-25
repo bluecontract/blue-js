@@ -86,12 +86,12 @@ export class SemanticIdentityService {
   public hashMinimalTrusted(minimal: BlueNode | BlueNode[]): string {
     if (Array.isArray(minimal)) {
       minimal.forEach((node) =>
-        StorageShapeValidator.validateNoMixedReferencePayload(node),
+        StorageShapeValidator.validateStorageShape(node),
       );
       return BlueIdCalculator.calculateBlueIdSync(minimal);
     }
 
-    StorageShapeValidator.validateNoMixedReferencePayload(minimal);
+    StorageShapeValidator.validateStorageShape(minimal);
     return BlueIdCalculator.calculateBlueIdSync(minimal);
   }
 

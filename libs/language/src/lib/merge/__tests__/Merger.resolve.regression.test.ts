@@ -30,15 +30,16 @@ meta:
   owner: qa
 payload:
   id: runtime-1
-items:
-  - type:
-      blueId: ${entryTypeBlueId}
-    payload:
-      id: child-1
-  - type:
-      blueId: ${entryTypeBlueId}
-    payload:
-      id: child-2
+children:
+  items:
+    - type:
+        blueId: ${entryTypeBlueId}
+      payload:
+        id: child-1
+    - type:
+        blueId: ${entryTypeBlueId}
+      payload:
+        id: child-2
 `);
 
     const blue = new Blue({ nodeProvider });
@@ -54,10 +55,10 @@ items:
     expect(resolved.get('/meta/owner')).toBe('qa');
     expect(resolved.get('/payload/kind')).toBe('generic');
     expect(resolved.get('/payload/id')).toBe('runtime-1');
-    expect(resolved.get('/0/type/blueId')).toBe(entryTypeBlueId);
-    expect(resolved.get('/1/type/blueId')).toBe(entryTypeBlueId);
-    expect(resolved.get('/0/payload/id')).toBe('child-1');
-    expect(resolved.get('/1/payload/id')).toBe('child-2');
+    expect(resolved.get('/children/0/type/blueId')).toBe(entryTypeBlueId);
+    expect(resolved.get('/children/1/type/blueId')).toBe(entryTypeBlueId);
+    expect(resolved.get('/children/0/payload/id')).toBe('child-1');
+    expect(resolved.get('/children/1/payload/id')).toBe('child-2');
 
     expect(resolvedJson).toMatchObject({
       name: 'RuntimeEntry',
@@ -77,24 +78,26 @@ items:
         kind: { value: 'generic' },
         id: { value: 'runtime-1' },
       },
-      items: [
-        {
-          type: { blueId: entryTypeBlueId },
-          status: { value: 'draft' },
-          payload: {
-            kind: { value: 'generic' },
-            id: { value: 'child-1' },
+      children: {
+        items: [
+          {
+            type: { blueId: entryTypeBlueId },
+            status: { value: 'draft' },
+            payload: {
+              kind: { value: 'generic' },
+              id: { value: 'child-1' },
+            },
           },
-        },
-        {
-          type: { blueId: entryTypeBlueId },
-          status: { value: 'draft' },
-          payload: {
-            kind: { value: 'generic' },
-            id: { value: 'child-2' },
+          {
+            type: { blueId: entryTypeBlueId },
+            status: { value: 'draft' },
+            payload: {
+              kind: { value: 'generic' },
+              id: { value: 'child-2' },
+            },
           },
-        },
-      ],
+        ],
+      },
     });
 
     // Source node should remain unchanged after resolve.
@@ -122,6 +125,41 @@ items:
     expect(() => blue.resolve(invalidDictionary)).toThrow(
       "Key 'abc' is not a valid Integer.",
     );
+  });
+
+  it('does not leak mutations from an exposed resolved type into later resolves', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`
+name: SharedType
+shared:
+  value: inherited
+`);
+
+    const sharedTypeBlueId = nodeProvider.getBlueIdByName('SharedType');
+    const blue = new Blue({ nodeProvider });
+    const nodeA = blue.yamlToNode(`
+name: RuntimeA
+type:
+  blueId: ${sharedTypeBlueId}
+local: A
+`);
+    const nodeB = blue.yamlToNode(`
+name: RuntimeB
+type:
+  blueId: ${sharedTypeBlueId}
+local: B
+`);
+
+    const resolvedA = blue.resolve(nodeA);
+    resolvedA
+      .getType()
+      ?.addProperty('leaked', new BlueNode().setValue('mutation'));
+
+    const resolvedB = blue.resolve(nodeB);
+
+    expect(resolvedB.get('/type/leaked')).toBeUndefined();
+    expect(resolvedB.get('/leaked')).toBeUndefined();
   });
 
   it('enforces basic-type shape constraints in default resolve pipeline', () => {

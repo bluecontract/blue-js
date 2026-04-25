@@ -54,4 +54,17 @@ x:
       /Direct cyclic multi-document sets using this#k are not supported until phase 3/,
     );
   });
+
+  it('does not treat ordinary multi-document this strings as direct cycles', () => {
+    const docs = `- name: A
+  note: this
+- name: B
+  note: this#1`;
+
+    const node = NodeDeserializer.deserialize(yamlBlueParse(docs));
+    const provider = new BasicNodeProvider([node]);
+
+    expect(provider.getNodeByName('A').get('/note/value')).toBe('this');
+    expect(provider.getNodeByName('B').get('/note/value')).toBe('this#1');
+  });
 });

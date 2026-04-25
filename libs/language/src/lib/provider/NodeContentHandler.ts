@@ -2,6 +2,7 @@ import { BlueNode, NodeDeserializer } from '../model';
 import { NodeToMapListOrValue } from '../utils';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue, JsonBlueObject } from '../../schema';
+import { OBJECT_BLUE_ID } from '../utils/Properties';
 
 export interface StorageContentProcessor {
   prepareStorageNode(
@@ -123,7 +124,10 @@ export class NodeContentHandler {
       const result: JsonBlueObject = {};
       for (const [key, value] of Object.entries(content)) {
         if (typeof value === 'string') {
-          if (this.THIS_REFERENCE_PATTERN.test(value)) {
+          if (
+            key === OBJECT_BLUE_ID &&
+            this.THIS_REFERENCE_PATTERN.test(value)
+          ) {
             result[key] = this.resolveThisReference(
               value,
               currentBlueId,
@@ -146,16 +150,7 @@ export class NodeContentHandler {
     } else if (Array.isArray(content)) {
       // Handle arrays
       return content.map((element) => {
-        if (typeof element === 'string') {
-          if (this.THIS_REFERENCE_PATTERN.test(element)) {
-            return this.resolveThisReference(
-              element,
-              currentBlueId,
-              isMultipleDocuments,
-            );
-          }
-          return element;
-        } else if (element && typeof element === 'object') {
+        if (element && typeof element === 'object') {
           return this.resolveThisReferencesRecursive(
             element,
             currentBlueId,

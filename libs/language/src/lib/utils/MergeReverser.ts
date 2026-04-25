@@ -6,7 +6,7 @@ import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 export class MergeReverser {
   public reverse<T extends BlueNode>(mergedNode: T): BlueNode {
     const minimalNode = new BlueNode();
-    this.reverseNode(minimalNode, mergedNode, mergedNode.getType());
+    this.reverseNode(minimalNode, mergedNode, mergedNode.getType(), true);
     return minimalNode;
   }
 
@@ -14,12 +14,13 @@ export class MergeReverser {
     minimal: BlueNode,
     merged: BlueNode,
     fromType: BlueNode | undefined,
+    isRoot: boolean,
   ): void {
-    if (this.isIdenticalToType(merged, fromType)) {
+    if (!isRoot && this.isIdenticalToType(merged, fromType)) {
       return;
     }
 
-    this.reverseBasicProperties(minimal, merged, fromType);
+    this.reverseBasicProperties(minimal, merged, fromType, isRoot);
     this.reverseTypeReferences(minimal, merged, fromType);
     this.reverseItems(minimal, merged, fromType);
     this.reverseProperties(minimal, merged, fromType);
@@ -40,6 +41,7 @@ export class MergeReverser {
     minimal: BlueNode,
     merged: BlueNode,
     fromType: BlueNode | undefined,
+    isRoot: boolean,
   ): void {
     const mergedValue = merged.getValue();
     if (
@@ -51,14 +53,17 @@ export class MergeReverser {
 
     if (
       isNonNullable(merged.getName()) &&
-      (isNullable(fromType) || merged.getName() !== fromType.getName())
+      (isRoot ||
+        isNullable(fromType) ||
+        merged.getName() !== fromType.getName())
     ) {
       minimal.setName(merged.getName());
     }
 
     if (
       isNonNullable(merged.getDescription()) &&
-      (isNullable(fromType) ||
+      (isRoot ||
+        isNullable(fromType) ||
         merged.getDescription() !== fromType.getDescription())
     ) {
       minimal.setDescription(merged.getDescription());
@@ -146,7 +151,7 @@ export class MergeReverser {
     const startIndex = fromTypeItems?.length || 0;
     for (let i = startIndex; i < mergedItems.length; i++) {
       const minimalItem = new BlueNode();
-      this.reverseNode(minimalItem, mergedItems[i], undefined);
+      this.reverseNode(minimalItem, mergedItems[i], undefined, false);
       minimalItems.push(minimalItem);
     }
 
@@ -175,7 +180,12 @@ export class MergeReverser {
       );
 
       const minimalProperty = new BlueNode();
-      this.reverseNode(minimalProperty, mergedProperty, inheritedProperty);
+      this.reverseNode(
+        minimalProperty,
+        mergedProperty,
+        inheritedProperty,
+        false,
+      );
 
       if (!Nodes.isEmptyNode(minimalProperty)) {
         minimalProperties[key] = minimalProperty;

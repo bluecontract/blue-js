@@ -101,9 +101,12 @@ const runBenchmark = async () => {
     resolved: measureScenario('resolved', () => () => {
       fixture.blue.calculateBlueIdSync(fixture.resolved);
     }),
-    minimalTrusted: measureScenario('minimal-trusted', () => () => {
-      fixture.blue.calculateBlueIdSync(fixture.minimal);
-    }),
+    publicSemanticIdOnMinimalShapedAuthoring: measureScenario(
+      'public-semantic-id-on-minimal-shaped-authoring',
+      () => () => {
+        fixture.blue.calculateBlueIdSync(fixture.minimal);
+      },
+    ),
     providerIngest: measureScenario('provider-ingest', () => () => {
       const provider = new BasicNodeProvider();
       provider.addSingleDocs(`
@@ -157,8 +160,8 @@ local_field: local
       unit: 'ms',
     },
     {
-      label: 'semantic minimal trusted avg',
-      path: 'metrics.minimalTrusted.timeMs.avg',
+      label: 'public semantic id on minimal-shaped authoring avg',
+      path: 'metrics.publicSemanticIdOnMinimalShapedAuthoring.timeMs.avg',
       unit: 'ms',
     },
     {

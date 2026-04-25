@@ -33,7 +33,7 @@ y:
   z: 2
   nested:
     baseExtra: baseAdditional
-    value: base`);
+    baseValue: base`);
 
     derivedNode = NodeDeserializer.deserialize(
       yamlBlueParse(`
@@ -44,7 +44,7 @@ x: 10
 y:
   z: 20
   nested:
-    value: derived
+    derivedValue: derived
     extra: additional`)!,
     );
 
@@ -56,6 +56,7 @@ y:
     const limits = new PathLimitsBuilder()
       .addPath('/x')
       .addPath('/y/nested')
+      .addPath('/y/nested/derivedValue')
       .build();
 
     const result = merger.resolve(derivedNode, limits);
@@ -64,7 +65,7 @@ y:
     expect(await result.get('/x')).toStrictEqual(new BigIntegerNumber(10));
 
     // Should have the nested structure but only what's allowed
-    expect(await result.get('/y/nested/value')).toBe('derived');
+    expect(await result.get('/y/nested/derivedValue/value')).toBe('derived');
     expect(await result.get('/y/nested/extra')).toBeUndefined();
     expect(await result.get('/y/nested/baseExtra')).toBeUndefined();
 

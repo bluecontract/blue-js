@@ -314,7 +314,7 @@ Po tej fazie:
 
 ## Current status — Phase 1 stabilization
 
-Status after implementing the 1E/1F/1G stabilization block and the strict
+Status after implementing the 1E/1F/1G/1H stabilization block and the strict
 provider cleanup: semantic storage is now the only provider ingest path.
 Provider ingest either stores minimal content under its semantic `BlueId` or
 fails immediately.
@@ -340,37 +340,61 @@ fails immediately.
   minimal form.
 - Root `blueId + payload` is rejected during provider ingest, the same as nested
   mixed reference payloads.
-- Multi-doc direct cycles using `this#k` are explicitly rejected until Phase 3.
-  Single-doc `this` remains supported.
+- `this` / `this#k` are special only in `blueId` fields. Ordinary scalar
+  strings such as `value: this` and list item `"this#1"` remain normal content.
+- Multi-doc direct cycles using `blueId: this#k` are explicitly rejected until
+  Phase 3. Single-doc `blueId: this` remains a transitional compatibility path;
+  single-doc `blueId: this#k` is rejected.
+- `StorageShapeValidator.validateStorageShape()` rejects full payload-kind
+  ambiguity: `blueId + payload`, `value + items`, `value/items + child fields`,
+  and document-level `properties`.
 - `SemanticIdentityService` has separate internal paths:
   `minimizeResolved()`, `minimizeAuthoring()`, and `hashMinimalTrusted()`.
 - The minimizer no longer collapses every `blueId + payload` node to
   `{ blueId }`. Collapse is allowed only for trusted materialization paths or
   after confirming that the payload matches known provider content.
+- Root instance `name` and `description` are preserved by minimization even when
+  they equal the referenced type's `name` / `description`.
 - Resolved/runtime nodes carry the minimum completeness metadata:
-  `completeness: 'full' | 'path-limited'`, `sourceSemanticBlueId`, and optional
-  `expandedFromBlueId`.
+  `completeness: 'full' | 'path-limited'` and `sourceSemanticBlueId`.
+- Path-limited `resolve()` no longer computes a full semantic `BlueId` just to
+  set metadata. `sourceSemanticBlueId` is accepted from `ResolveOptions` or from
+  an exact root pure reference only.
+- `ResolvedBlueNode.getMinimalNode()` and `getMinimalBlueId()` now respect the
+  path-limited guard and return the source reference only when the source
+  semantic ID is known.
 - `resolve()` now has caches for type overlays, node hashes, list hashes,
   subtype checks, and provider fetches per `blueId`; the per-typed-node clone of
   the resolved type overlay was removed.
+- A mutation-leak regression test covers exposed resolved type objects so user
+  mutations do not contaminate later resolves.
 - `calculateBlueId` is treated as a low-level hash benchmark, while the separate
-  semantic API benchmark covers authoring, resolved, trusted minimal, and
-  provider ingest cases.
+  semantic API benchmark covers authoring, resolved, explicitly named
+  minimal-shaped authoring, and provider ingest cases.
+- The semantic benchmark does not expose a public trusted-minimal hash API. The
+  minimal-shaped authoring scenario is named
+  `public-semantic-id-on-minimal-shaped-authoring` and uses the public semantic
+  identity path.
 - `snapshot-patch` remains a `patch-then-full-resolve` benchmark until Phase 2.
 - Resolver-invalid tests use direct/raw test providers instead of relying on
   provider fallback to ingest invalid content.
 
 ### Verification run
 
+- `nx build language --skip-nx-cache` — passed.
 - `nx tsc language --skip-nx-cache` — passed.
 - `nx lint language` — passed.
-- `nx build language --skip-nx-cache` — passed.
-- `nx test language --skip-nx-cache` — passed.
-- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/resolve.mjs`:
-  shared type case passed the regression limit.
-- `BENCH_COMPARE_BASELINE=1 BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs`:
-  unique type case passed the regression limit.
-- `node scripts/benchmark/semanticBlueId.mjs` — passed.
+- `nx test language --skip-nx-cache` — passed: 557 passed, 4 skipped,
+  4 todo.
+- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/resolve.mjs` — passed:
+  shared resolve avg `43.76 ms`, baseline delta `-253.90 ms (-85.30%)`.
+- `BENCH_COMPARE_BASELINE=1 BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs`
+  — passed: unique resolve avg `1660.08 ms`, baseline delta
+  `+57.89 ms (+3.61%)`.
+- `node scripts/benchmark/semanticBlueId.mjs` — passed:
+  authoring no-type avg `4.67 ms`, authoring shared-type avg `1.98 ms`,
+  resolved avg `0.09 ms`, public semantic ID on minimal-shaped authoring avg
+  `1.78 ms`, provider ingest avg `0.60 ms`.
 
 ### Deliberate transitional behavior
 
@@ -390,10 +414,12 @@ fails immediately.
 
 ### Decisions before Phase 2
 
-- When to migrate Blue Repository Types to semantic IDs. The strict provider
-  path does not include a dual-index/alias period.
-- Whether path-limited nodes need a stronger public contract now, or should
-  remain internal metadata until snapshots.
+- Blue Repository Types should be reindexed to semantic IDs before declaring
+  integration readiness. The strict provider path still does not include a
+  dual-index/alias adapter in `language`.
+- Path-limited nodes now have the Phase 1 public contract: no eager full
+  semantic identity calculation; source identity must be supplied by caller or
+  be trivially known from an exact root reference.
 - Whether to remove the legacy list marker storage overlay before snapshots, or
   keep it until the Phase 3 list-control cleanup.
 
@@ -501,7 +527,8 @@ dla runtime/materialized nodes i nie może usuwać niezweryfikowanego payloadu.
 
 - `blue.minimizeResolved(resolvedFullNode)`
 - `blue.minimizeAuthoring(authoringNode)` jako `resolve(NO_LIMITS) -> minimizeResolved`
-- `blue.hashMinimalTrusted(minimalNode)` jako `validateStorageShape -> low-level hash`
+- internal `SemanticIdentityService.hashMinimalTrusted(minimalNode)` jako
+  `validateStorageShape -> low-level hash`
 
 Publiczne `Blue.minimize()` może delegować do tych ścieżek, ale wewnętrzny kod
 nie powinien mieszać authoring, resolved i storage shape.
@@ -524,8 +551,7 @@ nie powinien mieszać authoring, resolved i storage shape.
 - Dodać albo zaplanować metadata resolved/runtime:
   - `completeness: 'full' | 'path-limited'`,
   - `sourceMinimal?: BlueNode`,
-  - `sourceSemanticBlueId?: string`,
-  - `expandedFromBlueId?: string` albo równoważny trusted expansion marker.
+  - `sourceSemanticBlueId?: string`.
 
 ### Testy
 
@@ -541,6 +567,54 @@ nie powinien mieszać authoring, resolved i storage shape.
 - Minimizer ma osobne ścieżki dla authoring/resolved/trusted minimal.
 - Nie ma agresywnego collapsowania każdego node'a z `blueId + payload`.
 - Golden roundtrip tests są zielone.
+
+---
+
+## Faza 1H — Storage shape + self-reference + minimizer guards
+
+### Cel
+
+Domknąć correctness fazy 1 przed snapshotami. To jest krótki stabilizujący PR,
+nie nowa architektura: naprawia kontrakty, które muszą być prawdziwe zanim Phase
+2 zacznie budować immutable snapshoty.
+
+### Implementacja
+
+- `this` i `this#k` są rozpoznawane wyłącznie jako wartości pola `blueId`.
+  Zwykłe stringi `this` / `this#1` w `value`, listach i polach obiektu są
+  treścią.
+- `StorageShapeValidator.validateStorageShape()` waliduje pełną rozłączność
+  payload kinds i odrzuca dokumentowe `properties`.
+- `MergeReverser` zna root node i zachowuje root instance `name` /
+  `description`, nawet gdy są równe typowi.
+- `Blue.resolve(node, limits, options)` przyjmuje `sourceSemanticBlueId`, ale
+  nie liczy go sam dla path-limited resolve. Exact root `{ blueId }` jest jedynym
+  tanim automatycznym źródłem metadata.
+- `ResolvedBlueNode.getMinimalNode()` / `getMinimalBlueId()` nie omijają guardu
+  dla path-limited tree.
+- Trusted minimal storage hash pozostaje wewnętrzną ścieżką storage. Benchmark
+  minimal-shaped authoring input używa jawnej nazwy
+  `public-semantic-id-on-minimal-shaped-authoring`, żeby nie udawać trusted
+  storage path.
+
+### Testy
+
+- Self-reference: zwykłe scalar/list stringi `this` i `this#1` zostają treścią;
+  `blueId: this` działa tylko jako single-doc transitional path; indexed
+  `this#k` jest odrzucane poza Phase 3.
+- Storage shape: reject `blueId + payload`, `value + items`, `value + child`,
+  `items + child`, oraz literalne `properties`; allow reserved metadata
+  `schema`, `mergePolicy`, `contracts`.
+- Minimizer: root `name` / `description` roundtripują, path-limited minimalizacja
+  wymaga source identity, cached resolved type mutation nie przecieka do
+  kolejnych resolve.
+
+### Exit criteria
+
+- Wszystkie testy `language` przechodzą pod nowym strict storage contract.
+- Benchmark minimal-shaped input nie udaje trusted storage path; używa nazwy
+  `public-semantic-id-on-minimal-shaped-authoring`.
+- `docs/PLAN.md` zawiera aktualne liczby benchmarków dla Phase 1.
 
 ---
 

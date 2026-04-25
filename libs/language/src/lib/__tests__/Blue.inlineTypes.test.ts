@@ -98,10 +98,8 @@ describe('Blue.restoreInlineTypes', () => {
     const baseTypeDefinition = {
       name: 'Base Type',
       description: 'Reusable contract',
-      properties: {
-        label: {
-          type: 'Text',
-        },
+      label: {
+        type: 'Text',
       },
     } as const;
 
@@ -151,16 +149,6 @@ describe('Blue.restoreInlineTypes', () => {
               "value": "Text",
             },
             "value": "Test",
-          },
-          "properties": {
-            "label": {
-              "type": {
-                "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-                },
-                "value": "Text",
-              },
-            },
           },
           "type": {
             "type": {

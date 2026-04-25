@@ -43,6 +43,11 @@ export class SemanticStorageService {
     preprocessor: (node: BlueNode) => BlueNode,
   ): PreparedStorageNode {
     const preprocessedNode = this.preprocessForStorage(node, preprocessor);
+    if (this.hasIndexedThisReference(preprocessedNode)) {
+      throw new Error(
+        "For a single document, only 'this' is allowed as a reference, not 'this#<id>'.",
+      );
+    }
     return this.preparePreprocessedStorageNode(preprocessedNode);
   }
 
@@ -75,9 +80,9 @@ export class SemanticStorageService {
     node: BlueNode,
     preprocessor: (node: BlueNode) => BlueNode,
   ): BlueNode {
-    StorageShapeValidator.validateNoMixedReferencePayload(node);
+    StorageShapeValidator.validateStorageShape(node);
     const preprocessedNode = preprocessor(node);
-    StorageShapeValidator.validateNoMixedReferencePayload(preprocessedNode);
+    StorageShapeValidator.validateStorageShape(preprocessedNode);
     return preprocessedNode;
   }
 
@@ -92,7 +97,7 @@ export class SemanticStorageService {
       ? this.prepareStorageOverlay(preprocessedNode)
       : this.prepareSemanticStorage(preprocessedNode);
 
-    StorageShapeValidator.validateNoMixedReferencePayload(prepared.node);
+    StorageShapeValidator.validateStorageShape(prepared.node);
 
     return prepared;
   }
@@ -153,11 +158,25 @@ export class SemanticStorageService {
       return true;
     }
 
-    const value = node.getValue();
-    if (
-      typeof value === 'string' &&
-      SemanticStorageService.THIS_REFERENCE_PATTERN.test(value)
-    ) {
+    const children = [
+      node.getType(),
+      node.getItemType(),
+      node.getKeyType(),
+      node.getValueType(),
+      node.getBlue(),
+      ...(node.getItems() ?? []),
+      ...Object.values(node.getProperties() ?? {}),
+    ];
+
+    return children.some(
+      (child): child is BlueNode =>
+        child !== undefined && this.hasThisReference(child),
+    );
+  }
+
+  private hasIndexedThisReference(node: BlueNode): boolean {
+    const referenceBlueId = node.getReferenceBlueId();
+    if (referenceBlueId !== undefined && /^this#\d+$/.test(referenceBlueId)) {
       return true;
     }
 
@@ -173,7 +192,7 @@ export class SemanticStorageService {
 
     return children.some(
       (child): child is BlueNode =>
-        child !== undefined && this.hasThisReference(child),
+        child !== undefined && this.hasIndexedThisReference(child),
     );
   }
 }

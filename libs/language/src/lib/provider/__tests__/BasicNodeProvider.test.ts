@@ -106,7 +106,7 @@ type: Text`;
     expect(fetched?.[0].getValue()).toBe('test');
   });
 
-  it('should resolve this references', () => {
+  it('keeps scalar this strings as ordinary content', () => {
     const yaml = `
 name: SelfReference
 value: this`;
@@ -119,8 +119,57 @@ value: this`;
     const fetched = provider.fetchByBlueId(blueId);
 
     expect(fetched).toHaveLength(1);
-    // The 'this' reference should be resolved to the Blue ID
-    expect(fetched?.[0].getValue()).toBe(blueId);
+    expect(fetched?.[0].getValue()).toBe('this');
+    expect(fetched?.[0].getValue()).not.toBe(blueId);
+  });
+
+  it('keeps scalar this#k strings, list strings, and ordinary fields unchanged', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: OrdinaryThisStrings
+note: this
+tag: this#1
+tags:
+  items:
+    - this
+    - this#1
+`);
+
+    const fetched = provider.getNodeByName('OrdinaryThisStrings');
+
+    expect(fetched.get('/note/value')).toBe('this');
+    expect(fetched.get('/tag/value')).toBe('this#1');
+    expect(fetched.get('/tags/0/value')).toBe('this');
+    expect(fetched.get('/tags/1/value')).toBe('this#1');
+  });
+
+  it('resolves transitional this references only from blueId fields', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: SelfReference
+self:
+  blueId: this
+`);
+
+    const blueId = provider.getBlueIdByName('SelfReference');
+    const fetched = provider.fetchByBlueId(blueId);
+
+    expect(fetched).toHaveLength(1);
+    expect(fetched?.[0].get('/self/blueId')).toBe(blueId);
+  });
+
+  it('rejects indexed this references in single-document ingest', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+name: InvalidSingleThisReference
+self:
+  blueId: this#1
+`),
+    ).toThrow(/only 'this' is allowed as a reference/);
   });
 
   it('should throw error for non-existent node', () => {

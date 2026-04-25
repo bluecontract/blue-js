@@ -102,9 +102,11 @@ nested:
 `);
 
     const fullResolved = blue.resolve(source);
+    const sourceBlueId = blue.calculateBlueIdSync(source);
     const limitedResolved = blue.resolve(
       source,
       PathLimits.withSinglePath('/instanceOnly'),
+      { sourceSemanticBlueId: sourceBlueId },
     );
 
     expect(blue.calculateBlueIdSync(limitedResolved)).toBe(
@@ -116,8 +118,26 @@ nested:
     };
     expect(limitedResolvedMetadata.getCompleteness()).toBe('path-limited');
     expect(limitedResolvedMetadata.getSourceSemanticBlueId()).toBe(
-      blue.calculateBlueIdSync(source),
+      sourceBlueId,
     );
+  });
+
+  it('does not calculate full semantic identity during path-limited resolution', () => {
+    const blue = new Blue();
+    const source = blue.yamlToNode(`
+allowed: ok
+offPath:
+  type:
+    blueId: MissingOffPathTypeBlueId
+`);
+
+    const limitedResolved = blue.resolve(
+      source,
+      PathLimits.withSinglePath('/allowed'),
+    );
+
+    expect(limitedResolved.get('/allowed/value')).toBe('ok');
+    expect(limitedResolved.getSourceSemanticBlueId()).toBeUndefined();
   });
 
   it('rejects mixed blueId plus payload in storage or authoring ingest', () => {
@@ -173,6 +193,32 @@ z: 3
 
     expect(minimal.getBlueId()).toBe('UntrustedReferenceBlueId');
     expect(minimal.get('/local/value')).toBe('must-stay');
+  });
+
+  it('preserves root name and description when they match the type', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: Person
+description: Shared description
+age:
+  type: Integer
+`);
+
+    const personTypeBlueId = provider.getBlueIdByName('Person');
+    const blue = new Blue({ nodeProvider: provider });
+    const instance = blue.yamlToNode(`
+name: Person
+description: Shared description
+type:
+  blueId: ${personTypeBlueId}
+age: 30
+`);
+
+    const minimal = blue.minimize(blue.resolve(instance));
+
+    expect(minimal.getName()).toBe('Person');
+    expect(minimal.getDescription()).toBe('Shared description');
   });
 });
 

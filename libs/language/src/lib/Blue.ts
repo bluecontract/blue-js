@@ -6,6 +6,7 @@ import { NodeProvider, createNodeProvider } from './NodeProvider';
 import {
   NodeToMapListOrValue,
   NodeTransformer,
+  Nodes,
   NodeTypes,
   NodeTypeMatcher,
   TypeSchemaResolver,
@@ -53,6 +54,15 @@ export interface BlueOptions {
   urlFetchStrategy?: UrlFetchStrategy;
   repositories?: BlueRepository[];
   mergingProcessor?: MergingProcessor;
+}
+
+export interface ResolveOptions {
+  /**
+   * Semantic identity of the full source document represented by this resolved
+   * tree. Callers can pass it when they already know the identity; path-limited
+   * resolve will not compute it eagerly because that can force off-path work.
+   */
+  sourceSemanticBlueId?: string;
 }
 
 export class Blue {
@@ -163,16 +173,19 @@ export class Blue {
     return converter.convert(node, schema);
   }
 
-  public resolve(node: BlueNode, limits: Limits = NO_LIMITS): ResolvedBlueNode {
+  public resolve(
+    node: BlueNode,
+    limits: Limits = NO_LIMITS,
+    options: ResolveOptions = {},
+  ): ResolvedBlueNode {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     const resolved = merger.resolve(node, effectiveLimits);
     if (!(effectiveLimits instanceof NoLimits)) {
-      try {
-        resolved.setSourceSemanticBlueId(this.calculateBlueIdSync(node));
-      } catch {
-        // Some transient matcher inputs are empty structural nodes and do not
-        // have a hashable storage identity.
+      const sourceSemanticBlueId =
+        options.sourceSemanticBlueId ?? this.getExactReferenceBlueId(node);
+      if (sourceSemanticBlueId !== undefined) {
+        resolved.setSourceSemanticBlueId(sourceSemanticBlueId);
       }
     }
     return resolved;
@@ -382,6 +395,10 @@ export class Blue {
     );
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     return this;
+  }
+
+  private getExactReferenceBlueId(node: BlueNode): string | undefined {
+    return Nodes.hasBlueIdOnly(node) ? node.getReferenceBlueId() : undefined;
   }
 
   public getTypeSchemaResolver(): TypeSchemaResolver | null {

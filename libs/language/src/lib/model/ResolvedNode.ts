@@ -7,7 +7,6 @@ export type ResolvedNodeCompleteness = 'full' | 'path-limited';
 export interface ResolvedBlueNodeMetadata {
   completeness?: ResolvedNodeCompleteness;
   sourceSemanticBlueId?: string;
-  expandedFromBlueId?: string;
 }
 
 /**
@@ -18,7 +17,6 @@ export interface ResolvedBlueNodeMetadata {
 export class ResolvedBlueNode extends BlueNode {
   private completeness: ResolvedNodeCompleteness;
   private sourceSemanticBlueId?: string;
-  private expandedFromBlueId?: string;
 
   /**
    * Creates a new ResolvedBlueNode from a resolved BlueNode
@@ -28,7 +26,6 @@ export class ResolvedBlueNode extends BlueNode {
     super(resolvedNode.getName());
     this.completeness = metadata.completeness ?? 'full';
     this.sourceSemanticBlueId = metadata.sourceSemanticBlueId;
-    this.expandedFromBlueId = metadata.expandedFromBlueId;
     this.createFrom(resolvedNode);
   }
 
@@ -47,11 +44,29 @@ export class ResolvedBlueNode extends BlueNode {
    * @returns The minimal node representation
    */
   public getMinimalNode(): BlueNode {
+    if (this.completeness === 'path-limited') {
+      if (this.sourceSemanticBlueId !== undefined) {
+        return new BlueNode().setReferenceBlueId(this.sourceSemanticBlueId);
+      }
+      throw new Error(
+        'Cannot minimize a path-limited resolved node without a source semantic BlueId.',
+      );
+    }
+
     const minimizer = new Minimizer();
     return minimizer.minimizeResolved(this);
   }
 
   public getMinimalBlueId(): string {
+    if (this.completeness === 'path-limited') {
+      if (this.sourceSemanticBlueId !== undefined) {
+        return this.sourceSemanticBlueId;
+      }
+      throw new Error(
+        'Cannot calculate minimal BlueId for a path-limited resolved node without a source semantic BlueId.',
+      );
+    }
+
     const minimalNode = this.getMinimalNode();
     return BlueIdCalculator.calculateBlueIdSync(minimalNode);
   }
@@ -88,20 +103,10 @@ export class ResolvedBlueNode extends BlueNode {
     return this;
   }
 
-  public getExpandedFromBlueId(): string | undefined {
-    return this.expandedFromBlueId;
-  }
-
-  public setExpandedFromBlueId(blueId: string | undefined): this {
-    this.expandedFromBlueId = blueId;
-    return this;
-  }
-
   private getMetadata(): ResolvedBlueNodeMetadata {
     return {
       completeness: this.completeness,
       sourceSemanticBlueId: this.sourceSemanticBlueId,
-      expandedFromBlueId: this.expandedFromBlueId,
     };
   }
 
