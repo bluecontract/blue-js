@@ -6,6 +6,7 @@ import { PathLimitsBuilder } from '../limits/PathLimits';
 import { Limits } from '../limits/Limits';
 import { yamlBlueParse } from '../../../utils';
 import { BlueIdCalculator } from '../BlueIdCalculator';
+import { NO_LIMITS } from '../limits';
 
 describe('NodeExtender', () => {
   let nodes: Map<string, BlueNode>;
@@ -297,5 +298,26 @@ value: 3`;
     expect(await outerListRef.get('/1/value')).toStrictEqual(
       new BigIntegerNumber(3),
     );
+  });
+
+  test('does not mutate provider-stored content after expanding a reference', () => {
+    const stored = NodeDeserializer.deserialize(
+      yamlBlueParse(`
+name: Base
+nested:
+  value: original
+`)!,
+    );
+    const provider = createNodeProvider((blueId: string): BlueNode[] =>
+      blueId === 'base-id' ? [stored] : [],
+    );
+    const nodeExtender = new NodeExtender(provider);
+    const ref = new BlueNode().setReferenceBlueId('base-id');
+
+    nodeExtender.extend(ref, NO_LIMITS);
+
+    ref.getProperties()?.nested?.setValue('changed');
+
+    expect(stored.getProperties()?.nested?.getValue()).toBe('original');
   });
 });

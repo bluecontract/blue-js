@@ -246,15 +246,8 @@ export class Merger extends NodeResolver {
         );
       }
 
-      if (context.limits instanceof NoLimits) {
-        const targetListBlueId =
-          BlueIdCalculator.calculateBlueIdSync(targetChildren);
-        if (targetListBlueId !== previousBlueId) {
-          throw new Error(
-            `$previous list control points to '${previousBlueId}', but inherited list has blueId '${targetListBlueId}'.`,
-          );
-        }
-      }
+      // $previous is an optimization hint. When the inherited prefix changed,
+      // consume the anchor and recompute from the effective target list.
       hasPreviousAnchor = true;
       sourceIndex = 1;
     }

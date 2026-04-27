@@ -335,7 +335,7 @@ describe('MergeReverser', () => {
   });
 
   describe('spec-native list controls', () => {
-    it('hashes append-only $previous list controls like full materialized lists', () => {
+    it('keeps low-level trusted $previous hashing equivalent to full materialized lists', () => {
       const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
       const full = blue.yamlToNode(`
 type: List
@@ -366,8 +366,102 @@ items:
   - C
 `);
 
-      expect(blue.calculateBlueIdSync(delta)).toBe(
+      expect(BlueIdCalculator.calculateBlueIdSync(delta)).toBe(
+        BlueIdCalculator.calculateBlueIdSync(full),
+      );
+    });
+
+    it('ignores stale $previous anchors instead of throwing or trusting them blindly', () => {
+      const nodeProvider = new BasicNodeProvider();
+      const blue = new Blue({ nodeProvider });
+
+      nodeProvider.addSingleDocs(`
+name: Base
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+`);
+
+      const stalePrefixId = BlueIdCalculator.calculateBlueIdSync(
+        blue
+          .yamlToNode(
+            `
+items:
+  - X
+  - Y
+`,
+          )
+          .getItems() ?? [],
+      );
+
+      const withStalePrevious = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base')}
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - $previous:
+        blueId: ${stalePrefixId}
+    - C
+`);
+
+      const full = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base')}
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+    - C
+`);
+
+      expect(() => blue.resolve(withStalePrevious)).not.toThrow();
+      expect(blue.calculateBlueIdSync(withStalePrevious)).toBe(
         blue.calculateBlueIdSync(full),
+      );
+    });
+
+    it('does not blindly trust unverified $previous anchors in public semantic identity', () => {
+      const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+      const stalePrefixId = BlueIdCalculator.calculateBlueIdSync(
+        blue
+          .yamlToNode(
+            `
+items:
+  - X
+  - Y
+`,
+          )
+          .getItems() ?? [],
+      );
+      const untrusted = blue.yamlToNode(`
+type: List
+mergePolicy: append-only
+items:
+  - $previous:
+      blueId: ${stalePrefixId}
+  - C
+`);
+      const noAnchor = blue.yamlToNode(`
+type: List
+mergePolicy: append-only
+items:
+  - C
+`);
+
+      expect(blue.calculateBlueIdSync(untrusted)).toBe(
+        blue.calculateBlueIdSync(noAnchor),
+      );
+      expect(blue.calculateBlueIdSync(untrusted)).not.toBe(
+        BlueIdCalculator.calculateBlueIdSync(untrusted),
       );
     });
 

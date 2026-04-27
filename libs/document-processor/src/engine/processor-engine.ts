@@ -343,8 +343,7 @@ export class ProcessorExecution implements ExecutionHooks {
       return { matches: false };
     }
 
-    const eventBlueId =
-      event.getBlueId() ?? this.runtimeRef.blue().calculateBlueIdSync(event);
+    const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
 
     const eventClone = event.clone();
     const contract = channel.contract() as ChannelContract;
@@ -667,8 +666,7 @@ export class ProcessorEngine {
       case Properties.OBJECT_CONTRACTS:
         return new BlueNode().setContracts(node.getContracts());
       case 'blueId': {
-        const calculatedBlueId =
-          node.getBlueId() ?? options?.calculateBlueId?.(node);
+        const calculatedBlueId = options?.calculateBlueId?.(node);
         if (calculatedBlueId === undefined) {
           throw new ProcessorFatalError(
             'ProcessorEngine.nodeAt requires a semantic calculateBlueId option for /blueId.',

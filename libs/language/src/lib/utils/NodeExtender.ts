@@ -155,15 +155,26 @@ export class NodeExtender {
     }
     target.setName(source.getName());
     target.setDescription(source.getDescription());
-    target.setType(source.getType());
-    target.setItemType(source.getItemType());
-    target.setKeyType(source.getKeyType());
-    target.setValueType(source.getValueType());
+    target.setType(source.getType()?.clone());
+    target.setItemType(source.getItemType()?.clone());
+    target.setKeyType(source.getKeyType()?.clone());
+    target.setValueType(source.getValueType()?.clone());
     const sourceValue = source.getValue();
     if (isNonNullable(sourceValue)) {
       target.setValue(sourceValue);
     }
-    target.setItems(source.getItems());
-    target.setProperties(source.getProperties());
+    target.setItems(source.getItems()?.map((item) => item.clone()));
+    const sourceProperties = source.getProperties();
+    target.setProperties(
+      sourceProperties === undefined
+        ? undefined
+        : Object.fromEntries(
+            Object.entries(sourceProperties).map(([key, value]) => [
+              key,
+              value.clone(),
+            ]),
+          ),
+    );
+    target.setBlue(source.getBlue()?.clone());
   }
 }

@@ -57,11 +57,6 @@ export class SemanticIdentityService {
       return node.clone();
     }
 
-    if (ListControls.hasAnyListControl(node)) {
-      StorageShapeValidator.validateStorageShape(node);
-      return node.clone();
-    }
-
     if (node.isResolved()) {
       return this.minimizeResolved(node);
     }

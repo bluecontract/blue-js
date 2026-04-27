@@ -145,6 +145,8 @@ export class BlueIdHasher {
     let accumulatedHash: SyncOrAsync<string>;
     const firstItem = list[0];
     if (firstItem !== undefined && this.hasPreviousControlKey(firstItem)) {
+      // Low-level trusted-minimal behavior only. Public semantic identity must
+      // verify or consume $previous before reaching this hasher.
       const previousBlueId = this.getPreviousControlBlueId(firstItem);
       if (previousBlueId === undefined) {
         throw new Error(

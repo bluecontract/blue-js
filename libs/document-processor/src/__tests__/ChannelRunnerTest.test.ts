@@ -31,16 +31,12 @@ function eventNode(data: {
   readonly kind?: string;
   readonly value?: number;
 }) {
-  const node = blue.jsonValueToNode({
+  return blue.jsonValueToNode({
     type: { blueId: 'TestEvent' },
     ...(data.eventId ? { eventId: data.eventId } : {}),
     ...(data.kind ? { kind: data.kind } : {}),
     ...(data.value != null ? { value: data.value } : {}),
   });
-  if (data.eventId) {
-    node.setBlueId(data.eventId);
-  }
-  return node;
 }
 
 describe('ChannelRunnerTest', () => {
@@ -89,7 +85,7 @@ describe('ChannelRunnerTest', () => {
     expect(Number(property(current, 'counter').getValue())).toBe(2);
   });
 
-  it('skipsDuplicateEventsByEventIdEvenIfPayloadChanges', async () => {
+  it('uses semantic event identity instead of reference event ids for duplicates', async () => {
     const processor = buildProcessor(
       blue,
       new TestEventChannelProcessor(),
@@ -134,7 +130,7 @@ describe('ChannelRunnerTest', () => {
       await expectOk(processor.processDocument(current.clone(), newId))
     ).document.clone();
 
-    expect(Number(property(current, 'counter').getValue())).toBe(2);
+    expect(Number(property(current, 'counter').getValue())).toBe(3);
   });
 
   it('skipsDuplicateEventsByCanonicalPayloadWhenNoEventIdPresent', async () => {

@@ -10,6 +10,10 @@ import {
   withTypeBlueId,
 } from '@blue-labs/language';
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
+import {
+  rewriteAliasMappings,
+  rewriteBlueIds,
+} from './semantic-repository-rewrite.js';
 
 interface RepositoryEntry {
   packageName: string;
@@ -205,40 +209,6 @@ function reindexPackage(
       }),
     ),
   };
-}
-
-function rewriteAliasMappings(
-  aliases: Record<string, string>,
-  idByOldId: Record<string, string>,
-): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(aliases).map(([alias, blueId]) => [
-      alias,
-      idByOldId[blueId] ?? blueId,
-    ]),
-  );
-}
-
-function rewriteBlueIds(
-  value: JsonValue,
-  idByOldId: Record<string, string>,
-): JsonValue {
-  if (Array.isArray(value)) {
-    return value.map((item) => rewriteBlueIds(item, idByOldId));
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nested]) => [
-        key,
-        key === 'blueId' && typeof nested === 'string'
-          ? (idByOldId[nested] ?? nested)
-          : rewriteBlueIds(nested as JsonValue, idByOldId),
-      ]),
-    );
-  }
-
-  return value;
 }
 
 function sameMappings(

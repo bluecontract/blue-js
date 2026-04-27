@@ -50,6 +50,19 @@ describe('DocumentProcessorBoundaryTest', () => {
     );
   });
 
+  it('nodeAtBlueIdIgnoresReferenceBlueIdFields', () => {
+    const document = new BlueNode()
+      .setReferenceBlueId('SomeReferenceId')
+      .setValue('payload');
+
+    const node = ProcessorEngine.nodeAt(document, '/blueId', {
+      calculateBlueId: () => 'semantic-id',
+    });
+
+    expect(node?.getValue()).toBe('semantic-id');
+    expect(node?.getValue()).not.toBe('SomeReferenceId');
+  });
+
   it('allowsPatchingWithinScopeUsingLiteralSegments', async () => {
     const engine = createEngine();
     const document = new BlueNode();

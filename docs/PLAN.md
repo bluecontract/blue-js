@@ -380,23 +380,47 @@ raw-ID exception for transformation resources.
 - `snapshot-patch` remains a `patch-then-full-resolve` benchmark until Phase 2.
 - Resolver-invalid tests use direct/raw test providers instead of relying on
   provider fallback to ingest invalid content.
+- `$previous` stale anchors are now consumed as optimization hints and the
+  effective list is recomputed against the current inherited prefix instead of
+  throwing or trusting the stale seed.
+- Public semantic identity no longer treats arbitrary list-control authoring
+  input as trusted minimal storage; only internal trusted minimal hashing can
+  pass `$previous` directly to the low-level hasher.
+- `document-processor` `/blueId` and external event checkpoint IDs use semantic
+  calculated identity instead of `getBlueId()` fallback. Operation Request
+  document pins remain explicit reference targets when a resolved/materialized
+  request still carries a reference `blueId`.
+- The `@blue-repository/types` bridge rewrites indexed references such as
+  `OLD#1 -> NEW#1`.
+- `NodeExtender.mergeNodes()` clones provider-owned content before attaching it
+  to expanded runtime nodes.
 
 ### Verification run
 
 - `nx build language --skip-nx-cache` — passed.
 - `nx tsc language --skip-nx-cache` — passed.
 - `nx lint language` — passed.
-- `nx test language --skip-nx-cache` — passed: 557 passed, 4 skipped,
-  4 todo.
+- `nx test language --skip-nx-cache` — passed: 568 passed, 4 skipped,
+  5 todo.
+- `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` — passed.
+- `npx eslint libs/document-processor --fix` — passed.
+- `nx test document-processor --skip-nx-cache` — passed: 349 passed.
+- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/calculateBlueId.mjs` —
+  passed: low-level hash avg `11395.84 ms`, baseline delta
+  `-1838.20 ms (-13.89%)`.
 - `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/resolve.mjs` — passed:
-  shared resolve avg `43.76 ms`, baseline delta `-253.90 ms (-85.30%)`.
+  shared resolve avg `44.37 ms`, baseline delta `-253.29 ms (-85.09%)`.
 - `BENCH_COMPARE_BASELINE=1 BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs`
-  — passed: unique resolve avg `1660.08 ms`, baseline delta
-  `+57.89 ms (+3.61%)`.
-- `node scripts/benchmark/semanticBlueId.mjs` — passed:
-  authoring no-type avg `4.67 ms`, authoring shared-type avg `1.98 ms`,
-  resolved avg `0.09 ms`, public semantic ID on minimal-shaped authoring avg
-  `1.78 ms`, provider ingest avg `0.60 ms`.
+  — passed: unique resolve avg `1640.71 ms`, baseline delta
+  `+38.52 ms (+2.40%)`.
+- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/semanticBlueId.mjs` —
+  passed: authoring no-type avg `4.58 ms`, authoring shared-type avg
+  `1.83 ms`, resolved avg `0.08 ms`, public semantic ID on minimal-shaped
+  authoring avg `1.68 ms`, provider ingest avg `0.57 ms`; baseline comparison
+  skipped because the baseline file is not present.
+- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/snapshotPatch.mjs` —
+  passed: patch-then-full-resolve avg `1.94 ms`, baseline delta
+  `-0.36 ms (-15.72%)`.
 
 ### Deliberate transitional behavior
 
@@ -410,6 +434,11 @@ raw-ID exception for transformation resources.
    package still ships historical/pre-semantic storage keys. `document-processor`
    uses an explicit semantic reindex adapter for that package; `language`
    remains strict and does not add a normal historical-ID provider bypass.
+4. **Operation Request document pins.** A `document` field in an Operation
+   Request is a version pin/reference. If a resolved or materialized request
+   still carries a reference `blueId`, DP treats that reference as the pinned
+   document version. Inline document payloads without a reference use semantic
+   calculated identity.
 
 ### Decisions before Phase 2
 
@@ -423,6 +452,8 @@ raw-ID exception for transformation resources.
 - Phase 1K owns spec-native `$previous`, `$pos`, and `$empty`. Phase 3 owns
   direct cyclic `this#k` support. Legacy inherited-list markers are not a
   normal storage format in Phase 1.
+- Phase 2 snapshots should not start until Phase 1K remains green for both
+  `language` and `document-processor`.
 
 ---
 
@@ -642,6 +673,9 @@ hash input.
 - `NodeExtender` rozszerza tylko exact pure references, po materializacji usuwa
   reference `blueId`, i nie flattenuje pierwszego pure reference w zwykłej
   liście.
+- `NodeExtender.mergeNodes()` klonuje provider-owned type/items/properties
+  przed przypięciem do expanded target, żeby mutacje runtime nie przeciekały do
+  provider content.
 - `resolve()` nie współdzieli exposed mutable `type` object między siblingami w
   jednym resolved tree.
 
@@ -651,6 +685,8 @@ hash input.
   storage path.
 - Provider/storage odrzuca `blueId: this` i `blueId: this#k`.
 - `Blue.extend()` zachowuje semantic `BlueId`.
+- Mutacja expanded targetu po `Blue.extend()` nie mutuje provider-stored
+  content.
 - NodeExtender nie flattenuje zwykłej listy zaczynającej się od pure ref.
 - Minimizer nie emituje legacy list marker.
 - Sibling resolved type mutation nie przecieka w obrębie jednego `resolve()`.
@@ -680,14 +716,26 @@ zależności od raw `BlueIdCalculator` i spec-invalid fallback repository shape.
   storage IDs. Gdy `blue-repository-js` zacznie generować semantic IDs natywnie,
   adapter powinien zostać usunięty albo zawężony do explicit legacy migration
   path.
+- Adapter przepisuje zarówno exact IDs, jak i finalne indeksowane fragmenty
+  `OLD#i -> NEW#i`.
 - `ProcessorEngine.nodeAt(..., '/blueId')` używa wyłącznie wstrzykniętego
   semantic `calculateBlueId`; bez kalkulatora rzuca jawny błąd.
+- Runtime event IDs używane przez checkpointing są liczone semantic
+  `calculateBlueIdSync(event)`, bez fallbacku do eventowego reference
+  `blueId`.
+- Operation Request `document` pin zachowuje reference `blueId` jako jawnie
+  pinowaną wersję dokumentu; inline payload bez reference używa semantic
+  calculatora.
 - Test-support i testy DP nie używają raw `BlueIdCalculator`.
 
 ### Testy
 
 - Fallback repo ładuje się bez `properties`.
 - `/blueId` używa injected semantic calculator.
+- Event checkpoint ID używa semantic calculatora.
+- Operation Request document pin obsługuje resolved/materialized reference
+  oraz inline semantic payload.
+- Repository bridge przepisuje `blueId: OLD#1` na `blueId: NEW#1`.
 - `document-processor` przechodzi type-check, lint i testy po zmianie identity.
 
 ---
@@ -712,14 +760,19 @@ legacy first-item markerów i bez tymczasowego full-list overlay jako write path
   - `append-only` odrzuca `$pos`,
   - `$pos` refinements targetują finalny merged index,
   - duplicate, non-integer i out-of-range `$pos` rzucają jawne błędy,
-  - `$previous` musi wskazywać aktualny inherited items-list BlueId przy pełnym
-    resolve.
+  - malformed `$previous` nadal jest błędem,
+  - stale `$previous` jest zużywane i ignorowane jako nieaktualny optimization
+    hint; resolver recompute'uje efektywną listę od aktualnego inherited
+    prefixu.
 - `MergeReverser` minimalizuje inherited appendy jako `$previous + delta`, a
   positional refinements jako `$previous + $pos`; append-only non-prefix
   mutation rzuca błąd.
 - `BlueIdHasher` seeduje list fold z `$previous` dla appendów i odrzuca raw
   `$pos`, bo `$pos` musi zostać skonsumowany przez semantic normalization przed
   hashowaniem.
+- Publiczny `Blue.calculateBlueId*` nie traktuje dowolnego authoring inputu z
+  `$previous` jako trusted minimal storage; untrusted controls przechodzą przez
+  semantic resolve/minimize.
 - Uzasadnienie hash path: append-only `$previous` może zacząć fold od BlueId
   poprzedniej listy i kontynuować fold dla nowych elementów. `$pos` nie może
   być policzony z samego BlueId poprzedniej listy, bo podmiana finalnego indeksu
@@ -734,6 +787,9 @@ legacy first-item markerów i bez tymczasowego full-list overlay jako write path
 ### Testy
 
 - `$previous` append-only minimal ma ten sam semantic `BlueId` co pełna lista.
+- Stale `$previous` nie rzuca i nie zatruwa publicznego semantic hash seedem.
+- Publiczny semantic BlueId ignoruje niezweryfikowany `$previous` bez
+  inherited prefixu.
 - Minimizer emituje `$previous`, nie legacy pure-reference marker.
 - Zwykły pierwszy item `{ blueId: ... }` pozostaje contentem.
 - `$pos` obsługuje positional refinement i appendy w finalnej kolejności.
