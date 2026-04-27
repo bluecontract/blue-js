@@ -169,7 +169,9 @@ export class Blue {
     Def extends ZodTypeDef = ZodTypeDef,
     Input = Output,
   >(node: BlueNode, schema: ZodType<Output, Def, Input>): Output {
-    const converter = new NodeToObjectConverter(this.typeSchemaResolver);
+    const converter = new NodeToObjectConverter(this.typeSchemaResolver, {
+      calculateBlueId: (value) => this.calculateBlueIdSync(value),
+    });
     return converter.convert(node, schema);
   }
 

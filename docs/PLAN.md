@@ -409,22 +409,31 @@ raw-ID exception for transformation resources.
 - `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` — passed.
 - `npx eslint libs/document-processor --fix` — passed.
 - `nx test document-processor --skip-nx-cache` — passed: 349 passed.
-- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/calculateBlueId.mjs` —
-  passed: low-level hash avg `11395.84 ms`, baseline delta
-  `-1838.20 ms (-13.89%)`.
-- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/resolve.mjs` — passed:
-  shared resolve avg `44.37 ms`, baseline delta `-253.29 ms (-85.09%)`.
-- `BENCH_COMPARE_BASELINE=1 BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs`
-  — passed: unique resolve avg `1640.71 ms`, baseline delta
-  `+38.52 ms (+2.40%)`.
-- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/semanticBlueId.mjs` —
-  passed: authoring no-type avg `4.58 ms`, authoring shared-type avg
-  `1.83 ms`, resolved avg `0.08 ms`, public semantic ID on minimal-shaped
-  authoring avg `1.68 ms`, provider ingest avg `0.57 ms`; baseline comparison
-  skipped because the baseline file is not present.
-- `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/snapshotPatch.mjs` —
-  passed: patch-then-full-resolve avg `1.94 ms`, baseline delta
-  `-0.36 ms (-15.72%)`.
+- Benchmark refresh on 2026-04-27, Apple M1 Pro, Node `v22.22.1`, default
+  config `2` warmup / `10` measured iterations, after
+  `npx nx build language --skip-nx-cache`:
+  - `node scripts/benchmark/calculateBlueId.mjs`: low-level hash avg
+    `11155.99 ms`, baseline delta `-2078.06 ms (-15.70%)`.
+  - `node scripts/benchmark/semanticBlueId.mjs`: authoring no-type avg
+    `4.81 ms`, authoring shared-type avg `1.83 ms`, resolved avg `0.07 ms`,
+    public semantic ID on minimal-shaped authoring avg `1.68 ms`, provider
+    ingest avg `0.57 ms`.
+  - `BENCH_SAVE_BASELINE=1 node scripts/benchmark/semanticBlueId.mjs`: saved
+    `scripts/benchmark/data/semantic-blue-id-baseline.json` with authoring
+    no-type avg `4.75 ms`, authoring shared-type avg `1.79 ms`, resolved avg
+    `0.07 ms`, public semantic ID on minimal-shaped authoring avg `1.68 ms`,
+    provider ingest avg `0.57 ms`.
+  - `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/semanticBlueId.mjs`:
+    passed against the new semantic baseline.
+  - `node scripts/benchmark/resolve.mjs`: shared resolve avg `46.62 ms`,
+    baseline delta `-251.04 ms (-84.34%)`; clone total avg `165019`, baseline
+    delta `-369719 (-69.14%)`.
+  - `BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs`: unique
+    resolve avg `1660.62 ms`, baseline delta `+58.43 ms (+3.65%)`; clone
+    total avg `528612`, baseline delta `-441599 (-45.52%)`.
+  - `node scripts/benchmark/snapshotPatch.mjs`: patch-then-full-resolve avg
+    `1.96 ms`, baseline delta `-0.34 ms (-14.70%)`; clone total avg `10506`,
+    baseline delta `-3900 (-27.07%)`.
 
 ### Deliberate transitional behavior
 
@@ -529,6 +538,110 @@ Phase 1 może zostać oznaczona jako final DONE, gdy:
   `npx eslint libs/document-processor --fix` i
   `nx test document-processor --skip-nx-cache` są zielone albo mają jawnie
   zaakceptowane przejściowe failure wynikające z dalszych faz.
+
+---
+
+## Faza 1N — Repo-wide semantic BlueId migration
+
+### Cel
+
+Domknąć Phase 1 poza samym `libs/language`: downstream packages nie mogą już
+używać historycznych/raw identity paths jako publicznej prawdy dla typów,
+runtime repository ani SDK. `language` zostaje właścicielem wspólnego adaptera
+semantycznego, a `document-processor` pozostaje boundary, który tymczasowo
+adaptuje obecne `@blue-repository/types`.
+
+### Decyzje
+
+- Dodajemy w `@blue-labs/language`
+  `reindexRepositoryForSemanticStorage(repository, options?)`. Adapter
+  przepisuje `aliases`, `contents`, `typesMeta`, `schemas`, exact `blueId`
+  references oraz indeksowane referencje `OLD#i -> NEW#i`. Nie przepisuje
+  `repositoryVersions`, bo historia repozytorium pozostaje raw/version
+  fingerprintiem, nie publiczną semantic type identity.
+- Cache adaptera nie może być współdzielony dla różnych `mergingProcessor`.
+  Domyślna ścieżka może cache'ować po repository identity; custom processor
+  idzie bez cache albo przez oddzielny klucz processor identity.
+- `document-processor` importuje raw `@blue-repository/types` i reindeksuje je
+  przez adapter z `language` na własnym boundary, ale nie wystawia tego bridge'a
+  jako shared public API. Inne biblioteki tworzą własny local bridge przez
+  `reindexRepositoryForSemanticStorage()`.
+- `dsl-sdk` nie konstruuje już `Blue` z raw `@blue-repository/types`.
+  Runtime identity używa lokalnego semantic repository bridge'a zbudowanego
+  przez `reindexRepositoryForSemanticStorage()`; raw schema imports mogą zostać
+  tylko jako walidatory, nie jako źródło identity.
+- `repository-generator` przechodzi na hard semantic switch. Nie dodajemy
+  `allowIdentityAlgorithmMigration`; normalny guard
+  `content is unchanged but BlueId differs` zostaje aktywny, żeby wykrywać
+  niejawne zmiany metadata.
+- Source `.blue` w `repository-generator` jest specowym Blue authoring input,
+  nie osobnym DSL-em z escape hatchem na reserved field names. Atrybuty
+  użytkownika nie mogą nazywać się `value`, `items`, `blueId`, `blue` ani
+  `properties`; `value` pozostaje dozwolone tylko jako scalar payload węzła.
+- `repoDoc.computeRepoBlueId()` pozostaje raw structural fingerprintiem wersji
+  repozytorium i jest celowo oddzielony od publicznej semantic type identity.
+- `SemanticIdentityService.hashMinimalTrusted*()` jest internal trusted path,
+  a nie publiczne API.
+- `@blueId` w schema output oznacza publiczną semantic identity: mapper dostaje
+  wstrzyknięty calculator z `Blue.nodeToSchemaOutput()`.
+
+### Implementacja
+
+- Przenieść helpery reindexowania z `document-processor` do
+  `libs/language/src/lib/repository/SemanticRepositoryReindexer.ts` i dodać
+  testy konwergencji, exact/id-index rewrite, schemas/type metadata rewrite
+  oraz walidację strict repository keys po reindexingu.
+- Odchudzić `libs/document-processor/src/repository/semantic-repository.ts` do
+  wewnętrznego boundary adaptera nad raw `@blue-repository/types`; nie
+  eksportować semantic repository z publicznego `src/index.ts`.
+- W `dsl-sdk` zastąpić raw repository construction i raw conversation alias
+  imports własnym local semantic bridge'em opartym o
+  `reindexRepositoryForSemanticStorage()`; aktualizować
+  `runtime-type-support.ts`, żeby czytał aliases z lokalnego semantic
+  repository.
+- W `repository-generator` liczyć `typeBlueId` semantycznie, zachowując
+  hardcoded primitive/core IDs. Generator buduje incremental provider keyed by
+  semantic IDs w topological order, podstawia znane aliasy, zachowuje
+  oficjalny JSON source content po parsowaniu/preprocessingu i rejestruje alias
+  dla kolejnych typów. Primitive/core IDs nie są seedowane do providera jako
+  zwykły repository content, żeby nie nadpisać built-in basic type semantics.
+- Usunąć generatorowy parser/normalizer, który traktował `value: { type: ... }`
+  jako nazwę atrybutu. Źródło generatora ma przechodzić przez
+  `Blue.jsonValueToNode()` i `Blue.calculateBlueIdSync()`, a spec-invalid
+  reserved field usage ma być odrzucane przez normalną ścieżkę języka/storage.
+- Zmienić nazwę `aliasToPreprocessed` na semantic storage name, np.
+  `aliasToStorageContent`, i usunąć stare `normalizeForBlueId` jako publiczną
+  ścieżkę generatora.
+- Zregenerować fixtures/snapshoty generatora:
+  `base/BlueRepository.blue`, `non-breaking/BlueRepository.blue`,
+  `dev-change/BlueRepository.blue` oraz inline snapshots.
+- Posprzątać language test usage `BlueIdCalculator` w testach normalnych
+  provider/repository flows. Raw calculator zostaje tylko dla low-level hashera,
+  CID, bootstrap-only paths, internal structural caches i jawnie historycznych
+  repository-version fixtures.
+
+### Acceptance
+
+Repo-wide Phase 1 jest DONE dopiero gdy:
+
+- `repository-generator` nie używa raw `BlueIdCalculator` jako publicznej
+  prawdy `typeBlueId`,
+- `dsl-sdk` nie ładuje raw `@blue-repository/types` jako runtime repository,
+- `document-processor` ma internal semantic repository bridge, a `dsl-sdk`
+  buduje własny bridge przez `language` zamiast importować repository z DP,
+- `@blueId` schema output używa semantic calculatora,
+- raw `BlueIdCalculator` usages w `language` są internal/low-level albo
+  udokumentowanymi historycznymi fixtures,
+- przechodzą:
+  - `npx tsc -p libs/language/tsconfig.lib.json --noEmit`,
+  - `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit`,
+  - `npx tsc -p libs/repository-generator/tsconfig.lib.json --noEmit`,
+  - `npx tsc -p libs/dsl-sdk/tsconfig.lib.json --noEmit`,
+  - `npx eslint libs/language libs/document-processor libs/repository-generator libs/dsl-sdk --fix`,
+  - `npx nx test language --skip-nx-cache`,
+  - `npx nx test document-processor --skip-nx-cache`,
+  - `npx nx test repository-generator --skip-nx-cache`,
+  - `npx nx test dsl-sdk --skip-nx-cache`.
 
 ---
 

@@ -1,12 +1,12 @@
 import { repository as rawBlueRepository } from '@blue-repository/types';
-import { blueIds as rawCoreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 import { blueIds as rawConversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { blueIds as rawCoreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 import { blueIds as rawMyOsBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
+import { createDefaultMergingProcessor } from '@blue-labs/document-processor';
 import {
   reindexRepositoryForSemanticStorage,
   type BlueRepository,
 } from '@blue-labs/language';
-import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 
 export const blueRepository = reindexRepositoryForSemanticStorage(
   rawBlueRepository,

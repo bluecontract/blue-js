@@ -5,8 +5,8 @@ import { NodeExtender } from '../NodeExtender';
 import { PathLimitsBuilder } from '../limits/PathLimits';
 import { Limits } from '../limits/Limits';
 import { yamlBlueParse } from '../../../utils';
-import { BlueIdCalculator } from '../BlueIdCalculator';
 import { NO_LIMITS } from '../limits';
+import { Blue } from '../../Blue';
 
 describe('NodeExtender', () => {
   let nodes: Map<string, BlueNode>;
@@ -160,13 +160,11 @@ value: 3`;
 
     nodeProvider.addSingleNodes(nodeA, nodeB, nodeC);
 
-    const nestedListBlueId = BlueIdCalculator.calculateBlueIdSync([
-      nodeA,
-      nodeB,
-    ]);
     nodeProvider.addListAndItsItems([nodeA, nodeB]);
+    const blue = new Blue({ nodeProvider });
+    const nestedListBlueId = blue.calculateBlueIdSync([nodeA, nodeB]);
 
-    const blueIdC = BlueIdCalculator.calculateBlueIdSync(nodeC);
+    const blueIdC = blue.calculateBlueIdSync(nodeC);
 
     const outerListDocument = `  
 name: ListNode
@@ -240,11 +238,9 @@ value: 3`;
 
     nodeProvider.addSingleNodes(nodeA, nodeB, nodeC);
 
-    const nestedListBlueId = BlueIdCalculator.calculateBlueIdSync([
-      nodeA,
-      nodeB,
-    ]);
     nodeProvider.addList([nodeA, nodeB]);
+    const blue = new Blue({ nodeProvider });
+    const nestedListBlueId = blue.calculateBlueIdSync([nodeA, nodeB]);
 
     const nestedListRefDocument = `blueId: ${nestedListBlueId}`;
     const parsedNestedListRefDocument = yamlBlueParse(nestedListRefDocument);
@@ -257,10 +253,7 @@ value: 3`;
     );
 
     nodeProvider.addList([nestedListRef, nodeC]);
-    const outerListBlueId = BlueIdCalculator.calculateBlueIdSync([
-      nestedListRef,
-      nodeC,
-    ]);
+    const outerListBlueId = blue.calculateBlueIdSync([nestedListRef, nodeC]);
 
     const outerListRefDocument = `blueId: ${outerListBlueId}`;
     const parsedOuterListRefDocument = yamlBlueParse(outerListRefDocument);

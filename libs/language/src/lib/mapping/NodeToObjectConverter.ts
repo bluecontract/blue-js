@@ -6,12 +6,24 @@ import { ConverterFactory } from './ConverterFactory';
 import { isBlueNodeSchema } from '../../schema/annotations';
 import { BlueNodeTypeSchema } from '../utils/TypeSchema';
 import { isNonNullable } from '@blue-labs/shared-utils';
+import { BlueIdCalculator } from '../utils';
+
+export interface NodeToObjectConverterOptions {
+  calculateBlueId?: (node: BlueNode) => string;
+}
 
 export class NodeToObjectConverter {
   private readonly converterFactory: ConverterFactory;
+  private readonly calculateBlueId: (node: BlueNode) => string;
 
-  constructor(private typeSchemaResolver?: TypeSchemaResolver | null) {
-    this.converterFactory = new ConverterFactory(this);
+  constructor(
+    private typeSchemaResolver?: TypeSchemaResolver | null,
+    options: NodeToObjectConverterOptions = {},
+  ) {
+    this.calculateBlueId =
+      options.calculateBlueId ??
+      ((node) => BlueIdCalculator.calculateBlueIdSync(node));
+    this.converterFactory = new ConverterFactory(this, this.calculateBlueId);
   }
 
   convert<

@@ -4,6 +4,7 @@ export * from './identity';
 export * from './mapping';
 export * from './Blue';
 export * from './NodeProvider';
+export * from './repository/SemanticRepositoryReindexer';
 export * from './provider/SequentialNodeProvider';
 export * from './provider/UrlContentFetcher';
 export * from './provider/BasicNodeProvider';

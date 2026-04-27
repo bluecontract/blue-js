@@ -84,6 +84,7 @@ export class SemanticIdentityService {
     return this.minimizeResolved(resolved);
   }
 
+  /** @internal */
   public hashMinimalTrusted(minimal: BlueNode | BlueNode[]): string {
     if (Array.isArray(minimal)) {
       StorageShapeValidator.validateStorageListShape(minimal);
@@ -98,6 +99,7 @@ export class SemanticIdentityService {
     );
   }
 
+  /** @internal */
   public hashMinimalTrustedAsync(
     minimal: BlueNode | BlueNode[],
   ): Promise<string> {

@@ -5,6 +5,8 @@ packages:
       - status: stable
         content:
           name: Document
+          description: |
+            Minimal document type with cross-package references and a literal field.
           type:
             blueId: AaWLcfRqjdDw3qrh1vwGGzEtjDe2qLTFPMc34eg2UTjP
           id:
@@ -17,33 +19,30 @@ packages:
             type:
               blueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
           status:
-            value:
-              value: draft
-              type:
-                blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
-          note:
             type:
               blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            value: draft
+          note:
             description: Optional note
-          description: |
-            Minimal document type with cross-package references and a literal field.
+            type:
+              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
         versions:
           - repositoryVersionIndex: 0
-            typeBlueId: BpFwtRBVbQusMBBxVGXGjbaGP5Zhdm71qzZnXcUBMvtk
+            typeBlueId: 6rJ3veXS6KrmH1Uur8ktdDQn1Nsb4LH3VZmo23Aoy6nJ
             attributesAdded: []
           - repositoryVersionIndex: 1
-            typeBlueId: AmcZseAuxXrb2U2w6mEYBhxzdRWLXdRvyuQhHcWsrPmN
+            typeBlueId: JBi2iQ6FvJ12XfnjHSFvZkYvJNxbp9ajnfR4xkQuFLq9
             attributesAdded:
               - /note
       - status: dev
         content:
           name: Draft
+          description: Dev draft type
           type:
             blueId: AaWLcfRqjdDw3qrh1vwGGzEtjDe2qLTFPMc34eg2UTjP
           content:
             type:
               blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
-          description: Dev draft type
         versions:
           - repositoryVersionIndex: 0
             typeBlueId: CrFJMatbEgC6q3aWnpXQ9TXSodSjBbfAK6M9XEbjZoFc
@@ -71,9 +70,9 @@ packages:
       - status: stable
         content:
           name: Id
+          description: Unique identifier
           type:
             blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
-          description: Unique identifier
         versions:
           - repositoryVersionIndex: 0
             typeBlueId: C4p1uhDURJa53thQiX9JtBLZJVjeVwkhmerMTnwjZk2Q
@@ -81,15 +80,15 @@ packages:
       - status: stable
         content:
           name: Tag List
+          description: Simple list of tags
           type:
             blueId: 6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY
           itemType:
             blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
-          description: Simple list of tags
         versions:
           - repositoryVersionIndex: 0
             typeBlueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
             attributesAdded: []
 repositoryVersions:
-  - EsnJbexa3Apme8hKA3zdhvzj6pdeJRTh2HHnirnJdbyu
-  - DPyjUUVnZk9JmbWnsjcegA2bMmUebxcxGnG4h2NepCiJ
+  - 9eKjsgHqd9W93Cj7z194NKttJknz7KdCQCqwu3FnomS9
+  - HxAjQCL5czpYgSbBoBS5HbhdPRhJQPjzs3a8yrnMfWdD

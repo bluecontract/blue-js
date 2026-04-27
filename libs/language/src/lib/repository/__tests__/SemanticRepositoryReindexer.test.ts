@@ -1,0 +1,168 @@
+import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { Blue } from '../../Blue';
+import type { BlueRepository } from '../../types/BlueRepository';
+import {
+  getTypeBlueIdAnnotation,
+  withTypeBlueId,
+} from '../../../schema/annotations';
+import {
+  reindexRepositoryForSemanticStorage,
+  rewriteAliasMappings,
+  rewriteBlueIds,
+  rewriteBlueIdWithOptionalIndex,
+} from '../SemanticRepositoryReindexer';
+
+describe('SemanticRepositoryReindexer', () => {
+  it('reindexes repository keys, aliases, content blueIds, metadata, and schemas', () => {
+    const oldChildId = 'OLD_CHILD';
+    const oldParentId = 'OLD_PARENT';
+    const childSchema = withTypeBlueId(oldChildId)(z.object({}));
+    const parentSchema = withTypeBlueId(oldParentId)(z.object({}));
+    const repository = repositoryFixture({
+      oldChildId,
+      oldParentId,
+      childSchema,
+      parentSchema,
+    });
+
+    const reindexed = reindexRepositoryForSemanticStorage(repository);
+    const pkg = reindexed.packages.pkg;
+    expect(pkg).toBeDefined();
+
+    const childId = pkg.aliases['Pkg/Child'];
+    const parentId = pkg.aliases['Pkg/Parent'];
+    expect(childId).toBeDefined();
+    expect(parentId).toBeDefined();
+    expect(childId).not.toBe(oldChildId);
+    expect(parentId).not.toBe(oldParentId);
+
+    expect(pkg.contents[childId]).toBeDefined();
+    expect(pkg.contents[parentId]).toMatchObject({
+      name: 'Parent',
+      child: { type: { blueId: childId } },
+    });
+    expect(pkg.aliases['Pkg/ParentFragment']).toBe(`${parentId}#1`);
+    expect(pkg.typesMeta[childId]?.name).toBe('Child');
+    expect(pkg.typesMeta[parentId]?.name).toBe('Parent');
+
+    const parentTypeBlueId = getTypeBlueIdAnnotation(pkg.schemas[parentId])
+      ?.value?.[0];
+    expect(parentTypeBlueId).toBe(parentId);
+
+    expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
+  });
+
+  it('does not reuse the default cache for custom merging processors', () => {
+    const repository = repositoryFixture({
+      oldChildId: 'CUSTOM_CHILD',
+      oldParentId: 'CUSTOM_PARENT',
+      childSchema: withTypeBlueId('CUSTOM_CHILD')(z.object({})),
+      parentSchema: withTypeBlueId('CUSTOM_PARENT')(z.object({})),
+    });
+
+    const defaultResult = reindexRepositoryForSemanticStorage(repository);
+    const customResult = reindexRepositoryForSemanticStorage(repository, {
+      mergingProcessor: {
+        process: (_target, source) => source,
+      },
+    });
+
+    expect(customResult).not.toBe(defaultResult);
+  });
+});
+
+describe('semantic repository rewrite helpers', () => {
+  it('rewrites old repository blueId fragments with #index suffixes', () => {
+    expect(
+      rewriteBlueIds({ type: { blueId: 'OLD#1' } }, { OLD: 'NEW' }),
+    ).toEqual({
+      type: { blueId: 'NEW#1' },
+    });
+  });
+
+  it('prefers exact mappings before indexed suffix rewrites', () => {
+    expect(
+      rewriteBlueIdWithOptionalIndex('OLD#1', {
+        OLD: 'NEW',
+        'OLD#1': 'EXACT',
+      }),
+    ).toBe('EXACT');
+  });
+
+  it('rewrites aliases with indexed suffixes', () => {
+    expect(rewriteAliasMappings({ Fragment: 'OLD#0' }, { OLD: 'NEW' })).toEqual(
+      {
+        Fragment: 'NEW#0',
+      },
+    );
+  });
+});
+
+function repositoryFixture({
+  oldChildId,
+  oldParentId,
+  childSchema,
+  parentSchema,
+}: {
+  oldChildId: string;
+  oldParentId: string;
+  childSchema: z.AnyZodObject;
+  parentSchema: z.AnyZodObject;
+}): BlueRepository {
+  return {
+    name: 'test.repository',
+    repositoryVersions: ['R0'],
+    packages: {
+      pkg: {
+        name: 'pkg',
+        aliases: {
+          'Pkg/Child': oldChildId,
+          'Pkg/Parent': oldParentId,
+          'Pkg/ParentFragment': `${oldParentId}#1`,
+        },
+        typesMeta: {
+          [oldChildId]: {
+            status: 'stable',
+            name: 'Child',
+            versions: [
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: oldChildId,
+                attributesAdded: [],
+              },
+            ],
+          },
+          [oldParentId]: {
+            status: 'stable',
+            name: 'Parent',
+            versions: [
+              {
+                repositoryVersionIndex: 0,
+                typeBlueId: oldParentId,
+                attributesAdded: [],
+              },
+            ],
+          },
+        },
+        contents: {
+          [oldChildId]: {
+            name: 'Child',
+          },
+          [oldParentId]: {
+            name: 'Parent',
+            child: {
+              type: {
+                blueId: oldChildId,
+              },
+            },
+          },
+        },
+        schemas: {
+          [oldChildId]: childSchema,
+          [oldParentId]: parentSchema,
+        },
+      },
+    },
+  };
+}
