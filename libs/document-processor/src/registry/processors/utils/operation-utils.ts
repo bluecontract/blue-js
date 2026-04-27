@@ -26,5 +26,7 @@ export function extractPinnedDocumentBlueId(
   if (!(documentNode instanceof BlueNode)) {
     return null;
   }
-  return context.blue.calculateBlueIdSync(documentNode);
+  return (
+    documentNode.getBlueId() ?? context.blue.calculateBlueIdSync(documentNode)
+  );
 }

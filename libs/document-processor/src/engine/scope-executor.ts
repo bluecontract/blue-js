@@ -1,5 +1,4 @@
 import { BlueNode, ResolvedBlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import { ContractBundle, type ChannelBinding } from './contract-bundle.js';
 import type { ChannelRunner } from './channel-runner.js';
@@ -30,6 +29,7 @@ import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
 import { BoundaryViolationException } from './boundary-violation-exception.js';
+import { blueIds } from '../repository/semantic-repository.js';
 
 const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
 const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];

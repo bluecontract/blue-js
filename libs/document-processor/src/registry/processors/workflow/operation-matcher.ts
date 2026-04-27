@@ -132,12 +132,41 @@ export function isRequestTypeCompatible(
   }
   try {
     if (!blue.isTypeOfNode(requestPayload, requiredType)) {
-      return false;
+      if (
+        !matchesResolvedDeclaredTypeReference(
+          requestPayload,
+          requiredType,
+          blue,
+        )
+      ) {
+        return false;
+      }
     }
   } catch {
-    return false;
+    if (
+      !matchesResolvedDeclaredTypeReference(requestPayload, requiredType, blue)
+    ) {
+      return false;
+    }
   }
   return true;
+}
+
+function matchesResolvedDeclaredTypeReference(
+  requestPayload: BlueNode,
+  requiredType: BlueNode,
+  blue: Blue,
+): boolean {
+  if (!requiredType.isResolved()) {
+    return false;
+  }
+
+  const requiredTypeBlueId = requiredType.getType()?.getBlueId();
+  return (
+    typeof requiredTypeBlueId === 'string' &&
+    requiredTypeBlueId.length > 0 &&
+    blue.isTypeOfBlueId(requestPayload, requiredTypeBlueId)
+  );
 }
 
 export function isPinnedDocumentAllowed(

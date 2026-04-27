@@ -1,5 +1,4 @@
 import { BlueNode } from '@blue-labs/language';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
 
 import {
@@ -7,6 +6,7 @@ import {
   type ActorPolicyMarker,
   type ActorPolicyRule,
 } from '../../../model/index.js';
+import { conversationBlueIds } from '../../../repository/semantic-repository.js';
 import type { ContractProcessorContext } from '../../types.js';
 
 type ActorCategory = 'principal' | 'agent';

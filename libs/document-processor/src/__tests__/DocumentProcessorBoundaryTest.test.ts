@@ -36,6 +36,20 @@ function removePatch(path: string): JsonPatch {
 }
 
 describe('DocumentProcessorBoundaryTest', () => {
+  it('nodeAtBlueIdUsesInjectedSemanticCalculator', () => {
+    const document = blue.jsonValueToNode({ value: 'x' });
+    const expectedBlueId = blue.calculateBlueIdSync(document);
+
+    const node = ProcessorEngine.nodeAt(document, '/blueId', {
+      calculateBlueId: (value) => blue.calculateBlueIdSync(value),
+    });
+
+    expect(node?.getValue()).toBe(expectedBlueId);
+    expect(() => ProcessorEngine.nodeAt(document, '/blueId')).toThrow(
+      /semantic calculateBlueId option/,
+    );
+  });
+
   it('allowsPatchingWithinScopeUsingLiteralSegments', async () => {
     const engine = createEngine();
     const document = new BlueNode();

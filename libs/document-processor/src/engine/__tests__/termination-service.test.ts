@@ -8,7 +8,7 @@ import { ContractBundle } from '../contract-bundle.js';
 import { RunTerminationError } from '../run-termination-error.js';
 import type { TerminationExecutionAdapter } from '../termination-service.js';
 import { typeBlueId } from '../../__tests__/test-utils.js';
-import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { blueIds } from '../../repository/semantic-repository.js';
 
 describe('TerminationService', () => {
   function createFixture() {

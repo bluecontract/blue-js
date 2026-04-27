@@ -7,12 +7,12 @@ import {
   MyOSTimelineEntrySchema,
   type MyOSTimelineEntry,
 } from '@blue-repository/types/packages/myos/schemas/MyOSTimelineEntry';
-import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 
 import {
   myosTimelineChannelSchema,
   type MyOSTimelineChannel,
 } from '../../model/index.js';
+import { myosBlueIds } from '../../repository/semantic-repository.js';
 import type { ChannelEvaluationContext, ChannelProcessor } from '../types.js';
 import { isTimelineEventNewer } from './shared/timeline-recency.js';
 

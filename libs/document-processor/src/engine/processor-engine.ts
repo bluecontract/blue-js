@@ -1,10 +1,4 @@
-import {
-  Blue,
-  BlueIdCalculator,
-  BlueNode,
-  Properties,
-} from '@blue-labs/language';
-import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { Blue, BlueNode, Properties } from '@blue-labs/language';
 
 import { ChannelRunner, type ChannelMatch } from './channel-runner.js';
 import { CheckpointManager } from './checkpoint-manager.js';
@@ -38,6 +32,7 @@ import type { ChannelEvaluationContext } from '../registry/types.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
 import { ProcessorErrors } from '../types/errors.js';
 import { DocumentProcessingResult } from '../types/document-processing-result.js';
+import { blueIds } from '../repository/semantic-repository.js';
 import { RunTerminationError } from './run-termination-error.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
@@ -348,7 +343,8 @@ export class ProcessorExecution implements ExecutionHooks {
       return { matches: false };
     }
 
-    const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
+    const eventBlueId =
+      event.getBlueId() ?? this.runtimeRef.blue().calculateBlueIdSync(event);
 
     const eventClone = event.clone();
     const contract = channel.contract() as ChannelContract;
@@ -672,9 +668,15 @@ export class ProcessorEngine {
         return new BlueNode().setContracts(node.getContracts());
       case 'blueId': {
         const calculatedBlueId =
-          node.getBlueId() ??
-          options?.calculateBlueId?.(node) ??
-          BlueIdCalculator.calculateBlueIdSync(node);
+          node.getBlueId() ?? options?.calculateBlueId?.(node);
+        if (calculatedBlueId === undefined) {
+          throw new ProcessorFatalError(
+            'ProcessorEngine.nodeAt requires a semantic calculateBlueId option for /blueId.',
+            ProcessorErrors.illegalState(
+              'ProcessorEngine.nodeAt requires a semantic calculateBlueId option for /blueId.',
+            ),
+          );
+        }
         return new BlueNode().setValue(calculatedBlueId ?? null);
       }
       default:

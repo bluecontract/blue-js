@@ -1,7 +1,7 @@
 import { BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
+import { blueIds } from '../repository/semantic-repository.js';
 import type {
   ChannelContract,
   HandlerContract,

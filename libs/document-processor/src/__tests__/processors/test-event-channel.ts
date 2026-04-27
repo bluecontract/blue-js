@@ -2,7 +2,6 @@ import type {
   ChannelProcessor,
   ChannelEvaluationContext,
 } from '../../registry/types.js';
-import { BlueNode } from '@blue-labs/language';
 import {
   testEventChannelSchema,
   type TestEventChannel,
@@ -25,18 +24,6 @@ export class TestEventChannelProcessor implements ChannelProcessor<TestEventChan
       return false;
     }
     const expectedType = contract.eventType ?? DEFAULT_EVENT_TYPE;
-    return expectedType === this.resolveEventType(context.event ?? null);
-  }
-
-  private resolveEventType(event: BlueNode | null): string | null {
-    if (!event) return null;
-    const typeNode = event.getType?.();
-    if (!typeNode) return null;
-    const blueId = typeNode.getBlueId?.();
-    if (blueId) return blueId;
-    const props = typeNode.getProperties?.();
-    const blueIdNode = props?.blueId;
-    const value = blueIdNode?.getValue?.();
-    return typeof value === 'string' ? value : null;
+    return blue.isTypeOfBlueId(context.event, expectedType);
   }
 }
