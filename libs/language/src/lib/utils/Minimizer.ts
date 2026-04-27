@@ -19,6 +19,11 @@ export class Minimizer {
     return this.mergeReverser.reverse(node);
   }
 
+  /**
+   * Produces a hash-only minimal form. Unlike public minimization, this does
+   * not re-emit list controls, so positional overlays are consumed into final
+   * list order before low-level hashing.
+   */
   public minimizeResolvedForHash<T extends BlueNode>(node: T): BlueNode {
     return this.hashMergeReverser.reverse(node);
   }

@@ -6,6 +6,16 @@ import { ListControls } from './ListControls';
 
 export class MergeReverser {
   constructor(
+    /**
+     * When true, minimization may emit list overlay controls such as $previous
+     * and $pos for inherited lists. This is the storage/public minimal form.
+     *
+     * When false, inherited lists are emitted as full minimized item lists.
+     * Use this only for hash-only normalization and item comparisons,
+     * especially after $pos overlays have been resolved. $previous append-only
+     * overlays can be hashed directly, but raw $pos must not reach the
+     * low-level hasher.
+     */
     private readonly options: { emitListControls?: boolean } = {
       emitListControls: true,
     },
