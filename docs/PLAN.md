@@ -808,6 +808,60 @@ legacy first-item markerów i bez tymczasowego full-list overlay jako write path
 
 ---
 
+## Faza 1L — Public API and list-control closure
+
+### Cel
+
+Domknąć ostatnie publiczne i runtime luki po Phase 1K przed startem snapshotów:
+semantic identity ma być spójne dla async/sync, resolved/minimal `$pos`,
+materialized typed list items, `$empty` exact shape oraz path-limited `$pos`.
+
+### Decyzje
+
+- Top-level utility `calculateBlueId` / `calculateBlueIdSync` z `src/utils`
+  są usunięte z publicznych eksportów. Publiczne semantic identity to wyłącznie
+  `Blue.calculateBlueId*`; jawny low-level hasher pozostaje jako
+  `BlueIdCalculator`.
+- `ResolvedBlueNode.getMinimalBlueId()` zostaje tylko jako compatibility shim i
+  jest oznaczone jako deprecated. Nowy kod powinien używać
+  `blue.calculateBlueIdSync(resolved)`.
+- `$previous.blueId` dla minimalizowanych inherited list oznacza semantic
+  identity poprzedniego item-prefixu, nie raw hash materialized runtime itemów.
+
+### Implementacja
+
+- `ResolvedBlueNode.getMinimalBlueId()` używa hash-only minimization, więc
+  resolved minimal overlay z `$pos` nie trafia raw do `BlueIdHasher`.
+- `SemanticIdentityService.calculateBlueId()` używa async odpowiednika
+  `hashMinimalTrusted()`, włącznie z `StorageShapeValidator`.
+- `MergeReverser` i `Merger` porównują runtime list items przez hash-only
+  semantic minimization, żeby typed/materialized items nie dawały raw mismatch.
+- `$empty` jest walidowane jako exact item `{ $empty: true }`; malformed
+  `$empty` i kombinacje z `$previous` / `$pos` są invalid storage shape.
+- Path-limited `$pos` overlays są aplikowane względem finalnych inherited
+  indeksów, a dopiero potem wynik jest projektowany do limitu.
+- `enrichWithBlueId` używa semantic `Blue.calculateBlueId(...)`.
+
+### Testy
+
+- `getMinimalBlueId()` dla resolved positional `$pos`.
+- Async/sync parity dla `$pos`, stale `$previous`, inherited list controls i
+  mixed `blueId + payload` validation.
+- Semantic `$previous` dla inherited typed/materialized list items.
+- Path-limited typed full-list overlay bez fałszywego `Mismatched items`.
+- Exact `$empty` validation.
+- PathLimits + `$pos` wybiera finalny merged index.
+
+### Exit criteria
+
+- `npx vitest run --config libs/language/vite.config.ts` przechodzi.
+- `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` przechodzi.
+- `npx eslint libs/document-processor --fix` nie zostawia lint errors.
+- `nx test document-processor --skip-nx-cache` przechodzi albo ma jawnie
+  opisany runtime blocker Nx/Vitest.
+
+---
+
 ## Faza 2 — Snapshoty
 
 ### Cel

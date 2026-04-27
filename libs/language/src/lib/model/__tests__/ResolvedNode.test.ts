@@ -6,6 +6,7 @@ import { BasicNodeProvider } from '../../provider';
 import { Merger } from '../../merge/Merger';
 import { createDefaultMergingProcessor } from '../../merge';
 import { NO_LIMITS } from '../../utils/limits';
+import { Blue } from '../../Blue';
 
 describe('ResolvedBlueNode Integration Tests', () => {
   it('should create ResolvedBlueNode through Merger and verify resolved state', () => {
@@ -106,6 +107,40 @@ value: test
       'SourceSemanticBlueId',
     );
     expect(resolvedNode.getMinimalBlueId()).toBe('SourceSemanticBlueId');
+  });
+
+  it('calculates minimal BlueId for resolved positional list overlays', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Base
+entries:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+`);
+
+    const derived = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base')}
+entries:
+  type: List
+  mergePolicy: positional
+  items:
+    - $pos: 1
+      value: B2
+`);
+
+    const resolved = blue.resolve(derived);
+
+    expect(() => resolved.getMinimalBlueId()).not.toThrow();
+    expect(resolved.getMinimalBlueId()).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
   });
 
   it('should get minimal node after type resolution using MergeReverser', () => {

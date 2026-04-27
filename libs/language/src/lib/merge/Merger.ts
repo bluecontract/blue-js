@@ -6,11 +6,11 @@ import { MergingProcessor } from './MergingProcessor';
 import { NodeExtender } from '../utils/NodeExtender';
 import { NodeProviderWrapper } from '../utils/NodeProviderWrapper';
 import { Limits } from '../utils/limits/Limits';
-import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 import { PathLimits } from '../utils/limits/PathLimits';
 import { NO_LIMITS, NoLimits } from '../utils/limits';
 import { attachSubtypeCache } from '../utils/NodeTypes';
 import { ListControls } from '../utils/ListControls';
+import { MergeReverser } from '../utils/MergeReverser';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 
 interface ResolutionContext {
@@ -109,7 +109,7 @@ export class Merger extends NodeResolver {
 
     const properties = source.getProperties();
     if (isNonNullable(properties)) {
-      newTarget = this.mergeProperties(newTarget, properties, context);
+      newTarget = this.mergeProperties(newTarget, source, properties, context);
     }
 
     if (isNonNullable(source.getBlueId())) {
@@ -202,8 +202,12 @@ export class Merger extends NodeResolver {
           newTargetChildren.push(resolvedAppendedChild);
           continue;
         }
+        const sourceIdentityNode =
+          context.limits instanceof NoLimits
+            ? sourceChildren[i]
+            : this.materializeForCurrentContext(sourceChildren[i], context);
         const sourceBlueId = this.calculateNodeBlueId(
-          sourceChildren[i],
+          sourceIdentityNode,
           context,
         );
         const targetBlueId = this.calculateNodeBlueId(
@@ -349,12 +353,14 @@ export class Merger extends NodeResolver {
   /**
    * Merges source properties into target using copy-on-write for properties map
    * @param target - The target node
+   * @param source - The source node that owns the properties
    * @param sourceProperties - The properties to merge from source
    * @param limits - The limits to apply
    * @returns A new BlueNode with merged properties
    */
   private mergeProperties(
     target: BlueNode,
+    source: BlueNode,
     sourceProperties: Record<string, BlueNode>,
     context: ResolutionContext,
   ): BlueNode {
@@ -370,24 +376,40 @@ export class Merger extends NodeResolver {
       this.enterPathSegment(context, key, value);
       try {
         const existingValue = mergedProperties[key];
+        const listControlMergeTarget = this.getPathLimitedListControlTarget(
+          existingValue,
+          source,
+          key,
+          value,
+          context,
+        );
+        const effectiveExistingValue = listControlMergeTarget ?? existingValue;
         const shouldMergeUnresolvedValue =
           this.shouldMergePropertyWithoutPreResolve(
-            existingValue,
+            effectiveExistingValue,
             value,
             context,
           );
 
-        const nextValue = shouldMergeUnresolvedValue
-          ? this.mergeWithContext(existingValue, value, context)
+        const mergedValue = shouldMergeUnresolvedValue
+          ? this.mergeExistingProperty(effectiveExistingValue, value, context)
           : (() => {
               const resolvedValue = this.materializeForCurrentContext(
                 value,
                 context,
               );
-              return existingValue === undefined
+              return effectiveExistingValue === undefined
                 ? resolvedValue
-                : this.mergeObject(existingValue, resolvedValue, context);
+                : this.mergeObject(
+                    effectiveExistingValue,
+                    resolvedValue,
+                    context,
+                  );
             })();
+        const nextValue =
+          listControlMergeTarget === undefined
+            ? mergedValue
+            : this.projectListNodeToCurrentLimits(mergedValue, context);
 
         if (nextValue !== existingValue) {
           if (!hasChanges) {
@@ -430,6 +452,18 @@ export class Merger extends NodeResolver {
       isNonNullable(sourceValue.getItems()) ||
       isNonNullable(existingValue.getItems())
     );
+  }
+
+  private mergeExistingProperty(
+    existingValue: BlueNode | undefined,
+    sourceValue: BlueNode,
+    context: ResolutionContext,
+  ): BlueNode {
+    if (existingValue === undefined) {
+      throw new Error('Cannot merge property without an existing target.');
+    }
+
+    return this.mergeWithContext(existingValue, sourceValue, context);
   }
 
   /**
@@ -574,9 +608,74 @@ export class Merger extends NodeResolver {
       return cachedBlueId;
     }
 
-    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+    const blueId = MergeReverser.calculateHashMinimalBlueId(node);
     context.nodeHashCache.set(node, blueId);
     return blueId;
+  }
+
+  private getPathLimitedListControlTarget(
+    existingValue: BlueNode | undefined,
+    source: BlueNode,
+    key: string,
+    sourceValue: BlueNode,
+    context: ResolutionContext,
+  ): BlueNode | undefined {
+    if (
+      existingValue === undefined ||
+      context.limits instanceof NoLimits ||
+      !ListControls.hasListControlItems(sourceValue.getItems())
+    ) {
+      return undefined;
+    }
+
+    return this.resolveFullInheritedProperty(source, key, context);
+  }
+
+  private resolveFullInheritedProperty(
+    source: BlueNode,
+    key: string,
+    context: ResolutionContext,
+  ): BlueNode | undefined {
+    const sourceType = source.getType();
+    if (sourceType === undefined) {
+      return undefined;
+    }
+
+    const typeBlueId = sourceType.getBlueId();
+    if (isNonNullable(typeBlueId)) {
+      const fetched = context.nodeProvider.fetchByBlueId(typeBlueId);
+      const typeNode = fetched?.[0];
+      if (typeNode === undefined) {
+        return undefined;
+      }
+      const properties = new Merger(this.mergingProcessor, context.nodeProvider)
+        .resolve(typeNode, NO_LIMITS)
+        .getProperties();
+      return properties?.[key]?.clone();
+    }
+
+    const properties = new Merger(this.mergingProcessor, context.nodeProvider)
+      .resolve(sourceType, NO_LIMITS)
+      .getProperties();
+    return properties?.[key]?.clone();
+  }
+
+  private projectListNodeToCurrentLimits(
+    node: BlueNode,
+    context: ResolutionContext,
+  ): BlueNode {
+    const items = node.getItems();
+    if (items === undefined) {
+      return node;
+    }
+
+    return node
+      .cloneShallow()
+      .setItems(
+        items.filter((item, index) =>
+          context.limits.shouldMergePathSegment(String(index), item),
+        ),
+      );
   }
 
   private createResolutionNodeProvider(

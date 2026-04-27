@@ -6,7 +6,11 @@ import {
   OBJECT_SCHEMA,
 } from './Properties';
 import { Nodes } from './Nodes';
-import { ListControls, LIST_POSITION_KEY } from './ListControls';
+import {
+  ListControls,
+  LIST_EMPTY_KEY,
+  LIST_POSITION_KEY,
+} from './ListControls';
 
 export class StorageShapeValidator {
   private static readonly RESERVED_PROPERTY_KEYS = new Set([
@@ -108,6 +112,29 @@ export class StorageShapeValidator {
     path: string[],
     itemIndex: number,
   ): void {
+    if (ListControls.hasEmptyProperty(node)) {
+      if (ListControls.hasPreviousProperty(node)) {
+        this.throwInvalidStorageShape(
+          path,
+          '$empty cannot be combined with $previous.',
+        );
+      }
+
+      if (ListControls.hasPositionProperty(node)) {
+        this.throwInvalidStorageShape(
+          path,
+          '$empty cannot be combined with $pos.',
+        );
+      }
+
+      if (!ListControls.isEmptyItem(node)) {
+        this.throwInvalidStorageShape(
+          path,
+          '$empty list content must be exactly { $empty: true }.',
+        );
+      }
+    }
+
     if (ListControls.hasPreviousProperty(node)) {
       if (itemIndex !== 0) {
         this.throwInvalidStorageShape(
@@ -184,7 +211,10 @@ export class StorageShapeValidator {
       Object.entries(properties).filter(
         ([key]) =>
           !this.RESERVED_PROPERTY_KEYS.has(key) &&
-          !(context.insideItems && key === LIST_POSITION_KEY),
+          !(
+            context.insideItems &&
+            (key === LIST_POSITION_KEY || key === LIST_EMPTY_KEY)
+          ),
       ),
     );
   }

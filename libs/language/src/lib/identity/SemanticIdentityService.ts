@@ -30,8 +30,7 @@ export class SemanticIdentityService {
 
   public calculateBlueId(value: BlueNode | BlueNode[]) {
     const minimal = this.toMinimalIdentityInput(value);
-    const hashable = this.toHashableMinimalTrusted(minimal);
-    return BlueIdCalculator.calculateBlueId(hashable);
+    return this.hashMinimalTrustedAsync(minimal);
   }
 
   public calculateBlueIdSync(value: BlueNode | BlueNode[]) {
@@ -97,6 +96,24 @@ export class SemanticIdentityService {
 
     StorageShapeValidator.validateStorageShape(minimal);
     return BlueIdCalculator.calculateBlueIdSync(
+      this.toHashableMinimalTrusted(minimal),
+    );
+  }
+
+  public hashMinimalTrustedAsync(
+    minimal: BlueNode | BlueNode[],
+  ): Promise<string> {
+    if (Array.isArray(minimal)) {
+      minimal.forEach((node) =>
+        StorageShapeValidator.validateStorageShape(node),
+      );
+      return BlueIdCalculator.calculateBlueId(
+        this.toHashableMinimalTrusted(minimal),
+      );
+    }
+
+    StorageShapeValidator.validateStorageShape(minimal);
+    return BlueIdCalculator.calculateBlueId(
       this.toHashableMinimalTrusted(minimal),
     );
   }

@@ -17,6 +17,20 @@ export class MergeReverser {
     return minimalNode;
   }
 
+  public static calculateHashMinimalBlueId(node: BlueNode): string {
+    return BlueIdCalculator.calculateBlueIdSync(this.toHashMinimalNode(node));
+  }
+
+  public static calculateHashMinimalListBlueId(items: BlueNode[]): string {
+    return BlueIdCalculator.calculateBlueIdSync(
+      items.map((item) => this.toHashMinimalNode(item)),
+    );
+  }
+
+  private static toHashMinimalNode(node: BlueNode): BlueNode {
+    return new MergeReverser({ emitListControls: false }).reverse(node);
+  }
+
   private reverseNode(
     minimal: BlueNode,
     merged: BlueNode,
@@ -147,8 +161,8 @@ export class MergeReverser {
       mergedItems.length === fromTypeItems.length &&
       mergedItems.every(
         (item, index) =>
-          BlueIdCalculator.calculateBlueIdSync(item) ===
-          BlueIdCalculator.calculateBlueIdSync(fromTypeItems[index]),
+          MergeReverser.calculateHashMinimalBlueId(item) ===
+          MergeReverser.calculateHashMinimalBlueId(fromTypeItems[index]),
       )
     ) {
       return;
@@ -182,8 +196,8 @@ export class MergeReverser {
     const changedIndexes: number[] = [];
     for (let i = 0; i < fromTypeItems.length; i++) {
       if (
-        BlueIdCalculator.calculateBlueIdSync(mergedItems[i]) !==
-        BlueIdCalculator.calculateBlueIdSync(fromTypeItems[i])
+        MergeReverser.calculateHashMinimalBlueId(mergedItems[i]) !==
+        MergeReverser.calculateHashMinimalBlueId(fromTypeItems[i])
       ) {
         changedIndexes.push(i);
       }
@@ -196,7 +210,7 @@ export class MergeReverser {
     }
 
     const previousListBlueId =
-      BlueIdCalculator.calculateBlueIdSync(fromTypeItems);
+      MergeReverser.calculateHashMinimalListBlueId(fromTypeItems);
     const minimalItems = [ListControls.createPreviousItem(previousListBlueId)];
 
     for (const index of changedIndexes) {

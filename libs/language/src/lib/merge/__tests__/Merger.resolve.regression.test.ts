@@ -253,4 +253,48 @@ second:
 
     expect(limitedSimple.list).toEqual(['D']);
   });
+
+  it('compares path-limited typed list overlays by semantic item identity', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: RowType
+kind: default
+`);
+    const rowTypeId = nodeProvider.getBlueIdByName('RowType');
+
+    nodeProvider.addSingleDocs(`
+name: Base
+rows:
+  type: List
+  mergePolicy: append-only
+  items:
+    - type:
+        blueId: ${rowTypeId}
+      id: A
+`);
+
+    const derived = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base')}
+rows:
+  type: List
+  mergePolicy: append-only
+  items:
+    - type:
+        blueId: ${rowTypeId}
+      id: A
+`);
+
+    const limitedResolved = blue.resolve(
+      derived,
+      new PathLimitsBuilder().addPath('/rows/0').build(),
+      { sourceSemanticBlueId: blue.calculateBlueIdSync(derived) },
+    );
+
+    expect(limitedResolved.get('/rows/0/type/blueId')).toBe(rowTypeId);
+    expect(limitedResolved.get('/rows/0/id')).toBeUndefined();
+  });
 });

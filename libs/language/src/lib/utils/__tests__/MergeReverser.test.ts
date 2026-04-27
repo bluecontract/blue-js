@@ -53,7 +53,7 @@ describe('MergeReverser', () => {
     nodeName: string,
     path = '/list',
   ): string =>
-    BlueIdCalculator.calculateBlueIdSync(
+    blue.calculateBlueIdSync(
       blue
         .resolve(nodeProvider.getNodeByName(nodeName))
         .getAsNode(path)
@@ -622,6 +622,92 @@ items:
         ),
       );
     });
+
+    it('rejects malformed $empty list content', () => {
+      const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+
+      expect(() =>
+        blue.calculateBlueIdSync(
+          blue.yamlToNode(`
+type: List
+items:
+  - $empty: false
+`),
+        ),
+      ).toThrow(/\$empty/i);
+
+      expect(() =>
+        blue.calculateBlueIdSync(
+          blue.yamlToNode(`
+type: List
+items:
+  - $empty: true
+    x: 1
+`),
+        ),
+      ).toThrow(/\$empty/i);
+    });
+
+    it('emits semantic $previous id for inherited lists with typed items', () => {
+      const nodeProvider = new BasicNodeProvider();
+      const blue = new Blue({ nodeProvider });
+
+      nodeProvider.addSingleDocs(`
+name: RowType
+kind: default
+`);
+
+      const rowTypeId = nodeProvider.getBlueIdByName('RowType');
+
+      nodeProvider.addSingleDocs(`
+name: Base
+rows:
+  type: List
+  mergePolicy: append-only
+  items:
+    - type:
+        blueId: ${rowTypeId}
+      id: A
+`);
+
+      const derived = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base')}
+rows:
+  type: List
+  mergePolicy: append-only
+  items:
+    - type:
+        blueId: ${rowTypeId}
+      id: A
+    - type:
+        blueId: ${rowTypeId}
+      id: B
+`);
+
+      const resolved = blue.resolve(derived);
+      const minimal = blue.minimize(resolved);
+      const previousBlueId = minimal
+        .getAsNode('/rows')
+        ?.getItems()?.[0]
+        ?.getProperties()
+        ?.['$previous']?.getBlueId();
+      const baseRowsItems = blue
+        .resolve(nodeProvider.getNodeByName('Base'))
+        .getAsNode('/rows')
+        ?.getItems();
+
+      expect(blue.calculateBlueIdSync(minimal)).toBe(
+        blue.calculateBlueIdSync(resolved),
+      );
+      expect(previousBlueId).toBe(
+        blue.calculateBlueIdSync(baseRowsItems ?? []),
+      );
+      expect(previousBlueId).not.toBe(
+        BlueIdCalculator.calculateBlueIdSync(baseRowsItems ?? []),
+      );
+    });
   });
 
   it('keeps $previous append overlay stable under PathLimits', () => {
@@ -664,6 +750,50 @@ items:
 
     expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
       blue.nodeToJson(limitedOriginal, 'official'),
+    );
+  });
+
+  it('applies $pos overlays under PathLimits using final merged indexes', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Base
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+    - C
+`);
+
+    const derived = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base')}
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - $pos: 1
+      value: B2
+    - D
+`);
+
+    const full = blue.resolve(derived);
+    const sourceSemanticBlueId = blue.calculateBlueIdSync(derived);
+    const limits = new PathLimitsBuilder().addPath('/list/1').build();
+    const limited = blue.resolve(derived, limits, { sourceSemanticBlueId });
+    const reLimited = blue.resolve(blue.minimize(full), limits, {
+      sourceSemanticBlueId,
+    });
+
+    expect(blue.nodeToJson(limited.getAsNode('/list')!, 'simple')).toEqual([
+      'B2',
+    ]);
+    expect(blue.nodeToJson(limited, 'official')).toEqual(
+      blue.nodeToJson(reLimited, 'official'),
     );
   });
 

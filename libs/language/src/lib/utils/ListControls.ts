@@ -102,6 +102,33 @@ export class ListControls {
     );
   }
 
+  public static hasEmptyProperty(item: BlueNode): boolean {
+    return Object.prototype.hasOwnProperty.call(
+      item.getProperties() ?? {},
+      LIST_EMPTY_KEY,
+    );
+  }
+
+  public static isEmptyItem(item: BlueNode): boolean {
+    const properties = item.getProperties();
+    const emptyNode = properties?.[LIST_EMPTY_KEY];
+    return (
+      properties !== undefined &&
+      Object.keys(properties).length === 1 &&
+      emptyNode !== undefined &&
+      Nodes.hasFieldsAndMayHaveFields(
+        item,
+        new Set([NODE_FIELDS.PROPERTIES]),
+      ) &&
+      Nodes.hasFieldsAndMayHaveFields(
+        emptyNode,
+        new Set([NODE_FIELDS.VALUE]),
+        new Set([NODE_FIELDS.TYPE]),
+      ) &&
+      emptyNode.getValue() === true
+    );
+  }
+
   public static isPreviousItem(item: BlueNode): boolean {
     const properties = item.getProperties();
     return (

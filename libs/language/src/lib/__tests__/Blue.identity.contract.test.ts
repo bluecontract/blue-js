@@ -336,6 +336,86 @@ age: 30
     expect(minimal.getName()).toBe('Person');
     expect(minimal.getDescription()).toBe('Shared description');
   });
+
+  it('keeps async and sync semantic BlueId validation equivalent', async () => {
+    const blue = new Blue();
+    const mixed = blue.yamlToNode(`
+blueId: SomeId
+x: 1
+`);
+
+    expect(() => blue.calculateBlueIdSync(mixed)).toThrow(/ambiguous blueId/i);
+    await expect(blue.calculateBlueId(mixed)).rejects.toThrow(
+      /ambiguous blueId/i,
+    );
+  });
+
+  it('keeps async and sync semantic BlueIds equivalent for list controls', async () => {
+    const provider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider: provider });
+
+    provider.addSingleDocs(`
+name: Base
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+`);
+
+    const baseId = provider.getBlueIdByName('Base');
+    const positional = blue.yamlToNode(`
+name: Positional
+type:
+  blueId: ${baseId}
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - $pos: 1
+      value: B2
+`);
+
+    const stalePrevious = blue.yamlToNode(`
+name: StalePrevious
+type:
+  blueId: ${baseId}
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - $previous:
+        blueId: StalePrefixBlueId
+    - C
+`);
+
+    const inherited = blue.yamlToNode(`
+name: Inherited
+type:
+  blueId: ${baseId}
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+    - C
+`);
+    const inheritedResolved = blue.resolve(inherited);
+    const inheritedMinimal = blue.minimize(inheritedResolved);
+
+    for (const node of [
+      positional,
+      stalePrevious,
+      inheritedResolved,
+      inheritedMinimal,
+    ]) {
+      expect(await blue.calculateBlueId(node)).toBe(
+        blue.calculateBlueIdSync(node),
+      );
+    }
+  });
 });
 
 describe('Future identity API placeholders', () => {

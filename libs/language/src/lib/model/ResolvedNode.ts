@@ -57,6 +57,10 @@ export class ResolvedBlueNode extends BlueNode {
     return minimizer.minimizeResolved(this);
   }
 
+  /**
+   * @deprecated Prefer `blue.calculateBlueIdSync(resolved)` so callers use the
+   * public semantic identity pipeline explicitly.
+   */
   public getMinimalBlueId(): string {
     if (this.completeness === 'path-limited') {
       if (this.sourceSemanticBlueId !== undefined) {
@@ -67,8 +71,9 @@ export class ResolvedBlueNode extends BlueNode {
       );
     }
 
-    const minimalNode = this.getMinimalNode();
-    return BlueIdCalculator.calculateBlueIdSync(minimalNode);
+    const minimizer = new Minimizer();
+    const minimalForHash = minimizer.minimizeResolvedForHash(this);
+    return BlueIdCalculator.calculateBlueIdSync(minimalForHash);
   }
 
   /**

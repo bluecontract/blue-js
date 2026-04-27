@@ -71,4 +71,38 @@ describe('StorageShapeValidator', () => {
       }),
     );
   });
+
+  it('validates exact $empty list content shape', () => {
+    const valid = new BlueNode().setItems([
+      new BlueNode().setProperties({
+        $empty: new BlueNode().setValue(true),
+      }),
+    ]);
+    const falseEmpty = new BlueNode().setItems([
+      new BlueNode().setProperties({
+        $empty: new BlueNode().setValue(false),
+      }),
+    ]);
+    const mixedEmpty = new BlueNode().setItems([
+      new BlueNode().setProperties({
+        $empty: new BlueNode().setValue(true),
+        x: new BlueNode().setValue(1),
+      }),
+    ]);
+    const positionedEmpty = new BlueNode().setItems([
+      new BlueNode().setProperties({
+        $empty: new BlueNode().setValue(true),
+        $pos: new BlueNode().setValue(0),
+      }),
+    ]);
+
+    expect(() =>
+      StorageShapeValidator.validateStorageShape(valid),
+    ).not.toThrow();
+    for (const invalid of [falseEmpty, mixedEmpty, positionedEmpty]) {
+      expect(() => StorageShapeValidator.validateStorageShape(invalid)).toThrow(
+        expect.objectContaining({ code: BlueErrorCode.INVALID_STORAGE_SHAPE }),
+      );
+    }
+  });
 });
