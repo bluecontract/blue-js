@@ -82,6 +82,18 @@ describeContract('Blue identity specification contracts', () => {
     );
   });
 
+  it('keeps top-level arrays and pure items wrappers equivalent', () => {
+    const blue = new Blue();
+    const wrapped = new BlueNode().setItems([
+      blue.jsonValueToNode('A'),
+      blue.jsonValueToNode('B'),
+    ]);
+
+    expect(blue.calculateBlueIdSync(['A', 'B'])).toBe(
+      blue.calculateBlueIdSync(wrapped),
+    );
+  });
+
   it('keeps semantic BlueId stable across full and path-limited resolution', () => {
     const provider = new BasicNodeProvider();
     provider.addSingleDocs(`
@@ -415,6 +427,59 @@ list:
         blue.calculateBlueIdSync(node),
       );
     }
+  });
+
+  it('does not trust top-level array $previous in public semantic identity', () => {
+    const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+    const fakePrefixId = blue.calculateBlueIdSync(['X', 'Y']);
+    const untrusted = [{ $previous: { blueId: fakePrefixId } }, 'C'];
+
+    expect(blue.calculateBlueIdSync(untrusted)).toBe(
+      blue.calculateBlueIdSync(['C']),
+    );
+  });
+
+  it('does not trust top-level BlueNode[] $previous in public semantic identity', () => {
+    const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+    const fakePrefixId = blue.calculateBlueIdSync(['X', 'Y']);
+    const previous = blue.jsonValueToNode({
+      $previous: { blueId: fakePrefixId },
+    });
+    const c = blue.jsonValueToNode('C');
+
+    expect(blue.calculateBlueIdSync([previous, c])).toBe(
+      blue.calculateBlueIdSync(['C']),
+    );
+  });
+
+  it('rejects malformed $empty in top-level array public semantic identity', () => {
+    const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+
+    expect(() => blue.calculateBlueIdSync([{ $empty: false }])).toThrow(
+      /\$empty/i,
+    );
+
+    expect(() =>
+      blue.calculateBlueIdSync([{ $empty: true, value: 'extra' }]),
+    ).toThrow(/\$empty/i);
+  });
+
+  it('rejects top-level array $pos before raw BlueId hashing', () => {
+    const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+
+    expect(() => blue.calculateBlueIdSync([{ $pos: 0, value: 'A' }])).toThrow(
+      '$pos 0 is out of range for inherited list length 0.',
+    );
+  });
+
+  it('keeps async and sync semantic BlueIds equivalent for top-level array list controls', async () => {
+    const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+    const fakePrefixId = blue.calculateBlueIdSync(['X', 'Y']);
+    const input = [{ $previous: { blueId: fakePrefixId } }, 'C'];
+
+    expect(await blue.calculateBlueId(input)).toBe(
+      blue.calculateBlueIdSync(input),
+    );
   });
 });
 

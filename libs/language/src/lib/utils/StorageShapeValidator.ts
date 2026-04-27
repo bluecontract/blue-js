@@ -25,6 +25,15 @@ export class StorageShapeValidator {
     this.validateNode(node, [], { insideItems: false });
   }
 
+  public static validateStorageListShape(nodes: BlueNode[]): void {
+    nodes.forEach((node, index) => {
+      this.validateNode(node, [String(index)], {
+        insideItems: true,
+        itemIndex: index,
+      });
+    });
+  }
+
   private static validateNode(
     node: BlueNode,
     path: string[],

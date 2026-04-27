@@ -86,9 +86,7 @@ export class SemanticIdentityService {
 
   public hashMinimalTrusted(minimal: BlueNode | BlueNode[]): string {
     if (Array.isArray(minimal)) {
-      minimal.forEach((node) =>
-        StorageShapeValidator.validateStorageShape(node),
-      );
+      StorageShapeValidator.validateStorageListShape(minimal);
       return BlueIdCalculator.calculateBlueIdSync(
         this.toHashableMinimalTrusted(minimal),
       );
@@ -104,9 +102,7 @@ export class SemanticIdentityService {
     minimal: BlueNode | BlueNode[],
   ): Promise<string> {
     if (Array.isArray(minimal)) {
-      minimal.forEach((node) =>
-        StorageShapeValidator.validateStorageShape(node),
-      );
+      StorageShapeValidator.validateStorageListShape(minimal);
       return BlueIdCalculator.calculateBlueId(
         this.toHashableMinimalTrusted(minimal),
       );
@@ -142,10 +138,16 @@ export class SemanticIdentityService {
 
   private toMinimalIdentityInput(value: BlueNode | BlueNode[]) {
     if (Array.isArray(value)) {
-      return value.map((node) => this.minimize(node));
+      return this.toMinimalListIdentityInput(value);
     }
 
     return this.minimize(value);
+  }
+
+  private toMinimalListIdentityInput(items: BlueNode[]): BlueNode[] {
+    const wrapper = new BlueNode().setItems(items);
+    const minimalWrapper = this.minimizeAuthoring(wrapper);
+    return minimalWrapper.getItems() ?? [];
   }
 }
 

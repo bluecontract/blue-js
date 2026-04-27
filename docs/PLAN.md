@@ -383,9 +383,13 @@ raw-ID exception for transformation resources.
 - `$previous` stale anchors are now consumed as optimization hints and the
   effective list is recomputed against the current inherited prefix instead of
   throwing or trusting the stale seed.
-- Public semantic identity no longer treats arbitrary list-control authoring
-  input as trusted minimal storage; only internal trusted minimal hashing can
-  pass `$previous` directly to the low-level hasher.
+- Public semantic identity no longer treats arbitrary wrapped/node
+  list-control authoring input as trusted minimal storage; only internal trusted
+  minimal hashing can pass `$previous` directly to the low-level hasher.
+- Public top-level arrays passed to `Blue.calculateBlueId*` now normalize
+  through list context before hashing. Top-level `$previous`, `$pos`, and
+  `$empty` can no longer bypass semantic list-control handling by being treated
+  as independent root nodes.
 - `document-processor` `/blueId` and external event checkpoint IDs use semantic
   calculated identity instead of `getBlueId()` fallback. Operation Request
   document pins remain explicit reference targets when a resolved/materialized
@@ -400,7 +404,7 @@ raw-ID exception for transformation resources.
 - `nx build language --skip-nx-cache` — passed.
 - `nx tsc language --skip-nx-cache` — passed.
 - `nx lint language` — passed.
-- `nx test language --skip-nx-cache` — passed: 568 passed, 4 skipped,
+- `nx test language --skip-nx-cache` — passed: 574 passed, 4 skipped,
   5 todo.
 - `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` — passed.
 - `npx eslint libs/document-processor --fix` — passed.
@@ -452,8 +456,79 @@ raw-ID exception for transformation resources.
 - Phase 1K owns spec-native `$previous`, `$pos`, and `$empty`. Phase 3 owns
   direct cyclic `this#k` support. Legacy inherited-list markers are not a
   normal storage format in Phase 1.
-- Phase 2 snapshots should not start until Phase 1K remains green for both
+- Top-level arrays passed to public `Blue.calculateBlueId*` are semantic lists,
+  not a bag of independent root nodes. They must normalize through list context
+  so `BlueNode[]`, JSON arrays, and pure `items` wrappers agree for the same
+  list content.
+- Phase 2 snapshots should not start until Phase 1M remains green for both
   `language` and `document-processor`.
+
+---
+
+## Faza 1M — Top-level array list-control closure
+
+### Cel
+
+Domknąć ostatnią lukę publicznego semantic identity przed Phase 2: top-level
+array input w `Blue.calculateBlueId*` ma być traktowany jak lista, a nie jak
+zestaw osobnych root node'ów. To jest istotne dla `$previous`, `$pos` i
+`$empty`, bo spec rozpoznaje te formy tylko jako elementy listy.
+
+### Problem
+
+Obecny publiczny pipeline dla `BlueNode[]` minimalizuje każdy element tablicy
+oddzielnie, a potem `hashMinimalTrusted()` waliduje każdy element jako root
+node. Przez to top-level array traci `insideItems: true`:
+
+- `$previous` na pierwszym elemencie może dojść do low-level hashera jako
+  trusted seed,
+- malformed `$empty` może ominąć walidację exact list-control item,
+- `$pos` może dojść do raw hashera i rzucić techniczny błąd zamiast zostać
+  skonsumowany albo odrzucony w semantic list normalization.
+
+### Implementacja
+
+- Dodać w `SemanticIdentityService` osobną ścieżkę dla publicznych array inputs:
+  - zbudować tymczasowy wrapper `new BlueNode().setItems(items)`,
+  - przepuścić wrapper przez `minimizeAuthoring()` / semantic list
+    normalization,
+  - zwrócić `minimalWrapper.getItems() ?? []` jako minimalną listę do hasha.
+- Dodać `StorageShapeValidator.validateStorageListShape(nodes)` albo równoważny
+  helper i używać go w `hashMinimalTrusted()` / `hashMinimalTrustedAsync()` dla
+  tablic, zamiast walidować każdy element jako root.
+- Zachować internal trusted minimal behavior low-level hashera: `$previous` może
+  seedować fold tylko po przejściu list-context validation.
+- Nie zmieniać semantyki pure list wrappers: top-level `BlueNode[]`, JSON array
+  i node z samym `items` mają mieć ten sam semantic `BlueId` dla tej samej
+  efektywnej listy.
+
+### Testy
+
+- `Blue.calculateBlueIdSync([{ $previous: { blueId: fakePrefixId } }, 'C'])`
+  daje ten sam wynik co `Blue.calculateBlueIdSync(['C'])`.
+- Ten sam przypadek przechodzi dla top-level `BlueNode[]`, nie tylko JSON array.
+- Malformed top-level array `$empty`, np. `{ $empty: false }` i
+  `{ $empty: true, value: 'extra' }`, jest odrzucany komunikatem z `$empty`.
+- Top-level array z `$pos` nie dociera do raw `BlueIdHasher`; jest skonsumowany
+  albo odrzucony przez semantic list normalization.
+- Async/sync parity obejmuje top-level arrays z list controls.
+- Regresja równoważności: `blue.calculateBlueIdSync(['A', 'B'])` ==
+  `blue.calculateBlueIdSync(new BlueNode().setItems([A, B]))`, pod warunkiem że
+  wrapper nie ma dodatkowych identity-bearing pól.
+
+### Acceptance
+
+Phase 1 może zostać oznaczona jako final DONE, gdy:
+
+- public top-level arrays przechodzą przez semantic list normalization,
+- top-level array `$previous` nie jest ślepo trustowany,
+- top-level array `$empty` jest walidowany jako exact list-control content,
+- top-level array `$pos` nigdy nie dochodzi do raw `BlueIdHasher`,
+- `nx test language --skip-nx-cache`,
+  `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit`,
+  `npx eslint libs/document-processor --fix` i
+  `nx test document-processor --skip-nx-cache` są zielone albo mają jawnie
+  zaakceptowane przejściowe failure wynikające z dalszych faz.
 
 ---
 
