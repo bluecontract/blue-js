@@ -101,7 +101,10 @@ Flow:
 
 Rules for list fields in `minimal`:
 
-- If derived appended list items, `minimize` may emit inherited-list marker + appended items.
+- If derived appended list items, `minimize` emits `$previous` plus the appended
+  delta.
+- If derived refined inherited indexes, `minimize` emits `$previous` plus `$pos`
+  overlay items.
 - If derived did not override list at all, `minimize` leaves that list absent.
 
 In both cases above, `resolvedAgain` should be semantically equivalent to `resolved`.
@@ -118,8 +121,6 @@ Each top-level `resolve()` call creates one context:
 - `limits` (`NO_LIMITS` or path-based limits),
 - wrapped `nodeProvider`,
 - `resolvedTypeCache` (scoped to this call),
-- `inheritedItemsPrefixByPath` (scoped to this call; per-pointer inherited list
-  metadata used by marker-aware list merge under path limits),
 - `pathStack` (for path-aware cache keys and limits traversal).
 
 ### 2) Resolve a node by merging into a fresh target
@@ -180,28 +181,20 @@ There are three modes:
    - Resolve each source child (or clone resolved child under `NoLimits`),
    - append in order (respecting limits).
 
-2. **Source uses inherited-prefix marker**
-   - Marker is recognized when:
-     `source.items[0]` is a **blueId-only node** and
-     `source.items[0].blueId === BlueId(target.items[])` (aggregated list BlueId).
-   - If first item has marker blueId **and extra fields**, resolver throws:
-     `Invalid inherited-list marker: first list item must contain only blueId.`
-   - Meaning: "keep inherited target prefix, then append source items from index 1".
-   - Resolver copies all target items and appends `source[1..]` (respecting limits).
-   - With `PathLimits`, marker-appended items are checked against logical merged
-     list indexes (`inheritedPrefixLength + appendedOffset`), not raw encoded
-     source indexes (`[marker, ...]`).
-   - If path limits filtered inherited target prefix away (`target.items[]` may
-     be empty at that point), resolver can still recognize marker by using
-     inherited prefix metadata remembered earlier for the same pointer.
-   - Example: base `[A, B]`, marker form `[marker(A,B), C, D]`, limits
-     `/2` and `/3` -> result contains `C` and `D` (indexes `0` and `1` were
-     not requested).
+2. **Spec-native list controls**
+   - Optional first `$previous` anchors the inherited items-list BlueId.
+   - `$pos` refines final merged indexes for `mergePolicy: positional`.
+   - `mergePolicy: append-only` rejects `$pos`.
+   - Normal items after controls append after the inherited prefix.
 
-3. **Standard overlay**
+3. **Standard full-list authoring overlay**
    - If source is shorter than target: throw.
    - For overlapping indexes: BlueId must match item-by-item.
    - Extra source items are appended.
+
+Pure `{ blueId: ... }` items are normal list elements in all modes. If the
+referenced content is itself a list, expansion produces a nested list element;
+there is no implicit flattening.
 
 ### 7) Merge properties (`mergeProperties`)
 
@@ -210,10 +203,12 @@ For each source property allowed by limits:
 1. Usually resolve/cloned-resolve source property node.
 2. If target property does not exist: set resolved value.
 3. If target property exists: recursively `mergeObject(existing, resolved, ctx)`.
-4. Special case under `PathLimits`: when either side is list-like (`items` present),
-   resolver merges unresolved source via `mergeWithContext(existing, source, ctx)`
-   (without pre-resolving), to preserve logical list index semantics and inherited
-   marker metadata.
+4. Special cases:
+   - list-control source properties are merged unresolved even with `NoLimits`,
+     because `$previous` must be checked against the inherited target list;
+   - under `PathLimits`, when either side is list-like (`items` present),
+     resolver merges unresolved source via `mergeWithContext(existing, source, ctx)`
+     to preserve logical list index semantics.
 
 For child-node metadata (`name`, `description`), explicit source values override
 inherited type values on that same child path. Missing source metadata keeps the
@@ -223,25 +218,32 @@ Copy-on-write map update is used to avoid unnecessary object recreation.
 
 ## Interaction with `minimize()` and official roundtrip
 
-`minimize()` can emit a compact representation for inherited lists. Current behavior:
+`minimize()` avoids the legacy inherited-list marker. Current behavior:
 
-- If a derived list appends items, minimize emits inherited-prefix marker:
-  first list item is `blueId` of inherited list, followed by appended items.
-- If derived does not override list at all, minimize now leaves list absent
-  (no marker-only list).
+- If a derived list appends items to an inherited prefix, minimize emits
+  `$previous` plus the appended delta.
+- If a derived positional list refines inherited indexes, minimize emits
+  `$previous` plus `$pos` overlay items.
+- If derived does not override list at all, minimize leaves list absent when the
+  inherited list is identical.
 
-Resolver (`mergeChildren`) understands this marker format, so this roundtrip is valid:
+Resolver (`mergeChildren`) understands both spec-native list controls and the
+older full-list authoring form, so this roundtrip is valid:
 
 `resolve -> nodeToJson('official') -> jsonValueToNode -> minimize -> resolve`
 
 for both:
 
 - inherited list with appended elements,
+- inherited list with positional refinements,
 - inherited list with no override in derived node.
 
 This remains true under `PathLimits` that select only appended indices
 (for example `/list/2` and `/list/3` in a logical `[A, B, C, D]` list),
-because marker resolution uses logical merged indexes.
+because list-control resolution uses logical merged indexes. If `$previous` is
+present but the inherited prefix was not materialized by the limit, resolver
+materializes the appended delta without raw-index filtering to avoid treating
+control item positions as list positions.
 
 ## Notes
 

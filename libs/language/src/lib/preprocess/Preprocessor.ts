@@ -103,7 +103,9 @@ export class Preprocessor {
         PathLimits.withSinglePath('/*'),
       );
 
-      const transformations = blueNode.getItems();
+      const transformations = this.flattenTransformationItems(
+        blueNode.getItems(),
+      );
       if (transformations && transformations.length > 0) {
         for (const transformation of transformations) {
           const processor = this.processorProvider.getProcessor(transformation);
@@ -125,6 +127,16 @@ export class Preprocessor {
     }
 
     return processedDocument;
+  }
+
+  private flattenTransformationItems(
+    items: BlueNode[] | undefined,
+  ): BlueNode[] | undefined {
+    if (items === undefined) {
+      return undefined;
+    }
+
+    return items.flatMap((item) => item.getItems() ?? [item]);
   }
 
   /**

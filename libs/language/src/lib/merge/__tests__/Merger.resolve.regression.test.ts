@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { Blue } from '../../Blue';
 import { BlueNode } from '../../model';
 import { BasicNodeProvider } from '../../provider';
-import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
 import { PathLimitsBuilder } from '../../utils/limits/PathLimits';
 
 describe('Merger resolve regression', () => {
@@ -162,6 +161,34 @@ local: B
     expect(resolvedB.get('/leaked')).toBeUndefined();
   });
 
+  it('does not share exposed resolved type objects between siblings in one resolve', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: SharedType
+shared: inherited
+`);
+
+    const sharedTypeId = provider.getBlueIdByName('SharedType');
+    const blue = new Blue({ nodeProvider: provider });
+
+    const source = blue.yamlToNode(`
+first:
+  type:
+    blueId: ${sharedTypeId}
+second:
+  type:
+    blueId: ${sharedTypeId}
+`);
+
+    const resolved = blue.resolve(source);
+
+    const firstType = resolved.get('/first/type') as BlueNode;
+    firstType.addProperty('leaked', new BlueNode().setValue('mutation'));
+
+    expect(resolved.get('/second/type/leaked')).toBeUndefined();
+  });
+
   it('enforces basic-type shape constraints in default resolve pipeline', () => {
     const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
 
@@ -176,7 +203,7 @@ local: B
     );
   });
 
-  it('keeps marker-overlay PathLimits transitional behavior explicit', () => {
+  it('keeps full list overlay PathLimits behavior explicit', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });
 
@@ -193,20 +220,12 @@ local: B
     if (!baseNode) {
       throw new Error('Expected Base node to be stored');
     }
-    const resolvedBaseListNode = blue.resolve(baseNode).getAsNode('/list');
-    if (!resolvedBaseListNode) {
-      throw new Error('Expected Base list to resolve');
-    }
-    const resolvedBaseList = resolvedBaseListNode.getItems();
-    const basePrefixBlueId = BlueIdCalculator.calculateBlueIdSync(
-      resolvedBaseList ?? [],
-    );
-
     const mid = new BlueNode('Mid')
       .setType(new BlueNode().setBlueId(nodeProvider.getBlueIdByName('Base')))
       .setProperties({
         list: new BlueNode().setItems([
-          new BlueNode().setBlueId(basePrefixBlueId),
+          itemA.clone(),
+          itemB.clone(),
           itemC.clone(),
         ]),
       });
@@ -215,20 +234,13 @@ local: B
     if (!midNode) {
       throw new Error('Expected Mid node to be stored');
     }
-    const resolvedMidListNode = blue.resolve(midNode).getAsNode('/list');
-    if (!resolvedMidListNode) {
-      throw new Error('Expected Mid list to resolve');
-    }
-    const resolvedMidList = resolvedMidListNode.getItems();
-    const midPrefixBlueId = BlueIdCalculator.calculateBlueIdSync(
-      resolvedMidList ?? [],
-    );
-
     const derived = new BlueNode('Derived')
       .setType(new BlueNode().setBlueId(nodeProvider.getBlueIdByName('Mid')))
       .setProperties({
         list: new BlueNode().setItems([
-          new BlueNode().setBlueId(midPrefixBlueId),
+          itemA.clone(),
+          itemB.clone(),
+          itemC.clone(),
           itemD.clone(),
         ]),
       });
@@ -239,6 +251,6 @@ local: B
       list?: unknown[];
     };
 
-    expect(limitedSimple.list).toEqual([]);
+    expect(limitedSimple.list).toEqual(['D']);
   });
 });

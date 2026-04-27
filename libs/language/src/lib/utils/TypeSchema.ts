@@ -13,6 +13,7 @@ import { BlueIdResolver } from './BlueIdResolver';
 import { TypeSchemaResolver } from './TypeSchemaResolver';
 import { isNullable, isNonNullable } from '@blue-labs/shared-utils';
 import { isBlueNodeSchema } from '../../schema/annotations';
+import type { BlueIdMapper } from '../types/BlueIdMapper';
 
 export class BlueNodeTypeSchema {
   // TODO: Enhance to support schemas associated with multiple blueIds
@@ -22,6 +23,7 @@ export class BlueNodeTypeSchema {
     options?: {
       checkSchemaExtensions?: boolean;
       typeSchemaResolver?: TypeSchemaResolver | null;
+      blueIdMapper?: BlueIdMapper;
     },
   ): boolean {
     const schemaBlueId = BlueIdResolver.resolveBlueId(schema);
@@ -31,8 +33,13 @@ export class BlueNodeTypeSchema {
       return false;
     }
 
+    const effectiveSchemaBlueId =
+      options?.blueIdMapper?.toCurrentBlueId(schemaBlueId) ?? schemaBlueId;
+    const effectiveNodeTypeBlueId =
+      options?.blueIdMapper?.toCurrentBlueId(nodeTypeBlueId) ?? nodeTypeBlueId;
+
     // Direct BlueId match
-    if (schemaBlueId === nodeTypeBlueId) {
+    if (effectiveSchemaBlueId === effectiveNodeTypeBlueId) {
       return true;
     }
 

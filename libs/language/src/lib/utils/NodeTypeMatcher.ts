@@ -1,5 +1,6 @@
 import { Blue } from '../Blue';
 import { BlueNode } from '../model';
+import { ResolvedBlueNode } from '../model/ResolvedNode';
 import { CompositeLimits, Limits, NO_LIMITS, PathLimits } from './limits';
 import { isBigNumber } from '../../utils/typeGuards/isBigNumber';
 import { NodeTypes } from './index';
@@ -166,10 +167,8 @@ export class NodeTypeMatcher {
     if (!isImplicitStructureMatch && targetBlueId !== undefined) {
       if (this.isExplicitBlueIdMatcher(comparisonTargetType)) {
         const nodeBlueId = node.getBlueId();
-        const nodeTypeBlueId = node.getType()?.getBlueId();
         if (
           nodeBlueId !== targetBlueId &&
-          nodeTypeBlueId !== targetBlueId &&
           !this.matchesCalculatedBlueId(node, targetBlueId)
         ) {
           return false;
@@ -379,11 +378,82 @@ export class NodeTypeMatcher {
   }
 
   private matchesCalculatedBlueId(node: BlueNode, blueId: string): boolean {
+    if (
+      node instanceof ResolvedBlueNode &&
+      node.getCompleteness() === 'path-limited' &&
+      node.getSourceSemanticBlueId() !== undefined
+    ) {
+      return node.getSourceSemanticBlueId() === blueId;
+    }
+
     try {
       return this.blue.calculateBlueIdSync(node) === blueId;
     } catch {
-      return false;
+      try {
+        return (
+          this.blue.calculateBlueIdSync(this.toPlainBlueNode(node)) === blueId
+        );
+      } catch {
+        return false;
+      }
     }
+  }
+
+  private toPlainBlueNode(node: BlueNode): BlueNode {
+    const plain = new BlueNode(node.getName());
+    plain
+      .setDescription(node.getDescription())
+      .setReferenceBlueId(node.getReferenceBlueId())
+      .setInlineValue(node.isInlineValue());
+
+    const value = node.getValue();
+    if (value !== undefined) {
+      plain.setValue(value);
+    }
+
+    const type = node.getType();
+    if (type !== undefined) {
+      plain.setType(this.toPlainBlueNode(type));
+    }
+
+    const itemType = node.getItemType();
+    if (itemType !== undefined) {
+      plain.setItemType(this.toPlainBlueNode(itemType));
+    }
+
+    const keyType = node.getKeyType();
+    if (keyType !== undefined) {
+      plain.setKeyType(this.toPlainBlueNode(keyType));
+    }
+
+    const valueType = node.getValueType();
+    if (valueType !== undefined) {
+      plain.setValueType(this.toPlainBlueNode(valueType));
+    }
+
+    const items = node.getItems();
+    if (items !== undefined) {
+      plain.setItems(items.map((item) => this.toPlainBlueNode(item)));
+    }
+
+    const properties = node.getProperties();
+    if (properties !== undefined) {
+      plain.setProperties(
+        Object.fromEntries(
+          Object.entries(properties).map(([key, valueNode]) => [
+            key,
+            this.toPlainBlueNode(valueNode),
+          ]),
+        ),
+      );
+    }
+
+    const blue = node.getBlue();
+    if (blue !== undefined) {
+      plain.setBlue(this.toPlainBlueNode(blue));
+    }
+
+    return plain;
   }
 
   /**

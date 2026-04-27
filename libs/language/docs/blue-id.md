@@ -53,18 +53,38 @@ authoring list sugar. Non-exact maps that contain an `items` key fall under the
 - Pure-reference short-circuit applies only to exact `{ blueId: "..." }`.
 - Mixed `blueId + payload` is invalid for authoring/storage ingest and does not
   short-circuit in the low-level hasher.
+- Provider/storage ingest is strict. `yamlToNode` and `jsonValueToNode` are
+  permissive parse APIs unless a future strict mode is added.
+- JSON/YAML/raw values passed to `Blue.calculateBlueId*` are preprocessed by the
+  public API. `BlueNode` values are assumed to be already
+  preprocessed/normalized.
 - `[]` is content. It is distinct from `null`, absent, and `{}`.
 - `[A]` is distinct from `A`; nested lists are not flattened.
+- A list element `{ blueId: X }` is ordinary content. If `X` points to a list,
+  expansion materializes that element as a nested list; it is not flattened and
+  is not treated as `$previous`.
 - Authoring sugar and wrapped form are identity-equivalent:
   `x: 1 == x: { value: 1 }`, and `x: [a, b] == x: { items: [a, b] }`.
+- Basic inferred scalar/list type wrappers introduced by preprocessing are
+  identity-transparent. Arbitrary type references are not ignored for identity.
 
 **Storage**
 
 Providers store minimal overlay content keyed by the computed BlueId. If a
 repository or caller supplies `providedBlueId`, it must match the computed ID or
-loading fails. Phase 1 keeps legacy list marker behavior for inherited lists;
-spec-native `$previous`, `$pos`, `$empty`, and direct cyclic `this#k` identities
-are finalized in phase 3.
+loading fails. Normal provider/storage ingest does not keep a transitional
+storage overlay path. Legacy inherited-list markers are not recognized as a
+default storage format. Spec-native list controls are supported in Phase 1K:
+`$previous` anchors inherited append prefixes, `$pos` carries positional
+refinements before hashing, and `$empty` remains ordinary list content. Direct
+cyclic `this#k` identities remain Phase 3 work.
+
+`$previous` append controls are hashable without loading the previous list
+contents. The list hash is a fold, so the previous list BlueId can seed the fold
+and appended items can be folded after it. `$pos` is different: replacing a
+final index needs the previous list elements, not only the previous list BlueId.
+For that reason raw hashing rejects `$pos`; semantic identity first resolves the
+control form to the final list, then hashes a hashable minimal form.
 
 **Related APIs**
 

@@ -93,6 +93,7 @@ export class Blue {
       registry: this.repositoryRegistry,
       blueIdMapper: this.repositoryRegistry,
     });
+    this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = this.wrapNodeProviderWithRepositories(
@@ -106,7 +107,6 @@ export class Blue {
         nodeProvider: this.nodeProvider,
       });
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
-    this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
@@ -558,6 +558,7 @@ export class Blue {
     return BlueNodeTypeSchema.isTypeOf(node, schema, {
       checkSchemaExtensions: options?.checkSchemaExtensions,
       typeSchemaResolver: this.typeSchemaResolver,
+      blueIdMapper: this.repositoryRegistry,
     });
   }
 
@@ -569,7 +570,7 @@ export class Blue {
    * @returns true if the node matches or extends the BlueId type.
    */
   public isTypeOfBlueId(node: BlueNode, blueId: string): boolean {
-    const trimmed = blueId.trim();
+    const trimmed = this.repositoryRegistry.toCurrentBlueId(blueId.trim());
     if (trimmed.length === 0) {
       return false;
     }
@@ -635,7 +636,9 @@ export class Blue {
     if (repositories && repositories.length > 0) {
       return NodeProviderWrapper.wrap(
         new SequentialNodeProvider([
-          new RepositoryBasedNodeProvider(repositories),
+          new RepositoryBasedNodeProvider(repositories, {
+            mergingProcessor: this.mergingProcessor,
+          }),
           nodeProvider,
         ]),
       );

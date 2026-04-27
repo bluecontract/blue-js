@@ -144,20 +144,16 @@ tags:
     expect(fetched.get('/tags/1/value')).toBe('this#1');
   });
 
-  it('resolves transitional this references only from blueId fields', () => {
+  it('rejects this references in blueId fields until phase 3', () => {
     const provider = new BasicNodeProvider();
 
-    provider.addSingleDocs(`
+    expect(() =>
+      provider.addSingleDocs(`
 name: SelfReference
 self:
   blueId: this
-`);
-
-    const blueId = provider.getBlueIdByName('SelfReference');
-    const fetched = provider.fetchByBlueId(blueId);
-
-    expect(fetched).toHaveLength(1);
-    expect(fetched?.[0].get('/self/blueId')).toBe(blueId);
+`),
+    ).toThrow(/Self-references using this or this#k are not supported/);
   });
 
   it('rejects indexed this references in single-document ingest', () => {
@@ -169,7 +165,7 @@ name: InvalidSingleThisReference
 self:
   blueId: this#1
 `),
-    ).toThrow(/only 'this' is allowed as a reference/);
+    ).toThrow(/Self-references using this or this#k are not supported/);
   });
 
   it('should throw error for non-existent node', () => {

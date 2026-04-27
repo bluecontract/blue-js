@@ -10,6 +10,7 @@ import { NO_LIMITS } from '../utils/limits';
 import { Nodes } from '../utils/Nodes';
 import { Minimizer } from '../utils/Minimizer';
 import { StorageShapeValidator } from '../utils/StorageShapeValidator';
+import { ListControls } from '../utils/ListControls';
 
 export interface SemanticIdentityServiceOptions {
   nodeProvider?: NodeProvider;
@@ -29,12 +30,13 @@ export class SemanticIdentityService {
 
   public calculateBlueId(value: BlueNode | BlueNode[]) {
     const minimal = this.toMinimalIdentityInput(value);
-    return BlueIdCalculator.calculateBlueId(minimal);
+    const hashable = this.toHashableMinimalTrusted(minimal);
+    return BlueIdCalculator.calculateBlueId(hashable);
   }
 
   public calculateBlueIdSync(value: BlueNode | BlueNode[]) {
     const minimal = this.toMinimalIdentityInput(value);
-    return BlueIdCalculator.calculateBlueIdSync(minimal);
+    return this.hashMinimalTrusted(minimal);
   }
 
   public minimize(node: BlueNode): BlueNode {
@@ -52,6 +54,11 @@ export class SemanticIdentityService {
     }
 
     if (Nodes.hasBlueIdOnly(node)) {
+      return node.clone();
+    }
+
+    if (ListControls.hasAnyListControl(node)) {
+      StorageShapeValidator.validateStorageShape(node);
       return node.clone();
     }
 
@@ -88,11 +95,37 @@ export class SemanticIdentityService {
       minimal.forEach((node) =>
         StorageShapeValidator.validateStorageShape(node),
       );
-      return BlueIdCalculator.calculateBlueIdSync(minimal);
+      return BlueIdCalculator.calculateBlueIdSync(
+        this.toHashableMinimalTrusted(minimal),
+      );
     }
 
     StorageShapeValidator.validateStorageShape(minimal);
-    return BlueIdCalculator.calculateBlueIdSync(minimal);
+    return BlueIdCalculator.calculateBlueIdSync(
+      this.toHashableMinimalTrusted(minimal),
+    );
+  }
+
+  private toHashableMinimalTrusted(
+    minimal: BlueNode | BlueNode[],
+  ): BlueNode | BlueNode[] {
+    if (Array.isArray(minimal)) {
+      return minimal.map((node) => this.toHashableMinimalTrustedNode(node));
+    }
+
+    return this.toHashableMinimalTrustedNode(minimal);
+  }
+
+  private toHashableMinimalTrustedNode(minimal: BlueNode): BlueNode {
+    if (!ListControls.hasPositionControl(minimal)) {
+      return minimal;
+    }
+
+    const resolved = new Merger(
+      this.mergingProcessor,
+      this.nodeProvider,
+    ).resolve(minimal, NO_LIMITS);
+    return this.minimizer.minimizeResolvedForHash(resolved);
   }
 
   private toMinimalIdentityInput(value: BlueNode | BlueNode[]) {

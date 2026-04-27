@@ -6,6 +6,7 @@ import {
   OBJECT_SCHEMA,
 } from './Properties';
 import { Nodes } from './Nodes';
+import { ListControls, LIST_POSITION_KEY } from './ListControls';
 
 export class StorageShapeValidator {
   private static readonly RESERVED_PROPERTY_KEYS = new Set([
@@ -17,29 +18,45 @@ export class StorageShapeValidator {
   private static readonly INTERNAL_PROPERTIES_KEY = 'properties';
 
   public static validateStorageShape(node: BlueNode): void {
-    this.validateNode(node, []);
+    this.validateNode(node, [], { insideItems: false });
   }
 
-  private static validateNode(node: BlueNode, path: string[]): void {
-    const referenceBlueId = node.getReferenceBlueId();
-    if (referenceBlueId !== undefined && !Nodes.hasBlueIdOnly(node)) {
-      const pointer = this.toPointer(path);
-      throw new BlueError(
-        BlueErrorCode.AMBIGUOUS_BLUE_ID_PAYLOAD,
-        `Ambiguous blueId plus payload at ${pointer}. Use exact { blueId } for references or remove blueId from payload content.`,
-        [
-          {
-            code: BlueErrorCode.AMBIGUOUS_BLUE_ID_PAYLOAD,
-            message:
-              'A storage or authoring node cannot combine blueId with payload.',
-            locationPath: path,
-            context: { blueId: referenceBlueId },
-          },
-        ],
-      );
+  private static validateNode(
+    node: BlueNode,
+    path: string[],
+    context: { insideItems: boolean; itemIndex?: number },
+  ): void {
+    if (context.insideItems) {
+      this.validateListControlItem(node, path, context.itemIndex ?? 0);
     }
 
-    const childProperties = this.getChildProperties(node, path);
+    const referenceBlueId = node.getReferenceBlueId();
+    if (referenceBlueId !== undefined && !Nodes.hasBlueIdOnly(node)) {
+      const isPositionedReference =
+        context.insideItems &&
+        ListControls.hasPositionProperty(node) &&
+        Nodes.hasBlueIdOnly(ListControls.withoutPosition(node));
+      if (isPositionedReference) {
+        ListControls.readPosition(node);
+      } else {
+        const pointer = this.toPointer(path);
+        throw new BlueError(
+          BlueErrorCode.AMBIGUOUS_BLUE_ID_PAYLOAD,
+          `Ambiguous blueId plus payload at ${pointer}. Use exact { blueId } for references or remove blueId from payload content.`,
+          [
+            {
+              code: BlueErrorCode.AMBIGUOUS_BLUE_ID_PAYLOAD,
+              message:
+                'A storage or authoring node cannot combine blueId with payload.',
+              locationPath: path,
+              context: { blueId: referenceBlueId },
+            },
+          ],
+        );
+      }
+    }
+
+    const childProperties = this.getChildProperties(node, path, context);
     const hasValue = node.getValue() !== undefined;
     const hasItems = node.getItems() !== undefined;
     const hasChildFields = Object.keys(childProperties).length > 0;
@@ -72,13 +89,65 @@ export class StorageShapeValidator {
     this.validateChild(node.getBlue(), [...path, 'blue']);
 
     node.getItems()?.forEach((item, index) => {
-      this.validateNode(item, [...path, 'items', String(index)]);
+      this.validateNode(item, [...path, 'items', String(index)], {
+        insideItems: true,
+        itemIndex: index,
+      });
     });
 
     const properties = node.getProperties();
     if (properties !== undefined) {
       for (const [key, property] of Object.entries(properties)) {
-        this.validateNode(property, [...path, key]);
+        this.validateNode(property, [...path, key], { insideItems: false });
+      }
+    }
+  }
+
+  private static validateListControlItem(
+    node: BlueNode,
+    path: string[],
+    itemIndex: number,
+  ): void {
+    if (ListControls.hasPreviousProperty(node)) {
+      if (itemIndex !== 0) {
+        this.throwInvalidStorageShape(
+          path,
+          '$previous list control is allowed only as the first item.',
+        );
+      }
+
+      if (!ListControls.isPreviousItem(node)) {
+        this.throwInvalidStorageShape(
+          path,
+          '$previous list control must be exactly { $previous: { blueId: <id> } }.',
+        );
+      }
+    }
+
+    if (ListControls.hasPositionProperty(node)) {
+      if (ListControls.hasPreviousProperty(node)) {
+        this.throwInvalidStorageShape(
+          path,
+          '$pos cannot be combined with $previous.',
+        );
+      }
+
+      try {
+        ListControls.readPosition(node);
+      } catch (error) {
+        this.throwInvalidStorageShape(
+          [...path, LIST_POSITION_KEY],
+          error instanceof Error
+            ? error.message
+            : '$pos must be a non-negative integer value.',
+        );
+      }
+
+      if (!ListControls.hasPayloadAfterRemovingPosition(node)) {
+        this.throwInvalidStorageShape(
+          path,
+          '$pos list control must include an item payload.',
+        );
       }
     }
   }
@@ -88,13 +157,14 @@ export class StorageShapeValidator {
     path: string[],
   ): void {
     if (node !== undefined) {
-      this.validateNode(node, path);
+      this.validateNode(node, path, { insideItems: false });
     }
   }
 
   private static getChildProperties(
     node: BlueNode,
     path: string[],
+    context: { insideItems: boolean },
   ): Record<string, BlueNode> {
     const properties = node.getProperties() ?? {};
 
@@ -112,7 +182,9 @@ export class StorageShapeValidator {
 
     return Object.fromEntries(
       Object.entries(properties).filter(
-        ([key]) => !this.RESERVED_PROPERTY_KEYS.has(key),
+        ([key]) =>
+          !this.RESERVED_PROPERTY_KEYS.has(key) &&
+          !(context.insideItems && key === LIST_POSITION_KEY),
       ),
     );
   }

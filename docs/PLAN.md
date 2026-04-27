@@ -14,7 +14,10 @@ Dlatego nowy plan dla `language` powinien z góry założyć taki target:
 - publiczne `Blue.calculateBlueId*` = **semantic BlueId**,
 - providerzy zapisują **minimal overlay form** pod semantic `BlueId`,
 - `resolve()` / `resolveToSnapshot()` daje **runtime snapshot**,
-- dopiero na końcu domykamy spec-native list forms i bezpośrednie cykle `this#k`. Listy i cykle są ważne, ale nie powinny blokować uporządkowania identity i snapshotów. Spec faktycznie definiuje `$previous`, `$pos`, `$empty` oraz `this#k`, ale to są osobne, końcowe ścieżki konformacyjno-optymalizacyjne. ([language.blue][1])
+- spec-native list forms (`$previous`, `$pos`, `$empty`) są domykane jeszcze
+  w Phase 1K, przed snapshotami,
+- bezpośrednie cykle `this#k` zostają osobną końcową ścieżką konformacyjną.
+  ([language.blue][1])
 
 ## 2. Design / ADR
 
@@ -315,9 +318,10 @@ Po tej fazie:
 ## Current status — Phase 1 stabilization
 
 Status after implementing the 1E/1F/1G/1H stabilization block and the strict
-provider cleanup: semantic storage is now the only provider ingest path.
+provider cleanup: semantic storage is now the only normal provider ingest path.
 Provider ingest either stores minimal content under its semantic `BlueId` or
-fails immediately.
+fails immediately. `BaseContentNodeProvider` remains an audited bootstrap-only
+raw-ID exception for transformation resources.
 
 ### Done
 
@@ -342,17 +346,15 @@ fails immediately.
   mixed reference payloads.
 - `this` / `this#k` are special only in `blueId` fields. Ordinary scalar
   strings such as `value: this` and list item `"this#1"` remain normal content.
-- Multi-doc direct cycles using `blueId: this#k` are explicitly rejected until
-  Phase 3. Single-doc `blueId: this` remains a transitional compatibility path;
-  single-doc `blueId: this#k` is rejected.
+- Provider/storage ingest rejects `blueId: this` and `blueId: this#k` until
+  Phase 3 implements direct cyclic sets.
 - `StorageShapeValidator.validateStorageShape()` rejects full payload-kind
   ambiguity: `blueId + payload`, `value + items`, `value/items + child fields`,
   and document-level `properties`.
 - `SemanticIdentityService` has separate internal paths:
   `minimizeResolved()`, `minimizeAuthoring()`, and `hashMinimalTrusted()`.
-- The minimizer no longer collapses every `blueId + payload` node to
-  `{ blueId }`. Collapse is allowed only for trusted materialization paths or
-  after confirming that the payload matches known provider content.
+- The minimizer no longer exposes public materialized-reference collapse hooks
+  and does not generically collapse `blueId + payload` nodes to `{ blueId }`.
 - Root instance `name` and `description` are preserved by minimization even when
   they equal the referenced type's `name` / `description`.
 - Resolved/runtime nodes carry the minimum completeness metadata:
@@ -398,30 +400,29 @@ fails immediately.
 
 ### Deliberate transitional behavior
 
-1. **Legacy list marker storage overlay.** The storage service still has an
-   explicit transitional path for inherited lists that use the legacy
-   marker-shaped first item. This is not a resolve-error fallback and should be
-   removed in Phase 3 when lists move to `$previous`, `$pos`, and `$empty`.
-2. **Path-limited list marker behavior.** Partial materialization must not
-   pretend to be a full resolved snapshot or become a normal hash source without
-   `sourceSemanticBlueId`. Inherited lists that rely on the legacy marker remain
-   transitional until Phase 3 replaces them with spec-native `$previous`, `$pos`,
-   and `$empty`.
+1. **BaseContentNodeProvider bootstrap IDs.** Transformation resources still use
+   raw bootstrap IDs. This is an explicit bootstrap-only exception, not normal
+   provider/storage ingest.
+2. **Path-limited resolved trees.** Partial materialization must not pretend to
+   be a full resolved snapshot or become a normal hash source without
+   `sourceSemanticBlueId`.
 3. **External Blue Repository Types.** The installed `@blue-repository/types`
-   package still uses historical/pre-semantic storage keys. Characterization
-   tests that consume that package are skipped until the package is reindexed to
-   semantic IDs.
+   package still ships historical/pre-semantic storage keys. `document-processor`
+   uses an explicit semantic reindex adapter for that package; `language`
+   remains strict and does not add a normal historical-ID provider bypass.
 
 ### Decisions before Phase 2
 
-- Blue Repository Types should be reindexed to semantic IDs before declaring
-  integration readiness. The strict provider path still does not include a
-  dual-index/alias adapter in `language`.
+- Blue Repository Types are reindexed at the `document-processor` boundary by
+  an explicit adapter. Long term, the package should publish semantic IDs
+  directly; the strict provider path still does not include a dual-index/alias
+  adapter in `language`.
 - Path-limited nodes now have the Phase 1 public contract: no eager full
   semantic identity calculation; source identity must be supplied by caller or
   be trivially known from an exact root reference.
-- Whether to remove the legacy list marker storage overlay before snapshots, or
-  keep it until the Phase 3 list-control cleanup.
+- Phase 1K owns spec-native `$previous`, `$pos`, and `$empty`. Phase 3 owns
+  direct cyclic `this#k` support. Legacy inherited-list markers are not a
+  normal storage format in Phase 1.
 
 ---
 
@@ -491,8 +492,7 @@ fazy 2.
 - Nie robić `resolvedType.clone().setType(undefined).setBlueId(undefined)` dla
   każdego typed node'a. Overlay typu bez `type` i `blueId` powinien być
   cache'owany per resolved type artifact.
-- Memoizować hashe elementów list używane przy porównaniu prefixów i
-  inherited-list markerów.
+- Memoizować hashe elementów list używane przy porównaniu prefixów.
 - Cache'ować subtype checks `(subtypeBlueId, supertypeBlueId) -> boolean`.
 - Ograniczyć deep clone przed `ResolvedBlueNode`; docelowo przejmą to snapshoty
   i structural sharing.
@@ -600,8 +600,7 @@ nie nowa architektura: naprawia kontrakty, które muszą być prawdziwe zanim Ph
 ### Testy
 
 - Self-reference: zwykłe scalar/list stringi `this` i `this#1` zostają treścią;
-  `blueId: this` działa tylko jako single-doc transitional path; indexed
-  `this#k` jest odrzucane poza Phase 3.
+  `blueId: this` i `blueId: this#k` są odrzucane poza Phase 3.
 - Storage shape: reject `blueId + payload`, `value + items`, `value + child`,
   `items + child`, oraz literalne `properties`; allow reserved metadata
   `schema`, `mergePolicy`, `contracts`.
@@ -618,11 +617,147 @@ nie nowa architektura: naprawia kontrakty, które muszą być prawdziwe zanim Ph
 
 ---
 
+## Faza 1I — Final language stabilization
+
+### Cel
+
+Zamknąć Phase 1 jako breaking change: normalny provider/storage ingest nie ma
+już transitional bypassów, a expansion nie zostawia `blueId + payload` jako
+hash input.
+
+### Implementacja
+
+- `SemanticStorageService.preparePreprocessedStorageNode()` zawsze idzie przez
+  `minimizeAuthoring() -> hashMinimalTrusted()`.
+- Usunięte są `minimizeStorageOverlay()`, `prepareStorageOverlay()`,
+  `useTransitionalStoragePath` i wykrywanie legacy inherited-list markerów w
+  normalnej ścieżce storage.
+- Provider/storage ingest odrzuca `blueId: this` oraz `blueId: this#k` do
+  Phase 3.
+- `MinimizerOptions` nie wystawia `allowMaterializedReferenceCollapse` ani
+  `isTrustedMaterializedReference`.
+- `MergeReverser` nie emituje legacy list markerów. PR-1K przenosi
+  spec-native list controls do Phase 1, więc full-list overlay nie jest już
+  docelowym formatem minimalizacji odziedziczonych list.
+- `NodeExtender` rozszerza tylko exact pure references, po materializacji usuwa
+  reference `blueId`, i nie flattenuje pierwszego pure reference w zwykłej
+  liście.
+- `resolve()` nie współdzieli exposed mutable `type` object między siblingami w
+  jednym resolved tree.
+
+### Testy
+
+- Ordinary list zaczynająca się od pure `{ blueId }` przechodzi przez semantic
+  storage path.
+- Provider/storage odrzuca `blueId: this` i `blueId: this#k`.
+- `Blue.extend()` zachowuje semantic `BlueId`.
+- NodeExtender nie flattenuje zwykłej listy zaczynającej się od pure ref.
+- Minimizer nie emituje legacy list marker.
+- Sibling resolved type mutation nie przecieka w obrębie jednego `resolve()`.
+
+---
+
+## Faza 1J — document-processor integration cleanup
+
+### Cel
+
+Przygotować `document-processor` na Phase 2 snapshots przez usunięcie runtime
+zależności od raw `BlueIdCalculator` i spec-invalid fallback repository shape.
+
+### Implementacja
+
+- Test fallback repository content używa plain Blue object shape bez pola
+  `properties`.
+- Fallback i derived test repositories są kluczowane semantic IDs liczonymi
+  przez `seedBlue.calculateBlueIdSync(node)`, a aliases mapują nazwy testowe na
+  semantic IDs.
+- Zainstalowane `@blue-repository/types` jest reindeksowane w
+  `document-processor` przez explicit adapter, który przepisuje content,
+  aliases, schemas i metadata na semantic IDs. To nie jest normalny provider
+  bypass w `language`.
+- Adapter reindeksujący jest migracyjnym bridge'em dla obecnego
+  `@blue-repository/types`, które nadal publikuje historyczne/pre-semantic
+  storage IDs. Gdy `blue-repository-js` zacznie generować semantic IDs natywnie,
+  adapter powinien zostać usunięty albo zawężony do explicit legacy migration
+  path.
+- `ProcessorEngine.nodeAt(..., '/blueId')` używa wyłącznie wstrzykniętego
+  semantic `calculateBlueId`; bez kalkulatora rzuca jawny błąd.
+- Test-support i testy DP nie używają raw `BlueIdCalculator`.
+
+### Testy
+
+- Fallback repo ładuje się bez `properties`.
+- `/blueId` używa injected semantic calculator.
+- `document-processor` przechodzi type-check, lint i testy po zmianie identity.
+
+---
+
+## Faza 1K — List control forms
+
+### Cel
+
+Domknąć list identity przed snapshotami: normalny minimal overlay dla
+odziedziczonych list używa spec-native `$previous`, `$pos` i `$empty`, bez
+legacy first-item markerów i bez tymczasowego full-list overlay jako write path.
+
+### Implementacja
+
+- `ListControls` definiuje internal contract dla:
+  - `$previous`: exact first item `{ $previous: { blueId: <itemsListBlueId> } }`,
+  - `$pos`: non-negative integer metadata na itemie, tylko dla
+    `mergePolicy: positional`,
+  - `$empty`: zwykły content, nie metadata.
+- `Merger` rozwiązuje list controls w kontekście inherited target list:
+  - default `mergePolicy` to `positional`,
+  - `append-only` odrzuca `$pos`,
+  - `$pos` refinements targetują finalny merged index,
+  - duplicate, non-integer i out-of-range `$pos` rzucają jawne błędy,
+  - `$previous` musi wskazywać aktualny inherited items-list BlueId przy pełnym
+    resolve.
+- `MergeReverser` minimalizuje inherited appendy jako `$previous + delta`, a
+  positional refinements jako `$previous + $pos`; append-only non-prefix
+  mutation rzuca błąd.
+- `BlueIdHasher` seeduje list fold z `$previous` dla appendów i odrzuca raw
+  `$pos`, bo `$pos` musi zostać skonsumowany przez semantic normalization przed
+  hashowaniem.
+- Uzasadnienie hash path: append-only `$previous` może zacząć fold od BlueId
+  poprzedniej listy i kontynuować fold dla nowych elementów. `$pos` nie może
+  być policzony z samego BlueId poprzedniej listy, bo podmiana finalnego indeksu
+  wymaga materializowanych elementów poprzedniej listy.
+- `hashMinimalTrusted` materializuje minimal input z `$pos` przez semantic
+  resolve + hash-only minimization bez ponownej emisji controls.
+- Path-limited resolve stosuje finalne indeksy dla controls. Gdy `$previous`
+  anchor jest obecny, ale inherited prefix nie został zmaterializowany przez
+  limit, resolver materializuje append delta bez raw-index filtrowania; to
+  zachowuje poprawny wynik kosztem szerszej materializacji delty.
+
+### Testy
+
+- `$previous` append-only minimal ma ten sam semantic `BlueId` co pełna lista.
+- Minimizer emituje `$previous`, nie legacy pure-reference marker.
+- Zwykły pierwszy item `{ blueId: ... }` pozostaje contentem.
+- `$pos` obsługuje positional refinement i appendy w finalnej kolejności.
+- Duplicate, non-integer i out-of-range `$pos` rzucają błędy.
+- `append-only` odrzuca `$pos`.
+- `$previous` nie jako pierwszy item jest rejected.
+- `$empty` wpływa na `BlueId` jako zwykły element.
+- PathLimits wybierają appendy względem finalnych indeksów listy, nie indeksów
+  raw control itemów.
+
+### Exit criteria
+
+- `nx test language` przechodzi z list controls w Phase 1.
+- Phase 2 snapshots mogą startować bez planowanego przepisywania list overlay
+  po drodze.
+
+---
+
 ## Faza 2 — Snapshoty
 
 ### Cel
 
-Dostarczyć DP-ready runtime artifact bez czekania na końcową fazę list/cykli.
+Dostarczyć DP-ready runtime artifact po domknięciu semantic identity i list
+controls; direct cycles (`this#k`) nadal zostają poza zakresem Phase 2.
 
 ### Implementacja
 
@@ -649,7 +784,7 @@ Wariant docelowy:
   - przeliczenie tylko touched subtree + ancestors,
   - nowy snapshot jako wynik.
 
-To nie musi jeszcze mieć finalnych list spec-native, ale ma już być gotowe jako baza pod późniejsze zużycie w `document-processor`.
+To ma być gotowe jako baza pod późniejsze zużycie w `document-processor`.
 
 ### Pliki
 
@@ -672,7 +807,9 @@ To nie musi jeszcze mieć finalnych list spec-native, ale ma już być gotowe ja
 
 ### Exit criteria fazy 2
 
-Po tej fazie `language` ma już gotowy runtime artifact, który później może zostać podłączony w `document-processor`, nawet jeśli listy i `this#k` są jeszcze przed finalnym cleanupem.
+Po tej fazie `language` ma już gotowy runtime artifact, który później może
+zostać podłączony w `document-processor`, nawet jeśli `this#k` jest jeszcze
+przed finalnym cleanupem.
 
 ### Naturalny podział na PR
 
@@ -682,39 +819,16 @@ Po tej fazie `language` ma już gotowy runtime artifact, który później może 
 
 ---
 
-## Faza 3 — Spec-native listy + `this#k`
+## Faza 3 — Direct cycles i final cleanup
 
 Rozumiem Wasze „#this” jako `this#k` z §11.
 
 ### Cel
 
-Domknąć pełną zgodność specyfikacyjną i usunąć przejściowe legacy semantics.
+Domknąć pełną zgodność specyfikacyjną przez direct cyclic sets i usunąć
+pozostałe przejściowe semantics.
 
-### Strumień 3A — List control forms
-
-#### Implementacja
-
-`Merger`, minimizer i hasher przechodzą na:
-
-- `$previous`,
-- `$pos`,
-- `$empty`.
-
-Znika legacy marker:
-
-- „pierwszy item = `{ blueId: prefixId }`”.
-
-Write path nigdy go już nie emituje. Read path może chwilowo mieć shim migracyjny, ale tylko w czasie developmentu; finalnie go usuwamy. Spec wyraźnie definiuje zarówno dozwolone formy, jak i dokładne zachowanie list hashingu oraz merge policy. ([language.blue][1])
-
-#### Testy
-
-- `$previous` tylko jako pierwszy element,
-- `$previous` ignorowany przy zmienionym prefixie,
-- append-only: `$pos` = error,
-- positional: duplicate/out-of-range = error,
-- `$empty` zostaje contentem i wpływa na `BlueId`. ([language.blue][1])
-
-### Strumień 3B — Direct cycles i `this#k`
+### Strumień 3A — Direct cycles i `this#k`
 
 #### Implementacja
 
@@ -737,7 +851,7 @@ To zamyka combined BlueId dla direct cycles. ([language.blue][1])
 - `MASTER#i` zgodne między zapisami,
 - provider multi-doc ingest działa poprawnie.
 
-### Strumień 3C — Final cleanup
+### Strumień 3B — Final cleanup
 
 #### Implementacja
 
@@ -751,9 +865,8 @@ Po tej fazie `libs/language` jest gotowe do bycia podstawą dla reszty monorepo 
 
 ### Naturalny podział na PR
 
-- PR-3A: list control forms
-- PR-3B: `this#k` + cyclic BlueIds
-- PR-3C: cleanup + docs final
+- PR-3A: `this#k` + cyclic BlueIds
+- PR-3B: cleanup + docs final
 
 ## 4. Przykłady testów integracyjnych
 
@@ -856,7 +969,9 @@ entries:
   items: [A, B]
 `);
 
-  const prevId = blue.calculateBlueIdSync(blue.get(parent, '/entries') as BlueNode);
+  const prevId = blue.calculateBlueIdSync(
+    (blue.get(parent, '/entries') as BlueNode).getItems() ?? [],
+  );
 
   const delta = blue.yamlToNode(`
 entries:
@@ -913,15 +1028,22 @@ it('assigns stable MASTER#i BlueIds for a direct cyclic set', () => {
 
 ### Exit DoD dla fazy 1
 
-- `Blue.calculateBlueId*` zwraca ten sam wynik dla authoring, resolved i minimal dla dokumentów niecyklicznych i bez spec-native list control forms.
+- `Blue.calculateBlueId*` zwraca ten sam wynik dla authoring, resolved i minimal
+  dla dokumentów niecyklicznych, w tym spec-native list control forms.
 - `PathLimits` nie zmieniają `BlueId`.
 - expansion nie zmienia `BlueId`.
 - pure-ref short-circuit działa tylko dla exact `{ blueId }`.
 - `[] != absent`, `[A] != A`, `[[A,B],C] != [A,B,C]`.
 - providerzy zapisują minimal overlay keyed by semantic `BlueId`.
+- normalny provider/storage path nie używa `minimizeStorageOverlay` ani legacy
+  inherited-list marker.
+- `Blue.extend()` / `NodeExtender` expansion zachowuje semantic `BlueId` i nie
+  zostawia `blueId + payload` jako hash input.
+- `document-processor` runtime nie fallbackuje do raw `BlueIdCalculator`.
 - storage ingest odrzuca mixed `blueId + payload` jako authoring/minimal input.
 - `NodeToMapListOrValue` nie bierze już udziału w hash path.
-  Te warunki są bezpośrednio zgodne z §8–§10 i §12, z wyjątkiem końcowej obsługi spec-native lists/cycles, które świadomie odkładamy do fazy 3. ([language.blue][1])
+  Te warunki są bezpośrednio zgodne z §8–§10 i §12, z wyjątkiem direct cyclic
+  sets, które świadomie odkładamy do fazy 3. ([language.blue][1])
 
 ### Exit DoD dla fazy 2
 

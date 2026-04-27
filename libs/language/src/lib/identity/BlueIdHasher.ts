@@ -5,6 +5,7 @@ import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
 import { BigDecimalNumber } from '../model/BigDecimalNumber';
 import { BigIntegerNumber } from '../model/BigIntegerNumber';
 import { BlueNode } from '../model/Node';
+import { LIST_POSITION_KEY, LIST_PREVIOUS_KEY } from '../utils/ListControls';
 import {
   OBJECT_BLUE,
   OBJECT_BLUE_ID,
@@ -41,7 +42,7 @@ const HASH_INLINE_KEYS = new Set([
 
 const LIST_EMPTY_HASH_INPUT = { $list: 'empty' } as const;
 const LIST_CONS_KEY = '$listCons';
-const LIST_PREVIOUS_KEY = 'prev';
+const LIST_FOLD_PREVIOUS_KEY = 'prev';
 const LIST_ELEMENT_KEY = 'elem';
 
 export class BlueIdHasher {
@@ -140,12 +141,34 @@ export class BlueIdHasher {
     list: HashValue[],
     isSync: boolean,
   ): SyncOrAsync<string> {
-    let accumulatedHash: SyncOrAsync<string> = this.applyHash(
-      LIST_EMPTY_HASH_INPUT,
-      isSync,
-    );
+    let startIndex = 0;
+    let accumulatedHash: SyncOrAsync<string>;
+    const firstItem = list[0];
+    if (firstItem !== undefined && this.hasPreviousControlKey(firstItem)) {
+      const previousBlueId = this.getPreviousControlBlueId(firstItem);
+      if (previousBlueId === undefined) {
+        throw new Error(
+          '$previous list control must be exactly { $previous: { blueId: <id> } }.',
+        );
+      }
+      accumulatedHash = isSync
+        ? previousBlueId
+        : Promise.resolve(previousBlueId);
+      startIndex = 1;
+    } else {
+      accumulatedHash = this.applyHash(LIST_EMPTY_HASH_INPUT, isSync);
+    }
 
-    for (const item of list) {
+    for (let i = startIndex; i < list.length; i++) {
+      const item = list[i];
+      if (this.hasPreviousControlKey(item)) {
+        throw new Error('$previous list control is allowed only first.');
+      }
+      if (this.hasPositionControlKey(item)) {
+        throw new Error(
+          '$pos list controls must be consumed before raw BlueId hashing.',
+        );
+      }
       const previousHash = accumulatedHash;
       const itemHash = this.calculateInternal(item, isSync);
       if (isSync) {
@@ -167,10 +190,57 @@ export class BlueIdHasher {
   private createListFoldInput(prev: string, elem: string): JsonBlueValue {
     return {
       [LIST_CONS_KEY]: {
-        [LIST_PREVIOUS_KEY]: { [OBJECT_BLUE_ID]: prev },
+        [LIST_FOLD_PREVIOUS_KEY]: { [OBJECT_BLUE_ID]: prev },
         [LIST_ELEMENT_KEY]: { [OBJECT_BLUE_ID]: elem },
       },
     };
+  }
+
+  private getPreviousControlBlueId(value: HashValue): string | undefined {
+    if (
+      typeof value !== 'object' ||
+      value === null ||
+      Array.isArray(value) ||
+      isBigNumber(value)
+    ) {
+      return undefined;
+    }
+
+    const entries = Object.entries(value);
+    if (entries.length !== 1 || entries[0][0] !== LIST_PREVIOUS_KEY) {
+      return undefined;
+    }
+
+    const previous = entries[0][1];
+    if (
+      typeof previous !== 'object' ||
+      previous === null ||
+      Array.isArray(previous) ||
+      isBigNumber(previous) ||
+      !this.isPureReference(previous)
+    ) {
+      return undefined;
+    }
+
+    return previous[OBJECT_BLUE_ID] as string;
+  }
+
+  private hasPreviousControlKey(value: HashValue): boolean {
+    return this.hasControlKey(value, LIST_PREVIOUS_KEY);
+  }
+
+  private hasPositionControlKey(value: HashValue): boolean {
+    return this.hasControlKey(value, LIST_POSITION_KEY);
+  }
+
+  private hasControlKey(value: HashValue, key: string): boolean {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value) &&
+      !isBigNumber(value) &&
+      Object.prototype.hasOwnProperty.call(value, key)
+    );
   }
 
   private applyHash(value: JsonBlueValue, isSync: boolean) {

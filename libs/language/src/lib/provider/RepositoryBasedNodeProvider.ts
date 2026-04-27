@@ -8,6 +8,7 @@ import { BlueIdsMappingGenerator } from '../preprocess/utils/BlueIdsMappingGener
 import { SemanticStorageService } from '../identity/SemanticStorageService';
 import { NodeToMapListOrValue } from '../utils';
 import { BlueError, BlueErrorCode } from '../errors/BlueError';
+import type { MergingProcessor } from '../merge/MergingProcessor';
 
 /**
  * A NodeProvider that processes content from BlueRepository definitions.
@@ -16,6 +17,7 @@ import { BlueError, BlueErrorCode } from '../errors/BlueError';
 export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
+  private aliasBlueIdMap: Map<string, string> = new Map();
 
   // Repository contents can reference each other while the provider is still
   // being built. These bootstrap maps are readable only during construction and
@@ -26,12 +28,16 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   private readonly preprocessor: (node: BlueNode) => BlueNode;
   private readonly storageService: SemanticStorageService;
 
-  constructor(repositories: BlueRepository[]) {
+  constructor(
+    repositories: BlueRepository[],
+    options: { mergingProcessor?: MergingProcessor } = {},
+  ) {
     super();
 
     const blueIdsMappingGenerator = new BlueIdsMappingGenerator();
     const aliasMappings =
       RepositoryBasedNodeProvider.collectAliasMappings(repositories);
+    this.aliasBlueIdMap = new Map(Object.entries(aliasMappings));
     if (Object.keys(aliasMappings).length > 0) {
       blueIdsMappingGenerator.registerBlueIds(aliasMappings);
     }
@@ -44,6 +50,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       defaultPreprocessor.preprocessWithDefaultBlue(node);
     this.storageService = new SemanticStorageService({
       nodeProvider: this,
+      mergingProcessor: options.mergingProcessor,
     });
 
     // Process all repository contents
@@ -193,14 +200,15 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   protected override fetchContentByBlueId(
     baseBlueId: string,
   ): JsonBlueValue | null {
-    const finalContent = this.blueIdToContentMap.get(baseBlueId);
+    const storageBlueId = this.aliasBlueIdMap.get(baseBlueId) ?? baseBlueId;
+    const finalContent = this.blueIdToContentMap.get(storageBlueId);
     const finalIsMultipleDocuments =
-      this.blueIdToMultipleDocumentsMap.get(baseBlueId);
+      this.blueIdToMultipleDocumentsMap.get(storageBlueId);
 
     if (finalContent !== undefined && finalIsMultipleDocuments !== undefined) {
       return NodeContentHandler.resolveThisReferences(
         finalContent,
-        baseBlueId,
+        storageBlueId,
         finalIsMultipleDocuments,
       );
     }
@@ -208,14 +216,14 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     // Bootstrap lookup is only populated during constructor-time processing.
     // It is not a historical-ID compatibility path after loadRepositories()
     // clears the maps.
-    const content = this.bootstrapBlueIdToContentMap.get(baseBlueId);
+    const content = this.bootstrapBlueIdToContentMap.get(storageBlueId);
     const isMultipleDocuments =
-      this.bootstrapBlueIdToMultipleDocumentsMap.get(baseBlueId);
+      this.bootstrapBlueIdToMultipleDocumentsMap.get(storageBlueId);
 
     if (content !== undefined && isMultipleDocuments !== undefined) {
       return NodeContentHandler.resolveThisReferences(
         content,
-        baseBlueId,
+        storageBlueId,
         isMultipleDocuments,
       );
     }
@@ -244,7 +252,8 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
    */
   public hasBlueId(blueId: string): boolean {
     const baseBlueId = blueId.split('#')[0];
-    return this.blueIdToContentMap.has(baseBlueId);
+    const storageBlueId = this.aliasBlueIdMap.get(baseBlueId) ?? baseBlueId;
+    return this.blueIdToContentMap.has(storageBlueId);
   }
 
   private assertProvidedBlueId(

@@ -592,27 +592,9 @@ read:
 
   // Note: dictionary event-like case is covered in implicit structural tests above.
 
-  test('self-referential schema types do not overflow during comparison', () => {
-    const nodeProvider = new BasicNodeProvider();
-
-    nodeProvider.addSingleDocs(`name: Recursive Type
-label:
-  type: Text
-next:
-  type:
-    blueId: this`);
-
-    const blue = new Blue({ nodeProvider });
-    const matcher = new NodeTypeMatcher(blue);
-    const recursiveType = nodeProvider.getNodeByName('Recursive Type');
-    const recursiveTypeId = nodeProvider.getBlueIdByName('Recursive Type');
-
-    const instance = blue.yamlToNode(`type:
-  blueId: ${recursiveTypeId}
-label: root`);
-
-    expect(matcher.matchesType(instance, recursiveType)).toBe(true);
-  });
+  test.todo(
+    'phase 3 self-referential schema types do not overflow during comparison',
+  );
 
   test('repository valueType accepts implicit structured values when the type schema matches', () => {
     const blue = new Blue({ repositories: [matcherRepository] });

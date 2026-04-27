@@ -1,19 +1,11 @@
 import { BlueNode } from '../model/Node';
-import { Nodes } from './Nodes';
 import { MergeReverser } from './MergeReverser';
-
-export interface MinimizerOptions {
-  allowMaterializedReferenceCollapse?: boolean;
-  isTrustedMaterializedReference?: (
-    node: BlueNode,
-    referenceBlueId: string,
-  ) => boolean;
-}
 
 export class Minimizer {
   private readonly mergeReverser = new MergeReverser();
-
-  constructor(private readonly options: MinimizerOptions = {}) {}
+  private readonly hashMergeReverser = new MergeReverser({
+    emitListControls: false,
+  });
 
   /**
    * Backwards-compatible entry point. New code should call the explicit
@@ -24,25 +16,10 @@ export class Minimizer {
   }
 
   public minimizeResolved<T extends BlueNode>(node: T): BlueNode {
-    if (this.shouldCollapseMaterializedReference(node)) {
-      return new BlueNode().setReferenceBlueId(node.getReferenceBlueId());
-    }
-
     return this.mergeReverser.reverse(node);
   }
 
-  public minimizeStorageOverlay<T extends BlueNode>(node: T): BlueNode {
-    return this.mergeReverser.reverse(node);
-  }
-
-  private shouldCollapseMaterializedReference(node: BlueNode): boolean {
-    const referenceBlueId = node.getReferenceBlueId();
-    return (
-      referenceBlueId !== undefined &&
-      !Nodes.hasBlueIdOnly(node) &&
-      this.options.allowMaterializedReferenceCollapse === true &&
-      (this.options.isTrustedMaterializedReference?.(node, referenceBlueId) ??
-        true)
-    );
+  public minimizeResolvedForHash<T extends BlueNode>(node: T): BlueNode {
+    return this.hashMergeReverser.reverse(node);
   }
 }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Blue } from '../Blue';
-import { NodeDeserializer } from '../model';
+import { BlueNode, NodeDeserializer } from '../model';
 import { BasicNodeProvider } from '../provider';
 import { BlueIdCalculator } from '../utils';
-import { PathLimits } from '../utils/limits';
+import { NO_LIMITS, PathLimits } from '../utils/limits';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import {
   getIdentityFixture,
@@ -180,6 +180,122 @@ z: 3
     expect(fetched).toHaveLength(1);
     expect(fetched?.[0].getProperties()?.x).toBeUndefined();
     expect(blue.calculateBlueIdSync(blue.resolve(fetched![0]))).toBe(publicId);
+  });
+
+  it('does not bypass semantic storage for ordinary lists whose first item is a pure reference', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: ReferencedItem
+value: item
+`);
+
+    provider.addSingleDocs(`
+name: Base
+x: 1
+`);
+
+    const itemId = provider.getBlueIdByName('ReferencedItem');
+    const baseId = provider.getBlueIdByName('Base');
+    const blue = new Blue({ nodeProvider: provider });
+
+    const child = blue.yamlToNode(`
+name: Child
+type:
+  blueId: ${baseId}
+x: 1
+list:
+  items:
+    - blueId: ${itemId}
+    - second
+`);
+
+    const publicId = blue.calculateBlueIdSync(child);
+
+    provider.addSingleNodes(child);
+    const providerId = provider.getBlueIdByName('Child');
+
+    expect(providerId).toBe(publicId);
+  });
+
+  it('rejects this and this#k references in provider storage ingest until phase 3', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+name: SingleThis
+self:
+  blueId: this
+`),
+    ).toThrow(/Self-references using this or this#k are not supported/);
+
+    expect(() =>
+      provider.addSingleDocs(`
+name: IndexedThis
+self:
+  blueId: this#1
+`),
+    ).toThrow(/Self-references using this or this#k are not supported/);
+  });
+
+  it('keeps semantic BlueId stable after NodeExtender expansion', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: Base
+x: 1
+`);
+
+    const baseId = provider.getBlueIdByName('Base');
+    const blue = new Blue({ nodeProvider: provider });
+    const ref = new BlueNode().setReferenceBlueId(baseId);
+
+    expect(blue.calculateBlueIdSync(ref)).toBe(baseId);
+
+    blue.extend(ref, NO_LIMITS);
+
+    expect(ref.getName()).toBe('Base');
+    expect(ref.getReferenceBlueId()).toBeUndefined();
+    expect(blue.calculateBlueIdSync(ref)).toBe(baseId);
+  });
+
+  it('emits $previous for inherited list append without legacy pure-ref marker', () => {
+    const provider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider: provider });
+
+    provider.addSingleDocs(`
+name: Base
+list:
+  - A
+  - B
+`);
+
+    const derived = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${provider.getBlueIdByName('Base')}
+list:
+  - A
+  - B
+  - C
+`);
+
+    const minimal = blue.minimize(blue.resolve(derived));
+    const items = minimal.getAsNode('/list')?.getItems();
+    const previousAnchor = items?.[0];
+    const previousAnchorProperties = previousAnchor?.getProperties();
+    const previousReference = previousAnchorProperties?.['$previous'];
+
+    expect(items).toHaveLength(2);
+    expect(previousAnchor?.getReferenceBlueId()).toBeUndefined();
+    expect(previousAnchor?.getValue()).toBeUndefined();
+    expect(previousAnchor?.getItems()).toBeUndefined();
+    expect(Object.keys(previousAnchorProperties ?? {})).toEqual(['$previous']);
+    expect(previousReference?.getBlueId()).toEqual(expect.any(String));
+    expect(previousReference?.getValue()).toBeUndefined();
+    expect(previousReference?.getItems()).toBeUndefined();
+    expect(previousReference?.getProperties()).toBeUndefined();
+    expect(items?.[1].getValue()).toBe('C');
   });
 
   it('does not collapse untrusted blueId plus payload during minimization', () => {

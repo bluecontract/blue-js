@@ -7,7 +7,7 @@ Small, fast TypeScript runtime for the Blue Language: parse YAML/JSON into BlueN
 - **BlueNode graph**: single, list, map, typed values, metadata (name/description), `contracts`, and references by `blueId`.
 - **Preprocessing**: `blue:` directive (aliases, BlueId, or URL fetch with allow-list), inline-type mappings, implicit type inference for primitives.
 - **Resolution/Merge**: deterministic resolver with a pluggable MergingProcessor pipeline (value propagation, type checking, list/dict validators, metadata propagation, basic-type guard).
-- **BlueId**: semantic content identity via `Blue.calculateBlueId*`; low-level Section 8 hashing via `BlueIdCalculator`; CIDv1 conversion.
+- **BlueId**: semantic content identity via `Blue.calculateBlueId*`; low-level Section 8 hashing via `BlueIdCalculator`; spec-native list controls (`$previous`, `$pos`, `$empty`); CIDv1 conversion.
 - **Providers**: resolve by BlueId from memory, repositories or built-in bootstrap content; sequential composition.
 - **Zod mapping**: convert nodes to typed objects with schema extensions & Blue annotations; serialize objects back to Blue-shaped JSON.
 - **Limits & paths**: restrict extension/merge by path or depth; compose limits.
@@ -111,6 +111,7 @@ const json = blue.nodeToJson(node, {
 ### Resolution & merge
 
 - `Merger` + `MergingProcessor` pipeline: value → types → lists/dicts → metadata → basic checks.
+- List overlays support `$previous` append anchors, positional `$pos` refinements, and `$empty` content elements. Legacy inherited-list marker forms are not emitted by minimization.
 - `createDefaultMergingProcessor()` exports the default pipeline.
 
 ### Providers
@@ -143,7 +144,7 @@ const json = blue.nodeToJson(node, {
 - **semantic BlueId**: public identity stable across equivalent authoring, resolved, and minimal forms.
 - **reference BlueId**: the document `blueId` field, exposed as `getReferenceBlueId()` / `setReferenceBlueId()` with legacy `getBlueId()` / `setBlueId()` aliases.
 
-Provider ingest is strict: mixed `blueId + payload` is rejected for authoring/storage input, and supplied repository IDs must match computed IDs. Spec-native list controls and direct cyclic `this#k` identities are planned for the final identity conformance phase.
+Provider ingest is strict: mixed `blueId + payload`, `blueId: this`, and `blueId: this#k` are rejected for authoring/storage input, and supplied repository IDs must match computed IDs. `yamlToNode` and `jsonValueToNode` remain permissive parse APIs, while `BlueNode` input to `calculateBlueId*` is assumed to be already preprocessed/normalized. Spec-native list controls are supported in Phase 1K; direct cyclic `this#k` identities remain planned for the final identity conformance phase.
 
 ### Limits
 
