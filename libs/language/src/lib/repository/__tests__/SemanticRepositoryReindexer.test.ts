@@ -45,6 +45,8 @@ describe('SemanticRepositoryReindexer', () => {
     expect(pkg.aliases['Pkg/ParentFragment']).toBe(`${parentId}#1`);
     expect(pkg.typesMeta[childId]?.name).toBe('Child');
     expect(pkg.typesMeta[parentId]?.name).toBe('Parent');
+    expect(pkg.typesMeta[childId]?.versions[0]?.typeBlueId).toBe(childId);
+    expect(pkg.typesMeta[parentId]?.versions[0]?.typeBlueId).toBe(parentId);
 
     const parentTypeBlueId = getTypeBlueIdAnnotation(pkg.schemas[parentId])
       ?.value?.[0];
@@ -107,6 +109,49 @@ describe('SemanticRepositoryReindexer', () => {
       name: 'Dev',
       versions: [],
     });
+    expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
+  });
+
+  it('rewrites indexed type version BlueIds when reindexing metadata', () => {
+    const oldListId = 'OLD_LIST';
+    const repository: BlueRepository = {
+      name: 'indexed.repository',
+      repositoryVersions: ['R0'],
+      packages: {
+        pkg: {
+          name: 'pkg',
+          aliases: {
+            'Pkg/List': oldListId,
+            'Pkg/Second': `${oldListId}#1`,
+          },
+          typesMeta: {
+            [oldListId]: {
+              status: 'stable',
+              name: 'List',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: `${oldListId}#1`,
+                  attributesAdded: [],
+                },
+              ],
+            },
+          },
+          contents: {
+            [oldListId]: [{ name: 'First' }, { name: 'Second' }],
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const reindexed = reindexRepositoryForSemanticStorage(repository);
+    const pkg = reindexed.packages.pkg;
+    const listId = pkg.aliases['Pkg/List'];
+
+    expect(listId).toBeDefined();
+    expect(pkg.aliases['Pkg/Second']).toBe(`${listId}#1`);
+    expect(pkg.typesMeta[listId]?.versions[0]?.typeBlueId).toBe(`${listId}#1`);
     expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
   });
 });

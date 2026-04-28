@@ -17,6 +17,7 @@ export interface SemanticRepositoryReindexOptions {
 }
 
 type RepositoryPackage = BlueRepository['packages'][string];
+type TypeRuntimeMeta = RepositoryPackage['typesMeta'][string];
 type TypeBlueIdSchema = Parameters<ReturnType<typeof withTypeBlueId>>[0];
 
 const DEFAULT_REINDEX_CACHE = new WeakMap<BlueRepository, BlueRepository>();
@@ -190,7 +191,7 @@ function reindexPackage(
     typesMeta: Object.fromEntries(
       Object.entries(pkg.typesMeta).map(([oldBlueId, meta]) => [
         idByOldId[oldBlueId] ?? oldBlueId,
-        { ...meta },
+        rewriteTypeMeta(meta, idByOldId),
       ]),
     ),
     contents: Object.fromEntries(
@@ -208,6 +209,19 @@ function reindexPackage(
         ];
       }),
     ),
+  };
+}
+
+function rewriteTypeMeta(
+  meta: TypeRuntimeMeta,
+  idByOldId: Record<string, string>,
+): TypeRuntimeMeta {
+  return {
+    ...meta,
+    versions: meta.versions.map((version) => ({
+      ...version,
+      typeBlueId: rewriteBlueIdWithOptionalIndex(version.typeBlueId, idByOldId),
+    })),
   };
 }
 
