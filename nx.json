@@ -28,7 +28,8 @@
   "release": {
     "version": {
       "preVersionCommand": "npx nx run-many -t build",
-      "conventionalCommits": true
+      "conventionalCommits": true,
+      "preserveMatchingDependencyRanges": false
     },
     "changelog": {
       "workspaceChangelog": {
@@ -39,7 +40,8 @@
       }
     },
     "releaseTag": {
-      "checkAllBranchesWhen": "main"
+      "checkAllBranchesWhen": "main",
+      "strictPreid": false
     }
   },
   "plugins": [
