@@ -155,6 +155,15 @@ describe('nodeToYaml', () => {
     expect(yaml).toContain("value: '1234567890123456789012345678901234567890'");
   });
 
+  it('preserves materialized blueId output by default', () => {
+    const node = new BlueNode()
+      .setBlueId('RuntimeId')
+      .setName('Materialized')
+      .setValue('payload');
+
+    expect(NodeToYaml.get(node)).toContain('blueId: RuntimeId');
+  });
+
   it('respects strategy when delegating through nodeToJson', () => {
     const node = new BlueNode().setValue('abc');
 

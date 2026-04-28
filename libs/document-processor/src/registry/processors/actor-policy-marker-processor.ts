@@ -1,9 +1,8 @@
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
-
 import {
   actorPolicyMarkerSchema,
   type ActorPolicyMarker,
 } from '../../model/index.js';
+import { conversationBlueIds } from '../../repository/semantic-repository.js';
 import type { MarkerProcessor } from '../types.js';
 
 export class ActorPolicyMarkerProcessor implements MarkerProcessor<ActorPolicyMarker> {

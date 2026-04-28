@@ -63,6 +63,14 @@
         ]
       }
     },
+    "benchmark:semantic-blue-id": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "libs/language",
+        "commands": ["node scripts/benchmark/semanticBlueId.mjs"]
+      }
+    },
     "benchmark:resolve": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],
@@ -79,6 +87,14 @@
         "commands": [
           "BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs"
         ]
+      }
+    },
+    "benchmark:snapshot-patch": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "cwd": "libs/language",
+        "commands": ["node scripts/benchmark/snapshotPatch.mjs"]
       }
     }
   }

@@ -1,14 +1,9 @@
 import type { JsonValue } from '@blue-labs/shared-utils';
-import { repository as blueRepository } from '@blue-repository/types';
-import {
-  Blue,
-  BlueIdCalculator,
-  BlueNode,
-  type BlueRepository,
-} from '@blue-labs/language';
+import { Blue, BlueNode, type BlueRepository } from '@blue-labs/language';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createDefaultMergingProcessor } from '../../merge/utils/default.js';
+import { blueRepository } from '../../repository/semantic-repository.js';
 import { blueIds, createBlue } from '../../test-support/blue.js';
 
 import { ScopeExecutor } from '../scope-executor.js';
@@ -81,7 +76,7 @@ function createDerivedBlue(
 
   const types = definitions.map(({ name, yaml }) => {
     const node = seedBlue.yamlToNode(yaml);
-    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+    const blueId = seedBlue.calculateBlueIdSync(node);
     return { name, blueId, json: seedBlue.nodeToJson(node) };
   });
 
@@ -133,7 +128,9 @@ function buildTestRepository(
     packages: {
       derived: {
         name: 'derived',
-        aliases: {},
+        aliases: Object.fromEntries(
+          types.map(({ name, blueId }) => [name, blueId]),
+        ),
         typesMeta,
         contents,
         schemas: {},

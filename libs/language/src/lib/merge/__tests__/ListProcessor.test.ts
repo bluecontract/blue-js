@@ -12,6 +12,7 @@ import {
   CORE_TYPE_BLUE_ID_TO_NAME_MAP,
 } from '../../utils/Properties';
 import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
+import { Blue } from '../../Blue';
 
 describe('ListProcessor', () => {
   it('testItemTypeAssignment', () => {
@@ -125,7 +126,7 @@ items:
       blueId: ${nodeProvider.getBlueIdByName('B')}
   - type:
       blueId: ${nodeProvider.getBlueIdByName('A')}`; // This should cause an error
-    nodeProvider.addSingleDocs(listOfB);
+    const listOfBNode = new Blue({ nodeProvider }).yamlToNode(listOfB);
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -133,12 +134,6 @@ items:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const listOfBNode = nodeProvider.findNodeByName('ListOfB');
-    if (!listOfBNode) {
-      throw new Error('ListOfB not found');
-    }
-    new NodeExtender(nodeProvider).extend(listOfBNode, NO_LIMITS);
-
     expect(() => merger.resolve(listOfBNode, NO_LIMITS)).toThrow();
   });
 
@@ -229,7 +224,9 @@ items:
       blueId: ${nodeProvider.getBlueIdByName('B')}
   - type:
       blueId: ${nodeProvider.getBlueIdByName('A')}`; // This should cause an error
-    nodeProvider.addSingleDocs(inheritedList);
+    const inheritedListNode = new Blue({ nodeProvider }).yamlToNode(
+      inheritedList,
+    );
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -237,12 +234,6 @@ items:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const inheritedListNode = nodeProvider.findNodeByName('InheritedList');
-    if (!inheritedListNode) {
-      throw new Error('InheritedList not found');
-    }
-    new NodeExtender(nodeProvider).extend(inheritedListNode, NO_LIMITS);
-
     expect(() => merger.resolve(inheritedListNode, NO_LIMITS)).toThrow();
   });
 
@@ -294,7 +285,9 @@ type:
 itemType:
   blueId: ${nodeProvider.getBlueIdByName('A')}`;
 
-    nodeProvider.addSingleDocs(nonListWithItemType);
+    const nonListNode = new Blue({ nodeProvider }).yamlToNode(
+      nonListWithItemType,
+    );
 
     const mergingProcessor: MergingProcessor = new SequentialMergingProcessor([
       new TypeAssigner(),
@@ -302,12 +295,6 @@ itemType:
     ]);
 
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const nonListNode = nodeProvider.findNodeByName('NonListWithItemType');
-    if (!nonListNode) {
-      throw new Error('NonListWithItemType not found');
-    }
-    new NodeExtender(nodeProvider).extend(nonListNode, NO_LIMITS);
-
     expect(() => merger.resolve(nonListNode, NO_LIMITS)).toThrow();
   });
 });

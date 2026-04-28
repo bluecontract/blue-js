@@ -26,6 +26,10 @@ import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
  */
 export type Strategy = 'official' | 'simple' | 'original';
 
+export interface NodeToMapListOrValueOptions {
+  strategy?: Strategy;
+}
+
 export class NodeToMapListOrValue {
   /**
    * Converts a BlueNode to a JSON representation based on the specified strategy.
@@ -37,7 +41,11 @@ export class NodeToMapListOrValue {
    *   - `'original'`: Returns simple values when no name/description, otherwise full objects
    * @returns A JSON representation of the node.
    */
-  static get(node: BlueNode, strategy: Strategy = 'official'): JsonValue {
+  static get(
+    node: BlueNode,
+    strategyOrOptions: Strategy | NodeToMapListOrValueOptions = 'official',
+  ): JsonValue {
+    const { strategy } = this.normalizeOptions(strategyOrOptions);
     const value = node.getValue();
     const handledValue = this.handleValue(value);
 
@@ -156,5 +164,19 @@ export class NodeToMapListOrValue {
       return BOOLEAN_TYPE_BLUE_ID;
     }
     return null;
+  }
+
+  private static normalizeOptions(
+    strategyOrOptions: Strategy | NodeToMapListOrValueOptions,
+  ): Required<NodeToMapListOrValueOptions> {
+    if (typeof strategyOrOptions === 'string') {
+      return {
+        strategy: strategyOrOptions,
+      };
+    }
+
+    return {
+      strategy: strategyOrOptions.strategy ?? 'official',
+    };
   }
 }

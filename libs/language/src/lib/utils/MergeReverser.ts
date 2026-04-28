@@ -2,24 +2,56 @@ import { BlueNode } from '../model/Node';
 import { Nodes } from './Nodes';
 import { BlueIdCalculator } from './BlueIdCalculator';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
+import { ListControls } from './ListControls';
 
 export class MergeReverser {
+  constructor(
+    /**
+     * When true, minimization may emit list overlay controls such as $previous
+     * and $pos for inherited lists. This is the storage/public minimal form.
+     *
+     * When false, inherited lists are emitted as full minimized item lists.
+     * Use this only for hash-only normalization and item comparisons,
+     * especially after $pos overlays have been resolved. $previous append-only
+     * overlays can be hashed directly, but raw $pos must not reach the
+     * low-level hasher.
+     */
+    private readonly options: { emitListControls?: boolean } = {
+      emitListControls: true,
+    },
+  ) {}
+
   public reverse<T extends BlueNode>(mergedNode: T): BlueNode {
     const minimalNode = new BlueNode();
-    this.reverseNode(minimalNode, mergedNode, mergedNode.getType());
+    this.reverseNode(minimalNode, mergedNode, mergedNode.getType(), true);
     return minimalNode;
+  }
+
+  public static calculateHashMinimalBlueId(node: BlueNode): string {
+    return BlueIdCalculator.calculateBlueIdSync(this.toHashMinimalNode(node));
+  }
+
+  public static calculateHashMinimalListBlueId(items: BlueNode[]): string {
+    return BlueIdCalculator.calculateBlueIdSync(
+      items.map((item) => this.toHashMinimalNode(item)),
+    );
+  }
+
+  private static toHashMinimalNode(node: BlueNode): BlueNode {
+    return new MergeReverser({ emitListControls: false }).reverse(node);
   }
 
   private reverseNode(
     minimal: BlueNode,
     merged: BlueNode,
     fromType: BlueNode | undefined,
+    isRoot: boolean,
   ): void {
-    if (this.isIdenticalToType(merged, fromType)) {
+    if (!isRoot && this.isIdenticalToType(merged, fromType)) {
       return;
     }
 
-    this.reverseBasicProperties(minimal, merged, fromType);
+    this.reverseBasicProperties(minimal, merged, fromType, isRoot);
     this.reverseTypeReferences(minimal, merged, fromType);
     this.reverseItems(minimal, merged, fromType);
     this.reverseProperties(minimal, merged, fromType);
@@ -40,6 +72,7 @@ export class MergeReverser {
     minimal: BlueNode,
     merged: BlueNode,
     fromType: BlueNode | undefined,
+    isRoot: boolean,
   ): void {
     const mergedValue = merged.getValue();
     if (
@@ -51,14 +84,17 @@ export class MergeReverser {
 
     if (
       isNonNullable(merged.getName()) &&
-      (isNullable(fromType) || merged.getName() !== fromType.getName())
+      (isRoot ||
+        isNullable(fromType) ||
+        merged.getName() !== fromType.getName())
     ) {
       minimal.setName(merged.getName());
     }
 
     if (
       isNonNullable(merged.getDescription()) &&
-      (isNullable(fromType) ||
+      (isRoot ||
+        isNullable(fromType) ||
         merged.getDescription() !== fromType.getDescription())
     ) {
       minimal.setDescription(merged.getDescription());
@@ -123,29 +159,101 @@ export class MergeReverser {
     }
 
     const fromTypeItems = fromType?.getItems();
-    const minimalItems: BlueNode[] = [];
-    const hasAppendedItems =
-      isNonNullable(fromTypeItems) && mergedItems.length > fromTypeItems.length;
+    if (mergedItems.length === 0) {
+      if (isNullable(fromTypeItems) || fromTypeItems.length > 0) {
+        minimal.setItems([]);
+      }
+      return;
+    }
 
     if (
-      hasAppendedItems &&
       isNonNullable(fromTypeItems) &&
-      fromTypeItems.length > 0
+      mergedItems.length === fromTypeItems.length &&
+      mergedItems.every(
+        (item, index) =>
+          MergeReverser.calculateHashMinimalBlueId(item) ===
+          MergeReverser.calculateHashMinimalBlueId(fromTypeItems[index]),
+      )
     ) {
-      const itemsBlueId = BlueIdCalculator.calculateBlueIdSync(fromTypeItems);
-      minimalItems.push(new BlueNode().setBlueId(itemsBlueId));
+      return;
     }
 
-    const startIndex = fromTypeItems?.length || 0;
-    for (let i = startIndex; i < mergedItems.length; i++) {
-      const minimalItem = new BlueNode();
-      this.reverseNode(minimalItem, mergedItems[i], undefined);
-      minimalItems.push(minimalItem);
-    }
+    const minimalItems =
+      this.options.emitListControls !== false &&
+      isNonNullable(fromTypeItems) &&
+      fromTypeItems.length > 0
+        ? this.reverseInheritedItems(merged, fromType as BlueNode)
+        : this.reverseFullItems(mergedItems);
 
     if (minimalItems.length > 0) {
       minimal.setItems(minimalItems);
     }
+  }
+
+  private reverseInheritedItems(
+    merged: BlueNode,
+    fromType: BlueNode,
+  ): BlueNode[] {
+    const mergedItems = merged.getItems() ?? [];
+    const fromTypeItems = fromType.getItems() ?? [];
+    if (mergedItems.length < fromTypeItems.length) {
+      throw new Error(
+        `Resolved list has fewer items (${mergedItems.length}) than inherited list (${fromTypeItems.length}).`,
+      );
+    }
+
+    const mergePolicy = ListControls.getMergePolicy(merged, fromType);
+    const changedIndexes: number[] = [];
+    for (let i = 0; i < fromTypeItems.length; i++) {
+      if (
+        MergeReverser.calculateHashMinimalBlueId(mergedItems[i]) !==
+        MergeReverser.calculateHashMinimalBlueId(fromTypeItems[i])
+      ) {
+        changedIndexes.push(i);
+      }
+    }
+
+    if (changedIndexes.length > 0 && mergePolicy === 'append-only') {
+      throw new Error(
+        'append-only list cannot be minimized as a non-prefix mutation.',
+      );
+    }
+
+    const previousListBlueId =
+      MergeReverser.calculateHashMinimalListBlueId(fromTypeItems);
+    const minimalItems = [ListControls.createPreviousItem(previousListBlueId)];
+
+    for (const index of changedIndexes) {
+      const positionalPayload = new BlueNode();
+      this.reverseNode(
+        positionalPayload,
+        mergedItems[index],
+        fromTypeItems[index],
+        false,
+      );
+      const payload = Nodes.isEmptyNode(positionalPayload)
+        ? mergedItems[index].clone()
+        : positionalPayload;
+      minimalItems.push(ListControls.createPositionedItem(index, payload));
+    }
+
+    for (let i = fromTypeItems.length; i < mergedItems.length; i++) {
+      const minimalItem = new BlueNode();
+      this.reverseNode(minimalItem, mergedItems[i], undefined, false);
+      minimalItems.push(minimalItem);
+    }
+
+    return minimalItems.length === 1 ? [] : minimalItems;
+  }
+
+  private reverseFullItems(mergedItems: BlueNode[]): BlueNode[] {
+    const minimalItems: BlueNode[] = [];
+    for (let i = 0; i < mergedItems.length; i++) {
+      const minimalItem = new BlueNode();
+      this.reverseNode(minimalItem, mergedItems[i], undefined, false);
+      minimalItems.push(minimalItem);
+    }
+    return minimalItems;
   }
 
   private reverseProperties(
@@ -168,7 +276,12 @@ export class MergeReverser {
       );
 
       const minimalProperty = new BlueNode();
-      this.reverseNode(minimalProperty, mergedProperty, inheritedProperty);
+      this.reverseNode(
+        minimalProperty,
+        mergedProperty,
+        inheritedProperty,
+        false,
+      );
 
       if (!Nodes.isEmptyNode(minimalProperty)) {
         minimalProperties[key] = minimalProperty;

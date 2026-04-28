@@ -1,6 +1,8 @@
 export { Base58Sha256Provider } from './Base58Sha256Provider';
 export * from './BlueIds';
 export * from './BlueIdCalculator';
+export * from './Minimizer';
+export * from './StorageShapeValidator';
 export { BlueIdToCid } from './BlueIdToCid';
 export { JsonCanonicalizer } from './JsonCanonicalizer';
 export * from './NodeToMapListOrValue';

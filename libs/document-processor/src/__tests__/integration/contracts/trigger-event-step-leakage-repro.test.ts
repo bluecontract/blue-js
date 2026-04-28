@@ -6,7 +6,7 @@ import {
   property,
   typeBlueId,
 } from '../../test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { conversationBlueIds } from '../../../repository/semantic-repository.js';
 
 const blue = createBlue();
 

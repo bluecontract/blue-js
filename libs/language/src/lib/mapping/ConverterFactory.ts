@@ -10,6 +10,7 @@ import { UnknownConverter } from './UnknownConverter';
 import { AnyConverter } from './AnyConverter';
 import { TupleConverter } from './TupleConverter';
 import { isWrapperType } from '../../schema/utils';
+import { BlueNode } from '../model';
 
 const zodSchemaTypeNamesSchema = z.union([
   z.literal('ZodString'),
@@ -34,11 +35,15 @@ export class ConverterFactory {
   private readonly converters = new Map<ZodSchemaTypeNames, Converter>();
   private readonly complexObjectConverter: ComplexObjectConverter;
 
-  constructor(private readonly nodeToObjectConverter: NodeToObjectConverter) {
+  constructor(
+    private readonly nodeToObjectConverter: NodeToObjectConverter,
+    calculateBlueId: (node: BlueNode) => string,
+  ) {
     this.registerConverters();
 
     this.complexObjectConverter = new ComplexObjectConverter(
       this.nodeToObjectConverter,
+      calculateBlueId,
     );
   }
 

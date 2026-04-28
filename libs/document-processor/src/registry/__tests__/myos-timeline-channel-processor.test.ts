@@ -16,7 +16,7 @@ import {
 } from '../../__tests__/test-utils.js';
 import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
 import { MyOSTimelineEntrySchema } from '@blue-repository/types/packages/myos/schemas/MyOSTimelineEntry';
-import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
+import { myosBlueIds } from '../../repository/semantic-repository.js';
 import type { ChannelEvaluationContext } from '../../registry/types.js';
 import type { MyOSTimelineChannel } from '../../model/index.js';
 

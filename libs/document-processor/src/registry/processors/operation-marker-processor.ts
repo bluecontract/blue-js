@@ -1,6 +1,5 @@
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
-
 import type { OperationMarker } from '../../model/index.js';
+import { conversationBlueIds } from '../../repository/semantic-repository.js';
 import type { MarkerProcessor } from '../types.js';
 import { operationMarkerSchema } from '../../model/index.js';
 

@@ -290,7 +290,7 @@ describe('Merger', () => {
     ).toBe('from-type');
   });
 
-  it('should keep type cache path-sensitive when using path limits', () => {
+  it('should reuse provider fetches while keeping type overlay path-sensitive with limits', () => {
     const typeBlueId = 'path-sensitive-type-blue-id';
     const sharedType = new BlueNode('SharedType').setProperties({
       firstOnly: new BlueNode().setValue('first-only-value'),
@@ -318,7 +318,7 @@ describe('Merger', () => {
 
     const resolved = merger.resolve(source, limits);
 
-    expect(fetchByBlueId).toHaveBeenCalledTimes(2);
+    expect(fetchByBlueId).toHaveBeenCalledTimes(1);
     expect(
       resolved.getProperties()?.first?.getProperties()?.firstOnly?.getValue(),
     ).toBe('first-only-value');

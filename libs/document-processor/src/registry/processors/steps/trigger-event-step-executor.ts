@@ -1,9 +1,9 @@
 import { BlueNode } from '@blue-labs/language';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { TriggerEventSchema } from '@blue-repository/types/packages/conversation/schemas/TriggerEvent';
 import { isNullable } from '@blue-labs/shared-utils';
 
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
+import { conversationBlueIds } from '../../../repository/semantic-repository.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 import type {
   SequentialWorkflowStepExecutor,

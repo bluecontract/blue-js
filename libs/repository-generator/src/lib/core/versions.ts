@@ -64,7 +64,7 @@ interface BuildPackagesArgs {
   discovered: Map<Alias, DiscoveredType>;
   previousTypes: PackageTypeMap;
   aliasToBlueId: Map<Alias, string>;
-  aliasToPreprocessed: Map<Alias, JsonMap>;
+  aliasToStorageContent: Map<Alias, JsonMap>;
   nextRepoVersionIndex: number;
 }
 
@@ -72,7 +72,7 @@ export function buildPackages({
   discovered,
   previousTypes,
   aliasToBlueId,
-  aliasToPreprocessed,
+  aliasToStorageContent,
   nextRepoVersionIndex,
 }: BuildPackagesArgs): Map<PackageName, BlueTypeMetadata[]> {
   const packages = new Map<PackageName, BlueTypeMetadata[]>();
@@ -97,7 +97,7 @@ export function buildPackages({
       );
     }
 
-    const currentContent = aliasToPreprocessed.get(alias) ?? type.content;
+    const currentContent = aliasToStorageContent.get(alias) ?? type.content;
 
     const metadata =
       type.status === BLUE_TYPE_STATUS.Dev
