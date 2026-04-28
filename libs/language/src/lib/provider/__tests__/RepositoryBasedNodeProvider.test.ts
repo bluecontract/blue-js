@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RepositoryBasedNodeProvider } from '../RepositoryBasedNodeProvider';
+import { BasicNodeProvider } from '../BasicNodeProvider';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
 import { BlueErrorCode } from '../../errors/BlueError';
@@ -330,6 +331,51 @@ describe('RepositoryBasedNodeProvider', () => {
     );
     expect(provider.findNodeByName('RepoB')?.get('/peer/blueId')).toBe(
       repoABlueId,
+    );
+  });
+
+  it('uses multi-document this rules for singleton arrays during bootstrap', () => {
+    const loop = new BlueNode('SingletonLoop').addProperty(
+      'self',
+      new BlueNode().setReferenceBlueId('this#0'),
+    );
+    const loopSet = [loop];
+    const loopSetBlueId = new Blue().calculateBlueIdSync(loopSet);
+    const calculationProvider = new BasicNodeProvider();
+    calculationProvider.processNodeList(loopSet);
+
+    const consumer = new BlueNode('SingletonLoopConsumer').setType(
+      new BlueNode().setBlueId(loopSetBlueId),
+    );
+    const consumerBlueId = new Blue({
+      nodeProvider: calculationProvider,
+    }).calculateBlueIdSync(consumer);
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: {},
+          typesMeta: {},
+          contents: {
+            [consumerBlueId]: NodeToMapListOrValue.get(consumer),
+            [loopSetBlueId]: loopSet.map((node) =>
+              NodeToMapListOrValue.get(node),
+            ),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+
+    expect(provider.findNodeByName('SingletonLoop')?.get('/self/blueId')).toBe(
+      `${loopSetBlueId}#0`,
+    );
+    expect(provider.fetchByBlueId(consumerBlueId)?.[0]?.getName()).toBe(
+      'SingletonLoopConsumer',
     );
   });
 });

@@ -110,10 +110,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
         ),
       );
       this.bootstrapBlueIdToContentMap.set(providedBlueId, preprocessed);
-      this.bootstrapBlueIdToMultipleDocumentsMap.set(
-        providedBlueId,
-        content.length > 1,
-      );
+      this.bootstrapBlueIdToMultipleDocumentsMap.set(providedBlueId, true);
       return;
     }
 
