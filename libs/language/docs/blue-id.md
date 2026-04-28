@@ -65,6 +65,9 @@ authoring list sugar. Non-exact maps that contain an `items` key fall under the
   is not treated as `$previous`.
 - Authoring sugar and wrapped form are identity-equivalent:
   `x: 1 == x: { value: 1 }`, and `x: [a, b] == x: { items: [a, b] }`.
+- Top-level arrays passed to `Blue.calculateBlueId*` are semantic lists:
+  JSON arrays, `BlueNode[]`, and exact `{ items: [...] }` wrappers produce the
+  same identity for the same effective list content.
 - Basic inferred scalar/list type wrappers introduced by preprocessing are
   identity-transparent. Arbitrary type references are not ignored for identity.
 
@@ -87,6 +90,10 @@ and appended items can be folded after it. `$pos` is different: replacing a
 final index needs the previous list elements, not only the previous list BlueId.
 For that reason raw hashing rejects `$pos`; semantic identity first resolves the
 control form to the final list, then hashes a hashable minimal form.
+Top-level `$previous`, `$pos`, and `$empty` controls are validated in list
+context before hashing. `$previous` is not blindly trusted, `$pos` is consumed
+or rejected before it can reach the raw hasher, and malformed `$empty` or mixed
+list-control payloads are rejected before low-level hashing.
 
 `this#k` in authoring input addresses the input document index before canonical
 sorting. Providers rewrite those references to final sorted `MASTER#k` suffixes

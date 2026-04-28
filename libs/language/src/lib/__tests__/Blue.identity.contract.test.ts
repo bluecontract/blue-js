@@ -711,6 +711,6 @@ list:
 
 describe('Future identity API placeholders', () => {
   it.todo('phase 1 exposes Blue.minimize() without changing phase 0 runtime');
-  it.todo('phase 2 exposes resolveToSnapshot() on Blue');
-  it.todo('phase 2 exposes immutable snapshot patch/update APIs');
+  it.todo('phase 3 exposes resolveToSnapshot() on Blue');
+  it.todo('phase 3 exposes immutable snapshot patch/update APIs');
 });

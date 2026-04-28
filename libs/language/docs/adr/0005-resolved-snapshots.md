@@ -10,7 +10,7 @@ tree, but it is still a mutable node graph.
 
 **Decision**
 
-Phase 2 should add a `ResolvedSnapshot` runtime artifact with an immutable
+Phase 3 should add a `ResolvedSnapshot` runtime artifact with an immutable
 resolved root, lazy minimal overlay cache, lazy semantic BlueId cache, path
 index, and resolve-context metadata. Patch/update APIs should return a new
 snapshot and reuse unchanged subtrees.

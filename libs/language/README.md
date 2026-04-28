@@ -144,7 +144,14 @@ const json = blue.nodeToJson(node, {
 - **semantic BlueId**: public identity stable across equivalent authoring, resolved, and minimal forms.
 - **reference BlueId**: the document `blueId` field, exposed as `getReferenceBlueId()` / `setReferenceBlueId()` with legacy `getBlueId()` / `setBlueId()` aliases.
 
-Provider ingest is strict: mixed `blueId + payload`, `blueId: this`, and `blueId: this#k` are rejected for authoring/storage input, and supplied repository IDs must match computed IDs. `yamlToNode` and `jsonValueToNode` remain permissive parse APIs, while `BlueNode` input to `calculateBlueId*` is assumed to be already preprocessed/normalized. Spec-native list controls are supported in Phase 1K; direct cyclic `this#k` identities remain planned for the final identity conformance phase.
+Provider ingest is strict: mixed `blueId + payload` and single-document
+`blueId: this` / `blueId: this#k` inputs are rejected, while top-level document
+sets with indexed `this#k` references are stored under a cyclic `MASTER` BlueId
+and exposed as `MASTER#i` document identities. Supplied repository IDs must
+match computed IDs. `yamlToNode` and `jsonValueToNode` remain permissive parse
+APIs, while `BlueNode` input to `calculateBlueId*` is assumed to be already
+preprocessed/normalized. Spec-native list controls are supported in Phase 1K,
+and direct cyclic document-set identities are supported in Phase 2.
 
 ### Limits
 

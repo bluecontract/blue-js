@@ -134,7 +134,7 @@ export class CyclicSetIdentityService {
     this.visitReferences(nodes, (_node, referenceBlueId) => {
       if (referenceBlueId === 'this') {
         throw new Error(
-          "Direct cyclic document sets must use indexed references such as 'this#0'; unindexed 'this' is not supported in phase 3A.",
+          "Direct cyclic document sets must use indexed references such as 'this#0'; unindexed 'this' is not supported.",
         );
       }
 

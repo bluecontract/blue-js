@@ -105,10 +105,10 @@ not the preferred storage shape.
 **resolved snapshot**
 
 A finalized, immutable resolved runtime artifact. The specification recommends
-freezing resolved snapshots; the phase 2 implementation will make this explicit
+freezing resolved snapshots; the phase 3 implementation will make this explicit
 and cache derived values such as minimal overlay and semantic BlueId.
 
-In phase 1, `ResolvedBlueNode` is the mutable resolved tree. In phase 2, the
+In phase 1, `ResolvedBlueNode` is the mutable resolved tree. In phase 3, the
 same resolved meaning should be exposed as an immutable snapshot: callers can
 read it, derive its minimal overlay or semantic BlueId, and apply updates by
 creating a new snapshot rather than mutating the existing one.

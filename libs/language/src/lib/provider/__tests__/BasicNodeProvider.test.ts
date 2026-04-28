@@ -171,7 +171,7 @@ tags:
     expect(fetched.get('/tags/1/value')).toBe('this#1');
   });
 
-  it('rejects this references in blueId fields until phase 3', () => {
+  it('rejects unindexed this references in single-document ingest', () => {
     const provider = new BasicNodeProvider();
 
     expect(() =>

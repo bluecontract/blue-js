@@ -45,7 +45,7 @@ export class SemanticStorageService {
     const preprocessedNode = this.preprocessForStorage(node, preprocessor);
     if (this.hasThisReference(preprocessedNode)) {
       throw new Error(
-        'Self-references using this or this#k are not supported in provider storage ingest until phase 3.',
+        'Self-references using this or this#k are not supported in single-document provider storage ingest.',
       );
     }
     return this.preparePreprocessedStorageNode(preprocessedNode);

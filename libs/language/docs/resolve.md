@@ -245,6 +245,20 @@ present but the inherited prefix was not materialized by the limit, resolver
 materializes the appended delta without raw-index filtering to avoid treating
 control item positions as list positions.
 
+## Resolved node metadata
+
+`ResolvedBlueNode` carries completeness metadata:
+`completeness: 'full' | 'path-limited'` and optional `sourceSemanticBlueId`.
+Full resolved nodes can be minimized normally. Path-limited resolved nodes do
+not fabricate full semantic identity from partial materialization.
+
+For path-limited nodes, `getMinimalNode()` and `getMinimalBlueId()` return a
+pure `{ blueId: sourceSemanticBlueId }` reference only when the source semantic
+BlueId is known. If it is not known, both methods throw. Prefer
+`blue.calculateBlueIdSync(resolved)` for semantic identity where possible; path
+limits should preserve known source identity, not invent it from incomplete
+content.
+
 ## Notes
 
 - Dictionaries enforce key/value type constraints via merge processors.

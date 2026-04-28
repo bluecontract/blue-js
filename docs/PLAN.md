@@ -688,10 +688,10 @@ snapshotami: storage nie może mieć własnej, krótszej ścieżki identity.
   preprocessed authoring form.
 - `BasicNodeProvider`, `RepositoryBasedNodeProvider` i `InMemoryNodeProvider`
   zapisują minimal overlay pod semantic `BlueId`.
-- Multi-doc direct cyclic sets są do fazy 3 ścieżką przejściową:
-  - albo jawnie odrzucane, jeżeli nie da się ich policzyć bez `this#k`,
-  - albo oznaczone jako internal transitional, bez deklarowania pełnej
-    zgodności ze specem.
+- Multi-doc direct cyclic sets są domykane w fazie 2:
+  - top-level document sets z indeksowanym `this#k` są liczone pod `MASTER`,
+  - single-document `blueId: this` / lokalne self-refy pozostają poza zakresem
+    normalnego provider ingest.
 
 ### Testy
 
@@ -701,7 +701,8 @@ snapshotami: storage nie może mieć własnej, krótszej ścieżki identity.
 - fetch po semantic ID zwraca minimal overlay, który po `resolve()` daje ten
   sam snapshot,
 - `resolve(fetch(id))` zachowuje semantic `BlueId`,
-- multi-doc direct cycles są odrzucane albo objęte testem przejściowej ścieżki.
+- top-level multi-doc direct cycles są objęte testem ścieżki `MASTER#i`, a
+  single-document self-refy są nadal odrzucane.
 
 ### Exit criteria
 
@@ -839,7 +840,8 @@ nie nowa architektura: naprawia kontrakty, które muszą być prawdziwe zanim Ph
 ### Testy
 
 - Self-reference: zwykłe scalar/list stringi `this` i `this#1` zostają treścią;
-  `blueId: this` i `blueId: this#k` są odrzucane poza Phase 3.
+  single-document `blueId: this` / lokalne `blueId: this#k` są odrzucane, a
+  top-level document sets z indeksowanym `this#k` domyka faza 2.
 - Storage shape: reject `blueId + payload`, `value + items`, `value + child`,
   `items + child`, oraz literalne `properties`; allow reserved metadata
   `schema`, `mergePolicy`, `contracts`.
@@ -871,8 +873,9 @@ hash input.
 - Usunięte są `minimizeStorageOverlay()`, `prepareStorageOverlay()`,
   `useTransitionalStoragePath` i wykrywanie legacy inherited-list markerów w
   normalnej ścieżce storage.
-- Provider/storage ingest odrzuca `blueId: this` oraz `blueId: this#k` do
-  Phase 3.
+- Provider/storage ingest odrzuca single-document `blueId: this` oraz lokalne
+  `blueId: this#k`; top-level document sets z indeksowanym `this#k` domyka
+  Phase 2.
 - `MinimizerOptions` nie wystawia `allowMaterializedReferenceCollapse` ani
   `isTrustedMaterializedReference`.
 - `MergeReverser` nie emituje legacy list markerów. PR-1K przenosi
@@ -891,7 +894,8 @@ hash input.
 
 - Ordinary list zaczynająca się od pure `{ blueId }` przechodzi przez semantic
   storage path.
-- Provider/storage odrzuca `blueId: this` i `blueId: this#k`.
+- Provider/storage odrzuca single-document `blueId: this` i lokalne
+  `blueId: this#k`.
 - `Blue.extend()` zachowuje semantic `BlueId`.
 - Mutacja expanded targetu po `Blue.extend()` nie mutuje provider-stored
   content.
