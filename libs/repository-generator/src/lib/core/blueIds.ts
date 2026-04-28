@@ -14,12 +14,13 @@ export function computeBlueIds(
 } {
   const aliasToBlueId = new Map<Alias, string>();
   const aliasToStorageContent = new Map<Alias, JsonMap>();
-  const contentByBlueId = new Map<string, JsonMap>();
+  const contentByBlueId = new Map<string, JsonValue>();
   const parserBlue = new Blue();
-  const provider = createNodeProvider((blueId) => {
-    const content = contentByBlueId.get(blueId.split('#')[0]);
-    return content ? [parserBlue.jsonValueToNode(content)] : [];
-  });
+  const provider = createNodeProvider((blueId) =>
+    lookupStorageContentByBlueId(contentByBlueId, blueId).map((content) =>
+      parserBlue.jsonValueToNode(content),
+    ),
+  );
   const blue = new Blue({ nodeProvider: provider });
 
   for (const alias of topoOrder) {
@@ -49,6 +50,50 @@ export function computeBlueIds(
   }
 
   return { aliasToBlueId, aliasToStorageContent };
+}
+
+export function lookupStorageContentByBlueId(
+  contentByBlueId: ReadonlyMap<string, JsonValue>,
+  blueId: string,
+): JsonValue[] {
+  const parsed = parseIndexedBlueId(blueId);
+  if (parsed === undefined) {
+    return [];
+  }
+
+  const content = contentByBlueId.get(parsed.baseBlueId);
+  if (content === undefined) {
+    return [];
+  }
+
+  if (parsed.index === undefined) {
+    return Array.isArray(content) ? content : [content];
+  }
+
+  if (!Array.isArray(content)) {
+    return parsed.index === 0 ? [content] : [];
+  }
+
+  const item = content[parsed.index];
+  return item === undefined ? [] : [item];
+}
+
+function parseIndexedBlueId(
+  blueId: string,
+): { baseBlueId: string; index?: number } | undefined {
+  const separatorIndex = blueId.indexOf('#');
+  if (separatorIndex === -1) {
+    return { baseBlueId: blueId };
+  }
+
+  const baseBlueId = blueId.slice(0, separatorIndex);
+  const indexText = blueId.slice(separatorIndex + 1);
+  const index = Number(indexText);
+  if (!Number.isInteger(index) || index < 0) {
+    return undefined;
+  }
+
+  return { baseBlueId, index };
 }
 
 export function substituteAliases(

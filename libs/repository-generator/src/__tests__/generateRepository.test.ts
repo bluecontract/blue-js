@@ -3,10 +3,12 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Blue, createNodeProvider } from '@blue-labs/language';
+import type { JsonValue } from '@blue-labs/shared-utils';
 import { generateRepository } from '../lib/generateRepository';
+import { lookupStorageContentByBlueId } from '../lib/core/blueIds';
 import type { BluePackage, BlueTypeMetadata } from '../lib/types';
 
-type JsonMap = Record<string, unknown>;
+type JsonMap = Record<string, JsonValue>;
 
 const BLUE_REPOSITORY = 'BlueRepository.blue';
 
@@ -31,12 +33,13 @@ const persistRepository = (repoRoot: string, yaml: string) =>
   fs.writeFileSync(path.join(repoRoot, BLUE_REPOSITORY), yaml, 'utf8');
 
 const createSemanticExpectedCalculator = () => {
-  const contentByBlueId = new Map<string, JsonMap>();
+  const contentByBlueId = new Map<string, JsonValue>();
   const parserBlue = new Blue();
-  const provider = createNodeProvider((blueId) => {
-    const content = contentByBlueId.get(blueId.split('#')[0]);
-    return content ? [parserBlue.jsonValueToNode(content)] : [];
-  });
+  const provider = createNodeProvider((blueId) =>
+    lookupStorageContentByBlueId(contentByBlueId, blueId).map((content) =>
+      parserBlue.jsonValueToNode(content),
+    ),
+  );
   const blue = new Blue({ nodeProvider: provider });
 
   return {
@@ -64,6 +67,33 @@ mergePolicy:
 `;
 
 describe('generateRepository', () => {
+  it('preserves indexed BlueId semantics in semantic lookup content', () => {
+    const contentByBlueId = new Map<string, JsonValue>([
+      ['list-id', [{ name: 'First' }, { name: 'Second' }]],
+      ['single-id', { name: 'Only' }],
+    ]);
+
+    expect(lookupStorageContentByBlueId(contentByBlueId, 'list-id')).toEqual([
+      { name: 'First' },
+      { name: 'Second' },
+    ]);
+    expect(lookupStorageContentByBlueId(contentByBlueId, 'list-id#1')).toEqual([
+      { name: 'Second' },
+    ]);
+    expect(lookupStorageContentByBlueId(contentByBlueId, 'list-id#99')).toEqual(
+      [],
+    );
+    expect(
+      lookupStorageContentByBlueId(contentByBlueId, 'list-id#bad'),
+    ).toEqual([]);
+    expect(
+      lookupStorageContentByBlueId(contentByBlueId, 'single-id#0'),
+    ).toEqual([{ name: 'Only' }]);
+    expect(
+      lookupStorageContentByBlueId(contentByBlueId, 'single-id#1'),
+    ).toEqual([]);
+  });
+
   it('generates initial repository with deterministic YAML', () => {
     const repoRoot = createRepo();
     writeType(
