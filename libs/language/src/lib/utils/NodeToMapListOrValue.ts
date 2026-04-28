@@ -18,6 +18,7 @@ import {
   BOOLEAN_TYPE_BLUE_ID,
 } from './Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
+import { Nodes } from './Nodes';
 
 /**
  * Strategy for converting BlueNode to JSON representation.
@@ -25,6 +26,13 @@ import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
  * @public
  */
 export type Strategy = 'official' | 'simple' | 'original';
+
+export type BlueIdMode = 'referenceOnly' | 'runtimeDebug';
+
+export interface NodeToMapListOrValueOptions {
+  strategy?: Strategy;
+  blueIdMode?: BlueIdMode;
+}
 
 export class NodeToMapListOrValue {
   /**
@@ -37,7 +45,11 @@ export class NodeToMapListOrValue {
    *   - `'original'`: Returns simple values when no name/description, otherwise full objects
    * @returns A JSON representation of the node.
    */
-  static get(node: BlueNode, strategy: Strategy = 'official'): JsonValue {
+  static get(
+    node: BlueNode,
+    strategyOrOptions: Strategy | NodeToMapListOrValueOptions = 'official',
+  ): JsonValue {
+    const { strategy, blueIdMode } = this.normalizeOptions(strategyOrOptions);
     const value = node.getValue();
     const handledValue = this.handleValue(value);
 
@@ -47,7 +59,7 @@ export class NodeToMapListOrValue {
 
     const items = node
       .getItems()
-      ?.map((item) => NodeToMapListOrValue.get(item, strategy));
+      ?.map((item) => NodeToMapListOrValue.get(item, { strategy, blueIdMode }));
     if (items !== undefined && strategy === 'simple') {
       return items;
     }
@@ -84,22 +96,34 @@ export class NodeToMapListOrValue {
         result[OBJECT_TYPE] = { [OBJECT_BLUE_ID]: inferredTypeBlueId };
       }
     } else if (type !== undefined) {
-      result[OBJECT_TYPE] = NodeToMapListOrValue.get(type, strategy);
+      result[OBJECT_TYPE] = NodeToMapListOrValue.get(type, {
+        strategy,
+        blueIdMode,
+      });
     }
 
     const itemType = node.getItemType();
     if (itemType !== undefined) {
-      result[OBJECT_ITEM_TYPE] = NodeToMapListOrValue.get(itemType, strategy);
+      result[OBJECT_ITEM_TYPE] = NodeToMapListOrValue.get(itemType, {
+        strategy,
+        blueIdMode,
+      });
     }
 
     const keyType = node.getKeyType();
     if (keyType !== undefined) {
-      result[OBJECT_KEY_TYPE] = NodeToMapListOrValue.get(keyType, strategy);
+      result[OBJECT_KEY_TYPE] = NodeToMapListOrValue.get(keyType, {
+        strategy,
+        blueIdMode,
+      });
     }
 
     const valueType = node.getValueType();
     if (valueType !== undefined) {
-      result[OBJECT_VALUE_TYPE] = NodeToMapListOrValue.get(valueType, strategy);
+      result[OBJECT_VALUE_TYPE] = NodeToMapListOrValue.get(valueType, {
+        strategy,
+        blueIdMode,
+      });
     }
 
     if (handledValue !== undefined) {
@@ -111,7 +135,10 @@ export class NodeToMapListOrValue {
     }
 
     const blueId = node.getBlueId();
-    if (blueId !== undefined) {
+    if (
+      blueId !== undefined &&
+      (blueIdMode === 'runtimeDebug' || Nodes.hasBlueIdOnly(node))
+    ) {
       result[OBJECT_BLUE_ID] = blueId;
     }
 
@@ -123,7 +150,10 @@ export class NodeToMapListOrValue {
     const properties = node.getProperties();
     if (properties !== undefined) {
       Object.entries(properties).forEach(([key, value]) => {
-        result[key] = NodeToMapListOrValue.get(value, strategy);
+        result[key] = NodeToMapListOrValue.get(value, {
+          strategy,
+          blueIdMode,
+        });
       });
     }
 
@@ -156,5 +186,21 @@ export class NodeToMapListOrValue {
       return BOOLEAN_TYPE_BLUE_ID;
     }
     return null;
+  }
+
+  private static normalizeOptions(
+    strategyOrOptions: Strategy | NodeToMapListOrValueOptions,
+  ): Required<NodeToMapListOrValueOptions> {
+    if (typeof strategyOrOptions === 'string') {
+      return {
+        strategy: strategyOrOptions,
+        blueIdMode: 'referenceOnly',
+      };
+    }
+
+    return {
+      strategy: strategyOrOptions.strategy ?? 'official',
+      blueIdMode: strategyOrOptions.blueIdMode ?? 'referenceOnly',
+    };
   }
 }

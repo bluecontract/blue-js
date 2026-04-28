@@ -5,6 +5,7 @@ export type {
 } from './BlueRepository';
 export type {
   BlueContext,
+  NodeToJsonBlueIdMode,
   NodeToJsonFormat,
   NodeToJsonOptions,
 } from './BlueContext';

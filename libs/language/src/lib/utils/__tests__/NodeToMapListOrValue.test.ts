@@ -724,5 +724,34 @@ describe('NodeToMapListOrValue', () => {
       expect(typeof original['complex']).toBe('object');
       expect((original['complex'] as any)['name']).toEqual('Complex Property');
     });
+
+    it('emits blueId only for exact references unless runtime debug mode is requested', () => {
+      const exactReference = new BlueNode().setBlueId('ExactReference');
+      const materializedReference = new BlueNode()
+        .setBlueId('MaterializedReference')
+        .setName('Runtime label')
+        .setValue('payload');
+
+      expect(NodeToMapListOrValue.get(exactReference)).toEqual({
+        blueId: 'ExactReference',
+      });
+
+      expect(NodeToMapListOrValue.get(materializedReference)).toEqual({
+        name: 'Runtime label',
+        type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
+        value: 'payload',
+      });
+
+      expect(
+        NodeToMapListOrValue.get(materializedReference, {
+          blueIdMode: 'runtimeDebug',
+        }),
+      ).toEqual({
+        name: 'Runtime label',
+        type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
+        value: 'payload',
+        blueId: 'MaterializedReference',
+      });
+    });
   });
 });

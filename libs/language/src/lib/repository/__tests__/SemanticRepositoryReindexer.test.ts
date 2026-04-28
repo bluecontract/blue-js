@@ -70,6 +70,45 @@ describe('SemanticRepositoryReindexer', () => {
 
     expect(customResult).not.toBe(defaultResult);
   });
+
+  it('preserves dev type status and empty versions when reindexing metadata', () => {
+    const repository: BlueRepository = {
+      name: 'dev.repository',
+      repositoryVersions: ['R0'],
+      packages: {
+        pkg: {
+          name: 'pkg',
+          aliases: {
+            'Pkg/Dev': 'OLD_DEV',
+          },
+          typesMeta: {
+            OLD_DEV: {
+              status: 'dev',
+              name: 'Dev',
+              versions: [],
+            },
+          },
+          contents: {
+            OLD_DEV: {
+              name: 'Dev',
+            },
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const reindexed = reindexRepositoryForSemanticStorage(repository);
+    const newDevId = reindexed.packages.pkg.aliases['Pkg/Dev'];
+
+    expect(newDevId).toBeDefined();
+    expect(reindexed.packages.pkg.typesMeta[newDevId]).toMatchObject({
+      status: 'dev',
+      name: 'Dev',
+      versions: [],
+    });
+    expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
+  });
 });
 
 describe('semantic repository rewrite helpers', () => {

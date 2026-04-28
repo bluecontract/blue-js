@@ -155,6 +155,18 @@ describe('nodeToYaml', () => {
     expect(yaml).toContain("value: '1234567890123456789012345678901234567890'");
   });
 
+  it('uses reference-only blueId output by default and supports runtime debug mode', () => {
+    const node = new BlueNode()
+      .setBlueId('RuntimeId')
+      .setName('Materialized')
+      .setValue('payload');
+
+    expect(NodeToYaml.get(node)).not.toContain('blueId: RuntimeId');
+    expect(NodeToYaml.get(node, { blueIdMode: 'runtimeDebug' })).toContain(
+      'blueId: RuntimeId',
+    );
+  });
+
   it('respects strategy when delegating through nodeToJson', () => {
     const node = new BlueNode().setValue('abc');
 

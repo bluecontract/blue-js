@@ -6,6 +6,11 @@ import { BlueNode } from '../../model';
 import { PathLimitsBuilder } from '../limits/PathLimits';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 
+const RUNTIME_OFFICIAL_JSON = {
+  format: 'official',
+  blueIdMode: 'runtimeDebug',
+} as const;
+
 describe('MergeReverser', () => {
   const expectPreviousAnchor = (item: BlueNode): string => {
     expect(item.getReferenceBlueId()).toBeUndefined();
@@ -280,7 +285,7 @@ describe('MergeReverser', () => {
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
 
     const reverser = new MergeReverser();
@@ -293,7 +298,9 @@ describe('MergeReverser', () => {
 
     const resolvedAgain = blue.resolve(reversed);
 
-    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+    expect(blue.nodeToJson(resolvedAgain, RUNTIME_OFFICIAL_JSON)).toEqual(
+      official,
+    );
   });
 
   it('resolves reversed inherited-only list after official roundtrip', () => {
@@ -322,7 +329,7 @@ describe('MergeReverser', () => {
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
 
     const reverser = new MergeReverser();
@@ -331,7 +338,9 @@ describe('MergeReverser', () => {
 
     const resolvedAgain = blue.resolve(reversed);
 
-    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+    expect(blue.nodeToJson(resolvedAgain, RUNTIME_OFFICIAL_JSON)).toEqual(
+      official,
+    );
   });
 
   describe('spec-native list controls', () => {
@@ -736,7 +745,7 @@ rows:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
@@ -748,8 +757,8 @@ rows:
     const limitedOriginal = blue.resolve(derivedNode, limits);
     const limitedReversed = blue.resolve(reversed, limits);
 
-    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
-      blue.nodeToJson(limitedOriginal, 'official'),
+    expect(blue.nodeToJson(limitedReversed, RUNTIME_OFFICIAL_JSON)).toEqual(
+      blue.nodeToJson(limitedOriginal, RUNTIME_OFFICIAL_JSON),
     );
   });
 
@@ -792,8 +801,8 @@ list:
     expect(blue.nodeToJson(limited.getAsNode('/list')!, 'simple')).toEqual([
       'B2',
     ]);
-    expect(blue.nodeToJson(limited, 'official')).toEqual(
-      blue.nodeToJson(reLimited, 'official'),
+    expect(blue.nodeToJson(limited, RUNTIME_OFFICIAL_JSON)).toEqual(
+      blue.nodeToJson(reLimited, RUNTIME_OFFICIAL_JSON),
     );
   });
 
@@ -834,7 +843,7 @@ list:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
@@ -843,8 +852,8 @@ list:
     const limitedOriginal = blue.resolve(derivedNode, limits);
     const limitedReversed = blue.resolve(reversed, limits);
 
-    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
-      blue.nodeToJson(limitedOriginal, 'official'),
+    expect(blue.nodeToJson(limitedReversed, RUNTIME_OFFICIAL_JSON)).toEqual(
+      blue.nodeToJson(limitedOriginal, RUNTIME_OFFICIAL_JSON),
     );
 
     const limitedSimple = blue.nodeToJson(limitedReversed, 'simple') as {
@@ -879,7 +888,7 @@ list:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
@@ -899,8 +908,8 @@ list:
       list?: unknown[];
     };
     expect(limitedOriginalSimple.list).toEqual(['A', 'B', 'C']);
-    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
-      blue.nodeToJson(limitedOriginal, 'official'),
+    expect(blue.nodeToJson(limitedReversed, RUNTIME_OFFICIAL_JSON)).toEqual(
+      blue.nodeToJson(limitedOriginal, RUNTIME_OFFICIAL_JSON),
     );
   });
 
@@ -930,7 +939,7 @@ list:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
@@ -942,8 +951,8 @@ list:
     const limitedOriginal = blue.resolve(derivedNode, limits);
     const limitedReversed = blue.resolve(reversed, limits);
 
-    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
-      blue.nodeToJson(limitedOriginal, 'official'),
+    expect(blue.nodeToJson(limitedReversed, RUNTIME_OFFICIAL_JSON)).toEqual(
+      blue.nodeToJson(limitedOriginal, RUNTIME_OFFICIAL_JSON),
     );
   });
 
@@ -982,7 +991,7 @@ list:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
@@ -995,8 +1004,8 @@ list:
     const limitedOriginal = blue.resolve(derivedNode, limits);
     const limitedReversed = blue.resolve(reversed, limits);
 
-    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
-      blue.nodeToJson(limitedOriginal, 'official'),
+    expect(blue.nodeToJson(limitedReversed, RUNTIME_OFFICIAL_JSON)).toEqual(
+      blue.nodeToJson(limitedOriginal, RUNTIME_OFFICIAL_JSON),
     );
 
     const limitedReversedSimple = blue.nodeToJson(
@@ -1036,7 +1045,7 @@ list:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
@@ -1053,8 +1062,8 @@ list:
     expect(limitedOriginalItems[0].getValue()).toEqual('C');
     expect(limitedOriginalItems[1].getValue()).toEqual('D');
 
-    expect(blue.nodeToJson(limitedReversed, 'official')).toEqual(
-      blue.nodeToJson(limitedOriginal, 'official'),
+    expect(blue.nodeToJson(limitedReversed, RUNTIME_OFFICIAL_JSON)).toEqual(
+      blue.nodeToJson(limitedOriginal, RUNTIME_OFFICIAL_JSON),
     );
   });
 
@@ -1080,7 +1089,7 @@ list:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
@@ -1089,7 +1098,9 @@ list:
     expect(reversedItems[0].getBlueId()).toBeUndefined();
 
     const resolvedAgain = blue.resolve(reversed);
-    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+    expect(blue.nodeToJson(resolvedAgain, RUNTIME_OFFICIAL_JSON)).toEqual(
+      official,
+    );
   });
 
   it('omits explicit list override when derived list is identical to inherited', () => {
@@ -1116,13 +1127,15 @@ list:
 
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
-    const official = blue.nodeToJson(resolved, 'official');
+    const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
     const loaded = blue.jsonValueToNode(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     expect(reversed.getProperties()?.list).toBeUndefined();
 
     const resolvedAgain = blue.resolve(reversed);
-    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(official);
+    expect(blue.nodeToJson(resolvedAgain, RUNTIME_OFFICIAL_JSON)).toEqual(
+      official,
+    );
   });
 });

@@ -55,7 +55,21 @@ describe('blueNodeToObject', () => {
       `blueId: Y1-BlueId\nname: Y1\ntype:\n  blueId: Y-BlueId`,
     );
     resolver.setNodeProvider(provider);
-    converter = new NodeToObjectConverter(resolver);
+    converter = new NodeToObjectConverter(resolver, {
+      calculateBlueId: (node) => BlueIdCalculator.calculateBlueIdSync(node),
+    });
+  });
+
+  it('requires an injected BlueId calculator', () => {
+    expect(
+      () =>
+        new NodeToObjectConverter(
+          null,
+          undefined as unknown as ConstructorParameters<
+            typeof NodeToObjectConverter
+          >[1],
+        ),
+    ).toThrow('requires a semantic calculateBlueId option');
   });
 
   it('should convert a string value to a string', () => {

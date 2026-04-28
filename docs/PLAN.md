@@ -459,9 +459,30 @@ raw-ID exception for transformation resources.
   an explicit adapter. Long term, the package should publish semantic IDs
   directly; the strict provider path still does not include a dual-index/alias
   adapter in `language`.
+- Repository semantic reindexing must preserve `typesMeta.status`. A `dev` type
+  with empty `versions` remains `dev`; reindexing must not promote it to
+  `stable`.
 - Path-limited nodes now have the Phase 1 public contract: no eager full
   semantic identity calculation; source identity must be supplied by caller or
   be trivially known from an exact root reference.
+- Matcher/type structural identity is intentionally not changed in this Phase 1
+  finalization release. `name`/`description` can still affect existing matcher
+  behavior because `Common/Named Event` and downstream contracts rely on that
+  pattern today. A future release may introduce matcher-neutral labels only
+  after those contracts are migrated to content fields such as `kind`,
+  `operation`, or `eventKind`, or to explicit exact BlueId matching.
+- Public `nodeToJson()` / `nodeToYaml()` defaults are storage/authoring-valid:
+  `blueId` is emitted only for exact references. Runtime materialized
+  `blueId + payload` metadata requires explicit `blueIdMode: 'runtimeDebug'`.
+- Direct `NodeToObjectConverter` usage must inject `calculateBlueId`; the
+  default raw `BlueIdCalculator` path is removed. `Blue.nodeToSchemaOutput()`
+  remains the public convenience API and injects semantic identity.
+- `dsl-sdk` may continue importing `createDefaultMergingProcessor` from
+  `document-processor` in this phase. That dependency is not part of the
+  identity boundary cleanup.
+- Big decimal hashing is intentionally unchanged in this phase. Precise numbers
+  outside safe JSON-number semantics should be represented as strings until a
+  separate numeric identity decision is made.
 - Phase 1K owns spec-native `$previous`, `$pos`, and `$empty`. Phase 3 owns
   direct cyclic `this#k` support. Legacy inherited-list markers are not a
   normal storage format in Phase 1.

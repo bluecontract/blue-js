@@ -42,6 +42,7 @@ import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNode
 import { SemanticIdentityService } from './identity/SemanticIdentityService';
 import {
   BlueContext,
+  NodeToJsonBlueIdMode,
   NodeToJsonFormat,
   NodeToJsonOptions,
 } from './types/BlueContext';
@@ -136,15 +137,16 @@ export class Blue {
    */
   public nodeToJson(
     node: BlueNode,
-    strategyOrOptions:
-      | Parameters<typeof NodeToMapListOrValue.get>[1]
-      | NodeToJsonOptions = 'official',
+    strategyOrOptions: NodeToJsonFormat | NodeToJsonOptions = 'official',
   ) {
     const options = this.normalizeNodeToJsonOptions(strategyOrOptions);
     const targetNode = options.blueContext
       ? this.blueContextResolver.transform(node, options.blueContext)
       : node;
-    return NodeToMapListOrValue.get(targetNode, options.format);
+    return NodeToMapListOrValue.get(targetNode, {
+      strategy: options.format,
+      blueIdMode: options.blueIdMode,
+    });
   }
 
   /**
@@ -153,15 +155,16 @@ export class Blue {
    */
   public nodeToYaml(
     node: BlueNode,
-    strategy:
-      | Parameters<typeof NodeToMapListOrValue.get>[1]
-      | NodeToJsonOptions = 'official',
+    strategy: NodeToJsonFormat | NodeToJsonOptions = 'official',
   ) {
     const options = this.normalizeNodeToJsonOptions(strategy);
     const targetNode = options.blueContext
       ? this.blueContextResolver.transform(node, options.blueContext)
       : node;
-    return NodeToYaml.get(targetNode, { strategy: options.format });
+    return NodeToYaml.get(targetNode, {
+      strategy: options.format,
+      blueIdMode: options.blueIdMode,
+    });
   }
 
   public nodeToSchemaOutput<
@@ -617,16 +620,23 @@ export class Blue {
   }
 
   private normalizeNodeToJsonOptions(
-    strategyOrOptions:
-      | Parameters<typeof NodeToMapListOrValue.get>[1]
-      | NodeToJsonOptions,
-  ): { format: NodeToJsonFormat; blueContext?: BlueContext } {
+    strategyOrOptions: NodeToJsonFormat | NodeToJsonOptions,
+  ): {
+    format: NodeToJsonFormat;
+    blueIdMode: NodeToJsonBlueIdMode;
+    blueContext?: BlueContext;
+  } {
     if (typeof strategyOrOptions === 'string') {
-      return { format: strategyOrOptions, blueContext: undefined };
+      return {
+        format: strategyOrOptions,
+        blueIdMode: 'referenceOnly',
+        blueContext: undefined,
+      };
     }
 
     return {
       format: strategyOrOptions?.format ?? 'official',
+      blueIdMode: strategyOrOptions?.blueIdMode ?? 'referenceOnly',
       blueContext: strategyOrOptions?.blueContext,
     };
   }

@@ -4,6 +4,11 @@ import { BlueNode } from '../../model';
 import { BasicNodeProvider } from '../../provider';
 import { PathLimitsBuilder } from '../../utils/limits/PathLimits';
 
+const RUNTIME_OFFICIAL_JSON = {
+  format: 'official',
+  blueIdMode: 'runtimeDebug',
+} as const;
+
 describe('Merger resolve regression', () => {
   it('keeps resolve behavior stable for typed trees with repeated type references', () => {
     const nodeProvider = new BasicNodeProvider();
@@ -44,10 +49,13 @@ children:
     const blue = new Blue({ nodeProvider });
     const runtimeNode = nodeProvider.getNodeByName('RuntimeEntry');
 
-    const sourceBeforeResolve = blue.nodeToJson(runtimeNode, 'official');
+    const sourceBeforeResolve = blue.nodeToJson(
+      runtimeNode,
+      RUNTIME_OFFICIAL_JSON,
+    );
 
     const resolved = blue.resolve(runtimeNode);
-    const resolvedJson = blue.nodeToJson(resolved, 'official');
+    const resolvedJson = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
 
     expect(resolved.isResolved()).toBe(true);
     expect(resolved.get('/meta/source')).toBe('template');
@@ -100,14 +108,16 @@ children:
     });
 
     // Source node should remain unchanged after resolve.
-    expect(blue.nodeToJson(runtimeNode, 'official')).toEqual(
+    expect(blue.nodeToJson(runtimeNode, RUNTIME_OFFICIAL_JSON)).toEqual(
       sourceBeforeResolve,
     );
     expect(runtimeNode.isResolved()).toBe(false);
 
     // Resolving an already resolved node should keep the same result.
     const resolvedAgain = blue.resolve(resolved);
-    expect(blue.nodeToJson(resolvedAgain, 'official')).toEqual(resolvedJson);
+    expect(blue.nodeToJson(resolvedAgain, RUNTIME_OFFICIAL_JSON)).toEqual(
+      resolvedJson,
+    );
   });
 
   it('validates Dictionary keyType constraints in default resolve pipeline', () => {

@@ -190,11 +190,7 @@ function reindexPackage(
     typesMeta: Object.fromEntries(
       Object.entries(pkg.typesMeta).map(([oldBlueId, meta]) => [
         idByOldId[oldBlueId] ?? oldBlueId,
-        {
-          ...meta,
-          status: 'stable' as const,
-          versions: meta.versions,
-        },
+        { ...meta },
       ]),
     ),
     contents: Object.fromEntries(

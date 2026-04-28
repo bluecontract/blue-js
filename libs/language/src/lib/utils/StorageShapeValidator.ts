@@ -34,6 +34,43 @@ export class StorageShapeValidator {
     });
   }
 
+  public static validateListControlShape(nodes: BlueNode[]): void {
+    nodes.forEach((node, index) => {
+      this.validateListControlNode(node, [String(index)], index);
+    });
+  }
+
+  private static validateListControlNode(
+    node: BlueNode,
+    path: string[],
+    itemIndex?: number,
+  ): void {
+    if (itemIndex !== undefined) {
+      this.validateListControlItem(node, path, itemIndex);
+    }
+
+    this.validateListControlChild(node.getType(), [...path, 'type']);
+    this.validateListControlChild(node.getItemType(), [...path, 'itemType']);
+    this.validateListControlChild(node.getKeyType(), [...path, 'keyType']);
+    this.validateListControlChild(node.getValueType(), [...path, 'valueType']);
+    this.validateListControlChild(node.getBlue(), [...path, 'blue']);
+
+    node.getItems()?.forEach((item, index) => {
+      this.validateListControlNode(
+        item,
+        [...path, 'items', String(index)],
+        index,
+      );
+    });
+
+    const properties = node.getProperties();
+    if (properties !== undefined) {
+      for (const [key, property] of Object.entries(properties)) {
+        this.validateListControlNode(property, [...path, key]);
+      }
+    }
+  }
+
   private static validateNode(
     node: BlueNode,
     path: string[],
@@ -194,6 +231,15 @@ export class StorageShapeValidator {
   ): void {
     if (node !== undefined) {
       this.validateNode(node, path, { insideItems: false });
+    }
+  }
+
+  private static validateListControlChild(
+    node: BlueNode | undefined,
+    path: string[],
+  ): void {
+    if (node !== undefined) {
+      this.validateListControlNode(node, path);
     }
   }
 
