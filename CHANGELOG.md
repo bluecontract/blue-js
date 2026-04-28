@@ -1,3 +1,40 @@
+## 4.0.0-rc.0 (2026-04-28)
+
+### 🚀 Features
+
+- **language:** implement semantic blue id storage ([2fd98e5](https://github.com/bluecontract/blue-js/commit/2fd98e5))
+- ⚠️  **language:** enforce semantic provider storage ([da1ec4f](https://github.com/bluecontract/blue-js/commit/da1ec4f))
+- **language:** support spec-native list controls ([878e7de](https://github.com/bluecontract/blue-js/commit/878e7de))
+- **language:** support direct cyclic BlueIds ([d176a15](https://github.com/bluecontract/blue-js/commit/d176a15))
+
+### 🩹 Fixes
+
+- ⚠️  finalize phase 1 semantic identity correctness ([c9ba83a](https://github.com/bluecontract/blue-js/commit/c9ba83a))
+- ⚠️  close phase 1L semantic identity gaps ([036629a](https://github.com/bluecontract/blue-js/commit/036629a))
+- ⚠️  migrate repo-wide semantic BlueId paths ([751f820](https://github.com/bluecontract/blue-js/commit/751f820))
+- **document-processor:** bridge repository types to semantic blue ids ([29c5771](https://github.com/bluecontract/blue-js/commit/29c5771))
+- **language:** tighten phase 1 correctness contracts ([5d500d3](https://github.com/bluecontract/blue-js/commit/5d500d3))
+- ⚠️  **language:** normalize top-level array list controls ([6764363](https://github.com/bluecontract/blue-js/commit/6764363))
+- **language:** finalize storage-safe serialization ([09f04b5](https://github.com/bluecontract/blue-js/commit/09f04b5))
+- **language:** preserve blueId during node serialization ([bc8ccdc](https://github.com/bluecontract/blue-js/commit/bc8ccdc))
+- **language:** normalize cyclic BlueId hashing ([1c8ff56](https://github.com/bluecontract/blue-js/commit/1c8ff56))
+- **language:** stabilize cyclic set identity ordering ([86f8ae6](https://github.com/bluecontract/blue-js/commit/86f8ae6))
+- **language:** handle cyclic type resolution ([d927dfe](https://github.com/bluecontract/blue-js/commit/d927dfe))
+- **language:** rewrite versioned type IDs during semantic reindex ([1deed3e](https://github.com/bluecontract/blue-js/commit/1deed3e))
+- **language:** align singleton repository bootstrap mode ([38eeca5](https://github.com/bluecontract/blue-js/commit/38eeca5))
+- **language:** resolve repository fragment aliases ([9051789](https://github.com/bluecontract/blue-js/commit/9051789))
+- **language:** scale semantic reindex passes ([ad03dfd](https://github.com/bluecontract/blue-js/commit/ad03dfd))
+- **release:** resolve preview prerelease versioning ([aec8c0b](https://github.com/bluecontract/blue-js/commit/aec8c0b))
+- **repository-generator:** preserve indexed blueid semantics ([dd97e4e](https://github.com/bluecontract/blue-js/commit/dd97e4e))
+
+### ⚠️  Breaking Changes
+
+- ⚠️  migrate repo-wide semantic BlueId paths ([751f820](https://github.com/bluecontract/blue-js/commit/751f820))
+- ⚠️  **language:** normalize top-level array list controls ([6764363](https://github.com/bluecontract/blue-js/commit/6764363))
+- ⚠️  close phase 1L semantic identity gaps ([036629a](https://github.com/bluecontract/blue-js/commit/036629a))
+- document-processor runtime no longer treats blueId fields as computed identity fallbacks. ([c9ba83a](https://github.com/bluecontract/blue-js/commit/c9ba83a))
+- **language:** Providers now require semantic storage keyed by computed semantic BlueId. Repository contents must be reindexed to semantic IDs before consumption by this provider pipeline. ([da1ec4f](https://github.com/bluecontract/blue-js/commit/da1ec4f))
+
 ## 3.11.0 (2026-04-23)
 
 ### 🚀 Features
