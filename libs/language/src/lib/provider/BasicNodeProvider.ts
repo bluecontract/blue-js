@@ -6,6 +6,7 @@ import { Nodes } from '../utils';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue } from '../../schema';
 import { SemanticStorageService } from '../identity/SemanticStorageService';
+import { CyclicSetIdentityService } from '../identity/CyclicSetIdentityService';
 
 export class BasicNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
@@ -57,25 +58,15 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const items = node.getItems();
     if (!items) return;
 
-    this.processNodeList(items);
-
-    const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
-      items,
-      this.preprocessor,
-      this.storageService,
-    );
-    this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
-    this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);
-
-    items.forEach((item, i) => {
-      const nodeName = item.getName();
-      if (nodeName) {
-        this.addToNameMap(nodeName, `${parsedContent.blueId}#${i}`);
-      }
-    });
+    const parsedContent = this.storeNodeList(items);
+    this.addListItemNames(parsedContent.blueId, parsedContent.content);
   }
 
   public processNodeList(nodes: BlueNode[]): void {
+    this.storeNodeList(nodes);
+  }
+
+  private storeNodeList(nodes: BlueNode[]) {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
       nodes,
       this.preprocessor,
@@ -83,6 +74,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     );
     this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);
+    return parsedContent;
   }
 
   protected override fetchContentByBlueId(
@@ -157,7 +149,12 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
    * @param list - The list of nodes to add
    */
   private addListAndItsItemsFromNodes(list: BlueNode[]): void {
-    this.processNodeList(list);
+    const parsedContent = this.storeNodeList(list);
+    if (CyclicSetIdentityService.hasThisReference(list)) {
+      this.addListItemNames(parsedContent.blueId, parsedContent.content);
+      return;
+    }
+
     list.forEach((node) => this.processNode(node));
   }
 
@@ -194,5 +191,19 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
    */
   public addList(list: BlueNode[]): void {
     this.processNodeList(list);
+  }
+
+  private addListItemNames(blueId: string, content: JsonBlueValue): void {
+    if (!Array.isArray(content)) {
+      return;
+    }
+
+    content.forEach((item, index) => {
+      const node = NodeDeserializer.deserialize(item);
+      const nodeName = node.getName();
+      if (nodeName) {
+        this.addToNameMap(nodeName, `${blueId}#${index}`);
+      }
+    });
   }
 }

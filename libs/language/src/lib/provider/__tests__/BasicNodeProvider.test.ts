@@ -93,6 +93,33 @@ type: Text`;
     expect(item2?.getValue()).toBe('item2');
   });
 
+  it('maps cyclic list item names when adding list and its items', () => {
+    const listNode = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: ListCycleA
+  peer:
+    blueId: this#1
+- name: ListCycleB
+  peer:
+    blueId: this#0
+`),
+    );
+    const items = listNode.getItems() ?? [];
+    const provider = new BasicNodeProvider();
+
+    provider.addListAndItsItems(items);
+
+    const aBlueId = provider.getBlueIdByName('ListCycleA');
+    const bBlueId = provider.getBlueIdByName('ListCycleB');
+    expect(aBlueId).toMatch(/#\d+$/);
+    expect(bBlueId).toMatch(/#\d+$/);
+    expect(provider.getNodeByName('ListCycleA').get('/peer/blueId')).toBe(
+      bBlueId,
+    );
+    expect(provider.getNodeByName('ListCycleB').get('/peer/blueId')).toBe(
+      aBlueId,
+    );
+  });
+
   it('should fetch by Blue ID', () => {
     const node = new BlueNode('TestBlueId').setValue('test');
     const provider = new BasicNodeProvider([node]);
@@ -212,6 +239,38 @@ describe('InMemoryNodeProvider', () => {
       provider.addNodeWithBlueId('WrongBlueId', new BlueNode('MemoryNode')),
     ).toThrow(
       expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
+    );
+  });
+
+  it('fetches direct cyclic document set members by MASTER suffix', () => {
+    const provider = new InMemoryNodeProvider();
+    const list = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: MemoryA
+  peer:
+    blueId: this#1
+- name: MemoryB
+  peer:
+    blueId: this#0
+`),
+    ).getItems();
+
+    provider.addList(list ?? []);
+    const blue = new Blue();
+    const masterBlueId = blue.calculateBlueIdSync(list ?? []);
+    const fetchedSet = provider.fetchByBlueId(masterBlueId);
+
+    expect(fetchedSet).toHaveLength(2);
+    const fetchedA = fetchedSet.find((node) => node.getName() === 'MemoryA');
+    const fetchedB = fetchedSet.find((node) => node.getName() === 'MemoryB');
+    expect(fetchedA?.get('/peer/blueId')).toBe(
+      `${masterBlueId}#${fetchedSet.findIndex(
+        (node) => node.getName() === 'MemoryB',
+      )}`,
+    );
+    expect(fetchedB?.get('/peer/blueId')).toBe(
+      `${masterBlueId}#${fetchedSet.findIndex(
+        (node) => node.getName() === 'MemoryA',
+      )}`,
     );
   });
 });

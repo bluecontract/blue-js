@@ -6,6 +6,7 @@ import { NodeProvider, createNodeProvider } from './NodeProvider';
 import {
   NodeToMapListOrValue,
   NodeTransformer,
+  BlueIds,
   Nodes,
   NodeTypes,
   NodeTypeMatcher,
@@ -54,15 +55,6 @@ export interface BlueOptions {
   urlFetchStrategy?: UrlFetchStrategy;
   repositories?: BlueRepository[];
   mergingProcessor?: MergingProcessor;
-}
-
-export interface ResolveOptions {
-  /**
-   * Semantic identity of the full source document represented by this resolved
-   * tree. Callers can pass it when they already know the identity; path-limited
-   * resolve will not compute it eagerly because that can force off-path work.
-   */
-  sourceSemanticBlueId?: string;
 }
 
 export class Blue {
@@ -173,17 +165,12 @@ export class Blue {
     return converter.convert(node, schema);
   }
 
-  public resolve(
-    node: BlueNode,
-    limits: Limits = NO_LIMITS,
-    options: ResolveOptions = {},
-  ): ResolvedBlueNode {
+  public resolve(node: BlueNode, limits: Limits = NO_LIMITS): ResolvedBlueNode {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
     const resolved = merger.resolve(node, effectiveLimits);
     if (!(effectiveLimits instanceof NoLimits)) {
-      const sourceSemanticBlueId =
-        options.sourceSemanticBlueId ?? this.getExactReferenceBlueId(node);
+      const sourceSemanticBlueId = this.getExactReferenceBlueId(node);
       if (sourceSemanticBlueId !== undefined) {
         resolved.setSourceSemanticBlueId(sourceSemanticBlueId);
       }
@@ -398,7 +385,14 @@ export class Blue {
   }
 
   private getExactReferenceBlueId(node: BlueNode): string | undefined {
-    return Nodes.hasBlueIdOnly(node) ? node.getReferenceBlueId() : undefined;
+    if (!Nodes.hasBlueIdOnly(node)) {
+      return undefined;
+    }
+
+    const blueId = node.getReferenceBlueId();
+    return blueId !== undefined && BlueIds.isPotentialBlueId(blueId)
+      ? blueId
+      : undefined;
   }
 
   public getTypeSchemaResolver(): TypeSchemaResolver | null {

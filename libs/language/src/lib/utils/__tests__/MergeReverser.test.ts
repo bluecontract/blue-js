@@ -790,12 +790,9 @@ list:
 `);
 
     const full = blue.resolve(derived);
-    const sourceSemanticBlueId = blue.calculateBlueIdSync(derived);
     const limits = new PathLimitsBuilder().addPath('/list/1').build();
-    const limited = blue.resolve(derived, limits, { sourceSemanticBlueId });
-    const reLimited = blue.resolve(blue.minimize(full), limits, {
-      sourceSemanticBlueId,
-    });
+    const limited = blue.resolve(derived, limits);
+    const reLimited = blue.resolve(blue.minimize(full), limits);
 
     expect(blue.nodeToJson(limited.getAsNode('/list')!, 'simple')).toEqual([
       'B2',

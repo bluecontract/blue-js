@@ -17,6 +17,8 @@ interface ResolutionContext {
   limits: Limits;
   nodeProvider: NodeProvider;
   resolvedTypeCache: Map<string, ResolvedBlueNode>;
+  resolvingTypeKeys: Set<string>;
+  resolvingTypeBlueIds: Set<string>;
   typeOverlayCache: Map<string, BlueNode>;
   nodeHashCache: WeakMap<BlueNode, string>;
   providerFetchCache: Map<string, BlueNode[] | null>;
@@ -506,6 +508,8 @@ export class Merger extends NodeResolver {
       limits,
       nodeProvider: cachedProvider,
       resolvedTypeCache: new Map<string, ResolvedBlueNode>(),
+      resolvingTypeKeys: new Set<string>(),
+      resolvingTypeBlueIds: new Set<string>(),
       typeOverlayCache: new Map<string, BlueNode>(),
       nodeHashCache: new WeakMap<BlueNode, string>(),
       providerFetchCache,
@@ -522,17 +526,52 @@ export class Merger extends NodeResolver {
     if (isNonNullable(typeBlueId)) {
       const cacheKey = this.createResolvedTypeCacheKey(typeBlueId, context);
       const cachedType = context.resolvedTypeCache.get(cacheKey);
-      if (isNonNullable(cachedType)) {
+      if (
+        isNonNullable(cachedType) &&
+        !context.resolvingTypeKeys.has(cacheKey)
+      ) {
         return cachedType;
       }
 
-      const resolvedType = this.resolveAndExtendTypeNode(typeNode, context);
-      resolvedType.setReferenceBlueId(typeBlueId);
-      context.resolvedTypeCache.set(cacheKey, resolvedType);
-      return resolvedType;
+      if (context.resolvingTypeBlueIds.has(typeBlueId)) {
+        return (
+          cachedType ?? this.createCyclicTypeReference(typeBlueId, context)
+        );
+      }
+
+      const cyclicReference = this.createCyclicTypeReference(
+        typeBlueId,
+        context,
+      );
+      context.resolvedTypeCache.set(cacheKey, cyclicReference);
+      context.resolvingTypeKeys.add(cacheKey);
+      context.resolvingTypeBlueIds.add(typeBlueId);
+
+      try {
+        const resolvedType = this.resolveAndExtendTypeNode(typeNode, context);
+        resolvedType.setReferenceBlueId(typeBlueId);
+        context.resolvedTypeCache.set(cacheKey, resolvedType);
+        return resolvedType;
+      } catch (error) {
+        context.resolvedTypeCache.delete(cacheKey);
+        throw error;
+      } finally {
+        context.resolvingTypeKeys.delete(cacheKey);
+        context.resolvingTypeBlueIds.delete(typeBlueId);
+      }
     }
 
     return this.resolveAndExtendTypeNode(typeNode, context);
+  }
+
+  private createCyclicTypeReference(
+    typeBlueId: string,
+    context: ResolutionContext,
+  ): ResolvedBlueNode {
+    return new ResolvedBlueNode(new BlueNode().setReferenceBlueId(typeBlueId), {
+      completeness:
+        context.limits instanceof NoLimits ? 'full' : 'path-limited',
+    });
   }
 
   private resolveAndExtendTypeNode(
@@ -567,6 +606,10 @@ export class Merger extends NodeResolver {
     }
 
     const typeOverlay = this.createTypeOverlay(resolvedType);
+    if (context.resolvingTypeBlueIds.has(typeBlueId)) {
+      return typeOverlay;
+    }
+
     context.typeOverlayCache.set(cacheKey, typeOverlay);
     return typeOverlay;
   }
