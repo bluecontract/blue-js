@@ -1085,11 +1085,17 @@ semantykę listy dokumentów.
 Zaimplementować §11 dla top-level document set:
 
 - ZERO sentinel,
-- preliminary ids,
-- sort lexicographically,
+- preliminary ids liczone przez semantic normalization / minimal trusted hash,
+- sort lexicographically po preliminary ids,
 - rewrite do `this#k`,
-- MASTER list hash,
+- MASTER list hash liczony tą samą semantic hash ścieżką,
 - finalne `MASTER#i`.
+
+Podczas preliminary i MASTER hashing `ZERO` oraz `this#k` są traktowane jako
+opaque references, żeby semantic resolve nie próbował fetchować ich jako realnych
+typów. Jeżeli dwa dokumenty dostaną ten sam preliminary BlueId, implementacja ma
+rzucić jawny błąd ambiguous cyclic ordering; spec §11 nie definiuje jeszcze
+kanonicznego tie-breakera dla takiej kolizji.
 
 Publiczny kontrakt:
 
@@ -1105,6 +1111,8 @@ Publiczny kontrakt:
 - 2-doc cycle,
 - 3-doc cycle,
 - stabilność pozycji po sortowaniu preliminary IDs,
+- collision preliminary IDs odrzucany jako ambiguous ordering,
+- cyclic docs z list controls (`$pos`) przechodzą przez semantic normalization,
 - `MASTER#i` zgodne między zapisami,
 - provider multi-doc ingest działa poprawnie,
 - out-of-range i malformed `this#k` rzucają jawny błąd.

@@ -24,7 +24,7 @@ export interface PreparedStorageNodeList {
 
 export class SemanticStorageService {
   private readonly semanticIdentity: SemanticIdentityService;
-  private readonly cyclicSetIdentity = new CyclicSetIdentityService();
+  private readonly cyclicSetIdentity: CyclicSetIdentityService;
 
   constructor(options: SemanticStorageServiceOptions = {}) {
     const nodeProvider = options.nodeProvider ?? createNodeProvider(() => []);
@@ -34,6 +34,8 @@ export class SemanticStorageService {
       nodeProvider,
       mergingProcessor,
     });
+    this.cyclicSetIdentity =
+      this.semanticIdentity.createCyclicSetIdentityService();
   }
 
   public prepareStorageNode(

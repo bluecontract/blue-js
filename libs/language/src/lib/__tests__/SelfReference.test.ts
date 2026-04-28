@@ -93,6 +93,19 @@ x:
     );
   });
 
+  it('rejects ambiguous cyclic ordering when preliminary BlueIds tie', () => {
+    const doc = yamlBlueParse(`- peer:
+    blueId: this#1
+- peer:
+    blueId: this#0
+`);
+    const blue = new Blue();
+
+    expect(() => blue.calculateBlueIdSync(doc!)).toThrow(
+      /ambiguous canonical ordering/,
+    );
+  });
+
   it('rejects cyclic references outside the top-level document set', () => {
     const provider = new BasicNodeProvider();
     const doc = NodeDeserializer.deserialize(

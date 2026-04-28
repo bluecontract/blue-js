@@ -1,6 +1,11 @@
 import { BlueNode } from '../model/Node';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 
+export interface CyclicSetIdentityServiceOptions {
+  prepareDocument?: (node: BlueNode) => BlueNode;
+  calculateBlueId?: (value: BlueNode | BlueNode[]) => string;
+}
+
 export interface CyclicSetIdentityResult {
   blueId: string;
   nodes: BlueNode[];
@@ -21,6 +26,15 @@ export class CyclicSetIdentityService {
 
   private static readonly THIS_INDEX_REFERENCE_PATTERN = /^this#(\d+)$/;
 
+  private readonly prepareDocument: (node: BlueNode) => BlueNode;
+  private readonly calculateBlueId: (value: BlueNode | BlueNode[]) => string;
+
+  constructor(options: CyclicSetIdentityServiceOptions = {}) {
+    this.prepareDocument = options.prepareDocument ?? ((node) => node);
+    this.calculateBlueId =
+      options.calculateBlueId ?? BlueIdCalculator.calculateBlueIdSync;
+  }
+
   public static hasThisReference(nodes: BlueNode[]): boolean {
     return nodes.some((node) => this.nodeHasThisReference(node));
   }
@@ -29,19 +43,28 @@ export class CyclicSetIdentityService {
     return nodes.some((node) => this.nodeHasIndexedThisReference(node));
   }
 
+  public static isIndexedThisReference(referenceBlueId: string): boolean {
+    return this.THIS_INDEX_REFERENCE_PATTERN.test(referenceBlueId);
+  }
+
   public calculate(nodes: BlueNode[]): CyclicSetIdentityResult {
     this.validateCyclicSet(nodes);
 
-    const preliminaryDocuments = nodes.map((node, originalIndex) => ({
-      originalIndex,
-      preliminaryBlueId: BlueIdCalculator.calculateBlueIdSync(
+    const preliminaryDocuments = nodes.map((node, originalIndex) => {
+      const preliminaryNode = this.prepareDocument(
         this.replaceIndexedThisReferences(
           node,
           () => CyclicSetIdentityService.ZERO_BLUE_ID,
         ),
-      ),
-      node,
-    }));
+      );
+      return {
+        originalIndex,
+        preliminaryBlueId: this.calculateBlueId(preliminaryNode),
+        node,
+      };
+    });
+
+    this.validateUniquePreliminaryBlueIds(preliminaryDocuments);
 
     const sortedDocuments = [...preliminaryDocuments].sort(
       this.comparePreliminaryDocuments,
@@ -52,12 +75,14 @@ export class CyclicSetIdentityService {
     });
 
     const sortedNodes = sortedDocuments.map(({ node }) =>
-      this.replaceIndexedThisReferences(
-        node,
-        (originalIndex) => `this#${originalToSortedIndexes[originalIndex]}`,
+      this.prepareDocument(
+        this.replaceIndexedThisReferences(
+          node,
+          (originalIndex) => `this#${originalToSortedIndexes[originalIndex]}`,
+        ),
       ),
     );
-    const blueId = BlueIdCalculator.calculateBlueIdSync(sortedNodes);
+    const blueId = this.calculateBlueId(sortedNodes);
 
     return {
       blueId,
@@ -71,14 +96,28 @@ export class CyclicSetIdentityService {
     left: PreliminaryDocument,
     right: PreliminaryDocument,
   ): number {
-    const byPreliminaryBlueId = left.preliminaryBlueId.localeCompare(
-      right.preliminaryBlueId,
-    );
-    if (byPreliminaryBlueId !== 0) {
-      return byPreliminaryBlueId;
-    }
+    return left.preliminaryBlueId.localeCompare(right.preliminaryBlueId);
+  }
 
-    return left.originalIndex - right.originalIndex;
+  private validateUniquePreliminaryBlueIds(
+    preliminaryDocuments: PreliminaryDocument[],
+  ): void {
+    const firstOriginalIndexByBlueId = new Map<string, number>();
+    for (const document of preliminaryDocuments) {
+      const existingOriginalIndex = firstOriginalIndexByBlueId.get(
+        document.preliminaryBlueId,
+      );
+      if (existingOriginalIndex !== undefined) {
+        throw new Error(
+          `Direct cyclic document set has ambiguous canonical ordering: documents ${existingOriginalIndex} and ${document.originalIndex} share preliminary BlueId '${document.preliminaryBlueId}'.`,
+        );
+      }
+
+      firstOriginalIndexByBlueId.set(
+        document.preliminaryBlueId,
+        document.originalIndex,
+      );
+    }
   }
 
   private validateCyclicSet(nodes: BlueNode[]): void {

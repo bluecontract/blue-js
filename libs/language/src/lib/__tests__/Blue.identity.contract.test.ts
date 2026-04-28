@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Blue } from '../Blue';
 import { BlueNode, NodeDeserializer } from '../model';
 import { BasicNodeProvider } from '../provider';
-import { BlueIdCalculator } from '../utils';
+import { BlueIdCalculator, BlueIds } from '../utils';
 import { NO_LIMITS, PathLimits } from '../utils/limits';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import {
@@ -561,8 +561,55 @@ list:
 
     const masterBlueId = blue.calculateBlueIdSync(firstOrder!);
 
-    expect(masterBlueId).toMatch(/^[1-9A-HJ-NP-Za-km-z]{43,45}$/);
+    expect(BlueIds.isPotentialBlueId(masterBlueId)).toBe(true);
     expect(blue.calculateBlueIdSync(secondOrder!)).toBe(masterBlueId);
+  });
+
+  it('uses semantic list-control normalization inside direct cyclic sets', () => {
+    const provider = new BasicNodeProvider();
+    provider.addSingleDocs(`
+name: Base
+list:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+`);
+    const baseId = provider.getBlueIdByName('Base');
+    const blue = new Blue({ nodeProvider: provider });
+    const cyclic = yamlBlueParse(`
+- name: Positional Cyclic
+  type:
+    blueId: ${baseId}
+  list:
+    type: List
+    mergePolicy: positional
+    items:
+      - $pos: 1
+        value: B2
+  peer:
+    blueId: this#1
+- name: Peer
+  peer:
+    blueId: this#0
+`);
+
+    const masterBlueId = blue.calculateBlueIdSync(cyclic!);
+    expect(BlueIds.isPotentialBlueId(masterBlueId)).toBe(true);
+
+    provider.addSingleNodes(NodeDeserializer.deserialize(cyclic));
+    const positionalBlueId = provider.getBlueIdByName('Positional Cyclic');
+    const peerBlueId = provider.getBlueIdByName('Peer');
+
+    expect(positionalBlueId.startsWith(`${masterBlueId}#`)).toBe(true);
+    expect(peerBlueId.startsWith(`${masterBlueId}#`)).toBe(true);
+    expect(
+      provider.getNodeByName('Positional Cyclic').get('/peer/blueId'),
+    ).toBe(peerBlueId);
+    expect(provider.getNodeByName('Peer').get('/peer/blueId')).toBe(
+      positionalBlueId,
+    );
   });
 });
 
