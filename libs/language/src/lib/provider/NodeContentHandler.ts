@@ -13,7 +13,12 @@ export interface StorageContentProcessor {
   prepareStorageNodeList(
     nodes: BlueNode[],
     preprocessor: (node: BlueNode) => BlueNode,
-  ): { blueId: string; nodes: BlueNode[] };
+  ): {
+    blueId: string;
+    nodes: BlueNode[];
+    documentBlueIds?: string[];
+    isCyclicSet?: boolean;
+  };
 }
 
 export class ParsedContent {
@@ -21,6 +26,8 @@ export class ParsedContent {
     public readonly blueId: string,
     public readonly content: JsonBlueValue,
     public readonly isMultipleDocuments: boolean,
+    public readonly documentBlueIds: string[] = [],
+    public readonly isCyclicSet = false,
   ) {}
 }
 
@@ -46,7 +53,7 @@ export class NodeContentHandler {
 
     let blueId: string;
     let resultContent: JsonBlueValue;
-    const isMultipleDocuments = Array.isArray(jsonNode) && jsonNode.length > 1;
+    const isMultipleDocuments = Array.isArray(jsonNode);
 
     if (isMultipleDocuments) {
       const nodes = (jsonNode as JsonBlueValue[]).map((item: JsonBlueValue) =>
@@ -59,6 +66,13 @@ export class NodeContentHandler {
       blueId = prepared.blueId;
       resultContent = prepared.nodes.map((node) =>
         NodeToMapListOrValue.get(node),
+      );
+      return new ParsedContent(
+        blueId,
+        resultContent,
+        true,
+        prepared.documentBlueIds,
+        prepared.isCyclicSet ?? false,
       );
     } else {
       const node = NodeDeserializer.deserialize(jsonNode);
@@ -97,9 +111,15 @@ export class NodeContentHandler {
     const jsonNodes = prepared.nodes.map((node) =>
       NodeToMapListOrValue.get(node),
     );
-    const isMultipleDocuments = nodes.length > 1;
+    const isMultipleDocuments = true;
 
-    return new ParsedContent(prepared.blueId, jsonNodes, isMultipleDocuments);
+    return new ParsedContent(
+      prepared.blueId,
+      jsonNodes,
+      isMultipleDocuments,
+      prepared.documentBlueIds,
+      prepared.isCyclicSet ?? false,
+    );
   }
 
   public static resolveThisReferences(

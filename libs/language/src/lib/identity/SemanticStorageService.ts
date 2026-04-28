@@ -2,6 +2,7 @@ import { MergingProcessor, createDefaultMergingProcessor } from '../merge';
 import { BlueNode } from '../model';
 import { NodeProvider, createNodeProvider } from '../NodeProvider';
 import { StorageShapeValidator } from '../utils/StorageShapeValidator';
+import { CyclicSetIdentityService } from './CyclicSetIdentityService';
 import { SemanticIdentityService } from './SemanticIdentityService';
 
 export interface SemanticStorageServiceOptions {
@@ -17,12 +18,13 @@ export interface PreparedStorageNode {
 export interface PreparedStorageNodeList {
   blueId: string;
   nodes: BlueNode[];
+  documentBlueIds?: string[];
+  isCyclicSet?: boolean;
 }
 
 export class SemanticStorageService {
-  private static readonly THIS_REFERENCE_PATTERN = /^this(#\d+)?$/;
-
   private readonly semanticIdentity: SemanticIdentityService;
+  private readonly cyclicSetIdentity = new CyclicSetIdentityService();
 
   constructor(options: SemanticStorageServiceOptions = {}) {
     const nodeProvider = options.nodeProvider ?? createNodeProvider(() => []);
@@ -59,10 +61,17 @@ export class SemanticStorageService {
       this.preprocessForStorage(node, preprocessor),
     );
 
-    if (preprocessedNodes.some((node) => this.hasThisReference(node))) {
-      throw new Error(
-        'Self-references using this or this#k are not supported in provider storage ingest until phase 3.',
+    if (CyclicSetIdentityService.hasThisReference(preprocessedNodes)) {
+      const cyclicSet = this.cyclicSetIdentity.calculate(preprocessedNodes);
+      cyclicSet.nodes.forEach((node) =>
+        StorageShapeValidator.validateStorageShape(node),
       );
+      return {
+        blueId: cyclicSet.blueId,
+        nodes: cyclicSet.nodes,
+        documentBlueIds: cyclicSet.documentBlueIds,
+        isCyclicSet: true,
+      };
     }
 
     const minimalNodes = preprocessedNodes.map(
@@ -107,7 +116,7 @@ export class SemanticStorageService {
     const referenceBlueId = node.getReferenceBlueId();
     if (
       referenceBlueId !== undefined &&
-      SemanticStorageService.THIS_REFERENCE_PATTERN.test(referenceBlueId)
+      (referenceBlueId === 'this' || referenceBlueId.startsWith('this#'))
     ) {
       return true;
     }

@@ -3,6 +3,7 @@ import { RepositoryBasedNodeProvider } from '../RepositoryBasedNodeProvider';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
 import { BlueErrorCode } from '../../errors/BlueError';
+import { Blue } from '../../Blue';
 
 describe('RepositoryBasedNodeProvider', () => {
   it('does not map historical BlueIds automatically', () => {
@@ -280,5 +281,55 @@ describe('RepositoryBasedNodeProvider', () => {
 
     const byName = provider.findNodeByName('First');
     expect(byName?.getBlueId()).toBeUndefined();
+  });
+
+  it('loads direct cyclic repository document sets under MASTER#i ids', () => {
+    const first = new BlueNode('RepoA').addProperty(
+      'peer',
+      new BlueNode().setReferenceBlueId('this#1'),
+    );
+    const second = new BlueNode('RepoB').addProperty(
+      'peer',
+      new BlueNode().setReferenceBlueId('this#0'),
+    );
+    const nodes = [first, second];
+    const masterBlueId = new Blue().calculateBlueIdSync(nodes);
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: {},
+          typesMeta: {},
+          contents: {
+            [masterBlueId]: nodes.map((node) => NodeToMapListOrValue.get(node)),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+    const fetchedSet = provider.fetchByBlueId(masterBlueId) ?? [];
+    const repoAIndex = fetchedSet.findIndex(
+      (node) => node.getName() === 'RepoA',
+    );
+    const repoBIndex = fetchedSet.findIndex(
+      (node) => node.getName() === 'RepoB',
+    );
+    const repoABlueId = `${masterBlueId}#${repoAIndex}`;
+    const repoBBlueId = `${masterBlueId}#${repoBIndex}`;
+
+    expect(repoAIndex).toBeGreaterThanOrEqual(0);
+    expect(repoBIndex).toBeGreaterThanOrEqual(0);
+    expect(repoABlueId.split('#')[0]).toBe(masterBlueId);
+    expect(repoBBlueId.split('#')[0]).toBe(masterBlueId);
+    expect(provider.findNodeByName('RepoA')?.get('/peer/blueId')).toBe(
+      repoBBlueId,
+    );
+    expect(provider.findNodeByName('RepoB')?.get('/peer/blueId')).toBe(
+      repoABlueId,
+    );
   });
 });

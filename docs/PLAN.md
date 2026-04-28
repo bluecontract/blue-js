@@ -77,31 +77,30 @@ Ważne zastrzeżenie: do czasu końcowej fazy list/cykli minimal overlay format 
 
 Czyli po fazie 1 storage jest już „minimal-first”, ale jeszcze nie ogłaszamy jego finalnego publicznego kontraktu dla tych dwóch specjalnych rodzin przypadków.
 
-### ADR-05 — Snapshoty są fazą drugą i mają być DP-ready
+### ADR-05 — Direct cycles wchodzą przed snapshotami
 
-Po ustabilizowaniu identity i storage wchodzi:
+Po ustabilizowaniu identity, storage i list controls domykamy direct cyclic
+sets z `this#k`, żeby snapshoty nie musiały później zmieniać sposobu
+cache'owania `BlueId`.
+
+Najbliższa kolejność:
+
+- direct-cycle combined BlueId z `this#k`,
+- `MASTER#i` jako finalne identity dokumentów cyklicznego setu,
+- dopiero potem `ResolvedSnapshot`.
+
+### ADR-06 — Snapshoty mają być DP-ready
+
+Po domknięciu `this#k` wchodzi:
 
 - `ResolvedSnapshot`,
 - freeze/finalization,
 - lazy caches,
 - copy-on-write po ścieżce.
 
-To jest świadoma decyzja architektoniczna: nie domykamy jeszcze list control forms ani `this#k`, ale budujemy runtime artifact, którego później użyje `document-processor`. Spec już przy resolve mówi o finalizacji resolved snapshotu, więc ten kierunek jest naturalny. ([language.blue][1])
-
-### ADR-06 — Spec-native listy i `this#k` zamykają program zmian
-
-Na końcu implementujemy:
-
-- `$previous`,
-- `$pos`,
-- `$empty`,
-- direct-cycle combined BlueId z `this#k`.
-
-To jest ostatnia faza, bo:
-
-- domyka pełną zgodność ze spec,
-- daje finalne optymalizacje listowe,
-- finalizuje semantykę multi-doc cyclic sets. ([language.blue][1])
+Spec już przy resolve mówi o finalizacji resolved snapshotu, więc ten kierunek
+jest naturalny, ale snapshot ma już bazować na finalnym semantic `BlueId`,
+włącznie z `MASTER#i`. ([language.blue][1])
 
 ## 3. Plan implementacji i testów
 
@@ -346,8 +345,9 @@ raw-ID exception for transformation resources.
   mixed reference payloads.
 - `this` / `this#k` are special only in `blueId` fields. Ordinary scalar
   strings such as `value: this` and list item `"this#1"` remain normal content.
-- Provider/storage ingest rejects `blueId: this` and `blueId: this#k` until
-  Phase 3 implements direct cyclic sets.
+- Provider/storage ingest accepts top-level document sets with indexed
+  `blueId: this#k` and stores them under `MASTER`; single-node `blueId: this`
+  remains unsupported.
 - `StorageShapeValidator.validateStorageShape()` rejects full payload-kind
   ambiguity: `blueId + payload`, `value + items`, `value/items + child fields`,
   and document-level `properties`.
@@ -481,15 +481,15 @@ raw-ID exception for transformation resources.
 - `dsl-sdk` may continue importing `createDefaultMergingProcessor` from
   `document-processor` in this phase. That dependency is not part of the
   identity boundary cleanup.
-- Phase 1K owns spec-native `$previous`, `$pos`, and `$empty`. Phase 3 owns
-  direct cyclic `this#k` support. Legacy inherited-list markers are not a
-  normal storage format in Phase 1.
+- Phase 1K owns spec-native `$previous`, `$pos`, and `$empty`. Phase 2 owns
+  direct cyclic `this#k` support before snapshots. Legacy inherited-list
+  markers are not a normal storage format in Phase 1.
 - Top-level arrays passed to public `Blue.calculateBlueId*` are semantic lists,
   not a bag of independent root nodes. They must normalize through list context
   so `BlueNode[]`, JSON arrays, and pure `items` wrappers agree for the same
   list content.
-- Phase 2 snapshots should not start until Phase 1M remains green for both
-  `language` and `document-processor`.
+- Phase 3 snapshots should not start until Phase 2 direct cycles and Phase 1M
+  remain green for both `language` and `document-processor`.
 
 ---
 
@@ -1069,12 +1069,57 @@ materialized typed list items, `$empty` exact shape oraz path-limited `$pos`.
 
 ---
 
-## Faza 2 — Snapshoty
+## Faza 2 — Direct cycles przed snapshotami
+
+Rozumiemy Wasze „#this” jako `this#k` z §11.
 
 ### Cel
 
-Dostarczyć DP-ready runtime artifact po domknięciu semantic identity i list
-controls; direct cycles (`this#k`) nadal zostają poza zakresem Phase 2.
+Domknąć specowe direct cyclic sets przed budową snapshotów, żeby późniejszy
+runtime artifact od początku cache'ował finalne `MASTER#i`, a nie przejściową
+semantykę listy dokumentów.
+
+### Implementacja
+
+Zaimplementować §11 dla top-level document set:
+
+- ZERO sentinel,
+- preliminary ids,
+- sort lexicographically,
+- rewrite do `this#k`,
+- MASTER list hash,
+- finalne `MASTER#i`.
+
+Publiczny kontrakt:
+
+- `Blue.calculateBlueId*(nodes[])` zwraca `MASTER`,
+- providerzy zapisują posortowany cyclic set pod `MASTER`,
+- `fetchByBlueId("MASTER#i")` zwraca dokument `i` z `this#k` rozwiązanym do
+  `MASTER#k`,
+- zwykłe stringi `this` / `this#k` poza polem `blueId` pozostają treścią,
+- single-node `blueId: this` pozostaje poza zakresem tej fazy.
+
+### Testy
+
+- 2-doc cycle,
+- 3-doc cycle,
+- stabilność pozycji po sortowaniu preliminary IDs,
+- `MASTER#i` zgodne między zapisami,
+- provider multi-doc ingest działa poprawnie,
+- out-of-range i malformed `this#k` rzucają jawny błąd.
+
+### Naturalny podział na PR
+
+- PR-2A: `this#k` + cyclic BlueIds
+
+---
+
+## Faza 3 — Snapshoty
+
+### Cel
+
+Dostarczyć DP-ready runtime artifact po domknięciu semantic identity, list
+controls i direct cyclic `MASTER#i`.
 
 ### Implementacja
 
@@ -1122,68 +1167,33 @@ To ma być gotowe jako baza pod późniejsze zużycie w `document-processor`.
 - nowy `snapshot-patch` benchmark,
 - porównanie full resolve vs snapshot patch.
 
-### Exit criteria fazy 2
-
-Po tej fazie `language` ma już gotowy runtime artifact, który później może
-zostać podłączony w `document-processor`, nawet jeśli `this#k` jest jeszcze
-przed finalnym cleanupem.
-
 ### Naturalny podział na PR
 
-- PR-2A: snapshot core + freeze
-- PR-2B: lazy caches + path index
-- PR-2C: patch/update API + benchmark
+- PR-3A: snapshot core + freeze
+- PR-3B: lazy caches + path index
+- PR-3C: patch/update API + benchmark
 
 ---
 
-## Faza 3 — Direct cycles i final cleanup
-
-Rozumiem Wasze „#this” jako `this#k` z §11.
+## Faza 4 — Final cleanup
 
 ### Cel
 
-Domknąć pełną zgodność specyfikacyjną przez direct cyclic sets i usunąć
-pozostałe przejściowe semantics.
+Usunąć pozostałe przejściowe semantics po direct cycles i snapshotach.
 
-### Strumień 3A — Direct cycles i `this#k`
-
-#### Implementacja
-
-Zaimplementować §11:
-
-- ZERO sentinel,
-- preliminary ids,
-- sort lexicographically,
-- rewrite do `this#k`,
-- MASTER list hash,
-- finalne `MASTER#i`.
-
-To zamyka combined BlueId dla direct cycles. ([language.blue][1])
-
-#### Testy
-
-- 2-doc cycle,
-- 3-doc cycle,
-- stabilność pozycji po sortowaniu preliminary IDs,
-- `MASTER#i` zgodne między zapisami,
-- provider multi-doc ingest działa poprawnie.
-
-### Strumień 3B — Final cleanup
-
-#### Implementacja
+### Implementacja
 
 - usunięcie legacy list marker code path,
 - usunięcie starych niejawnych skrótów,
 - finalizacja docs.
 
-### Exit criteria fazy 3
+### Exit criteria fazy 4
 
 Po tej fazie `libs/language` jest gotowe do bycia podstawą dla reszty monorepo i do wydania jako major breaking change.
 
 ### Naturalny podział na PR
 
-- PR-3A: `this#k` + cyclic BlueIds
-- PR-3B: cleanup + docs final
+- PR-4A: cleanup + docs final
 
 ## 4. Przykłady testów integracyjnych
 
@@ -1358,11 +1368,19 @@ it('assigns stable MASTER#i BlueIds for a direct cyclic set', () => {
   zostawia `blueId + payload` jako hash input.
 - `document-processor` runtime nie fallbackuje do raw `BlueIdCalculator`.
 - storage ingest odrzuca mixed `blueId + payload` jako authoring/minimal input.
-- `NodeToMapListOrValue` nie bierze już udziału w hash path.
-  Te warunki są bezpośrednio zgodne z §8–§10 i §12, z wyjątkiem direct cyclic
-  sets, które świadomie odkładamy do fazy 3. ([language.blue][1])
+- `NodeToMapListOrValue` nie bierze już udziału w normalnym hash path.
+  Te warunki są bezpośrednio zgodne z §8–§10 i §12; direct cyclic sets domyka
+  faza 2 przed snapshotami. ([language.blue][1])
 
 ### Exit DoD dla fazy 2
+
+- `Blue.calculateBlueId*(nodes[])` zwraca `MASTER` dla direct cyclic setów.
+- providerzy zapisują posortowany cyclic set pod `MASTER`.
+- `fetchByBlueId("MASTER#i")` rozwiązuje `this#k` do finalnego `MASTER#k`.
+- zwykłe stringi `this` / `this#k` poza polem `blueId` pozostają treścią.
+- malformed i out-of-range `this#k` są odrzucane.
+
+### Exit DoD dla fazy 3
 
 - `resolveToSnapshot()` istnieje i daje immutable/frozen runtime artifact.
 - `snapshot.toMinimal()` i `blue.minimize(resolved)` są semantycznie zgodne.
@@ -1386,6 +1404,8 @@ it('assigns stable MASTER#i BlueIds for a direct cyclic set', () => {
 - README, `docs/blue-id.md`, `docs/resolve.md`, ADR-y i glossary są zgodne z nową semantyką.
   To zamyka pełną zgodność z aktualną specyfikacją identity, minimization, list hashing i direct cycles. ([language.blue][1])
 
-Ten układ uważam za najlepszy pod Wasz cel: **najpierw naprawić tożsamość i storage, potem dołożyć runtime snapshots dla `document-processor`, a dopiero potem domknąć specjalne formy list i cykle**.
+Ten układ uważam za najlepszy pod Wasz cel: **najpierw naprawić tożsamość,
+storage i direct cyclic `BlueId`, potem dołożyć runtime snapshots dla
+`document-processor`**.
 
 [1]: https://language.blue/docs/reference/specification 'Blue Language Specification — language.blue docs'

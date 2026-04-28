@@ -11,6 +11,7 @@ import { Nodes } from '../utils/Nodes';
 import { Minimizer } from '../utils/Minimizer';
 import { StorageShapeValidator } from '../utils/StorageShapeValidator';
 import { ListControls } from '../utils/ListControls';
+import { CyclicSetIdentityService } from './CyclicSetIdentityService';
 
 export interface SemanticIdentityServiceOptions {
   nodeProvider?: NodeProvider;
@@ -21,6 +22,7 @@ export class SemanticIdentityService {
   private readonly nodeProvider: NodeProvider;
   private readonly mergingProcessor: MergingProcessor;
   private readonly minimizer = new Minimizer();
+  private readonly cyclicSetIdentity = new CyclicSetIdentityService();
 
   constructor(options: SemanticIdentityServiceOptions = {}) {
     this.nodeProvider = options.nodeProvider ?? createNodeProvider(() => []);
@@ -29,11 +31,21 @@ export class SemanticIdentityService {
   }
 
   public calculateBlueId(value: BlueNode | BlueNode[]) {
+    const cyclicBlueId = this.tryCalculateCyclicSetBlueId(value);
+    if (cyclicBlueId !== undefined) {
+      return Promise.resolve(cyclicBlueId);
+    }
+
     const minimal = this.toMinimalIdentityInput(value);
     return this.hashMinimalTrustedAsync(minimal);
   }
 
   public calculateBlueIdSync(value: BlueNode | BlueNode[]) {
+    const cyclicBlueId = this.tryCalculateCyclicSetBlueId(value);
+    if (cyclicBlueId !== undefined) {
+      return cyclicBlueId;
+    }
+
     const minimal = this.toMinimalIdentityInput(value);
     return this.hashMinimalTrusted(minimal);
   }
@@ -144,6 +156,43 @@ export class SemanticIdentityService {
     }
 
     return this.minimize(value);
+  }
+
+  private tryCalculateCyclicSetBlueId(
+    value: BlueNode | BlueNode[],
+  ): string | undefined {
+    const items = this.getTopLevelSetItems(value);
+    if (items === undefined) {
+      if (
+        !Array.isArray(value) &&
+        CyclicSetIdentityService.hasThisReference([value])
+      ) {
+        throw new Error(
+          "Direct cyclic references using 'this#k' are supported only in a top-level document set.",
+        );
+      }
+      return undefined;
+    }
+
+    if (!CyclicSetIdentityService.hasThisReference(items)) {
+      return undefined;
+    }
+
+    return this.cyclicSetIdentity.calculate(items).blueId;
+  }
+
+  private getTopLevelSetItems(
+    value: BlueNode | BlueNode[],
+  ): BlueNode[] | undefined {
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (Nodes.hasItemsOnly(value)) {
+      return value.getItems() ?? [];
+    }
+
+    return undefined;
   }
 
   private toMinimalListIdentityInput(items: BlueNode[]): BlueNode[] {

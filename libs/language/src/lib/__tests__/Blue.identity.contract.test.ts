@@ -481,11 +481,39 @@ list:
       blue.calculateBlueIdSync(input),
     );
   });
+
+  it('calculates stable MASTER for direct cyclic this#k document sets', () => {
+    const blue = new Blue();
+    const firstOrder = yamlBlueParse(`
+- name: Person
+  pet:
+    type:
+      blueId: this#1
+- name: Dog
+  owner:
+    type:
+      blueId: this#0
+`);
+    const secondOrder = yamlBlueParse(`
+- name: Dog
+  owner:
+    type:
+      blueId: this#1
+- name: Person
+  pet:
+    type:
+      blueId: this#0
+`);
+
+    const masterBlueId = blue.calculateBlueIdSync(firstOrder!);
+
+    expect(masterBlueId).toMatch(/^[1-9A-HJ-NP-Za-km-z]{43,45}$/);
+    expect(blue.calculateBlueIdSync(secondOrder!)).toBe(masterBlueId);
+  });
 });
 
 describe('Future identity API placeholders', () => {
   it.todo('phase 1 exposes Blue.minimize() without changing phase 0 runtime');
   it.todo('phase 2 exposes resolveToSnapshot() on Blue');
   it.todo('phase 2 exposes immutable snapshot patch/update APIs');
-  it.todo('phase 3 implements full this#k cyclic-set BlueIds');
 });

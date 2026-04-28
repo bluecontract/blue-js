@@ -174,7 +174,16 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     );
 
     this.assertProvidedBlueId(parsedContent.blueId, providedBlueId);
-    this.storeContent(parsedContent.blueId, parsedContent.content, true);
+    this.storeContent(
+      parsedContent.blueId,
+      parsedContent.content,
+      parsedContent.isMultipleDocuments,
+    );
+
+    if (parsedContent.isCyclicSet) {
+      this.addListItemNames(parsedContent.blueId, parsedContent.content);
+      return;
+    }
 
     nodes.forEach((node, index) => {
       const itemBlueId = `${parsedContent.blueId}#${index}`;
@@ -193,6 +202,20 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
       const nodeName = node.getName();
       if (nodeName) {
         this.addToNameMap(nodeName, itemBlueId);
+      }
+    });
+  }
+
+  private addListItemNames(blueId: string, content: JsonBlueValue): void {
+    if (!Array.isArray(content)) {
+      return;
+    }
+
+    content.forEach((item, index) => {
+      const node = NodeDeserializer.deserialize(item);
+      const nodeName = node.getName();
+      if (nodeName) {
+        this.addToNameMap(nodeName, `${blueId}#${index}`);
       }
     });
   }

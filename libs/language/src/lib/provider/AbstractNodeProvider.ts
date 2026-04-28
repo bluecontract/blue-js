@@ -21,7 +21,7 @@ export abstract class AbstractNodeProvider extends NodeProvider {
       return null;
     }
 
-    const isMultipleDocuments = Array.isArray(content) && content.length > 1;
+    const isMultipleDocuments = Array.isArray(content);
     const resolvedContent = NodeContentHandler.resolveThisReferences(
       content,
       baseBlueId,

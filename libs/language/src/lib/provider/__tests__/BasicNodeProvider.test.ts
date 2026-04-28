@@ -214,4 +214,36 @@ describe('InMemoryNodeProvider', () => {
       expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
     );
   });
+
+  it('fetches direct cyclic document set members by MASTER suffix', () => {
+    const provider = new InMemoryNodeProvider();
+    const list = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: MemoryA
+  peer:
+    blueId: this#1
+- name: MemoryB
+  peer:
+    blueId: this#0
+`),
+    ).getItems();
+
+    provider.addList(list ?? []);
+    const blue = new Blue();
+    const masterBlueId = blue.calculateBlueIdSync(list ?? []);
+    const fetchedSet = provider.fetchByBlueId(masterBlueId);
+
+    expect(fetchedSet).toHaveLength(2);
+    const fetchedA = fetchedSet.find((node) => node.getName() === 'MemoryA');
+    const fetchedB = fetchedSet.find((node) => node.getName() === 'MemoryB');
+    expect(fetchedA?.get('/peer/blueId')).toBe(
+      `${masterBlueId}#${fetchedSet.findIndex(
+        (node) => node.getName() === 'MemoryB',
+      )}`,
+    );
+    expect(fetchedB?.get('/peer/blueId')).toBe(
+      `${masterBlueId}#${fetchedSet.findIndex(
+        (node) => node.getName() === 'MemoryA',
+      )}`,
+    );
+  });
 });
