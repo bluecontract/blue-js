@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { RepositoryBasedNodeProvider } from '../RepositoryBasedNodeProvider';
+import { BasicNodeProvider } from '../BasicNodeProvider';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
+import { BlueErrorCode } from '../../errors/BlueError';
+import { Blue } from '../../Blue';
 
 describe('RepositoryBasedNodeProvider', () => {
   it('does not map historical BlueIds automatically', () => {
     const historicalId = 'old-id';
-    const currentId = 'current-id';
-
     const typeNode = new BlueNode('TestType');
+    const currentId = BlueIdCalculator.calculateBlueIdSync(typeNode);
     const typesMeta = {
       [currentId]: {
         status: 'stable' as const,
@@ -44,12 +46,93 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(provider.fetchByBlueId(historicalId)).toBeNull();
     expect(provider.hasBlueId(currentId)).toBe(true);
     const fetched = provider.fetchByBlueId(currentId);
-    expect(fetched?.[0]?.getBlueId()).toEqual(currentId);
+    expect(fetched?.[0]?.getBlueId()).toBeUndefined();
+  });
+
+  it('does not expose historical version BlueIds as repository storage keys', () => {
+    const historicalId = 'historical-type-id';
+    const typeNode = new BlueNode('VersionedType');
+    const currentId = BlueIdCalculator.calculateBlueIdSync(typeNode);
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0', 'R1'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: { 'test/VersionedType': currentId },
+          typesMeta: {
+            [currentId]: {
+              status: 'stable' as const,
+              name: 'VersionedType',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: historicalId,
+                  attributesAdded: [],
+                },
+                {
+                  repositoryVersionIndex: 1,
+                  typeBlueId: currentId,
+                  attributesAdded: [],
+                },
+              ],
+            },
+          },
+          contents: {
+            [currentId]: NodeToMapListOrValue.get(typeNode),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+
+    expect(provider.hasBlueId(historicalId)).toBe(false);
+    expect(provider.fetchByBlueId(historicalId)).toBeNull();
+    expect(provider.hasBlueId(currentId)).toBe(true);
+  });
+
+  it('rejects repository content keys that do not match semantic BlueIds', () => {
+    const typeNode = new BlueNode('StrictType');
+    const semanticId = BlueIdCalculator.calculateBlueIdSync(typeNode);
+    const wrongId = 'wrong-repository-content-id';
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: { 'test/StrictType': semanticId },
+          typesMeta: {
+            [semanticId]: {
+              status: 'stable' as const,
+              name: 'StrictType',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: semanticId,
+                  attributesAdded: [],
+                },
+              ],
+            },
+          },
+          contents: {
+            [wrongId]: NodeToMapListOrValue.get(typeNode),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    expect(() => new RepositoryBasedNodeProvider([repository])).toThrow(
+      expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
+    );
   });
 
   it('indexes names for new-style repositories', () => {
-    const typeId = 'type-1';
     const typeNode = new BlueNode('NamedType');
+    const typeId = BlueIdCalculator.calculateBlueIdSync(typeNode);
     const typesMeta = {
       [typeId]: {
         status: 'stable' as const,
@@ -82,12 +165,16 @@ describe('RepositoryBasedNodeProvider', () => {
 
     const provider = new RepositoryBasedNodeProvider([repository]);
     const found = provider.findNodeByName('NamedType');
-    expect(found?.getBlueId()).toEqual(typeId);
+    expect(found?.getBlueId()).toBeUndefined();
   });
 
   it('preprocesses repository content using alias mappings', () => {
-    const childId = 'child-id';
-    const parentId = 'parent-id';
+    const childNode = new BlueNode('Child');
+    const childId = BlueIdCalculator.calculateBlueIdSync(childNode);
+    const parentNode = new BlueNode('Parent').setProperties({
+      child: new BlueNode().setType(new BlueNode().setBlueId(childId)),
+    });
+    const parentId = BlueIdCalculator.calculateBlueIdSync(parentNode);
 
     const typesMeta = {
       [childId]: {
@@ -123,7 +210,7 @@ describe('RepositoryBasedNodeProvider', () => {
           aliases: { 'test/Child': childId, 'test/Parent': parentId },
           typesMeta,
           contents: {
-            [childId]: { name: 'Child' },
+            [childId]: NodeToMapListOrValue.get(childNode),
             [parentId]: {
               name: 'Parent',
               child: {
@@ -146,9 +233,9 @@ describe('RepositoryBasedNodeProvider', () => {
   });
 
   it('preserves # references for multi-document content', () => {
-    const listId = 'multi-doc';
     const first = new BlueNode('First');
     const second = new BlueNode('Second');
+    const listId = BlueIdCalculator.calculateBlueIdSync([first, second]);
     const typesMeta = {
       [listId]: {
         status: 'stable' as const,
@@ -169,7 +256,11 @@ describe('RepositoryBasedNodeProvider', () => {
       packages: {
         test: {
           name: 'test',
-          aliases: { 'test/Multi': listId },
+          aliases: {
+            'test/Multi': listId,
+            'test/Second': `${listId}#1`,
+            'test/Missing': `${listId}#99`,
+          },
           typesMeta,
           contents: {
             [listId]: [
@@ -187,13 +278,120 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(items?.map((n) => n.getBlueId())).toEqual([undefined, undefined]);
 
     const byIndex = provider.fetchByBlueId(`${listId}#0`);
-    expect(byIndex?.[0]?.getBlueId()).toEqual(`${listId}#0`);
+    expect(byIndex?.[0]?.getBlueId()).toBeUndefined();
+
+    expect(provider.hasBlueId('test/Second')).toBe(true);
+    const byFragmentAlias = provider.fetchByBlueId('test/Second');
+    expect(byFragmentAlias?.map((node) => node.getName())).toEqual(['Second']);
+    expect(byFragmentAlias?.[0]?.getBlueId()).toBeUndefined();
+
+    const byComposedAlias = provider.fetchByBlueId('test/Multi#1');
+    expect(byComposedAlias?.map((node) => node.getName())).toEqual(['Second']);
+
+    expect(provider.fetchByBlueId('test/Missing')).toBeNull();
+    expect(provider.fetchByBlueId('test/Second#0')).toBeNull();
+    expect(provider.hasBlueId('test/Second#0')).toBe(false);
 
     const individualBlueId = BlueIdCalculator.calculateBlueIdSync(first);
     const byIndividual = provider.fetchByBlueId(individualBlueId);
-    expect(byIndividual?.[0]?.getBlueId()).toEqual(individualBlueId);
+    expect(byIndividual?.[0]?.getBlueId()).toBeUndefined();
 
     const byName = provider.findNodeByName('First');
-    expect(byName?.getBlueId()).toEqual(`${listId}#0`);
+    expect(byName?.getBlueId()).toBeUndefined();
+  });
+
+  it('loads direct cyclic repository document sets under MASTER#i ids', () => {
+    const first = new BlueNode('RepoA').addProperty(
+      'peer',
+      new BlueNode().setReferenceBlueId('this#1'),
+    );
+    const second = new BlueNode('RepoB').addProperty(
+      'peer',
+      new BlueNode().setReferenceBlueId('this#0'),
+    );
+    const nodes = [first, second];
+    const masterBlueId = new Blue().calculateBlueIdSync(nodes);
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: {},
+          typesMeta: {},
+          contents: {
+            [masterBlueId]: nodes.map((node) => NodeToMapListOrValue.get(node)),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+    const fetchedSet = provider.fetchByBlueId(masterBlueId) ?? [];
+    const repoAIndex = fetchedSet.findIndex(
+      (node) => node.getName() === 'RepoA',
+    );
+    const repoBIndex = fetchedSet.findIndex(
+      (node) => node.getName() === 'RepoB',
+    );
+    const repoABlueId = `${masterBlueId}#${repoAIndex}`;
+    const repoBBlueId = `${masterBlueId}#${repoBIndex}`;
+
+    expect(repoAIndex).toBeGreaterThanOrEqual(0);
+    expect(repoBIndex).toBeGreaterThanOrEqual(0);
+    expect(repoABlueId.split('#')[0]).toBe(masterBlueId);
+    expect(repoBBlueId.split('#')[0]).toBe(masterBlueId);
+    expect(provider.findNodeByName('RepoA')?.get('/peer/blueId')).toBe(
+      repoBBlueId,
+    );
+    expect(provider.findNodeByName('RepoB')?.get('/peer/blueId')).toBe(
+      repoABlueId,
+    );
+  });
+
+  it('uses multi-document this rules for singleton arrays during bootstrap', () => {
+    const loop = new BlueNode('SingletonLoop').addProperty(
+      'self',
+      new BlueNode().setReferenceBlueId('this#0'),
+    );
+    const loopSet = [loop];
+    const loopSetBlueId = new Blue().calculateBlueIdSync(loopSet);
+    const calculationProvider = new BasicNodeProvider();
+    calculationProvider.processNodeList(loopSet);
+
+    const consumer = new BlueNode('SingletonLoopConsumer').setType(
+      new BlueNode().setBlueId(loopSetBlueId),
+    );
+    const consumerBlueId = new Blue({
+      nodeProvider: calculationProvider,
+    }).calculateBlueIdSync(consumer);
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: {},
+          typesMeta: {},
+          contents: {
+            [consumerBlueId]: NodeToMapListOrValue.get(consumer),
+            [loopSetBlueId]: loopSet.map((node) =>
+              NodeToMapListOrValue.get(node),
+            ),
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+
+    expect(provider.findNodeByName('SingletonLoop')?.get('/self/blueId')).toBe(
+      `${loopSetBlueId}#0`,
+    );
+    expect(provider.fetchByBlueId(consumerBlueId)?.[0]?.getName()).toBe(
+      'SingletonLoopConsumer',
+    );
   });
 });

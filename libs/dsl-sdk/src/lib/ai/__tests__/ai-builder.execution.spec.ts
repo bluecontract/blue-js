@@ -166,9 +166,10 @@ describe('ai integration execution', () => {
     expect(processedEventTypes).toContain(
       'MyOS/Single Document Permission Grant Requested',
     );
-    expect(toOfficialJson(processed.document).ai.provider.status).toBe(
-      'pending',
-    );
+    const processedJson = toOfficialJson(processed.document) as {
+      ai?: { provider?: { status?: unknown } };
+    };
+    expect(processedJson.ai?.provider?.status).toBe('pending');
   });
 
   it('emits wildcard subscription requests from manual AI subscribe helpers', async () => {

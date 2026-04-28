@@ -10,10 +10,10 @@ import {
 import { BlueIdCalculator, Properties } from '../../utils';
 import { schemas, TestEnum } from './schema';
 import { TypeSchemaResolver } from '../../utils/TypeSchemaResolver';
-import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
 import { NodeToObjectConverter } from '../NodeToObjectConverter';
 import { getBlueObjectValue } from '../../../utils/blueObject/getters';
 import { BlueObject, isBlueObject } from '../../../schema';
+import { createRawNodeProviderFromYamlDocs } from '../../__tests__/helpers/rawNodeProvider';
 
 const {
   doctorSchema,
@@ -38,8 +38,7 @@ describe('blueNodeToObject', () => {
   beforeEach(() => {
     const resolver = new TypeSchemaResolver(Object.values(schemas));
     // Provide a NodeProvider with the type hierarchy loaded from YAML docs
-    const provider = new BasicNodeProvider();
-    provider.addSingleDocs(
+    const provider = createRawNodeProviderFromYamlDocs(
       `blueId: Person-BlueId\nname: Person`,
       `blueId: X-BlueId\nname: X`,
       `blueId: Y-BlueId\nname: Y`,
@@ -56,7 +55,21 @@ describe('blueNodeToObject', () => {
       `blueId: Y1-BlueId\nname: Y1\ntype:\n  blueId: Y-BlueId`,
     );
     resolver.setNodeProvider(provider);
-    converter = new NodeToObjectConverter(resolver);
+    converter = new NodeToObjectConverter(resolver, {
+      calculateBlueId: (node) => BlueIdCalculator.calculateBlueIdSync(node),
+    });
+  });
+
+  it('requires an injected BlueId calculator', () => {
+    expect(
+      () =>
+        new NodeToObjectConverter(
+          null,
+          undefined as unknown as ConstructorParameters<
+            typeof NodeToObjectConverter
+          >[1],
+        ),
+    ).toThrow('requires a semantic calculateBlueId option');
   });
 
   it('should convert a string value to a string', () => {

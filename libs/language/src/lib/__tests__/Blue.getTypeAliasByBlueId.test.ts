@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Blue } from '../Blue';
+import { BlueNode } from '../model';
 import type {
   BlueRepository,
   BlueRepositoryPackage,
 } from '../types/BlueRepository';
+import { BlueIdCalculator } from '../utils';
 import { TEXT_TYPE_BLUE_ID } from '../utils/Properties';
 
 type VersionEntry = {
@@ -24,7 +26,8 @@ function buildRepositoryFixture(): {
   currentBlueId: string;
   historicalBlueId: string;
 } {
-  const currentBlueId = 'current-type-id';
+  const currentType = new BlueNode('TypeA');
+  const currentBlueId = BlueIdCalculator.calculateBlueIdSync(currentType);
   const historicalBlueId = 'historical-type-id';
 
   return {

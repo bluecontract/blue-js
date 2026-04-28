@@ -1,5 +1,4 @@
 import { BlueNode } from '@blue-labs/language';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import {
   compositeTimelineChannelSchema,
@@ -9,6 +8,7 @@ import {
   type MarkerContract,
 } from '../../model/index.js';
 import { KEY_CHECKPOINT } from '../../constants/processor-contract-constants.js';
+import { conversationBlueIds } from '../../repository/semantic-repository.js';
 import type {
   ChannelEvaluationContext,
   ChannelMatch,

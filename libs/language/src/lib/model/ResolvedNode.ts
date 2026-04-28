@@ -1,6 +1,14 @@
 import { BlueNode } from './Node';
-import { MergeReverser } from '../utils/MergeReverser';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
+import { BlueIds } from '../utils/BlueIds';
+import { Minimizer } from '../utils/Minimizer';
+
+export type ResolvedNodeCompleteness = 'full' | 'path-limited';
+
+export interface ResolvedBlueNodeMetadata {
+  completeness?: ResolvedNodeCompleteness;
+  sourceSemanticBlueId?: string;
+}
 
 /**
  * Represents a resolved BlueNode. This is a simple marker class that indicates
@@ -8,12 +16,19 @@ import { BlueIdCalculator } from '../utils/BlueIdCalculator';
  * representation can be computed on demand using MergeReverser.
  */
 export class ResolvedBlueNode extends BlueNode {
+  private completeness: ResolvedNodeCompleteness;
+  private sourceSemanticBlueId?: string;
+
   /**
    * Creates a new ResolvedBlueNode from a resolved BlueNode
    * @param resolvedNode - The fully resolved node after merge operations
    */
-  constructor(resolvedNode: BlueNode) {
+  constructor(resolvedNode: BlueNode, metadata: ResolvedBlueNodeMetadata = {}) {
     super(resolvedNode.getName());
+    this.completeness = metadata.completeness ?? 'full';
+    this.sourceSemanticBlueId = this.validateSourceSemanticBlueId(
+      metadata.sourceSemanticBlueId,
+    );
     this.createFrom(resolvedNode);
   }
 
@@ -32,13 +47,36 @@ export class ResolvedBlueNode extends BlueNode {
    * @returns The minimal node representation
    */
   public getMinimalNode(): BlueNode {
-    const reverser = new MergeReverser();
-    return reverser.reverse(this);
+    if (this.completeness === 'path-limited') {
+      if (this.sourceSemanticBlueId !== undefined) {
+        return new BlueNode().setReferenceBlueId(this.sourceSemanticBlueId);
+      }
+      throw new Error(
+        'Cannot minimize a path-limited resolved node without a source semantic BlueId.',
+      );
+    }
+
+    const minimizer = new Minimizer();
+    return minimizer.minimizeResolved(this);
   }
 
+  /**
+   * @deprecated Prefer `blue.calculateBlueIdSync(resolved)` so callers use the
+   * public semantic identity pipeline explicitly.
+   */
   public getMinimalBlueId(): string {
-    const minimalNode = this.getMinimalNode();
-    return BlueIdCalculator.calculateBlueIdSync(minimalNode);
+    if (this.completeness === 'path-limited') {
+      if (this.sourceSemanticBlueId !== undefined) {
+        return this.sourceSemanticBlueId;
+      }
+      throw new Error(
+        'Cannot calculate minimal BlueId for a path-limited resolved node without a source semantic BlueId.',
+      );
+    }
+
+    const minimizer = new Minimizer();
+    const minimalForHash = minimizer.minimizeResolvedForHash(this);
+    return BlueIdCalculator.calculateBlueIdSync(minimalForHash);
   }
 
   /**
@@ -47,7 +85,7 @@ export class ResolvedBlueNode extends BlueNode {
    */
   public override clone(): ResolvedBlueNode {
     const clonedBase = super.clone();
-    return new ResolvedBlueNode(clonedBase);
+    return new ResolvedBlueNode(clonedBase, this.getMetadata());
   }
 
   /**
@@ -57,7 +95,41 @@ export class ResolvedBlueNode extends BlueNode {
    */
   public override cloneShallow(): ResolvedBlueNode {
     const clonedBase = super.cloneShallow();
-    return new ResolvedBlueNode(clonedBase);
+    return new ResolvedBlueNode(clonedBase, this.getMetadata());
+  }
+
+  public getCompleteness(): ResolvedNodeCompleteness {
+    return this.completeness;
+  }
+
+  public getSourceSemanticBlueId(): string | undefined {
+    return this.sourceSemanticBlueId;
+  }
+
+  public setSourceSemanticBlueId(blueId: string | undefined): this {
+    this.sourceSemanticBlueId = this.validateSourceSemanticBlueId(blueId);
+    return this;
+  }
+
+  private validateSourceSemanticBlueId(
+    blueId: string | undefined,
+  ): string | undefined {
+    if (blueId === undefined) {
+      return undefined;
+    }
+
+    if (!BlueIds.isPotentialBlueId(blueId)) {
+      throw new Error('sourceSemanticBlueId must be a valid BlueId.');
+    }
+
+    return blueId;
+  }
+
+  private getMetadata(): ResolvedBlueNodeMetadata {
+    return {
+      completeness: this.completeness,
+      sourceSemanticBlueId: this.sourceSemanticBlueId,
+    };
   }
 
   /**

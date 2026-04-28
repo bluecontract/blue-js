@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { BasicNodeProvider } from '../BasicNodeProvider';
 import { BlueNode, NodeDeserializer } from '../../model';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
-import { BlueIdCalculator } from '../../utils';
+import { Blue } from '../../Blue';
+import { InMemoryNodeProvider } from '../InMemoryNodeProvider';
+import { BlueErrorCode } from '../../errors/BlueError';
 
 describe('BasicNodeProvider', () => {
   it('should handle single nodes', () => {
@@ -59,9 +61,12 @@ type: Text`;
     const listNode = new BlueNode().setItems(items);
 
     const provider = new BasicNodeProvider([listNode]);
+    const blue = new Blue({ nodeProvider: provider });
 
     // Items should be accessible by their name with #index
-    const listBlueId = BlueIdCalculator.calculateBlueIdSync(items);
+    const listBlueId = blue.calculateBlueIdSync(
+      items.map((item) => blue.preprocess(item)),
+    );
     const foundItems = provider.fetchByBlueId(listBlueId);
     expect(foundItems).toHaveLength(2);
 
@@ -88,11 +93,39 @@ type: Text`;
     expect(item2?.getValue()).toBe('item2');
   });
 
+  it('maps cyclic list item names when adding list and its items', () => {
+    const listNode = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: ListCycleA
+  peer:
+    blueId: this#1
+- name: ListCycleB
+  peer:
+    blueId: this#0
+`),
+    );
+    const items = listNode.getItems() ?? [];
+    const provider = new BasicNodeProvider();
+
+    provider.addListAndItsItems(items);
+
+    const aBlueId = provider.getBlueIdByName('ListCycleA');
+    const bBlueId = provider.getBlueIdByName('ListCycleB');
+    expect(aBlueId).toMatch(/#\d+$/);
+    expect(bBlueId).toMatch(/#\d+$/);
+    expect(provider.getNodeByName('ListCycleA').get('/peer/blueId')).toBe(
+      bBlueId,
+    );
+    expect(provider.getNodeByName('ListCycleB').get('/peer/blueId')).toBe(
+      aBlueId,
+    );
+  });
+
   it('should fetch by Blue ID', () => {
     const node = new BlueNode('TestBlueId').setValue('test');
     const provider = new BasicNodeProvider([node]);
+    const blue = new Blue({ nodeProvider: provider });
 
-    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+    const blueId = blue.calculateBlueIdSync(blue.preprocess(node));
     const fetched = provider.fetchByBlueId(blueId);
 
     expect(fetched).toHaveLength(1);
@@ -100,7 +133,7 @@ type: Text`;
     expect(fetched?.[0].getValue()).toBe('test');
   });
 
-  it('should resolve this references', () => {
+  it('keeps scalar this strings as ordinary content', () => {
     const yaml = `
 name: SelfReference
 value: this`;
@@ -113,8 +146,53 @@ value: this`;
     const fetched = provider.fetchByBlueId(blueId);
 
     expect(fetched).toHaveLength(1);
-    // The 'this' reference should be resolved to the Blue ID
-    expect(fetched?.[0].getValue()).toBe(blueId);
+    expect(fetched?.[0].getValue()).toBe('this');
+    expect(fetched?.[0].getValue()).not.toBe(blueId);
+  });
+
+  it('keeps scalar this#k strings, list strings, and ordinary fields unchanged', () => {
+    const provider = new BasicNodeProvider();
+
+    provider.addSingleDocs(`
+name: OrdinaryThisStrings
+note: this
+tag: this#1
+tags:
+  items:
+    - this
+    - this#1
+`);
+
+    const fetched = provider.getNodeByName('OrdinaryThisStrings');
+
+    expect(fetched.get('/note/value')).toBe('this');
+    expect(fetched.get('/tag/value')).toBe('this#1');
+    expect(fetched.get('/tags/0/value')).toBe('this');
+    expect(fetched.get('/tags/1/value')).toBe('this#1');
+  });
+
+  it('rejects unindexed this references in single-document ingest', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+name: SelfReference
+self:
+  blueId: this
+`),
+    ).toThrow(/Self-references using this or this#k are not supported/);
+  });
+
+  it('rejects indexed this references in single-document ingest', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+name: InvalidSingleThisReference
+self:
+  blueId: this#1
+`),
+    ).toThrow(/Self-references using this or this#k are not supported/);
   });
 
   it('should throw error for non-existent node', () => {
@@ -126,6 +204,73 @@ value: this`;
 
     expect(() => provider.getBlueIdByName('NonExistent')).toThrow(
       'No node with name "NonExistent"',
+    );
+  });
+
+  it('rejects content whose semantic storage resolve fails', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+name: InvalidTypedNode
+type:
+  blueId: MissingTypeBlueId
+`),
+    ).toThrow(/MissingTypeBlueId/);
+  });
+
+  it('rejects root blueId plus payload during ingest', () => {
+    const provider = new BasicNodeProvider();
+
+    expect(() =>
+      provider.addSingleDocs(`
+blueId: ExistingReferenceBlueId
+name: AmbiguousRoot
+`),
+    ).toThrow(/Ambiguous blueId plus payload at \//);
+  });
+});
+
+describe('InMemoryNodeProvider', () => {
+  it('rejects provided BlueIds that do not match semantic storage identity', () => {
+    const provider = new InMemoryNodeProvider();
+
+    expect(() =>
+      provider.addNodeWithBlueId('WrongBlueId', new BlueNode('MemoryNode')),
+    ).toThrow(
+      expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
+    );
+  });
+
+  it('fetches direct cyclic document set members by MASTER suffix', () => {
+    const provider = new InMemoryNodeProvider();
+    const list = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: MemoryA
+  peer:
+    blueId: this#1
+- name: MemoryB
+  peer:
+    blueId: this#0
+`),
+    ).getItems();
+
+    provider.addList(list ?? []);
+    const blue = new Blue();
+    const masterBlueId = blue.calculateBlueIdSync(list ?? []);
+    const fetchedSet = provider.fetchByBlueId(masterBlueId);
+
+    expect(fetchedSet).toHaveLength(2);
+    const fetchedA = fetchedSet.find((node) => node.getName() === 'MemoryA');
+    const fetchedB = fetchedSet.find((node) => node.getName() === 'MemoryB');
+    expect(fetchedA?.get('/peer/blueId')).toBe(
+      `${masterBlueId}#${fetchedSet.findIndex(
+        (node) => node.getName() === 'MemoryB',
+      )}`,
+    );
+    expect(fetchedB?.get('/peer/blueId')).toBe(
+      `${masterBlueId}#${fetchedSet.findIndex(
+        (node) => node.getName() === 'MemoryA',
+      )}`,
     );
   });
 });

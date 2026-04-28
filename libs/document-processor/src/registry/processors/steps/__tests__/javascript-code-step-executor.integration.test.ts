@@ -12,8 +12,10 @@ import {
   stringProperty,
   typeBlueId,
 } from '../../../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
-import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
+import {
+  blueIds as coreBlueIds,
+  conversationBlueIds,
+} from '../../../../repository/semantic-repository.js';
 import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js';
 
 const blue = createBlue();

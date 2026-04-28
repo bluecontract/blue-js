@@ -1,12 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '../Blue';
-import { BlueIdCalculator } from '../utils/BlueIdCalculator';
-import type { BlueRepository } from '../types/BlueRepository';
-import { RepositoryBasedNodeProvider } from '../provider';
+import { BasicNodeProvider } from '../provider';
 
 describe('blue.resolve with Document Links and Document Link values', () => {
   it('resolves Document Link dictionary entries', () => {
-    // Build repository contents with proper BlueId references to avoid inline type validation errors
+    const provider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider: provider });
+    const registerType = (name: string, definition: object) => {
+      const node = blue.jsonValueToNode(definition);
+      provider.addSingleNodes(node);
+      const blueId = provider.getBlueIdByName(name);
+      blue.registerBlueIds({ [name]: blueId });
+      return blueId;
+    };
+
     const linkDef = {
       name: 'Link',
       description: 'Abstract base class for all link types.',
@@ -15,12 +22,7 @@ describe('blue.resolve with Document Links and Document Link values', () => {
         description: 'Target anchor key on the destination document.',
       },
     } as const;
-    const blue = new Blue();
-
-    const linkNode = blue.jsonValueToNode(linkDef);
-    const linkBlueId = BlueIdCalculator.calculateBlueIdSync(linkNode);
-
-    blue.registerBlueIds({ Link: linkBlueId });
+    registerType('Link', linkDef);
 
     const documentLinkDef = {
       name: 'Document Link',
@@ -34,11 +36,7 @@ describe('blue.resolve with Document Links and Document Link values', () => {
       },
     } as const;
 
-    const documentLinkNode = blue.jsonValueToNode(documentLinkDef);
-    const documentLinkBlueId =
-      BlueIdCalculator.calculateBlueIdSync(documentLinkNode);
-
-    blue.registerBlueIds({ 'Document Link': documentLinkBlueId });
+    registerType('Document Link', documentLinkDef);
 
     const documentLinksDef = {
       name: 'Document Links',
@@ -48,67 +46,7 @@ describe('blue.resolve with Document Links and Document Link values', () => {
       keyType: 'Text',
       valueType: 'Link',
     } as const;
-    const documentLinksNode = blue.jsonValueToNode(documentLinksDef);
-    const documentLinksBlueId =
-      BlueIdCalculator.calculateBlueIdSync(documentLinksNode);
-
-    blue.registerBlueIds({ 'Document Links': documentLinksBlueId });
-
-    const typesMeta = {
-      [linkBlueId]: {
-        status: 'stable' as const,
-        name: 'Link',
-        versions: [
-          {
-            repositoryVersionIndex: 0,
-            typeBlueId: linkBlueId,
-            attributesAdded: [],
-          },
-        ],
-      },
-      [documentLinkBlueId]: {
-        status: 'stable' as const,
-        name: 'Document Link',
-        versions: [
-          {
-            repositoryVersionIndex: 0,
-            typeBlueId: documentLinkBlueId,
-            attributesAdded: [],
-          },
-        ],
-      },
-      [documentLinksBlueId]: {
-        status: 'stable' as const,
-        name: 'Document Links',
-        versions: [
-          {
-            repositoryVersionIndex: 0,
-            typeBlueId: documentLinksBlueId,
-            attributesAdded: [],
-          },
-        ],
-      },
-    };
-
-    const repository: BlueRepository = {
-      name: 'test.repo',
-      repositoryVersions: ['R0'],
-      packages: {
-        test: {
-          name: 'test',
-          aliases: {},
-          typesMeta,
-          contents: {
-            [linkBlueId]: blue.nodeToJson(linkNode),
-            [documentLinkBlueId]: blue.nodeToJson(documentLinkNode),
-            [documentLinksBlueId]: blue.nodeToJson(documentLinksNode),
-          },
-          schemas: {},
-        },
-      },
-    };
-
-    blue.setNodeProvider(new RepositoryBasedNodeProvider([repository]));
+    registerType('Document Links', documentLinksDef);
 
     const doc = {
       contracts: {

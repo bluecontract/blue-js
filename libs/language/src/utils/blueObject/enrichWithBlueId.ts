@@ -4,7 +4,6 @@ import {
   hasBlueObjectBlueIdDefined,
   jsonBlueValueSchema,
 } from '../../schema';
-import { calculateBlueId } from '../blueId';
 
 export const enrichWithBlueId = async (object: BlueObject) => {
   if (hasBlueObjectBlueIdDefined(object)) {
@@ -13,7 +12,8 @@ export const enrichWithBlueId = async (object: BlueObject) => {
 
   try {
     const jsonBlueValue = jsonBlueValueSchema.parse(object);
-    const blueId = await calculateBlueId(jsonBlueValue);
+    const { Blue } = await import('../../lib/Blue.js');
+    const blueId = await new Blue().calculateBlueId(jsonBlueValue);
 
     return {
       ...object,

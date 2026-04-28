@@ -37,6 +37,8 @@ export function finalizePackages(
 }
 
 export function computeRepoBlueId(packages: BluePackage[]): string {
+  // Repository version IDs are structural fingerprints of the emitted
+  // repository document, not public semantic type BlueIds.
   return BlueIdCalculator.INSTANCE.calculateSync(
     packages as unknown as BlueIdInput,
   );

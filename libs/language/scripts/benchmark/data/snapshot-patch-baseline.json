@@ -1,0 +1,35 @@
+{
+  "createdAt": "2026-04-24T07:36:56.542Z",
+  "config": {
+    "warmupIterations": 2,
+    "measuredIterations": 10,
+    "objectPropertyCount": 300,
+    "perNodePayloadProperties": 6,
+    "patchTarget": {
+      "propertyIndex": 150,
+      "fieldIndex": 3
+    }
+  },
+  "metrics": {
+    "timeMs": {
+      "min": 1.6195000000000022,
+      "max": 3.037208000000007,
+      "avg": 2.2977748000000005
+    },
+    "cloneCalls": {
+      "min": 8102,
+      "max": 8102,
+      "avg": 8102
+    },
+    "cloneShallowCalls": {
+      "min": 6304,
+      "max": 6304,
+      "avg": 6304
+    },
+    "cloneTotalCalls": {
+      "min": 14406,
+      "max": 14406,
+      "avg": 14406
+    }
+  }
+}

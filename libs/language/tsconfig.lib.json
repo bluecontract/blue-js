@@ -24,6 +24,7 @@
     "vitest.config.mts",
     "vitest-setup.ts",
     "vitest-setup.js",
+    "src/**/__fixtures__/**",
     "src/**/__tests__/**",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",

@@ -5,7 +5,8 @@ import { NodeExtender } from '../NodeExtender';
 import { PathLimitsBuilder } from '../limits/PathLimits';
 import { Limits } from '../limits/Limits';
 import { yamlBlueParse } from '../../../utils';
-import { BlueIdCalculator } from '../BlueIdCalculator';
+import { NO_LIMITS } from '../limits';
+import { Blue } from '../../Blue';
 
 describe('NodeExtender', () => {
   let nodes: Map<string, BlueNode>;
@@ -130,7 +131,7 @@ forX:
     expect(await node.get('/forX/a/prop')).toBeUndefined();
   });
 
-  test('testExtendList', async () => {
+  test('expands list reference items as nested list content without flattening', async () => {
     const nodeProvider = new InMemoryNodeProvider();
 
     const a = `
@@ -159,51 +160,56 @@ value: 3`;
 
     nodeProvider.addSingleNodes(nodeA, nodeB, nodeC);
 
-    const listBlueId = BlueIdCalculator.calculateBlueIdSync([nodeA, nodeB]);
     nodeProvider.addListAndItsItems([nodeA, nodeB]);
+    const blue = new Blue({ nodeProvider });
+    const nestedListBlueId = blue.calculateBlueIdSync([nodeA, nodeB]);
 
-    const blueIdC = BlueIdCalculator.calculateBlueIdSync(nodeC);
+    const blueIdC = blue.calculateBlueIdSync(nodeC);
 
-    const listDocument = `  
+    const outerListDocument = `  
 name: ListNode
 items:
-  - blueId: ${listBlueId}
+  - blueId: ${nestedListBlueId}
   - blueId: ${blueIdC}`;
 
-    const parsedListDocument = yamlBlueParse(listDocument);
-    if (parsedListDocument === undefined) {
-      console.error(`Failed to parse YAML: ${listDocument}`);
+    const parsedOuterListDocument = yamlBlueParse(outerListDocument);
+    if (parsedOuterListDocument === undefined) {
+      console.error(`Failed to parse YAML: ${outerListDocument}`);
       return;
     }
 
-    const listNode = NodeDeserializer.deserialize(parsedListDocument);
-    nodeProvider.addSingleNodes(listNode);
+    const outerListNode = NodeDeserializer.deserialize(parsedOuterListDocument);
+    nodeProvider.addSingleNodes(outerListNode);
 
     const nodeExtender = new NodeExtender(nodeProvider);
 
     const limits = new PathLimitsBuilder().addPath('/*').build();
-    nodeExtender.extend(listNode, limits);
+    nodeExtender.extend(outerListNode, limits);
 
-    expect(listNode.getName()).toBe('ListNode');
-    expect(listNode.getItems()?.length).toBe(3);
+    const nestedListItem = outerListNode.getItems()?.[0];
+    expect(outerListNode.getName()).toBe('ListNode');
+    expect(outerListNode.getItems()?.length).toBe(2);
+    expect(nestedListItem?.getReferenceBlueId()).toBeUndefined();
+    expect(nestedListItem?.getProperties()?.['$previous']).toBeUndefined();
+    expect(nestedListItem?.getItems()).toHaveLength(2);
 
-    expect(await listNode.get('/0/name')).toBe('A');
-    expect(await listNode.get('/0/value')).toStrictEqual(
+    expect(await outerListNode.get('/0/0/name')).toBe('A');
+    expect(await outerListNode.get('/0/0/value')).toStrictEqual(
       new BigIntegerNumber(1),
     );
 
-    expect(await listNode.get('/1/name')).toBe('B');
-    expect(await listNode.get('/1/value')).toStrictEqual(
+    expect(await outerListNode.get('/0/1/name')).toBe('B');
+    expect(await outerListNode.get('/0/1/value')).toStrictEqual(
       new BigIntegerNumber(2),
     );
 
-    expect(await listNode.get('/2/name')).toBe('C');
-    expect(await listNode.get('/2/value')).toStrictEqual(
+    expect(await outerListNode.get('/1/name')).toBe('C');
+    expect(await outerListNode.get('/1/value')).toStrictEqual(
       new BigIntegerNumber(3),
     );
   });
 
-  test('testExtendListDirectly', async () => {
+  test('expands a root list reference that contains a nested list reference without flattening', async () => {
     const nodeProvider = new InMemoryNodeProvider();
 
     const a = `
@@ -232,52 +238,79 @@ value: 3`;
 
     nodeProvider.addSingleNodes(nodeA, nodeB, nodeC);
 
-    // Create a list of A and B nodes
-    const listABBlueId = BlueIdCalculator.calculateBlueIdSync([nodeA, nodeB]);
     nodeProvider.addList([nodeA, nodeB]);
+    const blue = new Blue({ nodeProvider });
+    const nestedListBlueId = blue.calculateBlueIdSync([nodeA, nodeB]);
 
-    // Create a reference node for AB list
-    const abDocument = `blueId: ${listABBlueId}`;
-    const parsedABDocument = yamlBlueParse(abDocument);
-    if (parsedABDocument === undefined) {
-      console.error(`Failed to parse YAML: ${abDocument}`);
+    const nestedListRefDocument = `blueId: ${nestedListBlueId}`;
+    const parsedNestedListRefDocument = yamlBlueParse(nestedListRefDocument);
+    if (parsedNestedListRefDocument === undefined) {
+      console.error(`Failed to parse YAML: ${nestedListRefDocument}`);
       return;
     }
-    const nodeAB = NodeDeserializer.deserialize(parsedABDocument);
+    const nestedListRef = NodeDeserializer.deserialize(
+      parsedNestedListRefDocument,
+    );
 
-    // Create a list of AB reference and C
-    nodeProvider.addList([nodeAB, nodeC]);
-    const listABCBlueId = BlueIdCalculator.calculateBlueIdSync([nodeAB, nodeC]);
+    nodeProvider.addList([nestedListRef, nodeC]);
+    const outerListBlueId = blue.calculateBlueIdSync([nestedListRef, nodeC]);
 
-    // Create a reference node for the final ABC list
-    const abcDocument = `blueId: ${listABCBlueId}`;
-    const parsedABCDocument = yamlBlueParse(abcDocument);
-    if (parsedABCDocument === undefined) {
-      console.error(`Failed to parse YAML: ${abcDocument}`);
+    const outerListRefDocument = `blueId: ${outerListBlueId}`;
+    const parsedOuterListRefDocument = yamlBlueParse(outerListRefDocument);
+    if (parsedOuterListRefDocument === undefined) {
+      console.error(`Failed to parse YAML: ${outerListRefDocument}`);
       return;
     }
-    const nodeABC = NodeDeserializer.deserialize(parsedABCDocument);
+    const outerListRef = NodeDeserializer.deserialize(
+      parsedOuterListRefDocument,
+    );
 
     const nodeExtender = new NodeExtender(nodeProvider);
 
     const limits = new PathLimitsBuilder().addPath('/*').build();
-    nodeExtender.extend(nodeABC, limits);
+    nodeExtender.extend(outerListRef, limits);
 
-    expect(nodeABC.getItems()?.length).toBe(3);
+    const nestedListItem = outerListRef.getItems()?.[0];
+    expect(outerListRef.getReferenceBlueId()).toBeUndefined();
+    expect(outerListRef.getItems()?.length).toBe(2);
+    expect(nestedListItem?.getReferenceBlueId()).toBeUndefined();
+    expect(nestedListItem?.getProperties()?.['$previous']).toBeUndefined();
+    expect(nestedListItem?.getItems()).toHaveLength(2);
 
-    expect(await nodeABC.get('/0/name')).toBe('A');
-    expect(await nodeABC.get('/0/value')).toStrictEqual(
+    expect(await outerListRef.get('/0/0/name')).toBe('A');
+    expect(await outerListRef.get('/0/0/value')).toStrictEqual(
       new BigIntegerNumber(1),
     );
 
-    expect(await nodeABC.get('/1/name')).toBe('B');
-    expect(await nodeABC.get('/1/value')).toStrictEqual(
+    expect(await outerListRef.get('/0/1/name')).toBe('B');
+    expect(await outerListRef.get('/0/1/value')).toStrictEqual(
       new BigIntegerNumber(2),
     );
 
-    expect(await nodeABC.get('/2/name')).toBe('C');
-    expect(await nodeABC.get('/2/value')).toStrictEqual(
+    expect(await outerListRef.get('/1/name')).toBe('C');
+    expect(await outerListRef.get('/1/value')).toStrictEqual(
       new BigIntegerNumber(3),
     );
+  });
+
+  test('does not mutate provider-stored content after expanding a reference', () => {
+    const stored = NodeDeserializer.deserialize(
+      yamlBlueParse(`
+name: Base
+nested:
+  value: original
+`)!,
+    );
+    const provider = createNodeProvider((blueId: string): BlueNode[] =>
+      blueId === 'base-id' ? [stored] : [],
+    );
+    const nodeExtender = new NodeExtender(provider);
+    const ref = new BlueNode().setReferenceBlueId('base-id');
+
+    nodeExtender.extend(ref, NO_LIMITS);
+
+    ref.getProperties()?.nested?.setValue('changed');
+
+    expect(stored.getProperties()?.nested?.getValue()).toBe('original');
   });
 });

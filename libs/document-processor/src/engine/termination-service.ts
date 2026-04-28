@@ -1,7 +1,7 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
 
 import type { ContractBundle } from './contract-bundle.js';
+import { blueIds } from '../repository/semantic-repository.js';
 import type { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import { RELATIVE_TERMINATED } from '../constants/processor-pointer-constants.js';
 import { resolvePointer } from '../util/pointer-utils.js';

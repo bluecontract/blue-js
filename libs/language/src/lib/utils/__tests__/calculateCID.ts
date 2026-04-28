@@ -1,4 +1,6 @@
-import { JsonCanonicalizer } from '../JsonCanonicalizer';
+import { NodeDeserializer } from '../../model';
+import { BlueIdCalculator } from '../BlueIdCalculator';
+import { BlueIdToCid } from '../BlueIdToCid';
 
 export const calculateCidFromString = async (input: string) => {
   const { CID } = await import('multiformats/cid');
@@ -11,10 +13,8 @@ export const calculateCidFromString = async (input: string) => {
 };
 
 export const calculateCidFromObject = async (input: object) => {
-  const canonicalize = JsonCanonicalizer.canonicalize(input);
-  if (typeof canonicalize !== 'string') {
-    throw new Error('Canonicalize must be a string');
-  }
-  const cid = await calculateCidFromString(canonicalize);
-  return cid;
+  const blueId = await BlueIdCalculator.calculateBlueId(
+    NodeDeserializer.deserialize(input),
+  );
+  return BlueIdToCid.convert(blueId);
 };

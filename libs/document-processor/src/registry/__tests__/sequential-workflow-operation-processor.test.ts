@@ -10,8 +10,10 @@ import {
   property,
   typeBlueId,
 } from '../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
-import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
+import {
+  blueIds as coreBlueIds,
+  conversationBlueIds,
+} from '../../repository/semantic-repository.js';
 
 const blue = createBlue();
 
@@ -533,7 +535,7 @@ contracts:
     expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 
-  it('executes derived change workflow with change request payloads', async () => {
+  it('executes change operation workflow with change request payloads', async () => {
     const processor = buildProcessor(blue);
     const derivedChangesetYaml = `- op: "\${event.message.request.changeset[0].op}"
   path: "\${event.message.request.changeset[0].path}"
@@ -542,7 +544,7 @@ contracts:
       processor.initializeDocument(
         buildOperationDocument({
           operationType: 'Conversation/Change Operation',
-          handlerType: 'Conversation/Change Workflow',
+          handlerType: 'Conversation/Sequential Workflow Operation',
           requestTypeYaml: 'type: Conversation/Change Request',
           changesetYaml: derivedChangesetYaml,
         }),
