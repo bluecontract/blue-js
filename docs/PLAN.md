@@ -410,30 +410,27 @@ raw-ID exception for transformation resources.
 - `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` — passed.
 - `npx eslint libs/document-processor --fix` — passed.
 - `nx test document-processor --skip-nx-cache` — passed: 349 passed.
-- Benchmark refresh on 2026-04-27, Apple M1 Pro, Node `v22.22.1`, default
+- Benchmark refresh on 2026-04-28, Apple M1 Pro, Node `v22.22.1`, default
   config `2` warmup / `10` measured iterations, after
   `npx nx build language --skip-nx-cache`:
   - `node scripts/benchmark/calculateBlueId.mjs`: low-level hash avg
-    `11155.99 ms`, baseline delta `-2078.06 ms (-15.70%)`.
-  - `node scripts/benchmark/semanticBlueId.mjs`: authoring no-type avg
-    `4.81 ms`, authoring shared-type avg `1.83 ms`, resolved avg `0.07 ms`,
-    public semantic ID on minimal-shaped authoring avg `1.68 ms`, provider
-    ingest avg `0.57 ms`.
-  - `BENCH_SAVE_BASELINE=1 node scripts/benchmark/semanticBlueId.mjs`: saved
-    `scripts/benchmark/data/semantic-blue-id-baseline.json` with authoring
-    no-type avg `4.75 ms`, authoring shared-type avg `1.79 ms`, resolved avg
-    `0.07 ms`, public semantic ID on minimal-shaped authoring avg `1.68 ms`,
-    provider ingest avg `0.57 ms`.
+    `10891.02 ms`, baseline delta `-2343.03 ms (-17.70%)`.
   - `BENCH_COMPARE_BASELINE=1 node scripts/benchmark/semanticBlueId.mjs`:
-    passed against the new semantic baseline.
-  - `node scripts/benchmark/resolve.mjs`: shared resolve avg `46.62 ms`,
-    baseline delta `-251.04 ms (-84.34%)`; clone total avg `165019`, baseline
+    authoring no-type avg `4.79 ms`, authoring shared-type avg `1.89 ms`,
+    resolved avg `0.16 ms`, public semantic ID on minimal-shaped authoring avg
+    `1.78 ms`, provider ingest avg `0.58 ms`; passed against the existing
+    semantic baseline with deltas: authoring no-type `+0.04 ms (+0.90%)`,
+    authoring shared-type `+0.09 ms (+5.27%)`, resolved
+    `+0.09 ms (+139.23%)`, public semantic ID on minimal-shaped authoring
+    `+0.10 ms (+5.93%)`, provider ingest `+0.01 ms (+1.33%)`.
+  - `node scripts/benchmark/resolve.mjs`: shared resolve avg `48.15 ms`,
+    baseline delta `-249.51 ms (-83.82%)`; clone total avg `165019`, baseline
     delta `-369719 (-69.14%)`.
   - `BENCH_TYPE_MODE=unique node scripts/benchmark/resolve.mjs`: unique
-    resolve avg `1660.62 ms`, baseline delta `+58.43 ms (+3.65%)`; clone
+    resolve avg `1647.42 ms`, baseline delta `+45.23 ms (+2.82%)`; clone
     total avg `528612`, baseline delta `-441599 (-45.52%)`.
   - `node scripts/benchmark/snapshotPatch.mjs`: patch-then-full-resolve avg
-    `1.96 ms`, baseline delta `-0.34 ms (-14.70%)`; clone total avg `10506`,
+    `2.00 ms`, baseline delta `-0.30 ms (-12.96%)`; clone total avg `10506`,
     baseline delta `-3900 (-27.07%)`.
 
 ### Deliberate transitional behavior
