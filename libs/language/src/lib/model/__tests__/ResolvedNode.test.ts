@@ -93,20 +93,33 @@ value: test
   });
 
   it('returns the source reference for path-limited nodes with a source semantic BlueId', () => {
+    const sourceSemanticBlueId = BlueIdCalculator.calculateBlueIdSync(
+      new BlueNode().setValue('SourceSemanticBlueId'),
+    );
     const resolvedNode = new ResolvedBlueNode(
       new BlueNode().setProperties({
         allowed: new BlueNode().setValue('value'),
       }),
       {
         completeness: 'path-limited',
-        sourceSemanticBlueId: 'SourceSemanticBlueId',
+        sourceSemanticBlueId,
       },
     );
 
     expect(resolvedNode.getMinimalNode().getBlueId()).toBe(
-      'SourceSemanticBlueId',
+      sourceSemanticBlueId,
     );
-    expect(resolvedNode.getMinimalBlueId()).toBe('SourceSemanticBlueId');
+    expect(resolvedNode.getMinimalBlueId()).toBe(sourceSemanticBlueId);
+  });
+
+  it('rejects invalid source semantic BlueId metadata', () => {
+    expect(
+      () =>
+        new ResolvedBlueNode(new BlueNode(), {
+          completeness: 'path-limited',
+          sourceSemanticBlueId: 'SymbolicType',
+        }),
+    ).toThrow(/sourceSemanticBlueId must be a valid BlueId/);
   });
 
   it('calculates minimal BlueId for resolved positional list overlays', () => {

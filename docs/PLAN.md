@@ -360,8 +360,9 @@ raw-ID exception for transformation resources.
 - Resolved/runtime nodes carry the minimum completeness metadata:
   `completeness: 'full' | 'path-limited'` and `sourceSemanticBlueId`.
 - Path-limited `resolve()` no longer computes a full semantic `BlueId` just to
-  set metadata. `sourceSemanticBlueId` is accepted from `ResolveOptions` or from
-  an exact root pure reference only.
+  set metadata. `sourceSemanticBlueId` is internal provenance metadata and is
+  set only from a valid exact root pure reference; invalid symbolic anchors are
+  rejected.
 - `ResolvedBlueNode.getMinimalNode()` and `getMinimalBlueId()` now respect the
   path-limited guard and return the source reference only when the source
   semantic ID is known.
@@ -825,9 +826,9 @@ nie nowa architektura: naprawia kontrakty, które muszą być prawdziwe zanim Ph
   payload kinds i odrzuca dokumentowe `properties`.
 - `MergeReverser` zna root node i zachowuje root instance `name` /
   `description`, nawet gdy są równe typowi.
-- `Blue.resolve(node, limits, options)` przyjmuje `sourceSemanticBlueId`, ale
-  nie liczy go sam dla path-limited resolve. Exact root `{ blueId }` jest jedynym
-  tanim automatycznym źródłem metadata.
+- `Blue.resolve(node, limits)` nie przyjmuje publicznego
+  `sourceSemanticBlueId` override i nie liczy go sam dla path-limited resolve.
+  Valid exact root `{ blueId }` jest jedynym źródłem metadata.
 - `ResolvedBlueNode.getMinimalNode()` / `getMinimalBlueId()` nie omijają guardu
   dla path-limited tree.
 - Trusted minimal storage hash pozostaje wewnętrzną ścieżką storage. Benchmark

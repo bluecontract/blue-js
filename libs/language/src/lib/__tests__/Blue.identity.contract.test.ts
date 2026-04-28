@@ -94,7 +94,48 @@ describeContract('Blue identity specification contracts', () => {
     );
   });
 
-  it('keeps semantic BlueId stable across full and path-limited resolution', () => {
+  it('anchors path-limited identity for valid root pure references', () => {
+    const blue = new Blue();
+    const sourceBlueId = blue.calculateBlueIdSync({
+      name: 'Referenced Source',
+      value: 'source',
+    });
+    const source = new BlueNode().setReferenceBlueId(sourceBlueId);
+
+    const limitedResolved = blue.resolve(
+      source,
+      PathLimits.withSinglePath('/value'),
+    );
+
+    expect(limitedResolved.getCompleteness()).toBe('path-limited');
+    expect(limitedResolved.getSourceSemanticBlueId()).toBe(sourceBlueId);
+    expect(blue.calculateBlueIdSync(limitedResolved)).toBe(sourceBlueId);
+  });
+
+  it('anchors path-limited identity for final cyclic document BlueIds', () => {
+    const blue = new Blue();
+    const masterBlueId = blue.calculateBlueIdSync(
+      yamlBlueParse(`- name: A
+  peer:
+    blueId: this#1
+- name: B
+  peer:
+    blueId: this#0
+`)!,
+    );
+    const documentBlueId = `${masterBlueId}#1`;
+    const source = new BlueNode().setReferenceBlueId(documentBlueId);
+
+    const limitedResolved = blue.resolve(
+      source,
+      PathLimits.withSinglePath('/peer'),
+    );
+
+    expect(limitedResolved.getSourceSemanticBlueId()).toBe(documentBlueId);
+    expect(blue.calculateBlueIdSync(limitedResolved)).toBe(documentBlueId);
+  });
+
+  it('does not anchor path-limited authoring nodes', () => {
     const provider = new BasicNodeProvider();
     provider.addSingleDocs(`
 name: Identity Fixture Base Type
@@ -114,27 +155,22 @@ nested:
 `);
 
     const fullResolved = blue.resolve(source);
-    const sourceBlueId = blue.calculateBlueIdSync(source);
     const limitedResolved = blue.resolve(
       source,
       PathLimits.withSinglePath('/instanceOnly'),
-      { sourceSemanticBlueId: sourceBlueId },
     );
 
-    expect(blue.calculateBlueIdSync(limitedResolved)).toBe(
-      blue.calculateBlueIdSync(fullResolved),
+    expect(blue.calculateBlueIdSync(fullResolved)).toBe(
+      blue.calculateBlueIdSync(source),
     );
-    const limitedResolvedMetadata = limitedResolved as unknown as {
-      getCompleteness(): string;
-      getSourceSemanticBlueId(): string | undefined;
-    };
-    expect(limitedResolvedMetadata.getCompleteness()).toBe('path-limited');
-    expect(limitedResolvedMetadata.getSourceSemanticBlueId()).toBe(
-      sourceBlueId,
+    expect(limitedResolved.getCompleteness()).toBe('path-limited');
+    expect(limitedResolved.getSourceSemanticBlueId()).toBeUndefined();
+    expect(() => blue.calculateBlueIdSync(limitedResolved)).toThrow(
+      /path-limited resolved node without a source semantic BlueId/,
     );
   });
 
-  it('does not calculate full semantic identity during path-limited resolution', () => {
+  it('rejects path-limited identity without a source anchor', () => {
     const blue = new Blue();
     const source = blue.yamlToNode(`
 allowed: ok
@@ -150,6 +186,24 @@ offPath:
 
     expect(limitedResolved.get('/allowed/value')).toBe('ok');
     expect(limitedResolved.getSourceSemanticBlueId()).toBeUndefined();
+    expect(() => blue.calculateBlueIdSync(limitedResolved)).toThrow(
+      /path-limited resolved node without a source semantic BlueId/,
+    );
+  });
+
+  it('does not treat symbolic root references as source anchors', () => {
+    const blue = new Blue();
+    const source = new BlueNode().setReferenceBlueId('SymbolicType');
+
+    const limitedResolved = blue.resolve(
+      source,
+      PathLimits.withSinglePath('/anything'),
+    );
+
+    expect(limitedResolved.getSourceSemanticBlueId()).toBeUndefined();
+    expect(() => blue.calculateBlueIdSync(limitedResolved)).toThrow(
+      /path-limited resolved node without a source semantic BlueId/,
+    );
   });
 
   it('rejects mixed blueId plus payload in storage or authoring ingest', () => {

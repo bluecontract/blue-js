@@ -300,7 +300,6 @@ rows:
     const limitedResolved = blue.resolve(
       derived,
       new PathLimitsBuilder().addPath('/rows/0').build(),
-      { sourceSemanticBlueId: blue.calculateBlueIdSync(derived) },
     );
 
     expect(limitedResolved.get('/rows/0/type/blueId')).toBe(rowTypeId);

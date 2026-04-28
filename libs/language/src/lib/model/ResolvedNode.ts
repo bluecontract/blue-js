@@ -1,5 +1,6 @@
 import { BlueNode } from './Node';
 import { BlueIdCalculator } from '../utils/BlueIdCalculator';
+import { BlueIds } from '../utils/BlueIds';
 import { Minimizer } from '../utils/Minimizer';
 
 export type ResolvedNodeCompleteness = 'full' | 'path-limited';
@@ -25,7 +26,9 @@ export class ResolvedBlueNode extends BlueNode {
   constructor(resolvedNode: BlueNode, metadata: ResolvedBlueNodeMetadata = {}) {
     super(resolvedNode.getName());
     this.completeness = metadata.completeness ?? 'full';
-    this.sourceSemanticBlueId = metadata.sourceSemanticBlueId;
+    this.sourceSemanticBlueId = this.validateSourceSemanticBlueId(
+      metadata.sourceSemanticBlueId,
+    );
     this.createFrom(resolvedNode);
   }
 
@@ -104,8 +107,22 @@ export class ResolvedBlueNode extends BlueNode {
   }
 
   public setSourceSemanticBlueId(blueId: string | undefined): this {
-    this.sourceSemanticBlueId = blueId;
+    this.sourceSemanticBlueId = this.validateSourceSemanticBlueId(blueId);
     return this;
+  }
+
+  private validateSourceSemanticBlueId(
+    blueId: string | undefined,
+  ): string | undefined {
+    if (blueId === undefined) {
+      return undefined;
+    }
+
+    if (!BlueIds.isPotentialBlueId(blueId)) {
+      throw new Error('sourceSemanticBlueId must be a valid BlueId.');
+    }
+
+    return blueId;
   }
 
   private getMetadata(): ResolvedBlueNodeMetadata {
