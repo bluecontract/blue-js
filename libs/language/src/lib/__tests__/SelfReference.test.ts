@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { BasicNodeProvider } from '../provider/BasicNodeProvider';
-import { NodeDeserializer } from '../model';
+import { BlueNode, NodeDeserializer } from '../model';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { Blue } from '../Blue';
+import { CyclicSetIdentityService } from '../identity/CyclicSetIdentityService';
 
 describe('SelfReferenceTest', () => {
   it('rejects unindexed single-document this references', () => {
@@ -91,6 +92,43 @@ x:
     expect(blue.calculateBlueIdSync(first!)).toBe(
       blue.calculateBlueIdSync(second!),
     );
+  });
+
+  it('orders cyclic preliminary ids by ASCII code point', () => {
+    const service = new CyclicSetIdentityService({
+      calculateBlueId: (value) => {
+        if (Array.isArray(value)) {
+          return 'MASTER';
+        }
+
+        const name = value.getName();
+        if (name === 'lower') {
+          return 'a';
+        }
+        if (name === 'upper') {
+          return 'B';
+        }
+        throw new Error(`Unexpected test node: ${name ?? '<unnamed>'}`);
+      },
+    });
+    const lower = new BlueNode('lower').addProperty(
+      'peer',
+      new BlueNode().setReferenceBlueId('this#1'),
+    );
+    const upper = new BlueNode('upper').addProperty(
+      'peer',
+      new BlueNode().setReferenceBlueId('this#0'),
+    );
+
+    const result = service.calculate([lower, upper]);
+
+    expect(result.nodes.map((node) => node.getName())).toEqual([
+      'upper',
+      'lower',
+    ]);
+    expect(result.originalToSortedIndexes).toEqual([1, 0]);
+    expect(result.nodes[0].get('/peer/blueId')).toBe('this#1');
+    expect(result.nodes[1].get('/peer/blueId')).toBe('this#0');
   });
 
   it('rejects ambiguous cyclic ordering when preliminary BlueIds tie', () => {

@@ -93,6 +93,33 @@ type: Text`;
     expect(item2?.getValue()).toBe('item2');
   });
 
+  it('maps cyclic list item names when adding list and its items', () => {
+    const listNode = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: ListCycleA
+  peer:
+    blueId: this#1
+- name: ListCycleB
+  peer:
+    blueId: this#0
+`),
+    );
+    const items = listNode.getItems() ?? [];
+    const provider = new BasicNodeProvider();
+
+    provider.addListAndItsItems(items);
+
+    const aBlueId = provider.getBlueIdByName('ListCycleA');
+    const bBlueId = provider.getBlueIdByName('ListCycleB');
+    expect(aBlueId).toMatch(/#\d+$/);
+    expect(bBlueId).toMatch(/#\d+$/);
+    expect(provider.getNodeByName('ListCycleA').get('/peer/blueId')).toBe(
+      bBlueId,
+    );
+    expect(provider.getNodeByName('ListCycleB').get('/peer/blueId')).toBe(
+      aBlueId,
+    );
+  });
+
   it('should fetch by Blue ID', () => {
     const node = new BlueNode('TestBlueId').setValue('test');
     const provider = new BasicNodeProvider([node]);

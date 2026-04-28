@@ -96,7 +96,13 @@ export class CyclicSetIdentityService {
     left: PreliminaryDocument,
     right: PreliminaryDocument,
   ): number {
-    return left.preliminaryBlueId.localeCompare(right.preliminaryBlueId);
+    if (left.preliminaryBlueId < right.preliminaryBlueId) {
+      return -1;
+    }
+    if (left.preliminaryBlueId > right.preliminaryBlueId) {
+      return 1;
+    }
+    return 0;
   }
 
   private validateUniquePreliminaryBlueIds(
