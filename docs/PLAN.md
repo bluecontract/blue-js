@@ -1,320 +1,364 @@
-## 1. Opis / context
+# Blue Language Runtime Roadmap and Historical Implementation Plan
 
-Aktualnie `libs/language` miesza cztery różne pojęcia:
+Last updated: 2026-04-28
 
-- **official / wrapped form** — czyli specowe `value` / `items`,
-- **minimal overlay form** — wynik minimizacji,
-- **resolved tree** — forma runtime’owa,
-- **BlueId** — które raz liczone jest z inputu, raz z providerowego contentu, a raz z reverse/minimize.
+Status: Phase 1 and Phase 2 identity/storage work is implemented. Phase 3
+resolved snapshots remain planned.
 
-To jest główna przyczyna obecnych problemów. Sam koszt `resolve()` jest istotny, ale pierwotny kłopot jest taki, że system nie ma jednej semantyki identity. Spec jest tu już dość jednoznaczny: official canonical shape to wrapped form, `BlueId` ma być stabilny dla równoważnych form authoringowych i dla expansion/resolution, pure reference short-circuit działa tylko dla exact `{ blueId: ... }`, puste listy są znaczące, a minimization ma zachować i snapshot, i `BlueId`. ([language.blue][1])
+This document is intentionally detailed. It is both a durable roadmap for future
+runtime work and a historical record of the implementation decisions that led to
+the current `libs/language` release state.
 
-Dlatego nowy plan dla `language` powinien z góry założyć taki target:
+## 1. Context
 
-- publiczne `Blue.calculateBlueId*` = **semantic BlueId**,
-- providerzy zapisują **minimal overlay form** pod semantic `BlueId`,
-- `resolve()` / `resolveToSnapshot()` daje **runtime snapshot**,
-- spec-native list forms (`$previous`, `$pos`, `$empty`) są domykane jeszcze
-  w Phase 1K, przed snapshotami,
-- bezpośrednie cykle `this#k` zostają osobną końcową ścieżką konformacyjną.
+Historically, `libs/language` mixed four different concepts:
+
+- **official / wrapped form**: the specification form using `value` / `items`;
+- **minimal overlay form**: the output of minimization;
+- **resolved tree**: the runtime form;
+- **BlueId**: sometimes calculated from input, sometimes from provider content,
+  and sometimes from reverse/minimize output.
+
+That was the root cause of the identity issues. `resolve()` cost matters, but
+the primary problem was the absence of one identity semantics. The specification
+is clear about the target: the official canonical shape is the wrapped form,
+`BlueId` must be stable across equivalent authoring forms and across
+expansion/resolution, pure-reference short-circuiting applies only to exact
+`{ blueId: ... }`, empty lists are meaningful, and minimization must preserve
+both the snapshot and the `BlueId`. ([language.blue][1])
+
+The target for `language` is therefore:
+
+- public `Blue.calculateBlueId*` = **semantic BlueId**;
+- providers store **minimal overlay form** under the semantic `BlueId`;
+- `resolve()` returns the current mutable resolved runtime tree, while Phase 3
+  adds `resolveToSnapshot()`;
+- spec-native list forms (`$previous`, `$pos`, `$empty`) are handled before
+  snapshots;
+- direct cycles with `this#k` are the final conformance path before snapshots.
   ([language.blue][1])
 
-## 2. Design / ADR
+## 2. Design / ADR Summary
 
-### ADR-01 — Terminologia jest twardą częścią API
+### ADR-01 - Terminology Is Part Of The API
 
-Rezerwujemy słowo **canonical** wyłącznie dla:
+Reserve the word **canonical** only for:
 
-- specowego wrapped shape,
-- albo canonical JSON z RFC 8785.
+- the specification wrapped shape;
+- RFC 8785 canonical JSON.
 
-Nie używamy `canonical` dla minimal overlay.
+Do not use `canonical` for minimal overlay content.
 
-W kodzie i docs zostają cztery terminy:
+Code and docs use four terms:
 
-- `official` / `wrapped`,
-- `minimal`,
-- `resolved`,
+- `official` / `wrapped`;
+- `minimal`;
+- `resolved`;
 - `semantic BlueId`.
-  To jest ważne, bo spec już nazywa wrapped form „official canonical representation”. ([language.blue][1])
 
-### ADR-02 — Publiczne `Blue.calculateBlueId*` oznacza semantic identity
+This matters because the specification already calls the wrapped form the
+"official canonical representation". ([language.blue][1])
 
-Publiczne API liczy semantic `BlueId`, a nie hash chwilowej materializacji.
+### ADR-02 - Public `Blue.calculateBlueId*` Means Semantic Identity
 
-Docelowy pipeline:
+The public API calculates semantic `BlueId`, not a hash of a transient
+materialization.
 
-- authoring / official input → `preprocess -> resolve -> minimize -> hash(minimal)`
-- resolved input → `minimize -> hash(minimal)`
-- minimal input → `validateStorageShape -> hash(minimal)`
+Target pipeline:
 
-Low-level hasher nadal istnieje, ale przestaje być „główną prawdą” dla aplikacyjnego API. Wynika to bezpośrednio z tego, że expansion nie może zmieniać `BlueId`, a minimization ma dawać ten sam snapshot i ten sam `BlueId`. ([language.blue][1])
+- authoring / official input -> `preprocess -> resolve -> minimize -> hash(minimal)`;
+- resolved input -> `minimize -> hash(minimal)`;
+- minimal input -> `validateStorageShape -> hash(minimal)`.
 
-### ADR-03 — `blueId` w modelu jest referencją, nie computed identity
+The low-level hasher remains available, but it is no longer the main application
+identity source. This follows directly from the requirement that expansion must
+not change `BlueId`, and that minimization must preserve the same snapshot and
+the same `BlueId`. ([language.blue][1])
 
-Semantycznie rozdzielamy:
+### ADR-03 - `blueId` In The Model Is A Reference, Not Computed Identity
 
-- `referenceBlueId`
-- computed / semantic identity
+Separate:
 
-Na poziomie dokumentu pole dalej nazywa się `blueId`, ale w modelu `BlueNode` przestajemy traktować je jako „własny ID noda”. Spec mówi wprost, że node nie może przechowywać własnego `BlueId` jako autorytatywnej treści; `{ blueId: ... }` jest do referencji. ([language.blue][1])
+- `referenceBlueId`;
+- computed / semantic identity.
 
-Praktycznie:
+The document field is still named `blueId`, but in the `BlueNode` model it must
+not be treated as the node's own ID. The specification says a node cannot store
+its own `BlueId` as authoritative content; `{ blueId: ... }` is a reference.
+([language.blue][1])
 
-- nowy kod używa `getReferenceBlueId()` / `setReferenceBlueId()`,
-- `getBlueId()` / `setBlueId()` mogą zostać tymczasowo jako deprecated aliasy, żeby nie zerwać od razu całego monorepo.
+Practical contract:
 
-### ADR-04 — Minimization i provider/storage idą razem
+- new code uses `getReferenceBlueId()` / `setReferenceBlueId()`;
+- `getBlueId()` / `setBlueId()` remain temporary deprecated aliases so the
+  monorepo does not need to migrate all call sites at once.
 
-To jest kluczowa zmiana względem poprzedniego planu.
+### ADR-04 - Minimization And Provider Storage Move Together
 
-`minimize()` staje się pierwszoklasowym API, a providerzy zaczynają zapisywać **minimal overlay form**, nie „preprocessed JSON” ani resolved explosion. Robimy to w tej samej fazie co semantic `BlueId`, bo spec mówi, że minimize ma odtwarzać ten sam resolved snapshot i ten sam `BlueId`. Nie ma sensu naprawiać identity bez równoczesnej zmiany storage semantics. ([language.blue][1])
+This is the key change relative to earlier plans.
 
-Ważne zastrzeżenie: do czasu końcowej fazy list/cykli minimal overlay format dla dwóch przypadków będzie **wewnętrznie przejściowy**:
+`minimize()` becomes a first-class API, and providers store **minimal overlay
+form**, not "preprocessed JSON" and not a resolved explosion. This belongs in
+the same phase as semantic `BlueId`, because the specification says minimization
+must recover the same resolved snapshot and the same `BlueId`. Identity cannot
+be fixed without also fixing storage semantics. ([language.blue][1])
 
-- list overlays,
-- direct cyclic multi-doc sets.
+Important caveat: until the final list/cycle phases, minimal overlay format for
+two families was allowed to be internally transitional:
 
-Czyli po fazie 1 storage jest już „minimal-first”, ale jeszcze nie ogłaszamy jego finalnego publicznego kontraktu dla tych dwóch specjalnych rodzin przypadków.
+- list overlays;
+- direct cyclic multi-document sets.
 
-### ADR-05 — Direct cycles wchodzą przed snapshotami
+After Phase 1, storage is already minimal-first, but the final public storage
+contract for those two special families was not declared complete until their
+dedicated work was done.
 
-Po ustabilizowaniu identity, storage i list controls domykamy direct cyclic
-sets z `this#k`, żeby snapshoty nie musiały później zmieniać sposobu
-cache'owania `BlueId`.
+### ADR-05 - Direct Cycles Come Before Snapshots
 
-Najbliższa kolejność:
+After identity, storage, and list controls are stable, direct cyclic sets with
+`this#k` are finalized so snapshots do not later need to change their `BlueId`
+caching model.
 
-- direct-cycle combined BlueId z `this#k`,
-- `MASTER#i` jako finalne identity dokumentów cyklicznego setu,
-- dopiero potem `ResolvedSnapshot`.
+Required order:
 
-### ADR-06 — Snapshoty mają być DP-ready
+- direct-cycle combined BlueId with `this#k`;
+- `MASTER#i` as final identity for cyclic-set documents;
+- only then `ResolvedSnapshot`.
 
-Po domknięciu `this#k` wchodzi:
+### ADR-06 - Snapshots Must Be DP-Ready
 
-- `ResolvedSnapshot`,
-- freeze/finalization,
-- lazy caches,
-- copy-on-write po ścieżce.
+After `this#k` is closed, add:
 
-Spec już przy resolve mówi o finalizacji resolved snapshotu, więc ten kierunek
-jest naturalny, ale snapshot ma już bazować na finalnym semantic `BlueId`,
-włącznie z `MASTER#i`. ([language.blue][1])
+- `ResolvedSnapshot`;
+- freeze/finalization;
+- lazy caches;
+- path-based copy-on-write.
 
-## 3. Plan implementacji i testów
+The specification already describes resolve as producing a finalized resolved
+snapshot. The snapshot should therefore be based on the final semantic `BlueId`,
+including `MASTER#i`. ([language.blue][1])
 
-## Faza 0 — Guardrails, glossary, red tests, benchmark baseline
+## 3. Implementation Plan And Status
 
-### Cel
+## Phase 0 - Guardrails, Glossary, Red Tests, Benchmark Baseline
 
-Ustawić język pojęć i mieć bezpiecznik przed dużym refaktorem.
+### Goal
 
-### Implementacja
+Set the terminology and create a safety net before the larger refactor.
 
-- dodać `docs/adr/` z ADR-ami powyżej,
-- dodać `docs/glossary.md`,
-- dodać fixture matrix do `libs/language/src/lib/__fixtures__/identity/`,
-- dodać baseline benchmarków:
-  - `calculate-blue-id`,
-  - `resolve`,
-  - nowy: `snapshot-patch` jako placeholder do późniejszej fazy.
+### Implementation
 
-### Fixture matrix
+- add `docs/adr/` with the ADRs above;
+- add `docs/glossary.md`;
+- add a fixture matrix under `libs/language/src/lib/__fixtures__/identity/`;
+- add benchmark baselines:
+  - `calculate-blue-id`;
+  - `resolve`;
+  - new `snapshot-patch` placeholder for a later phase.
+
+### Fixture Matrix
 
 Minimum:
 
-- scalar sugar vs wrapped scalar,
-- list sugar vs wrapped list,
-- pure ref,
-- materialized ref subtree,
-- mixed `blueId + payload` w authoring/storage input,
-- present-empty list,
-- append-only list,
-- positional list,
-- direct cyclic 2-doc set,
+- scalar sugar vs wrapped scalar;
+- list sugar vs wrapped list;
+- pure ref;
+- materialized ref subtree;
+- mixed `blueId + payload` in authoring/storage input;
+- present-empty list;
+- append-only list;
+- positional list;
+- direct cyclic 2-doc set;
 - resolved inherited-type tree.
 
-### Testy
+### Tests
 
-Na końcu fazy 0:
+At the end of Phase 0:
 
-- fixture’y są gotowe,
-- benchmark baseline zapisany,
-- istnieją red tests dla docelowej semantyki.
+- fixtures are ready;
+- benchmark baseline is saved;
+- red tests exist for the target semantics.
 
-### Naturalny podział na PR
+### Natural PR Split
 
-- PR-0A: glossary + ADR
-- PR-0B: fixtures + benchmark baseline
+- PR-0A: glossary + ADR;
+- PR-0B: fixtures + benchmark baseline.
 
 ---
 
-## Faza 1 — Semantic BlueId core + minimize + provider/storage
+## Phase 1 - Semantic BlueId Core + Minimize + Provider/Storage
 
-To jest teraz główna faza. Łączy stare „1, 2 i 3”.
+This became the main phase. It combines the earlier "1, 2, and 3" work.
 
-### Cel
+### Goal
 
-Dostarczyć **jedną semantykę identity** i od razu przepiąć storage pod minimal overlay.
+Deliver **one identity semantics** and immediately move storage to minimal
+overlay.
 
-### Strumień 1A — Low-level hasher zgodny z §8
+### Stream 1A - Low-Level Hasher Compatible With Section 8
 
-#### Implementacja
+#### Implementation
 
-Wydzielić warstwę identity, np.:
+Extract the identity layer, for example:
 
-- `src/lib/identity/BlueIdHashNormalizer.ts`
-- `src/lib/identity/BlueIdHasher.ts`
+- `src/lib/identity/BlueIdHashNormalizer.ts`;
+- `src/lib/identity/BlueIdHasher.ts`;
 
-lub analogiczny refaktor obecnego `BlueIdCalculator`.
+or an equivalent refactor of the existing `BlueIdCalculator`.
 
-Zasady:
+Rules:
 
-- pure-ref short-circuit tylko dla exact `{ blueId }`,
-- `null` i `{}` są usuwane,
-- `[]` zostaje,
-- wrapper equivalence działa dla `value` i `items`,
-- list hash używa `id([])` + domain-separated fold,
-- scalar hash używa canonical JSON scalar,
-- map hashing nie polega na publicznym serializerze JSON.
-  To wszystko jest bezpośrednio opisane w §8 i §12. ([language.blue][1])
+- pure-ref short-circuit only for exact `{ blueId }`;
+- remove `null` and `{}`;
+- preserve `[]`;
+- wrapper equivalence for `value` and `items`;
+- list hash uses `id([])` plus domain-separated fold;
+- scalar hash uses canonical JSON scalar;
+- map hashing does not rely on the public JSON serializer.
+  This is directly described in Sections 8 and 12. ([language.blue][1])
 
-#### Pliki
+#### Files
 
-- `src/lib/utils/BlueIdCalculator.ts`
-- nowe `src/lib/identity/*`
-- odpięcie hash path od `src/lib/utils/NodeToMapListOrValue.ts`
+- `src/lib/utils/BlueIdCalculator.ts`;
+- new `src/lib/identity/*`;
+- detach hash path from `src/lib/utils/NodeToMapListOrValue.ts`.
 
-#### Testy
+#### Tests
 
-- `[] != absent`
-- `[A] != A`
-- `[[A,B],C] != [A,B,C]`
-- `x: 1` == `x: { value: 1 }`
-- `x: [a,b]` == `x: { items: [a,b] }`
-- mixed `blueId + payload` nie short-circuituje
+- `[] != absent`;
+- `[A] != A`;
+- `[[A,B],C] != [A,B,C]`;
+- `x: 1` == `x: { value: 1 }`;
+- `x: [a,b]` == `x: { items: [a,b] }`;
+- mixed `blueId + payload` does not short-circuit.
 
-### Strumień 1B — Semantic pipeline
+### Stream 1B - Semantic Pipeline
 
-#### Implementacja
+#### Implementation
 
-Dodać `SemanticIdentityService`.
+Add `SemanticIdentityService`.
 
-Publiczne:
+Public APIs:
 
-- `Blue.calculateBlueId*` przechodzi na semantic pipeline,
-- `Blue.minimize()` staje się publicznym API,
-- `Blue.reverse()` zostaje jako deprecated alias do czasu cleanupu.
+- `Blue.calculateBlueId*` moves to the semantic pipeline;
+- `Blue.minimize()` becomes public;
+- `Blue.reverse()` remains as a deprecated alias until cleanup.
 
 #### Model
 
 - `Node.ts`:
-  - `getReferenceBlueId()`,
-  - `setReferenceBlueId()`,
-  - deprecated aliasy `getBlueId()/setBlueId()`.
+  - `getReferenceBlueId()`;
+  - `setReferenceBlueId()`;
+  - deprecated `getBlueId()/setBlueId()` aliases.
 
-#### Ważna walidacja
+#### Important Validation
 
-**Storage/authoring ingest** ma odrzucać niejednoznaczne inputy z mieszanym `blueId + payload`, ale **resolved/materialized runtime trees** nie są przez to blokowane. Innymi słowy:
+**Storage/authoring ingest** rejects ambiguous mixed `blueId + payload`, while
+**resolved/materialized runtime trees** are not blocked by that rule.
 
-- authoring/storage path: strict,
-- internal resolved path: dozwolony materialized ref subtree, ale bez pure-ref short-circuit.
+In other words:
 
-To jest ważne, bo expansion ma zachować identity, ale pure-ref short-circuit ma działać tylko dla exact reference form. ([language.blue][1])
+- authoring/storage path: strict;
+- internal resolved path: materialized ref subtree is allowed, but without
+  pure-ref short-circuit.
 
-#### Pliki
+This matters because expansion must preserve identity, while pure-ref
+short-circuiting must apply only to the exact reference form. ([language.blue][1])
 
-- `src/lib/Blue.ts`
-- `src/lib/model/Node.ts`
-- `src/lib/model/ResolvedNode.ts`
-- `src/lib/utils/Nodes.ts`
-- call site’y `getBlueId()/setBlueId()`
+#### Files
 
-#### Testy
+- `src/lib/Blue.ts`;
+- `src/lib/model/Node.ts`;
+- `src/lib/model/ResolvedNode.ts`;
+- `src/lib/utils/Nodes.ts`;
+- call sites using `getBlueId()/setBlueId()`.
 
-- authoring / resolved / minimal mają ten sam `BlueId`,
-- `PathLimits` nie zmieniają `BlueId`,
-- expansion nie zmienia `BlueId`,
-- storage/authoring input z mixed `blueId + payload` jest odrzucany. ([language.blue][1])
+#### Tests
 
-### Strumień 1C — Minimizer + provider/storage
+- authoring / resolved / minimal have the same `BlueId`;
+- `PathLimits` do not change `BlueId`;
+- expansion does not change `BlueId`;
+- storage/authoring input with mixed `blueId + payload` is rejected.
+  ([language.blue][1])
 
-#### Implementacja
+### Stream 1C - Minimizer + Provider/Storage
 
-Przekształcić logikę `reverse()` w jawny `Minimizer`.
+#### Implementation
 
-Providerzy:
+Turn `reverse()` logic into an explicit `Minimizer`.
 
-- `NodeContentHandler`
-- `BasicNodeProvider`
-- `RepositoryBasedNodeProvider`
-- `InMemoryNodeProvider`
+Providers:
 
-przechodzą na:
+- `NodeContentHandler`;
+- `BasicNodeProvider`;
+- `RepositoryBasedNodeProvider`;
+- `InMemoryNodeProvider`;
 
-- parse/preprocess,
-- semantic identity pipeline,
-- zapis `minimalOverlay + semanticBlueId`.
+move to:
 
-Jeżeli caller podaje `providedBlueId` i nie zgadza się z semantic ID:
+- parse/preprocess;
+- semantic identity pipeline;
+- store `minimalOverlay + semanticBlueId`.
+
+If the caller supplies `providedBlueId` and it does not match the semantic ID:
 
 - reject.
 
-#### Ważne zastrzeżenie
+#### Important Caveat
 
-Do końca fazy 3 minimal overlay dla:
+Until Phase 3, minimal overlay for:
 
-- list overlays,
-- direct cycles,
+- list overlays;
+- direct cycles;
 
-może być jeszcze w przejściowym formacie wewnętrznym. To nie blokuje sensu tej fazy, bo i tak nie wypuszczacie jeszcze major release.
+may still have an internally transitional format. This does not block the phase,
+because this is not a final major release contract yet.
 
-#### Testy
+#### Tests
 
-- fetch po BlueId zwraca minimal overlay,
-- `resolve(fetch(id))` daje poprawny snapshot,
-- provider nie zapisuje resolved explosion,
-- provider odrzuca niezgodne `providedBlueId`.
+- fetch by BlueId returns minimal overlay;
+- `resolve(fetch(id))` gives the correct snapshot;
+- provider does not store a resolved explosion;
+- provider rejects mismatched `providedBlueId`.
 
-### Strumień 1D — Benchmarks i docs
+### Stream 1D - Benchmarks And Docs
 
-#### Implementacja
+#### Implementation
 
-- zaktualizować README,
-- `docs/blue-id.md`,
-- `docs/resolve.md`,
-- opisać różnicę:
-  - official,
-  - minimal,
-  - resolved,
+- update README;
+- update `docs/blue-id.md`;
+- update `docs/resolve.md`;
+- document the distinction between:
+  - official;
+  - minimal;
+  - resolved;
   - semantic BlueId.
 
-#### Testy
+#### Tests
 
-- benchmark `calculate-blue-id`: brak istotnej regresji,
-- benchmark `resolve`: brak istotnej regresji,
-- nowe golden docs / examples.
+- `calculate-blue-id` benchmark: no meaningful regression;
+- `resolve` benchmark: no meaningful regression;
+- new golden docs / examples.
 
-### Exit criteria fazy 1
+### Phase 1 Exit Criteria
 
-Po tej fazie:
+After this phase:
 
-- dla zwykłych dokumentów `Blue.calculateBlueId*` ma już poprawną semantykę,
-- providerzy zapisują minimal overlay,
-- `document-processor` może jeszcze nie używać snapshotów,
-- list control forms i `this#k` nie są jeszcze finalnie domknięte.
+- for ordinary documents, `Blue.calculateBlueId*` has the correct semantics;
+- providers store minimal overlay;
+- `document-processor` may still not use snapshots;
+- list control forms and `this#k` are not yet final.
 
-### Naturalny podział na PR
+### Natural PR Split
 
-- PR-1A: hasher core
-- PR-1B: semantic pipeline + model semantics
-- PR-1C: minimizer + providers
-- PR-1D: docs + deprecations
+- PR-1A: hasher core;
+- PR-1B: semantic pipeline + model semantics;
+- PR-1C: minimizer + providers;
+- PR-1D: docs + deprecations.
 
 ---
 
-## Current status — Phase 1 stabilization
+## Current Status - Phase 1 Stabilization
 
 Status after implementing the 1E/1F/1G/1H stabilization block and the strict
 provider cleanup: semantic storage is now the only normal provider ingest path.
@@ -341,8 +385,8 @@ raw-ID exception for transformation resources.
 - `NodeContentHandler` delegates storage processing, and semantic storage runs
   preprocess, full resolve, `minimizeResolved()`, and low-level hashing of the
   minimal form.
-- Root `blueId + payload` is rejected during provider ingest, the same as nested
-  mixed reference payloads.
+- Root `blueId + payload` is rejected during provider ingest, the same as
+  nested mixed reference payloads.
 - `this` / `this#k` are special only in `blueId` fields. Ordinary scalar
   strings such as `value: this` and list item `"this#1"` remain normal content.
 - Provider/storage ingest accepts top-level document sets with indexed
@@ -378,7 +422,7 @@ raw-ID exception for transformation resources.
   minimal-shaped authoring scenario is named
   `public-semantic-id-on-minimal-shaped-authoring` and uses the public semantic
   identity path.
-- `snapshot-patch` remains a `patch-then-full-resolve` benchmark until Phase 2.
+- `snapshot-patch` remains a `patch-then-full-resolve` benchmark until Phase 3.
 - Resolver-invalid tests use direct/raw test providers instead of relying on
   provider fallback to ingest invalid content.
 - `$previous` stale anchors are now consumed as optimization hints and the
@@ -400,16 +444,15 @@ raw-ID exception for transformation resources.
 - `NodeExtender.mergeNodes()` clones provider-owned content before attaching it
   to expanded runtime nodes.
 
-### Verification run
+### Verification Run
 
-- `nx build language --skip-nx-cache` — passed.
-- `nx tsc language --skip-nx-cache` — passed.
-- `nx lint language` — passed.
-- `nx test language --skip-nx-cache` — passed: 574 passed, 4 skipped,
-  5 todo.
-- `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` — passed.
-- `npx eslint libs/document-processor --fix` — passed.
-- `nx test document-processor --skip-nx-cache` — passed: 349 passed.
+- `nx build language --skip-nx-cache` - passed.
+- `nx tsc language --skip-nx-cache` - passed.
+- `nx lint language` - passed.
+- `nx test language --skip-nx-cache` - passed: 574 passed, 4 skipped, 5 todo.
+- `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` - passed.
+- `npx eslint libs/document-processor --fix` - passed.
+- `nx test document-processor --skip-nx-cache` - passed: 349 passed.
 - Benchmark refresh on 2026-04-28, Apple M1 Pro, Node `v22.22.1`, default
   config `2` warmup / `10` measured iterations, after
   `npx nx build language --skip-nx-cache`:
@@ -433,7 +476,7 @@ raw-ID exception for transformation resources.
     `2.00 ms`, baseline delta `-0.30 ms (-12.96%)`; clone total avg `10506`,
     baseline delta `-3900 (-27.07%)`.
 
-### Deliberate transitional behavior
+### Deliberate Transitional Behavior
 
 1. **BaseContentNodeProvider bootstrap IDs.** Transformation resources still use
    raw bootstrap IDs. This is an explicit bootstrap-only exception, not normal
@@ -451,7 +494,7 @@ raw-ID exception for transformation resources.
    document version. Inline document payloads without a reference use semantic
    calculated identity.
 
-### Decisions before Phase 2
+### Decisions Before Phase 2
 
 - Blue Repository Types are reindexed at the `document-processor` boundary by
   an explicit adapter. Long term, the package should publish semantic IDs
@@ -491,723 +534,731 @@ raw-ID exception for transformation resources.
 
 ---
 
-## Faza 1M — Top-level array list-control closure
+## Phase 1M - Top-Level Array List-Control Closure
 
-### Cel
+### Goal
 
-Domknąć ostatnią lukę publicznego semantic identity przed Phase 2: top-level
-array input w `Blue.calculateBlueId*` ma być traktowany jak lista, a nie jak
-zestaw osobnych root node'ów. To jest istotne dla `$previous`, `$pos` i
-`$empty`, bo spec rozpoznaje te formy tylko jako elementy listy.
+Close the last public semantic identity gap before Phase 2: top-level array
+input to `Blue.calculateBlueId*` must be treated as a list, not as a set of
+separate root nodes. This matters for `$previous`, `$pos`, and `$empty`,
+because the specification recognizes these forms only as list elements.
 
 ### Problem
 
-Obecny publiczny pipeline dla `BlueNode[]` minimalizuje każdy element tablicy
-oddzielnie, a potem `hashMinimalTrusted()` waliduje każdy element jako root
-node. Przez to top-level array traci `insideItems: true`:
+The previous public pipeline for `BlueNode[]` minimized each array item
+separately, then `hashMinimalTrusted()` validated each item as a root node. That
+lost `insideItems: true` for top-level arrays:
 
-- `$previous` na pierwszym elemencie może dojść do low-level hashera jako
-  trusted seed,
-- malformed `$empty` może ominąć walidację exact list-control item,
-- `$pos` może dojść do raw hashera i rzucić techniczny błąd zamiast zostać
-  skonsumowany albo odrzucony w semantic list normalization.
+- `$previous` on the first item could reach the low-level hasher as a trusted
+  seed;
+- malformed `$empty` could bypass exact list-control item validation;
+- `$pos` could reach the raw hasher and throw a technical error instead of being
+  consumed or rejected by semantic list normalization.
 
-### Implementacja
+### Implementation
 
-- Dodać w `SemanticIdentityService` osobną ścieżkę dla publicznych array inputs:
-  - zbudować tymczasowy wrapper `new BlueNode().setItems(items)`,
-  - przepuścić wrapper przez `minimizeAuthoring()` / semantic list
-    normalization,
-  - zwrócić `minimalWrapper.getItems() ?? []` jako minimalną listę do hasha.
-- Dodać `StorageShapeValidator.validateStorageListShape(nodes)` albo równoważny
-  helper i używać go w `hashMinimalTrusted()` / `hashMinimalTrustedAsync()` dla
-  tablic, zamiast walidować każdy element jako root.
-- Zachować internal trusted minimal behavior low-level hashera: `$previous` może
-  seedować fold tylko po przejściu list-context validation.
-- Nie zmieniać semantyki pure list wrappers: top-level `BlueNode[]`, JSON array
-  i node z samym `items` mają mieć ten sam semantic `BlueId` dla tej samej
-  efektywnej listy.
+- Add a separate public array-input path in `SemanticIdentityService`:
+  - build a temporary wrapper with `new BlueNode().setItems(items)`;
+  - pass the wrapper through `minimizeAuthoring()` / semantic list
+    normalization;
+  - return `minimalWrapper.getItems() ?? []` as the minimal list to hash.
+- Add `StorageShapeValidator.validateStorageListShape(nodes)` or an equivalent
+  helper and use it in `hashMinimalTrusted()` / `hashMinimalTrustedAsync()` for
+  arrays, instead of validating each element as a root.
+- Preserve internal trusted minimal behavior in the low-level hasher:
+  `$previous` may seed the fold only after list-context validation.
+- Do not change pure list wrapper semantics: top-level `BlueNode[]`, JSON array,
+  and a node with only `items` must have the same semantic `BlueId` for the same
+  effective list.
 
-### Testy
+### Tests
 
 - `Blue.calculateBlueIdSync([{ $previous: { blueId: fakePrefixId } }, 'C'])`
-  daje ten sam wynik co `Blue.calculateBlueIdSync(['C'])`.
-- Ten sam przypadek przechodzi dla top-level `BlueNode[]`, nie tylko JSON array.
-- Malformed top-level array `$empty`, np. `{ $empty: false }` i
-  `{ $empty: true, value: 'extra' }`, jest odrzucany komunikatem z `$empty`.
-- Top-level array z `$pos` nie dociera do raw `BlueIdHasher`; jest skonsumowany
-  albo odrzucony przez semantic list normalization.
-- Async/sync parity obejmuje top-level arrays z list controls.
-- Regresja równoważności: `blue.calculateBlueIdSync(['A', 'B'])` ==
-  `blue.calculateBlueIdSync(new BlueNode().setItems([A, B]))`, pod warunkiem że
-  wrapper nie ma dodatkowych identity-bearing pól.
+  gives the same result as `Blue.calculateBlueIdSync(['C'])`.
+- The same case passes for top-level `BlueNode[]`, not only JSON array.
+- Malformed top-level array `$empty`, for example `{ $empty: false }` and
+  `{ $empty: true, value: 'extra' }`, is rejected with a `$empty` message.
+- A top-level array with `$pos` does not reach raw `BlueIdHasher`; it is
+  consumed or rejected by semantic list normalization.
+- Async/sync parity covers top-level arrays with list controls.
+- Equivalence regression: `blue.calculateBlueIdSync(['A', 'B'])` ==
+  `blue.calculateBlueIdSync(new BlueNode().setItems([A, B]))`, provided the
+  wrapper has no extra identity-bearing fields.
 
 ### Acceptance
 
-Phase 1 może zostać oznaczona jako final DONE, gdy:
+Phase 1 can be marked final DONE when:
 
-- public top-level arrays przechodzą przez semantic list normalization,
-- top-level array `$previous` nie jest ślepo trustowany,
-- top-level array `$empty` jest walidowany jako exact list-control content,
-- top-level array `$pos` nigdy nie dochodzi do raw `BlueIdHasher`,
+- public top-level arrays go through semantic list normalization;
+- top-level array `$previous` is not blindly trusted;
+- top-level array `$empty` is validated as exact list-control content;
+- top-level array `$pos` never reaches raw `BlueIdHasher`;
 - `nx test language --skip-nx-cache`,
   `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit`,
-  `npx eslint libs/document-processor --fix` i
-  `nx test document-processor --skip-nx-cache` są zielone albo mają jawnie
-  zaakceptowane przejściowe failure wynikające z dalszych faz.
+  `npx eslint libs/document-processor --fix`, and
+  `nx test document-processor --skip-nx-cache` are green, or any transitional
+  failures from later phases are explicitly accepted.
 
 ---
 
-## Faza 1N — Repo-wide semantic BlueId migration
+## Phase 1N - Repo-Wide Semantic BlueId Migration
 
-### Cel
+### Goal
 
-Domknąć Phase 1 poza samym `libs/language`: downstream packages nie mogą już
-używać historycznych/raw identity paths jako publicznej prawdy dla typów,
-runtime repository ani SDK. `language` zostaje właścicielem wspólnego adaptera
-semantycznego, a `document-processor` pozostaje boundary, który tymczasowo
-adaptuje obecne `@blue-repository/types`.
+Close Phase 1 outside `libs/language`: downstream packages must no longer use
+historical/raw identity paths as the public truth for types, runtime
+repositories, or SDK behavior. `language` owns the shared semantic adapter, and
+`document-processor` remains the boundary that temporarily adapts the current
+`@blue-repository/types`.
 
-### Decyzje
+### Decisions
 
-- Dodajemy w `@blue-labs/language`
-  `reindexRepositoryForSemanticStorage(repository, options?)`. Adapter
-  przepisuje `aliases`, `contents`, `typesMeta`, `schemas`, exact `blueId`
-  references oraz indeksowane referencje `OLD#i -> NEW#i`. Nie przepisuje
-  `repositoryVersions`, bo historia repozytorium pozostaje raw/version
-  fingerprintiem, nie publiczną semantic type identity.
-- Cache adaptera nie może być współdzielony dla różnych `mergingProcessor`.
-  Domyślna ścieżka może cache'ować po repository identity; custom processor
-  idzie bez cache albo przez oddzielny klucz processor identity.
-- `document-processor` importuje raw `@blue-repository/types` i reindeksuje je
-  przez adapter z `language` na własnym boundary, ale nie wystawia tego bridge'a
-  jako shared public API. Inne biblioteki tworzą własny local bridge przez
-  `reindexRepositoryForSemanticStorage()`.
-- `dsl-sdk` nie konstruuje już `Blue` z raw `@blue-repository/types`.
-  Runtime identity używa lokalnego semantic repository bridge'a zbudowanego
-  przez `reindexRepositoryForSemanticStorage()`; raw schema imports mogą zostać
-  tylko jako walidatory, nie jako źródło identity.
-- `repository-generator` przechodzi na hard semantic switch. Nie dodajemy
-  `allowIdentityAlgorithmMigration`; normalny guard
-  `content is unchanged but BlueId differs` zostaje aktywny, żeby wykrywać
-  niejawne zmiany metadata.
-- Source `.blue` w `repository-generator` jest specowym Blue authoring input,
-  nie osobnym DSL-em z escape hatchem na reserved field names. Atrybuty
-  użytkownika nie mogą nazywać się `value`, `items`, `blueId`, `blue` ani
-  `properties`; `value` pozostaje dozwolone tylko jako scalar payload węzła.
-- `repoDoc.computeRepoBlueId()` pozostaje raw structural fingerprintiem wersji
-  repozytorium i jest celowo oddzielony od publicznej semantic type identity.
-- `SemanticIdentityService.hashMinimalTrusted*()` jest internal trusted path,
-  a nie publiczne API.
-- `@blueId` w schema output oznacza publiczną semantic identity: mapper dostaje
-  wstrzyknięty calculator z `Blue.nodeToSchemaOutput()`.
+- Add `reindexRepositoryForSemanticStorage(repository, options?)` in
+  `@blue-labs/language`. The adapter rewrites `aliases`, `contents`,
+  `typesMeta`, `schemas`, exact `blueId` references, and indexed references
+  `OLD#i -> NEW#i`. It does not rewrite `repositoryVersions`, because
+  repository history remains a raw/version fingerprint, not public semantic type
+  identity.
+- Adapter cache cannot be shared across different `mergingProcessor` instances.
+  The default path may cache by repository identity; custom processors go
+  uncached or use a separate processor-identity key.
+- `document-processor` imports raw `@blue-repository/types` and reindexes it
+  through the `language` adapter at its own boundary, but does not expose that
+  bridge as shared public API. Other libraries build their own local bridge
+  through `reindexRepositoryForSemanticStorage()`.
+- `dsl-sdk` no longer constructs `Blue` from raw `@blue-repository/types`.
+  Runtime identity uses a local semantic repository bridge built with
+  `reindexRepositoryForSemanticStorage()`; raw schema imports may remain only as
+  validators, not as identity sources.
+- `repository-generator` moves to a hard semantic switch. Do not add
+  `allowIdentityAlgorithmMigration`; the normal guard
+  `content is unchanged but BlueId differs` remains active so implicit metadata
+  changes are detected.
+- Source `.blue` in `repository-generator` is specification Blue authoring
+  input, not a separate DSL with an escape hatch for reserved field names. User
+  attributes cannot be named `value`, `items`, `blueId`, `blue`, or
+  `properties`; `value` remains allowed only as a scalar node payload.
+- `repoDoc.computeRepoBlueId()` remains a raw structural fingerprint for the
+  repository version and is intentionally separate from public semantic type
+  identity.
+- `SemanticIdentityService.hashMinimalTrusted*()` is an internal trusted path,
+  not public API.
+- `@blueId` in schema output means public semantic identity: the mapper receives
+  an injected calculator from `Blue.nodeToSchemaOutput()`.
 
-### Implementacja
+### Implementation
 
-- Przenieść helpery reindexowania z `document-processor` do
-  `libs/language/src/lib/repository/SemanticRepositoryReindexer.ts` i dodać
-  testy konwergencji, exact/id-index rewrite, schemas/type metadata rewrite
-  oraz walidację strict repository keys po reindexingu.
-- Odchudzić `libs/document-processor/src/repository/semantic-repository.ts` do
-  wewnętrznego boundary adaptera nad raw `@blue-repository/types`; nie
-  eksportować semantic repository z publicznego `src/index.ts`.
-- W `dsl-sdk` zastąpić raw repository construction i raw conversation alias
-  imports własnym local semantic bridge'em opartym o
-  `reindexRepositoryForSemanticStorage()`; aktualizować
-  `runtime-type-support.ts`, żeby czytał aliases z lokalnego semantic
-  repository.
-- W `repository-generator` liczyć `typeBlueId` semantycznie, zachowując
-  hardcoded primitive/core IDs. Generator buduje incremental provider keyed by
-  semantic IDs w topological order, podstawia znane aliasy, zachowuje
-  oficjalny JSON source content po parsowaniu/preprocessingu i rejestruje alias
-  dla kolejnych typów. Primitive/core IDs nie są seedowane do providera jako
-  zwykły repository content, żeby nie nadpisać built-in basic type semantics.
-- Usunąć generatorowy parser/normalizer, który traktował `value: { type: ... }`
-  jako nazwę atrybutu. Źródło generatora ma przechodzić przez
-  `Blue.jsonValueToNode()` i `Blue.calculateBlueIdSync()`, a spec-invalid
-  reserved field usage ma być odrzucane przez normalną ścieżkę języka/storage.
-- Zmienić nazwę `aliasToPreprocessed` na semantic storage name, np.
-  `aliasToStorageContent`, i usunąć stare `normalizeForBlueId` jako publiczną
-  ścieżkę generatora.
-- Zregenerować fixtures/snapshoty generatora:
+- Move reindexing helpers from `document-processor` to
+  `libs/language/src/lib/repository/SemanticRepositoryReindexer.ts` and add
+  tests for convergence, exact/id-index rewrite, schema/type metadata rewrite,
+  and strict repository key validation after reindexing.
+- Slim `libs/document-processor/src/repository/semantic-repository.ts` down to
+  an internal boundary adapter over raw `@blue-repository/types`; do not export
+  semantic repository from public `src/index.ts`.
+- In `dsl-sdk`, replace raw repository construction and raw conversation alias
+  imports with its own local semantic bridge based on
+  `reindexRepositoryForSemanticStorage()`; update `runtime-type-support.ts` so
+  it reads aliases from the local semantic repository.
+- In `repository-generator`, calculate `typeBlueId` semantically while
+  preserving hardcoded primitive/core IDs. The generator builds an incremental
+  provider keyed by semantic IDs in topological order, substitutes known aliases,
+  preserves official JSON source content after parse/preprocess, and registers
+  aliases for later types. Primitive/core IDs are not seeded into the provider
+  as ordinary repository content, so built-in basic type semantics are not
+  overwritten.
+- Remove the generator parser/normalizer path that treated
+  `value: { type: ... }` as an attribute name. Generator source must go through
+  `Blue.jsonValueToNode()` and `Blue.calculateBlueIdSync()`, and spec-invalid
+  reserved field usage must be rejected by the normal language/storage path.
+- Rename `aliasToPreprocessed` to a semantic storage name such as
+  `aliasToStorageContent`, and remove old `normalizeForBlueId` as a public
+  generator path.
+- Regenerate generator fixtures/snapshots:
   `base/BlueRepository.blue`, `non-breaking/BlueRepository.blue`,
-  `dev-change/BlueRepository.blue` oraz inline snapshots.
-- Posprzątać language test usage `BlueIdCalculator` w testach normalnych
-  provider/repository flows. Raw calculator zostaje tylko dla low-level hashera,
-  CID, bootstrap-only paths, internal structural caches i jawnie historycznych
+  `dev-change/BlueRepository.blue`, and inline snapshots.
+- Clean up normal provider/repository test usage of `BlueIdCalculator` in
+  `language`. Raw calculator remains only for the low-level hasher, CID,
+  bootstrap-only paths, internal structural caches, and explicitly historical
   repository-version fixtures.
 
 ### Acceptance
 
-Repo-wide Phase 1 jest DONE dopiero gdy:
+Repo-wide Phase 1 is DONE only when:
 
-- `repository-generator` nie używa raw `BlueIdCalculator` jako publicznej
-  prawdy `typeBlueId`,
-- `dsl-sdk` nie ładuje raw `@blue-repository/types` jako runtime repository,
-- `document-processor` ma internal semantic repository bridge, a `dsl-sdk`
-  buduje własny bridge przez `language` zamiast importować repository z DP,
-- `@blueId` schema output używa semantic calculatora,
-- raw `BlueIdCalculator` usages w `language` są internal/low-level albo
-  udokumentowanymi historycznymi fixtures,
-- przechodzą:
-  - `npx tsc -p libs/language/tsconfig.lib.json --noEmit`,
-  - `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit`,
-  - `npx tsc -p libs/repository-generator/tsconfig.lib.json --noEmit`,
-  - `npx tsc -p libs/dsl-sdk/tsconfig.lib.json --noEmit`,
-  - `npx eslint libs/language libs/document-processor libs/repository-generator libs/dsl-sdk --fix`,
-  - `npx nx test language --skip-nx-cache`,
-  - `npx nx test document-processor --skip-nx-cache`,
-  - `npx nx test repository-generator --skip-nx-cache`,
+- `repository-generator` no longer uses raw `BlueIdCalculator` as public
+  `typeBlueId` truth;
+- `dsl-sdk` does not load raw `@blue-repository/types` as a runtime repository;
+- `document-processor` has an internal semantic repository bridge, and `dsl-sdk`
+  builds its own bridge through `language` instead of importing repository from
+  DP;
+- `@blueId` schema output uses semantic calculator;
+- raw `BlueIdCalculator` usages in `language` are internal/low-level or
+  documented historical fixtures;
+- these checks pass:
+  - `npx tsc -p libs/language/tsconfig.lib.json --noEmit`;
+  - `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit`;
+  - `npx tsc -p libs/repository-generator/tsconfig.lib.json --noEmit`;
+  - `npx tsc -p libs/dsl-sdk/tsconfig.lib.json --noEmit`;
+  - `npx eslint libs/language libs/document-processor libs/repository-generator libs/dsl-sdk --fix`;
+  - `npx nx test language --skip-nx-cache`;
+  - `npx nx test document-processor --skip-nx-cache`;
+  - `npx nx test repository-generator --skip-nx-cache`;
   - `npx nx test dsl-sdk --skip-nx-cache`.
 
 ---
 
-## Faza 1E — Semantic provider/storage parity
+## Phase 1E - Semantic Provider/Storage Parity
 
-### Cel
+### Goal
 
-Domknąć fazę 1 tak, żeby providerzy i publiczne API liczyli ten sam
-semantic `BlueId` dla tego samego dokumentu. To jest blokujące przed
-snapshotami: storage nie może mieć własnej, krótszej ścieżki identity.
+Close Phase 1 so providers and public API calculate the same semantic `BlueId`
+for the same document. This blocks snapshots: storage cannot have its own
+shorter identity path.
 
-### Implementacja
+### Implementation
 
-- `NodeContentHandler` przestaje traktować `BlueIdCalculator` po samym
-  preprocess/minimize jako storage truth.
-- Provider ingest używa tej samej semantyki co `Blue.calculateBlueId*`:
-  - validate authoring/storage shape,
-  - preprocess,
-  - `resolve(NO_LIMITS)`,
-  - `minimizeResolved(fullResolved)`,
-  - validate minimal storage shape,
+- `NodeContentHandler` stops treating `BlueIdCalculator` after
+  preprocess/minimize as storage truth.
+- Provider ingest uses the same semantics as `Blue.calculateBlueId*`:
+  - validate authoring/storage shape;
+  - preprocess;
+  - `resolve(NO_LIMITS)`;
+  - `minimizeResolved(fullResolved)`;
+  - validate minimal storage shape;
   - low-level hash minimal form.
-- `providedBlueId` jest porównywany z semantic `BlueId`, nie z hashem
+- `providedBlueId` is compared with the semantic `BlueId`, not with the hash of
   preprocessed authoring form.
-- `BasicNodeProvider`, `RepositoryBasedNodeProvider` i `InMemoryNodeProvider`
-  zapisują minimal overlay pod semantic `BlueId`.
-- Multi-doc direct cyclic sets są domykane w fazie 2:
-  - top-level document sets z indeksowanym `this#k` są liczone pod `MASTER`,
-  - single-document `blueId: this` / lokalne self-refy pozostają poza zakresem
-    normalnego provider ingest.
+- `BasicNodeProvider`, `RepositoryBasedNodeProvider`, and `InMemoryNodeProvider`
+  store minimal overlay under semantic `BlueId`.
+- Multi-doc direct cyclic sets are closed in Phase 2:
+  - top-level document sets with indexed `this#k` are calculated under
+    `MASTER`;
+  - single-document `blueId: this` / local self-refs remain outside normal
+    provider ingest scope.
 
-### Testy
+### Tests
 
-- provider zapisuje content pod tym samym ID co `Blue.calculateBlueIdSync()`,
-  także przy dziedziczonych redundantnych polach,
-- provider odrzuca `providedBlueId`, jeżeli nie zgadza się z semantic ID,
-- fetch po semantic ID zwraca minimal overlay, który po `resolve()` daje ten
-  sam snapshot,
-- `resolve(fetch(id))` zachowuje semantic `BlueId`,
-- top-level multi-doc direct cycles są objęte testem ścieżki `MASTER#i`, a
-  single-document self-refy są nadal odrzucane.
+- provider stores content under the same ID as `Blue.calculateBlueIdSync()`,
+  including inherited redundant fields;
+- provider rejects `providedBlueId` if it does not match semantic ID;
+- fetch by semantic ID returns minimal overlay which gives the same snapshot
+  after `resolve()`;
+- `resolve(fetch(id))` preserves semantic `BlueId`;
+- top-level multi-doc direct cycles are covered by a `MASTER#i` path test, while
+  single-document self-refs are still rejected.
 
-### Exit criteria
+### Exit Criteria
 
-- Nie ma osobnego providerowego pipeline'u identity.
+- There is no separate provider identity pipeline.
 - Storage truth = minimal overlay keyed by semantic `BlueId`.
-- Test parity provider/public API jest zielony.
+- Provider/public API parity tests are green.
 
 ---
 
-## Faza 1F — Resolve performance hardening
+## Phase 1F - Resolve Performance Hardening
 
-### Cel
+### Goal
 
-Naprawić regresję `resolve()` przed wejściem w snapshoty. Obecne wyniki
-`resolve(shared): +573.28%` i `resolve(unique): +106.09%` są blockerem dla
-fazy 2.
+Fix the `resolve()` regression before snapshots. Earlier measurements,
+`resolve(shared): +573.28%` and `resolve(unique): +106.09%`, were blockers for
+Phase 2.
 
-### Implementacja
+### Implementation
 
-- Dodać cache w `ResolutionContext`:
-  - `nodeHashCache: WeakMap<BlueNode, string>`,
-  - `resolvedTypeCache: Map<string, ResolvedBlueNode>`,
-  - `typeOverlayCache: Map<string, BlueNode>`,
-  - `subtypeCache: Map<string, boolean>`,
-  - provider fetch/deserialization cache per `blueId`, jeżeli fetch jest w tym
-    samym resolve context.
-- Nie robić `resolvedType.clone().setType(undefined).setBlueId(undefined)` dla
-  każdego typed node'a. Overlay typu bez `type` i `blueId` powinien być
-  cache'owany per resolved type artifact.
-- Memoizować hashe elementów list używane przy porównaniu prefixów.
-- Cache'ować subtype checks `(subtypeBlueId, supertypeBlueId) -> boolean`.
-- Ograniczyć deep clone przed `ResolvedBlueNode`; docelowo przejmą to snapshoty
-  i structural sharing.
-- Path-limited resolution nie powinien niszczyć reuse full type artifact:
-  limited materialization ma być view/projection z identity anchor, a nie nową
-  podstawą hashowania.
+- Add caches in `ResolutionContext`:
+  - `nodeHashCache: WeakMap<BlueNode, string>`;
+  - `resolvedTypeCache: Map<string, ResolvedBlueNode>`;
+  - `typeOverlayCache: Map<string, BlueNode>`;
+  - `subtypeCache: Map<string, boolean>`;
+  - provider fetch/deserialization cache per `blueId`, if fetch happens in the
+    same resolve context.
+- Do not run `resolvedType.clone().setType(undefined).setBlueId(undefined)` for
+  every typed node. The type overlay without `type` and `blueId` should be
+  cached per resolved type artifact.
+- Memoize list item hashes used when comparing prefixes.
+- Cache subtype checks `(subtypeBlueId, supertypeBlueId) -> boolean`.
+- Reduce deep cloning before `ResolvedBlueNode`; snapshots and structural
+  sharing will eventually take this over.
+- Path-limited resolution should not destroy reuse of the full type artifact:
+  limited materialization should be a view/projection with an identity anchor,
+  not a new hash base.
 
-### Benchmark gate
+### Benchmark Gate
 
-- `resolve(shared)`: maksymalnie `+10%` vs baseline fazy 0.
-- `resolve(unique)`: maksymalnie `+10%` vs baseline fazy 0.
-- `calculateBlueId` benchmark zostaje przemianowany mentalnie na low-level hash
-  i nie zastępuje benchmarku publicznego semantic API.
+- `resolve(shared)`: at most `+10%` vs Phase 0 baseline.
+- `resolve(unique)`: at most `+10%` vs Phase 0 baseline.
+- The `calculateBlueId` benchmark is treated as the low-level hash benchmark and
+  does not replace the public semantic API benchmark.
 
-### Testy / benchmarki
+### Tests / Benchmarks
 
-- benchmark `resolve` shared i unique jako twardy gate,
-- testy regresyjne dla list prefix compare bez wielokrotnego hashowania tych
-  samych node'ów,
-- testy path limits pokazujące stabilne identity anchor.
+- `resolve` benchmark in shared and unique modes as a hard gate;
+- regression tests for list prefix comparison without repeatedly hashing the
+  same nodes;
+- path-limit tests showing stable identity anchors.
 
 ---
 
-## Faza 1G — Minimizer contract hardening
+## Phase 1G - Minimizer Contract Hardening
 
-### Cel
+### Goal
 
-Utwierdzić kontrakt minimizera: minimalizacja ma być idempotentna, bezpieczna
-dla runtime/materialized nodes i nie może usuwać niezweryfikowanego payloadu.
+Lock the minimizer contract: minimization must be idempotent, safe for
+runtime/materialized nodes, and must not remove unverified payload.
 
-### API docelowe
+### Target API
 
-- `blue.minimizeResolved(resolvedFullNode)`
-- `blue.minimizeAuthoring(authoringNode)` jako `resolve(NO_LIMITS) -> minimizeResolved`
-- internal `SemanticIdentityService.hashMinimalTrusted(minimalNode)` jako
-  `validateStorageShape -> low-level hash`
+- `blue.minimizeResolved(resolvedFullNode)`;
+- `blue.minimizeAuthoring(authoringNode)` as
+  `resolve(NO_LIMITS) -> minimizeResolved`;
+- internal `SemanticIdentityService.hashMinimalTrusted(minimalNode)` as
+  `validateStorageShape -> low-level hash`.
 
-Publiczne `Blue.minimize()` może delegować do tych ścieżek, ale wewnętrzny kod
-nie powinien mieszać authoring, resolved i storage shape.
+Public `Blue.minimize()` may delegate to these paths, but internal code should
+not mix authoring, resolved, and storage shapes.
 
-### Twarde reguły
+### Hard Rules
 
-- `minimize()` nie działa na partial resolved tree bez metadata kompletności.
-- `minimizeResolved(fullResolved)` jest idempotentne:
+- `minimize()` does not operate on partial resolved trees without completeness
+  metadata.
+- `minimizeResolved(fullResolved)` is idempotent:
   `minimize(resolve(minimize(resolve(x)))) == minimize(resolve(x))`.
-- `resolve(minimize(resolve(x)))` daje ten sam resolved snapshot co `resolve(x)`.
+- `resolve(minimize(resolve(x)))` gives the same resolved snapshot as
+  `resolve(x)`.
 - `calculateBlueId(x) == calculateBlueId(minimize(resolve(x)))`.
-- Mixed `blueId + payload` może być collapsowane tylko w trusted materialized
+- Mixed `blueId + payload` may be collapsed only in a trusted materialized
   expansion path.
-- Authoring/storage mixed `blueId + payload` pozostaje błędem.
-- Path-limited resolved tree nie jest zwykłym inputem minimizacji; może tylko
-  zwrócić source semantic identity anchor.
+- Authoring/storage mixed `blueId + payload` remains an error.
+- A path-limited resolved tree is not normal minimization input; it may only
+  return a source semantic identity anchor.
 
 ### Metadata
 
-- Dodać albo zaplanować metadata resolved/runtime:
-  - `completeness: 'full' | 'path-limited'`,
-  - `sourceMinimal?: BlueNode`,
+- Add or plan resolved/runtime metadata:
+  - `completeness: 'full' | 'path-limited'`;
+  - `sourceMinimal?: BlueNode`;
   - `sourceSemanticBlueId?: string`.
 
-### Testy
+### Tests
 
-- `minimize(resolve(x))` usuwa dziedziczone redundantne wartości,
-- `minimize(resolve(x))` zachowuje instance overrides,
-- untrusted `blueId + payload` nie jest collapsowane do `{ blueId }`,
-- trusted materialized provider expansion zachowuje ten sam semantic ID,
-- path-limited resolved tree nie staje się źródłem hasha bez source identity,
-- minimalizacja roundtripuje przez `resolve()` bez zmiany semantic `BlueId`.
+- `minimize(resolve(x))` removes inherited redundant values;
+- `minimize(resolve(x))` preserves instance overrides;
+- untrusted `blueId + payload` is not collapsed to `{ blueId }`;
+- trusted materialized provider expansion preserves the same semantic ID;
+- path-limited resolved tree does not become a hash source without source
+  identity;
+- minimization roundtrips through `resolve()` without changing semantic
+  `BlueId`.
 
-### Exit criteria fazy 1G
+### Phase 1G Exit Criteria
 
-- Minimizer ma osobne ścieżki dla authoring/resolved/trusted minimal.
-- Nie ma agresywnego collapsowania każdego node'a z `blueId + payload`.
-- Golden roundtrip tests są zielone.
+- Minimizer has separate paths for authoring/resolved/trusted minimal.
+- There is no aggressive collapse of every node with `blueId + payload`.
+- Golden roundtrip tests are green.
 
 ---
 
-## Faza 1H — Storage shape + self-reference + minimizer guards
+## Phase 1H - Storage Shape + Self-Reference + Minimizer Guards
 
-### Cel
+### Goal
 
-Domknąć correctness fazy 1 przed snapshotami. To jest krótki stabilizujący PR,
-nie nowa architektura: naprawia kontrakty, które muszą być prawdziwe zanim Phase
-2 zacznie budować immutable snapshoty.
+Close Phase 1 correctness before snapshots. This is a short stabilization PR,
+not a new architecture: it fixes contracts that must be true before Phase 2
+starts building immutable snapshots.
 
-### Implementacja
+### Implementation
 
-- `this` i `this#k` są rozpoznawane wyłącznie jako wartości pola `blueId`.
-  Zwykłe stringi `this` / `this#1` w `value`, listach i polach obiektu są
-  treścią.
-- `StorageShapeValidator.validateStorageShape()` waliduje pełną rozłączność
-  payload kinds i odrzuca dokumentowe `properties`.
-- `MergeReverser` zna root node i zachowuje root instance `name` /
-  `description`, nawet gdy są równe typowi.
-- `Blue.resolve(node, limits)` nie przyjmuje publicznego
-  `sourceSemanticBlueId` override i nie liczy go sam dla path-limited resolve.
-  Valid exact root `{ blueId }` jest jedynym źródłem metadata.
-- `ResolvedBlueNode.getMinimalNode()` / `getMinimalBlueId()` nie omijają guardu
-  dla path-limited tree.
-- Trusted minimal storage hash pozostaje wewnętrzną ścieżką storage. Benchmark
-  minimal-shaped authoring input używa jawnej nazwy
-  `public-semantic-id-on-minimal-shaped-authoring`, żeby nie udawać trusted
-  storage path.
+- `this` and `this#k` are recognized only as values of the `blueId` field.
+  Ordinary strings `this` / `this#1` in `value`, lists, and object fields are
+  content.
+- `StorageShapeValidator.validateStorageShape()` validates full disjointness of
+  payload kinds and rejects document-level `properties`.
+- `MergeReverser` knows the root node and preserves root instance `name` /
+  `description`, even when they match the type.
+- `Blue.resolve(node, limits)` does not accept a public `sourceSemanticBlueId`
+  override and does not compute it by itself for path-limited resolve. A valid
+  exact root `{ blueId }` is the only metadata source.
+- `ResolvedBlueNode.getMinimalNode()` / `getMinimalBlueId()` do not bypass the
+  guard for path-limited trees.
+- Trusted minimal storage hash remains an internal storage path. The benchmark
+  for minimal-shaped authoring input uses the explicit name
+  `public-semantic-id-on-minimal-shaped-authoring`, so it does not pretend to be
+  a trusted storage path.
 
-### Testy
+### Tests
 
-- Self-reference: zwykłe scalar/list stringi `this` i `this#1` zostają treścią;
-  single-document `blueId: this` / lokalne `blueId: this#k` są odrzucane, a
-  top-level document sets z indeksowanym `this#k` domyka faza 2.
+- Self-reference: ordinary scalar/list strings `this` and `this#1` remain
+  content; single-document `blueId: this` / local `blueId: this#k` are rejected,
+  and top-level document sets with indexed `this#k` are closed in Phase 2.
 - Storage shape: reject `blueId + payload`, `value + items`, `value + child`,
-  `items + child`, oraz literalne `properties`; allow reserved metadata
-  `schema`, `mergePolicy`, `contracts`.
-- Minimizer: root `name` / `description` roundtripują, path-limited minimalizacja
-  wymaga source identity, cached resolved type mutation nie przecieka do
-  kolejnych resolve.
+  `items + child`, and literal `properties`; allow reserved metadata `schema`,
+  `mergePolicy`, `contracts`.
+- Minimizer: root `name` / `description` roundtrip, path-limited minimization
+  requires source identity, and cached resolved type mutation does not leak into
+  later resolves.
 
-### Exit criteria
+### Exit Criteria
 
-- Wszystkie testy `language` przechodzą pod nowym strict storage contract.
-- Benchmark minimal-shaped input nie udaje trusted storage path; używa nazwy
-  `public-semantic-id-on-minimal-shaped-authoring`.
-- `docs/PLAN.md` zawiera aktualne liczby benchmarków dla Phase 1.
+- All `language` tests pass under the new strict storage contract.
+- The minimal-shaped input benchmark does not pretend to be a trusted storage
+  path; it uses the name `public-semantic-id-on-minimal-shaped-authoring`.
+- `docs/PLAN.md` contains current benchmark numbers for Phase 1.
 
 ---
 
-## Faza 1I — Final language stabilization
+## Phase 1I - Final Language Stabilization
 
-### Cel
+### Goal
 
-Zamknąć Phase 1 jako breaking change: normalny provider/storage ingest nie ma
-już transitional bypassów, a expansion nie zostawia `blueId + payload` jako
+Close Phase 1 as a breaking change: normal provider/storage ingest no longer
+has transitional bypasses, and expansion does not leave `blueId + payload` as
 hash input.
 
-### Implementacja
+### Implementation
 
-- `SemanticStorageService.preparePreprocessedStorageNode()` zawsze idzie przez
+- `SemanticStorageService.preparePreprocessedStorageNode()` always goes through
   `minimizeAuthoring() -> hashMinimalTrusted()`.
-- Usunięte są `minimizeStorageOverlay()`, `prepareStorageOverlay()`,
-  `useTransitionalStoragePath` i wykrywanie legacy inherited-list markerów w
-  normalnej ścieżce storage.
-- Provider/storage ingest odrzuca single-document `blueId: this` oraz lokalne
-  `blueId: this#k`; top-level document sets z indeksowanym `this#k` domyka
+- Remove `minimizeStorageOverlay()`, `prepareStorageOverlay()`,
+  `useTransitionalStoragePath`, and legacy inherited-list marker detection from
+  normal storage.
+- Provider/storage ingest rejects single-document `blueId: this` and local
+  `blueId: this#k`; top-level document sets with indexed `this#k` are closed in
   Phase 2.
-- `MinimizerOptions` nie wystawia `allowMaterializedReferenceCollapse` ani
+- `MinimizerOptions` does not expose `allowMaterializedReferenceCollapse` or
   `isTrustedMaterializedReference`.
-- `MergeReverser` nie emituje legacy list markerów. PR-1K przenosi
-  spec-native list controls do Phase 1, więc full-list overlay nie jest już
-  docelowym formatem minimalizacji odziedziczonych list.
-- `NodeExtender` rozszerza tylko exact pure references, po materializacji usuwa
-  reference `blueId`, i nie flattenuje pierwszego pure reference w zwykłej
-  liście.
-- `NodeExtender.mergeNodes()` klonuje provider-owned type/items/properties
-  przed przypięciem do expanded target, żeby mutacje runtime nie przeciekały do
+- `MergeReverser` does not emit legacy list markers. PR-1K brings spec-native
+  list controls into Phase 1, so full-list overlay is no longer the target
+  format for inherited-list minimization.
+- `NodeExtender` expands only exact pure references, removes the reference
+  `blueId` after materialization, and does not flatten the first pure reference
+  in an ordinary list.
+- `NodeExtender.mergeNodes()` clones provider-owned type/items/properties before
+  attaching them to the expanded target so runtime mutations do not leak into
   provider content.
-- `resolve()` nie współdzieli exposed mutable `type` object między siblingami w
-  jednym resolved tree.
+- `resolve()` does not share an exposed mutable `type` object between siblings
+  within one resolved tree.
 
-### Testy
+### Tests
 
-- Ordinary list zaczynająca się od pure `{ blueId }` przechodzi przez semantic
+- Ordinary list starting with pure `{ blueId }` goes through the semantic
   storage path.
-- Provider/storage odrzuca single-document `blueId: this` i lokalne
+- Provider/storage rejects single-document `blueId: this` and local
   `blueId: this#k`.
-- `Blue.extend()` zachowuje semantic `BlueId`.
-- Mutacja expanded targetu po `Blue.extend()` nie mutuje provider-stored
-  content.
-- NodeExtender nie flattenuje zwykłej listy zaczynającej się od pure ref.
-- Minimizer nie emituje legacy list marker.
-- Sibling resolved type mutation nie przecieka w obrębie jednego `resolve()`.
+- `Blue.extend()` preserves semantic `BlueId`.
+- Mutating an expanded target after `Blue.extend()` does not mutate
+  provider-stored content.
+- NodeExtender does not flatten an ordinary list starting with a pure ref.
+- Minimizer does not emit legacy list marker.
+- Sibling resolved type mutation does not leak within one `resolve()`.
 
 ---
 
-## Faza 1J — document-processor integration cleanup
+## Phase 1J - Document-Processor Integration Cleanup
 
-### Cel
+### Goal
 
-Przygotować `document-processor` na Phase 2 snapshots przez usunięcie runtime
-zależności od raw `BlueIdCalculator` i spec-invalid fallback repository shape.
+Prepare `document-processor` for Phase 2 snapshots by removing runtime
+dependency on raw `BlueIdCalculator` and spec-invalid fallback repository shape.
 
-### Implementacja
+### Implementation
 
-- Test fallback repository content używa plain Blue object shape bez pola
-  `properties`.
-- Fallback i derived test repositories są kluczowane semantic IDs liczonymi
-  przez `seedBlue.calculateBlueIdSync(node)`, a aliases mapują nazwy testowe na
-  semantic IDs.
-- Zainstalowane `@blue-repository/types` jest reindeksowane w
-  `document-processor` przez explicit adapter, który przepisuje content,
-  aliases, schemas i metadata na semantic IDs. To nie jest normalny provider
-  bypass w `language`.
-- Adapter reindeksujący jest migracyjnym bridge'em dla obecnego
-  `@blue-repository/types`, które nadal publikuje historyczne/pre-semantic
-  storage IDs. Gdy `blue-repository-js` zacznie generować semantic IDs natywnie,
-  adapter powinien zostać usunięty albo zawężony do explicit legacy migration
-  path.
-- Adapter przepisuje zarówno exact IDs, jak i finalne indeksowane fragmenty
+- Test fallback repository content uses plain Blue object shape without a
+  `properties` field.
+- Fallback and derived test repositories are keyed by semantic IDs calculated by
+  `seedBlue.calculateBlueIdSync(node)`, and aliases map test names to semantic
+  IDs.
+- The installed `@blue-repository/types` is reindexed in `document-processor`
+  through an explicit adapter that rewrites content, aliases, schemas, and
+  metadata to semantic IDs. This is not a normal provider bypass in `language`.
+- The reindexing adapter is a migration bridge for the current
+  `@blue-repository/types`, which still publishes historical/pre-semantic
+  storage IDs. When `blue-repository-js` starts generating semantic IDs
+  natively, the adapter should be removed or narrowed to an explicit legacy
+  migration path.
+- The adapter rewrites both exact IDs and final indexed fragments
   `OLD#i -> NEW#i`.
-- `ProcessorEngine.nodeAt(..., '/blueId')` używa wyłącznie wstrzykniętego
-  semantic `calculateBlueId`; bez kalkulatora rzuca jawny błąd.
-- Runtime event IDs używane przez checkpointing są liczone semantic
-  `calculateBlueIdSync(event)`, bez fallbacku do eventowego reference
+- `ProcessorEngine.nodeAt(..., '/blueId')` uses only the injected semantic
+  `calculateBlueId`; without a calculator, it throws an explicit error.
+- Runtime event IDs used by checkpointing are calculated with semantic
+  `calculateBlueIdSync(event)`, without fallback to the event reference
   `blueId`.
-- Operation Request `document` pin zachowuje reference `blueId` jako jawnie
-  pinowaną wersję dokumentu; inline payload bez reference używa semantic
-  calculatora.
-- Test-support i testy DP nie używają raw `BlueIdCalculator`.
+- Operation Request `document` pin preserves reference `blueId` as an explicit
+  pinned document version; inline payload without reference uses the semantic
+  calculator.
+- Test support and DP tests do not use raw `BlueIdCalculator`.
 
-### Testy
+### Tests
 
-- Fallback repo ładuje się bez `properties`.
-- `/blueId` używa injected semantic calculator.
-- Event checkpoint ID używa semantic calculatora.
-- Operation Request document pin obsługuje resolved/materialized reference
-  oraz inline semantic payload.
-- Repository bridge przepisuje `blueId: OLD#1` na `blueId: NEW#1`.
-- `document-processor` przechodzi type-check, lint i testy po zmianie identity.
-
----
-
-## Faza 1K — List control forms
-
-### Cel
-
-Domknąć list identity przed snapshotami: normalny minimal overlay dla
-odziedziczonych list używa spec-native `$previous`, `$pos` i `$empty`, bez
-legacy first-item markerów i bez tymczasowego full-list overlay jako write path.
-
-### Implementacja
-
-- `ListControls` definiuje internal contract dla:
-  - `$previous`: exact first item `{ $previous: { blueId: <itemsListBlueId> } }`,
-  - `$pos`: non-negative integer metadata na itemie, tylko dla
-    `mergePolicy: positional`,
-  - `$empty`: zwykły content, nie metadata.
-- `Merger` rozwiązuje list controls w kontekście inherited target list:
-  - default `mergePolicy` to `positional`,
-  - `append-only` odrzuca `$pos`,
-  - `$pos` refinements targetują finalny merged index,
-  - duplicate, non-integer i out-of-range `$pos` rzucają jawne błędy,
-  - malformed `$previous` nadal jest błędem,
-  - stale `$previous` jest zużywane i ignorowane jako nieaktualny optimization
-    hint; resolver recompute'uje efektywną listę od aktualnego inherited
-    prefixu.
-- `MergeReverser` minimalizuje inherited appendy jako `$previous + delta`, a
-  positional refinements jako `$previous + $pos`; append-only non-prefix
-  mutation rzuca błąd.
-- `BlueIdHasher` seeduje list fold z `$previous` dla appendów i odrzuca raw
-  `$pos`, bo `$pos` musi zostać skonsumowany przez semantic normalization przed
-  hashowaniem.
-- Publiczny `Blue.calculateBlueId*` nie traktuje dowolnego authoring inputu z
-  `$previous` jako trusted minimal storage; untrusted controls przechodzą przez
-  semantic resolve/minimize.
-- Uzasadnienie hash path: append-only `$previous` może zacząć fold od BlueId
-  poprzedniej listy i kontynuować fold dla nowych elementów. `$pos` nie może
-  być policzony z samego BlueId poprzedniej listy, bo podmiana finalnego indeksu
-  wymaga materializowanych elementów poprzedniej listy.
-- `hashMinimalTrusted` materializuje minimal input z `$pos` przez semantic
-  resolve + hash-only minimization bez ponownej emisji controls.
-- Path-limited resolve stosuje finalne indeksy dla controls. Gdy `$previous`
-  anchor jest obecny, ale inherited prefix nie został zmaterializowany przez
-  limit, resolver materializuje append delta bez raw-index filtrowania; to
-  zachowuje poprawny wynik kosztem szerszej materializacji delty.
-
-### Testy
-
-- `$previous` append-only minimal ma ten sam semantic `BlueId` co pełna lista.
-- Stale `$previous` nie rzuca i nie zatruwa publicznego semantic hash seedem.
-- Publiczny semantic BlueId ignoruje niezweryfikowany `$previous` bez
-  inherited prefixu.
-- Minimizer emituje `$previous`, nie legacy pure-reference marker.
-- Zwykły pierwszy item `{ blueId: ... }` pozostaje contentem.
-- `$pos` obsługuje positional refinement i appendy w finalnej kolejności.
-- Duplicate, non-integer i out-of-range `$pos` rzucają błędy.
-- `append-only` odrzuca `$pos`.
-- `$previous` nie jako pierwszy item jest rejected.
-- `$empty` wpływa na `BlueId` jako zwykły element.
-- PathLimits wybierają appendy względem finalnych indeksów listy, nie indeksów
-  raw control itemów.
-
-### Exit criteria
-
-- `nx test language` przechodzi z list controls w Phase 1.
-- Phase 2 snapshots mogą startować bez planowanego przepisywania list overlay
-  po drodze.
+- Fallback repo loads without `properties`.
+- `/blueId` uses injected semantic calculator.
+- Event checkpoint ID uses semantic calculator.
+- Operation Request document pin handles resolved/materialized reference and
+  inline semantic payload.
+- Repository bridge rewrites `blueId: OLD#1` to `blueId: NEW#1`.
+- `document-processor` passes type-check, lint, and tests after identity change.
 
 ---
 
-## Faza 1L — Public API and list-control closure
+## Phase 1K - List Control Forms
 
-### Cel
+### Goal
 
-Domknąć ostatnie publiczne i runtime luki po Phase 1K przed startem snapshotów:
-semantic identity ma być spójne dla async/sync, resolved/minimal `$pos`,
-materialized typed list items, `$empty` exact shape oraz path-limited `$pos`.
+Close list identity before snapshots: normal minimal overlay for inherited lists
+uses spec-native `$previous`, `$pos`, and `$empty`, without legacy first-item
+markers and without transitional full-list overlay as a write path.
 
-### Decyzje
+### Implementation
 
-- Top-level utility `calculateBlueId` / `calculateBlueIdSync` z `src/utils`
-  są usunięte z publicznych eksportów. Publiczne semantic identity to wyłącznie
-  `Blue.calculateBlueId*`; jawny low-level hasher pozostaje jako
+- `ListControls` defines the internal contract for:
+  - `$previous`: exact first item `{ $previous: { blueId: <itemsListBlueId> } }`;
+  - `$pos`: non-negative integer metadata on the item, only for
+    `mergePolicy: positional`;
+  - `$empty`: ordinary content, not metadata.
+- `Merger` resolves list controls in the inherited target list context:
+  - default `mergePolicy` is `positional`;
+  - `append-only` rejects `$pos`;
+  - `$pos` refinements target the final merged index;
+  - duplicate, non-integer, and out-of-range `$pos` throw explicit errors;
+  - malformed `$previous` remains an error;
+  - stale `$previous` is consumed and ignored as an outdated optimization hint;
+    resolver recomputes the effective list from the current inherited prefix.
+- `MergeReverser` minimizes inherited appends as `$previous + delta`, and
+  positional refinements as `$previous + $pos`; append-only non-prefix mutation
+  throws.
+- `BlueIdHasher` seeds list fold from `$previous` for appends and rejects raw
+  `$pos`, because `$pos` must be consumed by semantic normalization before
+  hashing.
+- Public `Blue.calculateBlueId*` does not treat arbitrary authoring input with
+  `$previous` as trusted minimal storage; untrusted controls go through semantic
+  resolve/minimize.
+- Hash-path rationale: append-only `$previous` can start the fold from the
+  previous list BlueId and continue folding new elements. `$pos` cannot be
+  calculated from only the previous list BlueId, because replacing a final index
+  requires materialized previous list elements.
+- `hashMinimalTrusted` materializes minimal input with `$pos` through semantic
+  resolve + hash-only minimization without re-emitting controls.
+- Path-limited resolve uses final indexes for controls. When a `$previous`
+  anchor is present but the inherited prefix was not materialized by the limit,
+  resolver materializes the append delta without raw-index filtering; this
+  preserves correctness at the cost of broader delta materialization.
+
+### Tests
+
+- `$previous` append-only minimal has the same semantic `BlueId` as the full
+  list.
+- Stale `$previous` does not throw and does not poison the public semantic hash
+  seed.
+- Public semantic BlueId ignores unverified `$previous` without inherited
+  prefix.
+- Minimizer emits `$previous`, not legacy pure-reference marker.
+- Ordinary first item `{ blueId: ... }` remains content.
+- `$pos` handles positional refinement and appends in final order.
+- Duplicate, non-integer, and out-of-range `$pos` throw errors.
+- `append-only` rejects `$pos`.
+- `$previous` not as the first item is rejected.
+- `$empty` affects `BlueId` as an ordinary element.
+- PathLimits select appends relative to final list indexes, not raw control item
+  indexes.
+
+### Exit Criteria
+
+- `nx test language` passes with list controls in Phase 1.
+- Phase 3 snapshots can start without planned list-overlay rewriting on the way.
+
+---
+
+## Phase 1L - Public API And List-Control Closure
+
+### Goal
+
+Close the last public/runtime gaps after Phase 1K before snapshots start:
+semantic identity must be consistent for async/sync, resolved/minimal `$pos`,
+materialized typed list items, exact `$empty` shape, and path-limited `$pos`.
+
+### Decisions
+
+- Top-level utility `calculateBlueId` / `calculateBlueIdSync` from `src/utils`
+  is removed from public exports. Public semantic identity is only
+  `Blue.calculateBlueId*`; the explicit low-level hasher remains
   `BlueIdCalculator`.
-- `ResolvedBlueNode.getMinimalBlueId()` zostaje tylko jako compatibility shim i
-  jest oznaczone jako deprecated. Nowy kod powinien używać
-  `blue.calculateBlueIdSync(resolved)`.
-- `$previous.blueId` dla minimalizowanych inherited list oznacza semantic
-  identity poprzedniego item-prefixu, nie raw hash materialized runtime itemów.
+- `ResolvedBlueNode.getMinimalBlueId()` remains only as a compatibility shim and
+  is marked deprecated. New code should use `blue.calculateBlueIdSync(resolved)`.
+- `$previous.blueId` for minimized inherited lists means the semantic identity
+  of the previous item prefix, not the raw hash of materialized runtime items.
 
-### Implementacja
+### Implementation
 
-- `ResolvedBlueNode.getMinimalBlueId()` używa hash-only minimization, więc
-  resolved minimal overlay z `$pos` nie trafia raw do `BlueIdHasher`.
-- `SemanticIdentityService.calculateBlueId()` używa async odpowiednika
-  `hashMinimalTrusted()`, włącznie z `StorageShapeValidator`.
-- `MergeReverser` i `Merger` porównują runtime list items przez hash-only
-  semantic minimization, żeby typed/materialized items nie dawały raw mismatch.
-- `$empty` jest walidowane jako exact item `{ $empty: true }`; malformed
-  `$empty` i kombinacje z `$previous` / `$pos` są invalid storage shape.
-- Path-limited `$pos` overlays są aplikowane względem finalnych inherited
-  indeksów, a dopiero potem wynik jest projektowany do limitu.
-- `enrichWithBlueId` używa semantic `Blue.calculateBlueId(...)`.
+- `ResolvedBlueNode.getMinimalBlueId()` uses hash-only minimization, so resolved
+  minimal overlay with `$pos` does not reach `BlueIdHasher` raw.
+- `SemanticIdentityService.calculateBlueId()` uses the async equivalent of
+  `hashMinimalTrusted()`, including `StorageShapeValidator`.
+- `MergeReverser` and `Merger` compare runtime list items through hash-only
+  semantic minimization, so typed/materialized items do not produce raw mismatch.
+- `$empty` is validated as exact item `{ $empty: true }`; malformed `$empty`
+  and combinations with `$previous` / `$pos` are invalid storage shape.
+- Path-limited `$pos` overlays are applied relative to final inherited indexes,
+  then the result is projected to the limit.
+- `enrichWithBlueId` uses semantic `Blue.calculateBlueId(...)`.
 
-### Testy
+### Tests
 
-- `getMinimalBlueId()` dla resolved positional `$pos`.
-- Async/sync parity dla `$pos`, stale `$previous`, inherited list controls i
+- `getMinimalBlueId()` for resolved positional `$pos`.
+- Async/sync parity for `$pos`, stale `$previous`, inherited list controls, and
   mixed `blueId + payload` validation.
-- Semantic `$previous` dla inherited typed/materialized list items.
-- Path-limited typed full-list overlay bez fałszywego `Mismatched items`.
+- Semantic `$previous` for inherited typed/materialized list items.
+- Path-limited typed full-list overlay without false `Mismatched items`.
 - Exact `$empty` validation.
-- PathLimits + `$pos` wybiera finalny merged index.
+- PathLimits + `$pos` selects the final merged index.
 
-### Exit criteria
+### Exit Criteria
 
-- `npx vitest run --config libs/language/vite.config.ts` przechodzi.
-- `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` przechodzi.
-- `npx eslint libs/document-processor --fix` nie zostawia lint errors.
-- `nx test document-processor --skip-nx-cache` przechodzi albo ma jawnie
-  opisany runtime blocker Nx/Vitest.
-
----
-
-## Faza 2 — Direct cycles przed snapshotami
-
-Rozumiemy Wasze „#this” jako `this#k` z §11.
-
-### Cel
-
-Domknąć specowe direct cyclic sets przed budową snapshotów, żeby późniejszy
-runtime artifact od początku cache'ował finalne `MASTER#i`, a nie przejściową
-semantykę listy dokumentów.
-
-### Implementacja
-
-Zaimplementować §11 dla top-level document set:
-
-- ZERO sentinel,
-- preliminary ids liczone przez semantic normalization / minimal trusted hash,
-- sort lexicographically po preliminary ids,
-- rewrite do `this#k`,
-- MASTER list hash liczony tą samą semantic hash ścieżką,
-- finalne `MASTER#i`.
-
-Podczas preliminary i MASTER hashing `ZERO` oraz `this#k` są traktowane jako
-opaque references, żeby semantic resolve nie próbował fetchować ich jako realnych
-typów. Jeżeli dwa dokumenty dostaną ten sam preliminary BlueId, implementacja ma
-rzucić jawny błąd ambiguous cyclic ordering; spec §11 nie definiuje jeszcze
-kanonicznego tie-breakera dla takiej kolizji.
-
-Publiczny kontrakt:
-
-- `Blue.calculateBlueId*(nodes[])` zwraca `MASTER`,
-- providerzy zapisują posortowany cyclic set pod `MASTER`,
-- `fetchByBlueId("MASTER#i")` zwraca dokument `i` z `this#k` rozwiązanym do
-  `MASTER#k`,
-- zwykłe stringi `this` / `this#k` poza polem `blueId` pozostają treścią,
-- single-node `blueId: this` pozostaje poza zakresem tej fazy.
-
-### Testy
-
-- 2-doc cycle,
-- 3-doc cycle,
-- stabilność pozycji po sortowaniu preliminary IDs,
-- collision preliminary IDs odrzucany jako ambiguous ordering,
-- cyclic docs z list controls (`$pos`) przechodzą przez semantic normalization,
-- `MASTER#i` zgodne między zapisami,
-- provider multi-doc ingest działa poprawnie,
-- out-of-range i malformed `this#k` rzucają jawny błąd.
-
-### Naturalny podział na PR
-
-- PR-2A: `this#k` + cyclic BlueIds
+- `npx vitest run --config libs/language/vite.config.ts` passes.
+- `npx tsc -p libs/document-processor/tsconfig.lib.json --noEmit` passes.
+- `npx eslint libs/document-processor --fix` leaves no lint errors.
+- `nx test document-processor --skip-nx-cache` passes, or a real Nx/Vitest
+  runtime blocker is explicitly documented.
 
 ---
 
-## Faza 3 — Snapshoty
+## Phase 2 - Direct Cycles Before Snapshots
 
-### Cel
+The old "#this" shorthand is interpreted as `this#k` from Section 11.
 
-Dostarczyć DP-ready runtime artifact po domknięciu semantic identity, list
-controls i direct cyclic `MASTER#i`.
+### Goal
 
-### Implementacja
+Close spec direct cyclic sets before building snapshots, so the later runtime
+artifact caches final `MASTER#i` identities from the start instead of a
+transitional document-list semantics.
 
-Dodać:
+### Implementation
 
-- `ResolvedSnapshot`
-- `FrozenNode` albo frozen `ResolvedBlueNode`
-- `blue.resolveToSnapshot(...)`
-- `blue.minimize(snapshot)` lub `snapshot.toMinimal()`
-- `snapshot.blueId`
+Implement Section 11 for a top-level document set:
 
-Minimum funkcjonalne:
+- ZERO sentinel;
+- preliminary IDs calculated through semantic normalization / minimal trusted
+  hash;
+- lexicographic sort by preliminary IDs;
+- rewrite to `this#k`;
+- MASTER list hash calculated through the same semantic hash path;
+- final `MASTER#i`.
 
-- immutable resolved root,
-- lazy cache minimal overlay,
-- lazy cache semantic BlueId,
-- path index,
-- metadata o resolve context.
+During preliminary and MASTER hashing, `ZERO` and `this#k` are treated as opaque
+references so semantic resolve does not try to fetch them as real types. If two
+documents receive the same preliminary BlueId, the implementation throws an
+explicit ambiguous cyclic ordering error; specification Section 11 does not yet
+define a canonical tie-breaker for that collision.
 
-Wariant docelowy:
+Public contract:
 
-- `SnapshotEditor` albo `blue.applyPatch(snapshot, patch)`:
-  - copy-on-write tylko po ścieżce,
-  - przeliczenie tylko touched subtree + ancestors,
-  - nowy snapshot jako wynik.
+- `Blue.calculateBlueId*(nodes[])` returns `MASTER`;
+- providers store the sorted cyclic set under `MASTER`;
+- `fetchByBlueId("MASTER#i")` returns document `i` with `this#k` resolved to
+  `MASTER#k`;
+- ordinary strings `this` / `this#k` outside `blueId` fields remain content;
+- single-node `blueId: this` remains outside this phase.
 
-To ma być gotowe jako baza pod późniejsze zużycie w `document-processor`.
+### Tests
 
-### Pliki
+- 2-doc cycle;
+- 3-doc cycle;
+- stable positions after sorting preliminary IDs;
+- preliminary ID collision is rejected as ambiguous ordering;
+- cyclic docs with list controls (`$pos`) go through semantic normalization;
+- `MASTER#i` stable across writes;
+- provider multi-doc ingest works correctly;
+- out-of-range and malformed `this#k` throw explicit errors.
 
-- nowe `src/lib/snapshot/*`
-- adaptacja `Blue.ts`
-- możliwe odchudzenie `ResolvedNode.ts`
+### Natural PR Split
 
-### Testy
-
-- stary snapshot nie zmienia się po patchu,
-- nowy snapshot dostaje nowy `BlueId`,
-- przeliczana jest tylko ścieżka do korzenia,
-- `snapshot.toMinimal()` daje to samo co `blue.minimize(resolvedNode)`,
-- `resolveToSnapshot()` i zwykły `resolve()` są semantycznie zgodne.
-
-### Benchmarki
-
-- nowy `snapshot-patch` benchmark,
-- porównanie full resolve vs snapshot patch.
-
-### Naturalny podział na PR
-
-- PR-3A: snapshot core + freeze
-- PR-3B: lazy caches + path index
-- PR-3C: patch/update API + benchmark
+- PR-2A: `this#k` + cyclic BlueIds.
 
 ---
 
-## Faza 4 — Final cleanup
+## Phase 3 - Snapshots
 
-### Cel
+### Goal
 
-Usunąć pozostałe przejściowe semantics po direct cycles i snapshotach.
+Deliver a DP-ready runtime artifact after semantic identity, list controls, and
+direct cyclic `MASTER#i` are closed.
 
-### Implementacja
+### Implementation
 
-- usunięcie legacy list marker code path,
-- usunięcie starych niejawnych skrótów,
-- finalizacja docs.
+Add:
 
-### Exit criteria fazy 4
+- `ResolvedSnapshot`;
+- `FrozenNode` or frozen `ResolvedBlueNode`;
+- `blue.resolveToSnapshot(...)`;
+- `blue.minimize(snapshot)` or `snapshot.toMinimal()`;
+- `snapshot.blueId`.
 
-Po tej fazie `libs/language` jest gotowe do bycia podstawą dla reszty monorepo i do wydania jako major breaking change.
+Minimum functionality:
 
-### Naturalny podział na PR
+- immutable resolved root;
+- lazy minimal overlay cache;
+- lazy semantic BlueId cache;
+- path index;
+- resolve-context metadata.
 
-- PR-4A: cleanup + docs final
+Target variant:
 
-## 4. Przykłady testów integracyjnych
+- `SnapshotEditor` or `blue.applyPatch(snapshot, patch)`:
+  - copy-on-write only along the path;
+  - recompute only touched subtree + ancestors;
+  - return a new snapshot.
 
-### 1) Semantic `BlueId` jest taki sam dla authoring / resolved / minimal / provider fetch
+This should become the base for later `document-processor` usage.
+
+### Files
+
+- new `src/lib/snapshot/*`;
+- adapt `Blue.ts`;
+- possible simplification of `ResolvedNode.ts`.
+
+### Tests
+
+- old snapshot does not change after patch;
+- new snapshot gets a new `BlueId`;
+- only the path to root is recalculated;
+- `snapshot.toMinimal()` gives the same result as `blue.minimize(resolvedNode)`;
+- `resolveToSnapshot()` and ordinary `resolve()` are semantically equivalent.
+
+### Benchmarks
+
+- new `snapshot-patch` benchmark;
+- compare full resolve vs snapshot patch.
+
+### Natural PR Split
+
+- PR-3A: snapshot core + freeze;
+- PR-3B: lazy caches + path index;
+- PR-3C: patch/update API + benchmark.
+
+---
+
+## Phase 4 - Final Cleanup
+
+### Goal
+
+Remove the remaining transitional semantics after direct cycles and snapshots.
+
+### Implementation
+
+- remove legacy list marker code path;
+- remove old implicit shortcuts;
+- finalize docs.
+
+### Phase 4 Exit Criteria
+
+After this phase, `libs/language` is ready to be the base for the rest of the
+monorepo and to ship as a major breaking change.
+
+### Natural PR Split
+
+- PR-4A: cleanup + final docs.
+
+## 4. Integration Test Examples
+
+### 1) Semantic `BlueId` Is The Same For Authoring / Resolved / Minimal / Provider Fetch
 
 ```ts
 it('keeps one semantic BlueId across authoring, resolved, minimal and fetched storage form', () => {
@@ -1246,7 +1297,7 @@ c: 3
 });
 ```
 
-### 2) Authoring/storage ingest odrzuca mixed `blueId + payload`
+### 2) Authoring/Storage Ingest Rejects Mixed `blueId + payload`
 
 ```ts
 it('rejects ambiguous blueId + payload in storage ingest', () => {
@@ -1263,7 +1314,7 @@ x:
 });
 ```
 
-### 3) Snapshot jest immutable i robi path-local rehash
+### 3) Snapshot Is Immutable And Performs Path-Local Rehash
 
 ```ts
 it('creates a new immutable snapshot and rehashes only the touched path', () => {
@@ -1293,7 +1344,7 @@ order:
 });
 ```
 
-### 4) `$previous` daje ten sam `BlueId` co pełna materializacja
+### 4) `$previous` Gives The Same `BlueId` As Full Materialization
 
 ```ts
 it('gives the same BlueId for append-only list via $previous and full list', () => {
@@ -1330,7 +1381,7 @@ entries:
 });
 ```
 
-### 5) `this#k` daje stabilny combined BlueId dla direct cycle
+### 5) `this#k` Gives A Stable Combined BlueId For Direct Cycles
 
 ```ts
 it('assigns stable MASTER#i BlueIds for a direct cyclic set', () => {
@@ -1361,65 +1412,72 @@ it('assigns stable MASTER#i BlueIds for a direct cyclic set', () => {
 });
 ```
 
-`provider.getNodeByName('Person')` zwraca zmaterializowany dokument bez
-metadanych źródłowego `MASTER#i`; jego standalone `calculateBlueIdSync()` liczy
-zwykły semantic ID dla tej postaci.
+`provider.getNodeByName('Person')` returns a materialized document without the
+source `MASTER#i` metadata; standalone `calculateBlueIdSync()` on that node
+calculates the ordinary semantic ID for that materialized shape.
 
-## 5. Twarde Definition of Done
+## 5. Hard Definition Of Done
 
-### Exit DoD dla fazy 1
+### Phase 1 Exit DoD
 
-- `Blue.calculateBlueId*` zwraca ten sam wynik dla authoring, resolved i minimal
-  dla dokumentów niecyklicznych, w tym spec-native list control forms.
-- `PathLimits` nie zmieniają `BlueId`.
-- expansion nie zmienia `BlueId`.
-- pure-ref short-circuit działa tylko dla exact `{ blueId }`.
+- `Blue.calculateBlueId*` returns the same result for authoring, resolved, and
+  minimal forms for non-cyclic documents, including spec-native list control
+  forms.
+- `PathLimits` do not change `BlueId`.
+- expansion does not change `BlueId`.
+- pure-ref short-circuit works only for exact `{ blueId }`.
 - `[] != absent`, `[A] != A`, `[[A,B],C] != [A,B,C]`.
-- providerzy zapisują minimal overlay keyed by semantic `BlueId`.
-- normalny provider/storage path nie używa `minimizeStorageOverlay` ani legacy
+- providers store minimal overlay keyed by semantic `BlueId`.
+- normal provider/storage path does not use `minimizeStorageOverlay` or legacy
   inherited-list marker.
-- `Blue.extend()` / `NodeExtender` expansion zachowuje semantic `BlueId` i nie
-  zostawia `blueId + payload` jako hash input.
-- `document-processor` runtime nie fallbackuje do raw `BlueIdCalculator`.
-- storage ingest odrzuca mixed `blueId + payload` jako authoring/minimal input.
-- `NodeToMapListOrValue` nie bierze już udziału w normalnym hash path.
-  Te warunki są bezpośrednio zgodne z §8–§10 i §12; direct cyclic sets domyka
-  faza 2 przed snapshotami. ([language.blue][1])
+- `Blue.extend()` / `NodeExtender` expansion preserves semantic `BlueId` and
+  does not leave `blueId + payload` as hash input.
+- `document-processor` runtime does not fallback to raw `BlueIdCalculator`.
+- storage ingest rejects mixed `blueId + payload` as authoring/minimal input.
+- `NodeToMapListOrValue` is no longer part of the normal hash path.
+  These conditions directly match Sections 8-10 and 12; direct cyclic sets are
+  closed in Phase 2 before snapshots. ([language.blue][1])
 
-### Exit DoD dla fazy 2
+### Phase 2 Exit DoD
 
-- `Blue.calculateBlueId*(nodes[])` zwraca `MASTER` dla direct cyclic setów.
-- providerzy zapisują posortowany cyclic set pod `MASTER`.
-- `fetchByBlueId("MASTER#i")` rozwiązuje `this#k` do finalnego `MASTER#k`.
-- zwykłe stringi `this` / `this#k` poza polem `blueId` pozostają treścią.
-- malformed i out-of-range `this#k` są odrzucane.
+- `Blue.calculateBlueId*(nodes[])` returns `MASTER` for direct cyclic sets.
+- providers store the sorted cyclic set under `MASTER`.
+- `fetchByBlueId("MASTER#i")` resolves `this#k` to final `MASTER#k`.
+- ordinary strings `this` / `this#k` outside `blueId` fields remain content.
+- malformed and out-of-range `this#k` are rejected.
 
-### Exit DoD dla fazy 3
+### Phase 3 Exit DoD
 
-- `resolveToSnapshot()` istnieje i daje immutable/frozen runtime artifact.
-- `snapshot.toMinimal()` i `blue.minimize(resolved)` są semantycznie zgodne.
-- `snapshot.blueId` jest semantic `BlueId`.
-- patch po ścieżce nie robi full-tree re-resolve.
-- benchmark `snapshot-patch` pokazuje lokalny rehash zamiast pełnego przebiegu.
-- stary snapshot nigdy nie zmienia się po commitcie nowego.
-  To jest spójne z tym, że resolve ma kończyć się sfinalizowanym snapshotem, a limity nie mogą wpływać na identity. ([language.blue][1])
+- `resolveToSnapshot()` exists and returns an immutable/frozen runtime artifact.
+- `snapshot.toMinimal()` and `blue.minimize(resolved)` are semantically
+  equivalent.
+- `snapshot.blueId` is a semantic `BlueId`.
+- path patching does not perform full-tree re-resolve.
+- `snapshot-patch` benchmark shows local rehash instead of a full pass.
+- the old snapshot never changes after committing a new one.
+  This is consistent with resolve ending in a finalized snapshot and limits not
+  affecting identity. ([language.blue][1])
 
-### Finalne DoD dla `libs/language`
+### Final DoD For `libs/language`
 
-- `canonical` nie jest używane na minimal overlay form; terminologia w kodzie i docs jest spójna.
-- official/wrapped form, minimal overlay form, resolved snapshot i semantic `BlueId` są jednoznacznie rozdzielone.
-- providerzy i `NodeContentHandler` operują na minimal-first storage.
-- `Merger` / minimizer / hasher obsługują `$previous`, `$pos`, `$empty`.
-- write path nie emituje legacy list marker.
-- direct cyclic sets obsługują `this#k`, MASTER i finalne `MASTER#i`.
-- `nx test language` przechodzi w całości.
-- benchmark `calculate-blue-id` i `resolve` nie mają regresji > 10% na baseline ogólnym.
-- append-only list case jest wyraźnie szybszy niż baseline.
-- README, `docs/blue-id.md`, `docs/resolve.md`, ADR-y i glossary są zgodne z nową semantyką.
-  To zamyka pełną zgodność z aktualną specyfikacją identity, minimization, list hashing i direct cycles. ([language.blue][1])
+- `canonical` is not used for minimal overlay form; terminology in code and
+  docs is consistent.
+- official/wrapped form, minimal overlay form, resolved snapshot, and semantic
+  `BlueId` are unambiguously separated.
+- providers and `NodeContentHandler` operate on minimal-first storage.
+- `Merger` / minimizer / hasher support `$previous`, `$pos`, `$empty`.
+- write path does not emit legacy list marker.
+- direct cyclic sets support `this#k`, MASTER, and final `MASTER#i`.
+- `nx test language` passes in full.
+- `calculate-blue-id` and `resolve` benchmarks have no regression above 10%
+  against the general baseline.
+- append-only list case is clearly faster than baseline.
+- README, `docs/blue-id.md`, `docs/resolve.md`, ADRs, and glossary match the
+  new semantics.
+  This closes full conformance with the current specification for identity,
+  minimization, list hashing, and direct cycles. ([language.blue][1])
 
-Ten układ uważam za najlepszy pod Wasz cel: **najpierw naprawić tożsamość,
-storage i direct cyclic `BlueId`, potem dołożyć runtime snapshots dla
-`document-processor`**.
+The remaining direction is: first keep identity, storage, and direct cyclic
+`BlueId` stable; then add runtime snapshots for `document-processor`.
 
-[1]: https://language.blue/docs/reference/specification 'Blue Language Specification — language.blue docs'
+[1]: https://language.blue/docs/reference/specification 'Blue Language Specification - language.blue docs'
