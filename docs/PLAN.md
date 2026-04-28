@@ -1173,11 +1173,35 @@ Dodać minimalny snapshot runtime bez patchowania i bez indeksu ścieżek.
 
 Dodać efektywne lookupi po ścieżkach jako przygotowanie pod patch API.
 
+#### Decyzje
+
+- Lookup snapshotu jest node-only: publiczne helpery zwracają `FrozenNode`,
+  nie primitive scalar values.
+- `snapshot.getNode(pointer)` nie udaje `BlueNode.get()` i nie unwrapuje
+  `value`.
+- Scalar/virtual fields `name`, `description`, `value` i `blueId` nie są
+  zwracane jako synthetic nodes. Jeżeli istnieje user property o takiej nazwie,
+  property zachowuje zwykły pointer.
+- User properties shadowują structural node fields przy tym samym segmencie,
+  zgodnie z dotychczasową ścieżką odczytu w runtime.
+- `SnapshotPathIndex` jest detalem implementacyjnym snapshotów. Publiczne API
+  3B to helpery na `ResolvedSnapshot`.
+
 #### Implementacja
 
-- path index dla `ResolvedSnapshot`,
-- snapshot-safe `get(path)` / lookup helpers,
-- metadata o resolve context potrzebne do przyszłego path-local update.
+- lazy path index dla `ResolvedSnapshot`,
+- `snapshot.getNode(pointer)`,
+- `snapshot.hasNode(pointer)`,
+- `snapshot.getPointer(node)`,
+- małe snapshot-local JSON Pointer helpers dla normalize/encode/decode.
+
+#### Poza zakresem 3B
+
+- patch/update API,
+- unwrap scalar values,
+- path-limited snapshots,
+- top-level `BlueNode[]` snapshots,
+- integracja z `document-processor`.
 
 ### Faza 3C — Patch/update API + benchmark
 
