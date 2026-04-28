@@ -256,7 +256,11 @@ describe('RepositoryBasedNodeProvider', () => {
       packages: {
         test: {
           name: 'test',
-          aliases: { 'test/Multi': listId },
+          aliases: {
+            'test/Multi': listId,
+            'test/Second': `${listId}#1`,
+            'test/Missing': `${listId}#99`,
+          },
           typesMeta,
           contents: {
             [listId]: [
@@ -275,6 +279,18 @@ describe('RepositoryBasedNodeProvider', () => {
 
     const byIndex = provider.fetchByBlueId(`${listId}#0`);
     expect(byIndex?.[0]?.getBlueId()).toBeUndefined();
+
+    expect(provider.hasBlueId('test/Second')).toBe(true);
+    const byFragmentAlias = provider.fetchByBlueId('test/Second');
+    expect(byFragmentAlias?.map((node) => node.getName())).toEqual(['Second']);
+    expect(byFragmentAlias?.[0]?.getBlueId()).toBeUndefined();
+
+    const byComposedAlias = provider.fetchByBlueId('test/Multi#1');
+    expect(byComposedAlias?.map((node) => node.getName())).toEqual(['Second']);
+
+    expect(provider.fetchByBlueId('test/Missing')).toBeNull();
+    expect(provider.fetchByBlueId('test/Second#0')).toBeNull();
+    expect(provider.hasBlueId('test/Second#0')).toBe(false);
 
     const individualBlueId = BlueIdCalculator.calculateBlueIdSync(first);
     const byIndividual = provider.fetchByBlueId(individualBlueId);

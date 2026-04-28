@@ -220,15 +220,14 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   protected override fetchContentByBlueId(
     baseBlueId: string,
   ): JsonBlueValue | null {
-    const storageBlueId = this.aliasBlueIdMap.get(baseBlueId) ?? baseBlueId;
-    const finalContent = this.blueIdToContentMap.get(storageBlueId);
+    const finalContent = this.blueIdToContentMap.get(baseBlueId);
     const finalIsMultipleDocuments =
-      this.blueIdToMultipleDocumentsMap.get(storageBlueId);
+      this.blueIdToMultipleDocumentsMap.get(baseBlueId);
 
     if (finalContent !== undefined && finalIsMultipleDocuments !== undefined) {
       return NodeContentHandler.resolveThisReferences(
         finalContent,
-        storageBlueId,
+        baseBlueId,
         finalIsMultipleDocuments,
       );
     }
@@ -236,19 +235,28 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     // Bootstrap lookup is only populated during constructor-time processing.
     // It is not a historical-ID compatibility path after loadRepositories()
     // clears the maps.
-    const content = this.bootstrapBlueIdToContentMap.get(storageBlueId);
+    const content = this.bootstrapBlueIdToContentMap.get(baseBlueId);
     const isMultipleDocuments =
-      this.bootstrapBlueIdToMultipleDocumentsMap.get(storageBlueId);
+      this.bootstrapBlueIdToMultipleDocumentsMap.get(baseBlueId);
 
     if (content !== undefined && isMultipleDocuments !== undefined) {
       return NodeContentHandler.resolveThisReferences(
         content,
-        storageBlueId,
+        baseBlueId,
         isMultipleDocuments,
       );
     }
 
     return null;
+  }
+
+  override fetchByBlueId(blueId: string): BlueNode[] | null {
+    const resolvedBlueId = this.resolveAliasBlueId(blueId);
+    if (resolvedBlueId === undefined) {
+      return null;
+    }
+
+    return super.fetchByBlueId(resolvedBlueId);
   }
 
   private storeContent(
@@ -271,9 +279,52 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
    * Check if a Blue ID exists in this provider
    */
   public hasBlueId(blueId: string): boolean {
-    const baseBlueId = blueId.split('#')[0];
-    const storageBlueId = this.aliasBlueIdMap.get(baseBlueId) ?? baseBlueId;
-    return this.blueIdToContentMap.has(storageBlueId);
+    const resolvedBlueId = this.resolveAliasBlueId(blueId);
+    if (resolvedBlueId === undefined) {
+      return false;
+    }
+
+    return this.blueIdToContentMap.has(
+      this.getBaseBlueIdAndSuffix(resolvedBlueId).baseBlueId,
+    );
+  }
+
+  private resolveAliasBlueId(blueId: string): string | undefined {
+    const exactAlias = this.aliasBlueIdMap.get(blueId);
+    if (exactAlias !== undefined) {
+      return exactAlias;
+    }
+
+    const { baseBlueId, suffix } = this.getBaseBlueIdAndSuffix(blueId);
+    if (suffix === undefined) {
+      return blueId;
+    }
+
+    const mappedBaseBlueId = this.aliasBlueIdMap.get(baseBlueId);
+    if (mappedBaseBlueId === undefined) {
+      return blueId;
+    }
+
+    if (this.getBaseBlueIdAndSuffix(mappedBaseBlueId).suffix !== undefined) {
+      return undefined;
+    }
+
+    return `${mappedBaseBlueId}${suffix}`;
+  }
+
+  private getBaseBlueIdAndSuffix(blueId: string): {
+    baseBlueId: string;
+    suffix?: string;
+  } {
+    const separatorIndex = blueId.indexOf('#');
+    if (separatorIndex === -1) {
+      return { baseBlueId: blueId };
+    }
+
+    return {
+      baseBlueId: blueId.slice(0, separatorIndex),
+      suffix: blueId.slice(separatorIndex),
+    };
   }
 
   private assertProvidedBlueId(
