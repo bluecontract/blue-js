@@ -481,9 +481,6 @@ raw-ID exception for transformation resources.
 - `dsl-sdk` may continue importing `createDefaultMergingProcessor` from
   `document-processor` in this phase. That dependency is not part of the
   identity boundary cleanup.
-- Big decimal hashing is intentionally unchanged in this phase. Precise numbers
-  outside safe JSON-number semantics should be represented as strings until a
-  separate numeric identity decision is made.
 - Phase 1K owns spec-native `$previous`, `$pos`, and `$empty`. Phase 3 owns
   direct cyclic `this#k` support. Legacy inherited-list markers are not a
   normal storage format in Phase 1.
