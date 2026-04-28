@@ -1,6 +1,7 @@
 export * from './model';
 export * from './utils';
 export * from './identity';
+export * from './snapshot';
 export * from './mapping';
 export * from './Blue';
 export * from './NodeProvider';

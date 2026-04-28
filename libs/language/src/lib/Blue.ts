@@ -41,6 +41,7 @@ import { RepositoryRegistry } from './repository/RepositoryRuntime';
 import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
 import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
 import { SemanticIdentityService } from './identity/SemanticIdentityService';
+import { ResolvedSnapshot } from './snapshot';
 import {
   BlueContext,
   NodeToJsonFormat,
@@ -178,6 +179,23 @@ export class Blue {
     return resolved;
   }
 
+  public resolveToSnapshot(node: BlueNode): ResolvedSnapshot {
+    if (
+      node instanceof ResolvedBlueNode &&
+      node.getCompleteness() === 'path-limited'
+    ) {
+      throw new Error(
+        'resolveToSnapshot requires a full resolved node; path-limited resolved nodes are not supported.',
+      );
+    }
+
+    const resolved = this.resolve(node, NO_LIMITS);
+    return ResolvedSnapshot.fromResolvedNode(
+      resolved,
+      this.createSemanticIdentityService(),
+    );
+  }
+
   /**
    * Wraps an already resolved (merged) BlueNode in a ResolvedBlueNode.
    * Useful when you persist a resolved node (e.g., in a database) and later
@@ -204,11 +222,14 @@ export class Blue {
   /**
    * Produces a minimal overlay that re-resolves to the same semantic BlueId.
    */
-  public minimize(node: BlueNode) {
-    return new SemanticIdentityService({
-      nodeProvider: this.nodeProvider,
-      mergingProcessor: this.mergingProcessor,
-    }).minimize(node);
+  public minimize(node: BlueNode): BlueNode;
+  public minimize(snapshot: ResolvedSnapshot): BlueNode;
+  public minimize(nodeOrSnapshot: BlueNode | ResolvedSnapshot): BlueNode {
+    if (nodeOrSnapshot instanceof ResolvedSnapshot) {
+      return nodeOrSnapshot.toMinimal().toMutableNode();
+    }
+
+    return this.createSemanticIdentityService().minimize(nodeOrSnapshot);
   }
 
   /**
@@ -291,10 +312,7 @@ export class Blue {
     value: JsonBlueValue | BlueNode | BlueNode[],
   ) => {
     const prepared = await this.prepareForBlueIdCalculation(value);
-    return new SemanticIdentityService({
-      nodeProvider: this.nodeProvider,
-      mergingProcessor: this.mergingProcessor,
-    }).calculateBlueId(prepared);
+    return this.createSemanticIdentityService().calculateBlueId(prepared);
   };
 
   private prepareForBlueIdCalculationSync = (
@@ -316,10 +334,7 @@ export class Blue {
 
   public calculateBlueIdSync(value: JsonBlueValue | BlueNode | BlueNode[]) {
     const prepared = this.prepareForBlueIdCalculationSync(value);
-    return new SemanticIdentityService({
-      nodeProvider: this.nodeProvider,
-      mergingProcessor: this.mergingProcessor,
-    }).calculateBlueIdSync(prepared);
+    return this.createSemanticIdentityService().calculateBlueIdSync(prepared);
   }
 
   /**
@@ -393,6 +408,13 @@ export class Blue {
     return blueId !== undefined && BlueIds.isPotentialBlueId(blueId)
       ? blueId
       : undefined;
+  }
+
+  private createSemanticIdentityService(): SemanticIdentityService {
+    return new SemanticIdentityService({
+      nodeProvider: this.nodeProvider,
+      mergingProcessor: this.mergingProcessor,
+    });
   }
 
   public getTypeSchemaResolver(): TypeSchemaResolver | null {

@@ -1122,32 +1122,78 @@ Publiczny kontrakt:
 Dostarczyć DP-ready runtime artifact po domknięciu semantic identity, list
 controls i direct cyclic `MASTER#i`.
 
-### Implementacja
+### Decyzje dla Phase 3
 
-Dodać:
+- Phase 3 dzielimy na:
+  - **3A** — core immutable snapshot,
+  - **3B** — path index / snapshot lookup helpers,
+  - **3C** — copy-on-write patch API, rehash metrics i benchmark update.
+- Każda nowa decyzja zakresowa/API dotycząca snapshotów musi trafić do
+  `docs/PLAN.md` w tym samym PR, w którym jest implementowana.
+- Snapshot API wystawia immutable runtime artifact. Mutable `BlueNode` jest
+  dostępny tylko przez jawne conversion method.
+- `FrozenNode` jest osobną immutable reprezentacją, nie subclassą `BlueNode`.
 
-- `ResolvedSnapshot`
-- `FrozenNode` albo frozen `ResolvedBlueNode`
-- `blue.resolveToSnapshot(...)`
-- `blue.minimize(snapshot)` lub `snapshot.toMinimal()`
-- `snapshot.blueId`
+### Faza 3A — Core immutable snapshot
 
-Minimum funkcjonalne:
+#### Cel
+
+Dodać minimalny snapshot runtime bez patchowania i bez indeksu ścieżek.
+
+#### Implementacja
+
+- Dodać `ResolvedSnapshot`.
+- Dodać `FrozenNode`.
+- Dodać `blue.resolveToSnapshot(node)`.
+- Dodać obsługę `blue.minimize(snapshot)`.
+- Dodać `snapshot.blueId`.
+- Dodać `snapshot.toMinimal()`.
+- Dodać jawne conversion z immutable snapshotu do mutable `ResolvedBlueNode` /
+  `BlueNode`, gdy caller tego potrzebuje.
+
+#### Poza zakresem 3A
+
+- patch/update API,
+- path index i snapshot lookup helpers,
+- path-limited snapshots,
+- top-level `BlueNode[]` snapshots,
+- integracja z `document-processor`,
+- benchmark `snapshot-patch`.
+
+#### Minimum funkcjonalne
 
 - immutable resolved root,
 - lazy cache minimal overlay,
 - lazy cache semantic BlueId,
-- path index,
-- metadata o resolve context.
+- snapshot jest izolowany od późniejszych mutacji source/resolved node.
 
-Wariant docelowy:
+### Faza 3B — Path index / lookup helpers
+
+#### Cel
+
+Dodać efektywne lookupi po ścieżkach jako przygotowanie pod patch API.
+
+#### Implementacja
+
+- path index dla `ResolvedSnapshot`,
+- snapshot-safe `get(path)` / lookup helpers,
+- metadata o resolve context potrzebne do przyszłego path-local update.
+
+### Faza 3C — Patch/update API + benchmark
+
+#### Cel
+
+Zastąpić `patch-then-full-resolve` ścieżką copy-on-write snapshot update.
+
+#### Implementacja
 
 - `SnapshotEditor` albo `blue.applyPatch(snapshot, patch)`:
   - copy-on-write tylko po ścieżce,
   - przeliczenie tylko touched subtree + ancestors,
-  - nowy snapshot jako wynik.
-
-To ma być gotowe jako baza pod późniejsze zużycie w `document-processor`.
+  - nowy snapshot jako wynik,
+  - metryki touched/rehashed pointers.
+- Zaktualizować benchmark `snapshot-patch`, żeby porównywał full resolve vs
+  snapshot patch.
 
 ### Pliki
 
@@ -1157,21 +1203,24 @@ To ma być gotowe jako baza pod późniejsze zużycie w `document-processor`.
 
 ### Testy
 
+- `resolveToSnapshot()` i zwykły `resolve()` są semantycznie zgodne,
+- `snapshot.toMinimal()` daje to samo co `blue.minimize(resolvedNode)`,
+- `snapshot.blueId` jest semantic `BlueId`,
+- arrays/property maps exposed przez `FrozenNode` są frozen,
 - stary snapshot nie zmienia się po patchu,
 - nowy snapshot dostaje nowy `BlueId`,
-- przeliczana jest tylko ścieżka do korzenia,
-- `snapshot.toMinimal()` daje to samo co `blue.minimize(resolvedNode)`,
-- `resolveToSnapshot()` i zwykły `resolve()` są semantycznie zgodne.
+- przeliczana jest tylko ścieżka do korzenia.
 
 ### Benchmarki
 
-- nowy `snapshot-patch` benchmark,
-- porównanie full resolve vs snapshot patch.
+- Phase 3A nie zmienia benchmarków.
+- Phase 3C aktualizuje `snapshot-patch` benchmark i porównuje full resolve vs
+  snapshot patch.
 
 ### Naturalny podział na PR
 
-- PR-3A: snapshot core + freeze
-- PR-3B: lazy caches + path index
+- PR-3A: snapshot core + freeze + docs update
+- PR-3B: path index / lookup helpers
 - PR-3C: patch/update API + benchmark
 
 ---

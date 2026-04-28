@@ -17,6 +17,8 @@ export {
   createNodeProvider,
   reindexRepositoryForSemanticStorage,
   SemanticIdentityService,
+  FrozenNode,
+  ResolvedSnapshot,
 
   // merge
   NodeResolver,
