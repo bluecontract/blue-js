@@ -8,9 +8,14 @@ import {
 import { UpdateDocumentStepExecutor } from '../update-document-step-executor.js';
 import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
 import { ProcessorFatalError } from '../../../../engine/processor-fatal-error.js';
+import {
+  BlueQuickJsEngine,
+  type JavaScriptEvaluationEngine,
+  type JavaScriptEvaluationOptions,
+} from '../../../../util/expression/javascript-evaluation-engine.js';
 
 describe('UpdateDocumentStepExecutor', () => {
-  const executor = new UpdateDocumentStepExecutor();
+  const executor = new UpdateDocumentStepExecutor(new BlueQuickJsEngine());
 
   it('applies replace operation with static value', async () => {
     const blue = createBlue();
@@ -149,6 +154,38 @@ changeset:
       'simple',
     ) as { total?: number };
     expect(result.total).toBe(18);
+  });
+
+  it('routes changeset expression evaluation through the injected engine', async () => {
+    const blue = createBlue();
+    const stepNode = blue.yamlToNode(`type: Conversation/Update Document
+changeset:
+  - op: REPLACE
+    path: /result
+    val: "\${fromEngine}"
+`);
+    const eventNode = blue.jsonValueToNode({});
+    const setup = createRealContext(blue, eventNode);
+    setup.execution.runtime().directWrite('/result', blue.jsonValueToNode(''));
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        return 'resolved by engine';
+      },
+    };
+    const injectedExecutor = new UpdateDocumentStepExecutor(fakeEngine);
+
+    await injectedExecutor.execute(args);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].code).toBe('return (fromEngine);');
+    const result = setup.context.blue.nodeToJson(
+      setup.execution.runtime().document(),
+      'simple',
+    ) as { result?: string };
+    expect(result.result).toBe('resolved by engine');
   });
 
   it('resolves template expressions in value', async () => {

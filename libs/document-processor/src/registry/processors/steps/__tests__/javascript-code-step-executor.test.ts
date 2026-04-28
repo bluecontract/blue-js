@@ -11,6 +11,11 @@ import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions
 import { typeBlueId } from '../../../../__tests__/test-utils.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { hostGasToWasmFuel } from '../../../../util/expression/quickjs-config.js';
+import {
+  BlueQuickJsEngine,
+  type JavaScriptEvaluationEngine,
+  type JavaScriptEvaluationOptions,
+} from '../../../../util/expression/javascript-evaluation-engine.js';
 
 function createStepNode(blue: Blue, code: string): BlueNode {
   const indented = code
@@ -22,7 +27,8 @@ function createStepNode(blue: Blue, code: string): BlueNode {
 }
 
 describe('JavaScriptCodeStepExecutor', () => {
-  const executor = new JavaScriptCodeStepExecutor();
+  const engine = new BlueQuickJsEngine();
+  const executor = new JavaScriptCodeStepExecutor(engine);
 
   it('evaluates code and returns plain result', async () => {
     const blue = createBlue();
@@ -33,6 +39,40 @@ describe('JavaScriptCodeStepExecutor', () => {
 
     const result = await executor.execute(args);
     expect(result).toEqual({ doubled: 42 });
+  });
+
+  it('routes code evaluation through the injected engine', async () => {
+    const blue = createBlue();
+    const code = 'return { status: event.payload.status };';
+    const stepNode = createStepNode(blue, code);
+    const eventNode = blue.jsonValueToNode({
+      payload: { status: 'complete' },
+    });
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        options.onWasmGasUsed?.({ used: 11n, remaining: 89n });
+        return { status: 'from-engine' };
+      },
+    };
+    const injectedExecutor = new JavaScriptCodeStepExecutor(fakeEngine, {
+      wasmGasLimit: 100n,
+    });
+    const gasSpy = vi.spyOn(context.gasMeter(), 'chargeWasmGas');
+
+    const result = await injectedExecutor.execute(args);
+
+    expect(result).toEqual({ status: 'from-engine' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].code.trimEnd()).toBe(code);
+    expect(calls[0].wasmGasLimit).toBe(100n);
+    expect(calls[0].bindings?.event).toEqual({
+      payload: { status: 'complete' },
+    });
+    expect(gasSpy).toHaveBeenCalledWith(11n);
   });
 
   it('exposes the event binding', async () => {
@@ -274,7 +314,7 @@ describe('JavaScriptCodeStepExecutor', () => {
 
   it('enforces execution gas limits for runaway code', async () => {
     const blue = createBlue();
-    const limitedExecutor = new JavaScriptCodeStepExecutor({
+    const limitedExecutor = new JavaScriptCodeStepExecutor(engine, {
       wasmGasLimit: hostGasToWasmFuel(1000),
     });
     const stepNode = createStepNode(blue, 'while (true) {}');

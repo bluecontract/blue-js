@@ -2,11 +2,11 @@ import { BlueNode } from '@blue-labs/language';
 import type { ContractProcessorContext } from '../../registry/types.js';
 import picomatch from 'picomatch';
 import { CodeBlockEvaluationError } from './exceptions.js';
-import {
-  QuickJSEvaluator,
-  type QuickJSBindings,
-  type QuickJSEvaluationOptions,
-} from './quickjs-evaluator.js';
+import type {
+  JavaScriptEvaluationEngine,
+  JavaScriptEvaluationOptions,
+} from './javascript-evaluation-engine.js';
+import type { QuickJSBindings } from './quickjs-evaluator.js';
 import { DEFAULT_EXPRESSION_WASM_GAS_LIMIT } from './quickjs-config.js';
 
 // Matches if entire string is exactly ${...} (anchored with ^ and $)
@@ -46,15 +46,15 @@ export function extractExpressionContent(expression: string): string {
 }
 
 export async function evaluateQuickJSExpression(
-  evaluator: QuickJSEvaluator,
+  engine: JavaScriptEvaluationEngine,
   expression: string,
   bindings: QuickJSBindings,
   wasmGasLimit?: bigint | number,
-  onWasmGasUsed?: QuickJSEvaluationOptions['onWasmGasUsed'],
+  onWasmGasUsed?: JavaScriptEvaluationOptions['onWasmGasUsed'],
 ): Promise<unknown> {
   const code = `return (${expression});`;
   try {
-    return await evaluator.evaluate({
+    return await engine.evaluate({
       code,
       bindings,
       wasmGasLimit,
@@ -66,11 +66,11 @@ export async function evaluateQuickJSExpression(
 }
 
 export async function resolveTemplateString(
-  evaluator: QuickJSEvaluator,
+  engine: JavaScriptEvaluationEngine,
   template: string,
   bindings: QuickJSBindings,
   wasmGasLimit?: bigint | number,
-  onWasmGasUsed?: QuickJSEvaluationOptions['onWasmGasUsed'],
+  onWasmGasUsed?: JavaScriptEvaluationOptions['onWasmGasUsed'],
 ): Promise<string> {
   let result = '';
   let lastIndex = 0;
@@ -81,7 +81,7 @@ export async function resolveTemplateString(
     const index = match.index ?? 0;
     result += template.slice(lastIndex, index);
     const evaluated = await evaluateQuickJSExpression(
-      evaluator,
+      engine,
       expression,
       bindings,
       wasmGasLimit,
@@ -112,7 +112,7 @@ export type PicomatchShouldResolveOptions = {
 };
 
 export type ResolveNodeExpressionsOptions = {
-  evaluator: QuickJSEvaluator;
+  engine: JavaScriptEvaluationEngine;
   node: BlueNode;
   bindings: QuickJSBindings;
   shouldResolve: ExpressionResolverPredicate;
@@ -146,7 +146,7 @@ export async function resolveNodeExpressions(
   options: ResolveNodeExpressionsOptions,
 ): Promise<BlueNode> {
   const {
-    evaluator,
+    engine,
     node,
     bindings,
     shouldResolve,
@@ -156,11 +156,10 @@ export async function resolveNodeExpressions(
   } = options;
 
   const expressionWasmGasLimit = DEFAULT_EXPRESSION_WASM_GAS_LIMIT;
-  const onExpressionWasmGasUsed: QuickJSEvaluationOptions['onWasmGasUsed'] = ({
-    used,
-  }) => {
-    context.gasMeter().chargeWasmGas(used);
-  };
+  const onExpressionWasmGasUsed: JavaScriptEvaluationOptions['onWasmGasUsed'] =
+    ({ used }) => {
+      context.gasMeter().chargeWasmGas(used);
+    };
 
   const clone = node.clone();
   if (!shouldDescend(pointer, clone)) {
@@ -173,7 +172,7 @@ export async function resolveNodeExpressions(
       if (isExpression(value)) {
         const expression = extractExpressionContent(value);
         const evaluated = await evaluateQuickJSExpression(
-          evaluator,
+          engine,
           expression,
           bindings,
           expressionWasmGasLimit,
@@ -182,7 +181,7 @@ export async function resolveNodeExpressions(
         return context.blue.jsonValueToNode(evaluated ?? null);
       } else if (containsExpression(value)) {
         const resolved = await resolveTemplateString(
-          evaluator,
+          engine,
           value,
           bindings,
           expressionWasmGasLimit,

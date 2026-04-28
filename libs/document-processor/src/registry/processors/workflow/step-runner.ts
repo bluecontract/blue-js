@@ -6,6 +6,7 @@ import type { SequentialWorkflow } from '../../../model/index.js';
 import { TriggerEventStepExecutor } from '../steps/trigger-event-step-executor.js';
 import { JavaScriptCodeStepExecutor } from '../steps/javascript-code-step-executor.js';
 import { UpdateDocumentStepExecutor } from '../steps/update-document-step-executor.js';
+import { BlueQuickJsEngine } from '../../../util/expression/javascript-evaluation-engine.js';
 
 export type StepResultMap = Record<string, unknown>;
 
@@ -24,11 +25,13 @@ export interface SequentialWorkflowStepExecutor {
   execute(args: StepExecutionArgs): unknown | Promise<unknown>;
 }
 
+const DEFAULT_JAVASCRIPT_ENGINE = new BlueQuickJsEngine();
+
 export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
   [
-    new TriggerEventStepExecutor(),
-    new JavaScriptCodeStepExecutor(),
-    new UpdateDocumentStepExecutor(),
+    new TriggerEventStepExecutor(DEFAULT_JAVASCRIPT_ENGINE),
+    new JavaScriptCodeStepExecutor(DEFAULT_JAVASCRIPT_ENGINE),
+    new UpdateDocumentStepExecutor(DEFAULT_JAVASCRIPT_ENGINE),
   ];
 
 export class WorkflowStepRunner {

@@ -116,7 +116,7 @@ describe('quickjs-expression-utils', () => {
       });
 
       const resolved = await resolveNodeExpressions({
-        evaluator,
+        engine: evaluator,
         node,
         bindings,
         shouldResolve,
@@ -167,7 +167,7 @@ describe('quickjs-expression-utils', () => {
       const node = blue.jsonValueToNode({ value: '${steps.answer}' });
 
       const resolved = await resolveNodeExpressions({
-        evaluator: mockEvaluator,
+        engine: mockEvaluator,
         node,
         bindings: {},
         shouldResolve: createPicomatchShouldResolve({
@@ -208,7 +208,7 @@ describe('quickjs-expression-utils', () => {
       });
 
       const resolved = await resolveNodeExpressions({
-        evaluator,
+        engine: evaluator,
         node,
         bindings: { steps: { answer: 42 } },
         shouldResolve: createPicomatchShouldResolve({

@@ -9,9 +9,14 @@ import { TriggerEventStepExecutor } from '../trigger-event-step-executor.js';
 import { ProcessorFatalError } from '../../../../engine/processor-fatal-error.js';
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { property, typeBlueId } from '../../../../__tests__/test-utils.js';
+import {
+  BlueQuickJsEngine,
+  type JavaScriptEvaluationEngine,
+  type JavaScriptEvaluationOptions,
+} from '../../../../util/expression/javascript-evaluation-engine.js';
 
 describe('TriggerEventStepExecutor', () => {
-  const executor = new TriggerEventStepExecutor();
+  const executor = new TriggerEventStepExecutor(new BlueQuickJsEngine());
 
   it('emits the provided event payload', async () => {
     const blue = createBlue();
@@ -97,6 +102,36 @@ event:
 
     const message = emitted.getProperties()?.message?.getValue();
     expect(message).toBe('Subscription renewal for 125 USD');
+  });
+
+  it('routes event expression evaluation through the injected engine', async () => {
+    const blue = createBlue();
+    const stepNode = blue.yamlToNode(`type: Conversation/Trigger Event
+event:
+  type: Conversation/Chat Message
+  message: "\${fromEngine}"
+`);
+    const eventNode = blue.jsonValueToNode({});
+    const setup = createRealContext(blue, eventNode);
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        return 'resolved by engine';
+      },
+    };
+    const injectedExecutor = new TriggerEventStepExecutor(fakeEngine);
+
+    await injectedExecutor.execute(args);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].code).toBe('return (fromEngine);');
+    const emissions = setup.execution.runtime().rootEmissions();
+    expect(emissions).toHaveLength(1);
+    expect(property(emissions[0], 'message').getValue()).toBe(
+      'resolved by engine',
+    );
   });
 
   it('keeps nested documents inside the event payload as literal data', async () => {

@@ -7,6 +7,7 @@ import { JavaScriptCodeStepExecutor } from '../registry/processors/steps/javascr
 import { TriggerEventStepExecutor } from '../registry/processors/steps/trigger-event-step-executor.js';
 import { UpdateDocumentStepExecutor } from '../registry/processors/steps/update-document-step-executor.js';
 import { hostGasToWasmFuel } from '../runtime/gas-schedule.js';
+import { BlueQuickJsEngine } from '../util/expression/javascript-evaluation-engine.js';
 import {
   SetPropertyContractProcessor,
   TerminateScopeContractProcessor,
@@ -259,13 +260,14 @@ contracts:
 
   it('terminates when JS execution exceeds the gas limit', async () => {
     const gasLimitedProcessor = new DocumentProcessor({ blue });
+    const engine = new BlueQuickJsEngine();
     gasLimitedProcessor.registerContractProcessor(
       new SequentialWorkflowHandlerProcessor([
-        new TriggerEventStepExecutor(),
-        new JavaScriptCodeStepExecutor({
+        new TriggerEventStepExecutor(engine),
+        new JavaScriptCodeStepExecutor(engine, {
           wasmGasLimit: hostGasToWasmFuel(1000),
         }),
-        new UpdateDocumentStepExecutor(),
+        new UpdateDocumentStepExecutor(engine),
       ]),
     );
 

@@ -3,7 +3,7 @@ import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/
 import { TriggerEventSchema } from '@blue-repository/types/packages/conversation/schemas/TriggerEvent';
 import { isNullable } from '@blue-labs/shared-utils';
 
-import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
+import type { JavaScriptEvaluationEngine } from '../../../util/expression/javascript-evaluation-engine.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 import type {
   SequentialWorkflowStepExecutor,
@@ -20,7 +20,7 @@ export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor 
     conversationBlueIds['Conversation/Trigger Event'],
   ] as const;
 
-  private readonly evaluator = new QuickJSEvaluator();
+  constructor(private readonly engine: JavaScriptEvaluationEngine) {}
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { stepNode, context } = args;
@@ -30,7 +30,7 @@ export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor 
 
     context.gasMeter().chargeTriggerEventBase();
     const resolvedStepNode = await resolveNodeExpressions({
-      evaluator: this.evaluator,
+      engine: this.engine,
       node: stepNode,
       bindings: createQuickJSStepBindings(args),
       shouldResolve: createPicomatchShouldResolve({

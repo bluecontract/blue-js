@@ -5,7 +5,7 @@ import {
   type UpdateDocument,
 } from '@blue-repository/types/packages/conversation/schemas/UpdateDocument';
 
-import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
+import type { JavaScriptEvaluationEngine } from '../../../util/expression/javascript-evaluation-engine.js';
 import type { JsonPatch } from '../../../model/shared/json-patch.js';
 import type { ContractProcessorContext } from '../../types.js';
 import type {
@@ -27,7 +27,7 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
     conversationBlueIds['Conversation/Update Document'],
   ] as const;
 
-  private readonly evaluator = new QuickJSEvaluator();
+  constructor(private readonly engine: JavaScriptEvaluationEngine) {}
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { context, stepNode } = args;
@@ -38,7 +38,7 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
     }
 
     const resolvedStepNode = await resolveNodeExpressions({
-      evaluator: this.evaluator,
+      engine: this.engine,
       node: stepNode,
       bindings: createQuickJSStepBindings(args),
       shouldResolve: createPicomatchShouldResolve({

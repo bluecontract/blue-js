@@ -15,6 +15,7 @@ import {
 import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js';
+import { BlueQuickJsEngine } from '../../../../util/expression/javascript-evaluation-engine.js';
 
 const blue = createBlue();
 
@@ -208,7 +209,7 @@ contracts:
   });
 
   it('executes a sequential workflow step and charges wasm gas', async () => {
-    const executor = new JavaScriptCodeStepExecutor();
+    const executor = new JavaScriptCodeStepExecutor(new BlueQuickJsEngine());
     const code =
       'return { result: document("/counter") + event.payload.delta };';
     const stepNode = blue.yamlToNode(
