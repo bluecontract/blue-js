@@ -1,7 +1,7 @@
 ### ADR 0006: Spec-native list controls and direct cycles
 
-**Status:** Accepted. List controls implemented in Phase 1K; direct cycles
-remain Phase 3.
+**Status:** Accepted. List controls implemented in Phase 1K; top-level direct
+cyclic document sets implemented in Phase 2.
 
 **Context**
 
@@ -24,12 +24,14 @@ the previous list contents to build the final list, so semantic identity resolve
 them before hashing and does not pass raw `$pos` controls to the low-level
 hasher.
 
-Direct cycles should still use the specification's ZERO sentinel, preliminary
-ids, lexicographic sorting, `this#k` rewrite, master list hash, and final
-`MASTER#i` ids in Phase 3.
+Direct cycles use the specification's ZERO sentinel, preliminary ids,
+lexicographic sorting, `this#k` rewrite, master list hash, and final
+`MASTER#i` ids for top-level document sets. Authoring `this#k` indexes refer to
+the input list before canonical sorting; provider fetches expose rewritten final
+`MASTER#k` references.
 
 **Consequences**
 
 Phase 1 removes the legacy marker from normal write paths and implements
-spec-native list controls. Snapshot work can build on final list semantics.
-Direct cycles still land in Phase 3.
+spec-native list controls. Phase 2 adds spec-native direct cyclic document-set
+identity before snapshot work depends on cyclic `MASTER#i` artifacts.

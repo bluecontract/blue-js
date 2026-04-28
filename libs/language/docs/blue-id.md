@@ -76,8 +76,10 @@ loading fails. Normal provider/storage ingest does not keep a transitional
 storage overlay path. Legacy inherited-list markers are not recognized as a
 default storage format. Spec-native list controls are supported in Phase 1K:
 `$previous` anchors inherited append prefixes, `$pos` carries positional
-refinements before hashing, and `$empty` remains ordinary list content. Direct
-cyclic `this#k` identities remain Phase 3 work.
+refinements before hashing, and `$empty` remains ordinary list content. Top-level
+direct cyclic document sets with `this#k` references are stored as canonical
+sets under a master BlueId; named members are exposed by providers as
+`MASTER#i` document identities.
 
 `$previous` append controls are hashable without loading the previous list
 contents. The list hash is a fold, so the previous list BlueId can seed the fold
@@ -85,6 +87,13 @@ and appended items can be folded after it. `$pos` is different: replacing a
 final index needs the previous list elements, not only the previous list BlueId.
 For that reason raw hashing rejects `$pos`; semantic identity first resolves the
 control form to the final list, then hashes a hashable minimal form.
+
+`this#k` in authoring input addresses the input document index before canonical
+sorting. Providers rewrite those references to final sorted `MASTER#k` suffixes
+when documents are fetched. A standalone materialized node returned by
+`getNodeByName()` does not carry source identity metadata; use the provider's
+name mapping, `fetchByBlueId("MASTER#i")`, or a pure `{ blueId: "MASTER#i" }`
+reference when the final cyclic document identity is needed.
 
 **Related APIs**
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Blue } from '../Blue';
 import { BlueNode, NodeDeserializer } from '../model';
 import { BasicNodeProvider } from '../provider';
+import { SemanticStorageService } from '../identity/SemanticStorageService';
 import { BlueIdCalculator, BlueIds } from '../utils';
 import { NO_LIMITS, PathLimits } from '../utils/limits';
 import { yamlBlueParse } from '../../utils/yamlBlue';
@@ -284,7 +285,7 @@ list:
     expect(providerId).toBe(publicId);
   });
 
-  it('rejects this and this#k references in provider storage ingest until phase 3', () => {
+  it('rejects single-document this and this#k references in provider storage ingest', () => {
     const provider = new BasicNodeProvider();
 
     expect(() =>
@@ -563,6 +564,101 @@ list:
 
     expect(BlueIds.isPotentialBlueId(masterBlueId)).toBe(true);
     expect(blue.calculateBlueIdSync(secondOrder!)).toBe(masterBlueId);
+  });
+
+  it('keeps async and sync semantic BlueIds equivalent for direct cyclic sets', async () => {
+    const blue = new Blue();
+    const cyclic = yamlBlueParse(`
+- name: AsyncA
+  peer:
+    blueId: this#1
+- name: AsyncB
+  peer:
+    blueId: this#0
+`)!;
+
+    expect(await blue.calculateBlueId(cyclic)).toBe(
+      blue.calculateBlueIdSync(cyclic),
+    );
+  });
+
+  it('exposes direct cyclic document IDs through provider mappings and pure references', () => {
+    const provider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider: provider });
+
+    provider.addSingleDocs(`
+- name: Person
+  pet:
+    type:
+      blueId: this#1
+- name: Dog
+  owner:
+    type:
+      blueId: this#0
+  breed:
+    type: Text
+`);
+
+    const personId = provider.getBlueIdByName('Person');
+    const dogId = provider.getBlueIdByName('Dog');
+    const person = provider.getNodeByName('Person');
+    const fetchedPerson = provider.fetchByBlueId(personId)?.[0];
+
+    expect(personId.split('#')[0]).toBe(dogId.split('#')[0]);
+    expect(personId).toMatch(/#\d+$/);
+    expect(dogId).toMatch(/#\d+$/);
+    expect(fetchedPerson?.get('/pet/type/blueId')).toBe(dogId);
+    expect(blue.calculateBlueIdSync({ blueId: personId })).toBe(personId);
+    expect(blue.calculateBlueIdSync(person)).not.toBe(personId);
+  });
+
+  it('returns cyclic documentBlueIds from semantic storage preparation', () => {
+    const storage = new SemanticStorageService();
+    const firstOrder = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: StorageA
+  peer:
+    blueId: this#1
+- name: StorageB
+  peer:
+    blueId: this#2
+- name: StorageC
+  peer:
+    blueId: this#0
+`),
+    ).getItems();
+    const secondOrder = NodeDeserializer.deserialize(
+      yamlBlueParse(`- name: StorageC
+  peer:
+    blueId: this#1
+- name: StorageA
+  peer:
+    blueId: this#2
+- name: StorageB
+  peer:
+    blueId: this#0
+`),
+    ).getItems();
+
+    const firstPrepared = storage.prepareStorageNodeList(
+      firstOrder ?? [],
+      (node) => node,
+    );
+    const secondPrepared = storage.prepareStorageNodeList(
+      secondOrder ?? [],
+      (node) => node,
+    );
+
+    expect(firstPrepared.isCyclicSet).toBe(true);
+    expect(firstPrepared.documentBlueIds).toEqual(
+      firstPrepared.nodes.map((_, index) => `${firstPrepared.blueId}#${index}`),
+    );
+    expect(secondPrepared.blueId).toBe(firstPrepared.blueId);
+    expect(secondPrepared.documentBlueIds).toEqual(
+      firstPrepared.documentBlueIds,
+    );
+    expect(secondPrepared.nodes.map((node) => node.getName())).toEqual(
+      firstPrepared.nodes.map((node) => node.getName()),
+    );
   });
 
   it('uses semantic list-control normalization inside direct cyclic sets', () => {

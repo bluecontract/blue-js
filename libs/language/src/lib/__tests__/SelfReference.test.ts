@@ -59,6 +59,52 @@ x:
     expect(bNode.get('/y/type/blueId')).toBe(aBlueId);
   });
 
+  it('assigns stable MASTER#i BlueIds for three-document direct cycles', () => {
+    const firstOrder = `- name: A
+  peer:
+    blueId: this#1
+- name: B
+  peer:
+    blueId: this#2
+- name: C
+  peer:
+    blueId: this#0
+`;
+    const secondOrder = `- name: C
+  peer:
+    blueId: this#1
+- name: A
+  peer:
+    blueId: this#2
+- name: B
+  peer:
+    blueId: this#0
+`;
+    const blue = new Blue();
+    const masterBlueId = blue.calculateBlueIdSync(yamlBlueParse(firstOrder)!);
+
+    expect(blue.calculateBlueIdSync(yamlBlueParse(secondOrder)!)).toBe(
+      masterBlueId,
+    );
+
+    const provider = new BasicNodeProvider();
+    provider.addSingleDocs(firstOrder);
+    const aBlueId = provider.getBlueIdByName('A');
+    const bBlueId = provider.getBlueIdByName('B');
+    const cBlueId = provider.getBlueIdByName('C');
+
+    expect(new Set([aBlueId, bBlueId, cBlueId]).size).toBe(3);
+    expect([aBlueId, bBlueId, cBlueId].map((id) => id.split('#')[0])).toEqual([
+      masterBlueId,
+      masterBlueId,
+      masterBlueId,
+    ]);
+    expect(provider.fetchByBlueId(masterBlueId)).toHaveLength(3);
+    expect(provider.getNodeByName('A').get('/peer/blueId')).toBe(bBlueId);
+    expect(provider.getNodeByName('B').get('/peer/blueId')).toBe(cBlueId);
+    expect(provider.getNodeByName('C').get('/peer/blueId')).toBe(aBlueId);
+  });
+
   it('resolves direct cyclic document types without recursive expansion overflow', () => {
     const provider = new BasicNodeProvider([
       NodeDeserializer.deserialize(
@@ -179,6 +225,44 @@ x:
     expect(() => provider.addSingleNodes(doc)).toThrow(
       /points outside the 1-document set/,
     );
+  });
+
+  it.each(['this#x', 'this#-1', 'this#1.2'])(
+    'rejects malformed direct cyclic reference %s',
+    (referenceBlueId) => {
+      const blue = new Blue();
+      const doc = yamlBlueParse(`- name: A
+  peer:
+    blueId: ${referenceBlueId}
+- name: B
+  peer:
+    blueId: this#0
+`);
+
+      expect(() => blue.calculateBlueIdSync(doc!)).toThrow(
+        /Malformed direct cyclic reference/,
+      );
+    },
+  );
+
+  it('keeps direct cyclic document IDs stable across repeated provider ingests', () => {
+    const cyclicDocs = `- name: A
+  peer:
+    blueId: this#1
+- name: B
+  peer:
+    blueId: this#0
+`;
+    const loadIds = () => {
+      const provider = new BasicNodeProvider();
+      provider.addSingleDocs(cyclicDocs);
+      return {
+        A: provider.getBlueIdByName('A'),
+        B: provider.getBlueIdByName('B'),
+      };
+    };
+
+    expect(loadIds()).toEqual(loadIds());
   });
 
   it('rejects local nested this#k cycles in single-document identity input', () => {

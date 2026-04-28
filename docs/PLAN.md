@@ -1348,17 +1348,21 @@ it('assigns stable MASTER#i BlueIds for a direct cyclic set', () => {
     type: Text
 `);
 
-  const person = provider.getNodeByName('Person');
-  const dog = provider.getNodeByName('Dog');
-
-  const personId = blue.calculateBlueIdSync(person);
-  const dogId = blue.calculateBlueIdSync(dog);
+  const personId = provider.getBlueIdByName('Person');
+  const dogId = provider.getBlueIdByName('Dog');
+  const person = provider.fetchByBlueId(personId)![0];
 
   expect(personId.split('#')[0]).toBe(dogId.split('#')[0]);
   expect(personId).toMatch(/#1$|#0$/);
   expect(dogId).toMatch(/#1$|#0$/);
+  expect(person.get('/pet/type/blueId')).toBe(dogId);
+  expect(blue.calculateBlueIdSync({ blueId: personId })).toBe(personId);
 });
 ```
+
+`provider.getNodeByName('Person')` zwraca zmaterializowany dokument bez
+metadanych źródłowego `MASTER#i`; jego standalone `calculateBlueIdSync()` liczy
+zwykły semantic ID dla tej postaci.
 
 ## 5. Twarde Definition of Done
 

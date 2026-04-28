@@ -7,8 +7,8 @@
 ADR 0001 through ADR 0006 define the direction for identity, minimization,
 storage, snapshots, list controls, and cyclic sets. Phase 1 turns the identity
 and storage decisions into runtime behavior. Phase 1K brings spec-native list
-controls forward before snapshots, while direct cyclic `this#k` identities stay
-in phase 3.
+controls forward before snapshots; Phase 2 adds top-level direct cyclic
+`this#k` document-set identities.
 
 **Decision**
 
@@ -41,6 +41,5 @@ carry a reference BlueId beside fetched payload and are minimized before
 semantic hashing.
 
 List overlays use spec-native `$previous`, `$pos`, and `$empty` after Phase 1K.
-Direct cycles keep their transitional rejection behavior until phase 3. Phase 1
-must not claim final public storage compatibility for direct cyclic document
-sets.
+Single-document `this` references remain unsupported, while Phase 2 handles
+top-level direct cyclic document sets with final `MASTER#i` identities.
