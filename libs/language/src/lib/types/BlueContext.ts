@@ -7,10 +7,7 @@ export interface BlueContext {
 
 export type NodeToJsonFormat = 'official' | 'simple' | 'original';
 
-export type NodeToJsonBlueIdMode = 'referenceOnly' | 'runtimeDebug';
-
 export interface NodeToJsonOptions {
   format?: NodeToJsonFormat;
-  blueIdMode?: NodeToJsonBlueIdMode;
   blueContext?: BlueContext;
 }

@@ -18,7 +18,6 @@ import {
   BOOLEAN_TYPE_BLUE_ID,
 } from './Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
-import { Nodes } from './Nodes';
 
 /**
  * Strategy for converting BlueNode to JSON representation.
@@ -27,11 +26,8 @@ import { Nodes } from './Nodes';
  */
 export type Strategy = 'official' | 'simple' | 'original';
 
-export type BlueIdMode = 'referenceOnly' | 'runtimeDebug';
-
 export interface NodeToMapListOrValueOptions {
   strategy?: Strategy;
-  blueIdMode?: BlueIdMode;
 }
 
 export class NodeToMapListOrValue {
@@ -49,7 +45,7 @@ export class NodeToMapListOrValue {
     node: BlueNode,
     strategyOrOptions: Strategy | NodeToMapListOrValueOptions = 'official',
   ): JsonValue {
-    const { strategy, blueIdMode } = this.normalizeOptions(strategyOrOptions);
+    const { strategy } = this.normalizeOptions(strategyOrOptions);
     const value = node.getValue();
     const handledValue = this.handleValue(value);
 
@@ -59,7 +55,7 @@ export class NodeToMapListOrValue {
 
     const items = node
       .getItems()
-      ?.map((item) => NodeToMapListOrValue.get(item, { strategy, blueIdMode }));
+      ?.map((item) => NodeToMapListOrValue.get(item, strategy));
     if (items !== undefined && strategy === 'simple') {
       return items;
     }
@@ -96,34 +92,22 @@ export class NodeToMapListOrValue {
         result[OBJECT_TYPE] = { [OBJECT_BLUE_ID]: inferredTypeBlueId };
       }
     } else if (type !== undefined) {
-      result[OBJECT_TYPE] = NodeToMapListOrValue.get(type, {
-        strategy,
-        blueIdMode,
-      });
+      result[OBJECT_TYPE] = NodeToMapListOrValue.get(type, strategy);
     }
 
     const itemType = node.getItemType();
     if (itemType !== undefined) {
-      result[OBJECT_ITEM_TYPE] = NodeToMapListOrValue.get(itemType, {
-        strategy,
-        blueIdMode,
-      });
+      result[OBJECT_ITEM_TYPE] = NodeToMapListOrValue.get(itemType, strategy);
     }
 
     const keyType = node.getKeyType();
     if (keyType !== undefined) {
-      result[OBJECT_KEY_TYPE] = NodeToMapListOrValue.get(keyType, {
-        strategy,
-        blueIdMode,
-      });
+      result[OBJECT_KEY_TYPE] = NodeToMapListOrValue.get(keyType, strategy);
     }
 
     const valueType = node.getValueType();
     if (valueType !== undefined) {
-      result[OBJECT_VALUE_TYPE] = NodeToMapListOrValue.get(valueType, {
-        strategy,
-        blueIdMode,
-      });
+      result[OBJECT_VALUE_TYPE] = NodeToMapListOrValue.get(valueType, strategy);
     }
 
     if (handledValue !== undefined) {
@@ -135,10 +119,7 @@ export class NodeToMapListOrValue {
     }
 
     const blueId = node.getBlueId();
-    if (
-      blueId !== undefined &&
-      (blueIdMode === 'runtimeDebug' || Nodes.hasBlueIdOnly(node))
-    ) {
+    if (blueId !== undefined) {
       result[OBJECT_BLUE_ID] = blueId;
     }
 
@@ -150,10 +131,7 @@ export class NodeToMapListOrValue {
     const properties = node.getProperties();
     if (properties !== undefined) {
       Object.entries(properties).forEach(([key, value]) => {
-        result[key] = NodeToMapListOrValue.get(value, {
-          strategy,
-          blueIdMode,
-        });
+        result[key] = NodeToMapListOrValue.get(value, strategy);
       });
     }
 
@@ -194,13 +172,11 @@ export class NodeToMapListOrValue {
     if (typeof strategyOrOptions === 'string') {
       return {
         strategy: strategyOrOptions,
-        blueIdMode: 'referenceOnly',
       };
     }
 
     return {
       strategy: strategyOrOptions.strategy ?? 'official',
-      blueIdMode: strategyOrOptions.blueIdMode ?? 'referenceOnly',
     };
   }
 }

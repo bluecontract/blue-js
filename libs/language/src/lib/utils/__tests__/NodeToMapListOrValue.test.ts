@@ -725,7 +725,7 @@ describe('NodeToMapListOrValue', () => {
       expect((original['complex'] as any)['name']).toEqual('Complex Property');
     });
 
-    it('emits blueId only for exact references unless runtime debug mode is requested', () => {
+    it('emits blueId for exact references and materialized nodes', () => {
       const exactReference = new BlueNode().setBlueId('ExactReference');
       const materializedReference = new BlueNode()
         .setBlueId('MaterializedReference')
@@ -737,16 +737,6 @@ describe('NodeToMapListOrValue', () => {
       });
 
       expect(NodeToMapListOrValue.get(materializedReference)).toEqual({
-        name: 'Runtime label',
-        type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
-        value: 'payload',
-      });
-
-      expect(
-        NodeToMapListOrValue.get(materializedReference, {
-          blueIdMode: 'runtimeDebug',
-        }),
-      ).toEqual({
         name: 'Runtime label',
         type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
         value: 'payload',

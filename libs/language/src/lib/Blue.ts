@@ -42,7 +42,6 @@ import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNode
 import { SemanticIdentityService } from './identity/SemanticIdentityService';
 import {
   BlueContext,
-  NodeToJsonBlueIdMode,
   NodeToJsonFormat,
   NodeToJsonOptions,
 } from './types/BlueContext';
@@ -143,10 +142,7 @@ export class Blue {
     const targetNode = options.blueContext
       ? this.blueContextResolver.transform(node, options.blueContext)
       : node;
-    return NodeToMapListOrValue.get(targetNode, {
-      strategy: options.format,
-      blueIdMode: options.blueIdMode,
-    });
+    return NodeToMapListOrValue.get(targetNode, options.format);
   }
 
   /**
@@ -163,7 +159,6 @@ export class Blue {
       : node;
     return NodeToYaml.get(targetNode, {
       strategy: options.format,
-      blueIdMode: options.blueIdMode,
     });
   }
 
@@ -623,20 +618,17 @@ export class Blue {
     strategyOrOptions: NodeToJsonFormat | NodeToJsonOptions,
   ): {
     format: NodeToJsonFormat;
-    blueIdMode: NodeToJsonBlueIdMode;
     blueContext?: BlueContext;
   } {
     if (typeof strategyOrOptions === 'string') {
       return {
         format: strategyOrOptions,
-        blueIdMode: 'referenceOnly',
         blueContext: undefined,
       };
     }
 
     return {
       format: strategyOrOptions?.format ?? 'official',
-      blueIdMode: strategyOrOptions?.blueIdMode ?? 'referenceOnly',
       blueContext: strategyOrOptions?.blueContext,
     };
   }

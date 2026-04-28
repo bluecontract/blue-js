@@ -6,7 +6,6 @@ import { PathLimitsBuilder } from '../../utils/limits/PathLimits';
 
 const RUNTIME_OFFICIAL_JSON = {
   format: 'official',
-  blueIdMode: 'runtimeDebug',
 } as const;
 
 describe('Merger resolve regression', () => {

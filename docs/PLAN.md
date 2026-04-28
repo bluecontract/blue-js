@@ -471,9 +471,10 @@ raw-ID exception for transformation resources.
   pattern today. A future release may introduce matcher-neutral labels only
   after those contracts are migrated to content fields such as `kind`,
   `operation`, or `eventKind`, or to explicit exact BlueId matching.
-- Public `nodeToJson()` / `nodeToYaml()` defaults are storage/authoring-valid:
-  `blueId` is emitted only for exact references. Runtime materialized
-  `blueId + payload` metadata requires explicit `blueIdMode: 'runtimeDebug'`.
+- Public `nodeToJson()` / `nodeToYaml()` are lossless projections of the
+  current `BlueNode` shape and preserve materialized `blueId + payload`
+  metadata. Storage-safe content is produced by minimization and
+  `SemanticStorageService`, not by the serializer.
 - Direct `NodeToObjectConverter` usage must inject `calculateBlueId`; the
   default raw `BlueIdCalculator` path is removed. `Blue.nodeToSchemaOutput()`
   remains the public convenience API and injects semantic identity.

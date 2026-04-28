@@ -3,7 +3,7 @@ import { Blue } from '../Blue';
 import { BlueNode } from '../model';
 
 describe('Blue.nodeToJson', () => {
-  it('does not emit mixed blueId plus payload by default', () => {
+  it('preserves materialized blueId plus payload by default', () => {
     const blue = new Blue();
     const node = new BlueNode()
       .setBlueId('MaterializedId')
@@ -14,6 +14,7 @@ describe('Blue.nodeToJson', () => {
       name: 'Materialized',
       type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
       value: 'payload',
+      blueId: 'MaterializedId',
     });
   });
 
@@ -27,14 +28,14 @@ describe('Blue.nodeToJson', () => {
     );
   });
 
-  it('can emit runtime materialized blueId metadata in debug mode', () => {
+  it('preserves materialized blueId plus payload through options form', () => {
     const blue = new Blue();
     const node = new BlueNode()
       .setBlueId('MaterializedId')
       .setName('Materialized')
       .setValue('payload');
 
-    expect(blue.nodeToJson(node, { blueIdMode: 'runtimeDebug' })).toEqual({
+    expect(blue.nodeToJson(node, { format: 'official' })).toEqual({
       name: 'Materialized',
       type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
       value: 'payload',

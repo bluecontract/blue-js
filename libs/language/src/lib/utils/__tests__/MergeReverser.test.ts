@@ -8,7 +8,6 @@ import { BlueIdCalculator } from '../BlueIdCalculator';
 
 const RUNTIME_OFFICIAL_JSON = {
   format: 'official',
-  blueIdMode: 'runtimeDebug',
 } as const;
 
 describe('MergeReverser', () => {
