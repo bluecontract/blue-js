@@ -59,6 +59,29 @@ x:
     expect(bNode.get('/y/type/blueId')).toBe(aBlueId);
   });
 
+  it('resolves direct cyclic document types without recursive expansion overflow', () => {
+    const provider = new BasicNodeProvider([
+      NodeDeserializer.deserialize(
+        yamlBlueParse(`- name: Person
+  pet:
+    type:
+      blueId: this#1
+- name: Dog
+  owner:
+    type:
+      blueId: this#0
+`),
+      ),
+    ]);
+    const blue = new Blue({ nodeProvider: provider });
+    const person = provider.getNodeByName('Person');
+    const dogBlueId = provider.getBlueIdByName('Dog');
+
+    const resolvedPerson = blue.resolve(person);
+
+    expect(resolvedPerson.get('/pet/type/blueId')).toBe(dogBlueId);
+  });
+
   it('does not treat ordinary multi-document this strings as direct cycles', () => {
     const docs = `- name: A
   note: this
