@@ -21,7 +21,7 @@ type TypeRuntimeMeta = RepositoryPackage['typesMeta'][string];
 type TypeBlueIdSchema = Parameters<ReturnType<typeof withTypeBlueId>>[0];
 
 const DEFAULT_REINDEX_CACHE = new WeakMap<BlueRepository, BlueRepository>();
-const MAX_REINDEX_PASSES = 10;
+const MIN_REINDEX_PASSES = 10;
 
 export function reindexRepositoryForSemanticStorage(
   repository: BlueRepository,
@@ -50,7 +50,8 @@ export function reindexRepositoryForSemanticStorage(
     entries.map(({ oldBlueId }) => [oldBlueId, oldBlueId]),
   );
 
-  for (let pass = 0; pass < MAX_REINDEX_PASSES; pass++) {
+  const maxPasses = getMaxReindexPasses(entries.length);
+  for (let pass = 0; pass < maxPasses; pass++) {
     const nextIdByOldId = calculateSemanticIds(
       entries,
       aliases,
@@ -67,7 +68,13 @@ export function reindexRepositoryForSemanticStorage(
     idByOldId = nextIdByOldId;
   }
 
-  throw new Error('Repository semantic reindexing did not converge.');
+  throw new Error(
+    `Repository semantic reindexing did not converge after ${maxPasses} passes for ${entries.length} entries.`,
+  );
+}
+
+function getMaxReindexPasses(entryCount: number): number {
+  return Math.max(MIN_REINDEX_PASSES, entryCount + 1);
 }
 
 function collectEntries(repository: BlueRepository): RepositoryEntry[] {

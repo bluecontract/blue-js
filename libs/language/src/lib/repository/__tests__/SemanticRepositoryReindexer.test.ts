@@ -154,6 +154,24 @@ describe('SemanticRepositoryReindexer', () => {
     expect(pkg.typesMeta[listId]?.versions[0]?.typeBlueId).toBe(`${listId}#1`);
     expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
   });
+
+  it('reindexes dependency chains deeper than the previous fixed pass cap', () => {
+    const chainLength = 12;
+    const repository = dependencyChainRepositoryFixture(chainLength);
+
+    const reindexed = reindexRepositoryForSemanticStorage(repository);
+    const pkg = reindexed.packages.pkg;
+    const firstId = pkg.aliases['Pkg/T0'];
+    const lastId = pkg.aliases[`Pkg/T${chainLength - 1}`];
+
+    expect(firstId).toBeDefined();
+    expect(lastId).toBeDefined();
+    expect(firstId).not.toBe('OLD_0');
+    expect(lastId).not.toBe(`OLD_${chainLength - 1}`);
+    expect(pkg.contents[firstId]).toBeDefined();
+    expect(pkg.contents[lastId]).toBeDefined();
+    expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
+  });
 });
 
 describe('semantic repository rewrite helpers', () => {
@@ -246,6 +264,54 @@ function repositoryFixture({
           [oldChildId]: childSchema,
           [oldParentId]: parentSchema,
         },
+      },
+    },
+  };
+}
+
+function dependencyChainRepositoryFixture(chainLength: number): BlueRepository {
+  const aliases: BlueRepository['packages'][string]['aliases'] = {};
+  const typesMeta: BlueRepository['packages'][string]['typesMeta'] = {};
+  const contents: BlueRepository['packages'][string]['contents'] = {};
+
+  for (let index = 0; index < chainLength; index++) {
+    const oldBlueId = `OLD_${index}`;
+    const name = `T${index}`;
+    aliases[`Pkg/${name}`] = oldBlueId;
+    typesMeta[oldBlueId] = {
+      status: 'stable',
+      name,
+      versions: [
+        {
+          repositoryVersionIndex: 0,
+          typeBlueId: oldBlueId,
+          attributesAdded: [],
+        },
+      ],
+    };
+    contents[oldBlueId] =
+      index === chainLength - 1
+        ? { name }
+        : {
+            name,
+            child: {
+              type: {
+                blueId: `OLD_${index + 1}`,
+              },
+            },
+          };
+  }
+
+  return {
+    name: 'deep.repository',
+    repositoryVersions: ['R0'],
+    packages: {
+      pkg: {
+        name: 'pkg',
+        aliases,
+        typesMeta,
+        contents,
+        schemas: {},
       },
     },
   };
