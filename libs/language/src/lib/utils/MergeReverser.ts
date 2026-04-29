@@ -23,7 +23,7 @@ export class MergeReverser {
 
   public reverse<T extends BlueNode>(mergedNode: T): BlueNode {
     const minimalNode = new BlueNode();
-    this.reverseNode(minimalNode, mergedNode, mergedNode.getType(), true);
+    this.reverseNode(minimalNode, mergedNode, undefined, true);
     return minimalNode;
   }
 
@@ -44,17 +44,27 @@ export class MergeReverser {
   private reverseNode(
     minimal: BlueNode,
     merged: BlueNode,
-    fromType: BlueNode | undefined,
+    externalFromType: BlueNode | undefined,
     isRoot: boolean,
   ): void {
-    if (!isRoot && this.isIdenticalToType(merged, fromType)) {
+    const effectiveFromType = this.getEffectiveFromType(
+      externalFromType,
+      merged,
+    );
+
+    if (!isRoot && this.isIdenticalToType(merged, effectiveFromType)) {
       return;
     }
 
-    this.reverseBasicProperties(minimal, merged, fromType, isRoot);
-    this.reverseTypeReferences(minimal, merged, fromType);
-    this.reverseItems(minimal, merged, fromType);
-    this.reverseProperties(minimal, merged, fromType);
+    this.reverseBasicProperties(minimal, merged, effectiveFromType, isRoot);
+    this.reverseTypeReferences(
+      minimal,
+      merged,
+      externalFromType,
+      effectiveFromType,
+    );
+    this.reverseItems(minimal, merged, effectiveFromType);
+    this.reverseProperties(minimal, merged, effectiveFromType);
   }
 
   private isIdenticalToType(
@@ -111,41 +121,80 @@ export class MergeReverser {
   private reverseTypeReferences(
     minimal: BlueNode,
     merged: BlueNode,
-    fromType: BlueNode | undefined,
+    externalFromType: BlueNode | undefined,
+    effectiveFromType: BlueNode | undefined,
   ): void {
     const setIfDifferent = (
       getter: (node: BlueNode) => BlueNode | undefined,
       setter: (node: BlueNode, value: BlueNode) => void,
+      fromType: BlueNode | undefined,
     ) => {
       const mergedTypeRef = getter(merged);
       const fromTypeRef = fromType ? getter(fromType) : undefined;
-      const mergedBlueId = mergedTypeRef?.getBlueId();
 
       if (
-        isNonNullable(mergedBlueId) &&
-        (isNullable(fromTypeRef?.getBlueId()) ||
-          mergedBlueId !== fromTypeRef.getBlueId())
+        isNonNullable(mergedTypeRef) &&
+        !this.areTypeReferencesEquivalent(mergedTypeRef, fromTypeRef)
       ) {
-        setter(minimal, new BlueNode().setBlueId(mergedBlueId));
+        setter(minimal, this.toMinimalTypeReference(mergedTypeRef));
       }
     };
 
     setIfDifferent(
       (n) => n.getType(),
       (n, v) => n.setType(v),
+      externalFromType,
     );
     setIfDifferent(
       (n) => n.getItemType(),
       (n, v) => n.setItemType(v),
+      effectiveFromType,
     );
     setIfDifferent(
       (n) => n.getKeyType(),
       (n, v) => n.setKeyType(v),
+      effectiveFromType,
     );
     setIfDifferent(
       (n) => n.getValueType(),
       (n, v) => n.setValueType(v),
+      effectiveFromType,
     );
+  }
+
+  private areTypeReferencesEquivalent(
+    mergedTypeRef: BlueNode,
+    fromTypeRef: BlueNode | undefined,
+  ): boolean {
+    if (isNullable(fromTypeRef)) {
+      return false;
+    }
+
+    const mergedBlueId = mergedTypeRef.getBlueId();
+    const fromBlueId = fromTypeRef.getBlueId();
+    if (isNonNullable(mergedBlueId) || isNonNullable(fromBlueId)) {
+      return (
+        isNonNullable(mergedBlueId) &&
+        isNonNullable(fromBlueId) &&
+        mergedBlueId === fromBlueId
+      );
+    }
+
+    return (
+      MergeReverser.calculateHashMinimalBlueId(mergedTypeRef) ===
+      MergeReverser.calculateHashMinimalBlueId(fromTypeRef)
+    );
+  }
+
+  private toMinimalTypeReference(typeRef: BlueNode): BlueNode {
+    const blueId = typeRef.getBlueId();
+    if (isNonNullable(blueId)) {
+      return new BlueNode().setBlueId(blueId);
+    }
+
+    const minimalType = new BlueNode();
+    this.reverseNode(minimalType, typeRef, undefined, true);
+    return Nodes.isEmptyNode(minimalType) ? typeRef.clone() : minimalType;
   }
 
   private reverseItems(
@@ -269,11 +318,7 @@ export class MergeReverser {
     const minimalProperties: Record<string, BlueNode> = {};
 
     for (const [key, mergedProperty] of Object.entries(mergedProperties)) {
-      const inheritedProperty = this.getInheritedProperty(
-        key,
-        merged,
-        fromType,
-      );
+      const inheritedProperty = this.getInheritedProperty(key, fromType);
 
       const minimalProperty = new BlueNode();
       this.reverseNode(
@@ -294,30 +339,52 @@ export class MergeReverser {
   }
 
   /**
-   * Determines what a property inherits from by combining contributions
-   * from both the parent type and the node's own type.
+   * Determines what a property inherits from after parent and own type overlays
+   * have already been combined for the current node.
    */
   private getInheritedProperty(
     key: string,
-    merged: BlueNode,
     fromType: BlueNode | undefined,
   ): BlueNode | undefined {
-    const fromParentType = fromType?.getProperties()?.[key];
-    const fromOwnType = merged.getType()?.getProperties()?.[key];
+    return fromType?.getProperties()?.[key];
+  }
 
-    if (isNullable(fromParentType) && isNullable(fromOwnType)) {
+  private getEffectiveFromType(
+    externalFromType: BlueNode | undefined,
+    merged: BlueNode,
+  ): BlueNode | undefined {
+    const ownTypeOverlay = this.createOwnTypeOverlay(merged.getType());
+
+    if (isNullable(externalFromType)) {
+      return ownTypeOverlay;
+    }
+
+    if (isNullable(ownTypeOverlay)) {
+      return externalFromType;
+    }
+
+    return this.mergeNodes(externalFromType, ownTypeOverlay);
+  }
+
+  private createOwnTypeOverlay(
+    ownType: BlueNode | undefined,
+  ): BlueNode | undefined {
+    if (isNullable(ownType)) {
       return undefined;
     }
 
-    if (isNullable(fromParentType)) {
-      return fromOwnType;
-    }
-    if (isNullable(fromOwnType)) {
-      return fromParentType;
+    const overlay = ownType
+      .cloneShallow()
+      .setName(undefined)
+      .setDescription(undefined)
+      .setType(undefined)
+      .setBlueId(undefined);
+
+    if (Nodes.isEmptyNode(overlay)) {
+      return undefined;
     }
 
-    // Both contribute - merge them (own type wins in conflicts)
-    return this.mergeNodes(fromParentType, fromOwnType);
+    return overlay;
   }
 
   /**
@@ -357,7 +424,9 @@ export class MergeReverser {
     if (isNonNullable(overlayProps)) {
       const mergedProps = merged.getProperties() || {};
       for (const [k, v] of Object.entries(overlayProps)) {
-        mergedProps[k] = v.clone();
+        const existing = mergedProps[k];
+        mergedProps[k] =
+          existing === undefined ? v.clone() : this.mergeNodes(existing, v);
       }
       merged.setProperties(mergedProps);
     }
