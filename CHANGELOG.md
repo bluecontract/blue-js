@@ -1,3 +1,9 @@
+## 4.0.0-rc.4 (2026-04-29)
+
+### 🩹 Fixes
+
+- **language:** match collection blueId type references ([a0dd25e](https://github.com/bluecontract/blue-js/commit/a0dd25e))
+
 ## 4.0.0-rc.3 (2026-04-29)
 
 ### 🩹 Fixes

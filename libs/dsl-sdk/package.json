@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/sdk-dsl",
-  "version": "4.0.0-rc.3",
+  "version": "4.0.0-rc.4",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,8 +19,8 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "@blue-labs/document-processor": "4.0.0-rc.3",
-    "@blue-labs/language": "4.0.0-rc.3"
+    "@blue-labs/document-processor": "4.0.0-rc.4",
+    "@blue-labs/language": "4.0.0-rc.4"
   },
   "license": "MIT",
   "publishConfig": {
