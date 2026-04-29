@@ -1,3 +1,11 @@
+## 4.0.0-rc.3 (2026-04-29)
+
+### 🩹 Fixes
+
+- **language:** canonicalize cyclic repository indexes ([8532c0e](https://github.com/bluecontract/blue-js/commit/8532c0e))
+- **repository:** use semantic repository artifact ([89e008b](https://github.com/bluecontract/blue-js/commit/89e008b))
+- **repository:** require semantic repository peer ([75ea08f](https://github.com/bluecontract/blue-js/commit/75ea08f))
+
 ## 4.0.0-rc.2 (2026-04-29)
 
 ### 🩹 Fixes
