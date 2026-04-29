@@ -5,6 +5,15 @@ import { CompositeLimits, Limits, NO_LIMITS, PathLimits } from './limits';
 import { isBigNumber } from '../../utils/typeGuards/isBigNumber';
 import { NodeTypes } from './index';
 
+// Bare blueId matchers normally compare node identity. Inside collection
+// itemType/valueType declarations, the same bare blueId represents a type
+// reference, so values typed as that blueId should match.
+type BareBlueIdMatcherMode = 'identity' | 'type-reference';
+
+interface ValueComparisonOptions {
+  readonly bareBlueIdMatcherMode?: BareBlueIdMatcherMode;
+}
+
 export class NodeTypeMatcher {
   private blue: Blue;
 
@@ -21,8 +30,14 @@ export class NodeTypeMatcher {
     const pathLimits = PathLimits.fromNode(targetType);
     const compositeLimits = CompositeLimits.of(globalLimits, pathLimits);
 
-    const resolvedNode = this.extendAndResolve(node, compositeLimits);
-    const resolvedType = this.blue.resolve(targetType, compositeLimits);
+    let resolvedNode: BlueNode;
+    let resolvedType: BlueNode;
+    try {
+      resolvedNode = this.extendAndResolve(node, compositeLimits);
+      resolvedType = this.blue.resolve(targetType, compositeLimits);
+    } catch {
+      return false;
+    }
     const comparisonTargetType =
       this.expandSchemaOwnedTypeReferences(targetType);
 
@@ -134,6 +149,7 @@ export class NodeTypeMatcher {
     targetType: BlueNode,
     comparisonTargetType: BlueNode = targetType,
     limits: Limits = NO_LIMITS,
+    options: ValueComparisonOptions = {},
   ): boolean {
     const targetTypeType = targetType.getType();
     const isImplicitStructureMatch =
@@ -166,11 +182,13 @@ export class NodeTypeMatcher {
     const targetBlueId = targetType.getBlueId();
     if (!isImplicitStructureMatch && targetBlueId !== undefined) {
       if (this.isExplicitBlueIdMatcher(comparisonTargetType)) {
-        const nodeBlueId = node.getBlueId();
-        if (
-          nodeBlueId !== targetBlueId &&
-          !this.matchesCalculatedBlueId(node, targetBlueId)
-        ) {
+        if (options.bareBlueIdMatcherMode === 'type-reference') {
+          if (
+            !this.matchesBareBlueIdTypeReference(node, targetType, targetBlueId)
+          ) {
+            return false;
+          }
+        } else if (!this.matchesBareBlueIdIdentity(node, targetBlueId)) {
           return false;
         }
       } else {
@@ -262,10 +280,12 @@ export class NodeTypeMatcher {
               targetItemType,
               comparisonTargetItemType ?? targetItemType,
               limits,
+              'type-reference',
             ),
             targetItemType,
             comparisonTargetItemType ?? targetItemType,
             limits,
+            { bareBlueIdMatcherMode: 'type-reference' },
           )
         ) {
           return false;
@@ -309,10 +329,12 @@ export class NodeTypeMatcher {
               targetValueType,
               comparisonTargetValueType ?? targetValueType,
               limits,
+              'type-reference',
             ),
             targetValueType,
             comparisonTargetValueType ?? targetValueType,
             limits,
+            { bareBlueIdMatcherMode: 'type-reference' },
           )
         ) {
           return false;
@@ -328,10 +350,13 @@ export class NodeTypeMatcher {
     targetType: BlueNode,
     comparisonTargetType: BlueNode,
     limits: Limits,
+    bareBlueIdMatcherMode: BareBlueIdMatcherMode = 'identity',
   ): BlueNode {
     if (
       node.getType() !== undefined ||
-      this.isExplicitBlueIdMatcher(comparisonTargetType)
+      node.getBlueId() !== undefined ||
+      (bareBlueIdMatcherMode === 'identity' &&
+        this.isExplicitBlueIdMatcher(comparisonTargetType))
     ) {
       return node;
     }
@@ -397,6 +422,33 @@ export class NodeTypeMatcher {
         return false;
       }
     }
+  }
+
+  private matchesBareBlueIdIdentity(node: BlueNode, blueId: string): boolean {
+    const nodeBlueId = node.getBlueId();
+    return nodeBlueId === blueId || this.matchesCalculatedBlueId(node, blueId);
+  }
+
+  private matchesBareBlueIdTypeReference(
+    node: BlueNode,
+    targetType: BlueNode,
+    targetBlueId: string,
+  ): boolean {
+    const nodeType = node.getType();
+    if (nodeType) {
+      return NodeTypes.isSubtype(
+        nodeType,
+        targetType,
+        this.blue.getNodeProvider(),
+      );
+    }
+
+    const nodeBlueId = node.getBlueId();
+    if (nodeBlueId !== undefined) {
+      return this.matchesBareBlueIdIdentity(node, targetBlueId);
+    }
+
+    return false;
   }
 
   private toPlainBlueNode(node: BlueNode): BlueNode {

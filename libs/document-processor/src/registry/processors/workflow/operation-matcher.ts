@@ -130,43 +130,10 @@ export function isRequestTypeCompatible(
   ) {
     return false;
   }
-  try {
-    if (!blue.isTypeOfNode(requestPayload, requiredType)) {
-      if (
-        !matchesResolvedDeclaredTypeReference(
-          requestPayload,
-          requiredType,
-          blue,
-        )
-      ) {
-        return false;
-      }
-    }
-  } catch {
-    if (
-      !matchesResolvedDeclaredTypeReference(requestPayload, requiredType, blue)
-    ) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function matchesResolvedDeclaredTypeReference(
-  requestPayload: BlueNode,
-  requiredType: BlueNode,
-  blue: Blue,
-): boolean {
-  if (!requiredType.isResolved()) {
+  if (!blue.isTypeOfNode(requestPayload, requiredType)) {
     return false;
   }
-
-  const requiredTypeBlueId = requiredType.getType()?.getBlueId();
-  return (
-    typeof requiredTypeBlueId === 'string' &&
-    requiredTypeBlueId.length > 0 &&
-    blue.isTypeOfBlueId(requestPayload, requiredTypeBlueId)
-  );
+  return true;
 }
 
 export function isPinnedDocumentAllowed(

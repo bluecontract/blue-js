@@ -13,6 +13,7 @@ import {
 import {
   blueIds as coreBlueIds,
   conversationBlueIds,
+  myosBlueIds,
 } from '../../repository/semantic-repository.js';
 
 const blue = createBlue();
@@ -186,6 +187,95 @@ describe('SequentialWorkflowOperationProcessor', () => {
     const counterNode = property(result.document, 'counter');
     expect(numericValue(counterNode)).toBe(5);
     expect(result.triggeredEvents.length).toBe(0);
+  });
+
+  it('cascades operation workflow emissions through triggered event handlers', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Operation Reemit Cascade Doc
+contracts:
+  ownerChannel:
+    type: Conversation/Timeline Channel
+    timelineId: ${TIMELINE_ID}
+  triggered:
+    type: Core/Triggered Event Channel
+  myOsAdminUpdate:
+    type: Conversation/Operation
+    channel: ownerChannel
+    request:
+      type: List
+  myOsAdminUpdateImpl:
+    type: Conversation/Sequential Workflow Operation
+    operation: myOsAdminUpdate
+    steps:
+      - name: ReemitAdminUpdates
+        type: Conversation/JavaScript Code
+        code: |
+          const message = (event && event.message) || {};
+          const payload = message.request;
+          const payloadItems = payload && payload.items;
+          const events = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payloadItems)
+              ? payloadItems
+              : payload
+                ? [payload]
+                : [];
+          return { events };
+  subscribeOnGrant:
+    type: Conversation/Sequential Workflow
+    channel: triggered
+    event:
+      type: MyOS/Single Document Permission Granted
+    steps:
+      - name: EmitSubscriptionMarker
+        type: Conversation/Trigger Event
+        event:
+          type: Conversation/Chat Message
+          message: Grant cascaded
+`;
+
+    const init = await expectOk(
+      processor.initializeDocument(blue.resolve(blue.yamlToNode(yaml))),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      operation: 'myOsAdminUpdate',
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+      request: [
+        {
+          type: 'MyOS/Single Document Permission Granted',
+          targetSessionId: 'buyer-card-session-1',
+          permissions: {
+            read: true,
+            singleOps: ['pay'],
+          },
+          inResponseTo: {
+            requestId: 'payment-source-access-grant',
+          },
+        },
+      ],
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    const grantEvents = result.triggeredEvents.filter(
+      (emitted) =>
+        typeBlueId(emitted) ===
+        myosBlueIds['MyOS/Single Document Permission Granted'],
+    );
+    expect(grantEvents.length).toBe(1);
+
+    const chatEvents = result.triggeredEvents.filter(
+      (emitted) =>
+        typeBlueId(emitted) ===
+        conversationBlueIds['Conversation/Chat Message'],
+    );
+    expect(chatEvents.length).toBe(1);
+    const message = property(chatEvents[0], 'message').getValue();
+    expect(message).toBe('Grant cascaded');
   });
 
   it('applies Actor Policy rules for principal actors in browser sessions', async () => {
@@ -443,6 +533,37 @@ operations:
       processor.initializeDocument(buildOperationDocument()),
     );
     const event = operationRequestEvent({ request: 'oops' });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    const counterNode = property(result.document, 'counter');
+    expect(numericValue(counterNode)).toBe(0);
+  });
+
+  it('checks the full resolved request type instead of only its declared blueId', async () => {
+    const processor = buildProcessor(blue);
+    const init = await expectOk(
+      processor.initializeDocument(
+        blue.resolve(
+          buildOperationDocument({
+            requestTypeYaml: `type: List
+itemType:
+  type: Integer`,
+            changesetYaml: `- op: replace
+  path: /counter
+  val: 99`,
+          }),
+        ),
+      ),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = operationRequestEvent({
+      request: [1, 'same base List type, invalid item type'],
+      allowNewerVersion: false,
+      documentBlueId: storedBlueId,
+    });
 
     const result = await expectOk(
       processor.processDocument(init.document.clone(), event),
