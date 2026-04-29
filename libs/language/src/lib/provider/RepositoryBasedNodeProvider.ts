@@ -4,6 +4,7 @@ import { BlueNode, NodeDeserializer } from '../model';
 import { JsonBlueValue } from '../../schema';
 import { BlueRepository } from '../types/BlueRepository';
 import type { MergingProcessor } from '../merge/MergingProcessor';
+import { canonicalizeRepositoryContent } from '../repository/RepositoryContentCanonicalizer';
 
 /**
  * A NodeProvider that indexes content from trusted BlueRepository definitions.
@@ -49,8 +50,13 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     for (const repository of repositories) {
       Object.values(repository.packages).forEach((pkg) => {
         for (const [providedBlueId, content] of Object.entries(pkg.contents)) {
-          this.storeContent(providedBlueId, content, Array.isArray(content));
-          this.addContentNames(providedBlueId, content);
+          const canonicalContent = canonicalizeRepositoryContent(content);
+          this.storeContent(
+            providedBlueId,
+            canonicalContent,
+            Array.isArray(canonicalContent),
+          );
+          this.addContentNames(providedBlueId, canonicalContent);
         }
       });
     }

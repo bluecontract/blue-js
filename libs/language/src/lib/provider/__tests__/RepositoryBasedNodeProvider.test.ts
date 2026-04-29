@@ -303,6 +303,56 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(byName?.getBlueId()).toBeUndefined();
   });
 
+  it('canonicalizes direct cyclic document sets before indexing # references', () => {
+    const blue = new Blue();
+    const contents = [
+      {
+        name: 'A',
+        peer: {
+          blueId: 'this#1',
+        },
+      },
+      {
+        name: 'B',
+        peer: {
+          blueId: 'this#0',
+        },
+      },
+    ];
+    const masterBlueId = blue.calculateBlueIdSync(contents);
+    const repository = {
+      name: 'cyclic.repository',
+      repositoryVersions: ['R0'],
+      packages: {
+        pkg: {
+          name: 'pkg',
+          aliases: {
+            'Pkg/A': `${masterBlueId}#1`,
+            'Pkg/B': `${masterBlueId}#0`,
+          },
+          typesMeta: {},
+          contents: {
+            [masterBlueId]: contents,
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+
+    expect(provider.fetchByBlueId(`${masterBlueId}#0`)?.[0]?.getName()).toBe(
+      'B',
+    );
+    expect(provider.fetchByBlueId(`${masterBlueId}#1`)?.[0]?.getName()).toBe(
+      'A',
+    );
+    expect(provider.fetchByBlueId('Pkg/A')?.[0]?.getName()).toBe('A');
+    expect(provider.fetchByBlueId('Pkg/B')?.[0]?.getName()).toBe('B');
+    expect(provider.findNodeByName('A')?.getName()).toBe('A');
+    expect(provider.findNodeByName('B')?.getName()).toBe('B');
+  });
+
   it('loads direct cyclic repository document sets under MASTER#i ids', () => {
     const first = new BlueNode('RepoA').addProperty(
       'peer',
