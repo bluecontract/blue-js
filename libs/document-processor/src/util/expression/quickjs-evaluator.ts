@@ -1,14 +1,51 @@
 import {
   evaluate,
+  type ExecutionProfile,
+  type GasTrace,
   type HostDispatcherHandlers,
   type InputEnvelope,
-  type ProgramArtifact,
+  type ProgramArtifactV2,
 } from '@blue-quickjs/quickjs-runtime';
 import { DV_LIMIT_DEFAULTS, validateDv, type DV } from '@blue-quickjs/dv';
 import { DEFAULT_WASM_GAS_LIMIT } from './quickjs-config.js';
 import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 
 const HOST_CALL_UNITS = 1;
+const DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE = 'baseline-v1';
+const HOST_INVALID_PATH_ERROR = {
+  code: 'INVALID_PATH',
+  tag: 'host/invalid_path',
+} as const;
+const HOST_LIMIT_ERROR = {
+  code: 'LIMIT_EXCEEDED',
+  tag: 'host/limit',
+} as const;
+
+export const DOCUMENT_PROCESSOR_HOST_ABI_VERSION = 'document-processor-host-v1';
+
+export type DocumentJavaScriptExecutionProfile =
+  | Extract<ExecutionProfile, 'baseline-v1'>
+  | Extract<ExecutionProfile, 'compat-general-v1'>
+  | Extract<ExecutionProfile, 'compat-binary-v1'>;
+
+export interface QuickJSEvaluatorOptions {
+  readonly executionProfile?: DocumentJavaScriptExecutionProfile;
+  readonly releaseMode?: boolean;
+  readonly artifactPins?: QuickJSArtifactPins;
+}
+
+export interface QuickJSArtifactPins {
+  readonly engineBuildHash?: string;
+  readonly gasVersion?: number;
+  readonly abiManifestHash?: string;
+}
+
+const DOCUMENT_JS_EXECUTION_PROFILES =
+  new Set<DocumentJavaScriptExecutionProfile>([
+    DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE,
+    'compat-general-v1',
+    'compat-binary-v1',
+  ]);
 
 type DocumentBinding = ((pointer?: unknown) => unknown) & {
   canonical?: (pointer?: unknown) => unknown;
@@ -31,7 +68,11 @@ export interface QuickJSEvaluationOptions {
   readonly bindings?: QuickJSBindings;
   readonly wasmGasLimit?: bigint | number;
   readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
+  readonly gasTrace?: boolean;
+  readonly onGasTrace?: (trace: GasTrace) => void;
 }
+
+export type QuickJSGasTrace = GasTrace;
 
 type HostCallResult<T> =
   | { ok: T; units: number }
@@ -45,7 +86,7 @@ type QuickJSInputEnvelope = InputEnvelope & {
 interface HandlerState {
   documentGet: (path: string) => HostCallResult<DV>;
   documentGetCanonical: (path: string) => HostCallResult<DV>;
-  emit: (value: DV) => HostCallResult<null>;
+  emit: (value: unknown) => HostCallResult<null>;
 }
 
 const SUPPORTED_BINDING_KEYS = new Set([
@@ -59,6 +100,10 @@ const SUPPORTED_BINDING_KEYS = new Set([
 ]);
 
 export class QuickJSEvaluator {
+  private readonly executionProfile: DocumentJavaScriptExecutionProfile;
+  private readonly releaseMode: boolean;
+  private readonly artifactPins: QuickJSArtifactPins;
+
   // Serialize evaluations to avoid races when updating host handler bindings.
   private evaluationQueue: Promise<void> = Promise.resolve();
   private readonly handlerState: HandlerState = {
@@ -75,6 +120,12 @@ export class QuickJSEvaluator {
     emit: (value) => this.handlerState.emit(value),
   };
 
+  constructor(options: QuickJSEvaluatorOptions = {}) {
+    this.executionProfile = normalizeExecutionProfile(options.executionProfile);
+    this.releaseMode = options.releaseMode ?? false;
+    this.artifactPins = options.artifactPins ?? {};
+  }
+
   async evaluate(options: QuickJSEvaluationOptions): Promise<unknown> {
     const task = this.evaluationQueue.then(() => this.evaluateOnce(options));
     this.evaluationQueue = task.then(
@@ -89,16 +140,12 @@ export class QuickJSEvaluator {
     bindings,
     wasmGasLimit,
     onWasmGasUsed,
+    gasTrace,
+    onGasTrace,
   }: QuickJSEvaluationOptions): Promise<unknown> {
     const input = this.prepareBindings(bindings);
     const gasLimit = wasmGasLimit ?? DEFAULT_WASM_GAS_LIMIT;
-
-    const program: ProgramArtifact = {
-      code: this.wrapCode(code),
-      abiId: 'Host.v1',
-      abiVersion: 1,
-      abiManifestHash: HOST_V1_HASH,
-    };
+    const program = this.createProgramArtifact(code);
 
     try {
       const result = await evaluate({
@@ -107,6 +154,9 @@ export class QuickJSEvaluator {
         gasLimit,
         manifest: HOST_V1_MANIFEST,
         handlers: this.handlers,
+        releaseMode: this.releaseMode,
+        expectedExecutionProfile: this.executionProfile,
+        gasTrace: gasTrace ?? onGasTrace !== undefined,
       });
 
       if (wasmGasLimit !== undefined && onWasmGasUsed) {
@@ -114,6 +164,10 @@ export class QuickJSEvaluator {
           used: result.gasUsed,
           remaining: result.gasRemaining,
         });
+      }
+
+      if (result.gasTrace !== undefined && onGasTrace) {
+        onGasTrace(result.gasTrace);
       }
 
       if (!result.ok) {
@@ -205,6 +259,40 @@ export class QuickJSEvaluator {
   private wrapCode(code: string): string {
     return `(() => {\nreturn (() => {\n${code}\n})()\n})()`;
   }
+
+  private createProgramArtifact(code: string): ProgramArtifactV2 {
+    return {
+      version: 2,
+      abiId: 'Host.v1',
+      abiVersion: 1,
+      abiManifestHash: this.artifactPins.abiManifestHash ?? HOST_V1_HASH,
+      ...(this.artifactPins.engineBuildHash
+        ? { engineBuildHash: this.artifactPins.engineBuildHash }
+        : {}),
+      ...(this.artifactPins.gasVersion !== undefined
+        ? { gasVersion: this.artifactPins.gasVersion }
+        : {}),
+      executionProfile: this.executionProfile,
+      sourceKind: 'script',
+      source: {
+        code: this.wrapCode(code),
+      },
+    };
+  }
+}
+
+function normalizeExecutionProfile(
+  executionProfile?: DocumentJavaScriptExecutionProfile,
+): DocumentJavaScriptExecutionProfile {
+  if (executionProfile === undefined) {
+    return DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE;
+  }
+  if (DOCUMENT_JS_EXECUTION_PROFILES.has(executionProfile)) {
+    return executionProfile;
+  }
+  throw new TypeError(
+    `Unsupported document JavaScript execution profile: "${executionProfile}"`,
+  );
 }
 
 function assertSupportedBindings(bindings: QuickJSBindings): void {
@@ -235,29 +323,42 @@ function createDocumentHandler(
     return () => ({ ok: null, units: HOST_CALL_UNITS });
   }
   return (path: string) => {
+    let value: unknown;
     try {
-      const value = binding(path);
-      return {
-        ok: (value === undefined ? null : value) as DV,
-        units: HOST_CALL_UNITS,
-      };
+      value = binding(path);
     } catch {
       return {
-        err: { code: 'INVALID_PATH', tag: 'host/invalid_path' },
+        err: HOST_INVALID_PATH_ERROR,
         units: HOST_CALL_UNITS,
       };
     }
+
+    const result = value === undefined ? null : value;
+    try {
+      validateDv(result, { limits: DV_LIMIT_DEFAULTS });
+    } catch {
+      return {
+        err: HOST_LIMIT_ERROR,
+        units: HOST_CALL_UNITS,
+      };
+    }
+
+    return {
+      ok: result,
+      units: HOST_CALL_UNITS,
+    };
   };
 }
 
 function createEmitHandler(
   binding: EmitBinding | undefined,
-): (value: DV) => HostCallResult<null> {
+): (value: unknown) => HostCallResult<null> {
   if (!binding) {
     return () => ({ ok: null, units: HOST_CALL_UNITS });
   }
-  return (value: DV) => {
+  return (value: unknown) => {
     try {
+      validateDv(value, { limits: DV_LIMIT_DEFAULTS });
       const result = binding(normalizeDvValue(value));
       if (result instanceof Promise) {
         throw new Error('Async emit handlers are not supported');
@@ -265,7 +366,7 @@ function createEmitHandler(
       return { ok: null, units: HOST_CALL_UNITS };
     } catch {
       return {
-        err: { code: 'LIMIT_EXCEEDED', tag: 'host/limit' },
+        err: HOST_LIMIT_ERROR,
         units: HOST_CALL_UNITS,
       };
     }

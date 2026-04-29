@@ -1,6 +1,16 @@
 # document-processor
 
-This library was generated with [Nx](https://nx.dev).
+Document processing runtime for Blue documents.
+
+Document JavaScript execution uses `blue-quickjs`, a deterministic
+QuickJS-in-Wasm runtime. The old native `isolated-vm` engine path is not used by
+this package.
+
+Authoring and maintainer documentation:
+
+- [Document Processor JavaScript](./docs/javascript-execution.md)
+- [JavaScript Host ABI](./docs/javascript-host-abi.md)
+- [JavaScript Gas Policy](./docs/javascript-gas-policy.md)
 
 ## Building
 

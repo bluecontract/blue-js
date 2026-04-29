@@ -74,17 +74,17 @@ describe('QuickJS wasm fuel samples', () => {
     expect(results).toMatchInlineSnapshot(`
       [
         {
-          "fuel": "275",
+          "fuel": "110",
           "hostFuel": "1",
           "name": "return-1",
         },
         {
-          "fuel": "17474",
+          "fuel": "17135",
           "hostFuel": "11",
           "name": "loop-1k",
         },
         {
-          "fuel": "170474",
+          "fuel": "170135",
           "hostFuel": "101",
           "name": "loop-10k",
         },
@@ -150,7 +150,7 @@ describe('QuickJS deterministic gas metering', () => {
 
     expect(distinct.size).toBe(1);
     expect(max - min).toBe(0n);
-    expect([...distinct][0]).toMatchInlineSnapshot(`"59310"`);
+    expect([...distinct][0]).toMatchInlineSnapshot(`"24136"`);
   });
 
   it('shows numeric object allocation is deterministic', async () => {
@@ -172,7 +172,7 @@ describe('QuickJS deterministic gas metering', () => {
 
     expect(distinct.size).toBe(1);
     expect(max - min).toBe(0n);
-    expect([...distinct][0]).toMatchInlineSnapshot(`"49278"`);
+    expect([...distinct][0]).toMatchInlineSnapshot(`"24136"`);
   });
 
   it('shows array operations are deterministic', async () => {
@@ -198,6 +198,6 @@ describe('QuickJS deterministic gas metering', () => {
 
     expect(distinct.size).toBe(1);
     expect(max - min).toBe(0n);
-    expect([...distinct][0]).toMatchInlineSnapshot(`"36390"`);
+    expect([...distinct][0]).toMatchInlineSnapshot(`"34182"`);
   });
 });

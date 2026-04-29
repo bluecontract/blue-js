@@ -8,6 +8,7 @@ import { ContractProcessorRegistry } from '../registry/contract-processor-regist
 import { ContractProcessorRegistryBuilder } from '../registry/contract-processor-registry-builder.js';
 import type { AnyContractProcessor } from '../registry/types.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
+import type { DocumentJavaScriptExecutionPolicyOptions } from '../util/expression/javascript-execution-policy.js';
 
 const DEFAULT_BLUE = new Blue({
   repositories: [blueRepository],
@@ -16,6 +17,7 @@ const DEFAULT_BLUE = new Blue({
 export interface DocumentProcessorOptions {
   readonly blue?: Blue;
   readonly registry?: ContractProcessorRegistry;
+  readonly javascript?: DocumentJavaScriptExecutionPolicyOptions;
 }
 
 export class DocumentProcessor {
@@ -27,7 +29,9 @@ export class DocumentProcessor {
   constructor(options?: DocumentProcessorOptions) {
     this.registryRef =
       options?.registry ??
-      ContractProcessorRegistryBuilder.create().registerDefaults().build();
+      ContractProcessorRegistryBuilder.create()
+        .registerDefaults({ javascript: options?.javascript })
+        .build();
     this.blue = options?.blue ?? DEFAULT_BLUE;
     this.contractLoaderRef = new ContractLoader(this.registryRef, this.blue);
     this.engine = new ProcessorEngine(
@@ -87,14 +91,11 @@ export class DocumentProcessor {
 }
 
 export class DocumentProcessorBuilder {
-  private contractRegistry: ContractProcessorRegistry;
+  private contractRegistry: ContractProcessorRegistry | undefined;
   private blueInstance: Blue | undefined;
-
-  constructor() {
-    this.contractRegistry = ContractProcessorRegistryBuilder.create()
-      .registerDefaults()
-      .build();
-  }
+  private javascriptOptions:
+    | DocumentJavaScriptExecutionPolicyOptions
+    | undefined;
 
   withRegistry(registry: ContractProcessorRegistry): DocumentProcessorBuilder {
     this.contractRegistry = registry;
@@ -102,6 +103,7 @@ export class DocumentProcessorBuilder {
   }
 
   registerDefaults(): DocumentProcessorBuilder {
+    this.contractRegistry = undefined;
     return this;
   }
 
@@ -110,10 +112,22 @@ export class DocumentProcessorBuilder {
     return this;
   }
 
+  withJavaScriptExecutionPolicy(
+    options: DocumentJavaScriptExecutionPolicyOptions,
+  ): DocumentProcessorBuilder {
+    this.javascriptOptions = options;
+    return this;
+  }
+
   build(): DocumentProcessor {
     return new DocumentProcessor({
-      registry: this.contractRegistry,
+      registry:
+        this.contractRegistry ??
+        ContractProcessorRegistryBuilder.create()
+          .registerDefaults({ javascript: this.javascriptOptions })
+          .build(),
       blue: this.blueInstance,
+      javascript: this.javascriptOptions,
     });
   }
 }

@@ -7,7 +7,7 @@ import type {
   JavaScriptEvaluationOptions,
 } from './javascript-evaluation-engine.js';
 import type { QuickJSBindings } from './quickjs-evaluator.js';
-import { DEFAULT_EXPRESSION_WASM_GAS_LIMIT } from './quickjs-config.js';
+import { getJavaScriptExecutionPolicy } from './javascript-execution-policy.js';
 
 // Matches if entire string is exactly ${...} (anchored with ^ and $)
 const EXPRESSION_PATTERN = /^\$\{([\s\S]*)\}$/;
@@ -155,7 +155,8 @@ export async function resolveNodeExpressions(
     pointer = '/',
   } = options;
 
-  const expressionWasmGasLimit = DEFAULT_EXPRESSION_WASM_GAS_LIMIT;
+  const expressionWasmGasLimit =
+    getJavaScriptExecutionPolicy(engine).jsExpressionGasLimit;
   const onExpressionWasmGasUsed: JavaScriptEvaluationOptions['onWasmGasUsed'] =
     ({ used }) => {
       context.gasMeter().chargeWasmGas(used);

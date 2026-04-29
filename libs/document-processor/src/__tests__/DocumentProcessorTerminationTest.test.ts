@@ -2,12 +2,7 @@ import { blueIds, createBlue } from '../test-support/blue.js';
 import { beforeEach, describe, it, expect } from 'vitest';
 
 import { DocumentProcessor } from '../api/document-processor.js';
-import { SequentialWorkflowHandlerProcessor } from '../registry/processors/sequential-workflow-processor.js';
-import { JavaScriptCodeStepExecutor } from '../registry/processors/steps/javascript-code-step-executor.js';
-import { TriggerEventStepExecutor } from '../registry/processors/steps/trigger-event-step-executor.js';
-import { UpdateDocumentStepExecutor } from '../registry/processors/steps/update-document-step-executor.js';
 import { hostGasToWasmFuel } from '../runtime/gas-schedule.js';
-import { BlueQuickJsEngine } from '../util/expression/javascript-evaluation-engine.js';
 import {
   SetPropertyContractProcessor,
   TerminateScopeContractProcessor,
@@ -259,17 +254,12 @@ contracts:
   });
 
   it('terminates when JS execution exceeds the gas limit', async () => {
-    const gasLimitedProcessor = new DocumentProcessor({ blue });
-    const engine = new BlueQuickJsEngine();
-    gasLimitedProcessor.registerContractProcessor(
-      new SequentialWorkflowHandlerProcessor([
-        new TriggerEventStepExecutor(engine),
-        new JavaScriptCodeStepExecutor(engine, {
-          wasmGasLimit: hostGasToWasmFuel(1000),
-        }),
-        new UpdateDocumentStepExecutor(engine),
-      ]),
-    );
+    const gasLimitedProcessor = new DocumentProcessor({
+      blue,
+      javascript: {
+        jsCodeStepGasLimit: hostGasToWasmFuel(1000),
+      },
+    });
 
     const yaml = `name: JS Out Of Gas
 contracts:

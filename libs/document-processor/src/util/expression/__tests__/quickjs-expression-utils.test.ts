@@ -13,6 +13,8 @@ import {
   QuickJSEvaluator,
   type QuickJSEvaluationOptions,
 } from '../quickjs-evaluator.js';
+import type { JavaScriptEvaluationEngine } from '../javascript-evaluation-engine.js';
+import { createDocumentJavaScriptExecutionPolicy } from '../javascript-execution-policy.js';
 import { createBlue } from '../../../test-support/blue.js';
 import type { ContractProcessorContext } from '../../../registry/types.js';
 
@@ -178,6 +180,41 @@ describe('quickjs-expression-utils', () => {
 
       expect(blue.nodeToJson(resolved, 'simple')).toBe(7);
       expect(wasmCharges).toStrictEqual([123]);
+    });
+
+    it('uses the engine expression gas limit policy', async () => {
+      const calls: QuickJSEvaluationOptions[] = [];
+      const context = {
+        blue,
+        gasMeter: () => ({
+          chargeWasmGas() {
+            return undefined;
+          },
+        }),
+      } as unknown as ContractProcessorContext;
+      const policyEngine: JavaScriptEvaluationEngine = {
+        executionPolicy: createDocumentJavaScriptExecutionPolicy({
+          jsExpressionGasLimit: 222n,
+        }),
+        async evaluate(options): Promise<unknown> {
+          calls.push(options);
+          return 7;
+        },
+      };
+      const node = blue.jsonValueToNode({ value: '${steps.answer}' });
+
+      await resolveNodeExpressions({
+        engine: policyEngine,
+        node,
+        bindings: {},
+        shouldResolve: createPicomatchShouldResolve({
+          include: ['/**'],
+        }),
+        context,
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].wasmGasLimit).toBe(222n);
     });
 
     it('supports custom include/exclude patterns', () => {

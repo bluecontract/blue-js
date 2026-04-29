@@ -9,7 +9,7 @@ import type {
   StepExecutionArgs,
 } from '../workflow/step-runner.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
-import { DEFAULT_WASM_GAS_LIMIT } from '../../../util/expression/quickjs-config.js';
+import { getJavaScriptExecutionPolicy } from '../../../util/expression/javascript-execution-policy.js';
 
 interface ResultWithEvents {
   readonly events: readonly unknown[];
@@ -31,7 +31,9 @@ export class JavaScriptCodeStepExecutor implements SequentialWorkflowStepExecuto
     private readonly engine: JavaScriptEvaluationEngine,
     options: JavaScriptCodeStepExecutorOptions = {},
   ) {
-    this.wasmGasLimit = options.wasmGasLimit ?? DEFAULT_WASM_GAS_LIMIT;
+    this.wasmGasLimit =
+      options.wasmGasLimit ??
+      getJavaScriptExecutionPolicy(engine).jsCodeStepGasLimit;
   }
 
   async execute(args: StepExecutionArgs): Promise<unknown> {

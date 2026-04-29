@@ -31,6 +31,9 @@ export function createQuickJSStepBindings(
     eventCanonical: context.blue.nodeToJson(eventNode, 'official'),
     steps: stepResults,
     document: documentBinding,
+    emit: (value: unknown) => {
+      context.emitEvent(context.blue.jsonValueToNode(value));
+    },
     currentContract,
     currentContractCanonical,
   };

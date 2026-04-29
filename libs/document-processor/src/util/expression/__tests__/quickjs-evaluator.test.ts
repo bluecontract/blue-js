@@ -110,6 +110,42 @@ describe('QuickJSEvaluator', () => {
     ).rejects.toThrow(/expecting ';'/);
   });
 
+  it('supports compat-general-v1 execution profile', async () => {
+    const evaluator = new QuickJSEvaluator({
+      executionProfile: 'compat-general-v1',
+    });
+
+    const result = await evaluator.evaluate({
+      code: `return /blue/.test('blue-js');`,
+    });
+
+    expect(result).toBe(true);
+  });
+
+  it('supports compat-binary-v1 execution profile', async () => {
+    const evaluator = new QuickJSEvaluator({
+      executionProfile: 'compat-binary-v1',
+    });
+
+    const result = await evaluator.evaluate({
+      code: `
+        const bytes = new Uint8Array([1, 2, 3]);
+        return bytes.byteLength;
+      `,
+    });
+
+    expect(result).toBe(3);
+  });
+
+  it('rejects unsupported execution profiles', () => {
+    expect(
+      () =>
+        new QuickJSEvaluator({
+          executionProfile: 'compat-regexp-v1',
+        } as never),
+    ).toThrow(/Unsupported document JavaScript execution profile/);
+  });
+
   it('exposes provided bindings (values) to the evaluated code', async () => {
     const evaluator = new QuickJSEvaluator();
 

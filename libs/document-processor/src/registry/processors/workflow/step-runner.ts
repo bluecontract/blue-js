@@ -6,7 +6,10 @@ import type { SequentialWorkflow } from '../../../model/index.js';
 import { TriggerEventStepExecutor } from '../steps/trigger-event-step-executor.js';
 import { JavaScriptCodeStepExecutor } from '../steps/javascript-code-step-executor.js';
 import { UpdateDocumentStepExecutor } from '../steps/update-document-step-executor.js';
-import { BlueQuickJsEngine } from '../../../util/expression/javascript-evaluation-engine.js';
+import {
+  BlueQuickJsEngine,
+  type JavaScriptEvaluationEngine,
+} from '../../../util/expression/javascript-evaluation-engine.js';
 
 export type StepResultMap = Record<string, unknown>;
 
@@ -27,12 +30,18 @@ export interface SequentialWorkflowStepExecutor {
 
 const DEFAULT_JAVASCRIPT_ENGINE = new BlueQuickJsEngine();
 
-export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
-  [
-    new TriggerEventStepExecutor(DEFAULT_JAVASCRIPT_ENGINE),
-    new JavaScriptCodeStepExecutor(DEFAULT_JAVASCRIPT_ENGINE),
-    new UpdateDocumentStepExecutor(DEFAULT_JAVASCRIPT_ENGINE),
+export function createDefaultStepExecutors(
+  engine: JavaScriptEvaluationEngine = DEFAULT_JAVASCRIPT_ENGINE,
+): readonly SequentialWorkflowStepExecutor[] {
+  return [
+    new TriggerEventStepExecutor(engine),
+    new JavaScriptCodeStepExecutor(engine),
+    new UpdateDocumentStepExecutor(engine),
   ];
+}
+
+export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
+  createDefaultStepExecutors();
 
 export class WorkflowStepRunner {
   private readonly executorIndex: ReadonlyMap<

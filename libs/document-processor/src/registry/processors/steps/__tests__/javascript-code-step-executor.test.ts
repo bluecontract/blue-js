@@ -16,6 +16,7 @@ import {
   type JavaScriptEvaluationEngine,
   type JavaScriptEvaluationOptions,
 } from '../../../../util/expression/javascript-evaluation-engine.js';
+import { createDocumentJavaScriptExecutionPolicy } from '../../../../util/expression/javascript-execution-policy.js';
 
 function createStepNode(blue: Blue, code: string): BlueNode {
   const indented = code
@@ -73,6 +74,31 @@ describe('JavaScriptCodeStepExecutor', () => {
       payload: { status: 'complete' },
     });
     expect(gasSpy).toHaveBeenCalledWith(11n);
+  });
+
+  it('uses the engine JavaScript Code step gas policy', async () => {
+    const blue = createBlue();
+    const code = 'return 1;';
+    const stepNode = createStepNode(blue, code);
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const policyEngine: JavaScriptEvaluationEngine = {
+      executionPolicy: createDocumentJavaScriptExecutionPolicy({
+        jsCodeStepGasLimit: 333n,
+      }),
+      async evaluate(options) {
+        calls.push(options);
+        return 1;
+      },
+    };
+    const policyExecutor = new JavaScriptCodeStepExecutor(policyEngine);
+
+    await policyExecutor.execute(args);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].wasmGasLimit).toBe(333n);
   });
 
   it('exposes the event binding', async () => {
