@@ -194,6 +194,21 @@ describe('QuickJSEvaluator', () => {
     expect(second).toBe(2);
   });
 
+  it('caches ProgramArtifact.v2 script artifacts by source and execution settings', async () => {
+    const evaluator = new QuickJSEvaluator();
+
+    await evaluator.evaluate({ code: 'return 1;' });
+    await evaluator.evaluate({ code: 'return 1;' });
+    await evaluator.evaluate({ code: 'return 2;' });
+
+    const cache = (
+      evaluator as unknown as {
+        readonly artifactCache: ReadonlyMap<string, unknown>;
+      }
+    ).artifactCache;
+    expect(cache.size).toBe(2);
+  });
+
   it('provides canon helpers for working with canonical JSON', async () => {
     const evaluator = new QuickJSEvaluator();
 

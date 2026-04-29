@@ -9,10 +9,11 @@ import { ContractProcessorRegistryBuilder } from '../registry/contract-processor
 import type { AnyContractProcessor } from '../registry/types.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
 import type { DocumentJavaScriptExecutionPolicyOptions } from '../util/expression/javascript-execution-policy.js';
+import { JAVASCRIPT_MODULE_BLUE_IDS } from '../constants/javascript-module-constants.js';
 
 const DEFAULT_BLUE = new Blue({
   repositories: [blueRepository],
-});
+}).registerBlueIds(JAVASCRIPT_MODULE_BLUE_IDS);
 
 export interface DocumentProcessorOptions {
   readonly blue?: Blue;
@@ -32,7 +33,9 @@ export class DocumentProcessor {
       ContractProcessorRegistryBuilder.create()
         .registerDefaults({ javascript: options?.javascript })
         .build();
-    this.blue = options?.blue ?? DEFAULT_BLUE;
+    this.blue = (options?.blue ?? DEFAULT_BLUE).registerBlueIds(
+      JAVASCRIPT_MODULE_BLUE_IDS,
+    );
     this.contractLoaderRef = new ContractLoader(this.registryRef, this.blue);
     this.engine = new ProcessorEngine(
       this.contractLoaderRef,

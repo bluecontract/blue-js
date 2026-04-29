@@ -1,9 +1,12 @@
+import { createHash } from 'node:crypto';
+
 import {
   evaluate,
   type ExecutionProfile,
   type GasTrace,
   type HostDispatcherHandlers,
   type InputEnvelope,
+  type ModulePackV1,
   type ProgramArtifactV2,
 } from '@blue-quickjs/quickjs-runtime';
 import { DV_LIMIT_DEFAULTS, validateDv, type DV } from '@blue-quickjs/dv';
@@ -13,6 +16,8 @@ import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 const HOST_CALL_UNITS = 1;
 const DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE: DocumentJavaScriptExecutionProfile =
   'baseline-v1';
+const SCRIPT_SOURCE_KIND = 'script';
+const MODULE_PACK_SOURCE_KIND = 'module-pack';
 const HOST_INVALID_PATH_ERROR = {
   code: 'INVALID_PATH',
   tag: 'host/invalid_path',
@@ -54,14 +59,25 @@ export interface QuickJSBindings {
   readonly currentContractCanonical?: unknown;
 }
 
-export interface QuickJSEvaluationOptions {
-  readonly code: string;
+interface QuickJSEvaluationBaseOptions {
   readonly bindings?: QuickJSBindings;
   readonly wasmGasLimit?: bigint | number;
   readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
   readonly gasTrace?: boolean;
   readonly onGasTrace?: (trace: GasTrace) => void;
 }
+
+export type QuickJSEvaluationOptions = QuickJSEvaluationBaseOptions &
+  (
+    | {
+        readonly code: string;
+        readonly modulePack?: never;
+      }
+    | {
+        readonly code?: never;
+        readonly modulePack: ModulePackV1;
+      }
+  );
 
 export type QuickJSGasTrace = GasTrace;
 
@@ -94,6 +110,7 @@ export class QuickJSEvaluator {
   private readonly executionProfile: DocumentJavaScriptExecutionProfile;
   private readonly releaseMode: boolean;
   private readonly artifactPins: QuickJSArtifactPins;
+  private readonly artifactCache = new Map<string, ProgramArtifactV2>();
 
   // Serialize evaluations to avoid races when updating host handler bindings.
   private evaluationQueue: Promise<void> = Promise.resolve();
@@ -129,6 +146,7 @@ export class QuickJSEvaluator {
 
   private async evaluateOnce({
     code,
+    modulePack,
     bindings,
     wasmGasLimit,
     onWasmGasUsed,
@@ -137,7 +155,9 @@ export class QuickJSEvaluator {
   }: QuickJSEvaluationOptions): Promise<unknown> {
     const input = this.prepareBindings(bindings);
     const gasLimit = wasmGasLimit ?? DEFAULT_WASM_GAS_LIMIT;
-    const program = this.createProgramArtifact(code);
+    const program = modulePack
+      ? this.getProgramArtifact({ modulePack })
+      : this.getProgramArtifact({ code });
 
     try {
       const result = await evaluate({
@@ -252,8 +272,27 @@ export class QuickJSEvaluator {
     return `(() => {\nreturn (() => {\n${code}\n})()\n})()`;
   }
 
-  private createProgramArtifact(code: string): ProgramArtifactV2 {
-    return {
+  private getProgramArtifact(
+    source:
+      | { readonly code: string; readonly modulePack?: never }
+      | { readonly code?: never; readonly modulePack: ModulePackV1 },
+  ): ProgramArtifactV2 {
+    const cacheKey = this.createProgramArtifactCacheKey(source);
+    const cached = this.artifactCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    const artifact = this.createProgramArtifact(source);
+    this.artifactCache.set(cacheKey, artifact);
+    return artifact;
+  }
+
+  private createProgramArtifact(
+    source:
+      | { readonly code: string; readonly modulePack?: never }
+      | { readonly code?: never; readonly modulePack: ModulePackV1 },
+  ): ProgramArtifactV2 {
+    const base = {
       version: 2,
       abiId: 'Host.v1',
       abiVersion: 1,
@@ -265,11 +304,49 @@ export class QuickJSEvaluator {
         ? { gasVersion: this.artifactPins.gasVersion }
         : {}),
       executionProfile: this.executionProfile,
-      sourceKind: 'script',
+    } as const;
+
+    if (source.modulePack) {
+      return {
+        ...base,
+        sourceKind: MODULE_PACK_SOURCE_KIND,
+        source: {
+          modulePack: source.modulePack,
+        },
+      };
+    }
+
+    return {
+      ...base,
+      sourceKind: SCRIPT_SOURCE_KIND,
       source: {
-        code: this.wrapCode(code),
+        code: this.wrapCode(source.code),
       },
     };
+  }
+
+  private createProgramArtifactCacheKey(
+    source:
+      | { readonly code: string; readonly modulePack?: never }
+      | { readonly code?: never; readonly modulePack: ModulePackV1 },
+  ): string {
+    const sourceKind = source.modulePack
+      ? MODULE_PACK_SOURCE_KIND
+      : SCRIPT_SOURCE_KIND;
+    const sourceHash = source.modulePack
+      ? hashStableJson(source.modulePack)
+      : hashString(source.code);
+    return hashStableJson({
+      version: 2,
+      sourceKind,
+      sourceHash,
+      executionProfile: this.executionProfile,
+      abiId: 'Host.v1',
+      abiVersion: 1,
+      abiManifestHash: this.artifactPins.abiManifestHash ?? HOST_V1_HASH,
+      engineBuildHash: this.artifactPins.engineBuildHash ?? null,
+      gasVersion: this.artifactPins.gasVersion ?? null,
+    });
   }
 }
 
@@ -371,6 +448,29 @@ function normalizeDvValue(value: unknown): unknown {
     return normalized;
   }
   return value;
+}
+
+function hashString(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function hashStableJson(value: unknown): string {
+  return hashString(stableStringify(value));
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+  const entries = Object.entries(value).sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+  return `{${entries
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
+    .join(',')}}`;
 }
 
 function mapEvaluateError(result: Awaited<ReturnType<typeof evaluate>>): Error {

@@ -5,6 +5,7 @@ import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflow } from '../../../model/index.js';
 import { TriggerEventStepExecutor } from '../steps/trigger-event-step-executor.js';
 import { JavaScriptCodeStepExecutor } from '../steps/javascript-code-step-executor.js';
+import { JavaScriptModuleStepExecutor } from '../steps/javascript-module-step-executor.js';
 import { UpdateDocumentStepExecutor } from '../steps/update-document-step-executor.js';
 import {
   BlueQuickJsEngine,
@@ -25,6 +26,7 @@ export interface StepExecutionArgs {
 
 export interface SequentialWorkflowStepExecutor {
   readonly supportedBlueIds: readonly string[];
+  readonly supportedTypeNames?: readonly string[];
   execute(args: StepExecutionArgs): unknown | Promise<unknown>;
 }
 
@@ -36,6 +38,7 @@ export function createDefaultStepExecutors(
   return [
     new TriggerEventStepExecutor(engine),
     new JavaScriptCodeStepExecutor(engine),
+    new JavaScriptModuleStepExecutor(engine),
     new UpdateDocumentStepExecutor(engine),
   ];
 }
@@ -45,6 +48,10 @@ export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
 
 export class WorkflowStepRunner {
   private readonly executorIndex: ReadonlyMap<
+    string,
+    SequentialWorkflowStepExecutor
+  >;
+  private readonly executorNameIndex: ReadonlyMap<
     string,
     SequentialWorkflowStepExecutor
   >;
@@ -58,7 +65,14 @@ export class WorkflowStepRunner {
         byId.set(blueId, executor);
       }
     }
+    const byName = new Map<string, SequentialWorkflowStepExecutor>();
+    for (const executor of executors) {
+      for (const typeName of executor.supportedTypeNames ?? []) {
+        byName.set(typeName, executor);
+      }
+    }
     this.executorIndex = byId;
+    this.executorNameIndex = byName;
   }
 
   async run(args: {
@@ -76,18 +90,22 @@ export class WorkflowStepRunner {
 
     const results: StepResultMap = {};
     for (const [index, stepNode] of steps.entries()) {
-      const blueId = stepNode.getType?.()?.getBlueId();
-      if (isNullable(blueId)) {
+      const stepType = stepNode.getType?.();
+      const blueId = stepType?.getBlueId();
+      const typeName = stepType?.getName?.();
+      if (isNullable(blueId) && isNullable(typeName)) {
         return context.throwFatal(
           'Sequential workflow step is missing type metadata',
         );
       }
 
-      const executor = this.executorIndex.get(blueId);
+      const executor =
+        (blueId ? this.executorIndex.get(blueId) : undefined) ??
+        (typeName ? this.executorNameIndex.get(typeName) : undefined);
       if (isNullable(executor)) {
-        const typeName = stepNode.getType?.()?.getName?.() ?? blueId;
+        const displayName = typeName ?? blueId;
         return context.throwFatal(
-          `Unsupported workflow step type "${typeName}"`,
+          `Unsupported workflow step type "${displayName}"`,
         );
       }
 

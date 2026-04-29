@@ -4,6 +4,7 @@ import type { BlueRepository } from '@blue-labs/language';
 import { repository as blueRepository } from '@blue-repository/types';
 import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
+import { JAVASCRIPT_MODULE_BLUE_IDS } from '../constants/javascript-module-constants.js';
 
 const FALLBACK_BLUE_IDS = [
   'AssertDocumentUpdate',
@@ -72,7 +73,7 @@ export function createBlue(): Blue {
   return new Blue({
     repositories: [blueRepository, testFallbackRepository],
     mergingProcessor: createDefaultMergingProcessor(),
-  });
+  }).registerBlueIds(JAVASCRIPT_MODULE_BLUE_IDS);
 }
 
 export function createBlueWithDerivedTypes(
@@ -89,7 +90,7 @@ export function createBlueWithDerivedTypes(
   const blue = new Blue({
     repositories: [blueRepository, testFallbackRepository, derivedRepository],
     mergingProcessor: createDefaultMergingProcessor(),
-  });
+  }).registerBlueIds(JAVASCRIPT_MODULE_BLUE_IDS);
 
   for (const { name, blueId } of types) {
     blue.registerBlueIds({ [name]: blueId });
