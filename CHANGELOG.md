@@ -1,3 +1,10 @@
+## 4.0.0-rc.2 (2026-04-29)
+
+### 🩹 Fixes
+
+- **language:** minimize own type overlays ([858ecc2](https://github.com/bluecontract/blue-js/commit/858ecc2))
+- **language:** trust semantic repository storage ([d6a3503](https://github.com/bluecontract/blue-js/commit/d6a3503))
+
 ## 4.0.0-rc.1 (2026-04-29)
 
 ### 🩹 Fixes
