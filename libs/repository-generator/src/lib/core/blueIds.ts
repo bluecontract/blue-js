@@ -4,6 +4,7 @@ import type { JsonValue } from '@blue-labs/shared-utils';
 import { Alias, DiscoveredType, JsonMap } from './internalTypes';
 import { PRIMITIVE_BLUE_IDS, PRIMITIVE_TYPES } from './constants';
 import { cloneJson, isRecord } from './utils';
+import { createRepositoryGeneratorMergingProcessor } from './mergingProcessor';
 
 export function computeBlueIds(
   topoOrder: Alias[],
@@ -21,7 +22,10 @@ export function computeBlueIds(
       parserBlue.jsonValueToNode(content),
     ),
   );
-  const blue = new Blue({ nodeProvider: provider });
+  const blue = new Blue({
+    nodeProvider: provider,
+    mergingProcessor: createRepositoryGeneratorMergingProcessor(),
+  });
 
   for (const alias of topoOrder) {
     const type = discovered.get(alias);
