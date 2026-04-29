@@ -1,3 +1,9 @@
+## 4.0.0-rc.1 (2026-04-29)
+
+### 🩹 Fixes
+
+- **repository-generator:** preserve expressions during semantic blue id calculation ([283e0b7](https://github.com/bluecontract/blue-js/commit/283e0b7))
+
 ## 4.0.0-rc.0 (2026-04-28)
 
 ### 🚀 Features
