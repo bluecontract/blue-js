@@ -24,7 +24,7 @@ packages:
             value: draft
         versions:
           - repositoryVersionIndex: 0
-            typeBlueId: 6rJ3veXS6KrmH1Uur8ktdDQn1Nsb4LH3VZmo23Aoy6nJ
+            typeBlueId: AXMDxCf9j8NzLe1CgiMCUevMNmbfjSKNHqECVk7TPkEM
             attributesAdded: []
       - status: dev
         content:
@@ -89,5 +89,5 @@ packages:
             typeBlueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
             attributesAdded: []
 repositoryVersions:
-  - 9eKjsgHqd9W93Cj7z194NKttJknz7KdCQCqwu3FnomS9
-  - GdEJVfdJqjGWWef5Sey1YDfaVwSSf49GGjyaNANBo5mV
+  - 7k2vGWF3CxYX8dpgLiysvqy3MUf4u1Cif2kU7T2wvYJD
+  - ExMJU1Vg9VQpe3iZjBZWxQeo3TsGwZcWu1S8Sxsi8RQh

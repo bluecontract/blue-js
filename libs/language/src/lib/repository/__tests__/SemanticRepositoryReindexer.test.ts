@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { Blue } from '../../Blue';
 import type { BlueRepository } from '../../types/BlueRepository';
+import { BlueErrorCode } from '../../errors/BlueError';
 import {
   getTypeBlueIdAnnotation,
   withTypeBlueId,
 } from '../../../schema/annotations';
 import {
   reindexRepositoryForSemanticStorage,
+  validateRepositorySemanticStorage,
   rewriteAliasMappings,
   rewriteBlueIds,
   rewriteBlueIdWithOptionalIndex,
@@ -52,7 +54,44 @@ describe('SemanticRepositoryReindexer', () => {
       ?.value?.[0];
     expect(parentTypeBlueId).toBe(parentId);
 
+    expect(() => validateRepositorySemanticStorage(reindexed)).not.toThrow();
     expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
+  });
+
+  it('validates repository content keys against semantic BlueIds', () => {
+    const content = { name: 'StrictType' };
+    const semanticId = new Blue().calculateBlueIdSync(content);
+    const repository: BlueRepository = {
+      name: 'strict.repository',
+      repositoryVersions: ['R0'],
+      packages: {
+        pkg: {
+          name: 'pkg',
+          aliases: { 'Pkg/StrictType': semanticId },
+          typesMeta: {
+            [semanticId]: {
+              status: 'stable',
+              name: 'StrictType',
+              versions: [
+                {
+                  repositoryVersionIndex: 0,
+                  typeBlueId: semanticId,
+                  attributesAdded: [],
+                },
+              ],
+            },
+          },
+          contents: {
+            'wrong-repository-content-id': content,
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    expect(() => validateRepositorySemanticStorage(repository)).toThrow(
+      expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
+    );
   });
 
   it('does not reuse the default cache for custom merging processors', () => {
@@ -152,7 +191,46 @@ describe('SemanticRepositoryReindexer', () => {
     expect(listId).toBeDefined();
     expect(pkg.aliases['Pkg/Second']).toBe(`${listId}#1`);
     expect(pkg.typesMeta[listId]?.versions[0]?.typeBlueId).toBe(`${listId}#1`);
+    expect(() => validateRepositorySemanticStorage(reindexed)).not.toThrow();
     expect(() => new Blue({ repositories: [reindexed] })).not.toThrow();
+  });
+
+  it('validates direct cyclic repository document sets', () => {
+    const contents = [
+      {
+        name: 'RepoA',
+        peer: {
+          blueId: 'this#1',
+        },
+      },
+      {
+        name: 'RepoB',
+        peer: {
+          blueId: 'this#0',
+        },
+      },
+    ];
+    const masterBlueId = new Blue().calculateBlueIdSync(contents);
+    const repository: BlueRepository = {
+      name: 'cyclic.repository',
+      repositoryVersions: ['R0'],
+      packages: {
+        pkg: {
+          name: 'pkg',
+          aliases: {
+            'Pkg/RepoA': `${masterBlueId}#0`,
+            'Pkg/RepoB': `${masterBlueId}#1`,
+          },
+          typesMeta: {},
+          contents: {
+            [masterBlueId]: contents,
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    expect(() => validateRepositorySemanticStorage(repository)).not.toThrow();
   });
 
   it('reindexes dependency chains deeper than the previous fixed pass cap', () => {

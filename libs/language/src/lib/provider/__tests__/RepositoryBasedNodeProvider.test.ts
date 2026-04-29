@@ -3,7 +3,6 @@ import { RepositoryBasedNodeProvider } from '../RepositoryBasedNodeProvider';
 import { BasicNodeProvider } from '../BasicNodeProvider';
 import { BlueNode } from '../../model';
 import { BlueIdCalculator, NodeToMapListOrValue } from '../../utils';
-import { BlueErrorCode } from '../../errors/BlueError';
 import { Blue } from '../../Blue';
 
 describe('RepositoryBasedNodeProvider', () => {
@@ -93,7 +92,7 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(provider.hasBlueId(currentId)).toBe(true);
   });
 
-  it('rejects repository content keys that do not match semantic BlueIds', () => {
+  it('loads repository content under provided keys without runtime BlueId validation', () => {
     const typeNode = new BlueNode('StrictType');
     const semanticId = BlueIdCalculator.calculateBlueIdSync(typeNode);
     const wrongId = 'wrong-repository-content-id';
@@ -125,9 +124,11 @@ describe('RepositoryBasedNodeProvider', () => {
       },
     };
 
-    expect(() => new RepositoryBasedNodeProvider([repository])).toThrow(
-      expect.objectContaining({ code: BlueErrorCode.BLUE_ID_MISMATCH }),
-    );
+    const provider = new RepositoryBasedNodeProvider([repository]);
+
+    expect(provider.hasBlueId(wrongId)).toBe(true);
+    expect(provider.fetchByBlueId(wrongId)?.[0]?.getName()).toBe('StrictType');
+    expect(provider.hasBlueId(semanticId)).toBe(false);
   });
 
   it('indexes names for new-style repositories', () => {
@@ -168,7 +169,7 @@ describe('RepositoryBasedNodeProvider', () => {
     expect(found?.getBlueId()).toBeUndefined();
   });
 
-  it('preprocesses repository content using alias mappings', () => {
+  it('does not preprocess repository content using alias mappings', () => {
     const childNode = new BlueNode('Child');
     const childId = BlueIdCalculator.calculateBlueIdSync(childNode);
     const parentNode = new BlueNode('Parent').setProperties({
@@ -229,7 +230,8 @@ describe('RepositoryBasedNodeProvider', () => {
       ? fetched[0]?.getProperties()?.child?.getType()
       : undefined;
 
-    expect(childType?.getBlueId()).toEqual(childId);
+    expect(childType?.getBlueId()).toBeUndefined();
+    expect(childType?.getValue()).toEqual('test/Child');
   });
 
   it('preserves # references for multi-document content', () => {
@@ -294,7 +296,8 @@ describe('RepositoryBasedNodeProvider', () => {
 
     const individualBlueId = BlueIdCalculator.calculateBlueIdSync(first);
     const byIndividual = provider.fetchByBlueId(individualBlueId);
-    expect(byIndividual?.[0]?.getBlueId()).toBeUndefined();
+    expect(byIndividual).toBeNull();
+    expect(provider.hasBlueId(individualBlueId)).toBe(false);
 
     const byName = provider.findNodeByName('First');
     expect(byName?.getBlueId()).toBeUndefined();

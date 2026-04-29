@@ -107,6 +107,276 @@ describe('MergeReverser', () => {
     expect(reversed.get('/z/itemType/blueId')).toEqual(TEXT_TYPE_BLUE_ID);
   });
 
+  it('removes collection type details re-derivable from a property own type', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Anchor
+template:
+  description: Optional document-shaped template.
+`);
+
+    nodeProvider.addSingleDocs(`
+name: Anchors
+type: Dictionary
+keyType: Text
+valueType:
+  blueId: ${nodeProvider.getBlueIdByName('Anchor')}
+`);
+
+    const anchorsTypeId = nodeProvider.getBlueIdByName('Anchors');
+
+    const source = blue.yamlToNode(`
+name: Space Like
+anchors:
+  description: Optional named connection points.
+  type:
+    blueId: ${anchorsTypeId}
+`);
+
+    const resolved = blue.resolve(source);
+    const minimal = blue.minimize(resolved);
+    const minimalAnchors = minimal.getAsNode('/anchors');
+
+    expect(minimalAnchors?.getType()?.getBlueId()).toBe(anchorsTypeId);
+    expect(minimalAnchors?.getKeyType()).toBeUndefined();
+    expect(minimalAnchors?.getValueType()).toBeUndefined();
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
+  it('removes list itemType re-derivable from a property own type', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Entry
+label:
+  type: Text
+`);
+
+    nodeProvider.addSingleDocs(`
+name: Entry List
+type: List
+itemType:
+  blueId: ${nodeProvider.getBlueIdByName('Entry')}
+`);
+
+    const entryListTypeId = nodeProvider.getBlueIdByName('Entry List');
+    const source = blue.yamlToNode(`
+name: Catalog
+entries:
+  type:
+    blueId: ${entryListTypeId}
+`);
+
+    const resolved = blue.resolve(source);
+    const minimal = blue.minimize(resolved);
+    const minimalEntries = minimal.getAsNode('/entries');
+
+    expect(minimalEntries?.getType()?.getBlueId()).toBe(entryListTypeId);
+    expect(minimalEntries?.getItemType()).toBeUndefined();
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
+  it('removes fixed scalar values re-derivable from a property own type', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Fixed Text
+type: Text
+value: locked
+`);
+
+    const fixedTextTypeId = nodeProvider.getBlueIdByName('Fixed Text');
+    const source = blue.yamlToNode(`
+name: Fixed Text Holder
+field:
+  type:
+    blueId: ${fixedTextTypeId}
+`);
+
+    const resolved = blue.resolve(source);
+    const minimal = blue.minimize(resolved);
+    const minimalField = minimal.getAsNode('/field');
+
+    expect(minimalField?.getType()?.getBlueId()).toBe(fixedTextTypeId);
+    expect(minimalField?.getValue()).toBeUndefined();
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
+  it('emits append overlay for fixed items from a property own type', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Fixed Options
+type: List
+items:
+  - A
+  - B
+`);
+
+    const fixedOptionsTypeId = nodeProvider.getBlueIdByName('Fixed Options');
+    const source = blue.yamlToNode(`
+name: Option Holder
+options:
+  type:
+    blueId: ${fixedOptionsTypeId}
+  items:
+    - A
+    - B
+    - C
+`);
+
+    const resolved = blue.resolve(source);
+    const minimal = blue.minimize(resolved);
+    const minimalOptions = minimal.getAsNode('/options');
+    const minimalItems = minimalOptions?.getItems();
+
+    expect(minimalOptions?.getType()?.getBlueId()).toBe(fixedOptionsTypeId);
+    expectPreviousAnchorWithStringDeltas(minimalItems, ['C']);
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
+  it('preserves refined collection constraints not re-derivable from a property own type', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Base Entry
+base: true
+`);
+
+    nodeProvider.addSingleDocs(`
+name: Specialized Entry
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base Entry')}
+specialized: true
+`);
+
+    const baseEntryId = nodeProvider.getBlueIdByName('Base Entry');
+    const specializedEntryId =
+      nodeProvider.getBlueIdByName('Specialized Entry');
+
+    nodeProvider.addSingleDocs(`
+name: Base Entry List
+type: List
+itemType:
+  blueId: ${baseEntryId}
+`);
+
+    nodeProvider.addSingleDocs(`
+name: Base Entry Dictionary
+type: Dictionary
+keyType: Text
+valueType:
+  blueId: ${baseEntryId}
+`);
+
+    const listTypeId = nodeProvider.getBlueIdByName('Base Entry List');
+    const dictionaryTypeId = nodeProvider.getBlueIdByName(
+      'Base Entry Dictionary',
+    );
+    const source = blue.yamlToNode(`
+name: Refined Collections
+entries:
+  type:
+    blueId: ${listTypeId}
+  itemType:
+    blueId: ${specializedEntryId}
+entriesByName:
+  type:
+    blueId: ${dictionaryTypeId}
+  valueType:
+    blueId: ${specializedEntryId}
+`);
+
+    const resolved = blue.resolve(source);
+    const minimal = blue.minimize(resolved);
+    const minimalEntries = minimal.getAsNode('/entries');
+    const minimalEntriesByName = minimal.getAsNode('/entriesByName');
+
+    expect(minimalEntries?.getType()?.getBlueId()).toBe(listTypeId);
+    expect(minimalEntries?.getItemType()?.getBlueId()).toBe(specializedEntryId);
+    expect(minimalEntriesByName?.getType()?.getBlueId()).toBe(dictionaryTypeId);
+    expect(minimalEntriesByName?.getKeyType()).toBeUndefined();
+    expect(minimalEntriesByName?.getValueType()?.getBlueId()).toBe(
+      specializedEntryId,
+    );
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
+  it('preserves anonymous inline types while removing their re-derivable fields', () => {
+    const blue = new Blue();
+
+    const source = blue.yamlToNode(`
+name: Inline Type Holder
+field:
+  type:
+    fixed: value
+  fixed: value
+`);
+
+    const resolved = blue.resolve(source);
+    const minimal = blue.minimize(resolved);
+    const minimalField = minimal.getAsNode('/field');
+
+    expect(minimalField?.getType()).toBeDefined();
+    expect(minimalField?.getType()?.getProperties()?.fixed?.getValue()).toBe(
+      'value',
+    );
+    expect(minimalField?.getProperties()?.fixed).toBeUndefined();
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
+  it('does not inherit name or description from a property own type', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Named Field Type
+description: Description from the type itself.
+fixed: value
+`);
+
+    const fieldTypeId = nodeProvider.getBlueIdByName('Named Field Type');
+    const source = blue.yamlToNode(`
+name: Own Type Metadata Holder
+field:
+  type:
+    blueId: ${fieldTypeId}
+`);
+
+    const resolved = blue.resolve(source);
+    const resolvedField = resolved.getAsNode('/field');
+    const minimal = blue.minimize(resolved);
+    const minimalField = minimal.getAsNode('/field');
+
+    expect(resolvedField?.getName()).toBeUndefined();
+    expect(resolvedField?.getDescription()).toBeUndefined();
+    expect(minimalField?.getType()?.getBlueId()).toBe(fieldTypeId);
+    expect(minimalField?.getName()).toBeUndefined();
+    expect(minimalField?.getDescription()).toBeUndefined();
+    expect(minimalField?.getProperties()?.fixed).toBeUndefined();
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
   it('testNestedTypes', () => {
     const nodeProvider = new BasicNodeProvider();
 
