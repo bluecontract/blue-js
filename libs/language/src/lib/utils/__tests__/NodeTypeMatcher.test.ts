@@ -102,6 +102,29 @@ function buildMatcherRepository(): BlueRepository {
         },
       },
     },
+    {
+      alias: 'Matcher/Operation Permission Set',
+      name: 'Operation Permission Set',
+      json: {
+        name: 'Operation Permission Set',
+        read: { type: 'Boolean' },
+        singleOps: {
+          type: 'List',
+          itemType: 'Text',
+        },
+      },
+    },
+    {
+      alias: 'Matcher/Permission Granted Event',
+      name: 'Permission Granted Event',
+      json: {
+        name: 'Permission Granted Event',
+        permissions: {
+          type: 'Matcher/Operation Permission Set',
+        },
+        targetSessionId: { type: 'Text' },
+      },
+    },
   ] as const;
 
   const aliases: Record<string, string> = {};
@@ -455,6 +478,7 @@ items:
     const blue = new Blue({ nodeProvider });
     const matcher = new NodeTypeMatcher(blue);
 
+    const implicitStringListNode = blue.jsonValueToNode(['first', 'second']);
     const implicitListNode = blue.jsonValueToNode([1, 2, 3]);
     const implicitDictNode = blue.jsonValueToNode({
       first: 1,
@@ -466,6 +490,7 @@ itemType: Text`);
     const dictMatcher = blue.yamlToNode(`type: Dictionary
 valueType: Text`);
 
+    expect(matcher.matchesType(implicitStringListNode, listMatcher)).toBe(true);
     expect(matcher.matchesType(implicitListNode, listMatcher)).toBe(false);
     expect(matcher.matchesType(implicitDictNode, dictMatcher)).toBe(false);
   });
@@ -669,5 +694,38 @@ read:
     expect(
       matcher.matchesType(workerAgencyGrant, workerAgencyGrant.getType()!),
     ).toBe(true);
+  });
+
+  test('resolved schema filters treat nested collection itemType blueIds as type constraints', () => {
+    const blue = new Blue({ repositories: [matcherRepository] });
+    const matcher = new NodeTypeMatcher(blue);
+
+    const event = blue.resolve(
+      blue.jsonValueToNode({
+        type: 'Matcher/Permission Granted Event',
+        targetSessionId: 'buyer-card-session-1',
+        permissions: {
+          read: true,
+          singleOps: ['pay'],
+        },
+      }),
+    );
+    const wrongItemTypeEvent = blue.jsonValueToNode({
+      type: 'Matcher/Permission Granted Event',
+      targetSessionId: 'buyer-card-session-1',
+      permissions: {
+        read: true,
+        singleOps: ['pay', 123],
+      },
+    });
+    const resolvedPattern = blue.resolve(
+      blue.yamlToNode('type: Matcher/Permission Granted Event'),
+    );
+
+    expect(resolvedPattern.isResolved()).toBe(true);
+    expect(matcher.matchesType(event, resolvedPattern)).toBe(true);
+    expect(matcher.matchesType(wrongItemTypeEvent, resolvedPattern)).toBe(
+      false,
+    );
   });
 });
