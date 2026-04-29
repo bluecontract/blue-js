@@ -4,10 +4,11 @@ Document JavaScript runs in `blue-quickjs`, a deterministic QuickJS-in-Wasm
 runtime. It does not run in Node.js or a browser, and it only has access to the
 document-processor host bindings listed below.
 
-The current document-processor JavaScript mode is script-only. `import`,
-dynamic `import()`, module packs, filesystem access, network access, host
-clock APIs, and random sources are not part of the supported document-author
-surface.
+Document workflow steps and expressions are script-only. Runtime `import`,
+dynamic `import()`, filesystem access, network access, host clock APIs, and
+random sources are not part of the supported document-author surface. The lower
+level evaluator can also execute prebuilt deterministic `ModulePack.v1`
+artifacts for internal/runtime use.
 
 ## Authoring Model
 
@@ -80,6 +81,79 @@ contracts:
             val: "${steps.Compute.next}"
 ```
 
+## JavaScript Module Contracts
+
+Documents can define reusable deterministic ESM modules as contracts and execute
+them from a workflow step. Until these types are published by
+`@blue-repository/types`, use the local `blueId` constants exported by
+`@blue-labs/document-processor`.
+
+```yaml
+name: Counter Module Workflow
+counter: 4
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+
+  helper:
+    type:
+      name: Conversation/JavaScript Module
+      blueId: blue-js/document-processor/JavaScriptModule
+    specifier: ./helper.js
+    source: |
+      export function next(value) {
+        return value + 1;
+      }
+
+  entry:
+    type:
+      name: Conversation/JavaScript Module
+      blueId: blue-js/document-processor/JavaScriptModule
+    specifier: ./entry.js
+    source: |
+      import { next } from './helper.js';
+
+      export default {
+        events: [
+          {
+            type: 'Conversation/Chat Message',
+            message: 'Counter is ' + next(document('/counter'))
+          }
+        ]
+      };
+
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Compute
+        type:
+          name: Conversation/JavaScript Module Code
+          blueId: blue-js/document-processor/JavaScriptModuleCode
+        entrySpecifier: ./entry.js
+        modules:
+          - /contracts/entry
+          - /contracts/helper
+```
+
+Module step fields:
+
+- `entrySpecifier`: module specifier whose export becomes the step result.
+- `entryExport`: optional export name; defaults to `default`.
+- `modules`: document pointers to `Conversation/JavaScript Module` contracts.
+
+Module contract fields:
+
+- `specifier`: stable ESM specifier, such as `./entry.js`.
+- `source`: deterministic ESM source text.
+- `sourceMap`: optional canonical source map JSON string.
+
+The processor builds a deterministic `ModulePack.v1` from the referenced module
+contracts, computes its `graphHash`, and runs it through the same QuickJS host
+ABI as script code.
+
 ## Update Document Expression
 
 Use `${...}` when a changeset field should be computed by JavaScript:
@@ -150,7 +224,7 @@ Document JavaScript is intentionally smaller than normal JavaScript:
 - No browser globals such as `window` or `fetch`.
 - No host clock or random source such as `Date.now()` or `Math.random()`.
 - No filesystem, network, package-manager, or registry lookup.
-- No imports or module packs in the current document-processor surface.
+- No runtime imports or dynamically loaded modules in document workflows.
 - Host callbacks are synchronous only.
 - Final results, host-call arguments, `emit()` payloads, and document update
   values must be valid deterministic values.

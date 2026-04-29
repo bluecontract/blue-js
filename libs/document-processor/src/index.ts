@@ -1,6 +1,7 @@
 export * from './types/index.js';
 export * from './constants/processor-contract-constants.js';
 export * from './constants/processor-pointer-constants.js';
+export * from './constants/javascript-module-constants.js';
 export * from './util/pointer-utils.js';
 export * from './util/node-canonicalizer.js';
 export * from './util/expression/quickjs-evaluator.js';

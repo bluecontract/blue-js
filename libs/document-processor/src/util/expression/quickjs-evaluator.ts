@@ -4,6 +4,7 @@ import {
   type GasTrace,
   type HostDispatcherHandlers,
   type InputEnvelope,
+  type ModulePackV1,
   type ProgramArtifactV2,
 } from '@blue-quickjs/quickjs-runtime';
 import { DV_LIMIT_DEFAULTS, validateDv, type DV } from '@blue-quickjs/dv';
@@ -54,14 +55,25 @@ export interface QuickJSBindings {
   readonly currentContractCanonical?: unknown;
 }
 
-export interface QuickJSEvaluationOptions {
-  readonly code: string;
+interface QuickJSEvaluationBaseOptions {
   readonly bindings?: QuickJSBindings;
   readonly wasmGasLimit?: bigint | number;
   readonly onWasmGasUsed?: (usage: { used: bigint; remaining: bigint }) => void;
   readonly gasTrace?: boolean;
   readonly onGasTrace?: (trace: GasTrace) => void;
 }
+
+export type QuickJSEvaluationOptions = QuickJSEvaluationBaseOptions &
+  (
+    | {
+        readonly code: string;
+        readonly modulePack?: never;
+      }
+    | {
+        readonly code?: never;
+        readonly modulePack: ModulePackV1;
+      }
+  );
 
 export type QuickJSGasTrace = GasTrace;
 
@@ -129,6 +141,7 @@ export class QuickJSEvaluator {
 
   private async evaluateOnce({
     code,
+    modulePack,
     bindings,
     wasmGasLimit,
     onWasmGasUsed,
@@ -137,7 +150,9 @@ export class QuickJSEvaluator {
   }: QuickJSEvaluationOptions): Promise<unknown> {
     const input = this.prepareBindings(bindings);
     const gasLimit = wasmGasLimit ?? DEFAULT_WASM_GAS_LIMIT;
-    const program = this.createProgramArtifact(code);
+    const program = modulePack
+      ? this.createProgramArtifact({ modulePack })
+      : this.createProgramArtifact({ code });
 
     try {
       const result = await evaluate({
@@ -252,8 +267,12 @@ export class QuickJSEvaluator {
     return `(() => {\nreturn (() => {\n${code}\n})()\n})()`;
   }
 
-  private createProgramArtifact(code: string): ProgramArtifactV2 {
-    return {
+  private createProgramArtifact(
+    source:
+      | { readonly code: string; readonly modulePack?: never }
+      | { readonly code?: never; readonly modulePack: ModulePackV1 },
+  ): ProgramArtifactV2 {
+    const base = {
       version: 2,
       abiId: 'Host.v1',
       abiVersion: 1,
@@ -265,9 +284,23 @@ export class QuickJSEvaluator {
         ? { gasVersion: this.artifactPins.gasVersion }
         : {}),
       executionProfile: this.executionProfile,
+    } as const;
+
+    if (source.modulePack) {
+      return {
+        ...base,
+        sourceKind: 'module-pack',
+        source: {
+          modulePack: source.modulePack,
+        },
+      };
+    }
+
+    return {
+      ...base,
       sourceKind: 'script',
       source: {
-        code: this.wrapCode(code),
+        code: this.wrapCode(source.code),
       },
     };
   }

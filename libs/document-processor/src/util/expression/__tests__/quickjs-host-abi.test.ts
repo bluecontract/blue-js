@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import type { ModulePackV1 } from '@blue-quickjs/quickjs-runtime';
 
 import {
   DOCUMENT_PROCESSOR_HOST_ABI_VERSION,
@@ -7,6 +9,10 @@ import {
 } from '../quickjs-evaluator.js';
 
 type DocumentBinding = NonNullable<QuickJSBindings['document']>;
+
+const MODULE_PACK_BUILDER_VERSION = 'document-processor-test-builder-v1';
+const MODULE_PACK_DEPENDENCY_INTEGRITY =
+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 describe('Document processor QuickJS host ABI', () => {
   it('exposes the document processor host ABI version', () => {
@@ -287,4 +293,178 @@ describe('Document processor QuickJS host ABI', () => {
       }),
     ).rejects.toThrow(/Unsupported QuickJS binding/);
   });
+
+  it('evaluates module packs against the same host ABI globals', async () => {
+    const evaluator = new QuickJSEvaluator();
+    const documentBinding = ((pointer?: unknown) => {
+      if (pointer === '/counter') {
+        return { value: 4 };
+      }
+      return undefined;
+    }) as DocumentBinding;
+    documentBinding.canonical = (pointer?: unknown) => {
+      if (pointer === '/counter') {
+        return { value: { value: 4 } };
+      }
+      return undefined;
+    };
+
+    const result = (await evaluator.evaluate({
+      modulePack: createModulePack({
+        entrySpecifier: './entry.js',
+        modules: [
+          {
+            specifier: './entry.js',
+            source: `
+              import { readCounter } from './helper.js';
+
+              export default {
+                eventValue: event.payload.value,
+                eventCanonicalValue: eventCanonical.payload.value.value,
+                stepValue: steps.prepare.amount,
+                documentValue: readCounter(),
+                canonicalDocumentValue: document.canonical('/counter').value.value,
+                contractName: currentContract.name,
+                canonicalContractName: currentContractCanonical.name.value
+              };
+            `,
+          },
+          {
+            specifier: './helper.js',
+            source: `
+              export function readCounter() {
+                return document('/counter').value;
+              }
+            `,
+          },
+        ],
+      }),
+      bindings: {
+        event: { payload: { value: 7 } },
+        eventCanonical: { payload: { value: { value: 7 } } },
+        steps: { prepare: { amount: 5 } },
+        document: documentBinding,
+        currentContract: { name: 'Example' },
+        currentContractCanonical: { name: { value: 'Example' } },
+      },
+    })) as Record<string, unknown>;
+
+    expect(result).toEqual({
+      eventValue: 7,
+      eventCanonicalValue: 7,
+      stepValue: 5,
+      documentValue: 4,
+      canonicalDocumentValue: 4,
+      contractName: 'Example',
+      canonicalContractName: 'Example',
+    });
+  });
+
+  it('supports emit() from module packs', async () => {
+    const evaluator = new QuickJSEvaluator();
+    const emissions: unknown[] = [];
+
+    const result = await evaluator.evaluate({
+      modulePack: createModulePack({
+        entrySpecifier: './entry.js',
+        modules: [
+          {
+            specifier: './entry.js',
+            source: `
+              emit({ type: 'ModuleEvent', payload: { value: 11 } });
+              export default 'done';
+            `,
+          },
+        ],
+      }),
+      bindings: {
+        emit: (value: unknown) => {
+          emissions.push(value);
+        },
+      },
+    });
+
+    expect(result).toBe('done');
+    expect(emissions).toEqual([
+      { type: 'ModuleEvent', payload: { value: 11 } },
+    ]);
+  });
 });
+
+function createModulePack(options: {
+  readonly entrySpecifier: string;
+  readonly entryExport?: string;
+  readonly modules: ModulePackV1['modules'];
+}): ModulePackV1 {
+  const modulePackWithoutHash = {
+    version: 1 as const,
+    entrySpecifier: options.entrySpecifier,
+    ...(options.entryExport ? { entryExport: options.entryExport } : {}),
+    modules: options.modules,
+    builderVersion: MODULE_PACK_BUILDER_VERSION,
+    dependencyIntegrity: MODULE_PACK_DEPENDENCY_INTEGRITY,
+  };
+
+  return {
+    ...modulePackWithoutHash,
+    graphHash: computeModulePackGraphHash(modulePackWithoutHash),
+  };
+}
+
+function computeModulePackGraphHash(
+  modulePack: Omit<ModulePackV1, 'graphHash'>,
+) {
+  const canonical = {
+    version: modulePack.version,
+    entrySpecifier: modulePack.entrySpecifier,
+    entryExport: modulePack.entryExport ?? 'default',
+    modules: [...modulePack.modules]
+      .sort((left, right) =>
+        compareUtf8ByteOrder(left.specifier, right.specifier),
+      )
+      .map((module) => ({
+        specifier: module.specifier,
+        source: module.source,
+        ...(module.sourceMap ? { sourceMap: module.sourceMap } : {}),
+      })),
+    builderVersion: modulePack.builderVersion,
+    dependencyIntegrity: modulePack.dependencyIntegrity,
+  };
+
+  return createHash('sha256')
+    .update(stableStringify(canonical), 'utf8')
+    .digest('hex');
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+  const record = value as Record<string, unknown>;
+  const entries = Object.entries(record)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => compareUtf8ByteOrder(left, right))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
+  return `{${entries.join(',')}}`;
+}
+
+const UTF8_ENCODER = new TextEncoder();
+
+function compareUtf8ByteOrder(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+  const leftBytes = UTF8_ENCODER.encode(left);
+  const rightBytes = UTF8_ENCODER.encode(right);
+  const limit = Math.min(leftBytes.length, rightBytes.length);
+  for (let index = 0; index < limit; index += 1) {
+    const delta = leftBytes[index] - rightBytes[index];
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+  return leftBytes.length - rightBytes.length;
+}

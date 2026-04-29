@@ -8,7 +8,8 @@ The current ABI version is `document-processor-host-v1`.
 
 ## Globals
 
-The evaluator exposes these globals to every script:
+The evaluator exposes these globals to every script and deterministic module
+pack:
 
 ```ts
 event
@@ -118,6 +119,25 @@ Rules:
 - In processor workflows, `emit()` is available in JavaScript Code steps and in
   expression resolution for Update Document and Trigger Event steps. Expression
   emissions happen while the expression is being resolved.
+
+## Scripts And Module Packs
+
+The evaluator accepts two source forms:
+
+- Script code, wrapped by the evaluator so document-authored code can use
+  `return`.
+- Deterministic `ModulePack.v1` artifacts passed to the QuickJS runtime as
+  `ProgramArtifact.v2` with `sourceKind: "module-pack"`.
+
+Module-pack entry modules return the selected entry export, defaulting to
+`default`. Module packs are a prebuilt deterministic ESM graph surface; they do
+not add runtime filesystem, network, package-manager, or dynamic import access.
+The underlying runtime verifies the module pack's `graphHash` before execution.
+
+Document workflow `${...}` expressions still use script code. Workflow steps can
+use script code through `Conversation/JavaScript Code` or module-pack execution
+through `Conversation/JavaScript Module Code`, which builds the module pack from
+referenced `Conversation/JavaScript Module` contracts.
 
 ## Host Errors
 
