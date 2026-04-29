@@ -5,6 +5,9 @@ import type { MergingProcessor } from '../merge/MergingProcessor';
 import { createDefaultMergingProcessor } from '../merge';
 import type { BlueRepository } from '../types/BlueRepository';
 import { withTypeBlueId } from '../../schema/annotations';
+import type { JsonBlueValue } from '../../schema';
+import { NodeContentHandler } from '../provider/NodeContentHandler';
+import { BlueError, BlueErrorCode } from '../errors/BlueError';
 
 interface RepositoryEntry {
   packageName: string;
@@ -13,6 +16,10 @@ interface RepositoryEntry {
 }
 
 export interface SemanticRepositoryReindexOptions {
+  mergingProcessor?: MergingProcessor;
+}
+
+export interface RepositorySemanticStorageValidationOptions {
   mergingProcessor?: MergingProcessor;
 }
 
@@ -73,6 +80,46 @@ export function reindexRepositoryForSemanticStorage(
   );
 }
 
+export function validateRepositorySemanticStorage(
+  repository: BlueRepository,
+  options: RepositorySemanticStorageValidationOptions = {},
+): void {
+  const entries = collectEntries(repository);
+  if (entries.length === 0) {
+    return;
+  }
+
+  const aliases = collectAliases(repository);
+  const mergingProcessor =
+    options.mergingProcessor ?? createDefaultMergingProcessor();
+  const validationBlue = new Blue({
+    nodeProvider: createRepositoryValidationProvider(entries, aliases),
+    mergingProcessor,
+  });
+  validationBlue.registerBlueIds(aliases);
+
+  for (const { packageName, oldBlueId, content } of entries) {
+    const prepared = Array.isArray(content)
+      ? content.map((item) => validationBlue.jsonValueToNode(item))
+      : validationBlue.jsonValueToNode(content);
+    const computedBlueId = validationBlue.calculateBlueIdSync(prepared);
+    if (computedBlueId !== oldBlueId) {
+      throw new BlueError(
+        BlueErrorCode.BLUE_ID_MISMATCH,
+        `Repository content key '${oldBlueId}' does not match semantic BlueId '${computedBlueId}'.`,
+        [
+          {
+            code: BlueErrorCode.BLUE_ID_MISMATCH,
+            message:
+              'Repository contents must be keyed by the semantic BlueId of their minimal storage form.',
+            context: { packageName, providedBlueId: oldBlueId, computedBlueId },
+          },
+        ],
+      );
+    }
+  }
+}
+
 function getMaxReindexPasses(entryCount: number): number {
   return Math.max(MIN_REINDEX_PASSES, entryCount + 1);
 }
@@ -95,6 +142,98 @@ function collectAliases(repository: BlueRepository): Record<string, string> {
     }
   }
   return aliases;
+}
+
+function createRepositoryValidationProvider(
+  entries: RepositoryEntry[],
+  aliases: Record<string, string>,
+) {
+  const contentByBlueId = new Map(
+    entries.map(({ oldBlueId, content }) => [oldBlueId, content]),
+  );
+  const aliasMap = new Map(Object.entries(aliases));
+  const parserBlue = new Blue();
+
+  return {
+    fetchByBlueId(blueId: string): BlueNode[] {
+      const resolvedBlueId = resolveAliasBlueId(blueId, aliasMap);
+      if (resolvedBlueId === undefined) {
+        return [];
+      }
+
+      const { baseBlueId, suffix } = getBaseBlueIdAndSuffix(resolvedBlueId);
+      const content = contentByBlueId.get(baseBlueId);
+      if (content === undefined) {
+        return [];
+      }
+
+      const isMultipleDocuments = Array.isArray(content);
+      const resolvedContent = NodeContentHandler.resolveThisReferences(
+        content as JsonBlueValue,
+        baseBlueId,
+        isMultipleDocuments,
+      );
+
+      if (suffix !== undefined) {
+        const index = Number(suffix.slice(1));
+        if (Array.isArray(resolvedContent)) {
+          const item = resolvedContent[index];
+          return item === undefined ? [] : [parserBlue.jsonValueToNode(item)];
+        }
+        return index === 0 ? [parserBlue.jsonValueToNode(resolvedContent)] : [];
+      }
+
+      if (Array.isArray(resolvedContent)) {
+        return resolvedContent.map((item) => parserBlue.jsonValueToNode(item));
+      }
+
+      return [parserBlue.jsonValueToNode(resolvedContent)];
+    },
+    fetchFirstByBlueId(blueId: string): BlueNode | null {
+      return this.fetchByBlueId(blueId)[0] ?? null;
+    },
+  };
+}
+
+function resolveAliasBlueId(
+  blueId: string,
+  aliasMap: Map<string, string>,
+): string | undefined {
+  const exactAlias = aliasMap.get(blueId);
+  if (exactAlias !== undefined) {
+    return exactAlias;
+  }
+
+  const { baseBlueId, suffix } = getBaseBlueIdAndSuffix(blueId);
+  if (suffix === undefined) {
+    return blueId;
+  }
+
+  const mappedBaseBlueId = aliasMap.get(baseBlueId);
+  if (mappedBaseBlueId === undefined) {
+    return blueId;
+  }
+
+  if (getBaseBlueIdAndSuffix(mappedBaseBlueId).suffix !== undefined) {
+    return undefined;
+  }
+
+  return `${mappedBaseBlueId}${suffix}`;
+}
+
+function getBaseBlueIdAndSuffix(blueId: string): {
+  baseBlueId: string;
+  suffix?: string;
+} {
+  const separatorIndex = blueId.indexOf('#');
+  if (separatorIndex === -1) {
+    return { baseBlueId: blueId };
+  }
+
+  return {
+    baseBlueId: blueId.slice(0, separatorIndex),
+    suffix: blueId.slice(separatorIndex),
+  };
 }
 
 function calculateSemanticIds(
