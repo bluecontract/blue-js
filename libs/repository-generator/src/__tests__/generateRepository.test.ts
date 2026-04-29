@@ -6,6 +6,8 @@ import { Blue, createNodeProvider } from '@blue-labs/language';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import { generateRepository } from '../lib/generateRepository';
 import { lookupStorageContentByBlueId } from '../lib/core/blueIds';
+import { PRIMITIVE_BLUE_IDS } from '../lib/core/constants';
+import { createRepositoryGeneratorMergingProcessor } from '../lib/core/mergingProcessor';
 import type { BluePackage, BlueTypeMetadata } from '../lib/types';
 
 type JsonMap = Record<string, JsonValue>;
@@ -40,7 +42,10 @@ const createSemanticExpectedCalculator = () => {
       parserBlue.jsonValueToNode(content),
     ),
   );
-  const blue = new Blue({ nodeProvider: provider });
+  const blue = new Blue({
+    nodeProvider: provider,
+    mergingProcessor: createRepositoryGeneratorMergingProcessor(),
+  });
 
   return {
     calculate(content: JsonMap): string {
@@ -1537,5 +1542,63 @@ score: 1.5
 
     expect(meta?.versions.at(-1)?.typeBlueId).toEqual(expectedBlueId);
     expect(meta?.content).toEqual(expectedContent);
+  });
+
+  it('preserves expression values without conflicting with inherited list fields', () => {
+    const expression = '${steps.Prepare.changeset}';
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'JsonPatchEntry.blue',
+      `
+name: Json Patch Entry
+op:
+  type: Text
+path:
+  type: Text
+`,
+    );
+    writeType(
+      repoRoot,
+      'Conversation',
+      'UpdateDocument.blue',
+      `
+name: Update Document
+changeset:
+  type: List
+  itemType: Core/Json Patch Entry
+`,
+    );
+    writeType(
+      repoRoot,
+      'Conversation',
+      'ApplyStep.blue',
+      `
+name: Apply Step
+type: Conversation/Update Document
+changeset: '\${steps.Prepare.changeset}'
+`,
+    );
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    const conversationPkg = result.document.packages.find(
+      (p: BluePackage) => p.name === 'Conversation',
+    );
+    const applyStep = conversationPkg?.types.find(
+      (t: BlueTypeMetadata) =>
+        (t.content as { name?: string }).name === 'Apply Step',
+    );
+    const applyStepContent = applyStep?.content as JsonMap | undefined;
+
+    expect(applyStep?.versions.at(-1)?.typeBlueId).toBeDefined();
+    expect(applyStepContent?.changeset).toEqual({
+      value: expression,
+      type: { blueId: PRIMITIVE_BLUE_IDS.Text },
+    });
   });
 });
