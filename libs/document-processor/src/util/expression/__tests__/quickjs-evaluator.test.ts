@@ -137,15 +137,6 @@ describe('QuickJSEvaluator', () => {
     expect(result).toBe(3);
   });
 
-  it('rejects unsupported execution profiles', () => {
-    expect(
-      () =>
-        new QuickJSEvaluator({
-          executionProfile: 'compat-regexp-v1',
-        } as never),
-    ).toThrow(/Unsupported document JavaScript execution profile/);
-  });
-
   it('exposes provided bindings (values) to the evaluated code', async () => {
     const evaluator = new QuickJSEvaluator();
 

@@ -11,7 +11,8 @@ import { DEFAULT_WASM_GAS_LIMIT } from './quickjs-config.js';
 import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 
 const HOST_CALL_UNITS = 1;
-const DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE = 'baseline-v1';
+const DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE: DocumentJavaScriptExecutionProfile =
+  'baseline-v1';
 const HOST_INVALID_PATH_ERROR = {
   code: 'INVALID_PATH',
   tag: 'host/invalid_path',
@@ -23,10 +24,7 @@ const HOST_LIMIT_ERROR = {
 
 export const DOCUMENT_PROCESSOR_HOST_ABI_VERSION = 'document-processor-host-v1';
 
-export type DocumentJavaScriptExecutionProfile =
-  | Extract<ExecutionProfile, 'baseline-v1'>
-  | Extract<ExecutionProfile, 'compat-general-v1'>
-  | Extract<ExecutionProfile, 'compat-binary-v1'>;
+export type DocumentJavaScriptExecutionProfile = ExecutionProfile;
 
 export interface QuickJSEvaluatorOptions {
   readonly executionProfile?: DocumentJavaScriptExecutionProfile;
@@ -39,13 +37,6 @@ export interface QuickJSArtifactPins {
   readonly gasVersion?: number;
   readonly abiManifestHash?: string;
 }
-
-const DOCUMENT_JS_EXECUTION_PROFILES =
-  new Set<DocumentJavaScriptExecutionProfile>([
-    DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE,
-    'compat-general-v1',
-    'compat-binary-v1',
-  ]);
 
 type DocumentBinding = ((pointer?: unknown) => unknown) & {
   canonical?: (pointer?: unknown) => unknown;
@@ -121,7 +112,8 @@ export class QuickJSEvaluator {
   };
 
   constructor(options: QuickJSEvaluatorOptions = {}) {
-    this.executionProfile = normalizeExecutionProfile(options.executionProfile);
+    this.executionProfile =
+      options.executionProfile ?? DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE;
     this.releaseMode = options.releaseMode ?? false;
     this.artifactPins = options.artifactPins ?? {};
   }
@@ -279,20 +271,6 @@ export class QuickJSEvaluator {
       },
     };
   }
-}
-
-function normalizeExecutionProfile(
-  executionProfile?: DocumentJavaScriptExecutionProfile,
-): DocumentJavaScriptExecutionProfile {
-  if (executionProfile === undefined) {
-    return DEFAULT_DOCUMENT_JS_EXECUTION_PROFILE;
-  }
-  if (DOCUMENT_JS_EXECUTION_PROFILES.has(executionProfile)) {
-    return executionProfile;
-  }
-  throw new TypeError(
-    `Unsupported document JavaScript execution profile: "${executionProfile}"`,
-  );
 }
 
 function assertSupportedBindings(bindings: QuickJSBindings): void {
