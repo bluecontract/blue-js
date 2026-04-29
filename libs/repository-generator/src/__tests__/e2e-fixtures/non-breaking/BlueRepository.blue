@@ -28,10 +28,10 @@ packages:
               blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
         versions:
           - repositoryVersionIndex: 0
-            typeBlueId: 6rJ3veXS6KrmH1Uur8ktdDQn1Nsb4LH3VZmo23Aoy6nJ
+            typeBlueId: AXMDxCf9j8NzLe1CgiMCUevMNmbfjSKNHqECVk7TPkEM
             attributesAdded: []
           - repositoryVersionIndex: 1
-            typeBlueId: JBi2iQ6FvJ12XfnjHSFvZkYvJNxbp9ajnfR4xkQuFLq9
+            typeBlueId: HtJtgcffnRLxkty1pSaUkKo78eu8yoWzX5N9XVGCLsZk
             attributesAdded:
               - /note
       - status: dev
@@ -90,5 +90,5 @@ packages:
             typeBlueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
             attributesAdded: []
 repositoryVersions:
-  - 9eKjsgHqd9W93Cj7z194NKttJknz7KdCQCqwu3FnomS9
-  - HxAjQCL5czpYgSbBoBS5HbhdPRhJQPjzs3a8yrnMfWdD
+  - 7k2vGWF3CxYX8dpgLiysvqy3MUf4u1Cif2kU7T2wvYJD
+  - 8sTd8gEU2oj7c4A5zTUVukxhsbE6kAJxWMDcnwo3dWPP
