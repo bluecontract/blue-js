@@ -212,6 +212,37 @@ field:
     );
   });
 
+  it('removes fixed items re-derivable from a property own type', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Fixed Options
+type: List
+items:
+  - A
+  - B
+`);
+
+    const fixedOptionsTypeId = nodeProvider.getBlueIdByName('Fixed Options');
+    const source = blue.yamlToNode(`
+name: Option Holder
+options:
+  type:
+    blueId: ${fixedOptionsTypeId}
+`);
+
+    const resolved = blue.resolve(source);
+    const minimal = blue.minimize(resolved);
+    const minimalOptions = minimal.getAsNode('/options');
+
+    expect(minimalOptions?.getType()?.getBlueId()).toBe(fixedOptionsTypeId);
+    expect(minimalOptions?.getItems()).toBeUndefined();
+    expect(blue.calculateBlueIdSync(minimal)).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
   it('emits append overlay for fixed items from a property own type', () => {
     const nodeProvider = new BasicNodeProvider();
     const blue = new Blue({ nodeProvider });

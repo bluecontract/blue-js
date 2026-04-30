@@ -1,6 +1,6 @@
 # Blue Language Runtime Roadmap and Historical Implementation Plan
 
-Last updated: 2026-04-28
+Last updated: 2026-04-30
 
 Status: Phase 1 and Phase 2 identity/storage work is implemented. Phase 3
 resolved snapshots remain planned.
@@ -1596,5 +1596,47 @@ calculates the ordinary semantic ID for that materialized shape.
 
 The remaining direction is: first keep identity, storage, and direct cyclic
 `BlueId` stable; then add runtime snapshots for `document-processor`.
+
+## 6. Follow-Up Improvements
+
+### 6.1 Repository Generator Direct Cyclic Source Files
+
+Status: planned.
+
+`repository-generator` still needs source-file support for top-level direct
+cyclic document sets. Runtime repositories can already store
+`contents[MASTER] = [...]`, and `RepositoryBasedNodeProvider` canonicalizes
+those arrays before indexing `MASTER#i` references. The missing piece is the
+generator input path: discovery currently rejects `.blue` files whose top-level
+YAML value is an array because it expects a single object with `name`.
+
+Reference behavior:
+
+- `libs/language/src/lib/provider/__tests__/RepositoryBasedNodeProvider.test.ts`
+  has the runtime/provider regression case
+  `canonicalizes direct cyclic document sets before indexing # references`.
+  That test demonstrates the shape generator output should eventually produce:
+  one array-backed repository content entry keyed by `MASTER`, with aliases
+  resolving to canonical `MASTER#i` members after cyclic-set ordering.
+
+Implementation notes:
+
+- parse top-level arrays as one logical storage unit;
+- calculate `MASTER` through `Blue.calculateBlueIdSync(nodes[])`;
+- store the canonicalized/sorted array under `MASTER`;
+- expose named members as aliases like `Package/MemberName -> MASTER#i` after
+  canonicalization, not by the original authoring order;
+- update metadata, versioning, contract validation, and diff handling so
+  array-backed content is valid generator output and does not require each
+  member document to be emitted under an independent storage key.
+
+Acceptance:
+
+- `repository-generator` accepts a `.blue` file whose top-level YAML is a
+  direct cyclic document-set array;
+- generated repository content emits `contents[MASTER] = [...]`;
+- each named member alias maps to the canonical `MASTER#i` index;
+- regenerated output loads through `RepositoryBasedNodeProvider` and preserves
+  Direct Cycle lookup by both `MASTER#i` and generated aliases.
 
 [1]: https://language.blue/docs/reference/specification 'Blue Language Specification - language.blue docs'
