@@ -1,3 +1,7 @@
+## 4.0.1 (2026-04-30)
+
+This was a version bump only, there were no code changes.
+
 # 4.0.0 (2026-04-30)
 
 ### 🚀 Features
