@@ -1,4 +1,4 @@
-import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
+import { blueIds } from '../repository/semantic-repository.js';
 
 const reservedContractKeysList = [
   'embedded',

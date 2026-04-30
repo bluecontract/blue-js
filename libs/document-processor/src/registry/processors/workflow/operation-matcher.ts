@@ -130,11 +130,7 @@ export function isRequestTypeCompatible(
   ) {
     return false;
   }
-  try {
-    if (!blue.isTypeOfNode(requestPayload, requiredType)) {
-      return false;
-    }
-  } catch {
+  if (!blue.isTypeOfNode(requestPayload, requiredType)) {
     return false;
   }
   return true;

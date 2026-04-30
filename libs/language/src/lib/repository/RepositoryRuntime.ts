@@ -10,7 +10,10 @@ import {
   BLUE_REPOSITORY_STATUS_STABLE,
   validateAttributesAddedPointer as validateAttributesAddedPointerContract,
 } from '@blue-labs/repository-contract';
-import { CORE_TYPE_BLUE_ID_TO_NAME_MAP } from '../utils/Properties';
+import {
+  CORE_TYPE_BLUE_ID_TO_NAME_MAP,
+  CORE_TYPE_NAME_TO_BLUE_ID_MAP,
+} from '../utils/Properties';
 import { JsonCanonicalizer } from '../utils/JsonCanonicalizer';
 
 export interface RegisteredRepositoryRuntime {
@@ -69,13 +72,17 @@ export class RepositoryRegistry {
   }
 
   public toCurrentBlueId(blueId: string): string {
+    const aliasedBlueId =
+      this.aliases[blueId] ??
+      (CORE_TYPE_NAME_TO_BLUE_ID_MAP as Record<string, string>)[blueId] ??
+      blueId;
     for (const runtime of this.runtimes) {
-      const mapped = runtime.toCurrentBlueIdIndex[blueId];
+      const mapped = runtime.toCurrentBlueIdIndex[aliasedBlueId];
       if (mapped) {
         return mapped;
       }
     }
-    return blueId;
+    return aliasedBlueId;
   }
 
   public getTypeAlias(blueId: string): string | undefined {

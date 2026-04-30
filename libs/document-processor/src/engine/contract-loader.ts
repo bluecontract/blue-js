@@ -1,7 +1,4 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-import { blueIds } from '@blue-repository/types/packages/core/blue-ids';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
-import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
 import { ZodError, ZodType } from 'zod';
 
 import {
@@ -40,6 +37,11 @@ import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { assertCompositeChannelIsAcyclic } from './composite-channel-validation.js';
 import { findSchemaMatch } from '../util/schema-match.js';
+import {
+  blueIds,
+  conversationBlueIds,
+  myosBlueIds,
+} from '../repository/semantic-repository.js';
 
 const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
 const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];

@@ -1,5 +1,5 @@
-import { repository } from '@blue-repository/types';
 import { BasicBlueTypes } from './basic-blue-types.js';
+import { blueRepository } from './semantic-repository.js';
 
 type RepositoryPackage = {
   readonly aliases?: Record<string, string>;
@@ -10,10 +10,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function readRepositoryPackages(): RepositoryPackage[] {
-  if (!isObject(repository)) {
+  if (!isObject(blueRepository)) {
     return [];
   }
-  const packages = repository.packages;
+  const packages = blueRepository.packages;
   if (!isObject(packages)) {
     return [];
   }

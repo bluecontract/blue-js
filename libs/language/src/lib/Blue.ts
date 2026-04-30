@@ -4,9 +4,10 @@ import { BlueNode, NodeDeserializer } from './model';
 import { ResolvedBlueNode } from './model/ResolvedNode';
 import { NodeProvider, createNodeProvider } from './NodeProvider';
 import {
-  BlueIdCalculator,
   NodeToMapListOrValue,
   NodeTransformer,
+  BlueIds,
+  Nodes,
   NodeTypes,
   NodeTypeMatcher,
   TypeSchemaResolver,
@@ -22,22 +23,24 @@ import {
   UrlContentFetcher,
   UrlFetchStrategy,
 } from './provider/UrlContentFetcher';
+import { RepositoryBasedNodeProvider } from './provider/RepositoryBasedNodeProvider';
+import { SequentialNodeProvider } from './provider/SequentialNodeProvider';
 import {
   BlueIdsMappingGenerator,
   BlueIdsRecord,
 } from './preprocess/utils/BlueIdsMappingGenerator';
-import { Limits, NO_LIMITS } from './utils/limits';
+import { Limits, NO_LIMITS, NoLimits } from './utils/limits';
 import { NodeExtender } from './utils/NodeExtender';
 import { BlueRepository } from './types/BlueRepository';
 import { Merger } from './merge/Merger';
 import { MergingProcessor } from './merge/MergingProcessor';
 import { createDefaultMergingProcessor } from './merge';
-import { MergeReverser } from './utils/MergeReverser';
 import { CompositeLimits } from './utils/limits';
 import { InlineTypeRestorer } from './utils/InlineTypeRestorer';
 import { RepositoryRegistry } from './repository/RepositoryRuntime';
 import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
 import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
+import { SemanticIdentityService } from './identity/SemanticIdentityService';
 import {
   BlueContext,
   NodeToJsonFormat,
@@ -82,10 +85,10 @@ export class Blue {
       registry: this.repositoryRegistry,
       blueIdMapper: this.repositoryRegistry,
     });
+    this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
-    // Use NodeProviderWrapper to create the provider chain with repositories
     const defaultProvider = createNodeProvider(() => []);
-    this.nodeProvider = NodeProviderWrapper.wrap(
+    this.nodeProvider = this.wrapNodeProviderWithRepositories(
       nodeProvider || defaultProvider,
       repositories,
     );
@@ -96,7 +99,6 @@ export class Blue {
         nodeProvider: this.nodeProvider,
       });
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
-    this.mergingProcessor = mergingProcessor ?? createDefaultMergingProcessor();
 
     this.urlContentFetcher = new UrlContentFetcher(urlFetchStrategy);
     this.blueDirectivePreprocessor = new BlueDirectivePreprocessor(
@@ -126,9 +128,7 @@ export class Blue {
    */
   public nodeToJson(
     node: BlueNode,
-    strategyOrOptions:
-      | Parameters<typeof NodeToMapListOrValue.get>[1]
-      | NodeToJsonOptions = 'official',
+    strategyOrOptions: NodeToJsonFormat | NodeToJsonOptions = 'official',
   ) {
     const options = this.normalizeNodeToJsonOptions(strategyOrOptions);
     const targetNode = options.blueContext
@@ -143,15 +143,15 @@ export class Blue {
    */
   public nodeToYaml(
     node: BlueNode,
-    strategy:
-      | Parameters<typeof NodeToMapListOrValue.get>[1]
-      | NodeToJsonOptions = 'official',
+    strategy: NodeToJsonFormat | NodeToJsonOptions = 'official',
   ) {
     const options = this.normalizeNodeToJsonOptions(strategy);
     const targetNode = options.blueContext
       ? this.blueContextResolver.transform(node, options.blueContext)
       : node;
-    return NodeToYaml.get(targetNode, { strategy: options.format });
+    return NodeToYaml.get(targetNode, {
+      strategy: options.format,
+    });
   }
 
   public nodeToSchemaOutput<
@@ -159,14 +159,23 @@ export class Blue {
     Def extends ZodTypeDef = ZodTypeDef,
     Input = Output,
   >(node: BlueNode, schema: ZodType<Output, Def, Input>): Output {
-    const converter = new NodeToObjectConverter(this.typeSchemaResolver);
+    const converter = new NodeToObjectConverter(this.typeSchemaResolver, {
+      calculateBlueId: (value) => this.calculateBlueIdSync(value),
+    });
     return converter.convert(node, schema);
   }
 
   public resolve(node: BlueNode, limits: Limits = NO_LIMITS): ResolvedBlueNode {
     const effectiveLimits = this.combineWithGlobalLimits(limits);
     const merger = new Merger(this.mergingProcessor, this.nodeProvider);
-    return merger.resolve(node, effectiveLimits);
+    const resolved = merger.resolve(node, effectiveLimits);
+    if (!(effectiveLimits instanceof NoLimits)) {
+      const sourceSemanticBlueId = this.getExactReferenceBlueId(node);
+      if (sourceSemanticBlueId !== undefined) {
+        resolved.setSourceSemanticBlueId(sourceSemanticBlueId);
+      }
+    }
+    return resolved;
   }
 
   /**
@@ -184,9 +193,22 @@ export class Blue {
     return new ResolvedBlueNode(resolvedNode);
   }
 
+  /**
+   * @deprecated Use {@link minimize}. Reverse is the legacy name for producing
+   * a minimal overlay from a resolved tree.
+   */
   public reverse(node: BlueNode) {
-    const reverser = new MergeReverser();
-    return reverser.reverse(node);
+    return this.minimize(node);
+  }
+
+  /**
+   * Produces a minimal overlay that re-resolves to the same semantic BlueId.
+   */
+  public minimize(node: BlueNode) {
+    return new SemanticIdentityService({
+      nodeProvider: this.nodeProvider,
+      mergingProcessor: this.mergingProcessor,
+    }).minimize(node);
   }
 
   /**
@@ -211,14 +233,22 @@ export class Blue {
 
   public jsonValueToNode(json: unknown) {
     const preprocessed = this.preprocess(NodeDeserializer.deserialize(json));
-    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
+    const normalized = normalizeNodeBlueIds(
+      preprocessed,
+      this.repositoryRegistry,
+    );
+    return normalized;
   }
 
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
     const preprocessed = await this.preprocessAsync(
       NodeDeserializer.deserialize(json),
     );
-    return normalizeNodeBlueIds(preprocessed, this.repositoryRegistry);
+    const normalized = normalizeNodeBlueIds(
+      preprocessed,
+      this.repositoryRegistry,
+    );
+    return normalized;
   }
 
   public yamlToNode(yaml: string) {
@@ -261,7 +291,10 @@ export class Blue {
     value: JsonBlueValue | BlueNode | BlueNode[],
   ) => {
     const prepared = await this.prepareForBlueIdCalculation(value);
-    return BlueIdCalculator.calculateBlueId(prepared);
+    return new SemanticIdentityService({
+      nodeProvider: this.nodeProvider,
+      mergingProcessor: this.mergingProcessor,
+    }).calculateBlueId(prepared);
   };
 
   private prepareForBlueIdCalculationSync = (
@@ -283,7 +316,10 @@ export class Blue {
 
   public calculateBlueIdSync(value: JsonBlueValue | BlueNode | BlueNode[]) {
     const prepared = this.prepareForBlueIdCalculationSync(value);
-    return BlueIdCalculator.calculateBlueIdSync(prepared);
+    return new SemanticIdentityService({
+      nodeProvider: this.nodeProvider,
+      mergingProcessor: this.mergingProcessor,
+    }).calculateBlueIdSync(prepared);
   }
 
   /**
@@ -340,12 +376,23 @@ export class Blue {
   }
 
   public setNodeProvider(nodeProvider: NodeProvider): Blue {
-    this.nodeProvider = NodeProviderWrapper.wrap(
+    this.nodeProvider = this.wrapNodeProviderWithRepositories(
       nodeProvider,
       this.repositories,
     );
     this.typeSchemaResolver?.setNodeProvider(this.nodeProvider);
     return this;
+  }
+
+  private getExactReferenceBlueId(node: BlueNode): string | undefined {
+    if (!Nodes.hasBlueIdOnly(node)) {
+      return undefined;
+    }
+
+    const blueId = node.getReferenceBlueId();
+    return blueId !== undefined && BlueIds.isPotentialBlueId(blueId)
+      ? blueId
+      : undefined;
   }
 
   public getTypeSchemaResolver(): TypeSchemaResolver | null {
@@ -505,6 +552,7 @@ export class Blue {
     return BlueNodeTypeSchema.isTypeOf(node, schema, {
       checkSchemaExtensions: options?.checkSchemaExtensions,
       typeSchemaResolver: this.typeSchemaResolver,
+      blueIdMapper: this.repositoryRegistry,
     });
   }
 
@@ -516,7 +564,7 @@ export class Blue {
    * @returns true if the node matches or extends the BlueId type.
    */
   public isTypeOfBlueId(node: BlueNode, blueId: string): boolean {
-    const trimmed = blueId.trim();
+    const trimmed = this.repositoryRegistry.toCurrentBlueId(blueId.trim());
     if (trimmed.length === 0) {
       return false;
     }
@@ -524,7 +572,7 @@ export class Blue {
     if (!nodeType) {
       return false;
     }
-    const targetType = new BlueNode().setBlueId(trimmed);
+    const targetType = new BlueNode().setReferenceBlueId(trimmed);
     return NodeTypes.isSubtype(nodeType, targetType, this.nodeProvider);
   }
 
@@ -561,18 +609,40 @@ export class Blue {
   }
 
   private normalizeNodeToJsonOptions(
-    strategyOrOptions:
-      | Parameters<typeof NodeToMapListOrValue.get>[1]
-      | NodeToJsonOptions,
-  ): { format: NodeToJsonFormat; blueContext?: BlueContext } {
+    strategyOrOptions: NodeToJsonFormat | NodeToJsonOptions,
+  ): {
+    format: NodeToJsonFormat;
+    blueContext?: BlueContext;
+  } {
     if (typeof strategyOrOptions === 'string') {
-      return { format: strategyOrOptions, blueContext: undefined };
+      return {
+        format: strategyOrOptions,
+        blueContext: undefined,
+      };
     }
 
     return {
       format: strategyOrOptions?.format ?? 'official',
       blueContext: strategyOrOptions?.blueContext,
     };
+  }
+
+  private wrapNodeProviderWithRepositories(
+    nodeProvider: NodeProvider,
+    repositories?: BlueRepository[],
+  ): NodeProvider {
+    if (repositories && repositories.length > 0) {
+      return NodeProviderWrapper.wrap(
+        new SequentialNodeProvider([
+          new RepositoryBasedNodeProvider(repositories, {
+            mergingProcessor: this.mergingProcessor,
+          }),
+          nodeProvider,
+        ]),
+      );
+    }
+
+    return NodeProviderWrapper.wrap(nodeProvider);
   }
 
   private combineWithGlobalLimits(methodLimits: Limits) {

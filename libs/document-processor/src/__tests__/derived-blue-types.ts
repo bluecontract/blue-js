@@ -1,9 +1,9 @@
 import type { JsonValue } from '@blue-labs/shared-utils';
-import { Blue, BlueIdCalculator, Properties } from '@blue-labs/language';
+import { Blue, Properties } from '@blue-labs/language';
 import type { BlueRepository } from '@blue-labs/language';
-import { repository as blueRepository } from '@blue-repository/types';
 
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
+import { blueRepository } from '../repository/semantic-repository.js';
 
 const FALLBACK_BLUE_IDS = [
   'AssertDocumentUpdate',
@@ -14,6 +14,7 @@ const FALLBACK_BLUE_IDS = [
   'MutateEvent',
   'NotInitializationMarker',
   'RandomEvent',
+  'RecencyTestChannel',
   'RemoveIfPresent',
   'RemoveProperty',
   'SetPrice',
@@ -27,27 +28,36 @@ const FALLBACK_BLUE_IDS = [
   'WrongMarker',
 ];
 
+const buildFallbackEntries = () => {
+  const seedBlue = new Blue({
+    mergingProcessor: createDefaultMergingProcessor(),
+  });
+
+  return FALLBACK_BLUE_IDS.map((name) => {
+    const node = seedBlue.jsonValueToNode({
+      name,
+      type: { blueId: Properties.DICTIONARY_TYPE_BLUE_ID },
+    });
+    const blueId = seedBlue.calculateBlueIdSync(node);
+    return { name, blueId, json: seedBlue.nodeToJson(node) };
+  });
+};
+
+const fallbackEntries = buildFallbackEntries();
 const fallbackBlueIdMap = Object.fromEntries(
-  FALLBACK_BLUE_IDS.map((id) => [id, id]),
+  fallbackEntries.map(({ name, blueId }) => [name, blueId]),
 );
 const fallbackContents = Object.fromEntries(
-  FALLBACK_BLUE_IDS.map((id) => [
-    id,
-    {
-      name: id,
-      type: { blueId: Properties.DICTIONARY_TYPE_BLUE_ID },
-      properties: {},
-    },
-  ]),
+  fallbackEntries.map(({ blueId, json }) => [blueId, json]),
 );
 const fallbackTypesMeta = Object.fromEntries(
-  FALLBACK_BLUE_IDS.map((id) => [
-    id,
+  fallbackEntries.map(({ name, blueId }) => [
+    blueId,
     {
       status: 'stable' as const,
-      name: id,
+      name,
       versions: [
-        { repositoryVersionIndex: 0, typeBlueId: id, attributesAdded: [] },
+        { repositoryVersionIndex: 0, typeBlueId: blueId, attributesAdded: [] },
       ],
     },
   ]),
@@ -77,7 +87,7 @@ export function createBlueWithDerivedTypes(
 
   const types = definitions.map(({ name, yaml }) => {
     const node = seedBlue.yamlToNode(yaml);
-    const blueId = BlueIdCalculator.calculateBlueIdSync(node);
+    const blueId = seedBlue.calculateBlueIdSync(node);
     return { name, blueId, json: seedBlue.nodeToJson(node) };
   });
 
@@ -128,7 +138,9 @@ function buildDerivedTestRepository(
     packages: {
       derived: {
         name: 'derived',
-        aliases: {},
+        aliases: Object.fromEntries(
+          types.map(({ name, blueId }) => [name, blueId]),
+        ),
         typesMeta,
         contents,
         schemas: {},

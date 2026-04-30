@@ -5,7 +5,7 @@ import { BlueNodeTypeSchema } from '../TypeSchema';
 import { BlueIdResolver } from '../BlueIdResolver';
 import { withTypeBlueId } from '../../../schema/annotations';
 import { TypeSchemaResolver } from '../TypeSchemaResolver';
-import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
+import { createRawNodeProviderFromYamlDocs } from '../../__tests__/helpers/rawNodeProvider';
 
 // Mock BlueIdResolver to control the blueId resolution
 vi.mock('../BlueIdResolver', () => ({
@@ -163,8 +163,7 @@ describe('BlueNodeTypeSchema', () => {
         schemaC,
       ]);
       // Provide nodeProvider to establish C -> B -> A inheritance by blueId via YAML docs
-      const provider = new BasicNodeProvider();
-      provider.addSingleDocs(
+      const provider = createRawNodeProviderFromYamlDocs(
         `blueId: schema-blue-id-a\nname: A`,
         `blueId: schema-blue-id-b\nname: B\ntype:\n  blueId: schema-blue-id-a`,
         `blueId: schema-blue-id-c\nname: C\ntype:\n  blueId: schema-blue-id-b`,

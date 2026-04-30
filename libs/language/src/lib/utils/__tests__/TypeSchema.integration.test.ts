@@ -5,9 +5,9 @@ import { BlueNode } from '../../model';
 import { RepositoryRegistry } from '../../repository/RepositoryRuntime';
 import { normalizeNodeBlueIds } from '../repositoryVersioning/normalizeNodeBlueIds';
 import { withTypeBlueId } from '../../../schema/annotations';
-import { BlueIdCalculator } from '../BlueIdCalculator';
 import { NodeToMapListOrValue } from '../NodeToMapListOrValue';
 import { INTEGER_TYPE_BLUE_ID, TEXT_TYPE_BLUE_ID } from '../Properties';
+import { BasicNodeProvider } from '../../provider';
 
 describe('BlueNodeTypeSchema.integration', () => {
   it('matches exact types for base schemas without extension checks', () => {
@@ -142,12 +142,15 @@ requestId: abc-123`;
 });
 
 function buildRepository() {
+  const provider = new BasicNodeProvider();
+  const blue = new Blue({ nodeProvider: provider });
   const requestType = new BlueNode('Request').setProperties({
     requestId: new BlueNode().setType(
       new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID),
     ),
   });
-  const requestBlueId = BlueIdCalculator.calculateBlueIdSync(requestType);
+  const requestBlueId = blue.calculateBlueIdSync(requestType);
+  provider.addSingleNodes(requestType);
 
   const captureType = new BlueNode('CaptureFundsRequested')
     .setType(new BlueNode().setBlueId(requestBlueId))
@@ -159,7 +162,7 @@ function buildRepository() {
         new BlueNode().setBlueId(INTEGER_TYPE_BLUE_ID),
       ),
     });
-  const captureBlueId = BlueIdCalculator.calculateBlueIdSync(captureType);
+  const captureBlueId = blue.calculateBlueIdSync(captureType);
 
   const requestSchema = withTypeBlueId(requestBlueId)(
     z.object({
@@ -231,6 +234,8 @@ function buildRepository() {
 }
 
 function buildVersionedRepository() {
+  const provider = new BasicNodeProvider();
+  const blue = new Blue({ nodeProvider: provider });
   const textType = () =>
     new BlueNode().setType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID));
 
@@ -238,8 +243,10 @@ function buildVersionedRepository() {
     label: textType(),
   });
   const typeAv1 = typeAv0.clone().addProperty('extra', textType());
-  const typeAv0Id = BlueIdCalculator.calculateBlueIdSync(typeAv0);
-  const typeAv1Id = BlueIdCalculator.calculateBlueIdSync(typeAv1);
+  const typeAv0Id = blue.calculateBlueIdSync(typeAv0);
+  provider.addSingleNodes(typeAv0);
+  const typeAv1Id = blue.calculateBlueIdSync(typeAv1);
+  provider.addSingleNodes(typeAv1);
 
   const typeBv0 = new BlueNode('TypeB')
     .setType(new BlueNode().setBlueId(typeAv0Id))
@@ -247,8 +254,8 @@ function buildVersionedRepository() {
       title: textType(),
     });
   const typeBv1 = typeBv0.clone().setType(new BlueNode().setBlueId(typeAv1Id));
-  const typeBv0Id = BlueIdCalculator.calculateBlueIdSync(typeBv0);
-  const typeBv1Id = BlueIdCalculator.calculateBlueIdSync(typeBv1);
+  const typeBv0Id = blue.calculateBlueIdSync(typeBv0);
+  const typeBv1Id = blue.calculateBlueIdSync(typeBv1);
 
   const schemaAv1 = withTypeBlueId(typeAv1Id)(
     z.object({

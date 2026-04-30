@@ -12,8 +12,16 @@
    - Provider chain (`NodeProviderWrapper`) = Bootstrap → Repositories → Your provider(s)
    - MergingProcessor pipeline to enforce consistency
 5. Use
-   - Compute BlueId, convert to DTO (Zod), patch (RFC-6902), limit traversal (`PathLimits`), match types, reverse to minimal node.
+   - Compute semantic BlueId, convert to DTO (Zod), patch (RFC-6902), limit traversal (`PathLimits`), match types, minimize to storage/authoring overlay.
    - Serialize to a target repository version with `nodeToJson/nodeToYaml` + `BlueContext`
+
+For identity terminology and planned semantic boundaries, see
+`docs/glossary.md` and the ADRs in `docs/adr/`.
+
+Phase 1 identity behavior is captured in
+`docs/adr/0007-phase-1-semantic-identity-and-storage.md`: public
+`Blue.calculateBlueId*` uses semantic identity, providers store minimal overlay
+content, and `BlueIdCalculator` remains the low-level Section 8 hasher.
 
 **Provider composition**
 

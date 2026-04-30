@@ -9,6 +9,7 @@ import {
   storedDocumentBlueId,
 } from '../../../test-harness/runtime.js';
 import { toOfficialJson } from '../../core/serialization.js';
+import type { JsonObject } from '../../core/types.js';
 
 function expectReadPermissionEnabled(
   permissions: Record<string, unknown> | undefined,
@@ -18,7 +19,7 @@ function expectReadPermissionEnabled(
   );
 }
 
-type CallResponseEvent = Record<string, unknown>;
+type CallResponseEvent = JsonObject;
 
 function createCallResponseBaseDocument(name: string): DocBuilder {
   return DocBuilder.doc()
@@ -2505,7 +2506,7 @@ describe('access step helpers execution', () => {
     expect(processedJson.matchCount).toBe(2);
   });
 
-  it('does not reinterpret name-only call-response matchers as type aliases', async () => {
+  it('treats name-only call-response matcher as a field matcher, not a type alias', async () => {
     const document = withCallResponseEnvelopeOperation(
       createCallResponseBaseDocument(
         'Named Call Response Matcher',
@@ -2524,7 +2525,7 @@ describe('access step helpers execution', () => {
       ),
       [
         {
-          type: 'Conversation/Event',
+          type: 'Conversation/Response',
           name: 'Conversation/Event',
           requestId: 'REQ_CALL',
           inResponseTo: {
@@ -2535,8 +2536,8 @@ describe('access step helpers execution', () => {
     ).buildDocument();
 
     const processedJson = await processCallResponseOperation(document);
-    expect(processedJson.handled).toBe(false);
-    expect(processedJson.matchCount).toBe(0);
+    expect(processedJson.handled).toBe(true);
+    expect(processedJson.matchCount).toBe(1);
   });
 
   it('does not match field-only response matcher when emitted fields do not match', async () => {

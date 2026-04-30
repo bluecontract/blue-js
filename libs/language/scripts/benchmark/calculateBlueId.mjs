@@ -1,51 +1,90 @@
 import { testData } from './data/testData.mjs';
-import { performance, PerformanceObserver } from 'perf_hooks';
-import { NodeDeserializer, BlueIdCalculator } from '../../dist/index.mjs';
+import { performance } from 'perf_hooks';
+import { BlueNode, BlueIdCalculator } from '../../dist/index.mjs';
+import {
+  calculateStats,
+  createBaselineOptions,
+  formatStats,
+  handleBaseline,
+  readPositiveInt,
+} from './benchmarkUtils.mjs';
 
-const obs = new PerformanceObserver((list) => {
-  const entries = list.getEntries();
-  let totalTime = 0;
-  let iterationCount = 0;
+const config = {
+  warmupIterations: readPositiveInt('BENCH_WARMUP_ITERATIONS', 2),
+  measuredIterations: readPositiveInt('BENCH_ITERATIONS', 10),
+};
 
-  entries.forEach((entry) => {
-    console.log(`${entry.name}: ${entry.duration}`);
-    if (entry.name.startsWith('Iteration')) {
-      totalTime += entry.duration;
-      iterationCount++;
-    }
-  });
+const baselineOptions = createBaselineOptions(
+  'scripts/benchmark/data/calculate-blue-id-baseline.json',
+);
 
-  if (iterationCount > 0) {
-    console.log(`\nAverage iteration time: ${totalTime / iterationCount} ms`);
-  }
-});
-obs.observe({ entryTypes: ['measure'], buffered: true });
+const nodeFromJson = (value) => {
+  const node = new BlueNode();
 
-const node = NodeDeserializer.deserialize(testData);
-
-async function runProfile() {
-  // Warm up phase
-  for (let i = 0; i < 2; i++) {
-    await BlueIdCalculator.calculateBlueId(node);
+  if (Array.isArray(value)) {
+    return node.setItems(value.map(nodeFromJson));
   }
 
-  performance.mark('start');
-
-  for (let i = 0; i < 10; i++) {
-    performance.mark(`iteration-${i}-start`);
-    await BlueIdCalculator.calculateBlueId(node);
-    performance.mark(`iteration-${i}-end`);
-    performance.measure(
-      `Iteration ${i}`,
-      `iteration-${i}-start`,
-      `iteration-${i}-end`,
+  if (value !== null && typeof value === 'object') {
+    return node.setProperties(
+      Object.fromEntries(
+        Object.entries(value).map(([key, child]) => [key, nodeFromJson(child)]),
+      ),
     );
   }
 
-  performance.mark('end');
-  performance.measure('Total Runtime', 'start', 'end');
-}
+  return node.setValue(value);
+};
 
-runProfile().then(() => {
-  console.log('Profiling complete');
+const node = nodeFromJson(testData);
+
+const runBenchmark = async () => {
+  const durations = [];
+
+  console.log('Low-level hash BlueId benchmark configuration:');
+  console.log(`- warmup iterations: ${config.warmupIterations}`);
+  console.log(`- measured iterations: ${config.measuredIterations}`);
+
+  for (let i = 0; i < config.warmupIterations; i += 1) {
+    await BlueIdCalculator.calculateBlueId(node);
+  }
+
+  for (let i = 0; i < config.measuredIterations; i += 1) {
+    const start = performance.now();
+    await BlueIdCalculator.calculateBlueId(node);
+    const durationMs = performance.now() - start;
+    durations.push(durationMs);
+
+    console.log(
+      `Iteration ${String(i + 1).padStart(2, '0')}: ${durationMs.toFixed(
+        2,
+      )} ms`,
+    );
+  }
+
+  const timeStats = calculateStats(durations);
+
+  console.log('\nSummary');
+  console.log(`- low-level hash time (ms): ${formatStats(timeStats)}`);
+
+  const result = {
+    createdAt: new Date().toISOString(),
+    config,
+    metrics: {
+      timeMs: timeStats,
+    },
+  };
+
+  await handleBaseline(result, baselineOptions, [
+    {
+      label: 'low-level hash avg',
+      path: 'metrics.timeMs.avg',
+      unit: 'ms',
+    },
+  ]);
+};
+
+runBenchmark().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
 });

@@ -1,16 +1,18 @@
 import { Blue, BlueNode } from '@blue-labs/language';
-import { repository as blueRepository } from '@blue-repository/types';
 
 import { ContractLoader } from '../engine/contract-loader.js';
+import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 import { ProcessorEngine } from '../engine/processor-engine.js';
 import type { MarkerContract } from '../model/index.js';
 import { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
 import { ContractProcessorRegistryBuilder } from '../registry/contract-processor-registry-builder.js';
 import type { AnyContractProcessor } from '../registry/types.js';
+import { blueRepository } from '../repository/semantic-repository.js';
 import type { DocumentProcessingResult } from '../types/document-processing-result.js';
 
 const DEFAULT_BLUE = new Blue({
   repositories: [blueRepository],
+  mergingProcessor: createDefaultMergingProcessor(),
 });
 
 export interface DocumentProcessorOptions {

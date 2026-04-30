@@ -4,6 +4,7 @@ import { BlueNode } from '../model';
 import { NodeProviderWrapper } from './NodeProviderWrapper';
 import { CORE_TYPE_BLUE_IDS } from './Properties';
 import { Limits } from './limits/Limits';
+import { Nodes } from './Nodes';
 
 /**
  * Strategies for handling missing elements
@@ -54,19 +55,24 @@ export class NodeExtender {
       const blueId = currentNode.getBlueId();
       if (
         blueId &&
+        Nodes.hasBlueIdOnly(currentNode) &&
         !CORE_TYPE_BLUE_IDS.includes(
           blueId as (typeof CORE_TYPE_BLUE_IDS)[number],
         )
       ) {
         const resolvedNodes = this.fetchNode(currentNode);
         if (resolvedNodes && resolvedNodes.length > 0) {
+          const preserveReferenceBlueId = this.shouldPreserveReferenceBlueId(
+            currentSegment,
+            skipLimitCheck,
+          );
           if (resolvedNodes.length === 1) {
             const resolvedNode = resolvedNodes[0];
-            this.mergeNodes(currentNode, resolvedNode);
+            this.mergeNodes(currentNode, resolvedNode, preserveReferenceBlueId);
           } else {
             const mergedNodes = resolvedNodes.map((node) => node.clone());
             const listNode = new BlueNode().setItems(mergedNodes);
-            this.mergeNodes(currentNode, listNode);
+            this.mergeNodes(currentNode, listNode, preserveReferenceBlueId);
           }
         }
       }
@@ -97,7 +103,6 @@ export class NodeExtender {
 
       const items = currentNode.getItems();
       if (items && items.length > 0) {
-        this.reconstructList(items);
         for (let i = 0; i < items.length; i++) {
           this.extendNode(items[i], currentLimits, String(i), false);
         }
@@ -106,22 +111,6 @@ export class NodeExtender {
       if (!skipLimitCheck) {
         currentLimits.exitPathSegment();
       }
-    }
-  }
-
-  private reconstructList(items: BlueNode[]): void {
-    while (items.length > 0) {
-      const firstItem = items[0];
-      const blueId = firstItem?.getBlueId();
-      if (!blueId) {
-        break;
-      }
-      const resolved = this.nodeProvider.fetchByBlueId(blueId);
-      if (!resolved || resolved.length === 1) {
-        break;
-      }
-      items.shift(); // Remove first item
-      items.unshift(...resolved); // Add resolved items at the beginning
     }
   }
 
@@ -146,18 +135,46 @@ export class NodeExtender {
     return resolvedNodes;
   }
 
-  private mergeNodes(target: BlueNode, source: BlueNode): void {
+  private shouldPreserveReferenceBlueId(
+    currentSegment: string,
+    skipLimitCheck: boolean,
+  ): boolean {
+    return (
+      skipLimitCheck &&
+      ['type', 'itemType', 'keyType', 'valueType'].includes(currentSegment)
+    );
+  }
+
+  private mergeNodes(
+    target: BlueNode,
+    source: BlueNode,
+    preserveReferenceBlueId: boolean,
+  ): void {
+    if (!preserveReferenceBlueId) {
+      target.setReferenceBlueId(undefined);
+    }
     target.setName(source.getName());
     target.setDescription(source.getDescription());
-    target.setType(source.getType());
-    target.setItemType(source.getItemType());
-    target.setKeyType(source.getKeyType());
-    target.setValueType(source.getValueType());
+    target.setType(source.getType()?.clone());
+    target.setItemType(source.getItemType()?.clone());
+    target.setKeyType(source.getKeyType()?.clone());
+    target.setValueType(source.getValueType()?.clone());
     const sourceValue = source.getValue();
     if (isNonNullable(sourceValue)) {
       target.setValue(sourceValue);
     }
-    target.setItems(source.getItems());
-    target.setProperties(source.getProperties());
+    target.setItems(source.getItems()?.map((item) => item.clone()));
+    const sourceProperties = source.getProperties();
+    target.setProperties(
+      sourceProperties === undefined
+        ? undefined
+        : Object.fromEntries(
+            Object.entries(sourceProperties).map(([key, value]) => [
+              key,
+              value.clone(),
+            ]),
+          ),
+    );
+    target.setBlue(source.getBlue()?.clone());
   }
 }

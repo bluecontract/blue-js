@@ -87,8 +87,7 @@ describe('TypeAssigner', () => {
 
     // Create merger and resolve
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const fetchedNodeY = nodeProvider.findNodeByName('Y');
-    const resolvedNode = merger.resolve(fetchedNodeY!, NO_LIMITS);
+    const resolvedNode = merger.resolve(y, NO_LIMITS);
 
     // Assert
     expect(resolvedNode.getProperties()?.a?.getType()?.getName()).toBe('B');
@@ -141,8 +140,8 @@ a:
 
     // Create merger and resolve
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const fetchedNodeY = nodeProvider.findNodeByName('Y');
-    const resolvedNode = merger.resolve(fetchedNodeY!, NO_LIMITS);
+    const nodeY = nodes.find((node) => node.getName() === 'Y');
+    const resolvedNode = merger.resolve(nodeY!, NO_LIMITS);
 
     // Assert
     expect(resolvedNode.getProperties()?.a?.getType()?.getName()).toBe('B');

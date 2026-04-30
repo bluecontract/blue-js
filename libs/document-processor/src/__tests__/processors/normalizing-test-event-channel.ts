@@ -25,7 +25,7 @@ export class NormalizingTestEventChannelProcessor implements ChannelProcessor<Te
     if (!context.event || !blue.isTypeOf(context.event, testEventSchema))
       return false;
     const expectedType = contract.eventType ?? DEFAULT_EVENT_TYPE;
-    const ok = expectedType === this.resolveEventType(context.event ?? null);
+    const ok = blue.isTypeOfBlueId(context.event, expectedType);
     if (!ok) return false;
     const event = context.event;
     if (event) {
@@ -35,17 +35,5 @@ export class NormalizingTestEventChannelProcessor implements ChannelProcessor<Te
       event.setProperties({ ...(event.getProperties() ?? {}), kind: nextKind });
     }
     return true;
-  }
-
-  private resolveEventType(event: BlueNode | null): string | null {
-    if (!event) return null;
-    const typeNode = event.getType?.();
-    if (!typeNode) return null;
-    const blueId = typeNode.getBlueId?.();
-    if (blueId) return blueId;
-    const props = typeNode.getProperties?.();
-    const blueIdNode = props?.blueId;
-    const value = blueIdNode?.getValue?.();
-    return typeof value === 'string' ? value : null;
   }
 }

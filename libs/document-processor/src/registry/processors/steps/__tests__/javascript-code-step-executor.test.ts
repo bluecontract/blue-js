@@ -9,7 +9,7 @@ import {
 import { JavaScriptCodeStepExecutor } from '../javascript-code-step-executor.js';
 import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
 import { typeBlueId } from '../../../../__tests__/test-utils.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { conversationBlueIds } from '../../../../repository/semantic-repository.js';
 import { hostGasToWasmFuel } from '../../../../util/expression/quickjs-config.js';
 
 function createStepNode(blue: Blue, code: string): BlueNode {

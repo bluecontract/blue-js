@@ -1,7 +1,7 @@
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { JavaScriptCodeSchema } from '@blue-repository/types/packages/conversation/schemas/JavaScriptCode';
 
 import type { ContractProcessorContext } from '../../types.js';
+import { conversationBlueIds } from '../../../repository/semantic-repository.js';
 import { CodeBlockEvaluationError } from '../../../util/expression/exceptions.js';
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
 import type {

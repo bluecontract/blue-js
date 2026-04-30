@@ -41,9 +41,7 @@ actor:
   name: Timeline Driver
 timestamp: ${stableTimestamp}
 `;
-  const entry = blue.yamlToNode(yaml);
-  entry.setBlueId(entryId);
-  return entry;
+  return blue.yamlToNode(yaml);
 }
 
 describe('Embedded — Shared timeline processing with checkpoints', () => {

@@ -1,9 +1,8 @@
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
-
 import {
   sequentialWorkflowSchema,
   type SequentialWorkflow,
 } from '../../model/index.js';
+import { conversationBlueIds } from '../../repository/semantic-repository.js';
 import type {
   ContractProcessorContext,
   HandlerExecutionMetadata,

@@ -2,14 +2,17 @@ import { BlueNode, NodeDeserializer } from '../model';
 import { PreloadedNodeProvider } from './PreloadedNodeProvider';
 import { Preprocessor } from '../preprocess/Preprocessor';
 import { NodeContentHandler } from './NodeContentHandler';
-import { BlueIdCalculator, NodeToMapListOrValue, Nodes } from '../utils';
+import { Nodes } from '../utils';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue } from '../../schema';
+import { SemanticStorageService } from '../identity/SemanticStorageService';
+import { CyclicSetIdentityService } from '../identity/CyclicSetIdentityService';
 
 export class BasicNodeProvider extends PreloadedNodeProvider {
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
   private preprocessor: (node: BlueNode) => BlueNode;
+  private storageService: SemanticStorageService;
 
   constructor(nodes: BlueNode[] = []) {
     super();
@@ -18,6 +21,9 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const defaultPreprocessor = new Preprocessor({ nodeProvider: this });
     this.preprocessor = (node: BlueNode) =>
       defaultPreprocessor.preprocessWithDefaultBlue(node);
+    this.storageService = new SemanticStorageService({
+      nodeProvider: this,
+    });
 
     // Process initial nodes
     nodes.forEach((node) => this.processNode(node));
@@ -35,6 +41,7 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNode(
       node,
       this.preprocessor,
+      this.storageService,
     );
     this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
     this.blueIdToMultipleDocumentsMap.set(
@@ -51,29 +58,23 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
     const items = node.getItems();
     if (!items) return;
 
-    this.processNodeList(items);
-
-    const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
-      items,
-      this.preprocessor,
-    );
-    this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
-    this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);
-
-    items.forEach((item, i) => {
-      const nodeName = item.getName();
-      if (nodeName) {
-        this.addToNameMap(nodeName, `${parsedContent.blueId}#${i}`);
-      }
-    });
+    const parsedContent = this.storeNodeList(items);
+    this.addListItemNames(parsedContent.blueId, parsedContent.content);
   }
 
   public processNodeList(nodes: BlueNode[]): void {
-    const listBlueId = BlueIdCalculator.calculateBlueIdSync(nodes);
-    // Convert nodes to JSON representation for storage
-    const jsonContent = nodes.map((n) => NodeToMapListOrValue.get(n));
-    this.blueIdToContentMap.set(listBlueId, jsonContent);
-    this.blueIdToMultipleDocumentsMap.set(listBlueId, true);
+    this.storeNodeList(nodes);
+  }
+
+  private storeNodeList(nodes: BlueNode[]) {
+    const parsedContent = NodeContentHandler.parseAndCalculateBlueIdForNodeList(
+      nodes,
+      this.preprocessor,
+      this.storageService,
+    );
+    this.blueIdToContentMap.set(parsedContent.blueId, parsedContent.content);
+    this.blueIdToMultipleDocumentsMap.set(parsedContent.blueId, true);
+    return parsedContent;
   }
 
   protected override fetchContentByBlueId(
@@ -148,7 +149,12 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
    * @param list - The list of nodes to add
    */
   private addListAndItsItemsFromNodes(list: BlueNode[]): void {
-    this.processNodeList(list);
+    const parsedContent = this.storeNodeList(list);
+    if (CyclicSetIdentityService.hasThisReference(list)) {
+      this.addListItemNames(parsedContent.blueId, parsedContent.content);
+      return;
+    }
+
     list.forEach((node) => this.processNode(node));
   }
 
@@ -185,5 +191,19 @@ export class BasicNodeProvider extends PreloadedNodeProvider {
    */
   public addList(list: BlueNode[]): void {
     this.processNodeList(list);
+  }
+
+  private addListItemNames(blueId: string, content: JsonBlueValue): void {
+    if (!Array.isArray(content)) {
+      return;
+    }
+
+    content.forEach((item, index) => {
+      const node = NodeDeserializer.deserialize(item);
+      const nodeName = node.getName();
+      if (nodeName) {
+        this.addToNameMap(nodeName, `${blueId}#${index}`);
+      }
+    });
   }
 }

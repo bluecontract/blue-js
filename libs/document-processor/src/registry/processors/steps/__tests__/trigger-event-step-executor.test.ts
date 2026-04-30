@@ -7,7 +7,7 @@ import {
 } from '../../../../test-support/workflow.js';
 import { TriggerEventStepExecutor } from '../trigger-event-step-executor.js';
 import { ProcessorFatalError } from '../../../../engine/processor-fatal-error.js';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
+import { conversationBlueIds } from '../../../../repository/semantic-repository.js';
 import { property, typeBlueId } from '../../../../__tests__/test-utils.js';
 
 describe('TriggerEventStepExecutor', () => {

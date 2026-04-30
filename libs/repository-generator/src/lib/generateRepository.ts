@@ -38,7 +38,7 @@ export function generateRepository(
 
   enforceStableToDevRule(dependencyGraph, discoveredTypes);
 
-  const { aliasToBlueId, aliasToPreprocessed } = computeBlueIds(
+  const { aliasToBlueId, aliasToStorageContent } = computeBlueIds(
     topologicalOrder,
     discoveredTypes,
   );
@@ -51,7 +51,7 @@ export function generateRepository(
     discovered: discoveredTypes,
     previousTypes,
     aliasToBlueId,
-    aliasToPreprocessed,
+    aliasToStorageContent,
     nextRepoVersionIndex,
   });
 

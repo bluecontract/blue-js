@@ -1,5 +1,4 @@
 import { Blue } from '@blue-labs/language';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { ZodError } from 'zod';
 
 import {
@@ -11,6 +10,7 @@ import type {
   ScopeContractsIndex,
 } from '../types/scope-contracts.js';
 import { ProcessorErrors } from '../types/errors.js';
+import { conversationBlueIds } from '../repository/semantic-repository.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 
 const COMPOSITE_TIMELINE_CHANNEL_BLUE_ID =

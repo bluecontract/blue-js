@@ -6,7 +6,6 @@ import {
   ZodUnion,
 } from 'zod';
 import { BlueNode } from '../model';
-import { BlueIdCalculator } from '../utils';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import {
   getBlueDescriptionAnnotation,
@@ -25,7 +24,10 @@ import {
 import { NodeToObjectConverter } from './NodeToObjectConverter';
 
 export class ComplexObjectConverter implements Converter {
-  constructor(private readonly nodeToObjectConverter: NodeToObjectConverter) {}
+  constructor(
+    private readonly nodeToObjectConverter: NodeToObjectConverter,
+    private readonly calculateBlueId: (node: BlueNode) => string,
+  ) {}
 
   public convert<
     T extends ZodRawShape,
@@ -69,7 +71,7 @@ export class ComplexObjectConverter implements Converter {
 
             const propertyNode = properties?.[propertyNameWithAnnotation];
             const blueId = propertyNode
-              ? BlueIdCalculator.calculateBlueIdSync(propertyNode)
+              ? this.calculateBlueId(propertyNode)
               : undefined;
 
             acc[propertyName] = blueId;

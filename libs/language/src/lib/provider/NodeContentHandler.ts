@@ -1,13 +1,33 @@
 import { BlueNode, NodeDeserializer } from '../model';
-import { BlueIdCalculator, NodeToMapListOrValue } from '../utils';
+import { NodeToMapListOrValue } from '../utils';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue, JsonBlueObject } from '../../schema';
+import { OBJECT_BLUE_ID } from '../utils/Properties';
+
+export interface StorageContentProcessor {
+  prepareStorageNode(
+    node: BlueNode,
+    preprocessor: (node: BlueNode) => BlueNode,
+  ): { blueId: string; node: BlueNode };
+
+  prepareStorageNodeList(
+    nodes: BlueNode[],
+    preprocessor: (node: BlueNode) => BlueNode,
+  ): {
+    blueId: string;
+    nodes: BlueNode[];
+    documentBlueIds?: string[];
+    isCyclicSet?: boolean;
+  };
+}
 
 export class ParsedContent {
   constructor(
     public readonly blueId: string,
     public readonly content: JsonBlueValue,
     public readonly isMultipleDocuments: boolean,
+    public readonly documentBlueIds: string[] = [],
+    public readonly isCyclicSet = false,
   ) {}
 }
 
@@ -17,6 +37,7 @@ export class NodeContentHandler {
   public static parseAndCalculateBlueId(
     content: string,
     preprocessor: (node: BlueNode) => BlueNode,
+    storageProcessor: StorageContentProcessor,
   ): ParsedContent {
     let jsonNode: JsonBlueValue;
 
@@ -32,20 +53,32 @@ export class NodeContentHandler {
 
     let blueId: string;
     let resultContent: JsonBlueValue;
-    const isMultipleDocuments = Array.isArray(jsonNode) && jsonNode.length > 1;
+    const isMultipleDocuments = Array.isArray(jsonNode);
 
     if (isMultipleDocuments) {
-      const nodes = (jsonNode as JsonBlueValue[]).map((item: JsonBlueValue) => {
-        const node = NodeDeserializer.deserialize(item);
-        return preprocessor(node);
-      });
-      blueId = BlueIdCalculator.calculateBlueIdSync(nodes);
-      resultContent = nodes.map((node) => NodeToMapListOrValue.get(node));
+      const nodes = (jsonNode as JsonBlueValue[]).map((item: JsonBlueValue) =>
+        NodeDeserializer.deserialize(item),
+      );
+      const prepared = storageProcessor.prepareStorageNodeList(
+        nodes,
+        preprocessor,
+      );
+      blueId = prepared.blueId;
+      resultContent = prepared.nodes.map((node) =>
+        NodeToMapListOrValue.get(node),
+      );
+      return new ParsedContent(
+        blueId,
+        resultContent,
+        true,
+        prepared.documentBlueIds,
+        prepared.isCyclicSet ?? false,
+      );
     } else {
       const node = NodeDeserializer.deserialize(jsonNode);
-      const processedNode = preprocessor(node);
-      blueId = BlueIdCalculator.calculateBlueIdSync(processedNode);
-      resultContent = NodeToMapListOrValue.get(processedNode);
+      const prepared = storageProcessor.prepareStorageNode(node, preprocessor);
+      blueId = prepared.blueId;
+      resultContent = NodeToMapListOrValue.get(prepared.node);
     }
 
     return new ParsedContent(blueId, resultContent, isMultipleDocuments);
@@ -54,30 +87,39 @@ export class NodeContentHandler {
   public static parseAndCalculateBlueIdForNode(
     node: BlueNode,
     preprocessor: (node: BlueNode) => BlueNode,
+    storageProcessor: StorageContentProcessor,
   ): ParsedContent {
-    const preprocessedNode = preprocessor(node);
-    const blueId = BlueIdCalculator.calculateBlueIdSync(preprocessedNode);
-    const jsonNode = NodeToMapListOrValue.get(preprocessedNode);
+    const prepared = storageProcessor.prepareStorageNode(node, preprocessor);
+    const jsonNode = NodeToMapListOrValue.get(prepared.node);
 
-    return new ParsedContent(blueId, jsonNode, false);
+    return new ParsedContent(prepared.blueId, jsonNode, false);
   }
 
   public static parseAndCalculateBlueIdForNodeList(
     nodes: BlueNode[],
     preprocessor: (node: BlueNode) => BlueNode,
+    storageProcessor: StorageContentProcessor,
   ): ParsedContent {
     if (!nodes || nodes.length === 0) {
       throw new Error('List of nodes cannot be null or empty');
     }
 
-    const preprocessedNodes = nodes.map(preprocessor);
-    const blueId = BlueIdCalculator.calculateBlueIdSync(preprocessedNodes);
-    const jsonNodes = preprocessedNodes.map((node) =>
+    const prepared = storageProcessor.prepareStorageNodeList(
+      nodes,
+      preprocessor,
+    );
+    const jsonNodes = prepared.nodes.map((node) =>
       NodeToMapListOrValue.get(node),
     );
-    const isMultipleDocuments = nodes.length > 1;
+    const isMultipleDocuments = true;
 
-    return new ParsedContent(blueId, jsonNodes, isMultipleDocuments);
+    return new ParsedContent(
+      prepared.blueId,
+      jsonNodes,
+      isMultipleDocuments,
+      prepared.documentBlueIds,
+      prepared.isCyclicSet ?? false,
+    );
   }
 
   public static resolveThisReferences(
@@ -102,7 +144,10 @@ export class NodeContentHandler {
       const result: JsonBlueObject = {};
       for (const [key, value] of Object.entries(content)) {
         if (typeof value === 'string') {
-          if (this.THIS_REFERENCE_PATTERN.test(value)) {
+          if (
+            key === OBJECT_BLUE_ID &&
+            this.THIS_REFERENCE_PATTERN.test(value)
+          ) {
             result[key] = this.resolveThisReference(
               value,
               currentBlueId,
@@ -125,16 +170,7 @@ export class NodeContentHandler {
     } else if (Array.isArray(content)) {
       // Handle arrays
       return content.map((element) => {
-        if (typeof element === 'string') {
-          if (this.THIS_REFERENCE_PATTERN.test(element)) {
-            return this.resolveThisReference(
-              element,
-              currentBlueId,
-              isMultipleDocuments,
-            );
-          }
-          return element;
-        } else if (element && typeof element === 'object') {
+        if (element && typeof element === 'object') {
           return this.resolveThisReferencesRecursive(
             element,
             currentBlueId,

@@ -6,6 +6,7 @@ import { BasicNodeProvider } from '../../provider';
 import { Merger } from '../../merge/Merger';
 import { createDefaultMergingProcessor } from '../../merge';
 import { NO_LIMITS } from '../../utils/limits';
+import { Blue } from '../../Blue';
 
 describe('ResolvedBlueNode Integration Tests', () => {
   it('should create ResolvedBlueNode through Merger and verify resolved state', () => {
@@ -75,6 +76,86 @@ value: test
     expect(cloned.getItems()?.[0]).toBe(resolvedNode.getItems()?.[0]);
   });
 
+  it('rejects minimalization of path-limited nodes without a source semantic BlueId', () => {
+    const resolvedNode = new ResolvedBlueNode(
+      new BlueNode().setProperties({
+        allowed: new BlueNode().setValue('value'),
+      }),
+      { completeness: 'path-limited' },
+    );
+
+    expect(() => resolvedNode.getMinimalNode()).toThrow(
+      /path-limited resolved node without a source semantic BlueId/,
+    );
+    expect(() => resolvedNode.getMinimalBlueId()).toThrow(
+      /path-limited resolved node without a source semantic BlueId/,
+    );
+  });
+
+  it('returns the source reference for path-limited nodes with a source semantic BlueId', () => {
+    const sourceSemanticBlueId = BlueIdCalculator.calculateBlueIdSync(
+      new BlueNode().setValue('SourceSemanticBlueId'),
+    );
+    const resolvedNode = new ResolvedBlueNode(
+      new BlueNode().setProperties({
+        allowed: new BlueNode().setValue('value'),
+      }),
+      {
+        completeness: 'path-limited',
+        sourceSemanticBlueId,
+      },
+    );
+
+    expect(resolvedNode.getMinimalNode().getBlueId()).toBe(
+      sourceSemanticBlueId,
+    );
+    expect(resolvedNode.getMinimalBlueId()).toBe(sourceSemanticBlueId);
+  });
+
+  it('rejects invalid source semantic BlueId metadata', () => {
+    expect(
+      () =>
+        new ResolvedBlueNode(new BlueNode(), {
+          completeness: 'path-limited',
+          sourceSemanticBlueId: 'SymbolicType',
+        }),
+    ).toThrow(/sourceSemanticBlueId must be a valid BlueId/);
+  });
+
+  it('calculates minimal BlueId for resolved positional list overlays', () => {
+    const nodeProvider = new BasicNodeProvider();
+    const blue = new Blue({ nodeProvider });
+
+    nodeProvider.addSingleDocs(`
+name: Base
+entries:
+  type: List
+  mergePolicy: positional
+  items:
+    - A
+    - B
+`);
+
+    const derived = blue.yamlToNode(`
+name: Derived
+type:
+  blueId: ${nodeProvider.getBlueIdByName('Base')}
+entries:
+  type: List
+  mergePolicy: positional
+  items:
+    - $pos: 1
+      value: B2
+`);
+
+    const resolved = blue.resolve(derived);
+
+    expect(() => resolved.getMinimalBlueId()).not.toThrow();
+    expect(resolved.getMinimalBlueId()).toBe(
+      blue.calculateBlueIdSync(resolved),
+    );
+  });
+
   it('should get minimal node after type resolution using MergeReverser', () => {
     const nodeProvider = new BasicNodeProvider();
 
@@ -92,7 +173,7 @@ x: 10
 name: ExtendedNode
 type:
   blueId: ${baseTypeBlueId}
-value: extended value
+localValue: extended value
 y: 20
 `);
 
@@ -103,13 +184,13 @@ y: 20
     // Verify the resolved node has properties from both base and extended
     expect(resolvedNode.get('/x')).toBeTruthy(); // Has x from base
     expect(resolvedNode.get('/y')).toBeTruthy(); // Has y from extended
-    expect(resolvedNode.getValue()).toBe('extended value');
+    expect(resolvedNode.get('/localValue/value')).toBe('extended value');
 
     // Get the minimal node
     const minimalNode = resolvedNode.getMinimalNode();
 
     // The minimal node should only have what was defined on ExtendedNode
-    expect(minimalNode.getValue()).toBe('extended value');
+    expect(minimalNode.get('/localValue/value')).toBe('extended value');
     expect(minimalNode.get('/y')).toBeTruthy();
     expect(minimalNode.get('/x')).toBeUndefined(); // x came from base type
 
@@ -213,7 +294,7 @@ prop2: base2
 name: FinalType
 type:
   blueId: ${baseTypeBlueId}
-value: final value
+finalValue: final value
 prop3: final3
 `);
 
@@ -225,12 +306,12 @@ prop3: final3
     expect(resolvedNode.get('/prop1')).toBeTruthy();
     expect(resolvedNode.get('/prop2')).toBeTruthy();
     expect(resolvedNode.get('/prop3')).toBeTruthy();
-    expect(resolvedNode.getValue()).toBe('final value');
+    expect(resolvedNode.get('/finalValue/value')).toBe('final value');
 
     // Get minimal - should only have what's defined at the final level
     const minimalNode = resolvedNode.getMinimalNode();
 
-    expect(minimalNode.getValue()).toBe('final value');
+    expect(minimalNode.get('/finalValue/value')).toBe('final value');
     expect(minimalNode.get('/prop3')).toBeTruthy();
 
     // Should not have inherited properties

@@ -7,11 +7,25 @@ import { isBlueNodeSchema } from '../../schema/annotations';
 import { BlueNodeTypeSchema } from '../utils/TypeSchema';
 import { isNonNullable } from '@blue-labs/shared-utils';
 
+export interface NodeToObjectConverterOptions {
+  calculateBlueId: (node: BlueNode) => string;
+}
+
 export class NodeToObjectConverter {
   private readonly converterFactory: ConverterFactory;
+  private readonly calculateBlueId: (node: BlueNode) => string;
 
-  constructor(private typeSchemaResolver?: TypeSchemaResolver | null) {
-    this.converterFactory = new ConverterFactory(this);
+  constructor(
+    private typeSchemaResolver: TypeSchemaResolver | null | undefined,
+    options: NodeToObjectConverterOptions,
+  ) {
+    if (!options?.calculateBlueId) {
+      throw new Error(
+        'NodeToObjectConverter requires a semantic calculateBlueId option.',
+      );
+    }
+    this.calculateBlueId = options.calculateBlueId;
+    this.converterFactory = new ConverterFactory(this, this.calculateBlueId);
   }
 
   convert<

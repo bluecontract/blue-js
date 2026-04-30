@@ -198,34 +198,33 @@ contracts:
       type: { blueId: 'TestEvent' },
       eventId: 'evt-1',
     });
-    event1.setBlueId('evt-1');
+    const event1SemanticId = blue.calculateBlueIdSync(blue.resolve(event1));
     const afterFirst = (
       await expectOk(processor.processDocument(initialized.clone(), event1))
     ).document.clone();
     expect(Number(property(afterFirst, 'x').getValue())).toBe(1);
-    expect(checkpointValue(afterFirst)).toBe('evt-1');
+    expect(checkpointValue(afterFirst)).toBe(event1SemanticId);
 
     const stale = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
       eventId: 'evt-1',
     });
-    stale.setBlueId('evt-1');
     const afterStale = (
       await expectOk(processor.processDocument(afterFirst.clone(), stale))
     ).document.clone();
     expect(Number(property(afterStale, 'x').getValue())).toBe(1);
-    expect(checkpointValue(afterStale)).toBe('evt-1');
+    expect(checkpointValue(afterStale)).toBe(event1SemanticId);
 
     const fresh = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
       eventId: 'evt-2',
     });
-    fresh.setBlueId('evt-2');
+    const freshSemanticId = blue.calculateBlueIdSync(blue.resolve(fresh));
     const afterFresh = (
       await expectOk(processor.processDocument(afterStale.clone(), fresh))
     ).document;
     expect(Number(property(afterFresh, 'x').getValue())).toBe(2);
-    expect(checkpointValue(afterFresh)).toBe('evt-2');
+    expect(checkpointValue(afterFresh)).toBe(freshSemanticId);
   });
 
   it('checkpointStoresFullEventAndComparesPayload', async () => {

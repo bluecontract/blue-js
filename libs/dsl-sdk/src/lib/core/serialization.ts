@@ -1,9 +1,11 @@
+import { createDefaultMergingProcessor } from '@blue-labs/document-processor';
 import { Blue, BlueNode } from '@blue-labs/language';
-import { repository } from '@blue-repository/types';
 import type { JsonObject } from './types.js';
+import { blueRepository } from './semantic-repository.js';
 
 export const sdkBlue = new Blue({
-  repositories: [repository],
+  repositories: [blueRepository],
+  mergingProcessor: createDefaultMergingProcessor(),
 });
 
 export interface DocumentBuilderLike {

@@ -1,0 +1,45 @@
+{
+  "createdAt": "2026-04-27T21:12:10.141Z",
+  "config": {
+    "warmupIterations": 2,
+    "measuredIterations": 10,
+    "propertyCount": 120
+  },
+  "metrics": {
+    "authoringNoType": {
+      "timeMs": {
+        "min": 3.629374999999996,
+        "max": 7.272041999999999,
+        "avg": 4.751399899999996
+      }
+    },
+    "authoringSharedType": {
+      "timeMs": {
+        "min": 1.5612090000000194,
+        "max": 2.022125000000017,
+        "avg": 1.7919791000000003
+      }
+    },
+    "resolved": {
+      "timeMs": {
+        "min": 0.05320900000000961,
+        "max": 0.10641699999999332,
+        "avg": 0.06672920000000034
+      }
+    },
+    "publicSemanticIdOnMinimalShapedAuthoring": {
+      "timeMs": {
+        "min": 1.4284159999999986,
+        "max": 1.943667000000005,
+        "avg": 1.6765458000000053
+      }
+    },
+    "providerIngest": {
+      "timeMs": {
+        "min": 0.4269999999999925,
+        "max": 0.7287079999999833,
+        "avg": 0.5726249999999965
+      }
+    }
+  }
+}

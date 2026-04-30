@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Blue } from '../Blue';
-import { BlueIdCalculator } from '../utils/BlueIdCalculator';
+import { BlueNode } from '../model';
 import type { BlueRepository } from '../types/BlueRepository';
 import type { JsonValue } from '@blue-labs/shared-utils';
-import { RepositoryBasedNodeProvider } from '../provider';
+import { BasicNodeProvider, RepositoryBasedNodeProvider } from '../provider';
 import { TEXT_TYPE_BLUE_ID } from '../utils/Properties';
 
 describe('Blue.restoreInlineTypes', () => {
   it('restores inline types for core mappings without mutating original node', () => {
-    const blue = new Blue();
+    const { blue } = createSemanticSeedBlue();
 
     const node = blue.jsonValueToNode({
       field: {
@@ -49,7 +49,7 @@ describe('Blue.restoreInlineTypes', () => {
   });
 
   it('restores inline types using registered BlueIds', () => {
-    const blue = new Blue();
+    const { blue, registerType } = createSemanticSeedBlue();
 
     const linkDefinition = {
       name: 'Link',
@@ -59,8 +59,7 @@ describe('Blue.restoreInlineTypes', () => {
     } as const;
 
     const linkNode = blue.jsonValueToNode(linkDefinition);
-    const linkBlueId = BlueIdCalculator.calculateBlueIdSync(linkNode);
-    blue.registerBlueIds({ Link: linkBlueId });
+    const { blueId: linkBlueId } = registerType('Link', linkNode);
 
     const document = blue.jsonValueToNode({
       reference: {
@@ -93,27 +92,27 @@ describe('Blue.restoreInlineTypes', () => {
   });
 
   it('restores inline types on resolved nodes using repository data', () => {
-    const blue = new Blue();
+    const { blue, registerType } = createSemanticSeedBlue();
 
     const baseTypeDefinition = {
       name: 'Base Type',
       description: 'Reusable contract',
-      properties: {
-        label: {
-          type: 'Text',
-        },
+      label: {
+        type: 'Text',
       },
     } as const;
 
     const baseTypeNode = blue.jsonValueToNode(baseTypeDefinition);
-    const baseTypeBlueId = BlueIdCalculator.calculateBlueIdSync(baseTypeNode);
-    blue.registerBlueIds({ 'Base Type': baseTypeBlueId });
+    const { blueId: baseTypeBlueId, json: baseTypeJson } = registerType(
+      'Base Type',
+      baseTypeNode,
+    );
 
     const repository: BlueRepository = buildTestRepository([
       {
         name: 'Base Type',
         blueId: baseTypeBlueId,
-        json: blue.nodeToJson(baseTypeNode),
+        json: baseTypeJson,
       },
     ]);
 
@@ -152,16 +151,6 @@ describe('Blue.restoreInlineTypes', () => {
             },
             "value": "Test",
           },
-          "properties": {
-            "label": {
-              "type": {
-                "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
-                },
-                "value": "Text",
-              },
-            },
-          },
           "type": {
             "type": {
               "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
@@ -174,7 +163,7 @@ describe('Blue.restoreInlineTypes', () => {
   });
 
   it('restores inline types for resolved nodes with nested collections', () => {
-    const blue = new Blue();
+    const { blue, registerType } = createSemanticSeedBlue();
 
     const optionDefinition = {
       name: 'Option',
@@ -187,7 +176,10 @@ describe('Blue.restoreInlineTypes', () => {
     } as const;
 
     const optionNode = blue.jsonValueToNode(optionDefinition);
-    const optionBlueId = BlueIdCalculator.calculateBlueIdSync(optionNode);
+    const { blueId: optionBlueId, json: optionJson } = registerType(
+      'Option',
+      optionNode,
+    );
 
     const formDefinition = {
       name: 'Form',
@@ -208,17 +200,18 @@ describe('Blue.restoreInlineTypes', () => {
     } as const;
 
     const formNode = blue.jsonValueToNode(formDefinition);
-    const formBlueId = BlueIdCalculator.calculateBlueIdSync(formNode);
-
-    blue.registerBlueIds({ Option: optionBlueId, Form: formBlueId });
+    const { blueId: formBlueId, json: formJson } = registerType(
+      'Form',
+      formNode,
+    );
 
     const repository: BlueRepository = buildTestRepository([
       {
         name: 'Option',
         blueId: optionBlueId,
-        json: blue.nodeToJson(optionNode),
+        json: optionJson,
       },
-      { name: 'Form', blueId: formBlueId, json: blue.nodeToJson(formNode) },
+      { name: 'Form', blueId: formBlueId, json: formJson },
     ]);
 
     blue.setNodeProvider(new RepositoryBasedNodeProvider([repository]));
@@ -432,7 +425,7 @@ describe('Blue.restoreInlineTypes', () => {
   });
 
   it('keeps inherited values after restoring inline types', () => {
-    const blue = new Blue();
+    const { blue, registerType } = createSemanticSeedBlue();
 
     const baseDefinition = {
       name: 'Base Preferences',
@@ -455,23 +448,27 @@ describe('Blue.restoreInlineTypes', () => {
     } as const;
 
     const baseNode = blue.jsonValueToNode(baseDefinition);
-    const baseBlueId = BlueIdCalculator.calculateBlueIdSync(baseNode);
-    blue.registerBlueIds({ 'Base Preferences': baseBlueId });
+    const { blueId: baseBlueId, json: baseJson } = registerType(
+      'Base Preferences',
+      baseNode,
+    );
 
     const derivedNode = blue.jsonValueToNode(derivedDefinition);
-    const derivedBlueId = BlueIdCalculator.calculateBlueIdSync(derivedNode);
-    blue.registerBlueIds({ 'Derived Preferences': derivedBlueId });
+    const { blueId: derivedBlueId, json: derivedJson } = registerType(
+      'Derived Preferences',
+      derivedNode,
+    );
 
     const repository: BlueRepository = buildTestRepository([
       {
         name: 'Base Preferences',
         blueId: baseBlueId,
-        json: blue.nodeToJson(baseNode),
+        json: baseJson,
       },
       {
         name: 'Derived Preferences',
         blueId: derivedBlueId,
-        json: blue.nodeToJson(derivedNode),
+        json: derivedJson,
       },
     ]);
 
@@ -515,6 +512,32 @@ describe('Blue.restoreInlineTypes', () => {
     `);
   });
 });
+
+function createSemanticSeedBlue(): {
+  blue: Blue;
+  registerType: (
+    name: string,
+    node: BlueNode,
+  ) => { blueId: string; json: JsonValue };
+} {
+  const provider = new BasicNodeProvider();
+  const blue = new Blue({ nodeProvider: provider });
+
+  return {
+    blue,
+    registerType(name: string, node: BlueNode) {
+      provider.addSingleNodes(node);
+      const blueId = provider.getBlueIdByName(name);
+      blue.registerBlueIds({ [name]: blueId });
+      const storedNode = provider.fetchFirstByBlueId(blueId);
+      if (!storedNode) {
+        throw new Error(`Expected semantic storage content for ${name}.`);
+      }
+      const json = blue.nodeToJson(storedNode) as JsonValue;
+      return { blueId, json };
+    },
+  };
+}
 
 function buildTestRepository(
   types: Array<{ name: string; blueId: string; json: JsonValue }>,

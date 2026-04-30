@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { blueIds as coreBlueIds } from '@blue-repository/types/packages/core/blue-ids';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { createBlue } from '../../test-support/blue.js';
+import {
+  blueIds as coreBlueIds,
+  conversationBlueIds,
+} from '../../repository/semantic-repository.js';
 import {
   ContractProcessorRegistry,
   ContractProcessorRegistryBuilder,

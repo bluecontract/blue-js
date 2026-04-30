@@ -26,8 +26,9 @@ type:
     const nodeA = NodeDeserializer.deserialize(aDoc);
     const nodeB = NodeDeserializer.deserialize(bDoc);
 
-    // Create node provider and add nodes
-    const nodeProvider = new BasicNodeProvider([nodeA, nodeB]);
+    // Store only the referenced type. The source under test is resolved
+    // directly so provider ingest does not reject resolver-invalid content.
+    const nodeProvider = new BasicNodeProvider([nodeA]);
 
     // Create merging processor with ValuePropagator
     const mergingProcessor = new SequentialMergingProcessor([
@@ -36,8 +37,7 @@ type:
 
     // Create merger and resolve
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const fetchedNodeB = nodeProvider.findNodeByName('B');
-    const resolvedNode = merger.resolve(fetchedNodeB!, NO_LIMITS);
+    const resolvedNode = merger.resolve(nodeB, NO_LIMITS);
 
     // Assert that value was propagated
     expect(resolvedNode.getValue()).toBe('xyz');
@@ -61,8 +61,9 @@ type:
     const nodeA = NodeDeserializer.deserialize(aDoc);
     const nodeB = NodeDeserializer.deserialize(bDoc);
 
-    // Create node provider and add nodes
-    const nodeProvider = new BasicNodeProvider([nodeA, nodeB]);
+    // Store only the referenced type. The source under test is resolved
+    // directly so provider ingest does not reject resolver-invalid content.
+    const nodeProvider = new BasicNodeProvider([nodeA]);
 
     // Create merging processor with ValuePropagator
     const mergingProcessor = new SequentialMergingProcessor([
@@ -71,10 +72,9 @@ type:
 
     // Create merger
     const merger = new Merger(mergingProcessor, nodeProvider);
-    const fetchedNodeB = nodeProvider.findNodeByName('B');
 
     // Assert that error is thrown for conflicting values
-    expect(() => merger.resolve(fetchedNodeB!, NO_LIMITS)).toThrow(
+    expect(() => merger.resolve(nodeB, NO_LIMITS)).toThrow(
       'Node values conflict. Source node value: abc, target node value: xyz',
     );
   });

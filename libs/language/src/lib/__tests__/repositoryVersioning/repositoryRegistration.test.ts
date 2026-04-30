@@ -105,25 +105,29 @@ describe('Repository versioning: registration validation', () => {
   });
 
   it('accepts itemType/valueType as intermediate segments during registration', () => {
+    const listNode = new BlueNode('ListType');
+    const dictNode = new BlueNode('DictType');
+    const listId = BlueIdCalculator.calculateBlueIdSync(listNode);
+    const dictId = BlueIdCalculator.calculateBlueIdSync(dictNode);
     const coreTypes = {
-      list: {
+      [listId]: {
         status: 'stable' as const,
         name: 'ListType',
         versions: [
           {
             repositoryVersionIndex: 0,
-            typeBlueId: 'list',
+            typeBlueId: listId,
             attributesAdded: ['/field/listProp/itemType/prop2'],
           },
         ],
       },
-      dict: {
+      [dictId]: {
         status: 'stable' as const,
         name: 'DictType',
         versions: [
           {
             repositoryVersionIndex: 0,
-            typeBlueId: 'dict',
+            typeBlueId: dictId,
             attributesAdded: ['/field/dictProp/valueType/prop2'],
           },
         ],
@@ -138,7 +142,10 @@ describe('Repository versioning: registration validation', () => {
           name: 'core',
           aliases: {},
           typesMeta: coreTypes,
-          contents: { list: { name: 'ListType' }, dict: { name: 'DictType' } },
+          contents: {
+            [listId]: NodeToMapListOrValue.get(listNode),
+            [dictId]: NodeToMapListOrValue.get(dictNode),
+          },
           schemas: {},
         },
       },
@@ -148,25 +155,29 @@ describe('Repository versioning: registration validation', () => {
   });
 
   it('rejects pointers ending with itemType/valueType during registration', () => {
+    const listNode = new BlueNode('ListType');
+    const dictNode = new BlueNode('DictType');
+    const listId = BlueIdCalculator.calculateBlueIdSync(listNode);
+    const dictId = BlueIdCalculator.calculateBlueIdSync(dictNode);
     const coreTypes = {
-      list: {
+      [listId]: {
         status: 'stable' as const,
         name: 'ListType',
         versions: [
           {
             repositoryVersionIndex: 0,
-            typeBlueId: 'list',
+            typeBlueId: listId,
             attributesAdded: ['/field/listProp/itemType'],
           },
         ],
       },
-      dict: {
+      [dictId]: {
         status: 'stable' as const,
         name: 'DictType',
         versions: [
           {
             repositoryVersionIndex: 0,
-            typeBlueId: 'dict',
+            typeBlueId: dictId,
             attributesAdded: ['/field/dictProp/valueType'],
           },
         ],
@@ -181,7 +192,10 @@ describe('Repository versioning: registration validation', () => {
           name: 'core',
           aliases: {},
           typesMeta: coreTypes,
-          contents: { list: { name: 'ListType' }, dict: { name: 'DictType' } },
+          contents: {
+            [listId]: NodeToMapListOrValue.get(listNode),
+            [dictId]: NodeToMapListOrValue.get(dictNode),
+          },
           schemas: {},
         },
       },

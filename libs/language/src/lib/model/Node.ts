@@ -236,13 +236,29 @@ export class BlueNode {
     return this;
   }
 
-  getBlueId() {
+  getReferenceBlueId() {
     return this.blueId;
   }
 
-  setBlueId(blueId: string | undefined): BlueNode {
+  setReferenceBlueId(blueId: string | undefined): BlueNode {
     this.blueId = blueId;
     return this;
+  }
+
+  /**
+   * @deprecated Use getReferenceBlueId(). A node's blueId field is a reference,
+   * not the node's own computed identity.
+   */
+  getBlueId() {
+    return this.getReferenceBlueId();
+  }
+
+  /**
+   * @deprecated Use setReferenceBlueId(). A node's blueId field is a reference,
+   * not the node's own computed identity.
+   */
+  setBlueId(blueId: string | undefined): BlueNode {
+    return this.setReferenceBlueId(blueId);
   }
 
   getBlue() {

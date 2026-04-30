@@ -1,12 +1,12 @@
 import type { ChannelEvaluationContext, ChannelProcessor } from '../types.js';
 import { BlueNode } from '@blue-labs/language';
 import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
-import { blueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import {
   timelineChannelSchema,
   type TimelineChannel,
 } from '../../model/index.js';
+import { conversationBlueIds as blueIds } from '../../repository/semantic-repository.js';
 import { isTimelineEventNewer } from './shared/timeline-recency.js';
 
 export class TimelineChannelProcessor implements ChannelProcessor<TimelineChannel> {

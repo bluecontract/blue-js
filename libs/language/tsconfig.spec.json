@@ -20,6 +20,7 @@
     "vite.config.mts",
     "vitest.config.ts",
     "vitest.config.mts",
+    "src/**/__fixtures__/**/*.ts",
     "src/**/__tests__/**/*.ts",
     "src/**/__tests__/**/*.tsx",
     "src/**/__tests__/**/*.js",

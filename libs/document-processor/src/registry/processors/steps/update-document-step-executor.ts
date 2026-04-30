@@ -1,5 +1,4 @@
 import { BlueNode } from '@blue-labs/language';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import {
   UpdateDocumentSchema,
   type UpdateDocument,
@@ -7,6 +6,7 @@ import {
 
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
 import type { JsonPatch } from '../../../model/shared/json-patch.js';
+import { conversationBlueIds } from '../../../repository/semantic-repository.js';
 import type { ContractProcessorContext } from '../../types.js';
 import type {
   SequentialWorkflowStepExecutor,

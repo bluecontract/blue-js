@@ -1,4 +1,3 @@
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import {
   DocBuilder,
   MyOsPermissions,
@@ -6,6 +5,7 @@ import {
   toOfficialJson,
   toOfficialYaml,
 } from '../index.js';
+import { conversationBlueIds } from '../lib/core/semantic-repository.js';
 import { assertCanonicalNodeEquals } from '../test-support/editing-support.js';
 
 describe('public convenience aliases', () => {

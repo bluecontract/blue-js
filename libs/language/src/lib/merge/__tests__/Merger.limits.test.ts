@@ -9,6 +9,7 @@ describe('Merger with Limits', () => {
   let nodeProvider: BasicNodeProvider;
   let merger: Merger;
   let mergingProcessor: MergingProcessor;
+  let derivedNode: BlueNode;
 
   beforeEach(() => {
     // Simple merging processor that just copies values
@@ -32,9 +33,10 @@ y:
   z: 2
   nested:
     baseExtra: baseAdditional
-    value: base`);
+    baseValue: base`);
 
-    nodeProvider.addSingleDocs(`
+    derivedNode = NodeDeserializer.deserialize(
+      yamlBlueParse(`
 name: DerivedType
 type:
   blueId: ${nodeProvider.getBlueIdByName('BaseType')}
@@ -42,39 +44,19 @@ x: 10
 y:
   z: 20
   nested:
-    value: derived
-    extra: additional`);
-
-    nodeProvider.addSingleDocs(`
-name: ComplexType
-items:
-  - name: Item1
-    value: 1
-  - name: Item2
-    value: 2
-properties:
-  a:
-    type:
-      blueId: ${nodeProvider.getBlueIdByName('BaseType')}
-    x: 100
-  b:
-    name: PropB
-    data: test`);
+    derivedValue: derived
+    extra: additional`)!,
+    );
 
     merger = new Merger(mergingProcessor, nodeProvider);
   });
 
   test('should handle type extension with limits', async () => {
-    const derivedNode = nodeProvider.findNodeByName('DerivedType');
-
-    if (!derivedNode) {
-      throw new Error('Derived node not found');
-    }
-
     // Only allow merging specific paths from the type
     const limits = new PathLimitsBuilder()
       .addPath('/x')
       .addPath('/y/nested')
+      .addPath('/y/nested/derivedValue')
       .build();
 
     const result = merger.resolve(derivedNode, limits);
@@ -83,7 +65,7 @@ properties:
     expect(await result.get('/x')).toStrictEqual(new BigIntegerNumber(10));
 
     // Should have the nested structure but only what's allowed
-    expect(await result.get('/y/nested/value')).toBe('derived');
+    expect(await result.get('/y/nested/derivedValue/value')).toBe('derived');
     expect(await result.get('/y/nested/extra')).toBeUndefined();
     expect(await result.get('/y/nested/baseExtra')).toBeUndefined();
 

@@ -13,6 +13,8 @@ import { yamlBlueParse } from '../../../utils';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
 import { BigIntegerNumber } from '../../model/BigIntegerNumber';
 import { NodeTransformer } from '../../utils/NodeTransformer';
+import { BlueIdCalculator } from '../../utils/BlueIdCalculator';
+import DefaultBlueYaml from '../../resources/transformation/DefaultBlue.yaml?raw';
 import {
   createBlueInstance,
   ids,
@@ -27,6 +29,15 @@ class MockNodeProvider extends NodeProvider {
 describe('Preprocessor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('keeps the default Blue bootstrap id aligned with DefaultBlue.yaml', () => {
+    const parsedYaml = yamlBlueParse(DefaultBlueYaml);
+    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+
+    expect(BlueIdCalculator.calculateBlueIdSync(node)).toBe(
+      Preprocessor.DEFAULT_BLUE_BLUE_ID,
+    );
   });
 
   it('testType - should preprocess a document with type attribute', async () => {

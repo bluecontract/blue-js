@@ -5,13 +5,15 @@ import {
   type DocumentProcessingResult,
   DocumentProcessor,
 } from '@blue-labs/document-processor';
-import { repository } from '@blue-repository/types';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 import { MarkerSchema } from '@blue-repository/types/packages/core/schemas';
+import {
+  blueRepository,
+  conversationBlueIds,
+} from '../lib/core/semantic-repository.js';
 
 export function createTestBlue(): Blue {
   return new Blue({
-    repositories: [repository],
+    repositories: [blueRepository],
     mergingProcessor: createDefaultMergingProcessor(),
   });
 }

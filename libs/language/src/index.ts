@@ -14,6 +14,8 @@ export {
   Limits,
   Nodes,
   BasicNodeProvider,
+  createNodeProvider,
+  SemanticIdentityService,
 
   // merge
   NodeResolver,

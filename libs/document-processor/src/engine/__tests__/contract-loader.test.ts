@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { BlueNode } from '@blue-labs/language';
-import { blueIds as myosBlueIds } from '@blue-repository/types/packages/myos/blue-ids';
-import { blueIds as conversationBlueIds } from '@blue-repository/types/packages/conversation/blue-ids';
 
 import { ContractLoader } from '../contract-loader.js';
+import {
+  conversationBlueIds,
+  myosBlueIds,
+} from '../../repository/semantic-repository.js';
 import { ContractProcessorRegistry } from '../../registry/contract-processor-registry.js';
 import { ContractProcessorRegistryBuilder } from '../../registry/contract-processor-registry-builder.js';
 import type { HandlerContract } from '../../model/index.js';

@@ -475,7 +475,7 @@ describe('steps-builder execution', () => {
             .subscribeToSessionWithMatchers(
               'target-session',
               'SUB_OBJECT_MATCHERS',
-              [{}, { name: 'deal-found' }, { type: String, name: 'note' }],
+              [{}, { name: 'deal-found' }, { type: 'Text', name: 'note' }],
             ),
       )
       .buildDocument();
