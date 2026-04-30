@@ -476,6 +476,123 @@ raw-ID exception for transformation resources.
     `2.00 ms`, baseline delta `-0.30 ms (-12.96%)`; clone total avg `10506`,
     baseline delta `-3900 (-27.07%)`.
 
+### Main-vs-Develop Benchmark Refresh - 2026-04-30
+
+This run was recorded to make the performance comparison explicit against the
+then-current `main` code rather than only against the checked-in Phase 0
+baseline files.
+
+#### Environment
+
+- Machine: Apple M1 Pro, `arm64`, 10 physical CPUs / 10 logical CPUs, 32 GiB
+  RAM.
+- OS: macOS `26.3.1 (a)`, build `25D771280a`.
+- Node: `/Users/mjonak/.nvm/versions/node/v22.22.1/bin/node`, `v22.22.1`.
+- Baseline commit: `origin/main`
+  `6be9d4c66b3616c8bbdd4a6a6baf1b54b4c04142`
+  (`chore(release): publish 3.11.0`).
+- Compared develop commit:
+  `78be17a61edf8c7dfed930a854420f78ce92ea10`
+  (`Merge pull request #191 from bluecontract/codex/fix-node-type-matcher-collection-types`).
+- Both sides were built with `npx nx build language --skip-nx-cache` before
+  running the benchmark scripts.
+- Default benchmark config was used unless noted: `2` warmup iterations and
+  `10` measured iterations.
+
+#### Methodology
+
+- A detached worktree was created from `origin/main` at `/tmp/blue-js-main-bench`.
+- The current develop benchmark harness was copied into that worktree so both
+  sides used the same generated input shapes, timing code, clone counters, and
+  baseline comparison logic.
+- The main worktree did not have `Blue.minimize()` yet. For the semantic
+  benchmark fixture preparation, the copied harness used `blue.minimize(resolved)`
+  when available and fell back to `blue.reverse(resolved)` on main. The measured
+  semantic scenarios still call the public `blue.calculateBlueIdSync(...)` API.
+- Main baseline files were saved outside the repository under
+  `/tmp/blue-main-bench-baselines` and then used as
+  `BENCH_COMPARE_BASELINE=1 BENCH_BASELINE_FILE=...` inputs for the develop run.
+- The `resolve` benchmark uses deterministic generated input on both sides:
+  `300` object properties, `300` list items, `60` type properties, `6`
+  per-node payload properties. `shared` uses one type for all 600 typed nodes;
+  `unique` uses 600 distinct types.
+- `snapshotPatch` is still a patch-then-full-resolve benchmark, not a Phase 3
+  structural snapshot patch benchmark.
+
+#### Main Baseline Results
+
+| Benchmark | Main avg | Main min | Main max |
+| --- | ---: | ---: | ---: |
+| `calculateBlueId` low-level hash | `13909.71 ms` | `12815.32 ms` | `15807.81 ms` |
+| semantic authoring no-type | `1.03 ms` | `0.85 ms` | `1.28 ms` |
+| semantic authoring shared-type | `0.02 ms` | `0.02 ms` | `0.03 ms` |
+| semantic resolved | `0.26 ms` | `0.21 ms` | `0.51 ms` |
+| semantic minimal-shaped authoring | `0.01 ms` | `0.01 ms` | `0.02 ms` |
+| semantic provider ingest | `0.31 ms` | `0.23 ms` | `0.52 ms` |
+| `resolve(shared)` | `318.71 ms` | `302.13 ms` | `345.18 ms` |
+| `resolve(unique)` | `1563.64 ms` | `1496.31 ms` | `1653.44 ms` |
+| `snapshotPatch` patch-then-full-resolve | `2.57 ms` | `1.70 ms` | `4.86 ms` |
+
+Main clone-count baselines:
+
+| Benchmark | `clone()` avg | `cloneShallow()` avg | total clone avg |
+| --- | ---: | ---: | ---: |
+| `resolve(shared)` | `518765` | `15973` | `534738` |
+| `resolve(unique)` | `735603` | `234608` | `970211` |
+| `snapshotPatch` patch-then-full-resolve | `8102` | `6304` | `14406` |
+
+#### Develop Compared With Main Baseline
+
+| Benchmark | Main avg | Develop avg | Delta |
+| --- | ---: | ---: | ---: |
+| `calculateBlueId` low-level hash | `13909.71 ms` | `10194.75 ms` | `-3714.96 ms (-26.71%)` |
+| semantic authoring no-type | `1.03 ms` | `4.78 ms` | `+3.75 ms (+364.40%)` |
+| semantic authoring shared-type | `0.02 ms` | `1.85 ms` | `+1.82 ms (+8161.52%)` |
+| semantic resolved | `0.26 ms` | `0.12 ms` | `-0.14 ms (-54.48%)` |
+| semantic minimal-shaped authoring | `0.01 ms` | `1.69 ms` | `+1.68 ms (+12100.18%)` |
+| semantic provider ingest | `0.31 ms` | `0.61 ms` | `+0.30 ms (+95.48%)` |
+| `resolve(shared)` | `318.71 ms` | `42.91 ms` | `-275.80 ms (-86.54%)` |
+| `resolve(unique)` | `1563.64 ms` | `1682.61 ms` | `+118.97 ms (+7.61%)` |
+| `snapshotPatch` patch-then-full-resolve | `2.57 ms` | `2.02 ms` | `-0.55 ms (-21.21%)` |
+
+Develop clone-count comparison:
+
+| Benchmark | Main total clone avg | Develop total clone avg | Delta |
+| --- | ---: | ---: | ---: |
+| `resolve(shared)` | `534738` | `165019` | `-369719 (-69.14%)` |
+| `resolve(unique)` | `970211` | `528612` | `-441599 (-45.52%)` |
+| `snapshotPatch` patch-then-full-resolve | `14406` | `10506` | `-3900 (-27.07%)` |
+
+More detailed clone breakdown:
+
+| Benchmark | `clone()` delta | `cloneShallow()` delta | total clone delta |
+| --- | ---: | ---: | ---: |
+| `resolve(shared)` | `-373983 (-72.09%)` | `+4264 (+26.70%)` | `-369719 (-69.14%)` |
+| `resolve(unique)` | `-482402 (-65.58%)` | `+40803 (+17.39%)` | `-441599 (-45.52%)` |
+| `snapshotPatch` patch-then-full-resolve | `-6001 (-74.07%)` | `+2101 (+33.33%)` | `-3900 (-27.07%)` |
+
+#### Interpretation
+
+- `resolve(shared)` is the clearest win from the stabilization work: the same
+  deterministic input is `86.54%` faster than main, and total clone calls are
+  down `69.14%`.
+- `resolve(unique)` is `7.61%` slower than main on wall-clock time, but remains
+  inside the `+10%` regression gate while total clone calls are down `45.52%`.
+  This is the case with 600 distinct types, so it benefits less from type-overlay
+  reuse than the shared-type benchmark.
+- The public semantic identity benchmark is intentionally not equivalent to the
+  old main identity semantics. The main baseline uses the old public
+  `calculateBlueIdSync` behavior and uses `reverse()` to prepare the
+  minimal-shaped fixture, while develop runs the new semantic identity pipeline.
+  The large percentage increases are therefore the cost of the new semantic
+  correctness path over near-zero old-path baselines, especially for typed and
+  minimal-shaped authoring inputs.
+- The low-level hash benchmark is faster on develop (`-26.71%`) and remains
+  separate from the public semantic identity benchmark.
+- `snapshotPatch` is still full resolve after patching. It is useful as a
+  pre-snapshot baseline, but Phase 3 should replace this comparison with a true
+  path-local snapshot patch benchmark.
+
 ### Deliberate Transitional Behavior
 
 1. **BaseContentNodeProvider bootstrap IDs.** Transformation resources still use

@@ -167,6 +167,7 @@ and direct cyclic document-set identities are supported in Phase 2.
 - `docs/resolve.md` – resolver & merging pipeline.
 - `docs/preprocessor.md` – blue directive, inference & mappings.
 - `docs/blue-id.md` – BlueId algorithm and APIs.
+- `docs/benchmarks.md` – benchmark scenarios, baselines, and comparison workflow.
 - `docs/glossary.md` – identity, minimization, storage, and snapshot terminology.
 - `docs/adr/` – architecture decisions for semantic BlueId, minimal storage, snapshots, list controls, and direct cycles.
 - `docs/mapping.md` – Zod mapping and serialization.
