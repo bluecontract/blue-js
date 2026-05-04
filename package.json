@@ -2,7 +2,11 @@
   "name": "@blue-js/monorepo",
   "version": "1.9.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "shim:blue-quickjs:check": "node scripts/shim-local-blue-quickjs-packages.mjs --check",
+    "shim:blue-quickjs": "node scripts/shim-local-blue-quickjs-packages.mjs --force",
+    "shim:blue-quickjs:restore": "node scripts/shim-local-blue-quickjs-packages.mjs --restore"
+  },
   "private": true,
   "devDependencies": {
     "@eslint/js": "9.14.0",

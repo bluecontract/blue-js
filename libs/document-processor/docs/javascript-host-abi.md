@@ -135,9 +135,12 @@ not add runtime filesystem, network, package-manager, or dynamic import access.
 The underlying runtime verifies the module pack's `graphHash` before execution.
 
 Document workflow `${...}` expressions still use script code. Workflow steps can
-use script code through `Conversation/JavaScript Code` or module-pack execution
-through `Conversation/JavaScript Module Code`, which builds the module pack from
-referenced `Conversation/JavaScript Module` contracts.
+use script code through `Conversation/JavaScript Code` and
+`Conversation/JavaScript Code v2`, or module-pack execution through
+`Conversation/JavaScript Code v2` module mode. The legacy
+`Conversation/JavaScript Module Code` step also remains available as a
+compatibility surface and builds a module pack from referenced
+`Conversation/JavaScript Module` contracts.
 
 ## Host Errors
 

@@ -11,13 +11,7 @@ Default workflow processors receive one engine instance configured with:
 
 ```ts
 {
-  jsExpressionGasLimit,
-  jsCodeStepGasLimit,
-  executionProfile,
-  enableGasTrace,
-  onGasTrace,
-  releaseMode,
-  artifactPins
+  (jsExpressionGasLimit, jsCodeStepGasLimit, executionProfile, enableGasTrace, onGasTrace, releaseMode, artifactPins);
 }
 ```
 
@@ -36,19 +30,20 @@ Defaults are:
 Every processor JavaScript evaluation path must pass `onWasmGasUsed` and charge:
 
 ```ts
-context.gasMeter().chargeWasmGas(used)
+context.gasMeter().chargeWasmGas(used);
 ```
 
 `BlueQuickJsEngine` supplies the configured JavaScript Code step gas limit when a
-caller does not provide an explicit `wasmGasLimit`. Expression resolution reads
-the same engine policy and supplies `jsExpressionGasLimit`.
+caller does not provide an explicit `wasmGasLimit`. That same step limit applies
+to `Conversation/JavaScript Code v2` script mode and module mode. Expression
+resolution reads the same engine policy and supplies `jsExpressionGasLimit`.
 
 ## Cost Composition
 
 A host call such as:
 
 ```ts
-document('/counter')
+document('/counter');
 ```
 
 intentionally composes several costs:

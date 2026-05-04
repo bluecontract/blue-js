@@ -20,6 +20,187 @@ import { BlueQuickJsEngine } from '../../../../util/expression/javascript-evalua
 const blue = createBlue();
 
 describe('JavaScriptCodeStepExecutor (integration)', () => {
+  it('executes JavaScript Code v2 inline module mode', async () => {
+    const processor = buildProcessor(blue);
+
+    const yaml = `name: JS Code v2 Inline Module Workflow
+counter: 4
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Compute
+        type: Conversation/JavaScript Code v2
+        mode: module
+        code: |
+          import { next } from './math.js';
+
+          export default {
+            events: [
+              {
+                type: 'Conversation/Chat Message',
+                message: 'next=' + next(document('/counter'))
+              }
+            ]
+          };
+        modules:
+          './math.js': |
+            export function next(value) {
+              return value + 1;
+            }
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+    const chatMessages = result.triggeredEvents
+      .filter(
+        (event) =>
+          typeBlueId(event) ===
+          conversationBlueIds['Conversation/Chat Message'],
+      )
+      .map((event) => stringProperty(event, 'message'));
+
+    expect(chatMessages).toEqual(['next=5']);
+  });
+
+  it('executes JavaScript Code v2 reusable source library mode', async () => {
+    const processor = buildProcessor(blue);
+
+    const yaml = `name: JS Code v2 Library Workflow
+counter: 7
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  mathLibrary:
+    type: Conversation/JavaScript Library
+    modules:
+      './math.js': |
+        export function next(value) {
+          return value + 1;
+        }
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Compute
+        type: Conversation/JavaScript Code v2
+        mode: module
+        libraries:
+          - /contracts/mathLibrary
+        code: |
+          import { next } from './math.js';
+
+          export default {
+            events: [
+              {
+                type: 'Conversation/Chat Message',
+                message: 'next=' + next(document('/counter'))
+              }
+            ]
+          };
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+    const chatMessages = result.triggeredEvents
+      .filter(
+        (event) =>
+          typeBlueId(event) ===
+          conversationBlueIds['Conversation/Chat Message'],
+      )
+      .map((event) => stringProperty(event, 'message'));
+
+    expect(chatMessages).toEqual(['next=8']);
+  });
+
+  it('terminates JavaScript Code v2 before evaluation when a static import is missing', async () => {
+    const processor = buildProcessor(blue);
+
+    const yaml = `name: JS Code v2 Missing Import Workflow
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: MissingImport
+        type: Conversation/JavaScript Code v2
+        mode: module
+        code: |
+          import { missing } from './missing.js';
+          export default missing;
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+    const terminated = property(
+      property(result.document, 'contracts'),
+      'terminated',
+    );
+
+    expect(stringProperty(terminated, 'cause')).toBe('fatal');
+    expect(stringProperty(terminated, 'reason')).toMatch(/MISSING_IMPORT/);
+  });
+
+  it('supports JavaScript Code v2 module emit() and result events', async () => {
+    const processor = buildProcessor(blue);
+
+    const yaml = `name: JS Code v2 Emit Workflow
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: EmitFromModule
+        type: Conversation/JavaScript Code v2
+        mode: module
+        code: |
+          emit({
+            type: 'Conversation/Chat Message',
+            message: 'direct v2 module emit'
+          });
+
+          export default {
+            events: [
+              {
+                type: 'Conversation/Chat Message',
+                message: 'result v2 module event'
+              }
+            ]
+          };
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+    const chatMessages = result.triggeredEvents
+      .filter(
+        (event) =>
+          typeBlueId(event) ===
+          conversationBlueIds['Conversation/Chat Message'],
+      )
+      .map((event) => stringProperty(event, 'message'))
+      .sort();
+
+    expect(chatMessages).toEqual([
+      'direct v2 module emit',
+      'result v2 module event',
+    ]);
+  });
+
   it('runs JS code on lifecycle init and emits event payload', async () => {
     const processor = buildProcessor(blue);
 

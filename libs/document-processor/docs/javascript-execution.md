@@ -4,17 +4,19 @@ Document JavaScript runs in `blue-quickjs`, a deterministic QuickJS-in-Wasm
 runtime. It does not run in Node.js or a browser, and it only has access to the
 document-processor host bindings listed below.
 
-Document workflow steps and expressions are script-only. Runtime `import`,
-dynamic `import()`, filesystem access, network access, host clock APIs, and
-random sources are not part of the supported document-author surface. The lower
-level evaluator can also execute prebuilt deterministic `ModulePack.v1`
-artifacts for internal/runtime use.
+Document workflow expressions are script-only. Workflow steps can use script
+mode through `Conversation/JavaScript Code`, or deterministic ESM module mode
+through `Conversation/JavaScript Code v2`. Runtime filesystem access, network
+access, host clock APIs, and random sources are not part of the supported
+document-author surface. Module mode resolves static imports during document
+processing and then executes a prebuilt deterministic `ModulePack.v1`.
 
 ## Authoring Model
 
 JavaScript can run from three processor surfaces:
 
 - `Conversation/JavaScript Code` workflow steps.
+- `Conversation/JavaScript Code v2` workflow steps.
 - `${...}` expressions inside `Conversation/Update Document` steps.
 - `${...}` expressions inside `Conversation/Trigger Event` steps.
 
@@ -78,14 +80,121 @@ contracts:
         changeset:
           - op: REPLACE
             path: /counter
-            val: "${steps.Compute.next}"
+            val: '${steps.Compute.next}'
 ```
 
-## JavaScript Module Contracts
+## JavaScript Code v2 Module Mode
+
+`Conversation/JavaScript Code v2` keeps script mode compatible with
+`Conversation/JavaScript Code`, and adds module mode. In module mode `code` is
+the entry ES module with implicit specifier `./entry.js`.
+
+Inline modules:
+
+```yaml
+name: Counter Module Workflow
+counter: 4
+contracts:
+  life:
+    type: Core/Lifecycle Event Channel
+  onInit:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: Compute
+        type: Conversation/JavaScript Code v2
+        mode: module
+        code: |
+          import { next } from './math.js';
+
+          export default {
+            events: [
+              {
+                type: 'Conversation/Chat Message',
+                message: 'Counter is ' + next(document('/counter'))
+              }
+            ]
+          };
+        modules:
+          './math.js': |
+            export function next(value) {
+              return value + 1;
+            }
+```
+
+Reusable source library:
+
+```yaml
+contracts:
+  mathLibrary:
+    type: Conversation/JavaScript Library
+    modules:
+      './math.js': |
+        export function next(value) {
+          return value + 1;
+        }
+
+  onInit:
+    type: Conversation/Sequential Workflow
+    steps:
+      - name: Compute
+        type: Conversation/JavaScript Code v2
+        mode: module
+        libraries:
+          - /contracts/mathLibrary
+        code: |
+          import { next } from './math.js';
+          export default next(document('/counter'));
+```
+
+Reusable locked-artifact library:
+
+```yaml
+contracts:
+  chessLibrary:
+    type: Conversation/JavaScript Library
+    package:
+      registry: npm
+      packageName: chess.js
+      version: 1.0.0
+      sourceIntegritySha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    artifact:
+      builderVersion: blue-quickjs-builder-version
+      dependencyIntegrity: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      graphHash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      modulePack:
+        version: 1
+        entrySpecifier: ./index.js
+        entryExport: default
+        modules: []
+        graphHash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+        builderVersion: blue-quickjs-builder-version
+        dependencyIntegrity: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    moduleAliases:
+      chess.js: ./index.js
+```
+
+Module mode rules:
+
+- `mode: script` always uses script semantics.
+- `mode: module` always builds and executes a module pack.
+- `mode: auto` or omitted uses script mode unless `entryExport`, `modules`, or
+  `libraries` is present.
+- Static imports must resolve to `./entry.js`, inline modules, reusable
+  libraries, or verified artifact module packs.
+- Artifact libraries must include package metadata, matching builder and
+  dependency integrity, and a module pack whose computed graph hash matches its
+  declared `graphHash`.
+- Dynamic `import()`, CommonJS `require()`, Node built-ins, filesystem access,
+  network access, and package-manager resolution are rejected before runtime.
+
+## Legacy JavaScript Module Contracts
 
 Documents can define reusable deterministic ESM modules as contracts and execute
-them from a workflow step. The module contracts use repository-owned type
-aliases.
+them from a workflow step. This is a compatibility surface. Prefer
+`Conversation/JavaScript Code v2` for new module workflows.
 
 ```yaml
 name: Counter Module Workflow
@@ -205,7 +314,7 @@ The current workflow contract is available as `currentContract`:
 ```js
 return {
   description: currentContract.description,
-  canonicalName: currentContractCanonical.name
+  canonicalName: currentContractCanonical.name,
 };
 ```
 
@@ -286,8 +395,7 @@ const engine = new BlueQuickJsEngine({
   },
   releaseMode: true,
   artifactPins: {
-    engineBuildHash:
-      'f91091cb7feb788df340305a877a9cadb0c6f4d13aea8a7da4040b6367d178ea',
+    engineBuildHash: 'f91091cb7feb788df340305a877a9cadb0c6f4d13aea8a7da4040b6367d178ea',
     gasVersion: 8,
   },
 });

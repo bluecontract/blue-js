@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Blue, BlueNode } from '@blue-labs/language';
+import { buildModulePackFromSources } from '@blue-quickjs/quickjs-runtime';
 
 import { createBlue } from '../../../../test-support/blue.js';
 import {
@@ -17,6 +18,7 @@ import {
   type JavaScriptEvaluationOptions,
 } from '../../../../util/expression/javascript-evaluation-engine.js';
 import { createDocumentJavaScriptExecutionPolicy } from '../../../../util/expression/javascript-execution-policy.js';
+import { ProcessorFatalError } from '../../../../engine/processor-fatal-error.js';
 
 function createStepNode(blue: Blue, code: string): BlueNode {
   const indented = code
@@ -25,6 +27,10 @@ function createStepNode(blue: Blue, code: string): BlueNode {
     .join('\n');
   const yaml = `type: Conversation/JavaScript Code\ncode: |\n${indented}\n`;
   return blue.yamlToNode(yaml);
+}
+
+function createV2StepNode(blue: Blue, yamlBody: string): BlueNode {
+  return blue.yamlToNode(`type: Conversation/JavaScript Code v2\n${yamlBody}`);
 }
 
 describe('JavaScriptCodeStepExecutor', () => {
@@ -74,6 +80,358 @@ describe('JavaScriptCodeStepExecutor', () => {
       payload: { status: 'complete' },
     });
     expect(gasSpy).toHaveBeenCalledWith(11n);
+  });
+
+  it('routes JavaScript Code v2 auto script mode through code evaluation', async () => {
+    const blue = createBlue();
+    const code = 'return 123;';
+    const stepNode = createV2StepNode(
+      blue,
+      `name: Compute
+code: ${JSON.stringify(code)}
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        return 123;
+      },
+    };
+
+    const result = await new JavaScriptCodeStepExecutor(fakeEngine).execute(
+      args,
+    );
+
+    expect(result).toBe(123);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].code).toBe(code);
+    expect(calls[0].modulePack).toBeUndefined();
+  });
+
+  it('builds JavaScript Code v2 inline modules before module evaluation', async () => {
+    const blue = createBlue();
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+code: |
+  import { value } from './value.js';
+  export default value + 1;
+modules:
+  './value.js': |
+    export const value = 41;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        return 42;
+      },
+    };
+
+    const result = await new JavaScriptCodeStepExecutor(fakeEngine).execute(
+      args,
+    );
+
+    expect(result).toBe(42);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].code).toBeUndefined();
+    expect(calls[0].modulePack?.entrySpecifier).toBe('./entry.js');
+    expect(
+      calls[0].modulePack?.modules.map((module) => module.specifier),
+    ).toEqual(['./entry.js', './value.js']);
+  });
+
+  it('builds JavaScript Code v2 modules from reusable source libraries', async () => {
+    const blue = createBlue();
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+libraries:
+  - /contracts/mathLibrary
+code: |
+  import { value } from './value.js';
+  export default value + 1;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context, execution } = createRealContext(blue, eventNode);
+    execution.runtime().directWrite(
+      '/contracts/mathLibrary',
+      blue.yamlToNode(`type: Conversation/JavaScript Library
+modules:
+  './value.js': |
+    export const value = 41;
+`),
+    );
+    const args = createArgs({ context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        return 42;
+      },
+    };
+
+    const result = await new JavaScriptCodeStepExecutor(fakeEngine).execute(
+      args,
+    );
+
+    expect(result).toBe(42);
+    expect(calls).toHaveLength(1);
+    expect(
+      calls[0].modulePack?.modules.map((module) => module.specifier),
+    ).toEqual(['./entry.js', './value.js']);
+  });
+
+  it('imports JavaScript Code v2 artifact libraries through aliases', async () => {
+    const blue = createBlue();
+    const artifactPack = await buildModulePackFromSources({
+      entrySpecifier: './index.js',
+      sources: [
+        {
+          specifier: './index.js',
+          source: 'export function value() { return 41; }',
+          originMeta: {
+            packageName: 'math-lib',
+            packageVersion: '1.0.0',
+          },
+        },
+      ],
+    });
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+libraries:
+  - /contracts/mathLibrary
+code: |
+  import { value } from 'math-lib';
+  export default value() + 1;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context, execution } = createRealContext(blue, eventNode);
+    execution.runtime().directWrite(
+      '/contracts/mathLibrary',
+      blue.jsonValueToNode({
+        type: {
+          blueId: conversationBlueIds['Conversation/JavaScript Library'],
+        },
+        package: {
+          registry: 'npm',
+          packageName: 'math-lib',
+          version: '1.0.0',
+          sourceIntegritySha256: 'a'.repeat(64),
+        },
+        artifact: {
+          builderVersion: artifactPack.builderVersion,
+          dependencyIntegrity: artifactPack.dependencyIntegrity,
+          graphHash: artifactPack.graphHash,
+          modulePack: artifactPack,
+        },
+        moduleAliases: {
+          'math-lib': './index.js',
+        },
+      }),
+    );
+    const args = createArgs({ context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        return 42;
+      },
+    };
+
+    const result = await new JavaScriptCodeStepExecutor(fakeEngine).execute(
+      args,
+    );
+
+    expect(result).toBe(42);
+    expect(
+      calls[0].modulePack?.modules.map((module) => module.specifier),
+    ).toEqual(['./entry.js', './index.js']);
+  });
+
+  it('rejects JavaScript Code v2 duplicate module specifiers', async () => {
+    const blue = createBlue();
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+libraries:
+  - /contracts/mathLibrary
+code: |
+  import { value } from './value.js';
+  export default value;
+modules:
+  './value.js': export const value = 1;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context, execution } = createRealContext(blue, eventNode);
+    execution.runtime().directWrite(
+      '/contracts/mathLibrary',
+      blue.yamlToNode(`type: Conversation/JavaScript Library
+modules:
+  './value.js': export const value = 2;
+`),
+    );
+    const args = createArgs({ context, stepNode, eventNode });
+
+    await expect(
+      new JavaScriptCodeStepExecutor(engine).execute(args),
+    ).rejects.toThrow(ProcessorFatalError);
+  });
+
+  it('rejects JavaScript Code v2 invalid module specifiers', async () => {
+    const blue = createBlue();
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+code: |
+  import { value } from '../value.js';
+  export default value;
+modules:
+  '../value.js': export const value = 1;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+
+    await expect(
+      new JavaScriptCodeStepExecutor(engine).execute(args),
+    ).rejects.toThrow(ProcessorFatalError);
+  });
+
+  it('uses JavaScript Code v2 named entryExport in module mode', async () => {
+    const blue = createBlue();
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+entryExport: compute
+code: |
+  export const ignored = 1;
+  export const compute = 42;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+    const calls: JavaScriptEvaluationOptions[] = [];
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate(options) {
+        calls.push(options);
+        return 42;
+      },
+    };
+
+    const result = await new JavaScriptCodeStepExecutor(fakeEngine).execute(
+      args,
+    );
+
+    expect(result).toBe(42);
+    expect(calls[0].modulePack?.entryExport).toBe('compute');
+  });
+
+  it('rejects JavaScript Code v2 artifact hash mismatches', async () => {
+    const blue = createBlue();
+    const artifactPack = await buildModulePackFromSources({
+      entrySpecifier: './index.js',
+      sources: [
+        {
+          specifier: './index.js',
+          source: 'export const value = 41;',
+        },
+      ],
+    });
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+libraries:
+  - /contracts/mathLibrary
+code: |
+  import { value } from './index.js';
+  export default value;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context, execution } = createRealContext(blue, eventNode);
+    execution.runtime().directWrite(
+      '/contracts/mathLibrary',
+      blue.jsonValueToNode({
+        type: {
+          blueId: conversationBlueIds['Conversation/JavaScript Library'],
+        },
+        package: {
+          registry: 'blue',
+          packageName: 'math-lib',
+          version: '1.0.0',
+          sourceIntegritySha256: 'b'.repeat(64),
+        },
+        artifact: {
+          builderVersion: artifactPack.builderVersion,
+          dependencyIntegrity: artifactPack.dependencyIntegrity,
+          graphHash: 'c'.repeat(64),
+          modulePack: artifactPack,
+        },
+      }),
+    );
+    const args = createArgs({ context, stepNode, eventNode });
+
+    await expect(
+      new JavaScriptCodeStepExecutor(engine).execute(args),
+    ).rejects.toThrow(ProcessorFatalError);
+  });
+
+  it('rejects JavaScript Code v2 script mode when module fields are present', async () => {
+    const blue = createBlue();
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: script
+code: return 1;
+modules:
+  './value.js': export const value = 1;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+
+    await expect(
+      new JavaScriptCodeStepExecutor(engine).execute(args),
+    ).rejects.toThrow(ProcessorFatalError);
+  });
+
+  it('rejects JavaScript Code v2 missing static imports before evaluation', async () => {
+    const blue = createBlue();
+    const stepNode = createV2StepNode(
+      blue,
+      `mode: module
+code: |
+  import { missing } from './missing.js';
+  export default missing;
+`,
+    );
+    const eventNode = blue.jsonValueToNode({});
+    const { context } = createRealContext(blue, eventNode);
+    const args = createArgs({ context, stepNode, eventNode });
+    const fakeEngine: JavaScriptEvaluationEngine = {
+      async evaluate() {
+        throw new Error('engine should not be called');
+      },
+    };
+
+    await expect(
+      new JavaScriptCodeStepExecutor(fakeEngine).execute(args),
+    ).rejects.toThrow(ProcessorFatalError);
   });
 
   it('uses the engine JavaScript Code step gas policy', async () => {
