@@ -1,31 +1,8 @@
-## 4.0.0-rc.4 (2026-04-29)
+## 4.0.1 (2026-04-30)
 
-### 🩹 Fixes
+This was a version bump only, there were no code changes.
 
-- **language:** match collection blueId type references ([a0dd25e](https://github.com/bluecontract/blue-js/commit/a0dd25e))
-
-## 4.0.0-rc.3 (2026-04-29)
-
-### 🩹 Fixes
-
-- **language:** canonicalize cyclic repository indexes ([8532c0e](https://github.com/bluecontract/blue-js/commit/8532c0e))
-- **repository:** use semantic repository artifact ([89e008b](https://github.com/bluecontract/blue-js/commit/89e008b))
-- **repository:** require semantic repository peer ([75ea08f](https://github.com/bluecontract/blue-js/commit/75ea08f))
-
-## 4.0.0-rc.2 (2026-04-29)
-
-### 🩹 Fixes
-
-- **language:** minimize own type overlays ([858ecc2](https://github.com/bluecontract/blue-js/commit/858ecc2))
-- **language:** trust semantic repository storage ([d6a3503](https://github.com/bluecontract/blue-js/commit/d6a3503))
-
-## 4.0.0-rc.1 (2026-04-29)
-
-### 🩹 Fixes
-
-- **repository-generator:** preserve expressions during semantic blue id calculation ([283e0b7](https://github.com/bluecontract/blue-js/commit/283e0b7))
-
-## 4.0.0-rc.0 (2026-04-28)
+# 4.0.0 (2026-04-30)
 
 ### 🚀 Features
 
@@ -51,8 +28,15 @@
 - **language:** align singleton repository bootstrap mode ([38eeca5](https://github.com/bluecontract/blue-js/commit/38eeca5))
 - **language:** resolve repository fragment aliases ([9051789](https://github.com/bluecontract/blue-js/commit/9051789))
 - **language:** scale semantic reindex passes ([ad03dfd](https://github.com/bluecontract/blue-js/commit/ad03dfd))
+- **language:** minimize own type overlays ([858ecc2](https://github.com/bluecontract/blue-js/commit/858ecc2))
+- **language:** trust semantic repository storage ([d6a3503](https://github.com/bluecontract/blue-js/commit/d6a3503))
+- **language:** canonicalize cyclic repository indexes ([8532c0e](https://github.com/bluecontract/blue-js/commit/8532c0e))
+- **language:** match collection blueId type references ([a0dd25e](https://github.com/bluecontract/blue-js/commit/a0dd25e))
 - **release:** resolve preview prerelease versioning ([aec8c0b](https://github.com/bluecontract/blue-js/commit/aec8c0b))
+- **repository:** use semantic repository artifact ([89e008b](https://github.com/bluecontract/blue-js/commit/89e008b))
+- **repository:** require semantic repository peer ([75ea08f](https://github.com/bluecontract/blue-js/commit/75ea08f))
 - **repository-generator:** preserve indexed blueid semantics ([dd97e4e](https://github.com/bluecontract/blue-js/commit/dd97e4e))
+- **repository-generator:** preserve expressions during semantic blue id calculation ([283e0b7](https://github.com/bluecontract/blue-js/commit/283e0b7))
 
 ### ⚠️  Breaking Changes
 

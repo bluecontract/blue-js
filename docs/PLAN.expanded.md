@@ -521,77 +521,98 @@ baseline files.
 
 #### Main Baseline Results
 
-| Benchmark | Main avg | Main min | Main max |
-| --- | ---: | ---: | ---: |
-| `calculateBlueId` low-level hash | `13909.71 ms` | `12815.32 ms` | `15807.81 ms` |
-| semantic authoring no-type | `1.03 ms` | `0.85 ms` | `1.28 ms` |
-| semantic authoring shared-type | `0.02 ms` | `0.02 ms` | `0.03 ms` |
-| semantic resolved | `0.26 ms` | `0.21 ms` | `0.51 ms` |
-| semantic minimal-shaped authoring | `0.01 ms` | `0.01 ms` | `0.02 ms` |
-| semantic provider ingest | `0.31 ms` | `0.23 ms` | `0.52 ms` |
-| `resolve(shared)` | `318.71 ms` | `302.13 ms` | `345.18 ms` |
-| `resolve(unique)` | `1563.64 ms` | `1496.31 ms` | `1653.44 ms` |
-| `snapshotPatch` patch-then-full-resolve | `2.57 ms` | `1.70 ms` | `4.86 ms` |
+| Benchmark                               |      Main avg |      Main min |      Main max |
+| --------------------------------------- | ------------: | ------------: | ------------: |
+| `calculateBlueId` low-level hash        | `13909.71 ms` | `12815.32 ms` | `15807.81 ms` |
+| semantic authoring no-type              |     `1.03 ms` |     `0.85 ms` |     `1.28 ms` |
+| semantic authoring shared-type          |     `0.02 ms` |     `0.02 ms` |     `0.03 ms` |
+| semantic resolved                       |     `0.26 ms` |     `0.21 ms` |     `0.51 ms` |
+| semantic minimal-shaped authoring       |     `0.01 ms` |     `0.01 ms` |     `0.02 ms` |
+| semantic provider ingest                |     `0.31 ms` |     `0.23 ms` |     `0.52 ms` |
+| `resolve(shared)`                       |   `318.71 ms` |   `302.13 ms` |   `345.18 ms` |
+| `resolve(unique)`                       |  `1563.64 ms` |  `1496.31 ms` |  `1653.44 ms` |
+| `snapshotPatch` patch-then-full-resolve |     `2.57 ms` |     `1.70 ms` |     `4.86 ms` |
 
 Main clone-count baselines:
 
-| Benchmark | `clone()` avg | `cloneShallow()` avg | total clone avg |
-| --- | ---: | ---: | ---: |
-| `resolve(shared)` | `518765` | `15973` | `534738` |
-| `resolve(unique)` | `735603` | `234608` | `970211` |
-| `snapshotPatch` patch-then-full-resolve | `8102` | `6304` | `14406` |
+| Benchmark                               | `clone()` avg | `cloneShallow()` avg | total clone avg |
+| --------------------------------------- | ------------: | -------------------: | --------------: |
+| `resolve(shared)`                       |      `518765` |              `15973` |        `534738` |
+| `resolve(unique)`                       |      `735603` |             `234608` |        `970211` |
+| `snapshotPatch` patch-then-full-resolve |        `8102` |               `6304` |         `14406` |
 
 #### Develop Compared With Main Baseline
 
-| Benchmark | Main avg | Develop avg | Delta |
-| --- | ---: | ---: | ---: |
-| `calculateBlueId` low-level hash | `13909.71 ms` | `10194.75 ms` | `-3714.96 ms (-26.71%)` |
-| semantic authoring no-type | `1.03 ms` | `4.78 ms` | `+3.75 ms (+364.40%)` |
-| semantic authoring shared-type | `0.02 ms` | `1.85 ms` | `+1.82 ms (+8161.52%)` |
-| semantic resolved | `0.26 ms` | `0.12 ms` | `-0.14 ms (-54.48%)` |
-| semantic minimal-shaped authoring | `0.01 ms` | `1.69 ms` | `+1.68 ms (+12100.18%)` |
-| semantic provider ingest | `0.31 ms` | `0.61 ms` | `+0.30 ms (+95.48%)` |
-| `resolve(shared)` | `318.71 ms` | `42.91 ms` | `-275.80 ms (-86.54%)` |
-| `resolve(unique)` | `1563.64 ms` | `1682.61 ms` | `+118.97 ms (+7.61%)` |
-| `snapshotPatch` patch-then-full-resolve | `2.57 ms` | `2.02 ms` | `-0.55 ms (-21.21%)` |
+| Benchmark                               |      Main avg |   Develop avg |                   Delta |
+| --------------------------------------- | ------------: | ------------: | ----------------------: |
+| `calculateBlueId` low-level hash        | `13909.71 ms` | `10194.75 ms` | `-3714.96 ms (-26.71%)` |
+| semantic authoring no-type              |     `1.03 ms` |     `4.78 ms` |   `+3.75 ms (+364.40%)` |
+| semantic authoring shared-type          |     `0.02 ms` |     `1.85 ms` |  `+1.82 ms (+8161.52%)` |
+| semantic resolved                       |     `0.26 ms` |     `0.12 ms` |    `-0.14 ms (-54.48%)` |
+| semantic minimal-shaped authoring       |     `0.01 ms` |     `1.69 ms` | `+1.68 ms (+12100.18%)` |
+| semantic provider ingest                |     `0.31 ms` |     `0.61 ms` |    `+0.30 ms (+95.48%)` |
+| `resolve(shared)`                       |   `318.71 ms` |    `42.91 ms` |  `-275.80 ms (-86.54%)` |
+| `resolve(unique)`                       |  `1563.64 ms` |  `1682.61 ms` |   `+118.97 ms (+7.61%)` |
+| `snapshotPatch` patch-then-full-resolve |     `2.57 ms` |     `2.02 ms` |    `-0.55 ms (-21.21%)` |
 
 Develop clone-count comparison:
 
-| Benchmark | Main total clone avg | Develop total clone avg | Delta |
-| --- | ---: | ---: | ---: |
-| `resolve(shared)` | `534738` | `165019` | `-369719 (-69.14%)` |
-| `resolve(unique)` | `970211` | `528612` | `-441599 (-45.52%)` |
-| `snapshotPatch` patch-then-full-resolve | `14406` | `10506` | `-3900 (-27.07%)` |
+| Benchmark                               | Main total clone avg | Develop total clone avg |               Delta |
+| --------------------------------------- | -------------------: | ----------------------: | ------------------: |
+| `resolve(shared)`                       |             `534738` |                `165019` | `-369719 (-69.14%)` |
+| `resolve(unique)`                       |             `970211` |                `528612` | `-441599 (-45.52%)` |
+| `snapshotPatch` patch-then-full-resolve |              `14406` |                 `10506` |   `-3900 (-27.07%)` |
 
 More detailed clone breakdown:
 
-| Benchmark | `clone()` delta | `cloneShallow()` delta | total clone delta |
-| --- | ---: | ---: | ---: |
-| `resolve(shared)` | `-373983 (-72.09%)` | `+4264 (+26.70%)` | `-369719 (-69.14%)` |
-| `resolve(unique)` | `-482402 (-65.58%)` | `+40803 (+17.39%)` | `-441599 (-45.52%)` |
-| `snapshotPatch` patch-then-full-resolve | `-6001 (-74.07%)` | `+2101 (+33.33%)` | `-3900 (-27.07%)` |
+| Benchmark                               |     `clone()` delta | `cloneShallow()` delta |   total clone delta |
+| --------------------------------------- | ------------------: | ---------------------: | ------------------: |
+| `resolve(shared)`                       | `-373983 (-72.09%)` |      `+4264 (+26.70%)` | `-369719 (-69.14%)` |
+| `resolve(unique)`                       | `-482402 (-65.58%)` |     `+40803 (+17.39%)` | `-441599 (-45.52%)` |
+| `snapshotPatch` patch-then-full-resolve |   `-6001 (-74.07%)` |      `+2101 (+33.33%)` |   `-3900 (-27.07%)` |
 
 #### Interpretation
 
 - `resolve(shared)` is the clearest win from the stabilization work: the same
   deterministic input is `86.54%` faster than main, and total clone calls are
-  down `69.14%`.
+  down `69.14%`. This is the path where many nodes point at the same
+  provider-backed type, so resolved-type/type-overlay reuse pays off.
 - `resolve(unique)` is `7.61%` slower than main on wall-clock time, but remains
   inside the `+10%` regression gate while total clone calls are down `45.52%`.
   This is the case with 600 distinct types, so it benefits less from type-overlay
   reuse than the shared-type benchmark.
 - The public semantic identity benchmark is intentionally not equivalent to the
-  old main identity semantics. The main baseline uses the old public
-  `calculateBlueIdSync` behavior and uses `reverse()` to prepare the
-  minimal-shaped fixture, while develop runs the new semantic identity pipeline.
-  The large percentage increases are therefore the cost of the new semantic
-  correctness path over near-zero old-path baselines, especially for typed and
-  minimal-shaped authoring inputs.
+  old main identity semantics. On develop, public `Blue.calculateBlueId*` uses
+  the semantic path: authoring input is resolved, minimized, then hashed; an
+  already resolved node is minimized, then hashed; only a trusted minimal
+  storage path may skip re-resolution. Main often measured a pre-semantic hash
+  over the available shape, so typed and minimal-shaped authoring inputs could
+  appear near-zero because they were not proving the same semantic contract.
+- The large percentage increases in semantic authoring cases should therefore
+  be read as the cost of semantic correctness over very small historical
+  baselines, not as apples-to-apples regressions. The most important examples
+  are:
+  - `semantic authoring shared-type`: develop resolves the provider-backed type
+    and minimizes before hashing; the old path did not perform the same work.
+  - `semantic minimal-shaped authoring`: the public API cannot safely assume an
+    arbitrary input is trusted minimal storage, so it resolves/minimizes again.
+  - `semantic provider ingest`: provider storage now preprocesses, resolves,
+    minimizes, validates storage shape, and stores minimal overlay under the
+    semantic BlueId.
 - The low-level hash benchmark is faster on develop (`-26.71%`) and remains
-  separate from the public semantic identity benchmark.
+  separate from public semantic identity. It is the right signal for the
+  Section 8 hasher itself, not for end-to-end semantic identity.
 - `snapshotPatch` is still full resolve after patching. It is useful as a
-  pre-snapshot baseline, but Phase 3 should replace this comparison with a true
-  path-local snapshot patch benchmark.
+  pre-snapshot baseline, but Phase 3 must replace this with a true structural
+  snapshot benchmark that reports path-local work: copied nodes, recalculated
+  hashes, resolved/materialized nodes, provider fetches, and whether the patch
+  touched only `O(depth)` nodes.
+- The next performance target is not to weaken public semantic BlueId. It is to
+  add explicit trusted storage/snapshot load paths so code that reads a node
+  previously persisted through `nodeToJsonValue`/`Blue.nodeToJson(...)` and
+  rehydrated through `jsonValueToNode` can avoid the public
+  `resolve -> minimize -> hash` path when the stored minimal shape is already
+  trusted or has just been verified.
 
 ### Deliberate Transitional Behavior
 
@@ -1296,32 +1317,156 @@ Public contract:
 ### Goal
 
 Deliver a DP-ready runtime artifact after semantic identity, list controls, and
-direct cyclic `MASTER#i` are closed.
+direct cyclic `MASTER#i` identities are closed. The snapshot must make minimal
+storage and resolved runtime state explicit, so future code does not confuse:
+
+- persisted minimal overlay;
+- frozen resolved runtime view;
+- semantic BlueId;
+- optional resolved cache / metadata.
+
+The phase is not just `Object.freeze(resolve(...))`. It must also introduce the
+fast load/hash paths needed by provider/database storage that serializes nodes
+through `nodeToJsonValue` / `Blue.nodeToJson(...)` and rehydrates them through
+`jsonValueToNode`.
+
+### Snapshot Contract
+
+Add `ResolvedSnapshot` and frozen node support under `src/lib/snapshot/*`.
+Use `FrozenNode` or `FrozenResolvedBlueNode`; the exact class name is less
+important than the invariants below.
+
+`ResolvedSnapshot` must expose or carry:
+
+- `minimalRoot`: the minimal overlay form that is authoritative for storage and
+  identity;
+- `resolvedRoot`: a frozen resolved view, eager or lazy depending on load mode;
+- `blueId`: semantic BlueId of `minimalRoot`;
+- `completeness`: at least `full`, `minimal-only`, and `path-limited` where
+  needed for compatibility with existing `ResolvedBlueNode` semantics;
+- `sourceSemanticBlueId` for path-limited/materialized views that should not
+  recalculate identity from partial content;
+- lazy caches for minimal JSON, resolved root, path index, and per-node hashes;
+- resolve-context metadata: provider identity/version when available,
+  resolver limits, and whether the snapshot came from authoring input, trusted
+  minimal storage, verified minimal storage, or a resolved cache sidecar.
+
+`minimalRoot` must be first-class, not merely a lazy by-product of
+`resolvedRoot`. This follows the existing storage direction: providers store
+minimal overlay form under semantic BlueId, while the resolved view is the
+runtime artifact.
+
+### Public / Internal APIs
+
+Add APIs with names that make trust boundaries explicit. Suggested shape:
+
+```ts
+blue.resolveToSnapshot(authoring: BlueNode, options?: ResolveSnapshotOptions): ResolvedSnapshot;
+blue.loadSnapshotFromMinimal(
+  minimal: BlueNode | JsonBlueValue,
+  options: {
+    expectedBlueId?: string;
+    trust?: 'trusted-minimal' | 'verify';
+    materialize?: 'lazy' | 'eager';
+  },
+): ResolvedSnapshot;
+blue.loadSnapshotFromCache(
+  input: {
+    minimal: BlueNode | JsonBlueValue;
+    resolved?: BlueNode | JsonBlueValue;
+    blueId: string;
+  },
+  options?: { verify?: boolean },
+): ResolvedSnapshot;
+```
+
+The exact names can change, but the behavior must not:
+
+- `resolveToSnapshot(authoring)` runs the semantic path:
+  `preprocess -> resolve -> minimize -> hash(minimal) -> freeze`.
+- `loadSnapshotFromMinimal(..., trust: 'verify')` rehydrates minimal JSON through
+  `jsonValueToNode`, validates storage shape, hashes via the trusted minimal
+  hasher, compares `expectedBlueId` when supplied, and only resolves the runtime
+  view if `materialize: 'eager'` or when `resolvedRoot` is first read.
+- `loadSnapshotFromMinimal(..., trust: 'trusted-minimal')` may accept a supplied
+  `expectedBlueId` as the initial `snapshot.blueId`, but must keep a way to
+  verify it in tests/debug mode. This path exists for data that was just written
+  by this runtime or is trusted by the storage layer.
+- `loadSnapshotFromCache(...)` may use an optional serialized resolved sidecar
+  as a non-authoritative acceleration. The minimal overlay plus `blueId` remain
+  authoritative. A resolved sidecar must never override the minimal root.
+- Public `Blue.calculateBlueId*` remains semantic and safe. Do not make it skip
+  resolution for arbitrary minimal-looking authoring input. Put fast paths
+  behind explicit trusted/verified storage APIs or snapshot APIs.
+
+### Serialization / Storage Round Trip
+
+Snapshot serialization must interoperate with the current storage boundary:
+
+```ts
+const json = nodeToJsonValue(snapshot.toMinimal()); // or Blue.nodeToJson(...)
+const rehydrated = blue.jsonValueToNode(json);
+const loaded = blue.loadSnapshotFromMinimal(rehydrated, {
+  expectedBlueId: snapshot.blueId,
+  trust: 'verify',
+  materialize: 'lazy',
+});
+```
+
+Required rules:
+
+- Do not serialize `snapshot.blueId` as a node's own `blueId` field. A node
+  `blueId` remains only a reference. Store root identity in an envelope/sidecar,
+  e.g. `{ blueId, minimal }`.
+- Do not serialize hash caches, path indexes, provider metadata, or frozen-node
+  implementation details into Blue content. Store them only as sidecar metadata
+  if needed.
+- Rehydrating persisted minimal JSON through `jsonValueToNode` must be
+  idempotent for semantic identity. If preprocessing rewrites aliases or infers
+  types, it must not change the resulting semantic BlueId.
+- `StorageShapeValidator` remains the gate for minimal storage input. Mixed
+  `blueId + payload`, internal `properties`, invalid list controls, and payload
+  kind conflicts still fail before trusted hashing.
+- `snapshot.toMinimal()` must return a normal `BlueNode` minimal overlay that can
+  be passed through existing `nodeToJsonValue` / `Blue.nodeToJson(...)` and then
+  through `jsonValueToNode` without losing list controls, pure references,
+  `this#k` final references, or empty-list semantics.
 
 ### Implementation
 
 Add:
 
-- `ResolvedSnapshot`;
-- `FrozenNode` or frozen `ResolvedBlueNode`;
-- `blue.resolveToSnapshot(...)`;
-- `blue.minimize(snapshot)` or `snapshot.toMinimal()`;
-- `snapshot.blueId`.
+- `src/lib/snapshot/ResolvedSnapshot.ts`;
+- `src/lib/snapshot/FrozenNode.ts` or equivalent;
+- `src/lib/snapshot/SnapshotLoader.ts` for trusted/verified minimal load;
+- `src/lib/snapshot/SnapshotEditor.ts` for path-local updates;
+- `Blue.resolveToSnapshot(...)`;
+- `Blue.loadSnapshotFromMinimal(...)` or equivalent;
+- `blue.minimize(snapshot)` / `snapshot.toMinimal()`;
+- `snapshot.blueId`;
+- path index and node-at-pointer helpers.
 
 Minimum functionality:
 
-- immutable resolved root;
-- lazy minimal overlay cache;
-- lazy semantic BlueId cache;
-- path index;
-- resolve-context metadata.
+- immutable resolved root when materialized;
+- first-class minimal root;
+- lazy resolved-root materialization from minimal storage;
+- lazy minimal JSON cache;
+- lazy semantic BlueId / trusted-minimal hash cache;
+- path index for resolved and/or minimal nodes;
+- per-node hash cache on frozen minimal nodes;
+- no full-tree mutation after freeze;
+- compatibility bridge from existing mutable `ResolvedBlueNode` where needed.
 
 Target variant:
 
 - `SnapshotEditor` or `blue.applyPatch(snapshot, patch)`:
-  - copy-on-write only along the path;
+  - copy-on-write only along the changed minimal/resolved path;
   - recompute only touched subtree + ancestors;
-  - return a new snapshot.
+  - update minimal overlay and resolved view consistently;
+  - return a new snapshot and leave the old snapshot unchanged;
+  - expose counters in debug/benchmark mode: copied nodes, recomputed hashes,
+    materialized nodes, provider fetches, and full-resolve fallbacks.
 
 This should become the base for later `document-processor` usage.
 
@@ -1329,49 +1474,272 @@ This should become the base for later `document-processor` usage.
 
 - new `src/lib/snapshot/*`;
 - adapt `Blue.ts`;
-- possible simplification of `ResolvedNode.ts`.
+- adapt `SemanticIdentityService` only enough to reuse trusted minimal hashing
+  internally without making public `calculateBlueId*` unsafe;
+- possible simplification of `ResolvedNode.ts` after snapshot APIs exist;
+- tests under `src/lib/snapshot/__tests__/*` plus identity contract coverage.
 
 ### Tests
 
+Snapshot core:
+
 - old snapshot does not change after patch;
-- new snapshot gets a new `BlueId`;
-- only the path to root is recalculated;
+- new snapshot gets a new semantic `BlueId`;
+- only the path to root is copied/rehashed for simple leaf patch;
 - `snapshot.toMinimal()` gives the same result as `blue.minimize(resolvedNode)`;
-- `resolveToSnapshot()` and ordinary `resolve()` are semantically equivalent.
+- `resolveToSnapshot()` and ordinary `resolve()` are semantically equivalent;
+- `snapshot.blueId === blue.calculateBlueIdSync(snapshot.resolvedRoot)`;
+- `snapshot.blueId === trustedHash(snapshot.toMinimal())` through internal API.
+
+Storage round-trip:
+
+- `snapshot.toMinimal() -> nodeToJsonValue/Blue.nodeToJson -> jsonValueToNode -> loadSnapshotFromMinimal(...verify)` preserves `blueId`;
+- same round-trip preserves empty lists, `$empty`, `$previous`, `$pos` after
+  normalization, pure references, and `MASTER#i` references;
+- no snapshot metadata or computed identity appears inside the serialized Blue
+  node;
+- mixed `blueId + payload` still fails when loaded as minimal storage;
+- `jsonValueToNode` preprocessing is idempotent for stored minimal overlays.
+
+Trusted/verified load:
+
+- trusted minimal load can produce `snapshot.blueId` without resolving;
+- verified minimal load detects mismatched `expectedBlueId`;
+- lazy materialization resolves only when `resolvedRoot` or `nodeAt` needs it;
+- resolved sidecar cache is ignored or rejected when it does not match the
+  minimal root / expected BlueId.
 
 ### Benchmarks
 
-- new `snapshot-patch` benchmark;
-- compare full resolve vs snapshot patch.
+Replace `snapshot-patch` placeholder with real snapshot benchmarks:
+
+- full resolve after patch baseline;
+- `resolveToSnapshot(authoring)`;
+- `loadSnapshotFromMinimal(...trusted-minimal, materialize: 'lazy')`;
+- `loadSnapshotFromMinimal(...verify, materialize: 'lazy')`;
+- `loadSnapshotFromMinimal(...verify, materialize: 'eager')`;
+- leaf patch on snapshot;
+- no-op patch where effective resolved value is unchanged;
+- append-only list patch with valid `$previous` / list-fold cache;
+- inherited-field override patch;
+- patch that forces generalization, if Phase 4 implementation is already in
+  the benchmark branch.
+
+Each benchmark should record time plus structural counters: clone/copy count,
+recomputed hash count, resolved/materialized node count, provider fetch count,
+and whether a full resolve/minimize fallback occurred.
 
 ### Natural PR Split
 
-- PR-3A: snapshot core + freeze;
-- PR-3B: lazy caches + path index;
-- PR-3C: patch/update API + benchmark.
+- PR-3A: frozen node + `ResolvedSnapshot` core + compatibility bridge;
+- PR-3B: minimal storage loader, trusted/verified load modes, serialization
+  round-trip tests;
+- PR-3C: lazy caches, path index, `nodeAt` helpers;
+- PR-3D: path-local patch/update API + benchmark replacement.
 
----
-
-## Phase 4 - Final Cleanup
+## Phase 4 - Snapshot Patch, Generalization, DP Integration, Final Cleanup
 
 ### Goal
 
-Remove the remaining transitional semantics after direct cycles and snapshots.
+Make snapshots the practical runtime model for `document-processor`, and close
+what the research called Patch + Generalization + Incremental Update. Final
+cleanup should happen after this, not instead of it.
+
+Phase 4 should leave the codebase with no need to infer dynamic generalization
+rules from `blue-language-spec-review.md`.
 
 ### Implementation
 
+#### 4A. Snapshot patch semantics
+
+`SnapshotEditor` / `blue.applyPatch(snapshot, patch)` must update both:
+
+- the frozen resolved runtime view; and
+- the minimal overlay that will be persisted and hashed.
+
+Rules:
+
+- Normalize patch op names used by current DP (`ADD`, `REPLACE`, `REMOVE`) and
+  language utilities (`add`, `replace`, `remove`).
+- Document root replacement policy explicitly. If root replacement remains
+  unsupported, tests must assert it.
+- `REPLACE` existing path updates the override.
+- `REPLACE` missing path is either an error or treated as `ADD`; pick one and
+  document it.
+- `ADD` missing path creates an override.
+- `ADD` existing path is either an error or treated as `REPLACE`; pick one and
+  document it.
+- `REMOVE` existing overridden path removes the override; if an inherited value
+  exists underneath, the effective resolved value reappears.
+- `REMOVE` missing path is either no-op or error; pick one and document it.
+- A patch whose new effective value is semantically equal to the current
+  effective resolved value is a no-op and must not create a redundant minimal
+  override.
+- If an override becomes equal to inherited value after a patch, remove it from
+  minimal overlay immediately.
+- Compare effective equality by semantic hash or normalized content, not object
+  identity.
+
+#### 4B. Type mutation and generalization
+
+Patch attempts under `/.../type/*` are forbidden. A patch may replace
+`/.../type` only when it is an explicit generalization direction already allowed
+by the type chain.
+
+When a patch violates current type invariants:
+
+1. Apply the patch to a tentative persistent copy.
+2. Validate the deepest modified node against fixed values, schema constraints,
+   type compatibility, item/key/value type compatibility, and list policy.
+3. If invalid, climb the current type chain until the node conforms.
+4. Update the minimal overlay's `type` reference to the selected generalized
+   type.
+5. Re-validate the parent, then repeat upward to the root.
+6. If no conforming type exists or parent obligations still fail, reject the
+   patch and keep the original snapshot unchanged.
+7. Recompute only touched hashes and ancestors.
+
+The minimal overlay must reflect the result:
+
+- store new override values only where they differ from inherited state;
+- remove redundant overrides immediately;
+- replace type references only when the snapshot truly generalized;
+- preserve instance-level name/description;
+- never remove instance-fixed values that are not derivable from the type chain.
+
+#### 4C. Lists
+
+Implement list patch behavior against the already-finished list-control rules:
+
+- append-only lists allow appends and reject edits/removals/reorders of the
+  inherited prefix;
+- positional lists allow `$pos` refinement of inherited indices and appends
+  after overlays;
+- duplicate/out-of-range `$pos` fails;
+- malformed or non-first `$previous` fails;
+- `$empty: true` remains content;
+- append-only list patches should use the list fold / `$previous` cache so
+  append can be `O(delta)` when the prefix is valid;
+- replace/remove in the middle may be `O(n)` initially unless a later Merkle-list
+  optimization is added, but this must be explicit in docs and benchmarks.
+
+#### 4D. Document processor integration
+
+Migrate `document-processor` so runtime mutation goes through snapshots:
+
+- `DocumentProcessingRuntime` holds a `ResolvedSnapshot` or snapshot-backed
+  working document, not only a mutable `BlueNode` root;
+- `document()` / `documentAt()` remain compatibility APIs but return clones or
+  read-only views, never mutable shared snapshot internals;
+- `applyPatch` returns before/after values and cascade scopes as today, but the
+  committed state is a new snapshot;
+- `directWrite` is either mapped to snapshot patch semantics or explicitly kept
+  as a legacy/test-only bridge scheduled for removal;
+- gas accounting for document snapshots should charge against serialized
+  minimal or resolved view consistently and document which one is used;
+- emitted events and checkpoint data that serialize nodes through
+  `nodeToJsonValue`/`Blue.nodeToJson(...)` must rehydrate through
+  `jsonValueToNode` and load through snapshot APIs without losing BlueId.
+
+#### 4E. Transport / webhook shape
+
+If runtime output currently expands huge resolved graphs, switch transport to a
+minimal-first envelope:
+
+```ts
+{
+  rootBlueId: string;
+  minimal: JsonBlueValue;
+  bundle?: Record<string, JsonBlueValue>;
+  blueIdsByPointer?: Record<string, string>;
+  resolved?: JsonBlueValue; // debug only, off by default
+}
+```
+
+Rules:
+
+- `minimal` is the persisted/verifiable content;
+- `bundle` contains referenced nodes needed by consumers;
+- `resolved` is never authoritative and should be debug-only;
+- root identity is stored in the envelope, not as the node's own `blueId`.
+
+#### 4F. Final cleanup
+
+Only after snapshot patch/generalization and DP integration:
+
 - remove legacy list marker code path;
 - remove old implicit shortcuts;
-- finalize docs.
+- remove or quarantine mutable patch paths that bypass snapshot semantics;
+- remove remaining normal-path uses of raw `BlueIdCalculator` in DP/runtime;
+- finalize docs and benchmark gates.
+
+### Tests
+
+Patch/generalization case coverage:
+
+- patch target exists vs missing for ADD/REPLACE/REMOVE;
+- no-op patch when effective resolved value is unchanged;
+- inherited field patched to same value does not create override;
+- inherited field patched to different value creates minimal override;
+- overridden field patched back to inherited value removes override;
+- fixed-value invariant violation triggers valid generalization or fails;
+- schema violation triggers valid generalization or fails;
+- parent obligations are revalidated after child generalization;
+- `/type/*` mutation is rejected;
+- `/type` replacement only allows documented generalization direction;
+- append-only list append succeeds and uses local hash/list fold path;
+- append-only prefix edit/remove/reorder fails;
+- positional `$pos` refinement succeeds and duplicate/out-of-range fails;
+- middle list replacement/removal behavior is documented and tested;
+- old snapshot remains unchanged after every accepted and rejected patch.
+
+DP integration tests:
+
+- `DocumentProcessingRuntime.applyPatch` commits a new snapshot;
+- `documentAt()` returns a clone/read-only value and cannot mutate committed
+  state;
+- before/after patch results match current DP behavior;
+- emitted/checkpointed nodes serialize through `nodeToJsonValue`/`Blue.nodeToJson(...)`,
+  rehydrate through `jsonValueToNode`, and preserve snapshot BlueId when loaded;
+- huge resolved payloads are not emitted unless debug `resolved` output is
+  explicitly enabled.
+
+### Benchmarks
+
+- snapshot patch vs full resolve for leaf object path;
+- inherited-field no-op patch;
+- inherited-field override patch;
+- override removal patch;
+- valid generalization patch;
+- failed generalization rollback;
+- append-only list append with valid `$previous`;
+- positional list `$pos` patch;
+- DP `applyPatch` end-to-end with snapshot state.
 
 ### Phase 4 Exit Criteria
 
-After this phase, `libs/language` is ready to be the base for the rest of the
-monorepo and to ship as a major breaking change.
+- `document-processor` can run on snapshot-backed state without mutable shared
+  resolved trees.
+- Snapshot patching maintains minimal overlay, resolved view, and semantic
+  BlueId consistently.
+- Generalization behavior is implemented, tested, and documented.
+- Stored minimal JSON round-trips through `nodeToJsonValue`/`Blue.nodeToJson(...)`
+  and `jsonValueToNode` into snapshot load without semantic BlueId drift.
+- Public semantic `Blue.calculateBlueId*` remains safe and does not silently
+  trust arbitrary minimal-looking authoring input.
+- Trusted/verified snapshot load paths are available for database/provider
+  reads that are already minimal-first.
+- `libs/language` and relevant `document-processor` tests pass.
+- Snapshot benchmarks prove local rehash/update behavior and no uncontrolled
+  full-resolve fallback on the main patch paths.
 
 ### Natural PR Split
 
-- PR-4A: cleanup + final docs.
+- PR-4A: snapshot patch semantics and case coverage;
+- PR-4B: type generalization algorithm;
+- PR-4C: list patch/hash integration;
+- PR-4D: document-processor snapshot-backed runtime;
+- PR-4E: transport envelope + final cleanup docs.
 
 ## 4. Integration Test Examples
 
@@ -1474,9 +1842,7 @@ entries:
   items: [A, B]
 `);
 
-  const prevId = blue.calculateBlueIdSync(
-    (blue.get(parent, '/entries') as BlueNode).getItems() ?? [],
-  );
+  const prevId = blue.calculateBlueIdSync((blue.get(parent, '/entries') as BlueNode).getItems() ?? []);
 
   const delta = blue.yamlToNode(`
 entries:
@@ -1599,7 +1965,53 @@ The remaining direction is: first keep identity, storage, and direct cyclic
 
 ## 6. Follow-Up Improvements
 
-### 6.1 Repository Generator Direct Cyclic Source Files
+These are not required to prove Phase 3/4 correctness, but they are the most
+likely performance wins and repository ergonomics follow-ups after semantic
+identity is correct.
+
+### 6.1 Snapshot / Storage Performance Follow-Ups
+
+1. **Trusted minimal hash / load API.** Add an explicit API for content that was
+   already persisted as minimal overlay by this runtime. It should validate
+   storage shape and use the trusted minimal hasher instead of public
+   `calculateBlueId*`, which intentionally resolves and minimizes arbitrary
+   authoring input.
+2. **Minimal-only snapshot mode.** Allow database/provider reads to create a
+   snapshot with `minimalRoot` and `blueId` immediately, while materializing
+   `resolvedRoot` lazily. This helps code paths that only need identity,
+   transport, or storage verification.
+3. **Resolved sidecar cache.** Optionally persist a resolved view beside the
+   minimal overlay as a non-authoritative cache. On read, rehydrate both through
+   `jsonValueToNode`; verify against the minimal root / expected BlueId when
+   requested; never let the sidecar change identity.
+4. **Provider-resolved type interning.** Cache frozen resolved type snapshots by
+   semantic BlueId/provider version. This targets the `resolve(shared)` win and
+   should reduce both time and allocations for repeated repository types.
+5. **Unique-type resolver counters.** Add benchmark counters for provider
+   fetches, type-chain resolutions, overlay merges, minimizer visits, and hash
+   recomputations. The `resolve(unique)` case has fewer clones but is still
+   slower, so clone count alone is not enough.
+6. **Incremental minimization.** During patching, update minimal overlay locally:
+   create overrides only when values differ from inherited state and remove
+   overrides as soon as they become redundant. Avoid full-tree minimization in
+   the normal patch path.
+7. **Append-only list fold cache.** Store list fold state in frozen list nodes so
+   valid appends can hash only the appended suffix. The serialized minimal node
+   must still round-trip through `nodeToJsonValue`/`Blue.nodeToJson(...)` and
+   `jsonValueToNode`; fold state is cache metadata, not Blue content.
+8. **Snapshot serialization envelope.** Standardize a storage envelope such as
+   `{ blueId, minimal, resolvedCache?, meta? }`. Only `minimal` is Blue content;
+   `blueId`, caches, and provider metadata are sidecars.
+9. **Benchmark trusted storage paths separately.** Add benchmark rows for:
+   public semantic authoring, trusted minimal hash, verified minimal load, lazy
+   snapshot load, eager snapshot load, and cached resolved sidecar load. This
+   will make the current semantic BlueId regressions easier to interpret.
+10. **Debug drift detector.** In development/test mode, occasionally recompute
+    `blue.calculateBlueIdSync(snapshot.resolvedRoot)` and compare it with
+    `snapshot.blueId` to catch cache bugs without putting full recomputation on
+    the hot path.
+
+### 6.2 Repository Generator Direct Cyclic Source Files
 
 Status: planned.
 
@@ -1637,6 +2049,6 @@ Acceptance:
 - generated repository content emits `contents[MASTER] = [...]`;
 - each named member alias maps to the canonical `MASTER#i` index;
 - regenerated output loads through `RepositoryBasedNodeProvider` and preserves
-  Direct Cycle lookup by both `MASTER#i` and generated aliases.
+  direct cycle lookup by both `MASTER#i` and generated aliases.
 
 [1]: https://language.blue/docs/reference/specification 'Blue Language Specification - language.blue docs'

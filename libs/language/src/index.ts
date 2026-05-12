@@ -15,8 +15,6 @@ export {
   Nodes,
   BasicNodeProvider,
   createNodeProvider,
-  reindexRepositoryForSemanticStorage,
-  validateRepositorySemanticStorage,
   SemanticIdentityService,
 
   // merge

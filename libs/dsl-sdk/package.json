@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/sdk-dsl",
-  "version": "4.0.0-rc.4",
+  "version": "4.0.1",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,8 +19,8 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "@blue-labs/document-processor": "4.0.0-rc.4",
-    "@blue-labs/language": "4.0.0-rc.4"
+    "@blue-labs/document-processor": "4.0.1",
+    "@blue-labs/language": "4.0.1"
   },
   "license": "MIT",
   "publishConfig": {
@@ -31,6 +31,6 @@
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
   "peerDependencies": {
-    "@blue-repository/types": ">=1.0.0-rc.0 <2"
+    "@blue-repository/types": ">=1.0.0 <2"
   }
 }
