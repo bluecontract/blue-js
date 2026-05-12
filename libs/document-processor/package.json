@@ -21,9 +21,9 @@
   "dependencies": {
     "@blue-labs/language": "4.0.1",
     "@blue-labs/shared-utils": "4.0.1",
-    "@blue-quickjs/abi-manifest": "0.4.1",
-    "@blue-quickjs/dv": "0.4.1",
-    "@blue-quickjs/quickjs-runtime": "0.4.1",
+    "@blue-quickjs/abi-manifest": "0.4.2-rc.0",
+    "@blue-quickjs/dv": "0.4.2-rc.0",
+    "@blue-quickjs/quickjs-runtime": "0.4.2-rc.0",
     "picomatch": "4.0.3"
   },
   "license": "MIT",

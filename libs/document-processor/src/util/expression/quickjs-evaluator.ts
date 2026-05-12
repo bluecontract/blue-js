@@ -9,6 +9,10 @@ import { DEFAULT_WASM_GAS_LIMIT } from './quickjs-config.js';
 import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 
 const HOST_CALL_UNITS = 1;
+export const WORKFLOW_DV_LIMITS = {
+  ...DV_LIMIT_DEFAULTS,
+  maxEncodedBytes: 16 * 1024 * 1024,
+} as const;
 
 type DocumentBinding = ((pointer?: unknown) => unknown) & {
   canonical?: (pointer?: unknown) => unknown;
@@ -107,6 +111,8 @@ export class QuickJSEvaluator {
         gasLimit,
         manifest: HOST_V1_MANIFEST,
         handlers: this.handlers,
+        dvLimits: WORKFLOW_DV_LIMITS,
+        outputDvLimits: WORKFLOW_DV_LIMITS,
       });
 
       if (wasmGasLimit !== undefined && onWasmGasUsed) {
@@ -218,7 +224,7 @@ function assertSupportedBindings(bindings: QuickJSBindings): void {
 function normalizeInputDv(value: unknown, fallback: DV, label: string): DV {
   const resolved = value === undefined ? fallback : value;
   try {
-    validateDv(resolved, { limits: DV_LIMIT_DEFAULTS });
+    validateDv(resolved, { limits: WORKFLOW_DV_LIMITS });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new TypeError(
