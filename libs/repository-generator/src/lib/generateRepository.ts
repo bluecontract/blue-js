@@ -4,7 +4,7 @@ import { discoverTypes } from './core/discovery';
 import {
   buildDependencyGraph,
   enforceStableToDevRule,
-  topoSort,
+  topoSortComponents,
 } from './core/graph';
 import { computeBlueIds } from './core/blueIds';
 import {
@@ -34,13 +34,15 @@ export function generateRepository(
   validateStableRemoval(discoveredTypes, previousTypes);
 
   const dependencyGraph = buildDependencyGraph(discoveredTypes);
-  const topologicalOrder = topoSort(dependencyGraph);
+  const componentOrder = topoSortComponents(dependencyGraph);
 
   enforceStableToDevRule(dependencyGraph, discoveredTypes);
 
   const { aliasToBlueId, aliasToStorageContent } = computeBlueIds(
-    topologicalOrder,
+    componentOrder,
     discoveredTypes,
+    dependencyGraph,
+    previousTypes,
   );
 
   const nextRepoVersionIndex = previous
@@ -56,7 +58,10 @@ export function generateRepository(
   });
 
   const packages = finalizePackages(packagesMap);
-  const currentRepoBlueId = computeRepoBlueId(packages);
+  const currentRepoBlueId =
+    previous && packagesAreUnchanged(previous.packages, packages)
+      ? (previous.repositoryVersions.at(-1) ?? computeRepoBlueId(packages))
+      : computeRepoBlueId(packages);
 
   const { document, changed } = composeRepositoryDocument(
     packages,
@@ -92,4 +97,11 @@ export function generateRepository(
     yaml,
     existingYaml,
   };
+}
+
+function packagesAreUnchanged(
+  previousPackages: GenerateRepositoryResult['document']['packages'],
+  currentPackages: GenerateRepositoryResult['document']['packages'],
+): boolean {
+  return JSON.stringify(previousPackages) === JSON.stringify(currentPackages);
 }
