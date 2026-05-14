@@ -1,3 +1,9 @@
+## 4.1.0 (2026-05-14)
+
+### 🚀 Features
+
+- cyclic types ([6a8f54b](https://github.com/bluecontract/blue-js/commit/6a8f54b))
+
 ## 4.0.2 (2026-05-14)
 
 ### 🚀 Features
