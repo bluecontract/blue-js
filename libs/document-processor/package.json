@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,8 +19,8 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "@blue-labs/language": "4.1.0",
-    "@blue-labs/shared-utils": "4.1.0",
+    "@blue-labs/language": "4.1.1",
+    "@blue-labs/shared-utils": "4.1.1",
     "@blue-quickjs/abi-manifest": "0.4.2",
     "@blue-quickjs/dv": "0.4.2",
     "@blue-quickjs/quickjs-runtime": "0.4.2",

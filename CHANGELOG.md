@@ -1,3 +1,9 @@
+## 4.1.1 (2026-05-14)
+
+### 🚀 Features
+
+- **deps:** bump blue-quickjs to 0.4.2 ([baa1597](https://github.com/bluecontract/blue-js/commit/baa1597))
+
 ## 4.1.0 (2026-05-14)
 
 ### 🚀 Features
