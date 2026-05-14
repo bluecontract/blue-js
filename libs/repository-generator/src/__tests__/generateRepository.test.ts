@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import yaml from 'js-yaml';
 import { Blue, createNodeProvider } from '@blue-labs/language';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import { generateRepository } from '../lib/generateRepository';
@@ -749,6 +750,74 @@ text:
     expect(second.yaml).toEqual(first.yaml);
   });
 
+  it('preserves published BlueIds and stored content for unchanged existing types', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Sandbox',
+      'Base.blue',
+      `
+name: Base
+text:
+  type: Text
+description: Saved order
+`,
+    );
+
+    const historicalTypeBlueId = '6CtkPkPVtmiQJJienGdzvZf2qGTRQntLXfh8PYeMfxBX';
+    const historicalRepoBlueId = 'sUk1iHFrf7UQXAMeQvWRyvYVxxStUjfARaE5e4EgDKv';
+    const previousYaml = yaml.dump(
+      {
+        name: 'Blue Repository',
+        packages: [
+          {
+            name: 'Sandbox',
+            types: [
+              {
+                status: 'stable',
+                content: {
+                  name: 'Base',
+                  description: 'Saved order',
+                  text: {
+                    type: {
+                      blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
+                    },
+                  },
+                },
+                versions: [
+                  {
+                    repositoryVersionIndex: 0,
+                    typeBlueId: historicalTypeBlueId,
+                    attributesAdded: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        repositoryVersions: [historicalRepoBlueId],
+      },
+      { lineWidth: -1 },
+    );
+    persistRepository(repoRoot, previousYaml);
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const typeMetadata = result.document.packages[0]?.types[0];
+
+    expect(result.changed).toBe(false);
+    expect(result.currentRepoBlueId).toBe(historicalRepoBlueId);
+    expect(result.yaml).toEqual(readRepositoryFile(repoRoot));
+    expect(typeMetadata?.versions[0]?.typeBlueId).toBe(historicalTypeBlueId);
+    expect(Object.keys(typeMetadata?.content ?? {})).toEqual([
+      'name',
+      'description',
+      'text',
+    ]);
+  });
+
   it('rejects breaking changes to stable types', () => {
     const repoRoot = createRepo();
     writeType(
@@ -1234,7 +1303,7 @@ feature:
     ).toThrow(/depends on a dev type/);
   });
 
-  it('detects circular dependencies', () => {
+  it('supports circular dependencies with combined BlueIds', () => {
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1257,12 +1326,97 @@ ref:
 `,
     );
 
-    expect(() =>
-      generateRepository({
-        repoRoot,
-        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
-      }),
-    ).toThrow(/Circular type dependency/);
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    const coreTypes =
+      result.document.packages.find((pkg) => pkg.name === 'Core')?.types ?? [];
+    const a = coreTypes.find(
+      (type) => (type.content as { name?: string }).name === 'A',
+    );
+    const b = coreTypes.find(
+      (type) => (type.content as { name?: string }).name === 'B',
+    );
+    const aBlueId = a?.versions.at(-1)?.typeBlueId;
+    const bBlueId = b?.versions.at(-1)?.typeBlueId;
+
+    if (!a || !b) {
+      throw new Error('Expected cyclic test types to be generated.');
+    }
+
+    expect(aBlueId).toBeDefined();
+    expect(bBlueId).toBeDefined();
+    expect(aBlueId).not.toEqual(bBlueId);
+
+    const [masterBlueIdA, aSuffix] = (aBlueId ?? '').split('#');
+    const [masterBlueIdB, bSuffix] = (bBlueId ?? '').split('#');
+    expect(masterBlueIdA).toEqual(masterBlueIdB);
+    expect(new Set([aSuffix, bSuffix])).toEqual(new Set(['0', '1']));
+
+    const aReference = (a?.content as { ref?: { type?: { blueId?: string } } })
+      .ref?.type?.blueId;
+    const bReference = (b?.content as { ref?: { type?: { blueId?: string } } })
+      .ref?.type?.blueId;
+    expect(aReference).toEqual(`this#${bSuffix}`);
+    expect(bReference).toEqual(`this#${aSuffix}`);
+
+    const sortedContent = [
+      { suffix: aSuffix, content: a.content },
+      { suffix: bSuffix, content: b.content },
+    ]
+      .sort((left, right) =>
+        String(left.suffix).localeCompare(String(right.suffix)),
+      )
+      .map((entry) => entry.content);
+
+    expect(new Blue().calculateBlueIdSync(sortedContent)).toEqual(
+      masterBlueIdA,
+    );
+  });
+
+  it('supports single-type self references', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'Node.blue',
+      `
+name: Node
+next:
+  type: Core/Node
+`,
+    );
+
+    const expectedMasterBlueId = new Blue().calculateBlueIdSync([
+      {
+        name: 'Node',
+        next: {
+          type: {
+            blueId: 'this#0',
+          },
+        },
+      },
+    ]);
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const node = result.document.packages
+      .find((pkg) => pkg.name === 'Core')
+      ?.types.find(
+        (type) => (type.content as { name?: string }).name === 'Node',
+      );
+
+    expect(node?.versions.at(-1)?.typeBlueId).toEqual(
+      `${expectedMasterBlueId}#0`,
+    );
+    expect(
+      (node?.content as { next?: { type?: { blueId?: string } } }).next?.type
+        ?.blueId,
+    ).toEqual('this#0');
   });
 
   it('rejects reserved value as an attribute declaration', () => {

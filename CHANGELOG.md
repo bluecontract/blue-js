@@ -1,3 +1,20 @@
+## 4.1.0 (2026-05-14)
+
+### 🚀 Features
+
+- cyclic types ([6a8f54b](https://github.com/bluecontract/blue-js/commit/6a8f54b))
+
+## 4.0.2 (2026-05-14)
+
+### 🚀 Features
+
+- **repository-generator:** support cyclic type dependencies by processing strongly connected type groups as direct cyclic document sets, assigning `MASTER#i` BlueIds, and storing internal references as `this#i`.
+- **language:** load repository content keyed as `MASTER#i` entries as one cyclic document set so repository-backed `this#i` references resolve correctly.
+
+### 🩹 Fixes
+
+- **repository-generator:** preserve published type and repository BlueIds for unchanged existing content, avoiding BlueId churn when current semantic hashing differs from historical repository metadata.
+
 ## 4.0.1 (2026-04-30)
 
 This was a version bump only, there were no code changes.
