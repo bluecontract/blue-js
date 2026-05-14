@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { encodeDv } from '@blue-quickjs/dv';
 
 import {
   QuickJSEvaluator,
+  WORKFLOW_DV_LIMITS,
   type QuickJSBindings,
 } from '../quickjs-evaluator.js';
 
@@ -124,6 +126,50 @@ describe('QuickJSEvaluator', () => {
     expect(result).toBe(12);
   });
 
+  it('returns workflow output just below the workflow DV cap', async () => {
+    const evaluator = new QuickJSEvaluator();
+    const payload = buildStringArrayPayload(
+      WORKFLOW_DV_LIMITS.maxEncodedBytes - 1,
+    );
+    const result = (await evaluator.evaluate({
+      code: buildStringArrayReturnCode(payload),
+      wasmGasLimit: 20_000_000n,
+    })) as string[];
+
+    expect(encodeDv(result, { limits: WORKFLOW_DV_LIMITS })).toHaveLength(
+      WORKFLOW_DV_LIMITS.maxEncodedBytes - 1,
+    );
+    expect(result).toHaveLength(payload.fullChunks + 1);
+  });
+
+  it('returns workflow output exactly at the workflow DV cap', async () => {
+    const evaluator = new QuickJSEvaluator();
+    const payload = buildStringArrayPayload(WORKFLOW_DV_LIMITS.maxEncodedBytes);
+    const result = (await evaluator.evaluate({
+      code: buildStringArrayReturnCode(payload),
+      wasmGasLimit: 20_000_000n,
+    })) as string[];
+
+    expect(encodeDv(result, { limits: WORKFLOW_DV_LIMITS })).toHaveLength(
+      WORKFLOW_DV_LIMITS.maxEncodedBytes,
+    );
+    expect(result).toHaveLength(payload.fullChunks + 1);
+  });
+
+  it('rejects workflow output just above the workflow DV cap', async () => {
+    const evaluator = new QuickJSEvaluator();
+    const payload = buildStringArrayPayload(
+      WORKFLOW_DV_LIMITS.maxEncodedBytes + 1,
+    );
+
+    await expect(
+      evaluator.evaluate({
+        code: buildStringArrayReturnCode(payload),
+        wasmGasLimit: 20_000_000n,
+      }),
+    ).rejects.toThrow(/encoded DV exceeds maxEncodedBytes/i);
+  });
+
   it('exposes current contract bindings to the evaluated code', async () => {
     const evaluator = new QuickJSEvaluator();
 
@@ -241,3 +287,86 @@ describe('QuickJSEvaluator', () => {
     ).rejects.toThrow(/emit binding must be a function/);
   });
 });
+
+const WORKFLOW_CHUNK_BYTES = 200_000;
+
+interface StringArrayPayload {
+  readonly fullChunks: number;
+  readonly finalBytes: number;
+}
+
+function buildStringArrayReturnCode(payload: StringArrayPayload): string {
+  return `
+    const chunks = Array.from(
+      { length: ${payload.fullChunks} },
+      () => 'x'.repeat(${WORKFLOW_CHUNK_BYTES})
+    );
+    chunks.push('x'.repeat(${payload.finalBytes}));
+    return chunks;
+  `;
+}
+
+function buildStringArrayPayload(
+  targetEncodedBytes: number,
+): StringArrayPayload {
+  for (let fullChunks = 0; fullChunks < 200; fullChunks += 1) {
+    const fullChunkBytes = fullChunks * cborStringBytes(WORKFLOW_CHUNK_BYTES);
+    for (const finalHeaderBytes of [1, 2, 3, 5]) {
+      const finalBytes =
+        targetEncodedBytes -
+        cborArrayHeaderBytes(fullChunks + 1) -
+        fullChunkBytes -
+        finalHeaderBytes;
+      if (
+        finalBytes >= 0 &&
+        finalBytes <= WORKFLOW_CHUNK_BYTES &&
+        cborStringHeaderBytes(finalBytes) === finalHeaderBytes
+      ) {
+        const candidate = [
+          ...Array.from({ length: fullChunks }, () =>
+            'x'.repeat(WORKFLOW_CHUNK_BYTES),
+          ),
+          'x'.repeat(finalBytes),
+        ];
+        if (
+          encodeDv(candidate, {
+            limits: {
+              ...WORKFLOW_DV_LIMITS,
+              maxEncodedBytes: WORKFLOW_DV_LIMITS.maxEncodedBytes * 2,
+            },
+          }).length === targetEncodedBytes
+        ) {
+          return { fullChunks, finalBytes };
+        }
+      }
+    }
+  }
+  throw new Error(`Unable to build payload for ${targetEncodedBytes} bytes`);
+}
+
+function cborArrayHeaderBytes(length: number): number {
+  if (length < 24) {
+    return 1;
+  }
+  if (length <= 0xff) {
+    return 2;
+  }
+  return 3;
+}
+
+function cborStringBytes(length: number): number {
+  return cborStringHeaderBytes(length) + length;
+}
+
+function cborStringHeaderBytes(length: number): number {
+  if (length < 24) {
+    return 1;
+  }
+  if (length <= 0xff) {
+    return 2;
+  }
+  if (length <= 0xffff) {
+    return 3;
+  }
+  return 5;
+}
