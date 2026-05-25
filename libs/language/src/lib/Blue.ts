@@ -240,6 +240,17 @@ export class Blue {
     return normalized;
   }
 
+  public jsonValueToNodeUnchecked(json: unknown) {
+    const preprocessed = this.preprocess(
+      NodeDeserializer.deserializeUnchecked(json),
+    );
+    const normalized = normalizeNodeBlueIds(
+      preprocessed,
+      this.repositoryRegistry,
+    );
+    return normalized;
+  }
+
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
     const preprocessed = await this.preprocessAsync(
       NodeDeserializer.deserialize(json),
@@ -259,6 +270,14 @@ export class Blue {
     return this.jsonValueToNode(json);
   }
 
+  public yamlToNodeUnchecked(yaml: string) {
+    const json = yamlBlueParse(yaml);
+    if (!json) {
+      throw new Error('Failed to parse YAML to JSON');
+    }
+    return this.jsonValueToNodeUnchecked(json);
+  }
+
   public async yamlToNodeAsync(yaml: string): Promise<BlueNode> {
     const json = yamlBlueParse(yaml);
     if (!json) {
@@ -275,13 +294,6 @@ export class Blue {
       (Array.isArray(value) && value.every((v) => v instanceof BlueNode))
     ) {
       return value;
-    }
-
-    if (Array.isArray(value)) {
-      const nodes = await Promise.all(
-        value.map((v) => this.jsonValueToNodeAsync(v)),
-      );
-      return nodes;
     }
 
     return this.jsonValueToNodeAsync(value);
@@ -305,10 +317,6 @@ export class Blue {
       (Array.isArray(value) && value.every((v) => v instanceof BlueNode))
     ) {
       return value;
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((v) => this.jsonValueToNode(v));
     }
 
     return this.jsonValueToNode(value);

@@ -1,0 +1,13 @@
+fixtureId: GAS-122
+title: Custom statementBase schedule applies
+tags: [gas]
+gasSchedule:
+  statementBase: 10
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $return: 1
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 13

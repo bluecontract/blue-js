@@ -1,0 +1,13 @@
+fixtureId: GAS-093
+title: Const expression charges expression base only
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  constants:
+    amount: 400
+  expr:
+    $const: amount
+expectation:
+  outcome: success
+  resultSimple: 400
+  gasUsed: 3

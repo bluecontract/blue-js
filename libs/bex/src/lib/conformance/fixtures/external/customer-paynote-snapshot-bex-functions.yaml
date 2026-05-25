@@ -1,0 +1,838 @@
+contracts:
+  processPackageCustomerPayNoteSnapshotResolved:
+    steps:
+    - name: ProcessPackageCustomerPayNoteSnapshotResolved
+      type: Blue/BEX Program
+      definition: packageFulfillmentBexDefinition
+      entry: processCustomerPayNoteSnapshotResolved
+      emitEvents: true
+      returnResult: true
+  packageFulfillmentBexDefinition:
+    type: Blue/BEX Definition
+    constants:
+      expectedPackageAmount: 100000
+      packageLinkedSubscriptionPrefix: 'package-linked:'
+      customerPayNoteSnapshotPrefix: 'snapshot:customer-paynote:'
+    functions:
+      emptyComponentOrderState:
+        do:
+        - $return:
+            sessionId: ''
+            documentId: ''
+            resaleRequestId: ''
+            resaleRequested: false
+            resalePlaced: false
+            snapshotRequestId: ''
+            subscriptionId: ''
+            attachedToPackageOrder: false
+            attachedToPayNote: false
+            merchantPaymentInitiated: false
+            confirmed: false
+      defaultOrderState:
+        args:
+          sessionId:
+            type: Text
+        do:
+        - $let:
+            name: sessionId
+            expr:
+              $text:
+                $var: sessionId
+        - $return:
+            packageOrder:
+              sessionId:
+                $var: sessionId
+              documentId: ''
+              customerAccountId: ''
+              subscriptionId:
+                $concat:
+                - $const: packageLinkedSubscriptionPrefix
+                - $var: sessionId
+              observed: false
+              confirmed: false
+            customerPayment:
+              tokenRequestId:
+                $concat:
+                - 'reseller-weekend-package-customer-token:'
+                - $var: sessionId
+              tokenRequested: false
+              tokenAttached: false
+            customerPayNote:
+              sessionId: ''
+              snapshotRequestId: ''
+              subscriptionId: ''
+              attachedToPackageOrder: false
+              secured: false
+              securedAmount: 0
+              completed: false
+            hotelOrder:
+              $call:
+                function: emptyComponentOrderState
+                args: {}
+            restaurantOrder:
+              $call:
+                function: emptyComponentOrderState
+                args: {}
+      isCustomerPackagePayNoteSnapshot:
+        args:
+          snapshot: {}
+        do:
+        - $return:
+            $eq:
+            - $text:
+                $pointerGet:
+                  object:
+                    $pointerGet:
+                      object:
+                        $object:
+                          $var: snapshot
+                      path: /context
+                      default: {}
+                  path: /paymentKind
+                  default: ''
+            - customer_package_purchase
+      ensureOrderLedger:
+        args:
+          sessionId:
+            type: Text
+        do:
+        - $let:
+            name: sessionId
+            expr:
+              $text:
+                $var: sessionId
+        - $if:
+            cond:
+              $empty:
+                $var: sessionId
+            then:
+            - $return: {}
+        - $let:
+            name: pkg
+            expr:
+              $resultValue:
+                path:
+                  $concat:
+                  - /orders/
+                  - $var: sessionId
+                  - /packageOrder
+        - $if:
+            cond:
+              $empty:
+                $object:
+                  $var: pkg
+            then:
+            - $appendChange:
+                op: add
+                path:
+                  $concat:
+                  - /orders/
+                  - $var: sessionId
+                val:
+                  $call:
+                    function: defaultOrderState
+                    args:
+                      sessionId:
+                        $var: sessionId
+        - $return: {}
+      orderFieldRelativePath:
+        args:
+          key:
+            type: Text
+        do:
+        - $return:
+            $pointerGet:
+              object:
+                packagePayNoteSessionId: /customerPayNote/sessionId
+                packagePayNoteAttached: /customerPayNote/attachedToPackageOrder
+                packagePayNoteSecured: /customerPayNote/secured
+                packagePayNoteSecuredAmount: /customerPayNote/securedAmount
+              path:
+                $concat:
+                - /
+                - $text:
+                    $var: key
+              default: ''
+      orderObjectFieldRelativePath:
+        args:
+          field:
+            type: Text
+          kind:
+            type: Text
+        do:
+        - $return:
+            $pointerGet:
+              object:
+                resaleOrderRequested:
+                  hotel: /hotelOrder/resaleRequested
+                  restaurant: /restaurantOrder/resaleRequested
+                resaleOrderRequestIds:
+                  hotel: /hotelOrder/resaleRequestId
+                  restaurant: /restaurantOrder/resaleRequestId
+              path:
+                $concat:
+                - /
+                - $text:
+                    $var: field
+                - /
+                - $text:
+                    $var: kind
+              default: ''
+      setOrderPath:
+        args:
+          sessionId:
+            type: Text
+          relativePath:
+            type: Text
+          val: {}
+        do:
+        - $let:
+            name: sessionId
+            expr:
+              $text:
+                $var: sessionId
+        - $if:
+            cond:
+              $empty:
+                $var: sessionId
+            then:
+            - $return: {}
+        - $call:
+            function: ensureOrderLedger
+            args:
+              sessionId:
+                $var: sessionId
+        - $let:
+            name: pathText
+            expr:
+              $concat:
+              - /orders/
+              - $var: sessionId
+              - $text:
+                  $var: relativePath
+        - $if:
+            cond:
+              $ne:
+              - $resultValue:
+                  path:
+                    $var: pathText
+              - $var: val
+            then:
+            - $appendChange:
+                op: add
+                path:
+                  $var: pathText
+                val:
+                  $var: val
+        - $return: {}
+      setOrderField:
+        args:
+          sessionId:
+            type: Text
+          key:
+            type: Text
+          val: {}
+        do:
+        - $let:
+            name: relativePath
+            expr:
+              $call:
+                function: orderFieldRelativePath
+                args:
+                  key:
+                    $var: key
+        - $if:
+            cond:
+              $not:
+                $empty:
+                  $var: relativePath
+            then:
+            - $call:
+                function: setOrderPath
+                args:
+                  sessionId:
+                    $var: sessionId
+                  relativePath:
+                    $var: relativePath
+                  val:
+                    $var: val
+        - $return: {}
+      mergeOrderObjectField:
+        args:
+          sessionId:
+            type: Text
+          key:
+            type: Text
+          patch: {}
+        do:
+        - $let:
+            name: sessionId
+            expr:
+              $text:
+                $var: sessionId
+        - $forEach:
+            in:
+              $entries:
+                $object:
+                  $var: patch
+            item: entry
+            do:
+            - $let:
+                name: kind
+                expr:
+                  $text:
+                    $pointerGet:
+                      object:
+                        $var: entry
+                      path: /key
+                      default: ''
+            - $let:
+                name: relativePath
+                expr:
+                  $call:
+                    function: orderObjectFieldRelativePath
+                    args:
+                      field:
+                        $var: key
+                      kind:
+                        $var: kind
+            - $if:
+                cond:
+                  $not:
+                    $empty:
+                      $var: relativePath
+                then:
+                - $call:
+                    function: setOrderPath
+                    args:
+                      sessionId:
+                        $var: sessionId
+                      relativePath:
+                        $var: relativePath
+                      val:
+                        $pointerGet:
+                          object:
+                            $var: entry
+                          path: /val
+        - $return: {}
+      markPackagePayNoteSecured:
+        args:
+          packageOrderSessionId:
+            type: Text
+          amountSecured: {}
+        do:
+        - $let:
+            name: packageOrderSessionId
+            expr:
+              $text:
+                $var: packageOrderSessionId
+        - $let:
+            name: normalizedAmount
+            expr:
+              $integer:
+                $coalesce:
+                - $var: amountSecured
+                - 0
+        - $if:
+            cond:
+              $or:
+              - $empty:
+                  $var: packageOrderSessionId
+              - $ne:
+                - $var: normalizedAmount
+                - $const: expectedPackageAmount
+            then:
+            - $return: {}
+        - $call:
+            function: setOrderField
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+              key: packagePayNoteSecured
+              val: true
+        - $call:
+            function: setOrderField
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+              key: packagePayNoteSecuredAmount
+              val:
+                $var: normalizedAmount
+        - $call:
+            function: placeResaleOrdersForOrder
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+        - $return: {}
+      markPackagePayNoteSecuredFromSnapshot:
+        args:
+          snapshot: {}
+        do:
+        - $if:
+            cond:
+              $not:
+                $call:
+                  function: isCustomerPackagePayNoteSnapshot
+                  args:
+                    snapshot:
+                      $var: snapshot
+            then:
+            - $return: {}
+        - $let:
+            name: context
+            expr:
+              $object:
+                $pointerGet:
+                  object:
+                    $object:
+                      $var: snapshot
+                  path: /context
+                  default: {}
+        - $let:
+            name: packageOrderDocumentId
+            expr:
+              $text:
+                $pointerGet:
+                  object:
+                    $var: context
+                  path: /packageOrderDocumentId
+                  default: ''
+        - $let:
+            name: packageOrderSessionId
+            expr:
+              $text:
+                $resultValue:
+                  path:
+                    $concat:
+                    - /packageOrderSessionByDocumentId/
+                    - $var: packageOrderDocumentId
+        - $let:
+            name: amount
+            expr:
+              $object:
+                $pointerGet:
+                  object:
+                    $object:
+                      $var: snapshot
+                  path: /amount
+                  default: {}
+        - $call:
+            function: markPackagePayNoteSecured
+            args:
+              packageOrderSessionId:
+                $var: packageOrderSessionId
+              amountSecured:
+                $integer:
+                  $pointerGet:
+                    object:
+                      $var: amount
+                    path: /secured
+                    default: 0
+        - $return: {}
+      processCustomerPayNoteInitialSnapshot:
+        args:
+          payNoteSessionId:
+            type: Text
+          snapshot: {}
+        do:
+        - $let:
+            name: payNoteSessionId
+            expr:
+              $text:
+                $var: payNoteSessionId
+        - $let:
+            name: snapshot
+            expr:
+              $object:
+                $var: snapshot
+        - $if:
+            cond:
+              $or:
+              - $empty:
+                  $var: payNoteSessionId
+              - $not:
+                  $call:
+                    function: isCustomerPackagePayNoteSnapshot
+                    args:
+                      snapshot:
+                        $var: snapshot
+            then:
+            - $return: {}
+        - $let:
+            name: context
+            expr:
+              $object:
+                $pointerGet:
+                  object:
+                    $var: snapshot
+                  path: /context
+                  default: {}
+        - $let:
+            name: packageOrderDocumentId
+            expr:
+              $text:
+                $pointerGet:
+                  object:
+                    $var: context
+                  path: /packageOrderDocumentId
+                  default: ''
+        - $let:
+            name: packageOrderSessionId
+            expr:
+              $text:
+                $resultValue:
+                  path:
+                    $concat:
+                    - /packageOrderSessionByDocumentId/
+                    - $var: packageOrderDocumentId
+        - $if:
+            cond:
+              $empty:
+                $var: packageOrderSessionId
+            then:
+            - $return: {}
+        - $call:
+            function: ensureOrderLedger
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+        - $let:
+            name: snapshotRequestId
+            expr:
+              $concat:
+              - $const: customerPayNoteSnapshotPrefix
+              - $var: payNoteSessionId
+        - $let:
+            name: subscriptionId
+            expr:
+              $concat:
+              - $const: packageLinkedSubscriptionPrefix
+              - $var: payNoteSessionId
+        - $appendChange:
+            op: add
+            path:
+              $concat:
+              - /customerPayNoteRefsBySessionId/
+              - $var: payNoteSessionId
+            val:
+              sessionId:
+                $var: payNoteSessionId
+              packageOrderSessionId:
+                $var: packageOrderSessionId
+              packageOrderDocumentId:
+                $var: packageOrderDocumentId
+              snapshotRequestId:
+                $var: snapshotRequestId
+              subscriptionId:
+                $var: subscriptionId
+        - $call:
+            function: setOrderField
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+              key: packagePayNoteSessionId
+              val:
+                $var: payNoteSessionId
+        - $call:
+            function: setOrderPath
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+              relativePath: /customerPayNote/snapshotRequestId
+              val:
+                $var: snapshotRequestId
+        - $call:
+            function: setOrderPath
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+              relativePath: /customerPayNote/subscriptionId
+              val:
+                $var: subscriptionId
+        - $call:
+            function: markPackagePayNoteSecuredFromSnapshot
+            args:
+              snapshot:
+                $var: snapshot
+        - $if:
+            cond:
+              $boolean:
+                $resultValue:
+                  path:
+                    $concat:
+                    - /orders/
+                    - $var: packageOrderSessionId
+                    - /customerPayNote/attachedToPackageOrder
+            then:
+            - $return: {}
+        - $call:
+            function: setOrderField
+            args:
+              sessionId:
+                $var: packageOrderSessionId
+              key: packagePayNoteAttached
+              val: true
+        - $appendEvent:
+            type: MyOS/Call Operation Requested
+            onBehalfOf: investorChannel
+            targetSessionId:
+              $var: packageOrderSessionId
+            operation: attachPayNote
+            request:
+              payNoteSessionId:
+                $var: payNoteSessionId
+              initialSnapshot:
+                $var: snapshot
+        - $return: {}
+      placeResaleOrdersForOrder:
+        args:
+          sessionId:
+            type: Text
+        do:
+        - $let:
+            name: sessionId
+            expr:
+              $text:
+                $var: sessionId
+        - $let:
+            name: orderDocumentId
+            expr:
+              $text:
+                $resultValue:
+                  path:
+                    $concat:
+                    - /orders/
+                    - $var: sessionId
+                    - /packageOrder/documentId
+        - $let:
+            name: customerAccountId
+            expr:
+              $text:
+                $resultValue:
+                  path:
+                    $concat:
+                    - /orders/
+                    - $var: sessionId
+                    - /packageOrder/customerAccountId
+        - $if:
+            cond:
+              $or:
+              - $empty:
+                  $var: sessionId
+              - $empty:
+                  $var: orderDocumentId
+              - $empty:
+                  $var: customerAccountId
+              - $not:
+                  $boolean:
+                    $resultValue:
+                      path:
+                        $concat:
+                        - /orders/
+                        - $var: sessionId
+                        - /customerPayNote/secured
+            then:
+            - $return: {}
+        - $call:
+            function: placeOneResaleOrder
+            args:
+              sessionId:
+                $var: sessionId
+              kind: hotel
+              agreementSessionId:
+                $document: /hotelAgreementSessionId
+              ready:
+                $boolean:
+                  $resultValue: /state/hotelAgreementSubscriptionReady
+              entitlement:
+                title: Weekend room
+                description: Two-night weekend stay.
+        - $call:
+            function: placeOneResaleOrder
+            args:
+              sessionId:
+                $var: sessionId
+              kind: restaurant
+              agreementSessionId:
+                $document: /restaurantAgreementSessionId
+              ready:
+                $boolean:
+                  $resultValue: /state/restaurantAgreementSubscriptionReady
+              entitlement:
+                title: Two-dish dinner with selected wines
+                description: Dinner menu with selected wines.
+        - $return: {}
+      placeOneResaleOrder:
+        args:
+          sessionId:
+            type: Text
+          kind:
+            type: Text
+          agreementSessionId:
+            type: Text
+          ready:
+            type: Boolean
+          entitlement: {}
+        do:
+        - $let:
+            name: sessionId
+            expr:
+              $text:
+                $var: sessionId
+        - $let:
+            name: kind
+            expr:
+              $text:
+                $var: kind
+        - $let:
+            name: agreementSessionId
+            expr:
+              $text:
+                $var: agreementSessionId
+        - $let:
+            name: ready
+            expr:
+              $boolean:
+                $var: ready
+        - $let:
+            name: requestId
+            expr:
+              $concat:
+              - 'resale:'
+              - $var: sessionId
+              - ':'
+              - $var: kind
+        - $if:
+            cond:
+              $or:
+              - $empty:
+                  $var: agreementSessionId
+              - $not:
+                  $var: ready
+              - $not:
+                  $empty:
+                    $text:
+                      $resultValue:
+                        path:
+                          $concat:
+                          - /resaleOrderRequests/
+                          - $var: requestId
+                          - /kind
+            then:
+            - $return: {}
+        - $appendChange:
+            op: add
+            path:
+              $concat:
+              - /resaleOrderRequests/
+              - $var: requestId
+            val:
+              status: requested
+              agreementSessionId:
+                $var: agreementSessionId
+              kind:
+                $var: kind
+              packageOrderSessionId:
+                $var: sessionId
+              orderSessionId: ''
+        - $call:
+            function: mergeOrderObjectField
+            args:
+              sessionId:
+                $var: sessionId
+              key: resaleOrderRequested
+              patch:
+                $objectSet:
+                  object: {}
+                  key:
+                    $var: kind
+                  val: true
+        - $call:
+            function: mergeOrderObjectField
+            args:
+              sessionId:
+                $var: sessionId
+              key: resaleOrderRequestIds
+              patch:
+                $objectSet:
+                  object: {}
+                  key:
+                    $var: kind
+                  val:
+                    $var: requestId
+        - $appendEvent:
+            type: MyOS/Call Operation Requested
+            onBehalfOf: investorChannel
+            targetSessionId:
+              $var: agreementSessionId
+            operation: placeResaleOrder
+            request:
+              requestId:
+                $var: requestId
+              customerLabel: Customer A
+              customerAccountId:
+                $text:
+                  $resultValue:
+                    path:
+                      $concat:
+                      - /orders/
+                      - $var: sessionId
+                      - /packageOrder/customerAccountId
+              packageOrderDocumentId:
+                $text:
+                  $resultValue:
+                    path:
+                      $concat:
+                      - /orders/
+                      - $var: sessionId
+                      - /packageOrder/documentId
+              orderKind:
+                $var: kind
+              entitlement:
+                $var: entitlement
+        - $return: {}
+      processCustomerPayNoteSnapshotResolved:
+        do:
+        - $let:
+            name: snapshotRequestId
+            expr:
+              $text:
+                $coalesce:
+                - $event: /inResponseTo/requestId
+                - $event: /requestId
+        - $if:
+            cond:
+              $startsWith:
+              - $var: snapshotRequestId
+              - $const: customerPayNoteSnapshotPrefix
+            then:
+            - $call:
+                function: processCustomerPayNoteInitialSnapshot
+                args:
+                  payNoteSessionId:
+                    $sliceAfter:
+                    - $var: snapshotRequestId
+                    - $const: customerPayNoteSnapshotPrefix
+                  snapshot:
+                    $event: /document
+        - $return:
+            changeset:
+              $changeset: true
+            events:
+              $events: true
+hotelAgreementSessionId: hotel-agreement-session
+restaurantAgreementSessionId: restaurant-agreement-session
+packageOrderSessionByDocumentId:
+  zzimVxhnKLL5SwMkS9kmF8p5g7pyxPWBu664HxGbszB: package-order-a
+orders:
+  package-order-a:
+    packageOrder:
+      documentId: zzimVxhnKLL5SwMkS9kmF8p5g7pyxPWBu664HxGbszB
+      customerAccountId: customer-a-uid
+    customerPayNote:
+      secured: false
+      securedAmount: 0
+      attachedToPackageOrder: false
+state:
+  hotelAgreementSubscriptionReady: true
+  restaurantAgreementSubscriptionReady: true

@@ -15,6 +15,9 @@
     },
     {
       "path": "../language/tsconfig.lib.json"
+    },
+    {
+      "path": "../bex/tsconfig.lib.json"
     }
   ],
   "exclude": [

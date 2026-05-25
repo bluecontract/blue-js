@@ -183,7 +183,6 @@ describe('SequentialWorkflowOperationProcessor', () => {
     const result = await expectOk(
       processor.processDocument(init.document.clone(), event),
     );
-
     const counterNode = property(result.document, 'counter');
     expect(numericValue(counterNode)).toBe(5);
     expect(result.triggeredEvents.length).toBe(0);
@@ -579,16 +578,18 @@ itemType:
       processor.initializeDocument(buildOperationDocument()),
     );
     const storedBlueId = storedDocumentBlueId(init.document);
+    const staleButValidBlueId =
+      conversationBlueIds['Conversation/Chat Message'];
     const event = operationRequestEvent({
       request: 3,
       allowNewerVersion: false,
-      documentBlueId: `${storedBlueId}-stale`,
+      documentBlueId: staleButValidBlueId,
     });
     const eventDocument = property(property(event, 'message'), 'document');
     const docJson = blue.nodeToJson(eventDocument) as {
       blueId?: unknown;
     };
-    expect(docJson.blueId).toBe(`${storedBlueId}-stale`);
+    expect(docJson.blueId).toBe(staleButValidBlueId);
 
     const result = await expectOk(
       processor.processDocument(init.document.clone(), event),

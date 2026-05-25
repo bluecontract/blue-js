@@ -81,7 +81,7 @@ export class JavaScriptCodeStepExecutor implements SequentialWorkflowStepExecuto
       return;
     }
     for (const event of maybeContainer.events) {
-      const eventNode = context.blue.jsonValueToNode(event);
+      const eventNode = context.blue.jsonValueToNodeUnchecked(event);
       context.emitEvent(eventNode);
     }
   }

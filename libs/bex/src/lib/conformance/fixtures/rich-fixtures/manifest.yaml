@@ -1,0 +1,15 @@
+suiteName: blue-bex-rich-fixtures
+version: 1
+fixtureRoot: src/test/resources/rich-fixtures
+fixtureFileExtension: .yaml
+directories:
+  current: required
+  parse-errors: required
+  gas: required
+gasModel: docs/GAS.md
+fixtureFormat: docs/FIXTURES.md
+counts:
+  current: 51
+  parseErrors: 3
+  gas: 101
+  totalFixtures: 155

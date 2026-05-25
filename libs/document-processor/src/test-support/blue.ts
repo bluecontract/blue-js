@@ -4,6 +4,7 @@ import type { BlueRepository } from '@blue-labs/language';
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 import {
   blueIds as semanticBlueIds,
+  conversationBlueIds,
   blueRepository,
 } from '../repository/semantic-repository.js';
 
@@ -45,7 +46,10 @@ const buildFallbackEntries = () => {
   });
 };
 
-const fallbackEntries = buildFallbackEntries();
+const fallbackEntries = [
+  ...buildFallbackEntries(),
+  ...buildConversationComputeEntries(),
+];
 const fallbackBlueIdMap = Object.fromEntries(
   fallbackEntries.map(({ name, blueId }) => [name, blueId]),
 );
@@ -80,11 +84,43 @@ const testFallbackRepository: BlueRepository = {
   },
 };
 
+function buildConversationComputeEntries() {
+  return [
+    {
+      name: 'Conversation/Compute',
+      blueId: conversationBlueIds['Conversation/Compute'],
+      json: {
+        type: {
+          blueId: conversationBlueIds['Conversation/Sequential Workflow Step'],
+        },
+      },
+    },
+    {
+      name: 'Conversation/Compute Definition',
+      blueId: conversationBlueIds['Conversation/Compute Definition'],
+      json: {
+        type: { blueId: semanticBlueIds['Core/Marker'] },
+      },
+    },
+  ];
+}
+
 export function createBlue(): Blue {
-  return new Blue({
-    repositories: [blueRepository, testFallbackRepository],
-    mergingProcessor: createDefaultMergingProcessor(),
+  return registerConversationComputeAliases(
+    new Blue({
+      repositories: [blueRepository, testFallbackRepository],
+      mergingProcessor: createDefaultMergingProcessor(),
+    }),
+  );
+}
+
+function registerConversationComputeAliases(blue: Blue): Blue {
+  blue.registerBlueIds({
+    'Conversation/Compute': conversationBlueIds['Conversation/Compute'],
+    'Conversation/Compute Definition':
+      conversationBlueIds['Conversation/Compute Definition'],
   });
+  return blue;
 }
 
 export function createBlueWithDerivedTypes(
@@ -98,10 +134,12 @@ export function createBlueWithDerivedTypes(
   });
 
   const derivedRepository = buildDerivedTestRepository(types);
-  const blue = new Blue({
-    repositories: [blueRepository, testFallbackRepository, derivedRepository],
-    mergingProcessor: createDefaultMergingProcessor(),
-  });
+  const blue = registerConversationComputeAliases(
+    new Blue({
+      repositories: [blueRepository, testFallbackRepository, derivedRepository],
+      mergingProcessor: createDefaultMergingProcessor(),
+    }),
+  );
 
   for (const { name, blueId } of types) {
     blue.registerBlueIds({ [name]: blueId });

@@ -1,0 +1,15 @@
+fixtureId: GAS-016
+title: Variable read charges varRead
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $let:
+        name: x
+        expr: 1
+    - $return:
+        $var: x
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 7

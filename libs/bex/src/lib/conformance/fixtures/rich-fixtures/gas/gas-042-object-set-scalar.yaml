@@ -1,0 +1,15 @@
+fixtureId: GAS-042
+title: Object set charges value size and object expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $objectSet:
+      object: {}
+      key: a
+      val: x
+expectation:
+  outcome: success
+  resultSimple:
+    a: x
+  gasUsed: 8

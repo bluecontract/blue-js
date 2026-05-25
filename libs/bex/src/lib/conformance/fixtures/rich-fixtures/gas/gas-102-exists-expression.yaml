@@ -1,0 +1,12 @@
+fixtureId: GAS-102
+title: Exists charges evaluated operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $exists:
+      $document: /missing
+expectation:
+  outcome: success
+  resultSimple: false
+  gasUsed: 6

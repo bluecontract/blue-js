@@ -1,0 +1,90 @@
+fixtureId: BEX-NEXT-004
+title: $forEach exposes object key and item value separately
+targetStatus: current-pass
+tags:
+- $forEach
+- patches
+context:
+  documentScope: /
+  rootDocumentSource: |
+    status: pending
+    count: 5
+    amount:
+      expectedTotal: 49900
+      secured: 49900
+      completed: 0
+    hotelName: Hotel Badura
+    restaurantName: Restauracja Cud Malina
+    hotelOrder:
+      status: pending
+      amount: 40000
+      hotelName: Hotel Badura
+    restaurantOrder:
+      status: pending
+      amount: 25000
+    orders:
+      abc/def~ghi:
+        status: pending
+      ORD-1:
+        status: pending
+      ORD-2:
+        status: pending
+    contracts:
+      current:
+        status: scoped-status
+        channel:
+          name: scoped-channel
+  eventSource: |
+    message:
+      request:
+        ordersById:
+          ORD-1:
+            amount: 100
+          ORD-2:
+            amount: 200
+  currentContractSource: |
+    channel:
+      name: hotel-channel
+    limits:
+      maxAmount: 50000
+  stepsBinding:
+    Build:
+      changeset:
+      - op: replace
+        path: /status
+        val: built
+      events:
+      - eventKind: Built
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $forEach:
+        in:
+          $event: /message/request/ordersById
+        key: orderId
+        item: order
+        do:
+          - $appendChange:
+              op: replace
+              path:
+                $pointerJoin:
+                  - orders
+                  - $var: orderId
+                  - amount
+              val:
+                $get:
+                  object:
+                    $var: order
+                  key: amount
+    - $return:
+        changes:
+          $changeset: true
+expectation:
+  outcome: success
+  changeset:
+  - op: replace
+    path: /orders/ORD-1/amount
+    val: 100
+  - op: replace
+    path: /orders/ORD-2/amount
+    val: 200

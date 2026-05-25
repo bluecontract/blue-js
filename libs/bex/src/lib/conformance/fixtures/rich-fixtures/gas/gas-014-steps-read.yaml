@@ -1,0 +1,15 @@
+fixtureId: GAS-014
+title: Steps read charges stepsRead
+tags: [gas]
+context:
+  stepsBinding:
+    Build:
+      value: 7
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $steps: Build.value
+expectation:
+  outcome: success
+  resultSimple: 7
+  gasUsed: 4

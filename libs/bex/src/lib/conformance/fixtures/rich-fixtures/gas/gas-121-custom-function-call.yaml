@@ -1,0 +1,12 @@
+fixtureId: GAS-121
+title: Custom functionCall schedule applies
+tags: [gas]
+gasSchedule:
+  functionCall: 10
+programSource: |
+  type: Blue/BEX Program
+  expr: 1
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 11

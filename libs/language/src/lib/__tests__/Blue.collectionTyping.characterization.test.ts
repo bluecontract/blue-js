@@ -16,7 +16,7 @@ function inspectRoundTrip(blue: Blue, value: unknown) {
   const resolved = blue.resolve(blue.jsonValueToNode(value));
   const resolvedType = resolved.getType();
   const simple = blue.nodeToJson(resolved, 'simple');
-  const roundTripped = blue.jsonValueToNode(simple);
+  const roundTripped = blue.jsonValueToNodeUnchecked(simple);
   const roundTrippedType = roundTripped.getType?.();
 
   return {

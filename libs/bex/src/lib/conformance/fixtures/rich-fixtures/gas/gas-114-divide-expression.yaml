@@ -1,0 +1,14 @@
+fixtureId: GAS-114
+title: Divide charges each operand
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $divide:
+      - 8
+      - 2
+      - 2
+expectation:
+  outcome: success
+  resultSimple: 2
+  gasUsed: 6

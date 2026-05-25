@@ -1,0 +1,15 @@
+fixtureId: GAS-061
+title: Call statement charges statement and call expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  functions:
+    f:
+      expr: 1
+  do:
+    - $call:
+        function: f
+        args: {}
+expectation:
+  outcome: success
+  gasUsed: 7

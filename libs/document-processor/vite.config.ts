@@ -1,15 +1,29 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
 
 // @ts-expect-error - This is a valid import.
 import packageJson from './package.json';
 
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/document-processor',
+  resolve:
+    mode === 'test'
+      ? {
+          alias: {
+            '@blue-labs/bex': path.resolve(__dirname, '../bex/src/index.ts'),
+            '@blue-labs/language': path.resolve(
+              __dirname,
+              '../language/src/index.ts',
+            ),
+          },
+        }
+      : undefined,
   plugins: [
+    nxViteTsPaths(),
     dts({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),

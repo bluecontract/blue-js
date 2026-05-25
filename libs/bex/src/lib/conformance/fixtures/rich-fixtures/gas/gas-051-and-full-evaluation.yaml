@@ -1,0 +1,16 @@
+fixtureId: GAS-051
+title: And charges later operand when earlier operand is truthy
+tags: [gas]
+context:
+  rootDocumentSource: |
+    status: confirmed
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $and:
+      - true
+      - $document: /status
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 7

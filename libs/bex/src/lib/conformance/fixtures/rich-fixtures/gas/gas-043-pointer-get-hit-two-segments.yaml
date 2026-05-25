@@ -1,0 +1,15 @@
+fixtureId: GAS-043
+title: Pointer get charges base and path segment count
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $pointerGet:
+      object:
+        a:
+          b: 1
+      path: a/b
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 7

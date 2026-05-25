@@ -1,0 +1,17 @@
+fixtureId: GAS-030
+title: Entries charges object operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $entries:
+      a: 1
+      b: 2
+expectation:
+  outcome: success
+  resultSimple:
+    - key: a
+      val: 1
+    - key: b
+      val: 2
+  gasUsed: 4

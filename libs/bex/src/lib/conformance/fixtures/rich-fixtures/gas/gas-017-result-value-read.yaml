@@ -1,0 +1,14 @@
+fixtureId: GAS-017
+title: Result value read charges resultValueRead
+tags: [gas]
+context:
+  rootDocumentSource: |
+    status: pending
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $resultValue: /status
+expectation:
+  outcome: success
+  resultSimple: pending
+  gasUsed: 5

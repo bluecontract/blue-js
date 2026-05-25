@@ -229,7 +229,7 @@ function isSubtypeUncached(
   if (subtypeRefBlueId) {
     const fetched = nodeProvider.fetchByBlueId(subtypeRefBlueId);
     if (fetched && fetched.length === 1) {
-      resolvedSubtype = fetched[0];
+      resolvedSubtype = fetched[0].cloneShallow().setBlueId(subtypeRefBlueId);
     }
   }
 

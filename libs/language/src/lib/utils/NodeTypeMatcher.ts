@@ -26,35 +26,32 @@ export class NodeTypeMatcher {
     targetType: BlueNode,
     globalLimits: Limits = NO_LIMITS,
   ): boolean {
-    // Derive path limits from the target type structure
-    const pathLimits = PathLimits.fromNode(targetType);
-    const compositeLimits = CompositeLimits.of(globalLimits, pathLimits);
-
-    let resolvedNode: BlueNode;
-    let resolvedType: BlueNode;
     try {
-      resolvedNode = this.extendAndResolve(node, compositeLimits);
-      resolvedType = this.blue.resolve(targetType, compositeLimits);
+      // Derive path limits from the target type structure
+      const pathLimits = PathLimits.fromNode(targetType);
+      const compositeLimits = CompositeLimits.of(globalLimits, pathLimits);
+      const resolvedNode = this.extendAndResolve(node, compositeLimits);
+      const resolvedType = this.blue.resolve(targetType, compositeLimits);
+      const comparisonTargetType =
+        this.expandSchemaOwnedTypeReferences(targetType);
+
+      const valuesMatch = this.recursiveValueComparison(
+        resolvedNode,
+        resolvedType,
+        comparisonTargetType,
+        compositeLimits,
+      );
+      if (!valuesMatch) {
+        return false;
+      }
+
+      return (
+        this.verifyMatch(resolvedNode, targetType, compositeLimits) ||
+        targetType.getType() === undefined
+      );
     } catch {
       return false;
     }
-    const comparisonTargetType =
-      this.expandSchemaOwnedTypeReferences(targetType);
-
-    const valuesMatch = this.recursiveValueComparison(
-      resolvedNode,
-      resolvedType,
-      comparisonTargetType,
-      compositeLimits,
-    );
-    if (!valuesMatch) {
-      return false;
-    }
-
-    return (
-      this.verifyMatch(resolvedNode, targetType, compositeLimits) ||
-      targetType.getType() === undefined
-    );
   }
 
   /**

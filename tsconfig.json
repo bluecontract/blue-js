@@ -20,6 +20,9 @@
     },
     {
       "path": "./libs/repository-contract"
+    },
+    {
+      "path": "./libs/bex"
     }
   ]
 }

@@ -1,0 +1,16 @@
+fixtureId: GAS-055
+title: Coalesce charges later operand when earlier value is empty
+tags: [gas]
+context:
+  rootDocumentSource: |
+    status: confirmed
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $coalesce:
+      - ""
+      - $document: /status
+expectation:
+  outcome: success
+  resultSimple: confirmed
+  gasUsed: 7

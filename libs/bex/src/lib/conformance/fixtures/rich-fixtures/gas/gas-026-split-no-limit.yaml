@@ -1,0 +1,15 @@
+fixtureId: GAS-026
+title: Split without limit charges text and separator expressions
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $split:
+      text: "a:b"
+      separator: ":"
+expectation:
+  outcome: success
+  resultSimple:
+    - a
+    - b
+  gasUsed: 5

@@ -14,6 +14,7 @@ import {
   createPicomatchShouldResolve,
   type ExpressionTraversalPredicate,
 } from '../../../util/expression/quickjs-expression-utils.js';
+import { BexFieldEvaluator } from './bex-field-evaluator.js';
 
 export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor {
   readonly supportedBlueIds = [
@@ -21,15 +22,21 @@ export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor 
   ] as const;
 
   private readonly evaluator = new QuickJSEvaluator();
+  private readonly bexEvaluator = new BexFieldEvaluator();
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { stepNode, context } = args;
-    if (!context.blue.isTypeOf(stepNode, TriggerEventSchema)) {
+    if (
+      !context.blue.isTypeOfBlueId(
+        stepNode,
+        conversationBlueIds['Conversation/Trigger Event'],
+      )
+    ) {
       return context.throwFatal('Trigger Event step payload is invalid');
     }
 
     context.gasMeter().chargeTriggerEventBase();
-    const resolvedStepNode = await resolveNodeExpressions({
+    let resolvedStepNode = await resolveNodeExpressions({
       evaluator: this.evaluator,
       node: stepNode,
       bindings: createQuickJSStepBindings(args),
@@ -39,6 +46,17 @@ export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor 
       shouldDescend: createTriggerEventShouldDescend(),
       context,
     });
+    const eventNode = resolvedStepNode.getProperties()?.event;
+    if (
+      eventNode !== undefined &&
+      this.bexEvaluator.containsExpression(eventNode)
+    ) {
+      resolvedStepNode = resolvedStepNode.clone();
+      resolvedStepNode.addProperty(
+        'event',
+        this.bexEvaluator.evaluateNode(args, eventNode),
+      );
+    }
 
     const triggerEvent = context.blue.nodeToSchemaOutput(
       resolvedStepNode,
@@ -52,8 +70,21 @@ export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor 
       );
     }
 
+    if (!this.isObjectPayload(emission)) {
+      return context.throwFatal(
+        'Trigger Event payload must evaluate to an object',
+      );
+    }
+
     context.emitEvent(emission.clone());
     return undefined;
+  }
+
+  private isObjectPayload(node: BlueNode): boolean {
+    if (node.getValue() !== undefined || node.getItems() !== undefined) {
+      return false;
+    }
+    return node.getProperties() !== undefined || node.getType() !== undefined;
   }
 }
 

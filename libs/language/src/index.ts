@@ -16,6 +16,9 @@ export {
   BasicNodeProvider,
   createNodeProvider,
   SemanticIdentityService,
+  NodeToMapListOrValue,
+  Schema,
+  SCHEMA_FIELDS,
 
   // merge
   NodeResolver,

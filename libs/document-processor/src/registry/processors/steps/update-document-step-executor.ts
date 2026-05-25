@@ -17,10 +17,11 @@ import {
   resolveNodeExpressions,
   createPicomatchShouldResolve,
 } from '../../../util/expression/quickjs-expression-utils.js';
+import { BexFieldEvaluator } from './bex-field-evaluator.js';
 
 type JsonPatchOperation = 'ADD' | 'REPLACE' | 'REMOVE';
 
-type ChangeInput = Required<UpdateDocument>['changeset'][number];
+type ChangeInput = Required<UpdateDocument>['changeset'][number] | BlueNode;
 
 export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecutor {
   readonly supportedBlueIds = [
@@ -28,16 +29,22 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
   ] as const;
 
   private readonly evaluator = new QuickJSEvaluator();
+  private readonly bexEvaluator = new BexFieldEvaluator();
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { context, stepNode } = args;
     const { blue } = context;
 
-    if (!blue.isTypeOf(stepNode, UpdateDocumentSchema)) {
+    if (
+      !blue.isTypeOfBlueId(
+        stepNode,
+        conversationBlueIds['Conversation/Update Document'],
+      )
+    ) {
       return context.throwFatal('Update Document step payload is invalid');
     }
 
-    const resolvedStepNode = await resolveNodeExpressions({
+    let resolvedStepNode = await resolveNodeExpressions({
       evaluator: this.evaluator,
       node: stepNode,
       bindings: createQuickJSStepBindings(args),
@@ -46,6 +53,17 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
       }),
       context,
     });
+    const changesetNode = resolvedStepNode.getProperties()?.changeset;
+    if (
+      changesetNode !== undefined &&
+      this.bexEvaluator.containsExpression(changesetNode)
+    ) {
+      resolvedStepNode = resolvedStepNode.clone();
+      resolvedStepNode.addProperty(
+        'changeset',
+        this.bexEvaluator.evaluateNode(args, changesetNode),
+      );
+    }
     const changeset = this.extractChanges(resolvedStepNode, context);
 
     context.gasMeter().chargeUpdateDocumentBase(changeset.length);
@@ -61,6 +79,24 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
     stepNode: BlueNode,
     context: ContractProcessorContext,
   ): ChangeInput[] {
+    const changesetNode = stepNode.getProperties()?.changeset;
+    if (!changesetNode) {
+      return [];
+    }
+    if (this.bexEvaluator.containsExpression(changesetNode)) {
+      return context.throwFatal(
+        'Update Document changeset still contains unevaluated BEX',
+      );
+    }
+    const items = changesetNode.getItems();
+    if (items !== undefined) {
+      return [...items];
+    }
+    if (changesetNode.getValue() !== undefined) {
+      return context.throwFatal(
+        'Update Document changeset must evaluate to a list',
+      );
+    }
     const schemaOutput = context.blue.nodeToSchemaOutput(
       stepNode,
       UpdateDocumentSchema,
@@ -72,15 +108,33 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
     change: ChangeInput,
     context: ContractProcessorContext,
   ): JsonPatch {
-    const op = this.normalizeOperation(change.op, context);
-    const path = this.normalizePath(change.path, context);
+    const op = this.normalizeOperation(this.changeField(change, 'op'), context);
+    const path = this.normalizePath(this.changeField(change, 'path'), context);
     const absolutePath = context.resolvePointer(path);
 
     if (op === 'REMOVE') {
       return { op, path: absolutePath };
     }
 
-    return { op, path: absolutePath, val: change.val };
+    const val = this.changeValue(change);
+    if (!val) {
+      return context.throwFatal(`${op} Update Document operation missing val`);
+    }
+    return { op, path: absolutePath, val };
+  }
+
+  private changeField(change: ChangeInput, key: string): unknown {
+    if (change instanceof BlueNode) {
+      return change.getProperties()?.[key]?.getValue();
+    }
+    return change[key as keyof ChangeInput];
+  }
+
+  private changeValue(change: ChangeInput): BlueNode | undefined {
+    if (change instanceof BlueNode) {
+      return change.getProperties()?.val;
+    }
+    return change.val;
   }
 
   private normalizeOperation(

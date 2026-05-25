@@ -1,0 +1,16 @@
+fixtureId: GAS-120
+title: Dynamic text operands charge their expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $get:
+      object:
+        a: 1
+      key:
+        $concat:
+          - a
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 6

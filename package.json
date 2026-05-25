@@ -2,7 +2,18 @@
   "name": "@blue-js/monorepo",
   "version": "1.9.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "test:language:conformance": "vitest run --config libs/language/vite.config.ts src/lib/conformance/BlueConformanceSuiteRunner.spec.ts --pool=forks",
+    "test:language:conformance:serial": "vitest run --config libs/language/vite.config.ts src/lib/conformance/BlueConformanceSuiteRunner.spec.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-file-parallelism",
+    "test:bex:conformance": "vitest run --config libs/bex/vite.config.ts --pool=forks",
+    "test:bex:conformance:serial": "vitest run --config libs/bex/vite.config.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-file-parallelism",
+    "test:compute": "vitest run --config libs/document-processor/vite.config.ts src/registry/processors/steps/__tests__/bex-compute-step-executor.test.ts --pool=forks",
+    "test:compute:serial": "vitest run --config libs/document-processor/vite.config.ts src/registry/processors/steps/__tests__/bex-compute-step-executor.test.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-file-parallelism",
+    "typecheck:parity": "tsc -p libs/language/tsconfig.lib.json --noEmit && tsc -p libs/bex/tsconfig.lib.json --noEmit && tsc -p libs/document-processor/tsconfig.lib.json --noEmit",
+    "lint:parity": "eslint libs/language libs/bex libs/document-processor --max-warnings=0",
+    "check:parity-fixtures": "node scripts/check-parity-fixtures.mjs",
+    "ci:parity": "npm run check:parity-fixtures && npm run test:language:conformance && npm run test:bex:conformance && npm run test:compute && npm run typecheck:parity && npm run lint:parity && NX_DAEMON=false nx sync:check --verbose"
+  },
   "private": true,
   "devDependencies": {
     "@eslint/js": "9.14.0",
@@ -54,7 +65,7 @@
     "@blue-quickjs/quickjs-runtime": "0.4.2",
     "@blue-quickjs/quickjs-wasm": "0.4.2",
     "@blue-quickjs/quickjs-wasm-constants": "0.4.2",
-    "@blue-repository/types": "1.0.0",
+    "@blue-repository/types": "1.2.1",
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",
     "base32.js": "0.1.0",

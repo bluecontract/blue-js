@@ -19,6 +19,7 @@
     "!dist/package.json"
   ],
   "dependencies": {
+    "@blue-labs/bex": "4.1.1",
     "@blue-labs/language": "4.1.1",
     "@blue-labs/shared-utils": "4.1.1",
     "@blue-quickjs/abi-manifest": "0.4.2",

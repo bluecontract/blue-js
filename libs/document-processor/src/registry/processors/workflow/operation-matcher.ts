@@ -1,4 +1,4 @@
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, Properties } from '@blue-labs/language';
 import type { Blue } from '@blue-labs/language';
 import {
   OperationRequestSchema,
@@ -130,10 +130,38 @@ export function isRequestTypeCompatible(
   ) {
     return false;
   }
-  if (!blue.isTypeOfNode(requestPayload, requiredType)) {
+  if (
+    !isUnconstrainedCoreCollectionMatch(requestPayload, requiredType) &&
+    !blue.isTypeOfNode(requestPayload, requiredType)
+  ) {
     return false;
   }
   return true;
+}
+
+function isUnconstrainedCoreCollectionMatch(
+  requestPayload: BlueNode,
+  requiredType: BlueNode,
+): boolean {
+  const requiredTypeBlueId = requiredType.getType()?.getBlueId();
+  if (
+    requiredTypeBlueId === Properties.LIST_TYPE_BLUE_ID &&
+    requiredType.getItemType() === undefined &&
+    requiredType.getItems() === undefined &&
+    requestPayload.getItems() !== undefined
+  ) {
+    return true;
+  }
+  if (
+    requiredTypeBlueId === Properties.DICTIONARY_TYPE_BLUE_ID &&
+    requiredType.getKeyType() === undefined &&
+    requiredType.getValueType() === undefined &&
+    requiredType.getProperties() === undefined &&
+    requestPayload.getProperties() !== undefined
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function isPinnedDocumentAllowed(

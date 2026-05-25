@@ -1,0 +1,14 @@
+fixtureId: GAS-123
+title: Custom appendEventBase schedule applies
+tags: [gas]
+gasSchedule:
+  appendEventBase: 10
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent: x
+expectation:
+  outcome: success
+  events:
+    - x
+  gasUsed: 15

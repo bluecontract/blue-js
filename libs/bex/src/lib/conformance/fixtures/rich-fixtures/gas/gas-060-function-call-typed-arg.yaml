@@ -1,0 +1,21 @@
+fixtureId: GAS-060
+title: Typed function call charges argument expression and callee var read
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  functions:
+    f:
+      args:
+        amount:
+          type: Integer
+      expr:
+        $var: amount
+  expr:
+    $call:
+      function: f
+      args:
+        amount: 1
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 8

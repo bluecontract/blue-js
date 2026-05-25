@@ -1,12 +1,17 @@
 import { Blue } from '../../Blue';
 import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
-import { BlueNode } from '../../model';
+import { BlueNode, NodeDeserializer } from '../../model';
 import { NodeTypeMatcher } from '../NodeTypeMatcher';
 import { DICTIONARY_TYPE_BLUE_ID, TEXT_TYPE_BLUE_ID } from '../Properties';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 import type { BlueRepository } from '../../types/BlueRepository';
+import { yamlBlueParse } from '../../../utils';
 
 const matcherRepository = buildMatcherRepository();
+
+function uncheckedYamlToNode(yaml: string): BlueNode {
+  return NodeDeserializer.deserializeUnchecked(yamlBlueParse(yaml));
+}
 
 function buildMatcherRepository(): BlueRepository {
   const blue = new Blue();
@@ -284,9 +289,9 @@ list:
   items:
     - value: 1
       extra: something`;
-    expect(matcher.matchesType(containerInst, blue.yamlToNode(failExtra))).toBe(
-      false,
-    );
+    expect(
+      matcher.matchesType(containerInst, uncheckedYamlToNode(failExtra)),
+    ).toBe(false);
   });
 
   test('blueId exact matches when requested', () => {
@@ -330,7 +335,7 @@ x:
     const blue = new Blue({ nodeProvider });
     const matcher = new NodeTypeMatcher(blue);
 
-    const node = blue.yamlToNode(`blueId: ${betaId}
+    const node = uncheckedYamlToNode(`blueId: ${betaId}
 type:
   blueId: ${alphaId}`);
 
@@ -358,7 +363,7 @@ label:
     const otherSchemaId = nodeProvider.getBlueIdByName('Other Schema');
 
     const structuralNode = blue.yamlToNode(`label: ok`);
-    const wrongBlueIdNode = blue.yamlToNode(`blueId: ${otherSchemaId}
+    const wrongBlueIdNode = uncheckedYamlToNode(`blueId: ${otherSchemaId}
 label: ok`);
 
     expect(matcher.matchesType(structuralNode, expectedSchema)).toBe(true);

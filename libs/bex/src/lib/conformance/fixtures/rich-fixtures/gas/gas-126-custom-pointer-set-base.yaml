@@ -1,0 +1,19 @@
+fixtureId: GAS-126
+title: Custom pointerSetBase schedule applies
+tags: [gas]
+gasSchedule:
+  pointerSetBase: 10
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $pointerSet:
+      object:
+        a: {}
+      path: a/b
+      val: x
+expectation:
+  outcome: success
+  resultSimple:
+    a:
+      b: x
+  gasUsed: 18

@@ -1,0 +1,16 @@
+fixtureId: GAS-035
+title: Dynamic object literal charges object expression and dynamic child
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    answer:
+      $add:
+        - 1
+        - 2
+        - 3
+expectation:
+  outcome: success
+  resultSimple:
+    answer: 6
+  gasUsed: 7

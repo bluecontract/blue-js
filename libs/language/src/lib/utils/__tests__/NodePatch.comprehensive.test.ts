@@ -12,7 +12,7 @@ import { BigDecimalNumber } from '../../model/BigDecimalNumber';
 describe('NodePatch Comprehensive Tests', () => {
   describe('Basic Property Operations', () => {
     function createTestNode(): BlueNode {
-      return NodeDeserializer.deserialize({
+      return NodeDeserializer.deserializeUnchecked({
         name: 'TestNode',
         description: 'A test node',
         blueId: 'test-blue-id-123',
@@ -73,7 +73,7 @@ describe('NodePatch Comprehensive Tests', () => {
 
   describe('Type Properties Operations', () => {
     it('should patch type, itemType, keyType, valueType', () => {
-      const node = NodeDeserializer.deserialize({
+      const node = NodeDeserializer.deserializeUnchecked({
         name: 'TypeTest',
         type: { blueId: 'old-type' },
         itemType: { blueId: 'old-item-type' },
@@ -100,7 +100,7 @@ describe('NodePatch Comprehensive Tests', () => {
     });
 
     it('should patch nested properties within type nodes', () => {
-      const node = NodeDeserializer.deserialize({
+      const node = NodeDeserializer.deserializeUnchecked({
         type: {
           name: 'TypeName',
           blueId: 'type-id',

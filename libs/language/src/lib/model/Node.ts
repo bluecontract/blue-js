@@ -12,6 +12,7 @@ import {
   INTEGER_TYPE_BLUE_ID,
   OBJECT_CONTRACTS,
 } from '../utils/Properties';
+import { Schema } from './Schema';
 
 export class BlueNode {
   static INTEGER: BlueNode = new BlueNode('Integer');
@@ -28,7 +29,12 @@ export class BlueNode {
     | BigDecimalNumber;
   private items?: BlueNode[];
   private properties?: Record<string, BlueNode>;
+  private contracts?: BlueNode;
   private blueId?: string;
+  private schema?: Schema;
+  private mergePolicy?: string;
+  private previousBlueId?: string;
+  private position?: number;
   private blue?: BlueNode;
   private inlineValue = false;
 
@@ -131,6 +137,10 @@ export class BlueNode {
     return this.value;
   }
 
+  getRawValue() {
+    return this.value;
+  }
+
   setValue(
     value: JsonPrimitive | BigIntegerNumber | BigDecimalNumber | number,
   ): BlueNode {
@@ -169,6 +179,7 @@ export class BlueNode {
 
   setProperties(properties: Record<string, BlueNode> | undefined): BlueNode {
     this.properties = properties;
+    this.contracts = properties?.[OBJECT_CONTRACTS];
     return this;
   }
 
@@ -177,6 +188,9 @@ export class BlueNode {
       this.properties = {};
     }
     this.properties[key] = value;
+    if (key === OBJECT_CONTRACTS) {
+      this.contracts = value;
+    }
     return this;
   }
 
@@ -184,25 +198,41 @@ export class BlueNode {
     if (this.properties) {
       delete this.properties[key];
     }
+    if (key === OBJECT_CONTRACTS) {
+      this.contracts = undefined;
+    }
     return this;
   }
 
   private getContractsProperty() {
-    return this.properties?.[OBJECT_CONTRACTS];
+    return this.contracts ?? this.properties?.[OBJECT_CONTRACTS];
   }
 
   getContracts() {
     return this.getContractsProperty()?.getProperties();
   }
 
+  getContractsNode() {
+    return this.contracts ?? this.properties?.[OBJECT_CONTRACTS];
+  }
+
   setContracts(contracts: Record<string, BlueNode> | undefined): BlueNode {
     if (isNullable(contracts)) {
+      this.contracts = undefined;
       this.removeProperty(OBJECT_CONTRACTS);
     } else {
-      this.addProperty(
-        OBJECT_CONTRACTS,
-        new BlueNode().setProperties(contracts),
-      );
+      this.contracts = new BlueNode().setProperties(contracts);
+      this.addProperty(OBJECT_CONTRACTS, this.contracts);
+    }
+    return this;
+  }
+
+  setContractsNode(contracts: BlueNode | undefined): BlueNode {
+    this.contracts = contracts;
+    if (contracts === undefined) {
+      this.removeProperty(OBJECT_CONTRACTS);
+    } else {
+      this.addProperty(OBJECT_CONTRACTS, contracts);
     }
     return this;
   }
@@ -259,6 +289,42 @@ export class BlueNode {
    */
   setBlueId(blueId: string | undefined): BlueNode {
     return this.setReferenceBlueId(blueId);
+  }
+
+  getSchema() {
+    return this.schema;
+  }
+
+  setSchema(schema: Schema | undefined): BlueNode {
+    this.schema = schema;
+    return this;
+  }
+
+  getMergePolicy() {
+    return this.mergePolicy;
+  }
+
+  setMergePolicy(mergePolicy: string | undefined): BlueNode {
+    this.mergePolicy = mergePolicy;
+    return this;
+  }
+
+  getPreviousBlueId() {
+    return this.previousBlueId;
+  }
+
+  setPreviousBlueId(previousBlueId: string | undefined): BlueNode {
+    this.previousBlueId = previousBlueId;
+    return this;
+  }
+
+  getPosition() {
+    return this.position;
+  }
+
+  setPosition(position: number | undefined): BlueNode {
+    this.position = position;
+    return this;
   }
 
   getBlue() {
@@ -338,7 +404,15 @@ export class BlueNode {
         Object.entries(this.properties).map(([k, v]) => [k, v.clone()]),
       );
     }
+    if (this.contracts) {
+      cloned.contracts =
+        cloned.properties?.[OBJECT_CONTRACTS] ?? this.contracts.clone();
+    }
     cloned.blueId = this.blueId;
+    cloned.schema = this.schema?.clone();
+    cloned.mergePolicy = this.mergePolicy;
+    cloned.previousBlueId = this.previousBlueId;
+    cloned.position = this.position;
     cloned.blue = this.blue?.clone();
     cloned.inlineValue = this.inlineValue;
     return cloned;
@@ -354,7 +428,12 @@ export class BlueNode {
     cloned.value = this.value;
     cloned.items = this.items ? [...this.items] : undefined;
     cloned.properties = this.properties ? { ...this.properties } : undefined;
+    cloned.contracts = cloned.properties?.[OBJECT_CONTRACTS] ?? this.contracts;
     cloned.blueId = this.blueId;
+    cloned.schema = this.schema;
+    cloned.mergePolicy = this.mergePolicy;
+    cloned.previousBlueId = this.previousBlueId;
+    cloned.position = this.position;
     cloned.blue = this.blue;
     cloned.inlineValue = this.inlineValue;
     return cloned;

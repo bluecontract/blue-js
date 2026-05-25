@@ -1,0 +1,12 @@
+fixtureId: GAS-070
+title: Append null event charges zero estimated size
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent: null
+expectation:
+  outcome: success
+  events:
+    - null
+  gasUsed: 9

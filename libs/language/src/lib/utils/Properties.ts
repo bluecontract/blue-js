@@ -1,4 +1,10 @@
 // Properties.ts
+import {
+  OBJECT_SCHEMA,
+  OBJECT_MERGE_POLICY,
+  OBJECT_CONTRACTS,
+} from '@blue-labs/repository-contract';
+
 export {
   OBJECT_SCHEMA,
   OBJECT_MERGE_POLICY,
@@ -15,6 +21,14 @@ export const OBJECT_VALUE = 'value';
 export const OBJECT_ITEMS = 'items';
 export const OBJECT_BLUE_ID = 'blueId';
 export const OBJECT_BLUE = 'blue';
+export const OBJECT_CONSTRAINTS = 'constraints';
+export const OBJECT_PROPERTIES = 'properties';
+export const LIST_MERGE_POLICY_POSITIONAL = 'positional';
+export const LIST_MERGE_POLICY_APPEND_ONLY = 'append-only';
+export const LIST_CONTROL_PREVIOUS = '$previous';
+export const LIST_CONTROL_POS = '$pos';
+export const LIST_CONTROL_REPLACE = '$replace';
+export const LIST_CONTROL_EMPTY = '$empty';
 
 export const OBJECT_SPECIFIC_KEYS = [
   OBJECT_NAME,
@@ -27,6 +41,15 @@ export const OBJECT_SPECIFIC_KEYS = [
   OBJECT_ITEMS,
   OBJECT_BLUE_ID,
   OBJECT_BLUE,
+  OBJECT_SCHEMA,
+  OBJECT_MERGE_POLICY,
+  OBJECT_CONTRACTS,
+  OBJECT_CONSTRAINTS,
+  OBJECT_PROPERTIES,
+  LIST_CONTROL_PREVIOUS,
+  LIST_CONTROL_POS,
+  LIST_CONTROL_REPLACE,
+  LIST_CONTROL_EMPTY,
 ] as const;
 
 export const TEXT_TYPE = 'Text';

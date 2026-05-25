@@ -1,0 +1,11 @@
+fixtureId: GAS-047
+title: Changeset expression charges only expression base
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $changeset: true
+expectation:
+  outcome: success
+  resultSimple: []
+  gasUsed: 3

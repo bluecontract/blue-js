@@ -4,6 +4,7 @@ import { isNullable } from '@blue-labs/shared-utils';
 import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflow } from '../../../model/index.js';
 import { TriggerEventStepExecutor } from '../steps/trigger-event-step-executor.js';
+import { BexComputeStepExecutor } from '../steps/bex-compute-step-executor.js';
 import { JavaScriptCodeStepExecutor } from '../steps/javascript-code-step-executor.js';
 import { UpdateDocumentStepExecutor } from '../steps/update-document-step-executor.js';
 
@@ -27,6 +28,7 @@ export interface SequentialWorkflowStepExecutor {
 export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
   [
     new TriggerEventStepExecutor(),
+    new BexComputeStepExecutor(),
     new JavaScriptCodeStepExecutor(),
     new UpdateDocumentStepExecutor(),
   ];
@@ -100,7 +102,12 @@ export class WorkflowStepRunner {
 
   private stepResultKey(stepNode: BlueNode, index: number): string {
     const name = stepNode.getName?.();
-    if (name && typeof name === 'string' && name.length > 0) {
+    if (
+      name &&
+      typeof name === 'string' &&
+      name.length > 0 &&
+      name !== stepNode.getType?.()?.getName?.()
+    ) {
       return name;
     }
     return `Step${index + 1}`;

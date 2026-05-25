@@ -35,7 +35,7 @@ describe('Preprocessor', () => {
     const parsedYaml = yamlBlueParse(DefaultBlueYaml);
     const node = NodeDeserializer.deserialize(parsedYaml ?? '');
 
-    expect(BlueIdCalculator.calculateBlueIdSync(node)).toBe(
+    expect(BlueIdCalculator.calculateBlueIdSync(node.getItems() ?? [])).toBe(
       Preprocessor.DEFAULT_BLUE_BLUE_ID,
     );
   });
@@ -78,7 +78,7 @@ items:
 
     const blue = new Blue();
     const parsedYaml = yamlBlueParse(doc);
-    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+    const node = NodeDeserializer.deserializeUnchecked(parsedYaml ?? '');
     const processedNode = blue.preprocess(node);
 
     expect(processedNode.getItems()?.[0].getBlueId()).toBe(
@@ -96,7 +96,7 @@ items:
     y: ABC`;
 
     const parsedYaml = yamlBlueParse(doc);
-    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+    const node = NodeDeserializer.deserializeUnchecked(parsedYaml ?? '');
 
     // Create transformer function that changes 'ABC' to 'XYZ'
     const transformer = (node: BlueNode): BlueNode => {
@@ -429,7 +429,7 @@ listRules:
 
     const blue = new Blue();
     const parsedYaml = yamlBlueParse(doc);
-    const node = NodeDeserializer.deserialize(parsedYaml ?? '');
+    const node = NodeDeserializer.deserializeUnchecked(parsedYaml ?? '');
 
     // Should not throw any error because these are not inline values
     const preprocessedNode = blue.preprocess(node);

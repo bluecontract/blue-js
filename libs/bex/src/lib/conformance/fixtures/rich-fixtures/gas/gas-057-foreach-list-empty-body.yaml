@@ -1,0 +1,16 @@
+fixtureId: GAS-057
+title: ForEach over list charges one item cost per element
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $forEach:
+        in:
+          - a
+          - b
+          - c
+        item: item
+        do: []
+expectation:
+  outcome: success
+  gasUsed: 7

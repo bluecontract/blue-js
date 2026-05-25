@@ -10,4 +10,5 @@ export * from './provider/BasicNodeProvider';
 export * from './preprocess';
 export * from './merge';
 export * from './types';
+export * from './snapshot';
 export * from './errors/BlueError';

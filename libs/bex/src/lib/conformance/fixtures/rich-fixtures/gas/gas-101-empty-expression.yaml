@@ -1,0 +1,11 @@
+fixtureId: GAS-101
+title: Empty conversion charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $empty: ""
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 4

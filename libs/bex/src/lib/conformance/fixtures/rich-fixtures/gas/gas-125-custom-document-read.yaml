@@ -1,0 +1,16 @@
+fixtureId: GAS-125
+title: Custom documentRead schedule applies
+tags: [gas]
+gasSchedule:
+  documentRead: 10
+context:
+  rootDocumentSource: |
+    status: pending
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $document: /status
+expectation:
+  outcome: success
+  resultSimple: pending
+  gasUsed: 13

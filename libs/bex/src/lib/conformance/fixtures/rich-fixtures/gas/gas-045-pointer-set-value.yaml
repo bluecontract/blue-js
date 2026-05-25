@@ -1,0 +1,17 @@
+fixtureId: GAS-045
+title: Pointer set charges path segments and value size
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $pointerSet:
+      object:
+        a: {}
+      path: a/b
+      val: x
+expectation:
+  outcome: success
+  resultSimple:
+    a:
+      b: x
+  gasUsed: 11

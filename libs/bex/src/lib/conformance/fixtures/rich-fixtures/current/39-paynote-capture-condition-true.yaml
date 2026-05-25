@@ -1,0 +1,88 @@
+fixtureId: BEX-CURRENT-039
+title: PayNote capture requested when both partner orders confirmed
+targetStatus: current-pass
+tags:
+- use-case
+- paynote
+- events
+context:
+  documentScope: /
+  rootDocumentSource: |
+    status: pending
+    count: 5
+    amount:
+      expectedTotal: 49900
+      secured: 49900
+      completed: 0
+    hotelName: Hotel Badura
+    restaurantName: Restauracja Cud Malina
+    hotelOrder:
+      status: confirmed
+      amount: 40000
+      hotelName: Hotel Badura
+    restaurantOrder:
+      status: confirmed
+      amount: 25000
+    orders:
+      abc/def~ghi:
+        status: pending
+      ORD-1:
+        status: pending
+      ORD-2:
+        status: pending
+    contracts:
+      current:
+        status: scoped-status
+        channel:
+          name: scoped-channel
+  eventSource: |
+    message:
+      request:
+        amount: 7
+        orderId: abc/def~ghi
+        customerName: Jan Kowalski
+        nights: 2
+        note: hello
+    createdAt: '2025-06-20T10:00:00Z'
+    actor:
+      name: Hotel Badura
+  currentContractSource: |
+    channel:
+      name: hotel-channel
+    limits:
+      maxAmount: 50000
+  stepsBinding:
+    Build:
+      changeset:
+      - op: replace
+        path: /status
+        val: built
+      events:
+      - eventKind: Built
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $if:
+        cond:
+          $and:
+            - $eq:
+                - $document: /hotelOrder/status
+                - confirmed
+            - $eq:
+                - $document: /restaurantOrder/status
+                - confirmed
+        then:
+          - $appendEvent:
+              eventKind: PayNote Complete Payment Requested
+              amount:
+                $document: /amount/expectedTotal
+              reason: Both partner orders confirmed
+    - $return:
+        events:
+          $events: true
+expectation:
+  outcome: success
+  events:
+  - eventKind: PayNote Complete Payment Requested
+    amount: 49900
+    reason: Both partner orders confirmed

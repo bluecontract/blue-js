@@ -200,7 +200,7 @@ x:
     expect(result.nodes[1].get('/peer/blueId')).toBe('this#0');
   });
 
-  it('rejects ambiguous cyclic ordering when preliminary BlueIds tie', () => {
+  it('uses original index as the cyclic ordering tie-breaker', () => {
     const doc = yamlBlueParse(`- peer:
     blueId: this#1
 - peer:
@@ -208,9 +208,9 @@ x:
 `);
     const blue = new Blue();
 
-    expect(() => blue.calculateBlueIdSync(doc!)).toThrow(
-      /ambiguous canonical ordering/,
-    );
+    const result = blue.calculateBlueIdSync(doc!);
+
+    expect(result).toMatch(/^[1-9A-HJ-NP-Za-km-z]+$/);
   });
 
   it('rejects cyclic references outside the top-level document set', () => {

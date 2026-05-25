@@ -1,0 +1,14 @@
+fixtureId: GAS-021
+title: Is predicate charges node expression but not static pattern
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $is:
+      node: 400
+      pattern:
+        type: Integer
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 4

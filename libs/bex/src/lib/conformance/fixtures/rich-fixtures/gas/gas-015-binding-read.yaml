@@ -1,0 +1,16 @@
+fixtureId: GAS-015
+title: Binding read charges varRead
+tags: [gas]
+context:
+  eventSource: |
+    message:
+      request:
+        amount: 7
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $binding: event/message/request/amount
+expectation:
+  outcome: success
+  resultSimple: 7
+  gasUsed: 4

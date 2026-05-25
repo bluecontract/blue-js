@@ -1,0 +1,11 @@
+fixtureId: GAS-097
+title: Boolean conversion charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $boolean: true
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 4

@@ -1,0 +1,11 @@
+fixtureId: GAS-103
+title: Not charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $not: true
+expectation:
+  outcome: success
+  resultSimple: false
+  gasUsed: 4

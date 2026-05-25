@@ -1,0 +1,13 @@
+fixtureId: GAS-022
+title: Equality comparison charges both operands
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $eq:
+      - 1
+      - 1
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 5

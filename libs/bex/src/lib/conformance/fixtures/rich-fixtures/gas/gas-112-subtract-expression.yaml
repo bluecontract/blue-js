@@ -1,0 +1,14 @@
+fixtureId: GAS-112
+title: Subtract charges each operand
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $subtract:
+      - 10
+      - 2
+      - 3
+expectation:
+  outcome: success
+  resultSimple: 5
+  gasUsed: 6

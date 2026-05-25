@@ -1,4 +1,4 @@
-import type { Blue } from '@blue-labs/language';
+import type { Blue, BlueNode } from '@blue-labs/language';
 import { OperationRequestSchema } from '@blue-repository/types/packages/conversation/schemas/OperationRequest';
 import { OperationSchema } from '@blue-repository/types/packages/conversation/schemas/Operation';
 
@@ -13,6 +13,7 @@ import type {
   HandlerExecutionMetadata,
   HandlerProcessor,
 } from '../types.js';
+import type { JsonPatch } from '../../model/shared/json-patch.js';
 import type { ScopeContractsIndex } from '../../types/scope-contracts.js';
 import {
   WorkflowStepRunner,
@@ -33,6 +34,7 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
   readonly kind = 'handler' as const;
   readonly blueIds = [
     conversationBlueIds['Conversation/Sequential Workflow Operation'],
+    conversationBlueIds['Conversation/Change Workflow'],
   ] as const;
   readonly schema = sequentialWorkflowOperationSchema;
 
@@ -155,11 +157,78 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
       return;
     }
 
+    if (this.isChangeWorkflow(metadata?.contractNode, context.blue)) {
+      await this.applyChangeRequest(eventNode, context);
+      return;
+    }
+
     await this.runner.run({
       workflow: contract as SequentialWorkflow,
       eventNode,
       context,
       contractNode: metadata?.contractNode ?? null,
     });
+  }
+
+  private isChangeWorkflow(
+    contractNode: BlueNode | null | undefined,
+    blue: Blue,
+  ): boolean {
+    return (
+      contractNode !== null &&
+      contractNode !== undefined &&
+      blue.isTypeOfBlueId(
+        contractNode,
+        conversationBlueIds['Conversation/Change Workflow'],
+      )
+    );
+  }
+
+  private async applyChangeRequest(
+    eventNode: BlueNode,
+    context: ContractProcessorContext,
+  ): Promise<void> {
+    const operationRequestNode = extractOperationRequestNode(
+      eventNode,
+      context.blue,
+    );
+    const requestNode = operationRequestNode?.getProperties()?.request;
+    const changesetNode = requestNode?.getProperties()?.changeset;
+    const changes = changesetNode?.getItems() ?? [];
+    for (const change of changes) {
+      await context.applyPatch(this.changeNodeToPatch(change, context));
+    }
+  }
+
+  private changeNodeToPatch(
+    change: BlueNode,
+    context: ContractProcessorContext,
+  ): JsonPatch {
+    const fields = change.getProperties() ?? {};
+    const rawOp = fields.op?.getValue();
+    const opText = typeof rawOp === 'string' ? rawOp : 'replace';
+    const op = opText.toUpperCase();
+    const path = fields.path?.getValue();
+    if (typeof path !== 'string' || path.trim().length === 0) {
+      return context.throwFatal(
+        'Change Request changeset entry requires a path',
+      );
+    }
+    const absolutePath = context.resolvePointer(path);
+    if (op === 'REMOVE') {
+      return { op, path: absolutePath };
+    }
+    if (op !== 'ADD' && op !== 'REPLACE') {
+      return context.throwFatal(
+        `Unsupported Change Request operation "${opText}"`,
+      );
+    }
+    const val = fields.val;
+    if (!val) {
+      return context.throwFatal(
+        `${op} Change Request operation must include a value`,
+      );
+    }
+    return { op, path: absolutePath, val };
   }
 }

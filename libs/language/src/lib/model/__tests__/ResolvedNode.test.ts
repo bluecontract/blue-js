@@ -239,9 +239,10 @@ type:
     // BlueIds should be different because:
     // - Resolved has baseA and baseB properties
     // - Minimal only has the type reference
-    const resolvedBlueId = BlueIdCalculator.calculateBlueIdSync(
-      resolvedNode.setBlueId(undefined),
-    );
+    const resolvedBlueId =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        resolvedNode.setBlueId(undefined),
+      );
     const minimalBlueId = resolvedNode.getMinimalBlueId();
 
     // They should be different
