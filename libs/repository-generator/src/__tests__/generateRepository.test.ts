@@ -1462,6 +1462,53 @@ properties:
     ).toThrow(/document-level properties key/);
   });
 
+  it('rejects namespace as metadata on scalar type definitions', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'AccountTypeEnum.blue',
+      `
+name: AccountTypeEnum
+namespace: cdm/base/staticdata/party
+description: The enumeration values to qualify the type of account.
+type: Text
+schema:
+  enum: [AggregateClient, Client, House]
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow('"namespace" is not an allowed fields here');
+  });
+
+  it('allows scalar type definitions with only reserved metadata fields', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'AccountTypeEnum.blue',
+      `
+name: AccountTypeEnum
+description: The enumeration values to qualify the type of account.
+type: Text
+schema:
+  enum: [AggregateClient, Client, House]
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).not.toThrow();
+  });
+
   it('accepts typed scalar value payloads', () => {
     const primitiveIds = {
       Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',

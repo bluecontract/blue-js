@@ -1,8 +1,27 @@
 import { Properties } from '@blue-labs/language';
 
 export const PRIMITIVE_TYPES = new Set<string>([...Properties.CORE_TYPES]);
+export const SCALAR_PRIMITIVE_TYPES = new Set<string>([
+  ...Properties.BASIC_TYPES,
+]);
 export const PRIMITIVE_BLUE_IDS: Record<string, string> =
   Properties.CORE_TYPE_NAME_TO_BLUE_ID_MAP;
+
+export const RESERVED_LANGUAGE_KEYS = new Set<string>([
+  'name',
+  'description',
+  'type',
+  'itemType',
+  'keyType',
+  'valueType',
+  'value',
+  'items',
+  'blueId',
+  'blue',
+  'schema',
+  'mergePolicy',
+  'contracts',
+]);
 
 export const BLUE_REPOSITORY_NAME = 'Blue Repository';
 
