@@ -14,6 +14,7 @@ export function createRealContext(
   blue: Blue,
   eventNode: BlueNode,
   document?: BlueNode | null,
+  scopePath = '/',
 ): {
   execution: ProcessorExecution;
   bundle: ContractBundle;
@@ -24,10 +25,10 @@ export function createRealContext(
   const engine = new ProcessorEngine(loader, registry, blue);
   const root = (document ?? new BlueNode()).clone();
   const execution = engine.createExecution(root);
-  execution.loadBundles('/');
-  const bundle = execution.bundleForScope('/') ?? ContractBundle.empty();
+  execution.loadBundles(scopePath);
+  const bundle = execution.bundleForScope(scopePath) ?? ContractBundle.empty();
   const context = execution.createContext(
-    '/',
+    scopePath,
     bundle,
     eventNode.clone(),
     false,

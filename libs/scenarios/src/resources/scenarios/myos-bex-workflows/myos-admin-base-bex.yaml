@@ -1,0 +1,22 @@
+name: MyOS Admin Base BEX
+description: BEX representative for MyOS Admin Base JavaScript event relay.
+contracts:
+  myOsAdminChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: myOsAdmin
+    accountId: '0'
+
+  myOsAdminUpdate:
+    type: Coordination/Operation
+    channel: myOsAdminChannel
+
+  myOsAdminUpdateImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: myOsAdminUpdate
+    steps:
+      - name: EmitAdminEvents
+        type: Coordination/Compute
+        do:
+          - $return:
+              events:
+                $event: /message/request

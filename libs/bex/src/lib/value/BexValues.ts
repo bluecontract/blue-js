@@ -85,6 +85,13 @@ export class BexValues {
     return this.fromSimple(nodeToSimple(node));
   }
 
+  public static nodeValueSnapshot(node: BlueNode | undefined): BexValue {
+    if (node === undefined) {
+      return this.undefined();
+    }
+    return this.fromSimple(nodeToValueSimple(node));
+  }
+
   public static truthy(value: BexValue): boolean {
     const simple = value.toSimple();
     if (simple === undefined || simple === null || simple === false) {
@@ -482,6 +489,84 @@ export function nodeToSimple(node: BlueNode): BexSimple {
     result[key] = nodeToSimple(child);
   }
   return result;
+}
+
+export function nodeToValueSimple(node: BlueNode): BexSimple {
+  const value = node.getValue();
+  if (value !== undefined) {
+    return BexValues.fromSimple(value).toSimple();
+  }
+
+  const items = node.getItems();
+  if (items !== undefined) {
+    const metadata = valueMetadataToSimple(node);
+    if (Object.keys(metadata).length === 0) {
+      return items.map((item) => nodeToValueSimple(item));
+    }
+    return {
+      ...metadata,
+      items: items.map((item) => nodeToValueSimple(item)),
+    };
+  }
+
+  const properties = node.getProperties();
+  if (properties !== undefined) {
+    return {
+      ...valueMetadataToSimple(node),
+      ...Object.fromEntries(
+        Object.entries(properties).flatMap(([key, child]) => {
+          const value = nodeToValueSimple(child);
+          return value === undefined ? [] : [[key, value]];
+        }),
+      ),
+    };
+  }
+
+  const metadata = valueMetadataToSimple(node);
+  if (node.getReferenceBlueId() !== undefined) {
+    return metadata;
+  }
+  return Object.keys(metadata).length === 0 ? nodeToSimple(node) : undefined;
+}
+
+function valueMetadataToSimple(node: BlueNode): Record<string, BexSimple> {
+  const result: Record<string, BexSimple> = {};
+  const type = compactReference(node.getType());
+  if (type !== undefined) {
+    result.type = type;
+  }
+  const itemType = compactReference(node.getItemType());
+  if (itemType !== undefined) {
+    result.itemType = itemType;
+  }
+  const keyType = compactReference(node.getKeyType());
+  if (keyType !== undefined) {
+    result.keyType = keyType;
+  }
+  const valueType = compactReference(node.getValueType());
+  if (valueType !== undefined) {
+    result.valueType = valueType;
+  }
+  const blueId = node.getReferenceBlueId();
+  if (blueId !== undefined) {
+    result.blueId = blueId;
+  }
+  return result;
+}
+
+function compactReference(node: BlueNode | undefined): BexSimple {
+  if (node === undefined) {
+    return undefined;
+  }
+  const blueId = node.getReferenceBlueId();
+  if (blueId !== undefined) {
+    return { blueId };
+  }
+  const value = node.getValue();
+  if (value !== undefined) {
+    return BexValues.fromSimple(value).toSimple();
+  }
+  return nodeToSimple(node);
 }
 
 function hasOnlyPrimitiveTypeMetadata(node: BlueNode): boolean {

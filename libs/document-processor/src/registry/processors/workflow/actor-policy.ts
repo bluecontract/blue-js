@@ -1,5 +1,5 @@
 import { BlueNode } from '@blue-labs/language';
-import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 
 import {
   actorPolicyMarkerSchema,

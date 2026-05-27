@@ -188,6 +188,50 @@ describe('SequentialWorkflowOperationProcessor', () => {
     expect(result.triggeredEvents.length).toBe(0);
   });
 
+  it('treats operations without a request definition as unconstrained', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Operation Workflow Doc
+counter: 0
+contracts:
+  ownerChannel:
+    type: Conversation/Timeline Channel
+    timelineId: ${TIMELINE_ID}
+  ${OPERATION_KEY}:
+    type: Conversation/Operation
+    channel: ownerChannel
+  ${OPERATION_KEY}Handler:
+    type: Conversation/Sequential Workflow Operation
+    operation: ${OPERATION_KEY}
+    steps:
+      - name: ApplyIncrement
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: 7
+`;
+    const init = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = blue.jsonValueToNode({
+      type: 'Conversation/Timeline Entry',
+      timeline: { timelineId: TIMELINE_ID },
+      message: {
+        type: 'Conversation/Operation Request',
+        operation: OPERATION_KEY,
+        allowNewerVersion: false,
+        document: { blueId: storedBlueId },
+      },
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(7);
+  });
+
   it('cascades operation workflow emissions through triggered event handlers', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Operation Reemit Cascade Doc

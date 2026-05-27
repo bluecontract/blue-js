@@ -51,7 +51,7 @@ export class ChannelBinding {
   }
 
   order(): number {
-    return contractOrder(this.bindingContract);
+    return contractOrder(this.bindingContract as { readonly order?: number });
   }
 }
 
@@ -80,7 +80,7 @@ export class HandlerBinding {
   }
 
   order(): number {
-    return contractOrder(this.bindingContract);
+    return contractOrder(this.bindingContract as { readonly order?: number });
   }
 }
 

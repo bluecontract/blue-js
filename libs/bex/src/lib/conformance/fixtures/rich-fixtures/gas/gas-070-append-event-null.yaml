@@ -4,7 +4,8 @@ tags: [gas]
 programSource: |
   type: Blue/BEX Program
   do:
-    - $appendEvent: null
+    - $appendEvent:
+        $null: true
 expectation:
   outcome: success
   events:

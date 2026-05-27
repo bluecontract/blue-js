@@ -1,6 +1,6 @@
 import type { ChannelEvaluationContext, ChannelProcessor } from '../types.js';
 import { BlueNode } from '@blue-labs/language';
-import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 
 import {
   timelineChannelSchema,
@@ -9,9 +9,15 @@ import {
 import { conversationBlueIds as blueIds } from '../../repository/semantic-repository.js';
 import { isTimelineEventNewer } from './shared/timeline-recency.js';
 
+const LEGACY_TIMELINE_CHANNEL_BLUE_ID =
+  '84v6rvTN2CQq2c9FmViEc5rx3TSUaMLi6R4mHgqzoBkW';
+
 export class TimelineChannelProcessor implements ChannelProcessor<TimelineChannel> {
   readonly kind = 'channel' as const;
-  readonly blueIds = [blueIds['Conversation/Timeline Channel']] as const;
+  readonly blueIds = [
+    blueIds['Conversation/Timeline Channel'],
+    LEGACY_TIMELINE_CHANNEL_BLUE_ID,
+  ] as const;
   readonly schema = timelineChannelSchema;
 
   matches(

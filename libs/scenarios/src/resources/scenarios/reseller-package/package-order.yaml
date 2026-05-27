@@ -1,0 +1,363 @@
+name: Romantic Weekend Package Order
+kind: Package Order
+status: awaiting_provider_confirmation
+sellerRole: investor
+sourceOfferSessionId: package-offer-session
+customerAccountId: customer-a-uid
+investorAccountId: investor-uid
+price:
+  amountMinor: 49900
+  currency: PLN
+payment:
+  tokenAttached: false
+  payNoteAttached: false
+  state: not_started
+  paymentToken: ''
+  payNoteSessionId: ''
+  payNoteDocumentId: ''
+components:
+  hotel:
+    title: Weekend for 2 at Hotel Badura
+    status: not_started
+    orderAttached: false
+  restaurant:
+    title: Dinner at Cud Malina Restaurant
+    status: not_started
+    orderAttached: false
+embeddedDocs:
+  orders: {}
+contracts:
+  investorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: investor
+  confirmOrder:
+    type: Coordination/Operation
+    channel: investorChannel
+  confirmOrderImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: confirmOrder
+    steps:
+      - name: BuildConfirmationPatch
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $ne:
+                  - $document: /status
+                  - awaiting_provider_confirmation
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $appendChange:
+              op: replace
+              path: /status
+              val: provider_confirmed_pending_payment_token
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Order Confirmed
+              orderKind: package
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  attachPaymentToken:
+    type: Coordination/Operation
+    channel: investorChannel
+  attachPaymentTokenImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachPaymentToken
+    steps:
+      - name: BuildPaymentTokenPatch
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $ne:
+                  - $document: /status
+                  - provider_confirmed_pending_payment_token
+              then:
+                - $fail: Package payment token can only be attached after provider confirmation
+          - $appendChange:
+              op: replace
+              path: /payment/tokenAttached
+              val: true
+          - $appendChange:
+              op: replace
+              path: /payment/paymentToken
+              val:
+                $binding:
+                  name: event
+                  path: /message/request/paymentToken
+          - $appendChange:
+              op: replace
+              path: /status
+              val: ready_for_checkout
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Payment Token Attached
+              orderKind: package
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  attachPayNote:
+    type: Coordination/Operation
+    channel: investorChannel
+  attachPayNoteImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachPayNote
+    steps:
+      - name: BuildPayNoteAttachment
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $document: /payment/payNoteAttached
+              then:
+                - $fail: Package PayNote is already attached
+          - $appendChange:
+              op: add
+              path: /embeddedDocs/packagePayNote
+              val:
+                $binding:
+                  name: event
+                  path: /message/request
+          - $appendChange:
+              op: replace
+              path: /payment/payNoteAttached
+              val: true
+          - $appendChange:
+              op: replace
+              path: /payment/payNoteSessionId
+              val:
+                $binding:
+                  name: event
+                  path: /message/request/context/packagePayNoteSessionId
+          - $appendChange:
+              op: replace
+              path: /payment/payNoteDocumentId
+              val:
+                $binding:
+                  name: event
+                  path: /message/request/context/packagePayNoteDocumentId
+          - $appendChange:
+              op: replace
+              path: /payment/state
+              val: paynote_attached
+          - $appendChange:
+              op: add
+              path: /contracts/processEmbeddedDocs/paths/-
+              val: /embeddedDocs/packagePayNote
+          - $appendEvent:
+              type: Coordination/Event
+              kind: PayNote Attached
+              orderKind: package
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  attachHotelOrder:
+    type: Coordination/Operation
+    channel: investorChannel
+  attachHotelOrderImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachHotelOrder
+    steps:
+      - name: BuildHotelOrderAttachment
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $document: /components/hotel/orderAttached
+              then:
+                - $fail: Hotel order is already attached to package order
+          - $appendChange:
+              op: add
+              path: /embeddedDocs/orders/hotelOrder
+              val:
+                $binding:
+                  name: event
+                  path: /message/request
+          - $appendChange:
+              op: replace
+              path: /components/hotel/orderAttached
+              val: true
+          - $appendChange:
+              op: replace
+              path: /components/hotel/status
+              val: order_attached
+          - $appendChange:
+              op: add
+              path: /contracts/processEmbeddedDocs/paths/-
+              val: /embeddedDocs/orders/hotelOrder
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Component Order Attached
+              orderKind: hotel
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  attachRestaurantOrder:
+    type: Coordination/Operation
+    channel: investorChannel
+  attachRestaurantOrderImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachRestaurantOrder
+    steps:
+      - name: BuildRestaurantOrderAttachment
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $document: /components/restaurant/orderAttached
+              then:
+                - $fail: Restaurant order is already attached to package order
+          - $appendChange:
+              op: add
+              path: /embeddedDocs/orders/restaurantOrder
+              val:
+                $binding:
+                  name: event
+                  path: /message/request
+          - $appendChange:
+              op: replace
+              path: /components/restaurant/orderAttached
+              val: true
+          - $appendChange:
+              op: replace
+              path: /components/restaurant/status
+              val: order_attached
+          - $appendChange:
+              op: add
+              path: /contracts/processEmbeddedDocs/paths/-
+              val: /embeddedDocs/orders/restaurantOrder
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Component Order Attached
+              orderKind: restaurant
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  processEmbeddedDocs:
+    type: Core/Process Embedded
+    paths: []
+  embeddedHotelOrderEvents:
+    type: Core/Embedded Node Channel
+    childPath: /embeddedDocs/orders/hotelOrder
+  embeddedRestaurantOrderEvents:
+    type: Core/Embedded Node Channel
+    childPath: /embeddedDocs/orders/restaurantOrder
+  hotelOrderConfirmed:
+    type: Coordination/Sequential Workflow
+    channel: embeddedHotelOrderEvents
+    event:
+      type: Coordination/Event
+      kind: Order Confirmed
+      orderKind: hotel
+    steps:
+      - name: BuildHotelConfirmedPatch
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /components/hotel/status
+              val: confirmed
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Package Component Confirmed
+              orderKind: hotel
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  restaurantOrderConfirmed:
+    type: Coordination/Sequential Workflow
+    channel: embeddedRestaurantOrderEvents
+    event:
+      type: Coordination/Event
+      kind: Order Confirmed
+      orderKind: restaurant
+    steps:
+      - name: BuildRestaurantConfirmedPatch
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /components/restaurant/status
+              val: confirmed
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Package Component Confirmed
+              orderKind: restaurant
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  payNoteStatusUpdate:
+    type: Core/Document Update Channel
+    path: /embeddedDocs/packagePayNote/status
+  markPaymentSecured:
+    type: Coordination/Sequential Workflow
+    channel: payNoteStatusUpdate
+    event:
+      type: Core/Document Update
+      path: /embeddedDocs/packagePayNote/status
+      after: Secured
+    steps:
+      - name: BuildPaymentSecuredPatch
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /payment/state
+              val: payment_secured
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Package Payment Secured
+              orderKind: package
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  payNoteCapturedUpdate:
+    type: Core/Document Update Channel
+    path: /embeddedDocs/packagePayNote/captured
+  markReadyToUse:
+    type: Coordination/Sequential Workflow
+    channel: payNoteCapturedUpdate
+    event:
+      type: Core/Document Update
+      path: /embeddedDocs/packagePayNote/captured
+      after: true
+    steps:
+      - name: BuildReadyPatch
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /status
+              val: ready_to_use
+          - $appendChange:
+              op: replace
+              path: /payment/state
+              val: completed
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Package Ready To Use
+              orderKind: package
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

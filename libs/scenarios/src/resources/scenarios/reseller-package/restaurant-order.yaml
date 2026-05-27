@@ -1,0 +1,313 @@
+name: Cud Malina Dinner Order
+kind: Order
+orderKind: restaurant
+status: awaiting_payment_token
+sellerRole: restaurant
+context:
+  scenario: reseller-weekend-package
+  packageOrderDocumentId: package-order-doc-a
+  orderSessionId: restaurant-order-package-order-a
+  orderKind: restaurant
+entitlement:
+  title: Premium romantic dinner for two
+  description: Menu selection with two selected glasses of wine included.
+  dinnerDate: 2026-06-20
+payment:
+  tokenAttached: false
+  paymentToken: ''
+customerAuthorization:
+  customerId: customer-a-uid
+  publicKey: ''
+  usedNonces: {}
+confirmation:
+  status: not_confirmed
+fulfillment:
+  status: not_used
+  customerAuthorizationNonce: ''
+  customerAuthorizationVerified: false
+contracts:
+  sellerChannel:
+    type: Coordination/Timeline Channel
+    timelineId: restaurant
+  attachPaymentToken:
+    type: Coordination/Operation
+    channel: sellerChannel
+  attachPaymentTokenImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachPaymentToken
+    steps:
+      - name: BuildPaymentTokenPatch
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $document: /payment/tokenAttached
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $appendChange:
+              op: replace
+              path: /payment/tokenAttached
+              val: true
+          - $appendChange:
+              op: replace
+              path: /payment/paymentToken
+              val:
+                $binding:
+                  name: event
+                  path: /message/request/paymentToken
+          - $appendChange:
+              op: replace
+              path: /status
+              val: awaiting_confirmation
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Payment Token Attached
+              orderKind: restaurant
+              paymentToken:
+                $binding:
+                  name: event
+                  path: /message/request/paymentToken
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  confirmOrder:
+    type: Coordination/Operation
+    channel: sellerChannel
+  confirmOrderImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: confirmOrder
+    steps:
+      - name: BuildConfirmationPatch
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $not:
+                  $document: /payment/tokenAttached
+              then:
+                - $fail: Restaurant order can only be confirmed after a payment token is attached
+          - $if:
+              cond:
+                $eq:
+                  - $document: /confirmation/status
+                  - confirmed
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $appendChange:
+              op: replace
+              path: /confirmation/status
+              val: confirmed
+          - $appendChange:
+              op: replace
+              path: /status
+              val: confirmed
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Order Confirmed
+              orderKind: restaurant
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  confirm:
+    type: Coordination/Operation
+    channel: sellerChannel
+  confirmImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: confirm
+    steps:
+      - name: BuildFulfillmentPatch
+        type: Coordination/Compute
+        entry: handleFulfillment
+        functions:
+          handleFulfillment:
+            do:
+              - $if:
+                  cond:
+                    $ne:
+                      - $document: /confirmation/status
+                      - confirmed
+                  then:
+                    - $fail: Restaurant visit can only be confirmed after order confirmation
+              - $if:
+                  cond:
+                    $eq:
+                      - $document: /fulfillment/status
+                      - visited
+                  then:
+                    - $return:
+                        changeset: []
+                        events: []
+              - $let:
+                  order:
+                    - req
+                    - customerId
+                    - nonce
+                    - expires
+                    - publicKey
+                    - usedNonces
+                    - validAuthorization
+                  vars:
+                    req:
+                      $event: /message/request
+                    customerId:
+                      $var:
+                        name: req
+                        path: /customerId
+                    nonce:
+                      $var:
+                        name: req
+                        path: /nonce
+                    expires:
+                      $var:
+                        name: req
+                        path: /expires
+                    publicKey:
+                      $document: /customerAuthorization/publicKey
+                    usedNonces:
+                      $object:
+                        $document: /customerAuthorization/usedNonces
+                    validAuthorization:
+                      $and:
+                        - $eq:
+                            - $var: customerId
+                            - $document: /customerAuthorization/customerId
+                        - $exists:
+                            $var: nonce
+                        - $not:
+                            $hasKey:
+                              object:
+                                $var: usedNonces
+                              key:
+                                $var: nonce
+                        - $gte:
+                            - $var: expires
+                            - $event: /timestamp
+                        - $call:
+                            function: ed25519SignatureValid
+                            args:
+                              publicKey:
+                                $var: publicKey
+                              message:
+                                $call:
+                                  function: fulfillmentMessage
+                                  args:
+                                    orderKind:
+                                      $document: /orderKind
+                                    orderSessionId:
+                                      $document: /context/orderSessionId
+                                    customerId:
+                                      $var: customerId
+                                    nonce:
+                                      $var: nonce
+                                    expires:
+                                      $var: expires
+                              signature:
+                                $var:
+                                  name: req
+                                  path: /signature
+              - $if:
+                  cond:
+                    $var: validAuthorization
+                  then:
+                    - $appendChange:
+                        op: add
+                        path:
+                          $pointerJoin:
+                            - customerAuthorization
+                            - usedNonces
+                            - $var: nonce
+                        val: true
+                    - $appendChange:
+                        op: replace
+                        path: /fulfillment/status
+                        val: visited
+                    - $appendChange:
+                        op: replace
+                        path: /fulfillment/customerAuthorizationNonce
+                        val:
+                          $var: nonce
+                    - $appendChange:
+                        op: replace
+                        path: /fulfillment/customerAuthorizationVerified
+                        val: true
+                    - $appendChange:
+                        op: replace
+                        path: /status
+                        val: visited
+                    - $appendEvent:
+                        type: Coordination/Event
+                        kind: Restaurant Visit Confirmed
+                        orderKind: restaurant
+                        customerAuthorizationVerified: true
+                        authorizationNonce:
+                          $var: nonce
+                  else:
+                    - $appendEvent:
+                        type: Coordination/Event
+                        kind: Fulfillment Rejected
+                        orderKind: restaurant
+                        reason: customer authorization invalid
+              - $return:
+                  changeset:
+                    $changeset: true
+                  events:
+                    $events: true
+          fulfillmentMessage:
+            args:
+              orderKind:
+                type: Text
+              orderSessionId:
+                type: Text
+              customerId:
+                type: Text
+              nonce:
+                type: Text
+              expires:
+                type: Integer
+            expr:
+              $join:
+                separator: "\n"
+                list:
+                  - action=component.fulfillment.confirm
+                  - $concat:
+                      - orderKind=
+                      - $var: orderKind
+                  - $concat:
+                      - orderSessionId=
+                      - $var: orderSessionId
+                  - $concat:
+                      - customerId=
+                      - $var: customerId
+                  - $concat:
+                      - nonce=
+                      - $var: nonce
+                  - $concat:
+                      - expires=
+                      - $text:
+                          $var: expires
+          ed25519SignatureValid:
+            args:
+              publicKey:
+                type: Text
+              message:
+                type: Text
+              signature:
+                type: Text
+            expr:
+              $intrinsic:
+                type:
+                  blueId: 6P98bLNKcsNPUovBBsLu6W3BQnrg6F8TPjhbZhegrDSL
+                publicKey:
+                  $var: publicKey
+                message:
+                  $var: message
+                signature:
+                  $var: signature

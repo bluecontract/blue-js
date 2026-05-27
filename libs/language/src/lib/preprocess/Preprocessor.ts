@@ -235,7 +235,9 @@ export class Preprocessor {
       const normalizedProperties = Object.fromEntries(
         Object.entries(properties).flatMap(([key, value]) => {
           const child = this.normalizeListPlaceholders(value, false);
-          return this.isEmptyNode(child) ? [] : [[key, child]];
+          return this.isEmptyNode(child) || this.isNullNode(child)
+            ? []
+            : [[key, child]];
         }),
       );
       normalized.setProperties(

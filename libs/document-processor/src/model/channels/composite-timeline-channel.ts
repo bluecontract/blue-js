@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CompositeTimelineChannelSchema as ConversationCompositeTimelineChannelSchema } from '@blue-repository/types/packages/conversation/schemas/CompositeTimelineChannel';
+import { CompositeTimelineChannelSchema as ConversationCompositeTimelineChannelSchema } from '@blue-repository/types/packages/coordination/schemas/CompositeTimelineChannel';
 
 import { channelContractBaseSchema } from '../shared/index.js';
 
@@ -9,4 +9,6 @@ export const compositeTimelineChannelSchema =
 
 export type CompositeTimelineChannel = z.infer<
   typeof compositeTimelineChannelSchema
->;
+> & {
+  channels?: string[];
+};

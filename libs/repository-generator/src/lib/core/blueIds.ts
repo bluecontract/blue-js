@@ -1,4 +1,10 @@
-import { Blue, BlueNode, createNodeProvider } from '@blue-labs/language';
+import {
+  Blue,
+  BlueIdCalculator,
+  BlueNode,
+  NodeProviderWrapper,
+  createNodeProvider,
+} from '@blue-labs/language';
 import { OBJECT_CONTRACTS } from '@blue-labs/repository-contract';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import {
@@ -51,7 +57,7 @@ export function computeBlueIds(
     );
   });
   const blue = new Blue({
-    nodeProvider: provider,
+    nodeProvider: NodeProviderWrapper.unverified(provider),
     mergingProcessor: createRepositoryGeneratorMergingProcessor(),
   });
   const context: BlueIdContext = { blue, contentByBlueId };
@@ -284,7 +290,8 @@ function computeCyclicComponent({
     );
     return {
       alias,
-      preliminaryBlueId: context.blue.calculateBlueIdSync(node),
+      preliminaryBlueId:
+        BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(node),
     };
   });
 
@@ -386,11 +393,17 @@ function buildStorageNode(
     cloneJson(type.content),
     lookupBlueId,
   ) as JsonMap;
-  const node = blue.jsonValueToNode(substituted);
-  return {
-    node,
-    storageContent: blue.nodeToJson(node, 'official') as JsonMap,
-  };
+  try {
+    const node = blue.jsonValueToNode(substituted);
+    return {
+      node,
+      storageContent: blue.nodeToJson(node, 'official') as JsonMap,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error encountered.';
+    throw new Error(`Failed to build ${type.filePath}: ${message}`);
+  }
 }
 
 function getDiscoveredType(

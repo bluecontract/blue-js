@@ -1,15 +1,341 @@
 suiteName: blue-bex-rich-fixtures
 version: 1
-fixtureRoot: src/test/resources/rich-fixtures
+specVersion: "1.0-draft"
+fixtureRoot: bex/1.0/fixtures
 fixtureFileExtension: .yaml
+fixturePackageIdentity: "sha256:c0e9323a02d5d7102e727e8bc82f2c1f6e9f40132ba5380ef93240068e9d1946"
 directories:
   current: required
   parse-errors: required
   gas: required
-gasModel: docs/GAS.md
-fixtureFormat: docs/FIXTURES.md
+gasModel: bex/1.0/gas.md
+fixtureFormat: bex/1.0/fixture-format.md
+identityAlgorithm:
+  hash: sha256
+  fileOrder: lexicographic relative path
+  manifestNormalization: fixturePackageIdentity is set to the empty string before hashing
+  lineEndings: LF
 counts:
-  current: 51
+  current: 53
   parseErrors: 3
-  gas: 101
-  totalFixtures: 155
+  gas: 103
+  totalFixtures: 159
+fixtures:
+  - id: BEX-CURRENT-001
+    path: current/01-is-node-primitive-true.yaml
+  - id: BEX-CURRENT-002
+    path: current/02-join-list-success.yaml
+  - id: BEX-CURRENT-003
+    path: current/03-const-known.yaml
+  - id: BEX-CURRENT-004
+    path: current/04-const-unknown-compile-error.yaml
+  - id: BEX-CURRENT-005
+    path: current/05-literal-preserves-unknown-const.yaml
+  - id: BEX-CURRENT-006
+    path: current/06-literal-rejects-bex-in-type-field.yaml
+  - id: BEX-CURRENT-007
+    path: current/07-function-typed-integer-pass.yaml
+  - id: BEX-CURRENT-008
+    path: current/08-function-typed-integer-rejects-text.yaml
+  - id: BEX-CURRENT-009
+    path: current/09-function-structural-pass.yaml
+  - id: BEX-CURRENT-010
+    path: current/10-function-structural-missing-required.yaml
+  - id: BEX-CURRENT-011
+    path: current/11-function-extra-arg-compile-error.yaml
+  - id: BEX-CURRENT-012
+    path: current/12-function-missing-arg-compile-error.yaml
+  - id: BEX-CURRENT-013
+    path: current/13-function-reserved-arg-name-rejected.yaml
+  - id: BEX-CURRENT-014
+    path: current/14-is-blueid-typed-node-true.yaml
+  - id: BEX-CURRENT-015
+    path: current/15-is-blueid-wrong-type-false.yaml
+  - id: BEX-CURRENT-016
+    path: current/16-is-pattern-with-bex-rejected.yaml
+  - id: BEX-CURRENT-017
+    path: current/17-document-scope-relative.yaml
+  - id: BEX-CURRENT-018
+    path: current/18-event-value-local.yaml
+  - id: BEX-CURRENT-019
+    path: current/19-current-contract-value-local.yaml
+  - id: BEX-CURRENT-020
+    path: current/20-steps-object-value-local.yaml
+  - id: BEX-CURRENT-021
+    path: current/21-pointer-get-value-local.yaml
+  - id: BEX-CURRENT-022
+    path: current/22-pointer-set-value-local.yaml
+  - id: BEX-CURRENT-023
+    path: current/23-dynamic-pointer-missing-error.yaml
+  - id: BEX-CURRENT-024
+    path: current/24-pointer-join-escape.yaml
+  - id: BEX-CURRENT-025
+    path: current/25-append-change-valid.yaml
+  - id: BEX-CURRENT-026
+    path: current/26-append-changes-bad-op-error.yaml
+  - id: BEX-CURRENT-027
+    path: current/27-append-change-missing-val-error.yaml
+  - id: BEX-CURRENT-028
+    path: current/28-append-change-remove-no-val.yaml
+  - id: BEX-CURRENT-029
+    path: current/29-append-events-batch-success.yaml
+  - id: BEX-CURRENT-030
+    path: current/30-append-events-undefined-error.yaml
+  - id: BEX-CURRENT-031
+    path: current/31-result-value-exact-latest.yaml
+  - id: BEX-CURRENT-032
+    path: current/32-string-operators.yaml
+  - id: BEX-CURRENT-033
+    path: current/33-logic-truthy-empty-coalesce.yaml
+  - id: BEX-CURRENT-034
+    path: current/34-numeric-operators.yaml
+  - id: BEX-CURRENT-035
+    path: current/35-numeric-nonexact-divide-error.yaml
+  - id: BEX-CURRENT-036
+    path: current/36-object-list-operators.yaml
+  - id: BEX-CURRENT-037
+    path: current/37-blueid-sibling-output-conversion-error.yaml
+  - id: BEX-CURRENT-038
+    path: current/38-hotel-confirmation-use-case.yaml
+  - id: BEX-CURRENT-039
+    path: current/39-paynote-capture-condition-true.yaml
+  - id: BEX-CURRENT-040
+    path: current/40-paynote-capture-condition-false.yaml
+  - id: BEX-NEXT-001
+    path: current/41-exists-missing-false.yaml
+  - id: BEX-NEXT-002
+    path: current/42-optional-note-validation.yaml
+  - id: BEX-NEXT-003
+    path: current/43-foreach-list-index-patches.yaml
+  - id: BEX-NEXT-004
+    path: current/44-foreach-object-key-value-patches.yaml
+  - id: BEX-NEXT-005
+    path: current/45-dynamic-text-object-key-missing-error.yaml
+  - id: BEX-NEXT-006
+    path: current/46-dynamic-text-step-name-missing-error.yaml
+  - id: BEX-NEXT-007
+    path: current/47-resultvalue-parent-child-replace.yaml
+  - id: BEX-NEXT-008
+    path: current/48-resultvalue-parent-replace-then-child-replace.yaml
+  - id: BEX-NEXT-009
+    path: current/49-resultvalue-parent-child-remove.yaml
+  - id: BEX-NEXT-010
+    path: current/50-resultvalue-list-index-replace.yaml
+  - id: BEX-NEXT-011
+    path: current/51-gas-large-output-costs-more.yaml
+  - id: BEX-CURRENT-052
+    path: current/52-ergonomics-guards-kind-path-let.yaml
+  - id: BEX-CURRENT-053
+    path: current/53-collection-query-core.yaml
+  - id: GAS-001
+    path: gas/gas-001-root-expression-literal.yaml
+  - id: GAS-002
+    path: gas/gas-002-empty-do-body.yaml
+  - id: GAS-003
+    path: gas/gas-003-return-literal-statement.yaml
+  - id: GAS-004
+    path: gas/gas-004-custom-expression-base.yaml
+  - id: GAS-010
+    path: gas/gas-010-document-read.yaml
+  - id: GAS-011
+    path: gas/gas-011-resolved-document-read.yaml
+  - id: GAS-012
+    path: gas/gas-012-event-read.yaml
+  - id: GAS-013
+    path: gas/gas-013-current-contract-read.yaml
+  - id: GAS-014
+    path: gas/gas-014-steps-read.yaml
+  - id: GAS-015
+    path: gas/gas-015-binding-read.yaml
+  - id: GAS-016
+    path: gas/gas-016-var-read.yaml
+  - id: GAS-017
+    path: gas/gas-017-result-value-read.yaml
+  - id: GAS-020
+    path: gas/gas-020-unary-integer.yaml
+  - id: GAS-021
+    path: gas/gas-021-is-static-pattern.yaml
+  - id: GAS-022
+    path: gas/gas-022-compare-eq.yaml
+  - id: GAS-023
+    path: gas/gas-023-numeric-three-operands.yaml
+  - id: GAS-024
+    path: gas/gas-024-concat-three-operands.yaml
+  - id: GAS-025
+    path: gas/gas-025-join.yaml
+  - id: GAS-026
+    path: gas/gas-026-split-no-limit.yaml
+  - id: GAS-027
+    path: gas/gas-027-split-with-limit.yaml
+  - id: GAS-028
+    path: gas/gas-028-pointer-join-three-segments.yaml
+  - id: GAS-029
+    path: gas/gas-029-keys.yaml
+  - id: GAS-030
+    path: gas/gas-030-entries.yaml
+  - id: GAS-031
+    path: gas/gas-031-size.yaml
+  - id: GAS-032
+    path: gas/gas-032-list-concat-two-lists.yaml
+  - id: GAS-033
+    path: gas/gas-033-merge-two-objects.yaml
+  - id: GAS-034
+    path: gas/gas-034-static-object-literal.yaml
+  - id: GAS-035
+    path: gas/gas-035-dynamic-object-literal.yaml
+  - id: GAS-036
+    path: gas/gas-036-static-list-literal.yaml
+  - id: GAS-037
+    path: gas/gas-037-dynamic-list-literal.yaml
+  - id: GAS-038
+    path: gas/gas-038-get-static-key.yaml
+  - id: GAS-039
+    path: gas/gas-039-get-dynamic-key.yaml
+  - id: GAS-040
+    path: gas/gas-040-list-get-hit.yaml
+  - id: GAS-041
+    path: gas/gas-041-list-get-default.yaml
+  - id: GAS-042
+    path: gas/gas-042-object-set-scalar.yaml
+  - id: GAS-043
+    path: gas/gas-043-pointer-get-hit-two-segments.yaml
+  - id: GAS-044
+    path: gas/gas-044-pointer-get-default.yaml
+  - id: GAS-045
+    path: gas/gas-045-pointer-set-value.yaml
+  - id: GAS-046
+    path: gas/gas-046-pointer-set-remove.yaml
+  - id: GAS-047
+    path: gas/gas-047-changeset-expression.yaml
+  - id: GAS-048
+    path: gas/gas-048-events-expression.yaml
+  - id: GAS-050
+    path: gas/gas-050-and-short-circuit.yaml
+  - id: GAS-051
+    path: gas/gas-051-and-full-evaluation.yaml
+  - id: GAS-052
+    path: gas/gas-052-or-short-circuit.yaml
+  - id: GAS-053
+    path: gas/gas-053-or-full-evaluation.yaml
+  - id: GAS-054
+    path: gas/gas-054-coalesce-short-circuit.yaml
+  - id: GAS-055
+    path: gas/gas-055-coalesce-full-evaluation.yaml
+  - id: GAS-056
+    path: gas/gas-056-if-selected-branch-only.yaml
+  - id: GAS-057
+    path: gas/gas-057-foreach-list-empty-body.yaml
+  - id: GAS-058
+    path: gas/gas-058-foreach-list-body-append.yaml
+  - id: GAS-059
+    path: gas/gas-059-function-call-no-args.yaml
+  - id: GAS-060
+    path: gas/gas-060-function-call-typed-arg.yaml
+  - id: GAS-061
+    path: gas/gas-061-call-statement.yaml
+  - id: GAS-070
+    path: gas/gas-070-append-event-null.yaml
+  - id: GAS-071
+    path: gas/gas-071-append-event-string.yaml
+  - id: GAS-072
+    path: gas/gas-072-append-event-boolean.yaml
+  - id: GAS-073
+    path: gas/gas-073-append-event-integer.yaml
+  - id: GAS-074
+    path: gas/gas-074-append-event-list.yaml
+  - id: GAS-075
+    path: gas/gas-075-append-event-object.yaml
+  - id: GAS-076
+    path: gas/gas-076-append-events-two-scalars.yaml
+  - id: GAS-077
+    path: gas/gas-077-append-change-replace-scalar.yaml
+  - id: GAS-078
+    path: gas/gas-078-append-change-remove-lazy-val.yaml
+  - id: GAS-079
+    path: gas/gas-079-append-changes-two-entries.yaml
+  - id: GAS-090
+    path: gas/gas-090-expression-gas-exhaustion.yaml
+  - id: GAS-091
+    path: gas/gas-091-output-size-gas-exhaustion.yaml
+  - id: GAS-092
+    path: gas/gas-092-literal-expression.yaml
+  - id: GAS-093
+    path: gas/gas-093-const-expression.yaml
+  - id: GAS-094
+    path: gas/gas-094-unwrap-expression.yaml
+  - id: GAS-095
+    path: gas/gas-095-text-expression.yaml
+  - id: GAS-096
+    path: gas/gas-096-number-expression.yaml
+  - id: GAS-097
+    path: gas/gas-097-boolean-expression.yaml
+  - id: GAS-098
+    path: gas/gas-098-object-expression.yaml
+  - id: GAS-099
+    path: gas/gas-099-list-expression.yaml
+  - id: GAS-100
+    path: gas/gas-100-truthy-expression.yaml
+  - id: GAS-101
+    path: gas/gas-101-empty-expression.yaml
+  - id: GAS-102
+    path: gas/gas-102-exists-expression.yaml
+  - id: GAS-103
+    path: gas/gas-103-not-expression.yaml
+  - id: GAS-104
+    path: gas/gas-104-default-expression.yaml
+  - id: GAS-105
+    path: gas/gas-105-starts-with-expression.yaml
+  - id: GAS-106
+    path: gas/gas-106-slice-after-expression.yaml
+  - id: GAS-107
+    path: gas/gas-107-ne-expression.yaml
+  - id: GAS-108
+    path: gas/gas-108-gt-expression.yaml
+  - id: GAS-109
+    path: gas/gas-109-gte-expression.yaml
+  - id: GAS-110
+    path: gas/gas-110-lt-expression.yaml
+  - id: GAS-111
+    path: gas/gas-111-lte-expression.yaml
+  - id: GAS-112
+    path: gas/gas-112-subtract-expression.yaml
+  - id: GAS-113
+    path: gas/gas-113-multiply-expression.yaml
+  - id: GAS-114
+    path: gas/gas-114-divide-expression.yaml
+  - id: GAS-115
+    path: gas/gas-115-choose-expression.yaml
+  - id: GAS-116
+    path: gas/gas-116-set-statement.yaml
+  - id: GAS-117
+    path: gas/gas-117-append-change-add-scalar.yaml
+  - id: GAS-118
+    path: gas/gas-118-append-changes-remove-entry.yaml
+  - id: GAS-119
+    path: gas/gas-119-dynamic-pointer-expression-cost.yaml
+  - id: GAS-120
+    path: gas/gas-120-dynamic-text-expression-cost.yaml
+  - id: GAS-121
+    path: gas/gas-121-custom-function-call.yaml
+  - id: GAS-122
+    path: gas/gas-122-custom-statement-base.yaml
+  - id: GAS-123
+    path: gas/gas-123-custom-append-event-base.yaml
+  - id: GAS-124
+    path: gas/gas-124-custom-append-change-base.yaml
+  - id: GAS-125
+    path: gas/gas-125-custom-document-read.yaml
+  - id: GAS-126
+    path: gas/gas-126-custom-pointer-set-base.yaml
+  - id: GAS-127
+    path: gas/gas-127-custom-foreach-item.yaml
+  - id: BEX-GAS-128
+    path: gas/gas-128-map-two-items.yaml
+  - id: BEX-GAS-129
+    path: gas/gas-129-some-short-circuit.yaml
+  - id: BEX-PARSE-001
+    path: parse-errors/01-invalid-is-value-shape.yaml
+  - id: BEX-PARSE-002
+    path: parse-errors/02-invalid-join-items-shape.yaml
+  - id: BEX-PARSE-003
+    path: parse-errors/03-invalid-blueid-with-siblings.yaml

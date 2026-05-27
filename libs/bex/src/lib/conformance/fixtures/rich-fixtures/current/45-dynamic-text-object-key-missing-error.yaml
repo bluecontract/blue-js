@@ -62,7 +62,8 @@ programSource: |
   type: Blue/BEX Program
   expr:
     $objectSet:
-      object: {}
+      object:
+        $emptyObject: true
       key:
         $document: /missingKey
       val: 1

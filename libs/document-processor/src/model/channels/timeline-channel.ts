@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { TimelineChannelSchema as ConversationTimelineChannelSchema } from '@blue-repository/types/packages/conversation/schemas/TimelineChannel';
+import { TimelineChannelSchema as ConversationTimelineChannelSchema } from '@blue-repository/types/packages/coordination/schemas/TimelineChannel';
 
 import { channelContractBaseSchema } from '../shared/index.js';
 

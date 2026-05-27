@@ -1,6 +1,7 @@
 export * from './lib/BexException';
 export * from './lib/api/BexEngine';
 export * from './lib/api/BexExecutionContext';
+export * from './lib/api/BexIntrinsicRegistry';
 export * from './lib/api/BexProgramSource';
 export * from './lib/api/BexStepResults';
 export * from './lib/gas/BexGasSchedule';

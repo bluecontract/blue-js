@@ -1,6 +1,6 @@
 import type { Blue, BlueNode } from '@blue-labs/language';
-import { OperationRequestSchema } from '@blue-repository/types/packages/conversation/schemas/OperationRequest';
-import { OperationSchema } from '@blue-repository/types/packages/conversation/schemas/Operation';
+import { OperationRequestSchema } from '@blue-repository/types/packages/coordination/schemas/OperationRequest';
+import { OperationSchema } from '@blue-repository/types/packages/coordination/schemas/Operation';
 
 import {
   sequentialWorkflowOperationSchema,

@@ -1,0 +1,37 @@
+{
+  "name": "@blue-labs/coordination",
+  "version": "4.1.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
+  ],
+  "dependencies": {
+    "@blue-labs/bex": "4.1.1",
+    "@blue-labs/document-processor": "4.1.1",
+    "@blue-labs/language": "4.1.1"
+  },
+  "peerDependencies": {
+    "@blue-repository/types": ">=1.0.0 <2"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-js.git"
+  }
+}

@@ -66,13 +66,14 @@ programSource: |
         $document: /missing
     nullPresent:
       $exists:
-        $literal: null
+        $null: true
     falsePresent:
       $exists: false
     emptyTextPresent:
       $exists: ''
     emptyObjectPresent:
-      $exists: {}
+      $exists:
+        $emptyObject: true
 expectation:
   outcome: success
   resultSimple:

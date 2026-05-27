@@ -7,9 +7,14 @@ import {
   BexMetrics,
   BexPatchEntry,
 } from '../result/BexExecutionResult';
-import { BexValues, nodeToSimple } from '../value/BexValues';
+import { BlueIdCalculator } from '@blue-labs/language';
+import { BexValue, BexValues, nodeToSimple } from '../value/BexValues';
 import { sortBexKeys } from '../value/key-order';
 import { BexExecutionContext } from './BexExecutionContext';
+import {
+  BexIntrinsicProcessor,
+  BexIntrinsicRegistry,
+} from './BexIntrinsicRegistry';
 import { BexProgramSource } from './BexProgramSource';
 
 type SimpleObject = Record<string, unknown>;
@@ -28,6 +33,12 @@ interface BexFunctionDefinition {
   do?: unknown;
 }
 
+interface CollectionEntry {
+  key?: string;
+  index: number;
+  val: unknown;
+}
+
 class ReturnSignal {
   constructor(public readonly value: unknown) {}
 }
@@ -38,18 +49,24 @@ export class BexCompiledProgram {
     public readonly constants: Map<string, unknown>,
     public readonly functions: Map<string, BexFunctionDefinition>,
     public readonly entryName?: string,
+    public readonly requiredIntrinsicBlueIds: ReadonlySet<string> = new Set(),
   ) {}
 }
 
 export class BexEngine {
+  private compilingIntrinsicBlueIds?: Set<string>;
+
   public static builder(): BexEngineBuilder {
     return new BexEngineBuilder();
   }
 
-  constructor(private readonly gasSchedule = BexGasSchedule.defaults()) {}
+  constructor(
+    private readonly gasSchedule = BexGasSchedule.defaults(),
+    private readonly intrinsics = BexIntrinsicRegistry.empty(),
+  ) {}
 
   public compile(source: BexProgramSource): BexCompiledProgram {
-    const program = nodeToSimple(source.node);
+    const program = this.normalizeBlueContainers(nodeToSimple(source.node));
     if (!this.isObject(program)) {
       throw new BexException('BEX program must be an object.', 'compile-error');
     }
@@ -57,7 +74,7 @@ export class BexEngine {
     const definition =
       source.definitionNode === undefined
         ? undefined
-        : nodeToSimple(source.definitionNode);
+        : this.normalizeBlueContainers(nodeToSimple(source.definitionNode));
     if (definition !== undefined && !this.isObject(definition)) {
       throw new BexException(
         'BEX definition must be an object.',
@@ -65,53 +82,71 @@ export class BexEngine {
       );
     }
 
-    const constants = this.compileConstants(
-      program.constants,
-      this.compileConstants(definition?.constants),
-    );
-    const functions = this.compileFunctions(
-      program.functions,
-      this.compileFunctions(definition?.functions),
-    );
-    this.validateNoRecursiveFunctions(functions);
-    this.validateStaticBlueFields(definition, '/definition');
-    this.validateStaticBlueFields(program, '/');
-    this.validateReferences(program.expr, constants, functions, '/expr');
-    this.validateStatements(program.do, constants, functions, '/do', new Set());
-    for (const [name, definition] of functions) {
-      this.validateReferences(
-        definition.expr,
-        constants,
-        functions,
-        `/functions/${this.escapePointer(name)}/expr`,
+    const requiredIntrinsicBlueIds = new Set<string>();
+    this.compilingIntrinsicBlueIds = requiredIntrinsicBlueIds;
+    try {
+      const constants = this.compileConstants(
+        program.constants,
+        this.compileConstants(definition?.constants),
       );
+      const functions = this.compileFunctions(
+        program.functions,
+        this.compileFunctions(definition?.functions),
+      );
+      this.validateNoRecursiveFunctions(functions);
+      this.validateStaticBlueFields(definition, '/definition');
+      this.validateStaticBlueFields(program, '/');
+      this.validateReferences(program.expr, constants, functions, '/expr');
       this.validateStatements(
-        definition.do,
+        program.do,
         constants,
         functions,
-        `/functions/${this.escapePointer(name)}/do`,
-        new Set(Object.keys(definition.args)),
+        '/do',
+        new Set(),
       );
-    }
-
-    const entryName = this.resolveEntryName(source, program);
-    if (entryName !== undefined) {
-      const entry = functions.get(entryName);
-      if (entry === undefined) {
-        throw new BexException(
-          `Unknown entry function: ${entryName}`,
-          'compile-error',
+      for (const [name, definition] of functions) {
+        this.validateReferences(
+          definition.expr,
+          constants,
+          functions,
+          `/functions/${this.escapePointer(name)}/expr`,
+        );
+        this.validateStatements(
+          definition.do,
+          constants,
+          functions,
+          `/functions/${this.escapePointer(name)}/do`,
+          new Set(Object.keys(definition.args)),
         );
       }
-      if (Object.keys(entry.args).length > 0) {
-        throw new BexException(
-          `Entry function ${entryName} declares arguments but entry invocation provides none`,
-          'compile-error',
-        );
-      }
-    }
 
-    return new BexCompiledProgram(program, constants, functions, entryName);
+      const entryName = this.resolveEntryName(source, program);
+      if (entryName !== undefined) {
+        const entry = functions.get(entryName);
+        if (entry === undefined) {
+          throw new BexException(
+            `Unknown entry function: ${entryName}`,
+            'compile-error',
+          );
+        }
+        if (Object.keys(entry.args).length > 0) {
+          throw new BexException(
+            `Entry function ${entryName} declares arguments but entry invocation provides none`,
+            'compile-error',
+          );
+        }
+      }
+
+      return new BexCompiledProgram(
+        program,
+        constants,
+        functions,
+        entryName,
+        requiredIntrinsicBlueIds,
+      );
+    } finally {
+      this.compilingIntrinsicBlueIds = undefined;
+    }
   }
 
   public execute(
@@ -180,6 +215,90 @@ export class BexEngine {
       constants.set(key, this.cloneSimple(item));
     }
     return constants;
+  }
+
+  private normalizeBlueContainers(
+    value: unknown,
+    path: readonly string[] = [],
+  ): unknown {
+    if (Array.isArray(value)) {
+      return value
+        .map((item, index) =>
+          this.normalizeBlueContainers(item, [...path, String(index)]),
+        )
+        .filter((item) => item !== undefined);
+    }
+    if (!this.isObject(value)) {
+      return value;
+    }
+
+    const keys = Object.keys(value);
+    const ordinaryKeys = keys.filter((key) => !this.blueWrapperKeys().has(key));
+    if (
+      Object.hasOwn(value, 'value') &&
+      ordinaryKeys.length === 0 &&
+      !Object.hasOwn(value, 'items')
+    ) {
+      return this.normalizeBlueContainers(value.value, [...path, 'value']);
+    }
+    if (
+      Object.hasOwn(value, 'items') &&
+      ordinaryKeys.length === 0 &&
+      Array.isArray(value.items)
+    ) {
+      return this.normalizeBlueContainers(value.items, [...path, 'items']);
+    }
+    if (
+      ordinaryKeys.length === 0 &&
+      this.isDocumentationOnlyBlueContainer(value) &&
+      !this.shouldPreserveDocumentationOnlyContainer(path)
+    ) {
+      return undefined;
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).flatMap(([key, item]) => {
+        const normalized = this.normalizeBlueContainers(item, [...path, key]);
+        if (normalized === undefined && path[path.length - 1] !== 'args') {
+          return [];
+        }
+        return [[key, normalized]];
+      }),
+    );
+  }
+
+  private isDocumentationOnlyBlueContainer(value: SimpleObject): boolean {
+    if (Object.keys(value).length === 0) {
+      return false;
+    }
+    for (const key of [
+      'type',
+      'itemType',
+      'keyType',
+      'valueType',
+      'value',
+      'items',
+      'blueId',
+      'blue',
+      'schema',
+      'constraints',
+      'mergePolicy',
+      'properties',
+      'contracts',
+    ]) {
+      if (Object.hasOwn(value, key)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private shouldPreserveDocumentationOnlyContainer(
+    path: readonly string[],
+  ): boolean {
+    const last = path[path.length - 1];
+    const parent = path[path.length - 2];
+    return last === 'entry' || parent === 'functions' || parent === 'args';
   }
 
   private compileFunctions(
@@ -359,6 +478,23 @@ export class BexEngine {
       }
     }
     if (this.isSingleOperator(expression, '$const')) {
+      const constBody = expression['$const'];
+      if (this.isObject(constBody)) {
+        const name = constBody['name'];
+        if (typeof name !== 'string' || !constants.has(name)) {
+          throw new BexException(
+            `Unknown constant: ${String(name)}`,
+            'compile-error',
+          );
+        }
+        this.validateReferences(
+          constBody['path'],
+          constants,
+          functions,
+          `${pointer}/$const/path`,
+        );
+        return;
+      }
       if (
         typeof expression['$const'] !== 'string' ||
         !constants.has(expression['$const'])
@@ -397,6 +533,42 @@ export class BexEngine {
     }
     if (this.isSingleOperator(expression, '$call')) {
       this.validateCall(expression['$call'], constants, functions, pointer);
+      return;
+    }
+    if (this.isSingleOperator(expression, '$intrinsic')) {
+      const body = this.requireObject(
+        expression['$intrinsic'],
+        '$intrinsic expects an object body',
+      );
+      if (!('type' in body)) {
+        throw new BexException('$intrinsic.type is required', 'compile-error');
+      }
+      this.validateStaticBlueFields(body.type, `${pointer}/$intrinsic/type`);
+      const blueId = this.intrinsicTypeBlueId(body.type);
+      if (blueId === undefined || blueId.length === 0) {
+        throw new BexException(
+          '$intrinsic.type must resolve to a BlueId',
+          'compile-error',
+        );
+      }
+      if (!this.intrinsics.supports(blueId)) {
+        throw new BexException(
+          `Unsupported intrinsic BlueId: ${blueId}`,
+          'compile-error',
+        );
+      }
+      this.compilingIntrinsicBlueIds?.add(blueId);
+      for (const [key, value] of Object.entries(body)) {
+        if (key === 'type') {
+          continue;
+        }
+        this.validateReferences(
+          value,
+          constants,
+          functions,
+          `${pointer}/$intrinsic/${this.escapePointer(key)}`,
+        );
+      }
       return;
     }
     for (const [key, value] of Object.entries(expression)) {
@@ -502,15 +674,42 @@ export class BexEngine {
         return;
       }
       if (op === '$let' && this.isObject(body)) {
+        if (this.isObject(body.vars)) {
+          for (const [name, expr] of Object.entries(body.vars)) {
+            this.validateReferences(
+              expr,
+              constants,
+              functions,
+              `${pointer}/${index}/${op}/vars/${this.escapePointer(name)}`,
+            );
+            declaredLocals.add(name);
+          }
+        } else {
+          this.validateReferences(
+            body.expr,
+            constants,
+            functions,
+            `${pointer}/${index}/${op}/expr`,
+          );
+          if (typeof body.name === 'string') {
+            declaredLocals.add(body.name);
+          }
+        }
+        return;
+      }
+      if ((op === '$returnIf' || op === '$failIf') && this.isObject(body)) {
         this.validateReferences(
-          body.expr,
+          body.cond,
           constants,
           functions,
-          `${pointer}/${index}/${op}/expr`,
+          `${pointer}/${index}/${op}/cond`,
         );
-        if (typeof body.name === 'string') {
-          declaredLocals.add(body.name);
-        }
+        this.validateReferences(
+          op === '$returnIf' ? body.expr : body.message,
+          constants,
+          functions,
+          `${pointer}/${index}/${op}/${op === '$returnIf' ? 'expr' : 'message'}`,
+        );
         return;
       }
       if (op === '$set' && this.isObject(body)) {
@@ -689,6 +888,12 @@ export class BexEngine {
         statement.$let,
         '$let requires an object.',
       );
+      if (this.isObject(spec.vars)) {
+        for (const [name, expr] of Object.entries(spec.vars)) {
+          state.vars.set(name, this.evalExpr(expr, context, state, program));
+        }
+        return;
+      }
       const name = this.requireText(spec.name, '$let.name');
       state.vars.set(name, this.evalExpr(spec.expr, context, state, program));
       return;
@@ -766,6 +971,32 @@ export class BexEngine {
     }
     if ('$call' in statement) {
       this.evalExpr({ $call: statement.$call }, context, state, program);
+      return;
+    }
+    if ('$returnIf' in statement) {
+      const spec = this.requireObject(
+        statement.$returnIf,
+        '$returnIf requires an object.',
+      );
+      if (this.truthy(this.evalExpr(spec.cond, context, state, program))) {
+        throw new ReturnSignal(
+          'expr' in spec
+            ? this.evalExpr(spec.expr, context, state, program)
+            : this.defaultResult(state),
+        );
+      }
+      return;
+    }
+    if ('$failIf' in statement) {
+      const spec = this.requireObject(
+        statement.$failIf,
+        '$failIf requires an object.',
+      );
+      if (this.truthy(this.evalExpr(spec.cond, context, state, program))) {
+        throw new BexException(
+          this.asText(this.evalExpr(spec.message, context, state, program)),
+        );
+      }
       return;
     }
     if ('$fail' in statement) {
@@ -973,6 +1204,12 @@ export class BexEngine {
     switch (operator) {
       case '$literal':
         return this.cloneSimple(operand);
+      case '$null':
+        return null;
+      case '$emptyObject':
+        return {};
+      case '$emptyList':
+        return [];
       case '$document':
         state.metrics.documentReads += 1;
         this.charge(state, this.gasSchedule.values.documentRead, context);
@@ -1017,13 +1254,9 @@ export class BexEngine {
         );
       case '$var':
         this.charge(state, this.gasSchedule.values.varRead, context);
-        return typeof operand === 'string'
-          ? state.vars.get(operand)
-          : undefined;
+        return this.readRuntimeVariable(operand, state, context, program);
       case '$const':
-        return typeof operand === 'string'
-          ? program.constants.get(operand)
-          : undefined;
+        return this.readConstant(operand, context, state, program);
       case '$get':
         return this.evalGet(operand, context, state, program);
       case '$changeset':
@@ -1038,6 +1271,10 @@ export class BexEngine {
         return this.unwrap(this.evalExpr(operand, context, state, program));
       case '$is':
         return this.evalIs(operand, context, state, program);
+      case '$kind':
+        return this.kindOf(this.evalExpr(operand, context, state, program));
+      case '$isKind':
+        return this.evalIsKind(operand, context, state, program);
       case '$text':
         return this.asText(this.evalExpr(operand, context, state, program));
       case '$integer':
@@ -1172,6 +1409,28 @@ export class BexEngine {
         return this.evalPointerSet(operand, context, state, program);
       case '$choose':
         return this.evalChoose(operand, context, state, program);
+      case '$map':
+        return this.evalMap(operand, context, state, program);
+      case '$filter':
+        return this.evalFilter(operand, context, state, program);
+      case '$flatMap':
+        return this.evalFlatMap(operand, context, state, program);
+      case '$reduce':
+        return this.evalReduce(operand, context, state, program);
+      case '$some':
+        return this.evalSome(operand, context, state, program);
+      case '$find':
+        return this.evalFind(operand, context, state, program);
+      case '$findEntry':
+        return this.evalFindEntry(operand, context, state, program);
+      case '$includes':
+        return this.evalIncludes(operand, context, state, program);
+      case '$hasKey':
+        return this.evalHasKey(operand, context, state, program);
+      case '$objectFromEntries':
+        return this.evalObjectFromEntries(operand, context, state, program);
+      case '$intrinsic':
+        return this.evalIntrinsic(operand, context, state, program);
       case '$call':
         return this.evalCall(operand, context, state, program);
       default:
@@ -1256,8 +1515,16 @@ export class BexEngine {
       operand,
       `${label} expects a binding name or object form.`,
     );
+    const nameOperand =
+      spec.name === undefined && label === '$binding' ? 'event' : spec.name;
     const name = this.asText(
-      this.evalTextOperand(spec.name, context, state, program, `${label}.name`),
+      this.evalTextOperand(
+        nameOperand,
+        context,
+        state,
+        program,
+        `${label}.name`,
+      ),
     );
     const path = this.pointerOperand(
       spec.path ?? '/',
@@ -1308,6 +1575,58 @@ export class BexEngine {
     );
   }
 
+  private readRuntimeVariable(
+    operand: unknown,
+    state: RuntimeState,
+    context: BexExecutionContext,
+    program: BexCompiledProgram,
+  ): unknown {
+    if (typeof operand === 'string') {
+      return state.vars.get(operand);
+    }
+    const spec = this.requireObject(
+      operand,
+      '$var expects a variable name or object form.',
+    );
+    const name = this.asText(
+      this.evalTextOperand(spec.name, context, state, program, '$var.name'),
+    );
+    const path = this.pointerOperand(
+      spec.path ?? '/',
+      context,
+      state,
+      program,
+      true,
+    );
+    return this.getAt(state.vars.get(name), this.pointerSegments(path));
+  }
+
+  private readConstant(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown {
+    if (typeof operand === 'string') {
+      return program.constants.get(operand);
+    }
+    const spec = this.requireObject(
+      operand,
+      '$const expects a constant name or object form.',
+    );
+    const name = this.asText(
+      this.evalTextOperand(spec.name, context, state, program, '$const.name'),
+    );
+    const path = this.pointerOperand(
+      spec.path ?? '/',
+      context,
+      state,
+      program,
+      true,
+    );
+    return this.getAt(program.constants.get(name), this.pointerSegments(path));
+  }
+
   private resultValue(
     operand: unknown,
     context: BexExecutionContext,
@@ -1350,6 +1669,52 @@ export class BexEngine {
     const spec = this.requireObject(operand, '$is requires an object.');
     const value = this.evalExpr(spec.node, context, state, program);
     return this.matchesPattern(value, spec.pattern);
+  }
+
+  private evalIsKind(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): boolean {
+    const spec = this.requireObject(operand, '$isKind requires an object.');
+    const value = this.evalExpr(spec.val, context, state, program);
+    return this.kindOf(value) === this.requireText(spec.kind, '$isKind.kind');
+  }
+
+  private evalIntrinsic(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown {
+    const spec = this.requireObject(
+      operand,
+      '$intrinsic expects an object body',
+    );
+    const blueId = this.intrinsicTypeBlueId(spec.type);
+    if (blueId === undefined || blueId.length === 0) {
+      throw new BexException('$intrinsic.type must resolve to a BlueId');
+    }
+    const fields = new Map<string, BexValue>();
+    for (const [key, value] of Object.entries(spec)) {
+      if (key === 'type') {
+        continue;
+      }
+      const evaluated = this.evalExpr(value, context, state, program);
+      if (evaluated !== undefined) {
+        fields.set(key, BexValues.fromSimple(evaluated));
+      }
+    }
+    return this.intrinsics
+      .invoke(
+        blueId,
+        BexValues.fromSimple(spec.type),
+        fields,
+        (amount) => this.charge(state, amount, context),
+        () => state.gasUsed,
+      )
+      .toSimple();
   }
 
   private evalJoin(
@@ -1699,6 +2064,240 @@ export class BexEngine {
     return 'else' in spec
       ? this.evalExpr(spec.else, context, state, program)
       : undefined;
+  }
+
+  private evalMap(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown[] {
+    const spec = this.requireObject(operand, '$map requires an object.');
+    return this.collectionEntries(
+      this.evalExpr(spec.in, context, state, program),
+      '$map',
+    ).map((entry) => {
+      this.charge(state, this.gasSchedule.values.forEachItem, context);
+      return this.withIterationBindings(state, spec, entry, () =>
+        this.evalExpr(spec.expr, context, state, program),
+      );
+    });
+  }
+
+  private evalFilter(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown[] | SimpleObject {
+    const spec = this.requireObject(operand, '$filter requires an object.');
+    const input = this.evalExpr(spec.in, context, state, program);
+    const entries = this.collectionEntries(input, '$filter');
+    if (Array.isArray(input)) {
+      const out: unknown[] = [];
+      for (const entry of entries) {
+        this.charge(state, this.gasSchedule.values.forEachItem, context);
+        if (
+          this.withIterationBindings(state, spec, entry, () =>
+            this.truthy(this.evalExpr(spec.where, context, state, program)),
+          )
+        ) {
+          out.push(this.cloneSimple(entry.val));
+        }
+      }
+      return out;
+    }
+    const out: SimpleObject = {};
+    for (const entry of entries) {
+      this.charge(state, this.gasSchedule.values.forEachItem, context);
+      if (
+        this.withIterationBindings(state, spec, entry, () =>
+          this.truthy(this.evalExpr(spec.where, context, state, program)),
+        )
+      ) {
+        out[this.requireText(entry.key, '$filter.entry.key')] =
+          this.cloneSimple(entry.val);
+      }
+    }
+    return this.sortObject(out);
+  }
+
+  private evalFlatMap(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown[] {
+    const spec = this.requireObject(operand, '$flatMap requires an object.');
+    const out: unknown[] = [];
+    for (const entry of this.collectionEntries(
+      this.evalExpr(spec.in, context, state, program),
+      '$flatMap',
+    )) {
+      this.charge(state, this.gasSchedule.values.forEachItem, context);
+      const value = this.withIterationBindings(state, spec, entry, () =>
+        this.evalExpr(spec.expr, context, state, program),
+      );
+      if (!Array.isArray(value)) {
+        throw new BexException('$flatMap expr must evaluate to a list');
+      }
+      out.push(...value.map((item) => this.cloneSimple(item)));
+    }
+    return out;
+  }
+
+  private evalReduce(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown {
+    const spec = this.requireObject(operand, '$reduce requires an object.');
+    const accName = this.requireText(spec.acc, '$reduce.acc');
+    let acc = this.evalExpr(spec.init, context, state, program);
+    for (const entry of this.collectionEntries(
+      this.evalExpr(spec.in, context, state, program),
+      '$reduce',
+    )) {
+      this.charge(state, this.gasSchedule.values.forEachItem, context);
+      acc = this.withIterationBindings(
+        state,
+        spec,
+        entry,
+        () => this.evalExpr(spec.expr, context, state, program),
+        { [accName]: acc },
+      );
+    }
+    return acc;
+  }
+
+  private evalSome(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): boolean {
+    const spec = this.requireObject(operand, '$some requires an object.');
+    for (const entry of this.collectionEntries(
+      this.evalExpr(spec.in, context, state, program),
+      '$some',
+    )) {
+      this.charge(state, this.gasSchedule.values.forEachItem, context);
+      if (
+        this.withIterationBindings(state, spec, entry, () =>
+          this.truthy(this.evalExpr(spec.where, context, state, program)),
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private evalFind(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown {
+    const spec = this.requireObject(operand, '$find requires an object.');
+    for (const entry of this.collectionEntries(
+      this.evalExpr(spec.in, context, state, program),
+      '$find',
+    )) {
+      this.charge(state, this.gasSchedule.values.forEachItem, context);
+      if (
+        this.withIterationBindings(state, spec, entry, () =>
+          this.truthy(this.evalExpr(spec.where, context, state, program)),
+        )
+      ) {
+        return this.cloneSimple(entry.val);
+      }
+    }
+    return undefined;
+  }
+
+  private evalFindEntry(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): unknown {
+    const spec = this.requireObject(operand, '$findEntry requires an object.');
+    for (const entry of this.collectionEntries(
+      this.evalExpr(spec.in, context, state, program),
+      '$findEntry',
+    )) {
+      this.charge(state, this.gasSchedule.values.forEachItem, context);
+      if (
+        this.withIterationBindings(state, spec, entry, () =>
+          this.truthy(this.evalExpr(spec.where, context, state, program)),
+        )
+      ) {
+        return this.sortObject({
+          index: entry.index,
+          key: entry.key,
+          val: this.cloneSimple(entry.val),
+        });
+      }
+    }
+    return undefined;
+  }
+
+  private evalIncludes(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): boolean {
+    const spec = this.requireObject(operand, '$includes requires an object.');
+    const list = this.evalExpr(spec.list, context, state, program);
+    if (!Array.isArray(list)) {
+      throw new BexException('$includes list must be a list');
+    }
+    const val = this.evalExpr(spec.val, context, state, program);
+    return list.some((item) => this.valuesEqual(item, val));
+  }
+
+  private evalHasKey(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): boolean {
+    const spec = this.requireObject(operand, '$hasKey requires an object.');
+    const object = this.evalExpr(spec.object, context, state, program);
+    if (!this.isObject(object)) {
+      return false;
+    }
+    const key = this.asText(
+      this.evalTextOperand(spec.key, context, state, program, '$hasKey.key'),
+    );
+    return Object.prototype.hasOwnProperty.call(object, key);
+  }
+
+  private evalObjectFromEntries(
+    operand: unknown,
+    context: BexExecutionContext,
+    state: RuntimeState,
+    program: BexCompiledProgram,
+  ): SimpleObject {
+    const entries = this.evalExpr(operand, context, state, program);
+    if (!Array.isArray(entries)) {
+      throw new BexException('$objectFromEntries requires a list');
+    }
+    const out: SimpleObject = {};
+    for (const [index, entry] of entries.entries()) {
+      const object = this.requireObject(
+        entry,
+        `$objectFromEntries entry ${index} must be an object.`,
+      );
+      const key = this.requireText(object.key, '$objectFromEntries.entry.key');
+      if (object.val !== undefined) {
+        out[key] = this.cloneSimple(object.val);
+      }
+    }
+    return this.sortObject(out);
   }
 
   private evalCall(
@@ -2053,6 +2652,98 @@ export class BexEngine {
     return undefined;
   }
 
+  private collectionEntries(value: unknown, label: string): CollectionEntry[] {
+    if (Array.isArray(value)) {
+      return value.map((val, index) => ({ index, val }));
+    }
+    if (this.isObject(value)) {
+      return sortBexKeys(Object.keys(value)).map((key, index) => ({
+        key,
+        index,
+        val: value[key],
+      }));
+    }
+    throw new BexException(`${label} input must be list or object`);
+  }
+
+  private withIterationBindings<T>(
+    state: RuntimeState,
+    spec: SimpleObject,
+    entry: CollectionEntry,
+    fn: () => T,
+    extraBindings: Record<string, unknown> = {},
+  ): T {
+    const itemName = this.requireText(spec.item, 'collection.item');
+    const bindings: Record<string, unknown> = {
+      [itemName]:
+        entry.key === undefined || typeof spec.key === 'string'
+          ? entry.val
+          : { key: entry.key, val: entry.val },
+      ...extraBindings,
+    };
+    if (typeof spec.key === 'string') {
+      bindings[spec.key] = entry.key;
+    }
+    if (typeof spec.index === 'string') {
+      bindings[spec.index] = entry.index;
+    }
+    return this.withBindings(state, bindings, fn);
+  }
+
+  private withBindings<T>(
+    state: RuntimeState,
+    bindings: Record<string, unknown>,
+    fn: () => T,
+  ): T {
+    const previous = new Map<
+      string,
+      { readonly hadValue: boolean; readonly value: unknown }
+    >();
+    for (const [name, value] of Object.entries(bindings)) {
+      previous.set(name, {
+        hadValue: state.vars.has(name),
+        value: state.vars.get(name),
+      });
+      state.vars.set(name, value);
+    }
+    try {
+      return fn();
+    } finally {
+      for (const [name, saved] of previous) {
+        if (saved.hadValue) {
+          state.vars.set(name, saved.value);
+        } else {
+          state.vars.delete(name);
+        }
+      }
+    }
+  }
+
+  private kindOf(value: unknown): string {
+    if (value === undefined) {
+      return 'undefined';
+    }
+    if (value === null) {
+      return 'null';
+    }
+    if (typeof value === 'boolean') {
+      return 'boolean';
+    }
+    if (typeof value === 'number') {
+      return Number.isInteger(value) ? 'integer' : 'double';
+    }
+    if (typeof value === 'string') {
+      return 'text';
+    }
+    if (Array.isArray(value)) {
+      return 'list';
+    }
+    if (this.isObject(value)) {
+      return 'object';
+    }
+    return typeof value;
+  }
+
   private asText(value: unknown): string {
     if (value === undefined || value === null) {
       return '';
@@ -2306,6 +2997,26 @@ export class BexEngine {
     ]);
   }
 
+  private blueWrapperKeys(): Set<string> {
+    return new Set([
+      'name',
+      'description',
+      'type',
+      'itemType',
+      'keyType',
+      'valueType',
+      'value',
+      'items',
+      'blueId',
+      'blue',
+      'schema',
+      'constraints',
+      'mergePolicy',
+      'properties',
+      'contracts',
+    ]);
+  }
+
   private statementOperators(): Set<string> {
     return new Set([
       '$let',
@@ -2318,13 +3029,18 @@ export class BexEngine {
       '$appendEvents',
       '$call',
       '$return',
+      '$returnIf',
       '$fail',
+      '$failIf',
     ]);
   }
 
   private expressionOperators(): Set<string> {
     return new Set([
       '$literal',
+      '$null',
+      '$emptyObject',
+      '$emptyList',
       '$document',
       '$binding',
       '$event',
@@ -2338,6 +3054,8 @@ export class BexEngine {
       '$resultValue',
       '$unwrap',
       '$is',
+      '$kind',
+      '$isKind',
       '$text',
       '$integer',
       '$number',
@@ -2378,6 +3096,17 @@ export class BexEngine {
       '$pointerGet',
       '$pointerSet',
       '$choose',
+      '$map',
+      '$filter',
+      '$flatMap',
+      '$reduce',
+      '$some',
+      '$find',
+      '$findEntry',
+      '$includes',
+      '$hasKey',
+      '$objectFromEntries',
+      '$intrinsic',
       '$call',
     ]);
   }
@@ -2422,10 +3151,42 @@ export class BexEngine {
   private isObject(value: unknown): value is SimpleObject {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
+
+  private intrinsicTypeBlueId(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }
+    if (!this.isObject(value)) {
+      return undefined;
+    }
+
+    const reference = value.blueId;
+    if (typeof reference === 'string' && reference.trim().length > 0) {
+      return reference.trim();
+    }
+
+    const scalar = value.value;
+    if (typeof scalar === 'string' && scalar.trim().length > 0) {
+      return scalar.trim();
+    }
+
+    try {
+      return BlueIdCalculator.calculateBlueIdSync(
+        BexValues.toBlueNodeStrict(value, {
+          allowComputedBlue: true,
+          allowConstraints: true,
+        }),
+      );
+    } catch {
+      return undefined;
+    }
+  }
 }
 
 export class BexEngineBuilder {
   private configuredGasSchedule = BexGasSchedule.defaults();
+  private configuredIntrinsics = BexIntrinsicRegistry.empty();
 
   public gasScheduleOverride(gasSchedule: BexGasSchedule): this {
     this.configuredGasSchedule = gasSchedule;
@@ -2447,7 +3208,20 @@ export class BexEngineBuilder {
     return this;
   }
 
+  public intrinsics(intrinsics: BexIntrinsicRegistry): this {
+    this.configuredIntrinsics = intrinsics;
+    return this;
+  }
+
+  public intrinsic(blueId: string, processor: BexIntrinsicProcessor): this {
+    this.configuredIntrinsics = this.configuredIntrinsics.with(
+      blueId,
+      processor,
+    );
+    return this;
+  }
+
   public build(): BexEngine {
-    return new BexEngine(this.configuredGasSchedule);
+    return new BexEngine(this.configuredGasSchedule, this.configuredIntrinsics);
   }
 }

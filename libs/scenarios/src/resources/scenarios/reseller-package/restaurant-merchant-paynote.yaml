@@ -1,0 +1,123 @@
+name: Investor To Restaurant PayNote
+kind: PayNote
+status: Secured
+currency: PLN
+amount:
+  expectedTotal: 20000
+  secured: 20000
+  completed: 0
+context:
+  scenario: reseller-weekend-package
+  paymentKind: merchant_resale_payout
+  payerAccountId: investor-uid
+  payeeAccountId: restaurant-uid
+  orderKind: restaurant
+  orderSessionId: restaurant-order-package-order-a
+embeddedDocs:
+  order: {}
+captureRequested: false
+captured: false
+contracts:
+  cardProcessorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: card-processor
+  processEmbeddedOrder:
+    type: Core/Process Embedded
+    paths:
+      - /embeddedDocs/order
+  embeddedOrderEvents:
+    type: Core/Embedded Node Channel
+    childPath: /embeddedDocs/order
+  captureOnRestaurantVisit:
+    type: Coordination/Sequential Workflow
+    channel: embeddedOrderEvents
+    event:
+      type: Coordination/Event
+      kind: Restaurant Visit Confirmed
+      orderKind: restaurant
+    steps:
+      - name: BuildCaptureRequest
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $document: /captureRequested
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $appendChange:
+              op: replace
+              path: /captureRequested
+              val: true
+          - $appendEvent:
+              $objectSet:
+                object:
+                  amount:
+                    $document: /amount/expectedTotal
+                  currency:
+                    $document: /currency
+                  payerAccountId:
+                    $document: /context/payerAccountId
+                  payeeAccountId:
+                    $document: /context/payeeAccountId
+                  orderKind:
+                    $document: /context/orderKind
+                key: type
+                val:
+                  value: PayNote/Capture Funds Requested
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  confirmCapture:
+    type: Coordination/Operation
+    channel: cardProcessorChannel
+  confirmCaptureImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: confirmCapture
+    steps:
+      - name: BuildCapturePatch
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $not:
+                  $document: /captureRequested
+              then:
+                - $fail: Merchant PayNote capture cannot be confirmed before fulfillment confirmation
+          - $appendChange:
+              op: replace
+              path: /status
+              val: Captured
+          - $appendChange:
+              op: replace
+              path: /captured
+              val: true
+          - $appendChange:
+              op: replace
+              path: /amount/completed
+              val:
+                $document: /amount/expectedTotal
+          - $appendEvent:
+              $objectSet:
+                object:
+                  amountCompleted:
+                    $document: /amount/expectedTotal
+                  currency:
+                    $document: /currency
+                  payerAccountId:
+                    $document: /context/payerAccountId
+                  payeeAccountId:
+                    $document: /context/payeeAccountId
+                  orderKind:
+                    $document: /context/orderKind
+                key: type
+                val:
+                  value: PayNote/Payment Completed
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

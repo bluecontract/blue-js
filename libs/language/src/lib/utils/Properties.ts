@@ -67,16 +67,16 @@ export const BASIC_TYPES = [
 ] as const;
 export const CORE_TYPES = [...BASIC_TYPES, LIST_TYPE, DICTIONARY_TYPE] as const;
 
-export const TEXT_TYPE_BLUE_ID = 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K';
+export const TEXT_TYPE_BLUE_ID = 'GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC';
 export const DOUBLE_TYPE_BLUE_ID =
-  '7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y';
+  '9eWaHYz2vKrFofdHTHAizNNu8xP6QE3WQ5y7DGrGZvyJ';
 export const INTEGER_TYPE_BLUE_ID =
-  '5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1';
+  'E2LM6qgzWG9ttagq2xTmiZkgYEAgkYedFCmU9v7NnVEq';
 export const BOOLEAN_TYPE_BLUE_ID =
-  '4EzhSubEimSQD3zrYHRtobfPPWntUuhEz8YcdxHsi12u';
-export const LIST_TYPE_BLUE_ID = '6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY';
+  'AwvXD961fmnmqcSQhjMA7r15HpVh39cefb6ZTyUz2Fm2';
+export const LIST_TYPE_BLUE_ID = '8DSFoWG9MqRSUhStqoPLrwVQiYByRh18NWbDEarN8MKF';
 export const DICTIONARY_TYPE_BLUE_ID =
-  'G7fBT9PSod1RfHLHkpafAGBDVAJMrMhAMY51ERcyXNrj';
+  'Efkz9D1ARMM7rU43w3rDNVqat1naS6qXKCqP4eHin3yG';
 
 export const BASIC_TYPE_BLUE_IDS = [
   TEXT_TYPE_BLUE_ID,

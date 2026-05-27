@@ -3,12 +3,12 @@ import type { Blue } from '@blue-labs/language';
 import {
   OperationRequestSchema,
   type OperationRequest,
-} from '@blue-repository/types/packages/conversation/schemas/OperationRequest';
+} from '@blue-repository/types/packages/coordination/schemas/OperationRequest';
 import {
   OperationSchema,
   type Operation,
-} from '@blue-repository/types/packages/conversation/schemas/Operation';
-import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+} from '@blue-repository/types/packages/coordination/schemas/Operation';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 
 import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflowOperation } from '../../../model/index.js';
@@ -124,19 +124,83 @@ export function isRequestTypeCompatible(
 ): boolean {
   const requestPayload = requestNode.getProperties()?.request;
   const requiredType = operationNode.getProperties()?.request;
-  if (
-    !(requestPayload instanceof BlueNode) ||
-    !(requiredType instanceof BlueNode)
-  ) {
+  if (!(requiredType instanceof BlueNode)) {
+    return true;
+  }
+  if (isDocumentationOnlyMatcher(requiredType)) {
+    return true;
+  }
+  if (!(requestPayload instanceof BlueNode)) {
     return false;
   }
   if (
-    !isUnconstrainedCoreCollectionMatch(requestPayload, requiredType) &&
-    !blue.isTypeOfNode(requestPayload, requiredType)
+    isUnconstrainedCoreCollectionMatch(requestPayload, requiredType) ||
+    blue.isTypeOfNode(requestPayload, requiredType) ||
+    isSimpleTypedPayloadMatch(requestPayload, requiredType, blue)
   ) {
+    return true;
+  }
+  return false;
+}
+
+function isSimpleTypedPayloadMatch(
+  requestPayload: BlueNode,
+  requiredType: BlueNode,
+  blue: Blue,
+): boolean {
+  if (hasMatcherShapeBeyondType(requiredType)) {
     return false;
   }
-  return true;
+
+  const requiredNodeType = requiredType.getType();
+  if (!(requiredNodeType instanceof BlueNode)) {
+    return false;
+  }
+
+  const requiredBlueId = requiredNodeType.getBlueId();
+  if (typeof requiredBlueId === 'string' && requiredBlueId.length > 0) {
+    return blue.isTypeOfBlueId(requestPayload, requiredBlueId);
+  }
+
+  if (
+    requiredNodeType.getType() !== undefined ||
+    requiredNodeType.getBlueId() !== undefined
+  ) {
+    return blue.isTypeOfNode(requestPayload, requiredNodeType);
+  }
+
+  return false;
+}
+
+function hasMatcherShapeBeyondType(node: BlueNode): boolean {
+  return (
+    node.getBlueId() !== undefined ||
+    node.getItemType() !== undefined ||
+    node.getKeyType() !== undefined ||
+    node.getValueType() !== undefined ||
+    node.getValue() !== undefined ||
+    node.getItems() !== undefined ||
+    node.getProperties() !== undefined
+  );
+}
+
+function isDocumentationOnlyMatcher(node: BlueNode): boolean {
+  return (
+    node.getType() === undefined &&
+    node.getBlueId() === undefined &&
+    node.getItemType() === undefined &&
+    node.getKeyType() === undefined &&
+    node.getValueType() === undefined &&
+    node.getValue() === undefined &&
+    node.getItems() === undefined &&
+    node.getProperties() === undefined &&
+    node.getContractsNode() === undefined &&
+    node.getSchema() === undefined &&
+    node.getMergePolicy() === undefined &&
+    node.getPreviousBlueId() === undefined &&
+    node.getPosition() === undefined &&
+    node.getBlue() === undefined
+  );
 }
 
 function isUnconstrainedCoreCollectionMatch(

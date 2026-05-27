@@ -13,6 +13,7 @@ import {
   BASIC_TYPE_BLUE_IDS,
   CORE_TYPE_BLUE_IDS,
   CORE_TYPE_BLUE_ID_TO_NAME_MAP,
+  CORE_TYPE_NAME_TO_BLUE_ID_MAP,
 } from './Properties';
 
 const SUBTYPE_CACHE = Symbol('blue.subtypeCache');
@@ -203,6 +204,13 @@ function isSubtypeUncached(
     return true;
   }
 
+  if (
+    isCoreTypeIdentity(supertype, supertypeBlueId) &&
+    isAnonymousCoreAlias(subtype)
+  ) {
+    return false;
+  }
+
   // If subtype is a core type, check if supertype extends it
   if (
     subtypeBlueId &&
@@ -243,6 +251,64 @@ function isSubtypeUncached(
     current = getType(current, nodeProvider);
   }
   return false;
+}
+
+function isCoreTypeIdentity(node: BlueNode, blueId: string): boolean {
+  return (
+    CORE_TYPE_BLUE_IDS.includes(
+      blueId as (typeof CORE_TYPE_BLUE_IDS)[number],
+    ) || isBareCoreTypeName(node)
+  );
+}
+
+export function isAnonymousCoreAlias(node: BlueNode): boolean {
+  const type = node.getType();
+  return (
+    node.getName() === undefined &&
+    node.getDescription() === undefined &&
+    node.getReferenceBlueId() === undefined &&
+    type !== undefined &&
+    node.getItemType() === undefined &&
+    node.getKeyType() === undefined &&
+    node.getValueType() === undefined &&
+    node.getValue() === undefined &&
+    node.getItems() === undefined &&
+    node.getProperties() === undefined &&
+    node.getContractsNode() === undefined &&
+    node.getSchema() === undefined &&
+    node.getMergePolicy() === undefined &&
+    node.getPreviousBlueId() === undefined &&
+    node.getPosition() === undefined &&
+    node.getBlue() === undefined &&
+    CORE_TYPE_BLUE_IDS.includes(
+      calculateStructuralTypeBlueId(
+        type,
+      ) as (typeof CORE_TYPE_BLUE_IDS)[number],
+    )
+  );
+}
+
+function isBareCoreTypeName(node: BlueNode): boolean {
+  const name = node.getName();
+  return (
+    name !== undefined &&
+    Object.prototype.hasOwnProperty.call(CORE_TYPE_NAME_TO_BLUE_ID_MAP, name) &&
+    node.getDescription() === undefined &&
+    node.getType() === undefined &&
+    node.getItemType() === undefined &&
+    node.getKeyType() === undefined &&
+    node.getValueType() === undefined &&
+    node.getValue() === undefined &&
+    node.getItems() === undefined &&
+    node.getProperties() === undefined &&
+    node.getContractsNode() === undefined &&
+    node.getReferenceBlueId() === undefined &&
+    node.getSchema() === undefined &&
+    node.getMergePolicy() === undefined &&
+    node.getPreviousBlueId() === undefined &&
+    node.getPosition() === undefined &&
+    node.getBlue() === undefined
+  );
 }
 
 /**

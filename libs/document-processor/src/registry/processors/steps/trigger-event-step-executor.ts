@@ -1,5 +1,6 @@
 import { BlueNode } from '@blue-labs/language';
-import { TriggerEventSchema } from '@blue-repository/types/packages/conversation/schemas/TriggerEvent';
+import type { BexEngine } from '@blue-labs/bex';
+import { TriggerEventSchema } from '@blue-repository/types/packages/coordination/schemas/TriggerEvent';
 import { isNullable } from '@blue-labs/shared-utils';
 
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
@@ -22,7 +23,11 @@ export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor 
   ] as const;
 
   private readonly evaluator = new QuickJSEvaluator();
-  private readonly bexEvaluator = new BexFieldEvaluator();
+  private readonly bexEvaluator: BexFieldEvaluator;
+
+  constructor(bexEngine?: BexEngine) {
+    this.bexEvaluator = new BexFieldEvaluator(bexEngine);
+  }
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { stepNode, context } = args;

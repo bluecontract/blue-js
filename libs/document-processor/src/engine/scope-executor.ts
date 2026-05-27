@@ -306,7 +306,7 @@ export class ScopeExecutor {
           if (
             !this.matchesDocumentUpdate(
               cascadeScope,
-              contract.path ?? null,
+              typeof contract.path === 'string' ? contract.path : null,
               data.path,
             )
           ) {

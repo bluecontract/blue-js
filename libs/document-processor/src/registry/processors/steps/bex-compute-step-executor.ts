@@ -31,7 +31,7 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
     conversationBlueIds['Conversation/Compute'],
   ] as const;
 
-  private readonly engine = new BexEngine();
+  constructor(private readonly engine = new BexEngine()) {}
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { context, stepNode } = args;
@@ -39,6 +39,14 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
     const value = result.value.toSimple();
 
     context.consumeGas(result.gasUsed);
+
+    for (const change of this.changesToApply(
+      value,
+      result.changeset.toSimple(),
+      context,
+    )) {
+      await context.applyPatch(this.toPatch(change, context));
+    }
 
     const emitEvents = this.booleanProperty(stepNode, 'emitEvents', true);
     if (emitEvents) {
@@ -48,12 +56,6 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
         context,
       )) {
         context.emitEvent(context.blue.jsonValueToNode(event));
-      }
-    }
-
-    if (this.booleanProperty(stepNode, 'applyChangeset', false)) {
-      for (const change of result.changeset.toSimple()) {
-        await context.applyPatch(this.toPatch(change, context));
       }
     }
 
@@ -136,10 +138,11 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
   }
 
   private executionContext(args: StepExecutionArgs): BexExecutionContext {
-    const root = args.context.documentAt('/') ?? new BlueNode();
+    const scopeRootPointer = args.context.resolvePointer('/');
+    const root = args.context.documentAt(scopeRootPointer) ?? new BlueNode();
     const builder = BexExecutionContext.builder()
-      .document(root, args.context.scopePath)
-      .event(BexValues.nodeSnapshot(args.eventNode))
+      .document(root)
+      .event(BexValues.nodeValueSnapshot(args.eventNode))
       .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(this.numericProperty(args.stepNode, 'gasLimit', 1_000_000));
@@ -159,6 +162,31 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
       return { op, path };
     }
     return { op, path, val: context.blue.jsonValueToNode(change.val) };
+  }
+
+  private changesToApply(
+    value: unknown,
+    accumulatorChangeset: readonly unknown[],
+    context: ContractProcessorContext,
+  ): readonly BexPatchSimple[] {
+    const rawChangeset =
+      this.isResultObject(value) && Object.hasOwn(value, 'changeset')
+        ? value.changeset
+        : accumulatorChangeset;
+    if (rawChangeset === undefined || rawChangeset === null) {
+      return [];
+    }
+    if (!Array.isArray(rawChangeset)) {
+      return context.throwFatal('Compute result changeset must be a list');
+    }
+    return rawChangeset.map((entry, index) => {
+      if (!this.isResultObject(entry)) {
+        return context.throwFatal(
+          `Compute result changeset entry ${index} must be an object`,
+        );
+      }
+      return entry;
+    });
   }
 
   private patchOperation(

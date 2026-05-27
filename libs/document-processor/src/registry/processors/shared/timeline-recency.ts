@@ -2,7 +2,7 @@ import { Blue, BlueNode } from '@blue-labs/language';
 import {
   TimelineEntrySchema,
   type TimelineEntry,
-} from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+} from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 
 type TimelineEntryLike = Pick<TimelineEntry, 'timestamp'>;
 
@@ -16,7 +16,10 @@ function toTimelineEntry(
   if (
     blue.isTypeOf(node, TimelineEntrySchema, { checkSchemaExtensions: true })
   ) {
-    return blue.nodeToSchemaOutput(node, TimelineEntrySchema);
+    return blue.nodeToSchemaOutput(
+      node,
+      TimelineEntrySchema,
+    ) as unknown as TimelineEntryLike;
   }
   return null;
 }

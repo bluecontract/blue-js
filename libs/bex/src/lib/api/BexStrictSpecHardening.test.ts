@@ -1,7 +1,7 @@
 import { BlueNode } from '@blue-labs/language';
 import { describe, expect, it } from 'vitest';
 import { BexException } from '../BexException';
-import { BexValues, nodeToSimple } from '../value/BexValues';
+import { BexValues, nodeToSimple, nodeToValueSimple } from '../value/BexValues';
 import { BexEngine } from './BexEngine';
 import { BexExecutionContext } from './BexExecutionContext';
 import { BexProgramSource } from './BexProgramSource';
@@ -206,6 +206,59 @@ describe('BEX strict spec hardening', () => {
       contracts: { marker: true },
       value: 'value',
     });
+  });
+
+  it('creates value-local snapshots for resolved event payloads', () => {
+    const input = new BlueNode()
+      .setDescription('Resolved schema description')
+      .setType(new BlueNode().setReferenceBlueId('IntegerType'))
+      .setValue(7);
+
+    expect(nodeToValueSimple(input)).toBe(7);
+  });
+
+  it('defaults object-form $binding reads to the event binding', () => {
+    const context = BexExecutionContext.builder()
+      .event(
+        BexValues.fromSimple({
+          message: {
+            request: 'payload',
+          },
+        }),
+      )
+      .build();
+
+    expect(
+      execute(
+        { expr: { $binding: { path: '/message/request' } } },
+        context,
+      ).value.toSimple(),
+    ).toBe('payload');
+  });
+
+  it('keeps documentation-only function argument declarations', () => {
+    expect(
+      execute({
+        expr: {
+          $call: {
+            function: 'echo',
+            args: {
+              val: 'ok',
+            },
+          },
+        },
+        functions: {
+          echo: {
+            args: {
+              val: undefined,
+            },
+            expr: {
+              $var: 'val',
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe('ok');
   });
 
   it('validates strict output schema fields', () => {

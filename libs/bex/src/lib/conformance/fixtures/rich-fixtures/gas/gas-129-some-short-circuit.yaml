@@ -1,0 +1,17 @@
+fixtureId: BEX-GAS-129
+title: $some short-circuits after first match
+tags: [gas, collections]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $some:
+      in: [1, 2, 3]
+      item: x
+      where:
+        $eq:
+          - $var: x
+          - 1
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 9

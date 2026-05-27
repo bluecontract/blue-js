@@ -12,7 +12,7 @@ import type { JsonValue } from '@blue-labs/shared-utils';
 import type { StepExecutionArgs } from '../workflow/step-runner.js';
 
 export class BexFieldEvaluator {
-  private readonly engine = new BexEngine();
+  constructor(private readonly engine = new BexEngine()) {}
 
   containsExpression(node: BlueNode): boolean {
     return containsBexExpression(node);
@@ -96,7 +96,7 @@ export class BexFieldEvaluator {
     const root = args.context.documentAt('/') ?? new BlueNode();
     return BexExecutionContext.builder()
       .document(root, args.context.scopePath)
-      .event(BexValues.nodeSnapshot(args.eventNode))
+      .event(BexValues.nodeValueSnapshot(args.eventNode))
       .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(1_000_000)

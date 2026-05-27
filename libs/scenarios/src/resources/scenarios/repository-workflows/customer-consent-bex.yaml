@@ -1,0 +1,97 @@
+name: Customer Consent BEX Representative
+consentKind: cardTransactionMonitoring
+consentDetails:
+  merchantId: merchant-a
+consentStatus: pending
+grantedAt: '2026-05-27T00:00:00Z'
+revokedAt: ''
+revocationReason: ''
+contracts:
+  granterChannel:
+    type: Coordination/Timeline Channel
+    timelineId: granter
+  initLifecycleChannel:
+    type: Core/Lifecycle Event Channel
+    event:
+      type: Core/Document Processing Initiated
+  initialize:
+    type: Coordination/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: Initialize
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /consentStatus
+              val: granted
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  revokeConsent:
+    type: Coordination/Operation
+    channel: granterChannel
+    request:
+      reason:
+        type: Text
+      revokedAt:
+        type: Common/Timestamp
+  revokeConsentImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: revokeConsent
+    steps:
+      - name: Capture
+        type: Coordination/Compute
+        do:
+          - $let:
+              order:
+                - request
+                - reason
+                - revokedAt
+                - canRevoke
+              vars:
+                request:
+                  $event: /message/request
+                reason:
+                  $default:
+                    - $event: /message/request/reason
+                    - ''
+                revokedAt:
+                  $default:
+                    - $event: /message/request/revokedAt
+                    - ''
+                canRevoke:
+                  $eq:
+                    - $document: /consentStatus
+                    - granted
+          - $if:
+              cond:
+                $var: canRevoke
+              then:
+                - $appendEvent:
+                    type: Coordination/Customer Consent Revoked
+                    reason:
+                      $var: reason
+                    revokedAt:
+                      $var: revokedAt
+          - $appendChange:
+              op: replace
+              path: /consentStatus
+              val: revoked
+          - $appendChange:
+              op: replace
+              path: /revocationReason
+              val:
+                $var: reason
+          - $appendChange:
+              op: replace
+              path: /revokedAt
+              val:
+                $var: revokedAt
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

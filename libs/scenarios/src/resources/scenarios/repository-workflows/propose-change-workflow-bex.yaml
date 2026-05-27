@@ -1,0 +1,78 @@
+name: Propose Change Workflow BEX Representative
+targetState: original
+contracts:
+  actorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: actor
+  proposeChange:
+    type: Coordination/Operation
+    channel: actorChannel
+  proposeChangeWorkflow:
+    type: Coordination/Sequential Workflow Operation
+    operation: proposeChange
+    postfix: ''
+    steps:
+      - name: Prepare
+        type: Coordination/Compute
+        do:
+          - $let:
+              order:
+                - request
+                - summary
+                - postfix
+                - proposedPath
+              vars:
+                request:
+                  $event: /message/request
+                summary:
+                  $event: /message/request/summary
+                postfix:
+                  $default:
+                    - $currentContract: /postfix
+                    - ''
+                proposedPath:
+                  $concat:
+                    - /proposedChange
+                    - $var: postfix
+          - $returnIf:
+              cond:
+                $or:
+                  - $not:
+                      $truthy:
+                        $var: summary
+                  - $not:
+                      $isKind:
+                        val:
+                          $var: summary
+                        kind: text
+              expr:
+                changeset: []
+                events:
+                  - type: Coordination/Proposed Change Invalid
+                    reason: summary is missing
+          - $returnIf:
+              cond:
+                $exists:
+                  $document:
+                    path:
+                      $var: proposedPath
+              expr:
+                changeset: []
+                events:
+                  - type: Coordination/Proposed Change Invalid
+                    reason:
+                      $concat:
+                        - proposed change already exists at
+                        - " "
+                        - $var: proposedPath
+          - $appendChange:
+              op: add
+              path:
+                $var: proposedPath
+              val:
+                $var: request
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

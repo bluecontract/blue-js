@@ -18,6 +18,9 @@ export class ValuePropagator implements MergingProcessor {
       if (isNullable(targetValue)) {
         return target.cloneShallow().setValue(sourceValue);
       } else if (!isEqualValue(sourceValue, targetValue)) {
+        if (hasOverrideableDefault(target)) {
+          return target.cloneShallow().setValue(sourceValue);
+        }
         throw new Error(
           `Node values conflict. Source node value: ${sourceValue}, target node value: ${targetValue}`,
         );
@@ -36,3 +39,11 @@ const isEqualValue = (a: BlueNode['value'], b: BlueNode['value']) => {
   }
   return a === b;
 };
+
+const hasOverrideableDefault = (node: BlueNode): boolean =>
+  isNonNullable(node.getType()) ||
+  isNonNullable(node.getItemType()) ||
+  isNonNullable(node.getKeyType()) ||
+  isNonNullable(node.getValueType()) ||
+  isNonNullable(node.getSchema()) ||
+  isNonNullable(node.getDescription());

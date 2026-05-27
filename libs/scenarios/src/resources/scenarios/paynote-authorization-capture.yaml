@@ -1,0 +1,88 @@
+name: Alice PayNote
+status: Created
+amount:
+  minor: 15000
+  display: 150.00
+currency: USD
+authorizationId: alice-paynote-auth-001
+captureRequested: false
+participants:
+  alice:
+    name: Alice
+    timelineId: alice
+contracts:
+  lifecycleChannel:
+    type: Core/Lifecycle Event Channel
+  aliceChannel:
+    type:
+      blueId: 84v6rvTN2CQq2c9FmViEc5rx3TSUaMLi6R4mHgqzoBkW
+    timelineId: alice
+  onInitialize:
+    type: Coordination/Sequential Workflow
+    channel: lifecycleChannel
+    event:
+      type: Core/Document Processing Initiated
+    steps:
+      - name: RequestAuthorization
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /status
+              val: Authorization requested
+          - $appendEvent:
+              $objectSet:
+                object:
+                  counterpartyType: customerId
+                  counterpartyId: alice
+                  requestingSessionId: alice-paynote-session
+                  authorizationId:
+                    $document: /authorizationId
+                  amountMinor:
+                    $document: /amount/minor
+                  currency:
+                    $document: /currency
+                key: type
+                val:
+                  value: PayNote/Payment Mandate Spend Authorization Requested
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  approveCapture:
+    description: Alice approves the PayNote capture.
+    type: Coordination/Operation
+    channel: aliceChannel
+  approveCaptureImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: approveCapture
+    steps:
+      - name: RequestCapture
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /status
+              val: Capture requested
+          - $appendChange:
+              op: replace
+              path: /captureRequested
+              val: true
+          - $appendEvent:
+              $objectSet:
+                object:
+                  amount:
+                    $document: /amount/minor
+                  currency:
+                    $document: /currency
+                  authorizationId:
+                    $document: /authorizationId
+                key: type
+                val:
+                  value: PayNote/Capture Funds Requested
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

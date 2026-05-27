@@ -10,5 +10,6 @@ export * from './model/index.js';
 export * from './registry/index.js';
 export * from './engine/index.js';
 export * from './runtime/index.js';
+export * from './repository/semantic-repository.js';
 export * from './api/document-processor.js';
 export * from './merge/index.js';

@@ -64,7 +64,8 @@ programSource: |
   functions:
     f:
       args:
-        input: {}
+        input:
+          description: untyped argument
       expr:
         $var: input
   expr:

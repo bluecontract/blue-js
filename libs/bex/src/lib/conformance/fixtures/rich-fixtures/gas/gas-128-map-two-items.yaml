@@ -1,0 +1,17 @@
+fixtureId: BEX-GAS-128
+title: $map charges per iterated item
+tags: [gas, collections]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $map:
+      in: [1, 2]
+      item: x
+      expr:
+        $multiply:
+          - $var: x
+          - 2
+expectation:
+  outcome: success
+  resultSimple: [2, 4]
+  gasUsed: 14

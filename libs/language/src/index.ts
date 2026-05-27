@@ -17,6 +17,7 @@ export {
   createNodeProvider,
   SemanticIdentityService,
   NodeToMapListOrValue,
+  NodeProviderWrapper,
   Schema,
   SCHEMA_FIELDS,
 

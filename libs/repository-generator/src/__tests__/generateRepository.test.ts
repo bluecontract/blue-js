@@ -3,7 +3,11 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import yaml from 'js-yaml';
-import { Blue, createNodeProvider } from '@blue-labs/language';
+import {
+  Blue,
+  NodeProviderWrapper,
+  createNodeProvider,
+} from '@blue-labs/language';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import { generateRepository } from '../lib/generateRepository';
 import { lookupStorageContentByBlueId } from '../lib/core/blueIds';
@@ -44,7 +48,7 @@ const createSemanticExpectedCalculator = () => {
     ),
   );
   const blue = new Blue({
-    nodeProvider: provider,
+    nodeProvider: NodeProviderWrapper.unverified(provider),
     mergingProcessor: createRepositoryGeneratorMergingProcessor(),
   });
 
@@ -64,12 +68,6 @@ const createSemanticExpectedCalculator = () => {
 
 const LIST_YAML = `name: List
 description: Ordered collection
-itemType:
-  description: Optional item type
-mergePolicy:
-  type: Text
-  schema:
-    enum: [append-only, positional]
 `;
 
 describe('generateRepository', () => {
@@ -164,10 +162,10 @@ type: Orders/Order
                 name: Name
                 text:
                   type:
-                    blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+                    blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: Eo2k5m3nHRU8UZ1iHvjUhnrGHoXW5wbbQCcEgCKu2N7A
+                  typeBlueId: Gpri2QifLTwoLHwWvUS2td1j6LdAopVGJhuzTSXgBzVn
                   attributesAdded: []
         - name: Orders
           types:
@@ -176,22 +174,22 @@ type: Orders/Order
                 name: Order
                 id:
                   type:
-                    blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+                    blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
                 price:
                   type:
-                    blueId: 8ofNzdVUfLafwPZCHMS4sXUJYQhpW9EXv2ezNrBDmpds
+                    blueId: BYTxUuUHnyYFn2N142URWyDxviFWNwKwjRKwYrqNiifd
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: 53Nr6BT9GfdbE4Peyu8rJddEzRFuNDh5NzbszbMFRqQd
+                  typeBlueId: G73Cm3B1mjVxW3D3yk8zUPKfgdyXzTrHa8R31xxcp9uE
                   attributesAdded: []
             - status: dev
               content:
                 name: Order Draft
                 type:
-                  blueId: 53Nr6BT9GfdbE4Peyu8rJddEzRFuNDh5NzbszbMFRqQd
+                  blueId: G73Cm3B1mjVxW3D3yk8zUPKfgdyXzTrHa8R31xxcp9uE
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: CiXDJa7RAr9RyFeBS98wZmRAHT1Mhc83rx3J7NU3eJ6e
+                  typeBlueId: E8ynGSKokxwgMiDRyF3fgDeAjGNcmcRXh4nVEeMb86cF
                   attributesAdded: []
         - name: Payments
           types:
@@ -200,13 +198,13 @@ type: Orders/Order
                 name: Price
                 amount:
                   type:
-                    blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+                    blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: 8ofNzdVUfLafwPZCHMS4sXUJYQhpW9EXv2ezNrBDmpds
+                  typeBlueId: BYTxUuUHnyYFn2N142URWyDxviFWNwKwjRKwYrqNiifd
                   attributesAdded: []
       repositoryVersions:
-        - HRQ15SpuD9Bqtr3V3MLZfRA2qwMihtoQVqTL7qZtX1e2
+        - 5MRUsqxSAwbXGnhm6P52sZHcVXubGd3UFwhxojiZqqe4
       "
     `);
   });
@@ -780,7 +778,7 @@ description: Saved order
                   description: 'Saved order',
                   text: {
                     type: {
-                      blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
+                      blueId: PRIMITIVE_BLUE_IDS.Text,
                     },
                   },
                 },
@@ -1459,13 +1457,11 @@ properties:
         repoRoot,
         blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
       }),
-    ).toThrow(/document-level properties key/);
+    ).toThrow(/properties is an internal field/);
   });
 
   it('accepts typed scalar value payloads', () => {
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1501,11 +1497,7 @@ status:
 
   it('substitutes type/keyType/valueType with BlueIds when computing hashes', () => {
     const repoRoot = createRepo();
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-      Dictionary: 'G7fBT9PSod1RfHLHkpafAGBDVAJMrMhAMY51ERcyXNrj',
-      List: '6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY',
-    };
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
     writeType(
       repoRoot,
       'Core',
@@ -1593,9 +1585,7 @@ map:
   });
 
   it('computes generated typeBlueId through semantic Blue', () => {
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1628,9 +1618,7 @@ label:
   });
 
   it('computes the canonical BlueId for List using hardcoded primitives', () => {
-    const primitiveIds = {
-      List: '6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
 
     const repoRoot = createRepo();
     writeType(repoRoot, 'Core', 'List.blue', LIST_YAML);
@@ -1651,12 +1639,7 @@ label:
   });
 
   it('wraps literal fields with inferred primitive types when hashing', () => {
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-      Boolean: '4EzhSubEimSQD3zrYHRtobfPPWntUuhEz8YcdxHsi12u',
-      Integer: '5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1',
-      Double: '7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
 
     const repoRoot = createRepo();
     writeType(

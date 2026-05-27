@@ -180,7 +180,7 @@ describe('Compute workflow execution', () => {
     expect(event.kind).toBe('abc');
   });
 
-  it('keeps Compute changesets as step data until Update Document applies them', async () => {
+  it('applies Compute changesets while keeping them as step data', async () => {
     const support = new ComputeWorkflowTestSupport();
     const document = await support.initializedOperationWorkflow(`    steps:
       - name: BuildPatch
@@ -209,7 +209,7 @@ describe('Compute workflow execution', () => {
     const result = await support.processRun(document);
     const event = json<EventJson>(support.blue, onlyEvent(result));
 
-    expect(result.document.get('/status')).toBe('idle');
+    expect(result.document.get('/status')).toBe('active');
     expect(event).toMatchObject({
       kind: 'Patch Data',
       patchPath: '/status',

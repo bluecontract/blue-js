@@ -48,7 +48,7 @@ const buildFallbackEntries = () => {
 
 const fallbackEntries = [
   ...buildFallbackEntries(),
-  ...buildConversationComputeEntries(),
+  ...buildConversationCompatibilityEntries(),
 ];
 const fallbackBlueIdMap = Object.fromEntries(
   fallbackEntries.map(({ name, blueId }) => [name, blueId]),
@@ -84,29 +84,22 @@ const testFallbackRepository: BlueRepository = {
   },
 };
 
-function buildConversationComputeEntries() {
+function buildConversationCompatibilityEntries() {
   return [
     {
-      name: 'Conversation/Compute',
-      blueId: conversationBlueIds['Conversation/Compute'],
+      name: 'Conversation/JavaScript Code',
+      blueId: conversationBlueIds['Conversation/JavaScript Code'],
       json: {
         type: {
           blueId: conversationBlueIds['Conversation/Sequential Workflow Step'],
         },
       },
     },
-    {
-      name: 'Conversation/Compute Definition',
-      blueId: conversationBlueIds['Conversation/Compute Definition'],
-      json: {
-        type: { blueId: semanticBlueIds['Core/Marker'] },
-      },
-    },
   ];
 }
 
 export function createBlue(): Blue {
-  return registerConversationComputeAliases(
+  return registerConversationCompatibilityAliases(
     new Blue({
       repositories: [blueRepository, testFallbackRepository],
       mergingProcessor: createDefaultMergingProcessor(),
@@ -114,12 +107,8 @@ export function createBlue(): Blue {
   );
 }
 
-function registerConversationComputeAliases(blue: Blue): Blue {
-  blue.registerBlueIds({
-    'Conversation/Compute': conversationBlueIds['Conversation/Compute'],
-    'Conversation/Compute Definition':
-      conversationBlueIds['Conversation/Compute Definition'],
-  });
+function registerConversationCompatibilityAliases(blue: Blue): Blue {
+  blue.registerBlueIds(conversationBlueIds);
   return blue;
 }
 
@@ -134,7 +123,7 @@ export function createBlueWithDerivedTypes(
   });
 
   const derivedRepository = buildDerivedTestRepository(types);
-  const blue = registerConversationComputeAliases(
+  const blue = registerConversationCompatibilityAliases(
     new Blue({
       repositories: [blueRepository, testFallbackRepository, derivedRepository],
       mergingProcessor: createDefaultMergingProcessor(),

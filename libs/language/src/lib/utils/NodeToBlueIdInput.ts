@@ -149,11 +149,31 @@ export class NodeToBlueIdInput {
       };
     }
 
+    const value = node.getValue();
+    const nodeItems = node.getItems();
+    const items =
+      nodeItems === undefined
+        ? undefined
+        : nodeItems.map((item, index) =>
+            this.getNode(
+              item,
+              this.appendPath(
+                this.appendPath(path, OBJECT_ITEMS),
+                String(index),
+              ),
+              'list-element',
+              index,
+              allowCyclicPlaceholders,
+            ),
+          );
+    if (items !== undefined && this.isPayloadOnlyList(node)) {
+      return items;
+    }
+
     const result: { [key: string]: BlueIdInputValue } = {};
     this.setString(result, OBJECT_NAME, node.getName());
     this.setString(result, OBJECT_DESCRIPTION, node.getDescription());
 
-    const value = node.getValue();
     let valueTypeBlueId: string | undefined;
     if (value !== undefined && value !== null && node.getType() === undefined) {
       valueTypeBlueId = this.inferTypeBlueId(value);
@@ -199,17 +219,8 @@ export class NodeToBlueIdInput {
     if (value !== undefined && value !== null) {
       result[OBJECT_VALUE] = this.handleValue(value, valueTypeBlueId);
     }
-    const items = node.getItems();
     if (items !== undefined) {
-      result[OBJECT_ITEMS] = items.map((item, index) =>
-        this.getNode(
-          item,
-          this.appendPath(this.appendPath(path, OBJECT_ITEMS), String(index)),
-          'list-element',
-          index,
-          allowCyclicPlaceholders,
-        ),
-      );
+      result[OBJECT_ITEMS] = items;
     }
     const schema = node.getSchema();
     if (schema !== undefined) {
@@ -231,6 +242,9 @@ export class NodeToBlueIdInput {
     for (const [key, propertyValue] of Object.entries(
       node.getProperties() ?? {},
     )) {
+      if (key === OBJECT_CONTRACTS) {
+        continue;
+      }
       result[key] = this.getNode(
         propertyValue,
         this.appendPath(path, key),
@@ -348,10 +362,11 @@ export class NodeToBlueIdInput {
   }
 
   private static validatePayloadKind(node: BlueNode, path: string): void {
+    const propertyKeys = this.ordinaryPropertyKeys(node);
     const payloadKinds = [
       node.getValue() !== undefined && node.getValue() !== null,
       node.getItems() !== undefined,
-      Object.keys(node.getProperties() ?? {}).length > 0,
+      propertyKeys.length > 0,
     ].filter(Boolean).length;
     if (payloadKinds > 1) {
       throw new Error(
@@ -465,8 +480,29 @@ export class NodeToBlueIdInput {
       node.getValueType() === undefined &&
       (node.getValue() === undefined || node.getValue() === null) &&
       node.getItems() === undefined &&
-      Object.keys(node.getProperties() ?? {}).length === 0 &&
+      this.ordinaryPropertyKeys(node).length === 0 &&
       node.getContractsNode() === undefined &&
+      node.getSchema() === undefined &&
+      node.getMergePolicy() === undefined &&
+      node.getPreviousBlueId() === undefined &&
+      node.getPosition() === undefined &&
+      node.getBlue() === undefined
+    );
+  }
+
+  private static isPayloadOnlyList(node: BlueNode): boolean {
+    return (
+      node.getItems() !== undefined &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
+      node.getType() === undefined &&
+      node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
+      node.getValueType() === undefined &&
+      (node.getValue() === undefined || node.getValue() === null) &&
+      this.ordinaryPropertyKeys(node).length === 0 &&
+      node.getContractsNode() === undefined &&
+      node.getReferenceBlueId() === undefined &&
       node.getSchema() === undefined &&
       node.getMergePolicy() === undefined &&
       node.getPreviousBlueId() === undefined &&
@@ -485,7 +521,7 @@ export class NodeToBlueIdInput {
       node.getValueType() === undefined &&
       (node.getValue() === undefined || node.getValue() === null) &&
       node.getItems() === undefined &&
-      Object.keys(node.getProperties() ?? {}).length === 0 &&
+      this.ordinaryPropertyKeys(node).length === 0 &&
       node.getContractsNode() === undefined &&
       node.getReferenceBlueId() === undefined &&
       node.getSchema() === undefined &&
@@ -529,6 +565,12 @@ export class NodeToBlueIdInput {
   private static appendPath(path: string, segment: string): string {
     const escaped = segment.replace(/~/g, '~0').replace(/\//g, '~1');
     return path === '/' ? `/${escaped}` : `${path}/${escaped}`;
+  }
+
+  private static ordinaryPropertyKeys(node: BlueNode): string[] {
+    return Object.keys(node.getProperties() ?? {}).filter(
+      (key) => key !== OBJECT_CONTRACTS,
+    );
   }
 }
 

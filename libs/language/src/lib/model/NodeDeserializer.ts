@@ -31,7 +31,6 @@ const MIN_SAFE_INTEGER = new BigIntegerNumber(
 const MAX_SAFE_INTEGER = new BigIntegerNumber(
   Number.MAX_SAFE_INTEGER.toString(),
 );
-
 interface DeserializeOptions {
   readonly root: boolean;
   readonly strictReferenceOnly: boolean;

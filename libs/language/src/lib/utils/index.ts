@@ -13,6 +13,7 @@ export * from './NodeTransformer';
 export * from './NodePatch';
 export * from './TypeSchema';
 export * from './TypeSchemaResolver';
+export { NodeProviderWrapper } from './NodeProviderWrapper';
 export * from './Nodes';
 export * from './limits';
 export * as NodeTypes from './NodeTypes';

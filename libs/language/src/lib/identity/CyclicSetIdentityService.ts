@@ -64,6 +64,7 @@ export class CyclicSetIdentityService {
         node,
       };
     });
+    this.rejectDuplicatePreliminaryInputs(preliminaryDocuments);
 
     const sortedDocuments = [...preliminaryDocuments].sort(
       this.comparePreliminaryDocuments,
@@ -105,6 +106,21 @@ export class CyclicSetIdentityService {
       return 1;
     }
     return left.originalIndex - right.originalIndex;
+  }
+
+  private rejectDuplicatePreliminaryInputs(
+    preliminaryDocuments: PreliminaryDocument[],
+  ): void {
+    const firstIndexByPreliminaryBlueId = new Map<string, number>();
+    preliminaryDocuments.forEach(({ preliminaryBlueId, originalIndex }) => {
+      const firstIndex = firstIndexByPreliminaryBlueId.get(preliminaryBlueId);
+      if (firstIndex !== undefined) {
+        throw new Error(
+          `Duplicate preliminary cyclic BlueId input for members ${firstIndex} and ${originalIndex}.`,
+        );
+      }
+      firstIndexByPreliminaryBlueId.set(preliminaryBlueId, originalIndex);
+    });
   }
 
   private validateCyclicSet(nodes: BlueNode[]): void {

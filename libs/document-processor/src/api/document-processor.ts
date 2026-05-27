@@ -1,4 +1,5 @@
 import { Blue, BlueNode } from '@blue-labs/language';
+import type { BexEngine } from '@blue-labs/bex';
 
 import { ContractLoader } from '../engine/contract-loader.js';
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
@@ -17,6 +18,7 @@ const DEFAULT_BLUE = new Blue({
 
 export interface DocumentProcessorOptions {
   readonly blue?: Blue;
+  readonly bexEngine?: BexEngine;
   readonly registry?: ContractProcessorRegistry;
 }
 
@@ -29,7 +31,11 @@ export class DocumentProcessor {
   constructor(options?: DocumentProcessorOptions) {
     this.registryRef =
       options?.registry ??
-      ContractProcessorRegistryBuilder.create().registerDefaults().build();
+      ContractProcessorRegistryBuilder.create({
+        bexEngine: options?.bexEngine,
+      })
+        .registerDefaults()
+        .build();
     this.blue = options?.blue ?? DEFAULT_BLUE;
     this.contractLoaderRef = new ContractLoader(this.registryRef, this.blue);
     this.engine = new ProcessorEngine(
@@ -91,6 +97,7 @@ export class DocumentProcessor {
 export class DocumentProcessorBuilder {
   private contractRegistry: ContractProcessorRegistry;
   private blueInstance: Blue | undefined;
+  private bexEngine: BexEngine | undefined;
 
   constructor() {
     this.contractRegistry = ContractProcessorRegistryBuilder.create()
@@ -112,10 +119,21 @@ export class DocumentProcessorBuilder {
     return this;
   }
 
+  withBexEngine(bexEngine: BexEngine): DocumentProcessorBuilder {
+    this.bexEngine = bexEngine;
+    this.contractRegistry = ContractProcessorRegistryBuilder.create({
+      bexEngine,
+    })
+      .registerDefaults()
+      .build();
+    return this;
+  }
+
   build(): DocumentProcessor {
     return new DocumentProcessor({
       registry: this.contractRegistry,
       blue: this.blueInstance,
+      bexEngine: this.bexEngine,
     });
   }
 }

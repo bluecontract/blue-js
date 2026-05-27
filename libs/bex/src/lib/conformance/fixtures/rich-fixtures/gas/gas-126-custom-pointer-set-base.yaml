@@ -8,7 +8,7 @@ programSource: |
   expr:
     $pointerSet:
       object:
-        a: {}
+        $emptyObject: true
       path: a/b
       val: x
 expectation:

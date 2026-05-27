@@ -1,4 +1,5 @@
-import { JavaScriptCodeSchema } from '@blue-repository/types/packages/conversation/schemas/JavaScriptCode';
+import { withTypeBlueId } from '@blue-labs/language';
+import { z } from 'zod';
 
 import type { ContractProcessorContext } from '../../types.js';
 import { conversationBlueIds } from '../../../repository/semantic-repository.js';
@@ -10,6 +11,18 @@ import type {
 } from '../workflow/step-runner.js';
 import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
 import { DEFAULT_WASM_GAS_LIMIT } from '../../../util/expression/quickjs-config.js';
+
+const JavaScriptCodeSchema = withTypeBlueId(
+  conversationBlueIds['Conversation/JavaScript Code'],
+)(
+  z
+    .object({
+      code: z.string().optional(),
+      description: z.string().optional(),
+      name: z.string().optional(),
+    })
+    .passthrough(),
+);
 
 interface ResultWithEvents {
   readonly events: readonly unknown[];

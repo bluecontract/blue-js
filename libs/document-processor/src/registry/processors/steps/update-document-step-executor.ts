@@ -1,8 +1,9 @@
 import { BlueNode } from '@blue-labs/language';
+import type { BexEngine } from '@blue-labs/bex';
 import {
   UpdateDocumentSchema,
   type UpdateDocument,
-} from '@blue-repository/types/packages/conversation/schemas/UpdateDocument';
+} from '@blue-repository/types/packages/coordination/schemas/UpdateDocument';
 
 import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
 import type { JsonPatch } from '../../../model/shared/json-patch.js';
@@ -29,7 +30,11 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
   ] as const;
 
   private readonly evaluator = new QuickJSEvaluator();
-  private readonly bexEvaluator = new BexFieldEvaluator();
+  private readonly bexEvaluator: BexFieldEvaluator;
+
+  constructor(bexEngine?: BexEngine) {
+    this.bexEvaluator = new BexFieldEvaluator(bexEngine);
+  }
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { context, stepNode } = args;

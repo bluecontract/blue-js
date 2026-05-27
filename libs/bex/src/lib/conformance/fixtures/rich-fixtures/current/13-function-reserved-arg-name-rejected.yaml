@@ -1,6 +1,6 @@
 fixtureId: BEX-CURRENT-013
 title: Reserved Blue key cannot be arg name
-targetStatus: current-compile-error
+targetStatus: current-parse-error
 tags:
 - functions
 - blue-syntax
@@ -72,5 +72,5 @@ programSource: |
       args:
         contracts: anything
 expectation:
-  outcome: compile-error
-  errorContains: reserved Blue key
+  outcome: parse-error
+  errorContains: contracts

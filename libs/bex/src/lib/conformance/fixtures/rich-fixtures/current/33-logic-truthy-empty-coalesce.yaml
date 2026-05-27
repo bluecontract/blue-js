@@ -63,12 +63,13 @@ programSource: |
     zeroTruthy:
       $truthy: 0
     emptyObjectTruthy:
-      $truthy: {}
+      $truthy:
+        $emptyObject: true
     emptyText:
       $empty: ''
     firstUseful:
       $coalesce:
-        - {}
+        - $emptyObject: true
         - ''
         - fallback
 expectation:

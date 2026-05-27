@@ -179,10 +179,9 @@ describe('BexComputeStepExecutor', () => {
     expect(property(emissions[0], 'amount').getValue()?.toString()).toBe('9');
   });
 
-  it('can apply a returned changeset when explicitly requested', async () => {
+  it('applies a returned changeset', async () => {
     const blue = createBlue();
     const stepNode = createComputeStep({
-      applyChangeset: true,
       do: [
         {
           $appendChange: {
@@ -211,6 +210,47 @@ describe('BexComputeStepExecutor', () => {
       'simple',
     ) as { status?: string };
     expect(document.status).toBe('complete');
+  });
+
+  it('executes against the current scope document root', async () => {
+    const blue = createBlue();
+    const stepNode = createComputeStep({
+      do: [
+        {
+          $if: {
+            cond: { $eq: [{ $document: '/status' }, 'pending'] },
+            then: [
+              {
+                $appendChange: {
+                  op: 'replace',
+                  path: '/status',
+                  val: 'complete',
+                },
+              },
+            ],
+          },
+        },
+        { $return: { $changeset: null } },
+      ],
+    });
+    const eventNode = blue.jsonValueToNode({});
+    const document = blue.jsonValueToNode({
+      status: 'root',
+      embedded: {
+        status: 'pending',
+      },
+    });
+    const setup = createRealContext(blue, eventNode, document, '/embedded');
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+
+    await executor.execute(args);
+
+    const result = blue.nodeToJson(
+      setup.execution.runtime().document(),
+      'simple',
+    ) as { status?: string; embedded?: { status?: string } };
+    expect(result.status).toBe('root');
+    expect(result.embedded?.status).toBe('complete');
   });
 
   it('maps BEX failures to processor fatal errors', async () => {

@@ -41,7 +41,7 @@ export class BlueIdCalculator {
   }
 
   public static calculateBlueIdAllowingCyclicPlaceholdersSync(
-    node: BlueNode | BlueNode[],
+    node: JsonBlueValue | BlueNode | BlueNode[],
   ) {
     return BlueIdCalculator.INSTANCE.calculateAllowingCyclicPlaceholdersSync(
       node,
@@ -53,6 +53,10 @@ export class BlueIdCalculator {
       NodeToBlueIdInput.getWithResolvedBlueIdMetadata(node),
       true,
     ) as string;
+  }
+
+  public static calculateBlueIdInputSync(input: BlueIdInputValue): string {
+    return BlueIdCalculator.INSTANCE.calculateInput(input, true) as string;
   }
 
   public calculate(object: JsonBlueValue | BlueNode | BlueNode[]) {
@@ -67,7 +71,7 @@ export class BlueIdCalculator {
   }
 
   public calculateAllowingCyclicPlaceholdersSync(
-    object: BlueNode | BlueNode[],
+    object: JsonBlueValue | BlueNode | BlueNode[],
   ): string {
     return this.calculateInput(
       this.prepareInputAllowingCyclicPlaceholders(object),
@@ -93,13 +97,21 @@ export class BlueIdCalculator {
   }
 
   private prepareInputAllowingCyclicPlaceholders(
-    object: BlueNode | BlueNode[],
+    object: JsonBlueValue | BlueNode | BlueNode[],
   ): BlueIdInputValue {
     if (object instanceof BlueNode) {
       return NodeToBlueIdInput.getAllowingCyclicPlaceholders(object);
     }
-    return object.map((node, index) =>
-      NodeToBlueIdInput.getListElementAllowingCyclicPlaceholders(node, index),
+    if (
+      Array.isArray(object) &&
+      object.every((item) => item instanceof BlueNode)
+    ) {
+      return object.map((node, index) =>
+        NodeToBlueIdInput.getListElementAllowingCyclicPlaceholders(node, index),
+      );
+    }
+    return NodeToBlueIdInput.getAllowingCyclicPlaceholders(
+      NodeDeserializer.deserialize(object),
     );
   }
 

@@ -88,17 +88,26 @@ export class ConverterFactory {
   }
 
   private getSchemaTypeName(schema: ZodTypeAny): ZodSchemaTypeNames {
-    if (isWrapperType(schema)) {
-      if (schema instanceof ZodEffects) {
-        return this.getSchemaTypeName(schema.innerType());
-      }
-      if (schema instanceof ZodLazy) {
-        return this.getSchemaTypeName(schema.schema);
-      }
-      return this.getSchemaTypeName(schema.unwrap());
+    const schemaTypeName = String(schema._def.typeName);
+    if (schemaTypeName === 'ZodEffects') {
+      return this.getSchemaTypeName(
+        (schema as ZodEffects<ZodTypeAny>).innerType(),
+      );
     }
-
-    const schemaTypeName = schema._def.typeName;
+    if (schemaTypeName === 'ZodLazy') {
+      return this.getSchemaTypeName((schema as ZodLazy<ZodTypeAny>).schema);
+    }
+    if (
+      schemaTypeName === 'ZodOptional' ||
+      schemaTypeName === 'ZodNullable' ||
+      schemaTypeName === 'ZodReadonly' ||
+      schemaTypeName === 'ZodBranded' ||
+      isWrapperType(schema)
+    ) {
+      return this.getSchemaTypeName(
+        (schema as ZodTypeAny & { unwrap: () => ZodTypeAny }).unwrap(),
+      );
+    }
 
     try {
       const parsedSchemaTypeName =

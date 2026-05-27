@@ -5,7 +5,8 @@ programSource: |
   type: Blue/BEX Program
   expr:
     $objectSet:
-      object: {}
+      object:
+        $emptyObject: true
       key: a
       val: x
 expectation:

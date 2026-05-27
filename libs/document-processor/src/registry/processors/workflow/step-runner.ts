@@ -1,4 +1,5 @@
 import { BlueNode } from '@blue-labs/language';
+import type { BexEngine } from '@blue-labs/bex';
 import { isNullable } from '@blue-labs/shared-utils';
 
 import type { ContractProcessorContext } from '../../types.js';
@@ -25,13 +26,23 @@ export interface SequentialWorkflowStepExecutor {
   execute(args: StepExecutionArgs): unknown | Promise<unknown>;
 }
 
-export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
-  [
-    new TriggerEventStepExecutor(),
-    new BexComputeStepExecutor(),
+export interface WorkflowStepRunnerOptions {
+  readonly bexEngine?: BexEngine;
+}
+
+export function createDefaultStepExecutors(
+  options: WorkflowStepRunnerOptions = {},
+): readonly SequentialWorkflowStepExecutor[] {
+  return [
+    new TriggerEventStepExecutor(options.bexEngine),
+    new BexComputeStepExecutor(options.bexEngine),
     new JavaScriptCodeStepExecutor(),
-    new UpdateDocumentStepExecutor(),
+    new UpdateDocumentStepExecutor(options.bexEngine),
   ];
+}
+
+export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
+  createDefaultStepExecutors();
 
 export class WorkflowStepRunner {
   private readonly executorIndex: ReadonlyMap<

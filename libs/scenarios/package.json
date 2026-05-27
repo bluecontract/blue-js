@@ -1,0 +1,17 @@
+{
+  "name": "@blue-labs/scenarios",
+  "version": "4.1.1",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@blue-labs/coordination": "4.1.1",
+    "@blue-labs/document-processor": "4.1.1",
+    "@blue-labs/language": "4.1.1"
+  },
+  "peerDependencies": {
+    "@blue-repository/types": ">=1.0.0 <2"
+  }
+}

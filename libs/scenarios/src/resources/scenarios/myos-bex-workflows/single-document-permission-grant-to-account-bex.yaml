@@ -1,0 +1,266 @@
+name: Single Document Permission Grant To Account BEX
+description: BEX representative for MyOS Single Document Permission Grant To Account JavaScript workflows.
+targetSessionId: target-session-a
+granterDocumentSessionId: ''
+permissions:
+  read: true
+  allOps: false
+  singleOps:
+    - view
+
+contracts:
+  granterChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: granter
+    accountId: granter-account
+
+  granteeChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: grantee
+    accountId: grantee-account
+
+  revokeAccessChannel:
+    type: Coordination/Composite Timeline Channel
+    channels:
+      - granterChannel
+      - granteeChannel
+
+  initLifecycleChannel:
+    type: Core/Lifecycle Event Channel
+    event:
+      type: Core/Document Processing Initiated
+
+  revoke:
+    type: Coordination/Operation
+    channel: revokeAccessChannel
+    request:
+      type: Text
+
+  revokeImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: revoke
+    steps:
+      - name: EmitRevokeRequested
+        type: Coordination/Compute
+        do:
+          - $appendEvent:
+              type: MyOS/Single Document Permission Revoke Requested
+              reason:
+                $event: /message/request
+          - $return:
+              events:
+                $events: true
+
+  validateOnInit:
+    type: Coordination/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: ValidateBasicShape
+        type: Coordination/Compute
+        entry: validate
+        functions:
+          asList:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: list
+                then:
+                  $var: val
+                else: []
+          isNonEmptyText:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $and:
+                - $isKind:
+                    val:
+                      $var: val
+                    kind: text
+                - $truthy:
+                    $var: val
+          hasBadSingleOps:
+            args:
+              ops:
+                description: BEX helper argument.
+            expr:
+              $some:
+                in:
+                  $call:
+                    function: asList
+                    args:
+                      val:
+                        $var: ops
+                item: opName
+                where:
+                  $not:
+                    $call:
+                      function: isNonEmptyText
+                      args:
+                        val:
+                          $var: opName
+          validate:
+            do:
+              - $let:
+                  order:
+                    - issues
+                    - target
+                    - granterId
+                    - granteeId
+                    - perms
+                    - singleOps
+                    - hasSingle
+                  vars:
+                    issues: []
+                    target:
+                      $document: /targetSessionId
+                    granterId:
+                      $document: /contracts/granterChannel/accountId
+                    granteeId:
+                      $document: /contracts/granteeChannel/accountId
+                    perms:
+                      $document: /permissions
+                    singleOps:
+                      $choose:
+                        cond:
+                          $exists:
+                            $document: /permissions/singleOps
+                        then:
+                          $document: /permissions/singleOps
+                        else: []
+                    hasSingle:
+                      $gt:
+                        - $size:
+                            $call:
+                              function: asList
+                              args:
+                                val:
+                                  $var: singleOps
+                        - 0
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: target
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - targetSessionId is missing or invalid
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: granterId
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - granterChannel must be bound to an accountId
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: granteeId
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - granteeChannel must be bound to an accountId
+              - $if:
+                  cond:
+                    $not:
+                      $isKind:
+                        val:
+                          $var: perms
+                        kind: object
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - permissions block is missing
+                  else:
+                    - $if:
+                        cond:
+                          $ne:
+                            - $var:
+                                name: perms
+                                path: /read
+                            - true
+                        then:
+                          - $set:
+                              name: issues
+                              expr:
+                                $listConcat:
+                                  - $var: issues
+                                  - - permissions.read must be true for SDPG
+                    - $if:
+                        cond:
+                          $call:
+                            function: hasBadSingleOps
+                            args:
+                              ops:
+                                $var: singleOps
+                        then:
+                          - $set:
+                              name: issues
+                              expr:
+                                $listConcat:
+                                  - $var: issues
+                                  - - permissions.singleOps must contain only non-empty strings
+                    - $if:
+                        cond:
+                          $and:
+                            - $eq:
+                                - $var:
+                                    name: perms
+                                    path: /allOps
+                                - true
+                            - $var: hasSingle
+                        then:
+                          - $set:
+                              name: issues
+                              expr:
+                                $listConcat:
+                                  - $var: issues
+                                  - - permissions.allOps=true and permissions.singleOps are mutually exclusive
+              - $if:
+                  cond:
+                    $gt:
+                      - $size:
+                          $var: issues
+                      - 0
+                  then:
+                    - $appendEvent:
+                        type: MyOS/Single Document Permission Invalid
+                        issues:
+                          $var: issues
+                  else:
+                    - $appendEvent:
+                        type: MyOS/Single Document Permission Validated
+              - $return:
+                  events:
+                    $events: true
