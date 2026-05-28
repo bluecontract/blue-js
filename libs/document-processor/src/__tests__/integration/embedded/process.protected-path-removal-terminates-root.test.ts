@@ -32,7 +32,10 @@ child:
           changeset:
             - op: REPLACE
               path: /count
-              val: "\${document('count') + 1}"
+              val:
+                $add:
+                  - $document: count
+                  - 1
 contracts:
   rootTimeline:
     type: Conversation/Timeline Channel
@@ -61,7 +64,10 @@ contracts:
         changeset:
           - op: REPLACE
             path: /child/count
-            val: "\${document('/child/count') + 1}"
+            val:
+              $add:
+                - $document: /child/count
+                - 1
 `;
 
     const initialized = await expectOk(

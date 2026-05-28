@@ -6,7 +6,6 @@ import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflow } from '../../../model/index.js';
 import { TriggerEventStepExecutor } from '../steps/trigger-event-step-executor.js';
 import { BexComputeStepExecutor } from '../steps/bex-compute-step-executor.js';
-import { JavaScriptCodeStepExecutor } from '../steps/javascript-code-step-executor.js';
 import { UpdateDocumentStepExecutor } from '../steps/update-document-step-executor.js';
 
 export type StepResultMap = Record<string, unknown>;
@@ -36,7 +35,6 @@ export function createDefaultStepExecutors(
   return [
     new TriggerEventStepExecutor(options.bexEngine),
     new BexComputeStepExecutor(options.bexEngine),
-    new JavaScriptCodeStepExecutor(),
     new UpdateDocumentStepExecutor(options.bexEngine),
   ];
 }

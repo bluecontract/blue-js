@@ -30,7 +30,10 @@ childA:
           changeset:
             - op: REPLACE
               path: /count
-              val: "\${document('count') + 1}"
+              val:
+                $add:
+                  - $document: count
+                  - 1
 childB:
   count: 0
   contracts:
@@ -46,7 +49,10 @@ childB:
           changeset:
             - op: REPLACE
               path: /count
-              val: "\${document('count') + 1}"
+              val:
+                $add:
+                  - $document: count
+                  - 1
 contracts:
   embedded:
     type: Core/Process Embedded
@@ -102,7 +108,10 @@ describe('Process Embedded — Multi-paths: independent processing and protectio
         changeset:
           - op: REPLACE
             path: /${target}/count
-            val: "\${document('/${target}/count') + 1}"
+            val:
+              $add:
+                - $document: /${target}/count
+                - 1
 `;
 
       const initialized = await expectOk(

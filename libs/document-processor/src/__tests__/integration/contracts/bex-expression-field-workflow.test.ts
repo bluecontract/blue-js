@@ -350,39 +350,44 @@ entries:
     );
   });
 
-  it('keeps literal and legacy expression paths working alongside BEX fields', async () => {
+  it('keeps literal and BEX expression paths working together', async () => {
     const support = new ComputeWorkflowTestSupport();
     const document = await support.initializedOperationWorkflow(`    steps:
       - name: Prepare
-        type: Conversation/JavaScript Code
-        code: "return { value: 'legacy' };"
+        type: Conversation/Compute
+        do:
+          - $return:
+              computed: bex
       - name: ApplyLiteral
         type: Conversation/Update Document
         changeset:
           - op: replace
             path: /status
             val: literal
-      - name: ApplyLegacy
+      - name: ApplyBex
         type: Conversation/Update Document
         changeset:
           - op: replace
             path: /status
-            val: "\${steps.Prepare.value}"
-      - name: EmitLegacy
+            val:
+              $steps: Prepare.computed
+      - name: EmitBex
         type: Conversation/Trigger Event
         event:
           type: Conversation/Event
-          kind: Existing Legacy
-          status: "\${document('/status')}"
+          kind: Existing BEX
+          status:
+            $document: /status
 `);
 
     const result = await support.processRun(document);
     const event = json<EventJson>(support.blue, onlyEvent(result));
+    const snapshot = json<{ status?: string }>(support.blue, result.document);
 
-    expect(result.document.get('/status')).toBe('legacy');
+    expect(snapshot.status).toBe('bex');
     expect(event).toMatchObject({
-      kind: 'Existing Legacy',
-      status: 'legacy',
+      kind: 'Existing BEX',
+      status: 'bex',
     });
   });
 

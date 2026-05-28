@@ -38,8 +38,9 @@ event:
 
   it('throws a fatal error when the step schema is invalid', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Conversation/JavaScript Code
-code: return 1;
+    const stepNode = blue.yamlToNode(`type: Conversation/Compute
+do:
+  - $return: 1
 `);
     const eventNode = blue.jsonValueToNode({});
     const setup = createRealContext(blue, eventNode);
@@ -61,12 +62,16 @@ code: return 1;
 
   it('resolves expressions within the event payload', async () => {
     const blue = createBlue();
-    const messageTemplate =
-      "${steps.PreparePayment.description} for ${steps.PreparePayment.amount} ${document('/currency')}";
     const stepNode = blue.yamlToNode(`type: Conversation/Trigger Event
 event:
   type: Conversation/Chat Message
-  message: ${JSON.stringify(messageTemplate)}
+  message:
+    $concat:
+      - $steps: PreparePayment.description
+      - " for "
+      - $steps: PreparePayment.amount
+      - " "
+      - $document: /currency
 `);
     const eventNode = blue.jsonValueToNode({});
     const setup = createRealContext(blue, eventNode);
@@ -101,11 +106,13 @@ event:
 
   it('keeps nested documents inside the event payload as literal data', async () => {
     const blue = createBlue();
-    const messageTemplate = 'Launching ${steps.Prepare.name}';
     const stepNode = blue.yamlToNode(`type: Conversation/Trigger Event
 event:
   type: Conversation/Chat Message
-  message: ${JSON.stringify(messageTemplate)}
+  message:
+    $concat:
+      - "Launching "
+      - $steps: Prepare.name
   document:
     name: Child Worker Session
     contracts:
@@ -121,7 +128,8 @@ event:
             changeset:
               - op: replace
                 path: /token
-                val: "\${steps.Prepare.secret}"
+                val:
+                  $steps: Prepare.secret
 `);
     const eventNode = blue.jsonValueToNode({});
     const setup = createRealContext(blue, eventNode);
@@ -147,12 +155,12 @@ event:
     const nestedJson = blue.nodeToJson(nestedDocument, 'original') as {
       contracts: {
         nestedWorkflow: {
-          steps: Array<{ changeset: Array<{ val: string }> }>;
+          steps: Array<{ changeset: Array<{ val: unknown }> }>;
         };
       };
     };
 
     const val = nestedJson.contracts.nestedWorkflow.steps[0].changeset[0].val;
-    expect(val).toBe('${steps.Prepare.secret}');
+    expect(val).toEqual({ $steps: 'Prepare.secret' });
   });
 });

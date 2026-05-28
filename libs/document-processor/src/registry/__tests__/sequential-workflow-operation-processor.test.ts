@@ -41,8 +41,9 @@ function indentBlock(block: string, spaces: number): string {
     .join('\n');
 }
 
-const DEFAULT_STEP_EXPRESSION =
-  "${event.message.request + document('/counter')}";
+const DEFAULT_STEP_EXPRESSION = `$add:
+  - $event: /message/request
+  - $document: /counter`;
 
 function derivedActorPolicyTypeYaml(name: string): string {
   return `name: ${name}
@@ -88,7 +89,8 @@ function buildOperationDocument(
     changesetYaml?.trim() ??
     `- op: replace
   path: /counter
-  val: "${stepExpression}"`;
+  val:
+${indentBlock(stepExpression.trim(), 4)}`;
 
   const yaml = `name: Operation Workflow Doc
 counter: 0
@@ -251,19 +253,11 @@ contracts:
     operation: myOsAdminUpdate
     steps:
       - name: ReemitAdminUpdates
-        type: Conversation/JavaScript Code
-        code: |
-          const message = (event && event.message) || {};
-          const payload = message.request;
-          const payloadItems = payload && payload.items;
-          const events = Array.isArray(payload)
-            ? payload
-            : Array.isArray(payloadItems)
-              ? payloadItems
-              : payload
-                ? [payload]
-                : [];
-          return { events };
+        type: Conversation/Compute
+        do:
+          - $appendEvents:
+              $event: /message/request
+          - $return: true
   subscribeOnGrant:
     type: Conversation/Sequential Workflow
     channel: triggered
@@ -551,7 +545,7 @@ operations:
         buildOperationDocument({
           operationChannel: 'ownerChannel',
           handlerChannel: null,
-          stepExpression: '${currentContract.channel}',
+          stepExpression: '$currentContract: channel',
         }),
       ),
     );
@@ -703,9 +697,9 @@ contracts:
 
   it('executes change operation workflow with change request payloads', async () => {
     const processor = buildProcessor(blue);
-    const derivedChangesetYaml = `- op: "\${event.message.request.changeset[0].op}"
-  path: "\${event.message.request.changeset[0].path}"
-  val: "\${event.message.request.changeset[0].val}"`;
+    const derivedChangesetYaml = `$binding:
+  name: event
+  path: /message/request/changeset`;
     const init = await expectOk(
       processor.initializeDocument(
         buildOperationDocument({
@@ -779,7 +773,8 @@ contracts:
         changeset:
           - op: replace
             path: /counter
-            val: "${DEFAULT_STEP_EXPRESSION}"
+            val:
+${indentBlock(DEFAULT_STEP_EXPRESSION, 14)}
 `;
     const init = await expectOk(
       processor.initializeDocument(blue.yamlToNode(yaml)),
@@ -811,7 +806,9 @@ entries:
     entries:
       note:
         type: Text`,
-      stepExpression: "${event.message.request.amount + document('/counter')}",
+      stepExpression: `$add:
+  - $event: /message/request/amount
+  - $document: /counter`,
     });
     const init = await expectOk(processor.initializeDocument(doc));
     const storedBlueId = storedDocumentBlueId(init.document);

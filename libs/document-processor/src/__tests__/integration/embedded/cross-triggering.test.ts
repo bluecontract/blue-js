@@ -38,7 +38,10 @@ groupA:
             changeset:
               - op: REPLACE
                 path: /score
-                val: "\${document('score') + 2}"
+                val:
+                  $add:
+                    - $document: score
+                    - 2
           - name: RecordHandled
             type: Conversation/Update Document
             changeset:
@@ -62,13 +65,19 @@ groupA:
           changeset:
             - op: REPLACE
               path: /counter
-              val: "\${(document('counter') ?? 0) + 1}"
+              val:
+                $add:
+                  - $coalesce:
+                      - $document: counter
+                      - 0
+                  - 1
         - name: RecordGroupPath
           type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastTriggered
-              val: "\${event.path}"
+              val:
+                $event: /path
 groupB:
   totalUpdates: 0
   lastFromNested: "none"
@@ -89,13 +98,19 @@ groupB:
             changeset:
               - op: REPLACE
                 path: /x
-                val: "\${document('x') + 1}"
+                val:
+                  $add:
+                    - $document: x
+                    - 1
           - name: AdjustY
             type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /y
-                val: "\${document('y') + document('x')}"
+                val:
+                  $add:
+                    - $document: y
+                    - $document: x
       nestedYUpdates:
         type: Core/Document Update Channel
         path: /y
@@ -108,7 +123,12 @@ groupB:
             changeset:
               - op: REPLACE
                 path: /yChanges
-                val: "\${(document('yChanges') ?? 0) + 1}"
+                val:
+                  $add:
+                    - $coalesce:
+                        - $document: yChanges
+                        - 0
+                    - 1
   contracts:
     embeddedNestedB:
       type: Core/Process Embedded
@@ -126,13 +146,19 @@ groupB:
           changeset:
             - op: REPLACE
               path: /totalUpdates
-              val: "\${(document('totalUpdates') ?? 0) + 1}"
+              val:
+                $add:
+                  - $coalesce:
+                      - $document: totalUpdates
+                      - 0
+                  - 1
         - name: RecordNestedPath
           type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastFromNested
-              val: "\${event.path}"
+              val:
+                $event: /path
 contracts:
   embedded:
     type: Core/Process Embedded
@@ -151,13 +177,19 @@ contracts:
         changeset:
           - op: REPLACE
             path: /rootCounter
-            val: "\${(document('rootCounter') ?? 0) + 1}"
+            val:
+              $add:
+                - $coalesce:
+                    - $document: rootCounter
+                    - 0
+                - 1
       - name: RecordRootPath
         type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /rootLastPath
-            val: "\${event.path}"
+            val:
+              $event: /path
 `;
 
     const initResult = await expectOk(

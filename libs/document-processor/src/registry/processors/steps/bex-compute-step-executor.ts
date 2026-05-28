@@ -15,6 +15,7 @@ import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
 } from '../workflow/step-runner.js';
+import { toBexSnapshotNode } from './bex-field-evaluator.js';
 
 type JsonPatchOperation = 'ADD' | 'REPLACE' | 'REMOVE';
 
@@ -85,13 +86,14 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
   }
 
   private programSource(args: StepExecutionArgs): BexProgramSource {
+    const stepProgramNode = toBexSnapshotNode(args.stepNode) ?? args.stepNode;
     const definition = this.definitionNode(args);
     if (definition === undefined) {
-      return BexProgramSource.inline(args.stepNode);
+      return BexProgramSource.inline(stepProgramNode);
     }
     return BexProgramSource.withDefinition(
-      args.stepNode,
-      definition,
+      stepProgramNode,
+      toBexSnapshotNode(definition) ?? definition,
       this.stringProperty(args.stepNode, 'entry'),
     );
   }
@@ -143,7 +145,9 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
     const builder = BexExecutionContext.builder()
       .document(root)
       .event(BexValues.nodeValueSnapshot(args.eventNode))
-      .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
+      .currentContract(
+        BexValues.nodeSnapshot(toBexSnapshotNode(args.contractNode)),
+      )
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(this.numericProperty(args.stepNode, 'gasLimit', 1_000_000));
     return builder.build();

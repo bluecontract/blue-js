@@ -107,17 +107,21 @@ contracts:
       type: Core/Document Processing Initiated
     steps:
       - name: PreparePayment
-        type: Conversation/JavaScript Code
-        code: |
-          return {
-            amount: 125,
-            description: 'Subscription renewal'
-          };
+        type: Conversation/Compute
+        do:
+          - $return:
+              amount: 125
+              description: Subscription renewal
       - name: EmitPayment
         type: Conversation/Trigger Event
         event:
           type: Conversation/Chat Message
-          message: \${steps.PreparePayment.description} for \${steps.PreparePayment.amount} USD`;
+          message:
+            $concat:
+              - $steps: PreparePayment.description
+              - " for "
+              - $steps: PreparePayment.amount
+              - " USD"`;
 
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));
@@ -149,7 +153,8 @@ contracts:
         type: Conversation/Trigger Event
         event:
           type: Conversation/Chat Message
-          message: \${currentContract.description}`;
+          message:
+            $currentContract: description`;
 
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));

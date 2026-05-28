@@ -19,17 +19,12 @@ type ConversationBlueIds = {
     ? `Conversation/${Name}`
     : never]: CoordinationBlueIds[K];
 } & {
-  readonly 'Conversation/JavaScript Code': string;
   readonly 'Conversation/Change Workflow': string;
 };
-
-const LEGACY_JAVASCRIPT_CODE_BLUE_ID =
-  'DhfsCuwERgEAGHDcTEvEVjhbBJV31BBYNz9iGZeGXT96';
 
 export const conversationBlueIds = {
   ...prefixAliases(coordinationBlueIds, 'Coordination/', 'Conversation/'),
   'Conversation/Change Workflow': workflowsBlueIds['Workflows/Change Workflow'],
-  'Conversation/JavaScript Code': LEGACY_JAVASCRIPT_CODE_BLUE_ID,
 } as ConversationBlueIds & Record<string, string>;
 export const myosBlueIds = packageAliases<typeof rawMyOsBlueIds>('myos');
 

@@ -6,7 +6,6 @@ import {
   createRealContext,
 } from '../../../../test-support/workflow.js';
 import { UpdateDocumentStepExecutor } from '../update-document-step-executor.js';
-import { CodeBlockEvaluationError } from '../../../../util/expression/exceptions.js';
 import { ProcessorFatalError } from '../../../../engine/processor-fatal-error.js';
 
 describe('UpdateDocumentStepExecutor', () => {
@@ -84,7 +83,8 @@ changeset:
     const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
-    path: "\${event.payload.target}"
+    path:
+      $event: /payload/target
     val: updated
 `);
     const eventNode = blue.jsonValueToNode({
@@ -110,7 +110,10 @@ changeset:
     const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
-    path: "/items/\${event.payload.index}"
+    path:
+      $concat:
+        - "/items/"
+        - $event: /payload/index
     val: selected
 `);
     const eventNode = blue.jsonValueToNode({ payload: { index: 1 } });
@@ -135,7 +138,10 @@ changeset:
 changeset:
   - op: REPLACE
     path: /total
-    val: "\${event.payload.amount * 2}"
+    val:
+      $multiply:
+        - $event: /payload/amount
+        - 2
 `);
     const eventNode = blue.jsonValueToNode({ payload: { amount: 9 } });
     const setup = createRealContext(blue, eventNode);
@@ -157,7 +163,10 @@ changeset:
 changeset:
   - op: REPLACE
     path: /message
-    val: "Hello \${event.payload.name}"
+    val:
+      $concat:
+        - "Hello "
+        - $event: /payload/name
 `);
     const eventNode = blue.jsonValueToNode({ payload: { name: 'Taylor' } });
     const setup = createRealContext(blue, eventNode);
@@ -173,10 +182,14 @@ changeset:
     expect(result.message).toBe('Hello Taylor');
   });
 
-  it('evaluates changeset expression returning array', async () => {
+  it('evaluates BEX fields inside a changeset list', async () => {
     const blue = createBlue();
     const stepNode = blue.yamlToNode(`type: Conversation/Update Document
-changeset: "\${[{ op: 'REPLACE', path: '/flag', val: event.payload.flag }]}"
+changeset:
+  - op: REPLACE
+    path: /flag
+    val:
+      $event: /payload/flag
 `);
     const eventNode = blue.jsonValueToNode({ payload: { flag: 'yep' } });
     const setup = createRealContext(blue, eventNode);
@@ -200,7 +213,10 @@ changeset: "\${[{ op: 'REPLACE', path: '/flag', val: event.payload.flag }]}"
 changeset:
   - op: REPLACE
     path: /outcome
-    val: "\${steps.Compute.value + 5}"
+    val:
+      $add:
+        - $steps: Compute.value
+        - 5
 `);
     const eventNode = blue.jsonValueToNode({});
     const setup = createRealContext(blue, eventNode);
@@ -227,7 +243,10 @@ changeset:
 changeset:
   - op: REPLACE
     path: /next
-    val: "\${document('/current') + event.payload.delta}"
+    val:
+      $add:
+        - $document: /current
+        - $event: /payload/delta
 `);
     const eventNode = blue.jsonValueToNode({ payload: { delta: 3 } });
     const setup = createRealContext(blue, eventNode);
@@ -246,8 +265,9 @@ changeset:
 
   it('throws a fatal error when the step schema is invalid', async () => {
     const blue = createBlue();
-    const stepNode = blue.yamlToNode(`type: Conversation/JavaScript Code
-code: return 1;
+    const stepNode = blue.yamlToNode(`type: Conversation/Compute
+do:
+  - $return: 1
 `);
     const eventNode = blue.jsonValueToNode({});
     const setup = createRealContext(blue, eventNode);
@@ -256,21 +276,20 @@ code: return 1;
     await expect(executor.execute(args)).rejects.toThrow(ProcessorFatalError);
   });
 
-  it('wraps path evaluation errors in CodeBlockEvaluationError', async () => {
+  it('throws fatal error for path evaluation errors', async () => {
     const blue = createBlue();
     const stepNode = blue.yamlToNode(`type: Conversation/Update Document
 changeset:
   - op: REPLACE
-    path: "\${doesNotExist.value}"
+    path:
+      $document: /missing/path
     val: hi
 `);
     const eventNode = blue.jsonValueToNode({});
     const setup = createRealContext(blue, eventNode);
     const args = createArgs({ context: setup.context, stepNode, eventNode });
 
-    await expect(executor.execute(args)).rejects.toThrow(
-      CodeBlockEvaluationError,
-    );
+    await expect(executor.execute(args)).rejects.toThrow(ProcessorFatalError);
   });
 
   it('throws fatal error for unsupported operations', async () => {

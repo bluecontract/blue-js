@@ -61,7 +61,10 @@ contracts:
         changeset:
           - op: REPLACE
             path: /counter
-            val: "\${document('/counter') + 1}"
+            val:
+              $add:
+                - $document: /counter
+                - 1
 `;
 
     const initialized = await expectOk(

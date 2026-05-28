@@ -57,19 +57,26 @@ branch:
               changeset:
                 - op: REPLACE
                   path: /observed
-                  val: "\${(document('observed') ?? 0) + 1}"
+                  val:
+                    $add:
+                      - $coalesce:
+                          - $document: observed
+                          - 0
+                      - 1
             - name: RecordLeafPath
               type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /lastPath
-                  val: "\${event.path}"
+                  val:
+                    $event: /path
             - name: RecordLeafOp
               type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /lastOp
-                  val: "\${event.op}"
+                  val:
+                    $event: /op
     contracts:
       embedded:
         type: Core/Process Embedded
@@ -87,19 +94,26 @@ branch:
             changeset:
               - op: REPLACE
                 path: /observed
-                val: "\${(document('observed') ?? 0) + 1}"
+                val:
+                  $add:
+                    - $coalesce:
+                        - $document: observed
+                        - 0
+                    - 1
           - name: RecordSubPath
             type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /lastPath
-                val: "\${event.path}"
+                val:
+                  $event: /path
           - name: RecordSubOp
             type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /lastOp
-                val: "\${event.op}"
+                val:
+                  $event: /op
   contracts:
     embedded:
       type: Core/Process Embedded
@@ -117,19 +131,26 @@ branch:
           changeset:
             - op: REPLACE
               path: /observed
-              val: "\${(document('observed') ?? 0) + 1}"
+              val:
+                $add:
+                  - $coalesce:
+                      - $document: observed
+                      - 0
+                  - 1
         - name: RecordBranchPath
           type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastPath
-              val: "\${event.path}"
+              val:
+                $event: /path
         - name: RecordBranchOp
           type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastOp
-              val: "\${event.op}"
+              val:
+                $event: /op
 contracts:
   embedded:
     type: Core/Process Embedded
@@ -147,19 +168,26 @@ contracts:
         changeset:
           - op: REPLACE
             path: /observed
-            val: "\${(document('observed') ?? 0) + 1}"
+            val:
+              $add:
+                - $coalesce:
+                    - $document: observed
+                    - 0
+                - 1
       - name: RecordRootPath
         type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /lastPath
-            val: "\${event.path}"
+            val:
+              $event: /path
       - name: RecordRootOp
         type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /lastOp
-            val: "\${event.op}"
+            val:
+              $event: /op
 `;
 
     const initResult = await expectOk(

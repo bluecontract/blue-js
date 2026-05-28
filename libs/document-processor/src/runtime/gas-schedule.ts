@@ -1,12 +1,6 @@
 /**
- * Conversion factor from WASM fuel (consumed by the instrumented QuickJS VM)
- * to host gas units (used in the document processor gas meter).
- *
- * Calibration basis (see `quickjs-fuel-calibration.test.ts`):
- * keep relative weights aligned with the deterministic runtime after upgrades.
- *
- * Adjust this value when recalibrating the gas schedule after QuickJS or
- * runtime upgrades. See `config/gas-schedule.md` for full documentation.
+ * Conversion factor from deterministic runtime fuel to host gas units used by
+ * the document processor gas meter.
  */
 const WASM_FUEL_PER_HOST_GAS_UNIT_INTERNAL = 1_700;
 const WASM_FUEL_PER_HOST_GAS_UNIT_BIGINT = BigInt(
@@ -15,9 +9,6 @@ const WASM_FUEL_PER_HOST_GAS_UNIT_BIGINT = BigInt(
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
 
 export const WASM_FUEL_PER_HOST_GAS_UNIT = WASM_FUEL_PER_HOST_GAS_UNIT_INTERNAL;
-
-export const DEFAULT_JS_STEP_HOST_GAS_LIMIT = 40_000;
-export const DEFAULT_EXPRESSION_HOST_GAS_LIMIT = 40_000;
 
 export function wasmFuelToHostGas(amount: bigint | number): number {
   let fuel: bigint;
@@ -43,22 +34,3 @@ export function wasmFuelToHostGas(amount: bigint | number): number {
 
   return Number(hostGas);
 }
-
-export function hostGasToWasmFuel(amount: number | bigint): bigint {
-  const normalized =
-    typeof amount === 'bigint'
-      ? amount
-      : BigInt(Math.max(0, Math.trunc(amount)));
-  if (normalized <= 0n) {
-    return 0n;
-  }
-  return normalized * WASM_FUEL_PER_HOST_GAS_UNIT_BIGINT;
-}
-
-export const DEFAULT_WASM_GAS_LIMIT = hostGasToWasmFuel(
-  DEFAULT_JS_STEP_HOST_GAS_LIMIT,
-);
-
-export const DEFAULT_EXPRESSION_WASM_GAS_LIMIT = hostGasToWasmFuel(
-  DEFAULT_EXPRESSION_HOST_GAS_LIMIT,
-);

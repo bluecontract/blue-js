@@ -6,7 +6,7 @@ import {
   BexStepResults,
   BexValues,
 } from '@blue-labs/bex';
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, ResolvedBlueNode } from '@blue-labs/language';
 import type { JsonValue } from '@blue-labs/shared-utils';
 
 import type { StepExecutionArgs } from '../workflow/step-runner.js';
@@ -70,7 +70,7 @@ export class BexFieldEvaluator {
   ): BlueNode {
     try {
       const programNode = new BlueNode().setProperties({
-        expr: expression.clone(),
+        expr: toBexExpressionNode(expression),
       });
       const result = this.engine.compileAndExecute(
         BexProgramSource.inline(programNode),
@@ -97,11 +97,25 @@ export class BexFieldEvaluator {
     return BexExecutionContext.builder()
       .document(root, args.context.scopePath)
       .event(BexValues.nodeValueSnapshot(args.eventNode))
-      .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
+      .currentContract(
+        BexValues.nodeSnapshot(toBexSnapshotNode(args.contractNode)),
+      )
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(1_000_000)
       .build();
   }
+}
+
+export function toBexSnapshotNode(
+  node: BlueNode | null | undefined,
+): BlueNode | undefined {
+  if (node === null || node === undefined) {
+    return undefined;
+  }
+  if (node instanceof ResolvedBlueNode) {
+    return node.getMinimalNode();
+  }
+  return node;
 }
 
 export function containsBexExpression(node: BlueNode, pointer = ''): boolean {
@@ -140,7 +154,20 @@ function isBexExpressionNode(node: BlueNode): boolean {
     return false;
   }
   const keys = Object.keys(properties);
-  return keys.length === 1 && keys[0].startsWith('$');
+  return keys.filter((key) => key.startsWith('$')).length === 1;
+}
+
+function toBexExpressionNode(node: BlueNode): BlueNode {
+  const properties = node.getProperties();
+  const operatorKey = Object.keys(properties ?? {}).find((key) =>
+    key.startsWith('$'),
+  );
+  if (!operatorKey || !properties?.[operatorKey]) {
+    return node.clone();
+  }
+  return new BlueNode().setProperties({
+    [operatorKey]: properties[operatorKey].clone(),
+  });
 }
 
 function isEmbeddedDocumentNode(node: BlueNode): boolean {

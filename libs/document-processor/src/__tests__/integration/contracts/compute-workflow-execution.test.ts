@@ -589,30 +589,37 @@ contracts:
     );
   });
 
-  it('keeps JavaScript Code, Update Document, and Trigger Event compatibility', async () => {
+  it('keeps Compute, Update Document, and Trigger Event BEX binding compatibility', async () => {
     const support = new ComputeWorkflowTestSupport();
     const document = await support.initializedOperationWorkflow(`    steps:
       - name: ComputeValue
-        type: Conversation/JavaScript Code
-        code: "return { value: 41 };"
+        type: Conversation/Compute
+        do:
+          - $return:
+              amount: 41
       - name: Apply
         type: Conversation/Update Document
         changeset:
           - op: replace
             path: /status
-            val: "\${steps.ComputeValue.value + 1}"
+            val:
+              $add:
+                - $steps: ComputeValue.amount
+                - 1
       - name: Trigger
         type: Conversation/Trigger Event
         event:
           type: Conversation/Event
           kind: Existing Trigger
-          status: "\${document('/status')}"
+          status:
+            $document: /status
 `);
 
     const result = await support.processRun(document);
     const event = json<EventJson>(support.blue, onlyEvent(result));
+    const snapshot = json<{ status?: number }>(support.blue, result.document);
 
-    expect(Number(result.document.get('/status'))).toBe(42);
+    expect(snapshot.status).toBe(42);
     expect(event).toMatchObject({ kind: 'Existing Trigger', status: 42 });
   });
 

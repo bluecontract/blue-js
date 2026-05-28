@@ -49,15 +49,19 @@ contracts:
       type: Core/Document Processing Initiated
     steps:
       - name: Compute
-        type: Conversation/JavaScript Code
-        code: |
-          return { increment: 4 };
+        type: Conversation/Compute
+        do:
+          - $return:
+              increment: 4
       - name: Apply
         type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /counter
-            val: "\${document('/counter') + steps.Compute.increment}"
+            val:
+              $add:
+                - $document: /counter
+                - $steps: Compute.increment
 `;
 
     const doc = blue.yamlToNode(yaml);
@@ -69,7 +73,7 @@ contracts:
     expect(snapshot.counter).toBe(9);
   });
 
-  it('supports changeset expressions that produce multiple patches', async () => {
+  it('supports BEX changeset expressions that produce multiple patches', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Update History Workflow
 history: []
@@ -84,10 +88,13 @@ contracts:
     steps:
       - name: Apply
         type: Conversation/Update Document
-        changeset: "\${[
-          { op: 'REPLACE', path: '/status', val: 'ready' },
-          { op: 'ADD', path: '/history/-', val: 'booted' }
-        ]}"
+        changeset:
+          - op: REPLACE
+            path: /status
+            val: ready
+          - op: ADD
+            path: /history/-
+            val: booted
 `;
 
     const doc = blue.yamlToNode(yaml);
@@ -101,7 +108,7 @@ contracts:
     expect(snapshot.history).toEqual(['booted']);
   });
 
-  it('supports deterministic JSON.parse and JSON.stringify in expressions', async () => {
+  it('supports deterministic BEX expressions in values', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Update Document Deterministic JSON Workflow
 contracts:
@@ -117,20 +124,23 @@ contracts:
         type: Conversation/Update Document
         changeset:
           - op: ADD
-            path: /canonicalJson
-            val: '\${JSON.stringify(JSON.parse(''{"aa":1,"b":2}''))}'
+            path: /message
+            val:
+              $concat:
+                - "value:"
+                - ok
 `;
 
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));
 
     const snapshot = blue.nodeToJson(result.document, 'simple') as {
-      canonicalJson?: string;
+      message?: string;
     };
-    expect(snapshot.canonicalJson).toBe('{"b":2,"aa":1}');
+    expect(snapshot.message).toBe('value:ok');
   });
 
-  it('applies changesets returned from a JavaScript step result', async () => {
+  it('applies changesets returned from a BEX Compute step result', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Test Changeset Step Output
 contracts:
@@ -143,24 +153,22 @@ contracts:
       type: Core/Document Processing Initiated
     steps:
       - name: Prepare
-        type: Conversation/JavaScript Code
-        code: |
-          const changeset = [
-            {
-              op: 'add',
-              path: '/test',
-              val: 'test'
-            },
-            {
-              op: 'add',
-              path: '/test2',
-              val: 'test2'
-            }
-          ];
-          return { changeset };
+        type: Conversation/Compute
+        do:
+          - $return:
+              patches:
+                - op: add
+                  path: /test
+                  val: test
+                - op: add
+                  path: /test2
+                  val: test2
       - name: Apply
         type: Conversation/Update Document
-        changeset: "\${steps.Prepare.changeset}"
+        changeset:
+          $binding:
+            name: steps
+            path: /Prepare/patches
 `;
 
     const doc = blue.yamlToNode(yaml);

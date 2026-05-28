@@ -46,10 +46,7 @@ const buildFallbackEntries = () => {
   });
 };
 
-const fallbackEntries = [
-  ...buildFallbackEntries(),
-  ...buildConversationCompatibilityEntries(),
-];
+const fallbackEntries = buildFallbackEntries();
 const fallbackBlueIdMap = Object.fromEntries(
   fallbackEntries.map(({ name, blueId }) => [name, blueId]),
 );
@@ -83,20 +80,6 @@ const testFallbackRepository: BlueRepository = {
     },
   },
 };
-
-function buildConversationCompatibilityEntries() {
-  return [
-    {
-      name: 'Conversation/JavaScript Code',
-      blueId: conversationBlueIds['Conversation/JavaScript Code'],
-      json: {
-        type: {
-          blueId: conversationBlueIds['Conversation/Sequential Workflow Step'],
-        },
-      },
-    },
-  ];
-}
 
 export function createBlue(): Blue {
   return registerConversationCompatibilityAliases(
