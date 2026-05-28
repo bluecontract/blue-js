@@ -106,7 +106,7 @@ describe('BlueIdCalculator', () => {
     const secondFoldId = `hash({$listCons={elem={blueId=${typedSecond}}, prev={blueId=${firstFoldId}}}})`;
     const thirdFoldId = `hash({$listCons={elem={blueId=${typedThird}}, prev={blueId=${secondFoldId}}}})`;
 
-    const expectedResult = `hash({abc={blueId=hash({items={blueId=${thirdFoldId}}})}})`;
+    const expectedResult = `hash({abc={blueId=${thirdFoldId}}})`;
     expect(result1).toEqual(expectedResult);
     expect(result2).toEqual(expectedResult);
   });
@@ -242,7 +242,7 @@ describe('BlueIdCalculator', () => {
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
-    const json = `{"text":{"type":{"blueId":"DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"},"value":"abc\\ndef\\n"}}`;
+    const json = `{"text":{"type":{"blueId":"${TEXT_TYPE_BLUE_ID}"},"value":"abc\\ndef\\n"}}`;
     const node2 = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
 
@@ -258,7 +258,7 @@ describe('BlueIdCalculator', () => {
     );
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
-    const json = `{"text":{"type":{"blueId":"DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K"},"value":"abc def\\n"}}`;
+    const json = `{"text":{"type":{"blueId":"${TEXT_TYPE_BLUE_ID}"},"value":"abc def\\n"}}`;
     const node2 = NodeDeserializer.deserialize(JSON.parse(json));
     const blueId2 = await BlueIdCalculator.calculateBlueId(node2);
 
@@ -395,7 +395,7 @@ abc:
     const result1 = await BlueIdCalculator.calculateBlueId(node);
 
     expect(result1).toMatchInlineSnapshot(
-      `"AZp8hjSjSdZy3rgpit56EW8eU3miZAKV44GUhNHEj8gw"`,
+      `"8WLzq2m3BQJqVPNo2DDcDwEdtGHYE5PNcRfZCXYQafCT"`,
     );
   });
 
@@ -414,7 +414,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"5mVLGWmZf3Mcgy2uMCVZ5ymx9XDWQJTWnvakdwGkExLm"`,
+      `"2pUwPxKZo2KBUk7bkaSHZ4CNhnGdju5SQYm1EX7E3wPU"`,
     );
   });
 
@@ -430,7 +430,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"8iQBLPR5LR9FNovQidD5so5VPD4t2EEoj4Yj4GmCyKrP"`,
+      `"3q2srrPpjGiGppMDSV82VKkSMy4hvt496xGLapyqiCkX"`,
     );
   });
 
@@ -448,7 +448,7 @@ abc:
 
     const blueId = await BlueIdCalculator.calculateBlueId(node);
     expect(blueId).toMatchInlineSnapshot(
-      `"8L32fW9MbwUtLLNXF8t4nyL4G3JBHfTjVnGADKozq8zH"`,
+      `"ePm7bwW67fHyfkNppLf7YJNobsrSowNTMAPY6cDTgwZ"`,
     );
   });
 
@@ -459,7 +459,7 @@ abc:
     const blueId = await BlueIdCalculator.calculateBlueId(node);
 
     expect(blueId).toMatchInlineSnapshot(
-      `"1yASa1bb5eu4KpWCQRnpi4Edbk67FzLjd8AcfyiaoT"`,
+      `"GEm5V5n7m4cod7CwpdgQF11ZrJWqsHwQW9WTVCyVENe4"`,
     );
     expect(BlueIds.isPotentialBlueId(blueId)).toBe(true);
   });

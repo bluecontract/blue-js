@@ -53,12 +53,12 @@ describe('collection-backed Blue repository type characterization', () => {
         inResponseTo: {
           requestId: 'req-op',
           incomingEvent: {
-            type: 'Conversation/Request',
+            type: 'Coordination/Request',
           },
         },
         events: [
           {
-            type: 'Conversation/Response',
+            type: 'Coordination/Response',
             result: 'ok',
           },
         ],
@@ -90,7 +90,7 @@ describe('collection-backed Blue repository type characterization', () => {
 
     expect(
       inspectRoundTrip(blue, {
-        type: 'Conversation/Change Request',
+        type: 'Coordination/Change Request',
         changeset: [
           {
             op: 'replace',
@@ -182,7 +182,7 @@ describe('collection-backed Blue repository type characterization', () => {
 
     expect(
       inspectRoundTrip(blue, {
-        type: 'Conversation/Change Request',
+        type: 'Coordination/Change Request',
         changeset: [
           {
             type: 'Core/Json Patch Entry',

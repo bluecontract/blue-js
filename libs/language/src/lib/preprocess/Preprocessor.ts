@@ -37,7 +37,7 @@ export class Preprocessor {
    * change the bootstrap key used to reference the default transformation set.
    */
   public static readonly DEFAULT_BLUE_BLUE_ID =
-    'HUmHn47FBoVRQV9ng7hu4wUeVzaZidkWRm5QySSB25gy';
+    '2W8vjk1aHvTFvdEbuuG5DjSfH5NH2Hi4z3oTFi4mtR5o';
 
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;

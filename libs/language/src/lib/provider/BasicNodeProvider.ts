@@ -2,7 +2,7 @@ import { BlueNode, NodeDeserializer } from '../model';
 import { PreloadedNodeProvider } from './PreloadedNodeProvider';
 import { Preprocessor } from '../preprocess/Preprocessor';
 import { NodeContentHandler } from './NodeContentHandler';
-import { Nodes } from '../utils';
+import { Nodes } from '../utils/Nodes';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue } from '../../schema';
 import { SemanticStorageService } from '../identity/SemanticStorageService';

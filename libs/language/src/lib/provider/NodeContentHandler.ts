@@ -1,5 +1,5 @@
 import { BlueNode, NodeDeserializer } from '../model';
-import { NodeToMapListOrValue } from '../utils';
+import { NodeToMapListOrValue } from '../utils/NodeToMapListOrValue';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { JsonBlueValue, JsonBlueObject } from '../../schema';
 import { OBJECT_BLUE_ID } from '../utils/Properties';
