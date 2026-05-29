@@ -15,6 +15,7 @@ import {
   DocumentProcessor,
   DocumentProcessorBuilder,
   myosBlueIds,
+  workflowsBlueIds,
   type DocumentProcessorOptions,
 } from '@blue-labs/document-processor';
 import { Blue, type BlueRepository } from '@blue-labs/language';
@@ -176,7 +177,13 @@ function coordinationRepository(): BlueRepository {
   const commonPackage = blueRepository.packages.common;
   const coordinationPackage = blueRepository.packages.coordination;
   const myosPackage = blueRepository.packages.myos;
-  if (!commonPackage || !coordinationPackage || !myosPackage) {
+  const workflowsPackage = blueRepository.packages.workflows;
+  if (
+    !commonPackage ||
+    !coordinationPackage ||
+    !myosPackage ||
+    !workflowsPackage
+  ) {
     return blueRepository as BlueRepository;
   }
   return {
@@ -197,8 +204,14 @@ function coordinationRepository(): BlueRepository {
           ...coordinationPackage.aliases,
           [LEGACY_TIMELINE_CHANNEL_BLUE_ID]:
             coordinationBlueIds['Coordination/Timeline Channel'],
+        },
+      },
+      workflows: {
+        ...workflowsPackage,
+        aliases: {
+          ...workflowsPackage.aliases,
           [LEGACY_DOCUMENT_SECTION_BLUE_ID]:
-            coordinationBlueIds['Coordination/Document Section'],
+            workflowsBlueIds['Workflows/Document Section'],
         },
       },
       myos: {

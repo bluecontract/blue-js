@@ -6,7 +6,6 @@ import {
   updateDocumentBaseAmount,
 } from './gas-helpers.js';
 import { normalizeScope } from '../util/pointer-utils.js';
-import { wasmFuelToHostGas } from './gas-schedule.js';
 
 const INITIALIZATION = 1_000;
 const CHANNEL_MATCH_ATTEMPT = 5;
@@ -126,13 +125,6 @@ export class GasMeter {
   ): void {
     const bytes = snapshot ? canonicalSize(this.blue, snapshot) : 0;
     this.add(documentSnapshotAmount(absPointer, bytes));
-  }
-
-  chargeWasmGas(amount: bigint | number): void {
-    const charge = wasmFuelToHostGas(amount);
-    if (charge > 0) {
-      this.add(charge);
-    }
   }
 
   private payloadSizeCharge(node: BlueNode | null | undefined): number {

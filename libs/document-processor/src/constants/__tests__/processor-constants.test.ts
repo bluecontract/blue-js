@@ -35,7 +35,7 @@ describe('processor constants', () => {
 
   it('checks processor-managed channel blue ids', () => {
     expect(
-      isProcessorManagedChannelBlueId(blueIds['Core/Lifecycle Event Channel']),
+      isProcessorManagedChannelBlueId(blueIds['Lifecycle Event Channel']),
     ).toBe(true);
     expect(isProcessorManagedChannelBlueId('CustomChannel')).toBe(false);
   });

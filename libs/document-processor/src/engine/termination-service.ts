@@ -8,9 +8,9 @@ import { resolvePointer } from '../util/pointer-utils.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
 import { RunTerminationError } from './run-termination-error.js';
 const PROCESSING_TERMINATED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Terminated Marker'];
+  blueIds['Processing Terminated Marker'];
 const DOCUMENT_PROCESSING_TERMINATED_BLUE_ID =
-  blueIds['Core/Document Processing Terminated'];
+  blueIds['Document Processing Terminated'];
 
 export interface TerminationExecutionAdapter {
   recordPendingTermination(

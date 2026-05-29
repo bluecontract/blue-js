@@ -47,7 +47,7 @@ describe('TerminationService', () => {
     const lifecycleEvent = deliverLifecycleMock.mock.calls[0]?.[2] as BlueNode;
     expect(lifecycleEvent).toBeInstanceOf(BlueNode);
     expect(typeBlueId(lifecycleEvent)).toBe(
-      blueIds['Core/Document Processing Terminated'],
+      blueIds['Document Processing Terminated'],
     );
     const props = lifecycleEvent.getProperties() ?? {};
 

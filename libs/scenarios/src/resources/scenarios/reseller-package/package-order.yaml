@@ -247,13 +247,13 @@ contracts:
               events:
                 $events: true
   processEmbeddedDocs:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths: []
   embeddedHotelOrderEvents:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /embeddedDocs/orders/hotelOrder
   embeddedRestaurantOrderEvents:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /embeddedDocs/orders/restaurantOrder
   hotelOrderConfirmed:
     type: Coordination/Sequential Workflow
@@ -304,13 +304,13 @@ contracts:
               events:
                 $events: true
   payNoteStatusUpdate:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /embeddedDocs/packagePayNote/status
   markPaymentSecured:
     type: Coordination/Sequential Workflow
     channel: payNoteStatusUpdate
     event:
-      type: Core/Document Update
+      type: Document Update
       path: /embeddedDocs/packagePayNote/status
       after: Secured
     steps:
@@ -331,13 +331,13 @@ contracts:
               events:
                 $events: true
   payNoteCapturedUpdate:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /embeddedDocs/packagePayNote/captured
   markReadyToUse:
     type: Coordination/Sequential Workflow
     channel: payNoteCapturedUpdate
     event:
-      type: Core/Document Update
+      type: Document Update
       path: /embeddedDocs/packagePayNote/captured
       after: true
     steps:

@@ -2,7 +2,10 @@ import { z } from 'zod';
 import { blueNodeField } from '@blue-labs/language';
 import { SequentialWorkflowSchema as ConversationSequentialWorkflowSchema } from '@blue-repository/types/packages/coordination/schemas/SequentialWorkflow';
 
-import { handlerContractBaseSchema } from '../shared/index.js';
+import {
+  handlerContractBaseSchema,
+  type HandlerContractBase,
+} from '../shared/index.js';
 
 export const sequentialWorkflowStepSchema = blueNodeField();
 
@@ -16,9 +19,7 @@ const sequentialWorkflowSchemaBase = ConversationSequentialWorkflowSchema.merge(
   steps: z.array(blueNodeField()).optional(),
 });
 
-export type SequentialWorkflow = z.infer<
-  typeof sequentialWorkflowSchemaBase
-> & {
+export type SequentialWorkflow = HandlerContractBase & {
   steps?: SequentialWorkflowStep[];
 };
 

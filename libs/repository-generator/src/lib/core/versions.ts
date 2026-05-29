@@ -10,6 +10,7 @@ import {
 import { classifyChange, CHANGE_STATUS } from './diff';
 import { cloneVersions, isPlainObject } from './utils';
 import { BLUE_TYPE_STATUS } from './constants';
+import { canonicalizeRepositoryStorageMap } from './repositoryContent';
 
 export function indexPreviousTypes(
   previous: BlueRepositoryDocument | null,
@@ -26,14 +27,18 @@ export function indexPreviousTypes(
     const types = new Map<TypeName, BlueTypeMetadata>();
     for (const type of pkg.types || []) {
       const content = type.content;
+      const canonicalContent = isPlainObject(content)
+        ? canonicalizeRepositoryStorageMap(content)
+        : content;
       const typeName =
-        isPlainObject(content) && typeof content.name === 'string'
-          ? content.name
+        isPlainObject(canonicalContent) &&
+        typeof canonicalContent.name === 'string'
+          ? canonicalContent.name
           : undefined;
       if (!typeName) {
         continue;
       }
-      types.set(typeName, type);
+      types.set(typeName, { ...type, content: canonicalContent });
     }
     map.set(pkg.name, types);
   }
@@ -238,8 +243,11 @@ function buildExistingStableMetadata({
     );
   }
 
-  const diffResult = classifyChange(
+  const previousContent = canonicalizeRepositoryStorageMap(
     previousType.content as JsonMap,
+  );
+  const diffResult = classifyChange(
+    previousContent,
     currentContent,
     packageName,
     typeName,

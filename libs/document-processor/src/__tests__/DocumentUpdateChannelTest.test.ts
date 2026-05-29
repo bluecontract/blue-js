@@ -21,19 +21,19 @@ describe('DocumentUpdateChannelTest', () => {
     const yaml = `name: Sample Doc
 contracts:
   lifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   documentUpdateChannelX:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /x
   documentUpdateChannelY:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /y
   setX:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     propertyKey: /x
     propertyValue: 1
   setY:
@@ -68,16 +68,16 @@ contracts:
     const yaml = `name: Nested Doc
 contracts:
   lifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   documentUpdateA:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /a
   setAX:
     channel: lifecycleChannel
     type:
       blueId: SetProperty
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     propertyKey: /a/x
     propertyValue: 1
   setABX:
@@ -86,7 +86,7 @@ contracts:
     type:
       blueId: SetProperty
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     propertyKey: /a/b/x
     propertyValue: 1
   incrementYOnA:
@@ -116,22 +116,22 @@ x:
     name: Embedded Y
     contracts:
       life:
-        type: Core/Lifecycle Event Channel
+        type: Lifecycle Event Channel
       setInner:
         channel: life
         event:
-          type: Core/Document Processing Initiated
+          type: Document Processing Initiated
         type:
           blueId: SetProperty
         propertyKey: /a
         propertyValue: 1
   contracts:
     embedded:
-      type: Core/Process Embedded
+      type: Process Embedded
       paths:
         - /y
     documentUpdateFromY:
-      type: Core/Document Update Channel
+      type: Document Update Channel
       path: /y/a
     setFromY:
       channel: documentUpdateFromY
@@ -141,11 +141,11 @@ x:
       propertyValue: 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /x
   documentUpdateFromChild:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /x/y/a
   setFromChild:
     channel: documentUpdateFromChild
@@ -183,17 +183,17 @@ contracts:
 a:
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       type:
         blueId: SetProperty
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       propertyKey: /x
       propertyValue: 1
     watchX:
-      type: Core/Document Update Channel
+      type: Document Update Channel
       path: /x
     assertA:
       channel: watchX
@@ -205,11 +205,11 @@ a:
       expectedAfterValue: 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /a
   watchRoot:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /a/x
   assertRoot:
     channel: watchRoot
@@ -238,16 +238,16 @@ contracts:
 list: []
 contracts:
   lifecycle:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   watchList:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /list
   appendItem:
     channel: lifecycle
     type:
       blueId: SetProperty
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     path: /list
     propertyKey: "-"
     propertyValue: 5

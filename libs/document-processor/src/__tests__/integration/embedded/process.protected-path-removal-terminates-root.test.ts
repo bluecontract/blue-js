@@ -30,15 +30,18 @@ child:
         - name: IncrementChild
           type: Conversation/Update Document
           changeset:
-            - op: REPLACE
-              path: /count
-              val: "\${document('count') + 1}"
+              - op: REPLACE
+                path: /count
+                val:
+                  $add:
+                    - $document: /count
+                    - 1
 contracts:
   rootTimeline:
     type: Conversation/Timeline Channel
     timelineId: root
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /child
   removeEmbeddedPath:
@@ -59,9 +62,12 @@ contracts:
       - name: RootIncrement
         type: Conversation/Update Document
         changeset:
-          - op: REPLACE
-            path: /child/count
-            val: "\${document('/child/count') + 1}"
+            - op: REPLACE
+              path: /child/count
+              val:
+                $add:
+                  - $document: /child/count
+                  - 1
 `;
 
     const initialized = await expectOk(

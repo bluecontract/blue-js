@@ -32,12 +32,12 @@ branch:
       lastOp: none
       contracts:
         life:
-          type: Core/Lifecycle Event Channel
+          type: Lifecycle Event Channel
         initializeLeaf:
           type: Conversation/Sequential Workflow
           channel: life
           event:
-            type: Core/Document Processing Initiated
+            type: Document Processing Initiated
           steps:
             - name: SeedLeaf
               type: Conversation/Update Document
@@ -46,7 +46,7 @@ branch:
                   path: /value
                   val: 1
         leafUpdates:
-          type: Core/Document Update Channel
+          type: Document Update Channel
           path: /value
         leafWatcher:
           type: Conversation/Sequential Workflow
@@ -57,26 +57,33 @@ branch:
               changeset:
                 - op: REPLACE
                   path: /observed
-                  val: "\${(document('observed') ?? 0) + 1}"
+                  val:
+                      $add:
+                        - $coalesce:
+                            - $document: /observed
+                            - 0
+                        - 1
             - name: RecordLeafPath
               type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /lastPath
-                  val: "\${event.path}"
+                  val:
+                      $event: /path
             - name: RecordLeafOp
               type: Conversation/Update Document
               changeset:
                 - op: REPLACE
                   path: /lastOp
-                  val: "\${event.op}"
+                  val:
+                      $event: /op
     contracts:
       embedded:
-        type: Core/Process Embedded
+        type: Process Embedded
         paths:
           - /leaf
       subLeafUpdates:
-        type: Core/Document Update Channel
+        type: Document Update Channel
         path: /leaf/value
       subWatcher:
         type: Conversation/Sequential Workflow
@@ -87,26 +94,33 @@ branch:
             changeset:
               - op: REPLACE
                 path: /observed
-                val: "\${(document('observed') ?? 0) + 1}"
+                val:
+                    $add:
+                      - $coalesce:
+                          - $document: /observed
+                          - 0
+                      - 1
           - name: RecordSubPath
             type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /lastPath
-                val: "\${event.path}"
+                val:
+                    $event: /path
           - name: RecordSubOp
             type: Conversation/Update Document
             changeset:
               - op: REPLACE
                 path: /lastOp
-                val: "\${event.op}"
+                val:
+                    $event: /op
   contracts:
     embedded:
-      type: Core/Process Embedded
+      type: Process Embedded
       paths:
         - /sub
     branchLeafUpdates:
-      type: Core/Document Update Channel
+      type: Document Update Channel
       path: /sub/leaf/value
     branchWatcher:
       type: Conversation/Sequential Workflow
@@ -117,26 +131,33 @@ branch:
           changeset:
             - op: REPLACE
               path: /observed
-              val: "\${(document('observed') ?? 0) + 1}"
+              val:
+                  $add:
+                    - $coalesce:
+                        - $document: /observed
+                        - 0
+                    - 1
         - name: RecordBranchPath
           type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastPath
-              val: "\${event.path}"
+              val:
+                  $event: /path
         - name: RecordBranchOp
           type: Conversation/Update Document
           changeset:
             - op: REPLACE
               path: /lastOp
-              val: "\${event.op}"
+              val:
+                  $event: /op
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /branch
   rootLeafUpdates:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /branch/sub/leaf/value
   rootWatcher:
     type: Conversation/Sequential Workflow
@@ -147,19 +168,26 @@ contracts:
         changeset:
           - op: REPLACE
             path: /observed
-            val: "\${(document('observed') ?? 0) + 1}"
+            val:
+                $add:
+                  - $coalesce:
+                      - $document: /observed
+                      - 0
+                  - 1
       - name: RecordRootPath
         type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /lastPath
-            val: "\${event.path}"
+            val:
+                $event: /path
       - name: RecordRootOp
         type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /lastOp
-            val: "\${event.op}"
+            val:
+                $event: /op
 `;
 
     const initResult = await expectOk(
@@ -169,7 +197,7 @@ contracts:
     expect(initResult.triggeredEvents).toHaveLength(1);
     const initEvent = initResult.triggeredEvents[0]!;
     expect(stringProperty(initEvent, 'type')).toBe(
-      'Core/Document Processing Initiated',
+      'Document Processing Initiated',
     );
     expect(stringProperty(initEvent, 'documentId')).not.toBeNull();
 

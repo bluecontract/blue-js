@@ -82,7 +82,11 @@ emb1:
           changeset:
             - op: REPLACE
               path: /counter-0
-              val: "\${document('counter-0') + parseInt(event.message.message)}"
+              val:
+                  $add:
+                    - $document: /counter-0
+                    - $integer:
+                        $event: /message/message
 emb2:
   name: ${testRunId}-emb-2
   counter-1: 0
@@ -103,7 +107,11 @@ emb2:
           changeset:
             - op: REPLACE
               path: /counter-1
-              val: "\${document('counter-1') + parseInt(event.message.message)}"
+              val:
+                  $add:
+                    - $document: /counter-1
+                    - $integer:
+                        $event: /message/message
     counterWorkflow2:
       type: Conversation/Sequential Workflow
       channel: incrementChannel2
@@ -113,10 +121,14 @@ emb2:
           changeset:
             - op: REPLACE
               path: /counter-2
-              val: "\${document('counter-2') + parseInt(event.message.message)}"
+              val:
+                  $add:
+                    - $document: /counter-2
+                    - $integer:
+                        $event: /message/message
 contracts:
   processEmbedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /emb1
       - /emb2
@@ -135,7 +147,11 @@ contracts:
         changeset:
           - op: REPLACE
             path: /counter-1
-            val: "\${document('counter-1') + parseInt(event.message.message)}"
+            val:
+                $add:
+                  - $document: /counter-1
+                  - $integer:
+                      $event: /message/message
   counterWorkflow2:
     type: Conversation/Sequential Workflow
     channel: incrementChannel3
@@ -145,7 +161,11 @@ contracts:
         changeset:
           - op: REPLACE
             path: /counter-3
-            val: "\${document('counter-3') + parseInt(event.message.message)}"
+            val:
+                $add:
+                  - $document: /counter-3
+                  - $integer:
+                      $event: /message/message
 `;
 
     const initResult = await expectOk(
@@ -259,7 +279,10 @@ contracts:
         changeset:
           - op: REPLACE
             path: /counter
-            val: "\${document('counter') + 1}"
+            val:
+                $add:
+                  - $document: /counter
+                  - 1
 `;
 
     const initResult = await expectOk(
@@ -336,10 +359,13 @@ child:
           changeset:
             - op: REPLACE
               path: /childCounter
-              val: "\${document('childCounter') + 1}"
+              val:
+                  $add:
+                    - $document: /childCounter
+                    - 1
 contracts:
   processEmbedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /child
   rootChannel:
@@ -354,7 +380,10 @@ contracts:
         changeset:
           - op: REPLACE
             path: /rootCounter
-            val: "\${document('rootCounter') + 1}"
+            val:
+                $add:
+                  - $document: /rootCounter
+                  - 1
 `;
 
     const initResult = await expectOk(
@@ -449,10 +478,13 @@ child:
           changeset:
             - op: REPLACE
               path: /childCounter
-              val: "\${document('childCounter') + 1}"
+              val:
+                  $add:
+                    - $document: /childCounter
+                    - 1
 contracts:
   processEmbedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /child
   rootChannel:
@@ -467,7 +499,10 @@ contracts:
         changeset:
           - op: REPLACE
             path: /rootCounter
-            val: "\${document('rootCounter') + 1}"
+            val:
+                $add:
+                  - $document: /rootCounter
+                  - 1
 `;
 
     const initResult = await expectOk(

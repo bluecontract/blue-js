@@ -97,3 +97,51 @@ export const CORE_TYPE_NAME_TO_BLUE_ID_MAP = Object.fromEntries(
 export const CORE_TYPE_BLUE_ID_TO_NAME_MAP = Object.fromEntries(
   CORE_TYPE_BLUE_IDS.map((blueId, index) => [blueId, CORE_TYPES[index]]),
 ) as Record<(typeof CORE_TYPE_BLUE_IDS)[number], (typeof CORE_TYPES)[number]>;
+
+export const BLUE_CONTRACTS_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP = {
+  Contract: '6WrVQoSpKHUUg5HPrwjkVV6pxe4sdkyGnakMs8ayEGeF',
+  'Json Patch Entry': '61W96XosAp3DrEC7PuqLYtmF2A6ETpqH6qF2DgYwDq4c',
+  'Contract Execution Result': 'AMtAXPmvumgz1GxKUU9uv3ncXiKMENvqq8AaLvD5LXhv',
+  Channel: '4FAZ94JPExNM4pn2ZhtdHa4CVP7uASmLNVrBy7aCG1p5',
+  Handler: '7X46P3Q6FJrogqKrBXTALpqzkieyyiQeatnqLvWzAPXE',
+  Marker: '6zqbYGDGrMv5ReuEsjyzyyjjuqVnqDZxtY7RsPXdBTNy',
+  'Process Embedded': '8FVc8MPz6DcTMgcY3RXU6EBpGa9arWPJ141K2H86yi8Q',
+  'Processing Initialized Marker':
+    '6JjyUKoK7uJxA5NY9YhMaKJbXC6c9iHyx1khv4gaAq4Q',
+  'Processing Terminated Marker':
+    'GBDBthfshBFr4GQKUU1fmy4GnPL7q2y3as4deUWpuBtu',
+  'Channel Event Checkpoint': '9GEC24YbFG9hj4banjYh2oEnDpAob1wAPmhjuykJp8T1',
+  'Type Generalization Policy': 'Fbenow6tanFHkWzKiDD8fGxminQswQ1FecMRakaCx2WX',
+  'Type Generalization Rule': '7Vnmk8StjwY7e9mBNpACrn8oh3KZ7yQBjnXe5bLDWn4D',
+  'Document Update Channel': 'Ac9LC5T7pHVa1TtkhMBjBRtxecShzvbe7ugUdXT1Mu2o',
+  'Triggered Event Channel': '5HwxfbwRBCxG8xYpowWkCPC9akqUSKV7So2M4QHEmLsZ',
+  'Lifecycle Event Channel': '2DXGQUiQBQ6CT89jwAsTAXaEPhLgiSXhKCGh9Q7Hv3MQ',
+  'Embedded Node Channel': 'H6iUJp3GcLypsJDimMSVoxQQdxxuD8j6eqEUWWqCZ6i',
+  'Document Update': '7HEaG1SpBdsbVHsrwRTZSZGmpJUWHfFoEzecYWpjo1vm',
+  'Document Processing Initiated':
+    'Ht1o66MTLKf7JmnEiR27rRLSwdz8FUTgf2mGPNuLSDUL',
+  'Document Processing Terminated':
+    '4HWncQEQsdpk8zcXxYxgdtoXo5nKHxFPWeJfTscCbmeK',
+  'Document Processing Fatal Error':
+    'AMZbj5tNGxjPrvaNyw56sfqcLSW2j1XmkncEYUVtgmVC',
+} as const;
+
+export const DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP = {
+  ...CORE_TYPE_NAME_TO_BLUE_ID_MAP,
+  ...BLUE_CONTRACTS_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP,
+} as const;
+
+export const BLUE_CONTRACTS_RUNTIME_TYPE_BLUE_ID_TO_NAME_MAP =
+  Object.fromEntries(
+    Object.entries(BLUE_CONTRACTS_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP).map(
+      ([name, blueId]) => [blueId, name],
+    ),
+  ) as Record<
+    (typeof BLUE_CONTRACTS_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP)[keyof typeof BLUE_CONTRACTS_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP],
+    keyof typeof BLUE_CONTRACTS_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP
+  >;
+
+export const DEFAULT_BLUE_TYPE_BLUE_ID_TO_NAME_MAP = {
+  ...CORE_TYPE_BLUE_ID_TO_NAME_MAP,
+  ...BLUE_CONTRACTS_RUNTIME_TYPE_BLUE_ID_TO_NAME_MAP,
+} as const;

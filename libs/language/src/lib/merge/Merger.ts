@@ -101,11 +101,40 @@ export class Merger extends NodeResolver {
     context: ResolutionContext,
   ): BlueNode {
     const workingTarget = target.cloneShallow();
+    const preservedSource = this.mergingProcessor.preserveSource?.(
+      workingTarget,
+      source,
+      context.nodeProvider,
+    );
+    if (preservedSource !== undefined) {
+      if (this.mergingProcessor.postProcess) {
+        return this.mergingProcessor.postProcess(
+          preservedSource,
+          source,
+          context.nodeProvider,
+        );
+      }
+      return preservedSource;
+    }
+
     let newTarget = this.mergingProcessor.process(
       workingTarget,
       source,
       context.nodeProvider,
     );
+
+    if (
+      this.mergingProcessor.shouldPreserveSource?.(source, context.nodeProvider)
+    ) {
+      if (this.mergingProcessor.postProcess) {
+        newTarget = this.mergingProcessor.postProcess(
+          newTarget,
+          source,
+          context.nodeProvider,
+        );
+      }
+      return newTarget;
+    }
 
     const children = source.getItems();
     if (isNonNullable(children)) {

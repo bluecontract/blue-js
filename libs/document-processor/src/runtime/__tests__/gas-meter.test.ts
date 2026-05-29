@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { GasMeter } from '../gas-meter.js';
 import { canonicalSize } from '../../util/node-canonicalizer.js';
 import { documentSnapshotAmount } from '../gas-helpers.js';
-import { wasmFuelToHostGas } from '../gas-schedule.js';
 
 const blue = createBlue();
 
@@ -60,14 +59,5 @@ describe('GasMeter', () => {
     meter.chargeDocumentSnapshot('/a/b', null);
 
     expect(meter.totalGas()).toBe(rootExpected + missingExpected);
-  });
-
-  it('scales wasm fuel into host gas units before charging', () => {
-    const meter = new GasMeter(blue);
-    const fuelUsed = 4_780_257n;
-    meter.chargeWasmGas(fuelUsed);
-
-    const expected = wasmFuelToHostGas(fuelUsed);
-    expect(meter.totalGas()).toBe(expected);
   });
 });

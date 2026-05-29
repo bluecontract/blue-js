@@ -93,9 +93,10 @@ export class BexFieldEvaluator {
   }
 
   private executionContext(args: StepExecutionArgs): BexExecutionContext {
-    const root = args.context.documentAt('/') ?? new BlueNode();
+    const scopeRootPointer = args.context.resolvePointer('/');
+    const root = args.context.documentAt(scopeRootPointer) ?? new BlueNode();
     return BexExecutionContext.builder()
-      .document(root, args.context.scopePath)
+      .document(root)
       .event(BexValues.nodeValueSnapshot(args.eventNode))
       .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
       .steps(BexStepResults.fromSimple(args.stepResults))

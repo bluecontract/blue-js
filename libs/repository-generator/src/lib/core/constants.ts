@@ -1,8 +1,11 @@
 import { Properties } from '@blue-labs/language';
+import { BUILTIN_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP } from './builtinRuntimeTypes';
 
-export const PRIMITIVE_TYPES = new Set<string>([...Properties.CORE_TYPES]);
-export const PRIMITIVE_BLUE_IDS: Record<string, string> =
-  Properties.CORE_TYPE_NAME_TO_BLUE_ID_MAP;
+export const PRIMITIVE_BLUE_IDS: Record<string, string> = {
+  ...Properties.CORE_TYPE_NAME_TO_BLUE_ID_MAP,
+  ...BUILTIN_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP,
+};
+export const PRIMITIVE_TYPES = new Set<string>(Object.keys(PRIMITIVE_BLUE_IDS));
 
 export const BLUE_REPOSITORY_NAME = 'Blue Repository';
 

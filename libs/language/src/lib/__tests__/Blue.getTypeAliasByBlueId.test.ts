@@ -6,7 +6,10 @@ import type {
   BlueRepositoryPackage,
 } from '../types/BlueRepository';
 import { BlueIdCalculator } from '../utils';
-import { TEXT_TYPE_BLUE_ID } from '../utils/Properties';
+import {
+  DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP,
+  TEXT_TYPE_BLUE_ID,
+} from '../utils/Properties';
 
 type VersionEntry = {
   repositoryVersionIndex: number;
@@ -69,6 +72,14 @@ describe('Blue.getTypeAliasByBlueId', () => {
     const blue = new Blue();
 
     expect(blue.getTypeAliasByBlueId(TEXT_TYPE_BLUE_ID)).toEqual('Text');
+  });
+
+  it('returns runtime type alias for a known default runtime BlueId', () => {
+    const blue = new Blue();
+
+    expect(
+      blue.getTypeAliasByBlueId(DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP.Channel),
+    ).toEqual('Channel');
   });
 
   it('returns current package alias for a historical repository BlueId', () => {

@@ -13,7 +13,7 @@ describe('DocumentProcessorCapabilityTest', () => {
     const yaml = `name: Doc
 contracts:
   lifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   handler:
     channel: lifecycleChannel
     type:
@@ -41,7 +41,7 @@ contracts:
     const baseYaml = `name: Base
 contracts:
   lifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   handler:
     channel: lifecycleChannel
     type:

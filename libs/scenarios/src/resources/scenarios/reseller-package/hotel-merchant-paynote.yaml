@@ -22,11 +22,11 @@ contracts:
     type: Coordination/Timeline Channel
     timelineId: card-processor
   processEmbeddedOrder:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /embeddedDocs/order
   embeddedOrderEvents:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /embeddedDocs/order
   captureOnHotelCheckIn:
     type: Coordination/Sequential Workflow

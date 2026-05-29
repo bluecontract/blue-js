@@ -1,5 +1,5 @@
 name: Worker Agency Permission Grant BEX
-description: BEX representative for MyOS Worker Agency Permission Grant JavaScript workflows.
+description: BEX workflow for MyOS Worker Agency Permission Grant.
 granteeDocumentId: worker-agency-document-blue-id
 allowedWorkerAgencyPermissions:
   - workerType: EmailAssistant
@@ -16,9 +16,9 @@ contracts:
     accountId: granter-account
 
   initLifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
 
   revoke:
     type: Coordination/Operation

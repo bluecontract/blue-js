@@ -25,6 +25,31 @@ interface BexPatchSimple {
 }
 
 type BexResultObject = Record<string, unknown>;
+type BexProgramField = 'constants' | 'do' | 'entry' | 'expr' | 'functions';
+
+const BEX_PROGRAM_FIELDS: readonly BexProgramField[] = [
+  'constants',
+  'do',
+  'entry',
+  'expr',
+  'functions',
+];
+
+const DOCUMENTATION_FIELD_KEYS = new Set([
+  'blue',
+  'blueId',
+  'constraints',
+  'contracts',
+  'description',
+  'itemType',
+  'keyType',
+  'mergePolicy',
+  'order',
+  'properties',
+  'schema',
+  'type',
+  'valueType',
+]);
 
 export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
   readonly supportedBlueIds = [
@@ -86,13 +111,43 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
 
   private programSource(args: StepExecutionArgs): BexProgramSource {
     const definition = this.definitionNode(args);
+    const programNode = this.programNode(args.stepNode);
     if (definition === undefined) {
-      return BexProgramSource.inline(args.stepNode);
+      return BexProgramSource.inline(programNode);
     }
     return BexProgramSource.withDefinition(
-      args.stepNode,
-      definition,
+      programNode,
+      this.programNode(definition),
       this.stringProperty(args.stepNode, 'entry'),
+    );
+  }
+
+  private programNode(node: BlueNode): BlueNode {
+    const properties = node.getProperties() ?? {};
+    const programProperties = Object.fromEntries(
+      BEX_PROGRAM_FIELDS.flatMap((key) => {
+        const value = properties[key];
+        if (value === undefined || this.isDocumentationOnlyNode(value)) {
+          return [];
+        }
+        return [[key, value.clone()]];
+      }),
+    );
+    return new BlueNode().setProperties(programProperties);
+  }
+
+  private isDocumentationOnlyNode(node: BlueNode): boolean {
+    if (node.getValue() !== undefined || node.getItems() !== undefined) {
+      return false;
+    }
+
+    const properties = node.getProperties();
+    if (properties === undefined) {
+      return true;
+    }
+
+    return Object.keys(properties).every((key) =>
+      DOCUMENTATION_FIELD_KEYS.has(key),
     );
   }
 
@@ -208,6 +263,15 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
     events: readonly unknown[],
   ): unknown {
     if (!this.isResultObject(value)) {
+      if (
+        (value === undefined || value === null) &&
+        (changeset.length > 0 || events.length > 0)
+      ) {
+        return {
+          changeset: [...changeset],
+          events: [...events],
+        };
+      }
       return value;
     }
     return {

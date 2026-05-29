@@ -13,6 +13,8 @@ export {
   type BlueRepository,
   Limits,
   Nodes,
+  BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID,
+  BUILTIN_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP,
   BasicNodeProvider,
   createNodeProvider,
   SemanticIdentityService,
@@ -20,6 +22,7 @@ export {
   NodeProviderWrapper,
   Schema,
   SCHEMA_FIELDS,
+  canonicalizeRepositoryContent,
 
   // merge
   NodeResolver,

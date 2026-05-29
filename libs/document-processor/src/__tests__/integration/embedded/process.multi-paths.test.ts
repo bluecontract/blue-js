@@ -28,9 +28,12 @@ childA:
         - name: IncrementA
           type: Conversation/Update Document
           changeset:
-            - op: REPLACE
-              path: /count
-              val: "\${document('count') + 1}"
+              - op: REPLACE
+                path: /count
+                val:
+                  $add:
+                    - $document: /count
+                    - 1
 childB:
   count: 0
   contracts:
@@ -44,12 +47,15 @@ childB:
         - name: IncrementB
           type: Conversation/Update Document
           changeset:
-            - op: REPLACE
-              path: /count
-              val: "\${document('count') + 1}"
+              - op: REPLACE
+                path: /count
+                val:
+                  $add:
+                    - $document: /count
+                    - 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /childA
       - /childB
@@ -100,9 +106,12 @@ describe('Process Embedded — Multi-paths: independent processing and protectio
       - name: RootWrite
         type: Conversation/Update Document
         changeset:
-          - op: REPLACE
-            path: /${target}/count
-            val: "\${document('/${target}/count') + 1}"
+            - op: REPLACE
+              path: /${target}/count
+              val:
+                $add:
+                  - $document: /${target}/count
+                  - 1
 `;
 
       const initialized = await expectOk(

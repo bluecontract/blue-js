@@ -25,7 +25,7 @@ contracts:
     type: Conversation/Timeline Channel
     timelineId: alpha
   counterUpdate:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /counter
   staticWatcher:
     channel: counterUpdate
@@ -59,9 +59,12 @@ contracts:
       - name: TouchCounter
         type: Conversation/Update Document
         changeset:
-          - op: REPLACE
-            path: /counter
-            val: "\${document('/counter') + 1}"
+            - op: REPLACE
+              path: /counter
+              val:
+                $add:
+                  - $document: /counter
+                  - 1
 `;
 
     const initialized = await expectOk(

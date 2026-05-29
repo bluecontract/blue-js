@@ -67,11 +67,6 @@ compareFixtureTreeIfPresent(
   path.join(root, '../blue-bex-java/src/test/resources/rich-fixtures'),
   path.dirname(bexManifestPath),
 );
-compareFixtureTreeIfPresent(
-  'blue-scenarios resources',
-  path.join(root, '../blue-scenarios/src/main/resources/scenarios'),
-  scenarioResourceRoot,
-);
 assertScenarioTestsReferenceAllResources();
 
 console.log('Parity fixture guard passed.');

@@ -17,6 +17,11 @@ import { PRIMITIVE_BLUE_IDS, PRIMITIVE_TYPES } from './constants';
 import { cloneJson, isPlainObject, isRecord } from './utils';
 import { createRepositoryGeneratorMergingProcessor } from './mergingProcessor';
 import type { AliasComponent, DependencyGraph } from './graph';
+import { BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID } from './builtinRuntimeTypes';
+import {
+  canonicalizeRepositoryStorageContent,
+  canonicalizeRepositoryStorageMap,
+} from './repositoryContent';
 
 export const ZERO_BLUE_ID = '00000000000000000000000000000000000000000000';
 
@@ -46,14 +51,19 @@ export function computeBlueIds(
 } {
   const aliasToBlueId = new Map<Alias, string>();
   const aliasToStorageContent = new Map<Alias, JsonMap>();
-  const contentByBlueId = new Map<string, JsonValue>();
+  const contentByBlueId = new Map<string, JsonValue>(
+    Object.entries(BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID),
+  );
   const parserBlue = new Blue();
   const provider = createNodeProvider((blueId) => {
     if (isCyclicPlaceholderBlueId(blueId)) {
       return [new BlueNode().setReferenceBlueId(blueId)];
     }
     return lookupStorageContentByBlueId(contentByBlueId, blueId).map(
-      (content) => parserBlue.jsonValueToNode(content),
+      (content) =>
+        parserBlue.jsonValueToNode(
+          canonicalizeRepositoryStorageContent(content),
+        ),
     );
   });
   const blue = new Blue({
@@ -395,9 +405,12 @@ function buildStorageNode(
   ) as JsonMap;
   try {
     const node = blue.jsonValueToNode(substituted);
+    const storageContent = canonicalizeRepositoryStorageMap(
+      blue.nodeToJson(node, 'official') as JsonMap,
+    );
     return {
       node,
-      storageContent: blue.nodeToJson(node, 'official') as JsonMap,
+      storageContent,
     };
   } catch (error) {
     const message =
@@ -458,13 +471,16 @@ function getPreviousForUnchangedContent(
     return null;
   }
 
-  if (!jsonEquals(previousType.content, currentContent)) {
+  const previousContent = canonicalizeRepositoryStorageMap(
+    previousType.content as JsonMap,
+  );
+  if (!jsonEquals(previousContent, currentContent)) {
     return null;
   }
 
   return {
     blueId: previousBlueId,
-    content: cloneJson(previousType.content as JsonMap),
+    content: cloneJson(previousContent),
   };
 }
 

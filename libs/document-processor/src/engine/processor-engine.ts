@@ -39,8 +39,8 @@ import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
 
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Initialized Marker'];
-const DOCUMENT_UPDATE_BLUE_ID = blueIds['Core/Document Update'];
+  blueIds['Processing Initialized Marker'];
+const DOCUMENT_UPDATE_BLUE_ID = blueIds['Document Update'];
 
 interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   bundleForScope(scopePath: string): ContractBundle | undefined;

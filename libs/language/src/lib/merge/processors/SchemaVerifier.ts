@@ -106,6 +106,8 @@ export class SchemaVerifier implements MergingProcessor {
 
   private comparableBlueId(node: BlueNode): string {
     const comparable = node.clone();
+    comparable.setName(undefined);
+    comparable.setDescription(undefined);
     comparable.setSchema(undefined);
     return BlueIdCalculator.calculateBlueIdSync(comparable);
   }

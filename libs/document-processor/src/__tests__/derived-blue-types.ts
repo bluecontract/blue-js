@@ -6,6 +6,7 @@ import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 import {
   blueRepository,
   conversationBlueIds,
+  blueIds as semanticBlueIds,
 } from '../repository/semantic-repository.js';
 
 const FALLBACK_BLUE_IDS = [
@@ -87,6 +88,7 @@ export function createBlueWithDerivedTypes(
     repositories: [blueRepository, testFallbackRepository],
     mergingProcessor: createDefaultMergingProcessor(),
   });
+  seedBlue.registerBlueIds(semanticBlueIds);
   seedBlue.registerBlueIds(conversationBlueIds);
 
   const types = definitions.map(({ name, yaml }) => {
@@ -100,6 +102,7 @@ export function createBlueWithDerivedTypes(
     repositories: [blueRepository, testFallbackRepository, derivedRepository],
     mergingProcessor: createDefaultMergingProcessor(),
   });
+  blue.registerBlueIds(semanticBlueIds);
   blue.registerBlueIds(conversationBlueIds);
 
   for (const { name, blueId } of types) {

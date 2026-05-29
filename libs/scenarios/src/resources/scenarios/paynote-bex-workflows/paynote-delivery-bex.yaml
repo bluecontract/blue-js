@@ -1,5 +1,5 @@
 name: PayNote Delivery BEX Representative
-description: BEX representative for PayNote Delivery workflows that used JavaScript steps.
+description: BEX workflow for PayNote Delivery workflows.
 payNoteBootstrapRequest:
   type: Coordination/Document Bootstrap Requested
   document:
@@ -25,9 +25,9 @@ contracts:
     accountId: deliverer-account-a
 
   initLifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
 
   initialize:
     type: Coordination/Sequential Workflow

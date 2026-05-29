@@ -22,7 +22,7 @@ describe('contract model schemas', () => {
 
   it('converts DocumentUpdateChannel contracts', () => {
     const node = deserialize({
-      type: 'Core/Document Update Channel',
+      type: 'Document Update Channel',
       path: '/documents/foo',
       key: 'documentUpdate',
       order: 7,
@@ -36,7 +36,7 @@ describe('contract model schemas', () => {
 
   it('converts EmbeddedNodeChannel contracts with child path', () => {
     const node = deserialize({
-      type: 'Core/Embedded Node Channel',
+      type: 'Embedded Node Channel',
       childPath: '/child/alpha',
     });
 
@@ -47,11 +47,11 @@ describe('contract model schemas', () => {
 
   it('converts Lifecycle and Triggered channel contracts without extra fields', () => {
     const lifecycle = blue.nodeToSchemaOutput(
-      deserialize({ type: 'Core/Lifecycle Event Channel' }),
+      deserialize({ type: 'Lifecycle Event Channel' }),
       lifecycleChannelSchema,
     );
     const triggered = blue.nodeToSchemaOutput(
-      deserialize({ type: 'Core/Triggered Event Channel' }),
+      deserialize({ type: 'Triggered Event Channel' }),
       triggeredEventChannelSchema,
     );
 
@@ -61,7 +61,7 @@ describe('contract model schemas', () => {
 
   it('converts ProcessEmbedded markers with readonly paths', () => {
     const node = deserialize({
-      type: 'Core/Process Embedded',
+      type: 'Process Embedded',
       paths: ['/child/a', '/child/b'],
     });
 
@@ -73,7 +73,7 @@ describe('contract model schemas', () => {
 
   it('converts Initialization markers', () => {
     const node = deserialize({
-      type: 'Core/Processing Initialized Marker',
+      type: 'Processing Initialized Marker',
       documentId: 'doc-123',
     });
 
@@ -84,7 +84,7 @@ describe('contract model schemas', () => {
 
   it('converts ProcessingTerminated markers', () => {
     const node = deserialize({
-      type: 'Core/Processing Terminated Marker',
+      type: 'Processing Terminated Marker',
       cause: 'BoundaryViolation',
       reason: 'Test',
     });
@@ -97,7 +97,7 @@ describe('contract model schemas', () => {
 
   it('converts ChannelEventCheckpoint markers preserving BlueNodes', () => {
     const node = deserialize({
-      type: 'Core/Channel Event Checkpoint',
+      type: 'Channel Event Checkpoint',
       lastEvents: {
         channelA: {
           payload: 'data',

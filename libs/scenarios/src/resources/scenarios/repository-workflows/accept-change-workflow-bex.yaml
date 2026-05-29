@@ -13,7 +13,7 @@ proposedChange:
           title: Accepted Section
         contracts:
           acceptedMarker:
-            type: Coordination/Document Section
+            type: Workflows/Document Section
             kind: workflow proof marker
             marker: accepted
 contracts:

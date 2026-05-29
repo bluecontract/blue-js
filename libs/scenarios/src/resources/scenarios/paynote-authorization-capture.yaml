@@ -12,7 +12,7 @@ participants:
     timelineId: alice
 contracts:
   lifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   aliceChannel:
     type:
       blueId: 84v6rvTN2CQq2c9FmViEc5rx3TSUaMLi6R4mHgqzoBkW
@@ -21,7 +21,7 @@ contracts:
     type: Coordination/Sequential Workflow
     channel: lifecycleChannel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: RequestAuthorization
         type: Coordination/Compute

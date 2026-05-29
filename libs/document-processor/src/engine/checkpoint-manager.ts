@@ -10,8 +10,7 @@ import type { ContractBundle } from './contract-bundle.js';
 import type { ChannelEventCheckpoint, MarkerContract } from '../model/index.js';
 import { blueIds } from '../repository/semantic-repository.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
-  blueIds['Core/Channel Event Checkpoint'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 
 function createEmptyCheckpointNode(blue: Blue): BlueNode {
   return blue.jsonValueToNode({

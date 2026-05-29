@@ -204,9 +204,147 @@ type: Orders/Order
                   typeBlueId: BYTxUuUHnyYFn2N142URWyDxviFWNwKwjRKwYrqNiifd
                   attributesAdded: []
       repositoryVersions:
-        - 5MRUsqxSAwbXGnhm6P52sZHcVXubGd3UFwhxojiZqqe4
+        - GhDwwfRK1WKb6iBme31WUf4FECi6f83ni5MwnnRaPmtm
       "
     `);
+  });
+
+  it('canonicalizes legacy wrapped schema cardinality content before reuse', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'ListHolder.blue',
+      `
+name: List Holder
+entries:
+  type: List
+  itemType: Text
+  schema:
+    minItems: 0
+`,
+    );
+    writeType(
+      repoRoot,
+      'Core',
+      'UsesHolder.blue',
+      `
+name: Uses Holder
+holder:
+  type: Core/List Holder
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    const legacyDocument = yaml.load(initial.yaml) as {
+      packages: Array<{ name: string; types: Array<{ content: JsonMap }> }>;
+    };
+    const legacyListHolder = legacyDocument.packages
+      .find((p) => p.name === 'Core')
+      ?.types.find((t) => t.content.name === 'List Holder')?.content;
+    if (!legacyListHolder) {
+      throw new Error('Expected generated repository to contain List Holder.');
+    }
+    const legacyItems = legacyListHolder.entries as JsonMap;
+    const legacySchema = legacyItems.schema as JsonMap;
+    legacySchema.minItems = {
+      type: { blueId: PRIMITIVE_BLUE_IDS.Integer },
+      value: 0,
+    };
+    const legacyYaml = yaml.dump(legacyDocument);
+    expect(legacyYaml).toContain(`blueId: ${PRIMITIVE_BLUE_IDS.Integer}`);
+    persistRepository(repoRoot, legacyYaml);
+
+    const regenerated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    expect(regenerated.changed).toBe(true);
+    const listHolder = regenerated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'List Holder',
+      );
+    const initialListHolder = initial.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'List Holder',
+      );
+
+    expect(listHolder?.versions).toEqual(initialListHolder?.versions);
+    expect(
+      (
+        (
+          listHolder?.content as {
+            entries?: { schema?: { minItems?: unknown } };
+          }
+        ).entries?.schema ?? {}
+      ).minItems,
+    ).toBe(0);
+  });
+
+  it('canonicalizes legacy runtime BlueIds before stable comparisons', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'RuntimeChannel.blue',
+      `
+name: Runtime Channel
+type: Channel
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const legacyDocument = yaml.load(initial.yaml) as {
+      packages: Array<{ name: string; types: Array<{ content: JsonMap }> }>;
+    };
+    const legacyRuntimeChannel = legacyDocument.packages
+      .find((p) => p.name === 'Core')
+      ?.types.find((t) => t.content.name === 'Runtime Channel')?.content;
+    if (!legacyRuntimeChannel) {
+      throw new Error(
+        'Expected generated repository to contain Runtime Channel.',
+      );
+    }
+    legacyRuntimeChannel.type = {
+      blueId: 'DcoJyCh7XXxy1nR5xjy7qfkUgQ1GiZnKKSxh8DJusBSr',
+    };
+    persistRepository(repoRoot, yaml.dump(legacyDocument));
+
+    const regenerated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    const runtimeChannel = regenerated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Runtime Channel',
+      );
+    const initialRuntimeChannel = initial.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Runtime Channel',
+      );
+
+    expect(regenerated.changed).toBe(true);
+    expect(runtimeChannel?.versions).toEqual(initialRuntimeChannel?.versions);
+    expect(
+      (runtimeChannel?.content as { type?: { blueId?: string } }).type?.blueId,
+    ).toBe(PRIMITIVE_BLUE_IDS.Channel);
   });
 
   it('appends a version on non-breaking additions and bumps RepoBlueId', () => {
@@ -1495,6 +1633,41 @@ status:
     });
   });
 
+  it('accepts built-in runtime aliases without package qualification', () => {
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Contracts',
+      'TimelineChannel.blue',
+      `
+name: Timeline Channel
+type: Channel
+event:
+  type: Document Update
+`,
+    );
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const meta = result.document.packages
+      .find((p: BluePackage) => p.name === 'Contracts')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Timeline Channel',
+      );
+
+    expect(meta?.content).toEqual({
+      name: 'Timeline Channel',
+      type: { blueId: primitiveIds.Channel },
+      event: {
+        type: { blueId: primitiveIds['Document Update'] },
+      },
+    });
+  });
+
   it('substitutes type/keyType/valueType with BlueIds when computing hashes', () => {
     const repoRoot = createRepo();
     const primitiveIds = PRIMITIVE_BLUE_IDS;
@@ -1682,7 +1855,6 @@ score: 1.5
   });
 
   it('preserves expression values without conflicting with inherited list fields', () => {
-    const expression = '${steps.Prepare.changeset}';
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1734,8 +1906,7 @@ changeset: '\${steps.Prepare.changeset}'
 
     expect(applyStep?.versions.at(-1)?.typeBlueId).toBeDefined();
     expect(applyStepContent?.changeset).toEqual({
-      value: expression,
-      type: { blueId: PRIMITIVE_BLUE_IDS.Text },
+      $steps: 'Prepare.changeset',
     });
   });
 });

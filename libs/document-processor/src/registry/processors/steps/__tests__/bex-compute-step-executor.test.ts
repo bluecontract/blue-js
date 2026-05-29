@@ -52,7 +52,7 @@ function createComputeStep(specification: {
 describe('BexComputeStepExecutor', () => {
   const executor = new BexComputeStepExecutor();
 
-  it('is registered alongside the JavaScript Code compatibility step', () => {
+  it('is registered as the workflow compute step', () => {
     const supported = new Set(
       DEFAULT_STEP_EXECUTORS.flatMap((item) => item.supportedBlueIds),
     );
@@ -60,9 +60,6 @@ describe('BexComputeStepExecutor', () => {
     expect(supported.has(conversationBlueIds['Conversation/Compute'])).toBe(
       true,
     );
-    expect(
-      supported.has(conversationBlueIds['Conversation/JavaScript Code']),
-    ).toBe(true);
     expect(conversationBlueIds['Conversation/Compute Definition']).toMatch(
       /^[1-9A-HJ-NP-Za-km-z]+$/,
     );

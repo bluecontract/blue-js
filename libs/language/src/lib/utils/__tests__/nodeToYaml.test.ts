@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BlueNode, BigIntegerNumber } from '../../model';
 import { NodeToYaml } from '../NodeToYaml';
+import { INTEGER_TYPE_BLUE_ID } from '../Properties';
 
 describe('nodeToYaml', () => {
   it('preserves property insertion order from NodeToMapListOrValue', () => {
@@ -55,41 +56,41 @@ describe('nodeToYaml', () => {
       description: desc
       type:
         type:
-          blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         value: Text
       zeta:
         type:
-          blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         value: Z
       alpha:
         type:
-          blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         value: A
       list:
         items:
           - flag:
               type:
-                blueId: 4EzhSubEimSQD3zrYHRtobfPPWntUuhEz8YcdxHsi12u
+                blueId: AwvXD961fmnmqcSQhjMA7r15HpVh39cefb6ZTyUz2Fm2
               value: true
             count:
               type:
-                blueId: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1
+                blueId: E2LM6qgzWG9ttagq2xTmiZkgYEAgkYedFCmU9v7NnVEq
               value: 3
           - type:
-              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+              blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
             value: item2
       nested:
         beta:
           type:
-            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
           value: B
         aardvark:
           type:
-            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
           value: Aard
       numberProp:
         type:
-          blueId: 7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y
+          blueId: 9eWaHYz2vKrFofdHTHAizNNu8xP6QE3WQ5y7DGrGZvyJ
         value: 12.5
       "
     `);
@@ -99,41 +100,41 @@ describe('nodeToYaml', () => {
       description: desc
       type:
         type:
-          blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         value: Text
       alpha:
         type:
-          blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         value: A
       list:
         items:
           - type:
-              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+              blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
             value: item2
           - count:
               type:
-                blueId: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1
+                blueId: E2LM6qgzWG9ttagq2xTmiZkgYEAgkYedFCmU9v7NnVEq
               value: 3
             flag:
               type:
-                blueId: 4EzhSubEimSQD3zrYHRtobfPPWntUuhEz8YcdxHsi12u
+                blueId: AwvXD961fmnmqcSQhjMA7r15HpVh39cefb6ZTyUz2Fm2
               value: true
       zeta:
         type:
-          blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+          blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         value: Z
       nested:
         aardvark:
           type:
-            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
           value: Aard
         beta:
           type:
-            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
           value: B
       numberProp:
         type:
-          blueId: 7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y
+          blueId: 9eWaHYz2vKrFofdHTHAizNNu8xP6QE3WQ5y7DGrGZvyJ
         value: 12.5
       "
     `);
@@ -149,9 +150,7 @@ describe('nodeToYaml', () => {
 
     const yaml = NodeToYaml.get(node);
 
-    expect(yaml).toContain(
-      'blueId: 5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1',
-    );
+    expect(yaml).toContain(`blueId: ${INTEGER_TYPE_BLUE_ID}`);
     expect(yaml).toContain("value: '1234567890123456789012345678901234567890'");
   });
 
@@ -170,10 +169,10 @@ describe('nodeToYaml', () => {
     expect(NodeToYaml.get(node, { strategy: 'simple' })).toBe('abc\n');
     expect(NodeToYaml.get(node, { strategy: 'official' }))
       .toMatchInlineSnapshot(`
-      "type:
-        blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
-      value: abc
-      "
-    `);
+        "type:
+          blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
+        value: abc
+        "
+      `);
   });
 });

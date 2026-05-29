@@ -200,7 +200,7 @@ x:
     expect(result.nodes[1].get('/peer/blueId')).toBe('this#0');
   });
 
-  it('uses original index as the cyclic ordering tie-breaker', () => {
+  it('rejects duplicate preliminary cyclic inputs instead of tie-breaking them', () => {
     const doc = yamlBlueParse(`- peer:
     blueId: this#1
 - peer:
@@ -208,9 +208,9 @@ x:
 `);
     const blue = new Blue();
 
-    const result = blue.calculateBlueIdSync(doc!);
-
-    expect(result).toMatch(/^[1-9A-HJ-NP-Za-km-z]+$/);
+    expect(() => blue.calculateBlueIdSync(doc!)).toThrow(
+      /Duplicate preliminary cyclic BlueId input/,
+    );
   });
 
   it('rejects cyclic references outside the top-level document set', () => {

@@ -271,7 +271,7 @@ entries:
       support.yaml(
         support.operationWorkflowDocumentWithContracts(
           `  trig:
-    type: Core/Triggered Event Channel
+    type: Triggered Event Channel
   observer:
     type: Conversation/Sequential Workflow
     channel: trig
@@ -350,39 +350,42 @@ entries:
     );
   });
 
-  it('keeps literal and legacy expression paths working alongside BEX fields', async () => {
+  it('keeps literal paths working alongside BEX fields', async () => {
     const support = new ComputeWorkflowTestSupport();
     const document = await support.initializedOperationWorkflow(`    steps:
       - name: Prepare
-        type: Conversation/JavaScript Code
-        code: "return { value: 'legacy' };"
+        type: Conversation/Compute
+        expr:
+          preparedStatus: prepared
       - name: ApplyLiteral
         type: Conversation/Update Document
         changeset:
           - op: replace
             path: /status
             val: literal
-      - name: ApplyLegacy
+      - name: ApplyBex
         type: Conversation/Update Document
         changeset:
           - op: replace
             path: /status
-            val: "\${steps.Prepare.value}"
-      - name: EmitLegacy
+            val:
+              $steps: Prepare.preparedStatus
+      - name: EmitBex
         type: Conversation/Trigger Event
         event:
           type: Conversation/Event
-          kind: Existing Legacy
-          status: "\${document('/status')}"
+          kind: Existing BEX
+          status:
+            $document: /status
 `);
 
     const result = await support.processRun(document);
     const event = json<EventJson>(support.blue, onlyEvent(result));
 
-    expect(result.document.get('/status')).toBe('legacy');
+    expect(result.document.get('/status')).toBe('prepared');
     expect(event).toMatchObject({
-      kind: 'Existing Legacy',
-      status: 'legacy',
+      kind: 'Existing BEX',
+      status: 'prepared',
     });
   });
 

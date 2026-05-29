@@ -18,12 +18,12 @@ describe('TriggerEventStepExecutor (integration)', () => {
     const yaml = `name: Trigger Event Workflow
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   onInit:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: EmitWelcome
         type: Conversation/Trigger Event
@@ -49,14 +49,14 @@ contracts:
     const yaml = `name: Trigger Event produces and consumes triggered events
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   trig:
-    type: Core/Triggered Event Channel
+    type: Triggered Event Channel
   producer:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: EmitCompleted
         type: Conversation/Trigger Event
@@ -93,31 +93,34 @@ contracts:
     expect(message).toBe('Triggered via Triggered Event Channel');
   });
 
-  it('resolves expressions within Trigger Event payloads', async () => {
+  it('resolves BEX expressions within Trigger Event payloads', async () => {
     const processor = buildProcessor(blue);
 
     const yaml = `name: Trigger Event resolves expressions
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   onInit:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: PreparePayment
-        type: Conversation/JavaScript Code
-        code: |
-          return {
-            amount: 125,
-            description: 'Subscription renewal'
-          };
+        type: Conversation/Compute
+        expr:
+          amount: 125
+          description: Subscription renewal
       - name: EmitPayment
         type: Conversation/Trigger Event
         event:
           type: Conversation/Chat Message
-          message: \${steps.PreparePayment.description} for \${steps.PreparePayment.amount} USD`;
+          message:
+            $concat:
+              - $steps: PreparePayment.description
+              - " for "
+              - $steps: PreparePayment.amount
+              - " USD"`;
 
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));
@@ -131,25 +134,26 @@ contracts:
     expect(message).toBe('Subscription renewal for 125 USD');
   });
 
-  it('exposes currentContract for Trigger Event expressions', async () => {
+  it('exposes currentContract for Trigger Event BEX expressions', async () => {
     const processor = buildProcessor(blue);
 
     const yaml = `name: Trigger Event uses current contract
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   onInit:
     type: Conversation/Sequential Workflow
     channel: life
     description: Init workflow
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: EmitFromContract
         type: Conversation/Trigger Event
         event:
           type: Conversation/Chat Message
-          message: \${currentContract.description}`;
+          message:
+            $currentContract: /description`;
 
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));

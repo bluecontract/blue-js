@@ -14,7 +14,7 @@ contracts:
     type: Conversation/Timeline Channel
     timelineId: admin
   triggered:
-    type: Core/Triggered Event Channel
+    type: Triggered Event Channel
   onTimeline:
     type: Conversation/Sequential Workflow
     channel: timeline

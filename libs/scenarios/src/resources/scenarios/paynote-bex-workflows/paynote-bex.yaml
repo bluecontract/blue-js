@@ -1,5 +1,5 @@
 name: PayNote BEX Representative
-description: BEX representative for PayNote workflows that used JavaScript steps.
+description: BEX workflow for PayNote workflows.
 kind: PayNote
 currency: USD
 amount:
@@ -20,9 +20,9 @@ contracts:
     timelineId: guarantor
 
   initLifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
 
   initialize:
     type: Coordination/Sequential Workflow

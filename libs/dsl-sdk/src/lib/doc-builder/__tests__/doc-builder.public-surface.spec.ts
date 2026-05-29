@@ -14,7 +14,7 @@ describe('DocBuilder public surface', () => {
 
   it('contract helper inserts explicit contracts and keeps the builder editable', () => {
     const builder = DocBuilder.doc().name('Editable').contract('auditChannel', {
-      type: 'Core/Channel',
+      type: 'Channel',
       description: 'Audit trail',
     });
 
@@ -25,7 +25,7 @@ describe('DocBuilder public surface', () => {
       name: 'Editable',
       contracts: {
         auditChannel: {
-          type: 'Core/Channel',
+          type: 'Channel',
           description: 'Audit trail',
         },
       },
@@ -39,20 +39,20 @@ describe('DocBuilder public surface', () => {
     const json = DocBuilder.doc()
       .contracts({
         ownerChannel: {
-          type: 'Core/Channel',
+          type: 'Channel',
         },
         auditChannel: {
-          type: 'Core/Channel',
+          type: 'Channel',
         },
       })
       .buildJson();
 
     expect(json.contracts).toEqual({
       ownerChannel: {
-        type: 'Core/Channel',
+        type: 'Channel',
       },
       auditChannel: {
-        type: 'Core/Channel',
+        type: 'Channel',
       },
     });
   });

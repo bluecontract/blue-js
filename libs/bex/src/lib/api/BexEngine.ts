@@ -2507,6 +2507,11 @@ export class BexEngine {
       return Number.isInteger(index) && index >= 0 ? value[index] : undefined;
     }
     if (this.isObject(value)) {
+      const items = value.items;
+      const index = Number(key);
+      if (Array.isArray(items) && Number.isInteger(index) && index >= 0) {
+        return items[index];
+      }
       return value[key];
     }
     return undefined;

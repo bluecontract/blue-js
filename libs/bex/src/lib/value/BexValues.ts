@@ -52,6 +52,11 @@ export class BexValue {
       typeof this.value === 'object' &&
       this.value !== undefined
     ) {
+      const items = this.value.items;
+      const index = Number(key);
+      if (Array.isArray(items) && Number.isInteger(index) && index >= 0) {
+        return new BexValue(items[index]);
+      }
       return new BexValue(this.value[key]);
     }
     return BexValues.undefined();

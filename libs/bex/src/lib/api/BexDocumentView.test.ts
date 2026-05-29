@@ -1,5 +1,6 @@
 import { BlueNode } from '@blue-labs/language';
 import { describe, expect, it } from 'vitest';
+import { BexValues } from '../value/BexValues';
 import { BexEngine } from './BexEngine';
 import { BexExecutionContext } from './BexExecutionContext';
 import { BexProgramSource } from './BexProgramSource';
@@ -81,6 +82,24 @@ describe('BEX document views', () => {
         context,
       ).value.toSimple(),
     ).toBe('resolved');
+  });
+
+  it('reads numeric pointer segments through typed Blue list value containers', () => {
+    const changeset = new BlueNode()
+      .setItemType(new BlueNode().setReferenceBlueId('PatchEntry'))
+      .setItems([node({ path: '/counter' })]);
+    const event = new BlueNode().setProperties({ changeset });
+
+    const result = execute(
+      {
+        expr: { $event: '/changeset/0/path' },
+      },
+      BexExecutionContext.builder()
+        .event(BexValues.nodeValueSnapshot(event))
+        .build(),
+    );
+
+    expect(result.value.toSimple()).toBe('/counter');
   });
 });
 

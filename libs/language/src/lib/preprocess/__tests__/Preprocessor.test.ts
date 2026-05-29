@@ -8,6 +8,7 @@ import {
   INTEGER_TYPE_BLUE_ID,
   TEXT_TYPE_BLUE_ID,
   CORE_TYPE_NAME_TO_BLUE_ID_MAP,
+  DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP,
 } from '../../utils/Properties';
 import { yamlBlueParse } from '../../../utils';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
@@ -49,7 +50,9 @@ b:
     value: Integer
 c:
   type:
-    blueId: 84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH`;
+    blueId: 84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH
+d:
+  type: Channel`;
 
     const blue = new Blue();
     const node = blue.yamlToNode(doc);
@@ -63,11 +66,15 @@ c:
     expect(node.getProperties()?.['c']?.getType()?.getBlueId()).toBe(
       '84ZWw2aoqB6dWRM6N1qWwgcXGrjfeKexTNdWxxAEcECH',
     );
+    expect(node.getProperties()?.['d']?.getType()?.getBlueId()).toBe(
+      DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP.Channel,
+    );
 
     // Check that none are inline values
     expect(node.getProperties()?.['a']?.getType()?.isInlineValue()).toBe(false);
     expect(node.getProperties()?.['b']?.getType()?.isInlineValue()).toBe(false);
     expect(node.getProperties()?.['c']?.getType()?.isInlineValue()).toBe(false);
+    expect(node.getProperties()?.['d']?.getType()?.isInlineValue()).toBe(false);
   });
 
   it('testItemsAsBlueId - should preprocess items as BlueId', async () => {

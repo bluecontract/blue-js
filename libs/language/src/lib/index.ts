@@ -8,6 +8,8 @@ export * from './provider/SequentialNodeProvider';
 export * from './provider/UrlContentFetcher';
 export * from './provider/BasicNodeProvider';
 export * from './preprocess';
+export * from './repository/RepositoryContentCanonicalizer';
+export * from './repository/BuiltinRuntimeTypes';
 export * from './merge';
 export * from './types';
 export * from './snapshot';

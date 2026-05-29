@@ -1,7 +1,7 @@
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { BlueNode, NodeDeserializer } from '../model';
 import { NodeProvider } from '../NodeProvider';
-import { BlueIdCalculator } from '../utils';
+import { BlueIdCalculator } from '../utils/BlueIdCalculator';
 
 import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
 import TransformationBlueYaml from '../resources/transformation/Transformation.yaml?raw';

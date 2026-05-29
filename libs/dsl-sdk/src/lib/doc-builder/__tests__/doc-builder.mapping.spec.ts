@@ -51,7 +51,10 @@ contracts:
         changeset:
           - op: replace
             path: /counter
-            val: \${document('/counter') + event.message.request}
+            val:
+              $add:
+                - $document: /counter
+                - $event: /message/request
   counterOps:
     type: Conversation/Document Section
     title: Counter operations

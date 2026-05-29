@@ -1,5 +1,5 @@
 name: Document Session Bootstrap BEX
-description: BEX representative for MyOS Document Session Bootstrap JavaScript workflows.
+description: BEX workflow for MyOS Document Session Bootstrap.
 document:
   kind: Demo target document
 avatarUrl: https://example.invalid/avatar.png
@@ -36,12 +36,12 @@ contracts:
                 $event: /message/request
 
   triggeredEventsChannel:
-    type: Core/Triggered Event Channel
+    type: Triggered Event Channel
 
   lifecycle:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
 
   initHandler:
     type: Coordination/Sequential Workflow

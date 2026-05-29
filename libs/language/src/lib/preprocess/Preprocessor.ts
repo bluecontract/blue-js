@@ -18,7 +18,7 @@ import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
 import { BlueIdsMappingGenerator } from './utils/BlueIdsMappingGenerator';
 import { BlueIds } from '../utils/BlueIds';
 import {
-  CORE_TYPE_NAME_TO_BLUE_ID_MAP,
+  DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP,
   LIST_CONTROL_EMPTY,
 } from '../utils/Properties';
 export interface PreprocessorOptions {
@@ -37,7 +37,7 @@ export class Preprocessor {
    * change the bootstrap key used to reference the default transformation set.
    */
   public static readonly DEFAULT_BLUE_BLUE_ID =
-    'HUmHn47FBoVRQV9ng7hu4wUeVzaZidkWRm5QySSB25gy';
+    'EsyNgNY4ZZeCvWiGLQM52WPJ7HF5kz3DyCoxdDDaauc6';
 
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;
@@ -163,12 +163,13 @@ export class Preprocessor {
         reference.getReferenceBlueId(),
         `blue.imports.${alias}`,
       );
-      const coreBlueId =
-        CORE_TYPE_NAME_TO_BLUE_ID_MAP[
-          alias as keyof typeof CORE_TYPE_NAME_TO_BLUE_ID_MAP
-        ];
-      if (coreBlueId !== undefined && coreBlueId !== blueId) {
-        throw new Error(`blue.imports cannot redefine core alias "${alias}".`);
+      const defaultBlueId = (
+        DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP as Record<string, string>
+      )[alias];
+      if (defaultBlueId !== undefined && defaultBlueId !== blueId) {
+        throw new Error(
+          `blue.imports cannot redefine default Blue alias "${alias}".`,
+        );
       }
       mappings.set(alias, blueId);
     }

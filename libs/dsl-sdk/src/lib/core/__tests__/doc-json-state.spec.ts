@@ -179,11 +179,11 @@ describe('core/DocJsonState', () => {
   });
 
   it('normalizes expressions', () => {
-    expect(ensureExpression("document('/counter') + 1")).toBe(
-      "${document('/counter') + 1}",
-    );
-    expect(ensureExpression("${document('/counter') + 1}")).toBe(
-      "${document('/counter') + 1}",
+    expect(ensureExpression("document('/counter') + 1")).toEqual({
+      $add: [{ $document: '/counter' }, 1],
+    });
+    expect(() => ensureExpression("${document('/counter') + 1}")).toThrow(
+      /Unsupported BEX expression shorthand/,
     );
   });
 

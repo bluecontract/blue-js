@@ -38,18 +38,18 @@ x:
   name: Sample Sub Doc
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /a
       propertyValue: 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /x
 `;
@@ -75,7 +75,7 @@ contracts:
     expect(result.triggeredEvents).toHaveLength(1);
     const lifecycleEvent = result.triggeredEvents[0]!;
     expect(stringProperty(lifecycleEvent, 'type')).toBe(
-      'Core/Document Processing Initiated',
+      'Document Processing Initiated',
     );
     expect(stringProperty(lifecycleEvent, 'documentId')).toBe(rootId);
   });
@@ -89,26 +89,26 @@ x:
   name: Sample Sub Doc
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /a
       propertyValue: 1
 contracts:
   rootLife:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /x
   setRootY:
     channel: rootLife
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     type:
       blueId: SetProperty
     propertyKey: /y
@@ -124,7 +124,7 @@ contracts:
     order: 1
     channel: rootLife
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     type:
       blueId: SetProperty
     propertyKey: /x/b
@@ -150,29 +150,29 @@ x:
     name: Y Doc
     contracts:
       life:
-        type: Core/Lifecycle Event Channel
+        type: Lifecycle Event Channel
       setY:
         channel: life
         event:
-          type: Core/Document Processing Initiated
+          type: Document Processing Initiated
         type:
           blueId: SetProperty
         propertyKey: /a
         propertyValue: 1
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     embedded:
-      type: Core/Process Embedded
+      type: Process Embedded
       paths:
         - /y
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /x
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
 `;
 
     const nested = await expectOk(
@@ -195,7 +195,7 @@ contracts:
     const rootViolationYaml = `${nestedYaml}  setDeep:
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     type:
       blueId: SetProperty
     propertyKey: /x/y/a
@@ -216,38 +216,38 @@ x:
     name: Y Doc
     contracts:
       life:
-        type: Core/Lifecycle Event Channel
+        type: Lifecycle Event Channel
       setY:
         channel: life
         event:
-          type: Core/Document Processing Initiated
+          type: Document Processing Initiated
         type:
           blueId: SetProperty
         propertyKey: /a
         propertyValue: 1
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     embedded:
-      type: Core/Process Embedded
+      type: Process Embedded
       paths:
         - /y
     setIllegalFromX:
       channel: life
       order: 1
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /y/a
       propertyValue: 2
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /x
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
 `;
 
     const parentViolation = await expectOk(
@@ -272,11 +272,11 @@ a:
   name: Doc A
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /x
@@ -285,11 +285,11 @@ b:
   name: Doc B
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /x
@@ -298,30 +298,30 @@ c:
   name: Doc C
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     setX:
       channel: life
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       type:
         blueId: SetProperty
       propertyKey: /x
       propertyValue: 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /a
       - /b
   updateA:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /a/x
   handleA:
     channel: updateA
     type:
       blueId: MutateEmbeddedPaths
   updateB:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /b/x
   flagB:
     channel: updateB
@@ -330,7 +330,7 @@ contracts:
     propertyKey: /mustNotHappen
     propertyValue: 1
   updateC:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /c/x
   flagC:
     channel: updateC
@@ -396,19 +396,19 @@ c:
       propertyValue: 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /a
       - /b
   updateA:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /a/x
   mutatePaths:
     channel: updateA
     type:
       blueId: MutateEmbeddedPaths
   updateB:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /b/x
   flagB:
     channel: updateB
@@ -417,7 +417,7 @@ contracts:
     propertyKey: /mustNotHappen
     propertyValue: 1
   updateC:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /c/x
   flagC:
     channel: updateC
@@ -482,11 +482,11 @@ contracts:
       postPatchValue: 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /child
   embeddedBridge:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /child
   bridgePre:
     channel: embeddedBridge
@@ -503,7 +503,7 @@ contracts:
     propertyKey: /postSeen
     propertyValue: 1
   childUpdates:
-    type: Core/Document Update Channel
+    type: Document Update Channel
     path: /child
   cutChild:
     channel: childUpdates
@@ -541,11 +541,11 @@ y:
   name: Y Doc
 contracts:
   embeddedPrimary:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /x
   embeddedSecondary:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /y
 `;

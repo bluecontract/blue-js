@@ -1,5 +1,5 @@
 name: Single Document Permission Grant To Account BEX
-description: BEX representative for MyOS Single Document Permission Grant To Account JavaScript workflows.
+description: BEX workflow for MyOS Single Document Permission Grant To Account.
 targetSessionId: target-session-a
 granterDocumentSessionId: ''
 permissions:
@@ -26,9 +26,9 @@ contracts:
       - granteeChannel
 
   initLifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
 
   revoke:
     type: Coordination/Operation

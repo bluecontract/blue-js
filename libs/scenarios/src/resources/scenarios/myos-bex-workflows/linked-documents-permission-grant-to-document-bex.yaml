@@ -1,5 +1,5 @@
 name: Linked Documents Permission Grant To Document BEX
-description: BEX representative for MyOS Linked Documents Permission Grant To Document JavaScript workflows.
+description: BEX workflow for MyOS Linked Documents Permission Grant To Document.
 targetSessionId: base-session-a
 granteeDocumentId: grantee-document-blue-id
 granterDocumentSessionId: ''
@@ -18,9 +18,9 @@ contracts:
     accountId: granter-account
 
   initLifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
 
   revoke:
     type: Coordination/Operation

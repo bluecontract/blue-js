@@ -319,7 +319,7 @@ describe('CompositeTimelineChannelProcessor', () => {
   it('exposes composite source channel key to JS workflow steps', async () => {
     const processor = buildProcessor(blue, new TestEventChannelProcessor());
 
-    const yaml = `name: Composite JS Workflow Doc
+    const yaml = `name: Composite BEX Workflow Doc
 contracts:
   childA:
     type:
@@ -337,34 +337,27 @@ contracts:
     channel: compositeChannel
     steps:
       - name: Branch
-        type: Conversation/JavaScript Code
-        code: |
-          const raw = event.meta?.compositeSourceChannelKey;
-
-          if (raw === 'childA') {
-            return {
-              events: [
-                {
-                  type: "Conversation/Chat Message",
-                  message: "from childA"
-                }
-              ]
-            };
-          }
-          if (raw === 'childB') {
-            return {
-              events: [
-                {
-                  type: "Conversation/Chat Message",
-                  message: "from childB"
-                }
-              ]
-            };
-          }
-
-          return {
-            events: []
-          };
+        type: Conversation/Compute
+        do:
+          - $if:
+              cond:
+                $eq:
+                  - $event: /meta/compositeSourceChannelKey
+                  - childA
+              then:
+                - $appendEvent:
+                    type: Conversation/Chat Message
+                    message: from childA
+          - $if:
+              cond:
+                $eq:
+                  - $event: /meta/compositeSourceChannelKey
+                  - childB
+              then:
+                - $appendEvent:
+                    type: Conversation/Chat Message
+                    message: from childB
+        returnResult: false
 `;
 
     const initialized = (

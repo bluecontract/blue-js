@@ -98,7 +98,7 @@ describe('blue-scenarios parity', () => {
         runtime,
         change.current.document.getAsNode('/contracts/changedSection'),
       ),
-    ).toBe('Coordination/Document Section');
+    ).toBe('Workflows/Document Section');
 
     const propose = await startResource(
       runtime,
@@ -1406,7 +1406,7 @@ function changeRequest(
 }
 
 function markerContract(markerValue: string): BlueNode {
-  return eventNode('Coordination/Document Section', {
+  return eventNode('Workflows/Document Section', {
     kind: text('workflow proof marker'),
     marker: text(markerValue),
   });

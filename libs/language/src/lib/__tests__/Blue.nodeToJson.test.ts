@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Blue } from '../Blue';
 import { BlueNode } from '../model';
+import { TEXT_TYPE_BLUE_ID } from '../utils/Properties';
 
 describe('Blue.nodeToJson', () => {
   it('preserves materialized blueId plus payload by default', () => {
@@ -12,7 +13,7 @@ describe('Blue.nodeToJson', () => {
 
     expect(blue.nodeToJson(node)).toEqual({
       name: 'Materialized',
-      type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
+      type: { blueId: TEXT_TYPE_BLUE_ID },
       value: 'payload',
       blueId: 'MaterializedId',
     });
@@ -37,7 +38,7 @@ describe('Blue.nodeToJson', () => {
 
     expect(blue.nodeToJson(node, { format: 'official' })).toEqual({
       name: 'Materialized',
-      type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
+      type: { blueId: TEXT_TYPE_BLUE_ID },
       value: 'payload',
       blueId: 'MaterializedId',
     });

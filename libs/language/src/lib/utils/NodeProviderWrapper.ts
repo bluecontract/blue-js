@@ -2,7 +2,14 @@ import { NodeProvider } from '../NodeProvider';
 import { SequentialNodeProvider } from '../provider/SequentialNodeProvider';
 import { BootstrapProvider } from '../provider/BootstrapProvider';
 import { VerifyingNodeProvider } from '../provider/VerifyingNodeProvider';
-import { RepositoryBasedNodeProvider } from '../provider/RepositoryBasedNodeProvider';
+
+export const REPOSITORY_BASED_NODE_PROVIDER = Symbol.for(
+  'blue.repositoryBasedNodeProvider',
+);
+
+interface RepositoryBasedNodeProviderMarker extends NodeProvider {
+  [REPOSITORY_BASED_NODE_PROVIDER]?: true;
+}
 
 /**
  * Utility to wrap a NodeProvider with a SequentialNodeProvider that includes bootstrap providers
@@ -41,7 +48,11 @@ export class NodeProviderWrapper {
     if (provider instanceof UnverifiedNodeProvider) {
       return true;
     }
-    if (provider instanceof RepositoryBasedNodeProvider) {
+    if (
+      (provider as RepositoryBasedNodeProviderMarker)[
+        REPOSITORY_BASED_NODE_PROVIDER
+      ] === true
+    ) {
       return true;
     }
     return (

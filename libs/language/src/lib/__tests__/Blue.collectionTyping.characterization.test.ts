@@ -13,20 +13,27 @@ function inspectRoundTrip(blue: Blue, value: unknown) {
   // showed up exactly on that boundary, so the test keeps both checkpoints:
   // 1. whether the freshly resolved node is type-of its own type
   // 2. whether the same still holds after the simple JSON round-trip
-  const resolved = blue.resolve(blue.jsonValueToNode(value));
-  const resolvedType = resolved.getType();
-  const simple = blue.nodeToJson(resolved, 'simple');
-  const roundTripped = blue.jsonValueToNodeUnchecked(simple);
-  const roundTrippedType = roundTripped.getType?.();
+  try {
+    const resolved = blue.resolve(blue.jsonValueToNode(value));
+    const resolvedType = resolved.getType();
+    const simple = blue.nodeToJson(resolved, 'simple');
+    const roundTripped = blue.jsonValueToNodeUnchecked(simple);
+    const roundTrippedType = roundTripped.getType?.();
 
-  return {
-    resolvedSelfTypeOf: resolvedType
-      ? blue.isTypeOfNode(resolved, resolvedType)
-      : null,
-    roundTrippedSelfTypeOf: roundTrippedType
-      ? blue.isTypeOfNode(roundTripped, roundTrippedType)
-      : null,
-  };
+    return {
+      resolvedSelfTypeOf: resolvedType
+        ? blue.isTypeOfNode(resolved, resolvedType)
+        : null,
+      roundTrippedSelfTypeOf: roundTrippedType
+        ? blue.isTypeOfNode(roundTripped, roundTrippedType)
+        : null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Round-trip failed for ${JSON.stringify(value)}: ${message}`,
+    );
+  }
 }
 
 describe('collection-backed Blue repository type characterization', () => {
@@ -53,12 +60,12 @@ describe('collection-backed Blue repository type characterization', () => {
         inResponseTo: {
           requestId: 'req-op',
           incomingEvent: {
-            type: 'Conversation/Request',
+            type: 'Coordination/Request',
           },
         },
         events: [
           {
-            type: 'Conversation/Response',
+            type: 'Coordination/Response',
             result: 'ok',
           },
         ],
@@ -90,7 +97,7 @@ describe('collection-backed Blue repository type characterization', () => {
 
     expect(
       inspectRoundTrip(blue, {
-        type: 'Conversation/Change Request',
+        type: 'Workflows/Change Request',
         changeset: [
           {
             op: 'replace',
@@ -182,10 +189,10 @@ describe('collection-backed Blue repository type characterization', () => {
 
     expect(
       inspectRoundTrip(blue, {
-        type: 'Conversation/Change Request',
+        type: 'Workflows/Change Request',
         changeset: [
           {
-            type: 'Core/Json Patch Entry',
+            type: 'Json Patch Entry',
             op: 'replace',
             path: '/title',
             val: 'Updated',

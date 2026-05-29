@@ -1,5 +1,5 @@
 name: MyOS Admin Base BEX
-description: BEX representative for MyOS Admin Base JavaScript event relay.
+description: BEX workflow for MyOS Admin Base event relay.
 contracts:
   myOsAdminChannel:
     type: MyOS/MyOS Timeline Channel

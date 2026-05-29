@@ -22,7 +22,7 @@ captureRequested: false
 captured: false
 contracts:
   lifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   investorChannel:
     type: Coordination/Timeline Channel
     timelineId: investor
@@ -33,7 +33,7 @@ contracts:
     type: Coordination/Sequential Workflow
     channel: lifecycleChannel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: RequestAuthorization
         type: Coordination/Compute
@@ -175,13 +175,13 @@ contracts:
               events:
                 $events: true
   processEmbeddedOrders:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths: []
   embeddedHotelOrderEvents:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /embeddedDocs/orders/hotelOrder
   embeddedRestaurantOrderEvents:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /embeddedDocs/orders/restaurantOrder
   hotelOrderConfirmed:
     type: Coordination/Sequential Workflow

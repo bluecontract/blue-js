@@ -261,6 +261,9 @@ export class SemanticIdentityService {
 
   private toMinimalListIdentityInput(items: BlueNode[]): BlueNode[] {
     StorageShapeValidator.validateListControlShape(items);
+    if (items[0] !== undefined && ListControls.isPreviousItem(items[0])) {
+      return items.map((item) => item.clone());
+    }
     const wrapper = new BlueNode().setItems(items);
     const minimalWrapper = this.minimizeAuthoring(wrapper);
     return minimalWrapper.getItems() ?? [];

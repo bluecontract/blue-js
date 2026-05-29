@@ -19,6 +19,22 @@ export interface MergingProcessor {
   ): BlueNode;
 
   /**
+   * Returns a replacement node when the source must be preserved before normal
+   * merge processors run.
+   */
+  preserveSource?(
+    target: BlueNode,
+    source: BlueNode,
+    nodeProvider: NodeProvider,
+  ): BlueNode | undefined;
+
+  /**
+   * Returns true when the processor has fully handled the source node and
+   * the merger should not recursively merge source children/properties.
+   */
+  shouldPreserveSource?(source: BlueNode, nodeProvider: NodeProvider): boolean;
+
+  /**
    * Post-processes the merge operation between target and source nodes
    * Default implementation does nothing
    * @param target - The target node that was merged into

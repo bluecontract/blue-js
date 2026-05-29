@@ -89,7 +89,7 @@ export class PayNoteActionBuilder {
     this.parent.onInit(`${this.mode}RequestOnInit`, (steps) =>
       steps.triggerEvent('Request', {
         type: eventType(this.mode, 'request'),
-        amount: "${document('/amount/total')}",
+        amount: DocBuilder.expr("document('/amount/total')"),
       }),
     );
     return this;
@@ -152,7 +152,7 @@ export class PayNoteActionBuilder {
       description,
       {
         type: eventType(this.mode, 'request'),
-        amount: "${document('/amount/total')}",
+        amount: DocBuilder.expr("document('/amount/total')"),
       },
       customizer,
     );
@@ -176,7 +176,7 @@ export class PayNoteActionBuilder {
       (steps) =>
         steps.triggerEvent('Request', {
           type: eventType(this.mode, 'request'),
-          amount: "${document('/amount/total')}",
+          amount: DocBuilder.expr("document('/amount/total')"),
         }),
     );
     return this;
@@ -190,7 +190,7 @@ export class PayNoteActionBuilder {
       (steps) =>
         steps.triggerEvent('Request', {
           type: eventType(this.mode, 'request'),
-          amount: "${document('/amount/total')}",
+          amount: DocBuilder.expr("document('/amount/total')"),
         }),
     );
     return this;

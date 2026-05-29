@@ -41,6 +41,7 @@ import { RepositoryRegistry } from './repository/RepositoryRuntime';
 import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
 import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
 import { SemanticIdentityService } from './identity/SemanticIdentityService';
+import { BUILTIN_RUNTIME_TYPES_REPOSITORY } from './repository/BuiltinRuntimeTypes';
 import {
   BlueContext,
   NodeToJsonFormat,
@@ -77,10 +78,12 @@ export class Blue {
       repositories,
       mergingProcessor,
     } = options;
+    const effectiveRepositories =
+      this.includeBuiltinRuntimeTypesRepository(repositories);
 
     // Store repositories for later use in setNodeProvider
-    this.repositories = repositories;
-    this.repositoryRegistry = new RepositoryRegistry(repositories ?? []);
+    this.repositories = effectiveRepositories;
+    this.repositoryRegistry = new RepositoryRegistry(effectiveRepositories);
     this.blueContextResolver = new BlueContextResolver({
       registry: this.repositoryRegistry,
       blueIdMapper: this.repositoryRegistry,
@@ -90,7 +93,7 @@ export class Blue {
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = this.wrapNodeProviderWithRepositories(
       nodeProvider || defaultProvider,
-      repositories,
+      effectiveRepositories,
     );
 
     this.typeSchemaResolver =
@@ -499,6 +502,22 @@ export class Blue {
     return this.urlContentFetcher.isFetchingEnabled();
   }
 
+  private includeBuiltinRuntimeTypesRepository(
+    repositories: BlueRepository[] | undefined,
+  ): BlueRepository[] {
+    const suppliedRepositories = repositories ?? [];
+    if (
+      suppliedRepositories.some(
+        (repository) =>
+          repository.name === BUILTIN_RUNTIME_TYPES_REPOSITORY.name,
+      )
+    ) {
+      return suppliedRepositories;
+    }
+
+    return [BUILTIN_RUNTIME_TYPES_REPOSITORY, ...suppliedRepositories];
+  }
+
   public getPreprocessingAliases(): Map<string, string> {
     return this.blueDirectivePreprocessor.getPreprocessingAliases();
   }
@@ -640,14 +659,12 @@ export class Blue {
     repositories?: BlueRepository[],
   ): NodeProvider {
     if (repositories && repositories.length > 0) {
-      return NodeProviderWrapper.wrap(
-        new SequentialNodeProvider([
-          new RepositoryBasedNodeProvider(repositories, {
-            mergingProcessor: this.mergingProcessor,
-          }),
-          nodeProvider,
-        ]),
-      );
+      return new SequentialNodeProvider([
+        new RepositoryBasedNodeProvider(repositories, {
+          mergingProcessor: this.mergingProcessor,
+        }),
+        NodeProviderWrapper.wrap(nodeProvider),
+      ]);
     }
 
     return NodeProviderWrapper.wrap(nodeProvider);

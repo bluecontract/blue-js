@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { contractBaseSchema } from './contract-base.js';
-import { ChannelSchema as CoreChannelSchema } from '@blue-repository/types/packages/core/schemas/Channel';
+import { ChannelSchema as CoreChannelSchema } from './core-runtime-schemas.js';
 import { blueNodeField } from '@blue-labs/language';
 
 export const channelContractBaseSchema = CoreChannelSchema.merge(

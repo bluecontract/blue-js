@@ -42,8 +42,8 @@ function lifecycleBundle(): ContractBundle {
     .addChannel(
       'lifecycle',
       { order: 0 } as LifecycleChannel,
-      blueIds['Core/Lifecycle Event Channel'],
-      channelNode(blueIds['Core/Lifecycle Event Channel']),
+      blueIds['Lifecycle Event Channel'],
+      channelNode(blueIds['Lifecycle Event Channel']),
     )
     .build();
 }
@@ -311,10 +311,7 @@ describe('ScopeExecutor', () => {
     const { blue: derivedBlue } = createDerivedBlue([
       {
         name: derivedName,
-        yaml: derivedTypeYaml(
-          derivedName,
-          blueIds['Core/Document Update Channel'],
-        ),
+        yaml: derivedTypeYaml(derivedName, blueIds['Document Update Channel']),
       },
     ]);
 
@@ -344,10 +341,7 @@ contracts:
     const { blue: derivedBlue } = createDerivedBlue([
       {
         name: derivedName,
-        yaml: derivedTypeYaml(
-          derivedName,
-          blueIds['Core/Lifecycle Event Channel'],
-        ),
+        yaml: derivedTypeYaml(derivedName, blueIds['Lifecycle Event Channel']),
       },
     ]);
 
@@ -379,10 +373,7 @@ contracts:
     const { blue: derivedBlue } = createDerivedBlue([
       {
         name: derivedName,
-        yaml: derivedTypeYaml(
-          derivedName,
-          blueIds['Core/Document Update Channel'],
-        ),
+        yaml: derivedTypeYaml(derivedName, blueIds['Document Update Channel']),
       },
     ]);
 

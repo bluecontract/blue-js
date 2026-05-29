@@ -35,11 +35,12 @@ describe('editing pipeline public surface', () => {
       .description('Decrement')
       .requestType('Integer')
       .steps((steps) =>
-        steps.replaceExpression(
-          'ApplyDecrement',
-          '/counter',
-          "document('/counter') - event.message.request",
-        ),
+        steps.replaceValue('ApplyDecrement', '/counter', {
+          $subtract: [
+            { $document: '/counter' },
+            { $event: '/message/request' },
+          ],
+        }),
       )
       .done()
       .buildDocument();

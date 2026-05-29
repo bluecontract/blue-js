@@ -5,7 +5,6 @@ import {
   type UpdateDocument,
 } from '@blue-repository/types/packages/coordination/schemas/UpdateDocument';
 
-import { QuickJSEvaluator } from '../../../util/expression/quickjs-evaluator.js';
 import type { JsonPatch } from '../../../model/shared/json-patch.js';
 import { conversationBlueIds } from '../../../repository/semantic-repository.js';
 import type { ContractProcessorContext } from '../../types.js';
@@ -13,11 +12,6 @@ import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
 } from '../workflow/step-runner.js';
-import { createQuickJSStepBindings } from './quickjs-step-bindings.js';
-import {
-  resolveNodeExpressions,
-  createPicomatchShouldResolve,
-} from '../../../util/expression/quickjs-expression-utils.js';
 import { BexFieldEvaluator } from './bex-field-evaluator.js';
 
 type JsonPatchOperation = 'ADD' | 'REPLACE' | 'REMOVE';
@@ -29,7 +23,6 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
     conversationBlueIds['Conversation/Update Document'],
   ] as const;
 
-  private readonly evaluator = new QuickJSEvaluator();
   private readonly bexEvaluator: BexFieldEvaluator;
 
   constructor(bexEngine?: BexEngine) {
@@ -49,15 +42,7 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
       return context.throwFatal('Update Document step payload is invalid');
     }
 
-    let resolvedStepNode = await resolveNodeExpressions({
-      evaluator: this.evaluator,
-      node: stepNode,
-      bindings: createQuickJSStepBindings(args),
-      shouldResolve: createPicomatchShouldResolve({
-        include: ['/changeset', '/changeset/**'],
-      }),
-      context,
-    });
+    let resolvedStepNode = stepNode;
     const changesetNode = resolvedStepNode.getProperties()?.changeset;
     if (
       changesetNode !== undefined &&

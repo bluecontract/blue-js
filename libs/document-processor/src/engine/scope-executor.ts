@@ -31,14 +31,14 @@ import { IllegalStateException } from './illegal-state-exception.js';
 import { BoundaryViolationException } from './boundary-violation-exception.js';
 import { blueIds } from '../repository/semantic-repository.js';
 
-const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
-const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];
-const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Triggered Event Channel'];
-const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Lifecycle Event Channel'];
+const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Document Update Channel'];
+const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Embedded Node Channel'];
+const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Triggered Event Channel'];
+const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Lifecycle Event Channel'];
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Initialized Marker'];
+  blueIds['Processing Initialized Marker'];
 const DOCUMENT_PROCESSING_INITIATED_BLUE_ID =
-  blueIds['Core/Document Processing Initiated'];
+  blueIds['Document Processing Initiated'];
 
 export interface ProcessorContext {
   resolvePointer(relativePointer: string): string;
@@ -697,7 +697,7 @@ export class ScopeExecutor {
     return new BlueNode()
       .setType(new BlueNode().setBlueId(DOCUMENT_PROCESSING_INITIATED_BLUE_ID))
       .setProperties({
-        type: new BlueNode().setValue('Core/Document Processing Initiated'),
+        type: new BlueNode().setValue('Document Processing Initiated'),
         documentId: new BlueNode().setValue(documentId),
       });
   }

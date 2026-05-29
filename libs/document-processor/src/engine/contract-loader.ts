@@ -43,17 +43,16 @@ import {
   myosBlueIds,
 } from '../repository/semantic-repository.js';
 
-const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
-const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];
-const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Lifecycle Event Channel'];
-const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Triggered Event Channel'];
-const PROCESS_EMBEDDED_BLUE_ID = blueIds['Core/Process Embedded'];
+const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Document Update Channel'];
+const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Embedded Node Channel'];
+const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Lifecycle Event Channel'];
+const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Triggered Event Channel'];
+const PROCESS_EMBEDDED_BLUE_ID = blueIds['Process Embedded'];
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Initialized Marker'];
+  blueIds['Processing Initialized Marker'];
 const PROCESSING_TERMINATED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Terminated Marker'];
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
-  blueIds['Core/Channel Event Checkpoint'];
+  blueIds['Processing Terminated Marker'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 const DOCUMENT_ANCHORS_BLUE_ID = myosBlueIds['MyOS/Document Anchors'];
 const DOCUMENT_LINKS_BLUE_ID = myosBlueIds['MyOS/Document Links'];
 const MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID =

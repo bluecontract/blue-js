@@ -5,6 +5,7 @@ import { JsonBlueValue } from '../../schema';
 import { BlueRepository } from '../types/BlueRepository';
 import type { MergingProcessor } from '../merge/MergingProcessor';
 import { canonicalizeRepositoryContent } from '../repository/RepositoryContentCanonicalizer';
+import { REPOSITORY_BASED_NODE_PROVIDER } from '../utils/NodeProviderWrapper';
 
 interface IndexedRepositoryContent {
   index: number;
@@ -16,6 +17,8 @@ interface IndexedRepositoryContent {
  * Similar to Java's ClasspathBasedNodeProvider but for repository content.
  */
 export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
+  public readonly [REPOSITORY_BASED_NODE_PROVIDER] = true;
+
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
   private aliasBlueIdMap: Map<string, string> = new Map();
