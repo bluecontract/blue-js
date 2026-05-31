@@ -1,6 +1,10 @@
 import { BlueNode } from '../model';
 import { NodeProvider } from '../NodeProvider';
-import { BlueError, BlueErrorCode } from '../errors/BlueError';
+import {
+  BlueError,
+  BlueErrorCode,
+  BlueLanguageErrorCategory,
+} from '../errors/BlueError';
 import { SemanticStorageService } from '../identity/SemanticStorageService';
 import { CyclicSetIdentityService } from '../identity/CyclicSetIdentityService';
 
@@ -90,6 +94,8 @@ export class InMemoryNodeProvider extends NodeProvider {
       throw new BlueError(
         BlueErrorCode.BLUE_ID_MISMATCH,
         `Provided BlueId '${blueId}' does not match computed BlueId '${computedBlueId}'.`,
+        undefined,
+        BlueLanguageErrorCategory.ProviderBlueIdMismatch,
       );
     }
     this.blueIdToNodesMap.set(blueId, [prepared.node]);

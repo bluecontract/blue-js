@@ -1,5 +1,6 @@
 import { BlueNode, type Blue } from '@blue-labs/language';
 
+import { safeIsTypeOfBlueId } from '../util/schema-match.js';
 import {
   AnyContractProcessor,
   ChannelProcessor,
@@ -169,7 +170,7 @@ export class ContractProcessorRegistry {
   ): { blueId: string; value: T } | null {
     const matches: Array<{ blueId: string; value: T; baseNode: BlueNode }> = [];
     for (const [blueId, value] of entries) {
-      if (!blue.isTypeOfBlueId(node, blueId)) {
+      if (!safeIsTypeOfBlueId(blue, node, blueId)) {
         continue;
       }
       matches.push({
@@ -190,7 +191,7 @@ export class ContractProcessorRegistry {
       matches.every(
         (other) =>
           candidate === other ||
-          blue.isTypeOfBlueId(candidate.baseNode, other.blueId),
+          safeIsTypeOfBlueId(blue, candidate.baseNode, other.blueId),
       ),
     );
     const selected = best ?? matches[0];

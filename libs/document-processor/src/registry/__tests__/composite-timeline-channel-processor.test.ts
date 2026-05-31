@@ -219,7 +219,6 @@ describe('CompositeTimelineChannelProcessor', () => {
         [compositeCheckpointKey(compositeKey, 'childA')]: testEvent(10),
         [compositeCheckpointKey(compositeKey, 'childB')]: testEvent(10),
       },
-      lastSignatures: {},
     };
     const markers = new Map<string, MarkerContract>([
       [KEY_CHECKPOINT, checkpoint],
@@ -282,7 +281,6 @@ describe('CompositeTimelineChannelProcessor', () => {
         [compositeCheckpointKey('innerComposite', 'childA')]: testEvent(10),
         [compositeCheckpointKey('innerComposite', 'childB')]: testEvent(10),
       },
-      lastSignatures: {},
     };
     const markers = new Map<string, MarkerContract>([
       [KEY_CHECKPOINT, checkpoint],

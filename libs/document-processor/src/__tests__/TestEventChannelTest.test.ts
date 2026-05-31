@@ -23,12 +23,6 @@ function checkpointValue(
   const contracts = property(document, 'contracts');
   const checkpoint = propertyOptional(contracts, 'checkpoint');
   if (!checkpoint) return null;
-  const signatures = checkpoint.getProperties()?.lastSignatures;
-  if (signatures) {
-    const entry = signatures.getProperties()?.testEventsChannel;
-    const value = entry?.getValue();
-    return value != null ? String(value) : null;
-  }
   const lastEvents = checkpoint.getProperties()?.lastEvents;
   const eventNode = lastEvents?.getProperties()?.testEventsChannel ?? null;
   const eventIdNode = eventNode?.getProperties()?.eventId ?? null;

@@ -4,6 +4,14 @@ import { PatchEngine, type PatchResult } from './patch-engine.js';
 import { EmissionRegistry } from './emission-registry.js';
 import { GasMeter } from './gas-meter.js';
 import { ScopeRuntimeContext } from './scope-runtime-context.js';
+import {
+  nodeAt,
+  TypeGeneralizationPlanner,
+} from '../engine/generalization/type-generalization-planner.js';
+import {
+  BlueNodeTypeGraphProvider,
+  type TypeGraphProvider,
+} from '../engine/generalization/type-graph-provider.js';
 
 export type DocumentUpdateData = PatchResult;
 
@@ -11,6 +19,7 @@ export class DocumentProcessingRuntime {
   private readonly patchEngine: PatchEngine;
   private readonly emissionRegistry = new EmissionRegistry();
   private readonly meter: GasMeter;
+  private readonly defaultTypeGraph: TypeGraphProvider;
   private runTerminated = false;
 
   constructor(
@@ -19,6 +28,7 @@ export class DocumentProcessingRuntime {
   ) {
     this.patchEngine = new PatchEngine(this.documentRef);
     this.meter = new GasMeter(this.blueRef);
+    this.defaultTypeGraph = new BlueNodeTypeGraphProvider(this.blueRef, nodeAt);
   }
 
   document(): BlueNode {
@@ -30,7 +40,11 @@ export class DocumentProcessingRuntime {
   }
 
   scope(scopePath: string): ScopeRuntimeContext {
-    return this.emissionRegistry.scope(scopePath);
+    const context = this.emissionRegistry.scope(scopePath);
+    if (scopePath === '/') {
+      context.setEmbeddedDepth(0);
+    }
+    return context;
   }
 
   existingScope(scopePath: string): ScopeRuntimeContext | undefined {
@@ -61,6 +75,18 @@ export class DocumentProcessingRuntime {
     return this.meter.totalGas();
   }
 
+  chargeScopeEntry(scopePath: string): void {
+    this.meter.chargeScopeEntry(this.scope(scopePath).embeddedDepth());
+  }
+
+  setScopeEmbeddedDepth(scopePath: string, depth: number): void {
+    this.scope(scopePath).setEmbeddedDepth(depth);
+  }
+
+  scopeEmbeddedDepth(scopePath: string): number {
+    return this.scope(scopePath).embeddedDepth();
+  }
+
   isRunTerminated(): boolean {
     return this.runTerminated;
   }
@@ -79,5 +105,58 @@ export class DocumentProcessingRuntime {
 
   applyPatch(originScopePath: string, patch: JsonPatch): DocumentUpdateData {
     return this.patchEngine.applyPatch(originScopePath, patch);
+  }
+
+  applyPatchTransaction(
+    originScopePath: string,
+    patch: JsonPatch,
+    generatedPatches: readonly JsonPatch[],
+  ): readonly DocumentUpdateData[] {
+    const preview = this.documentRef.clone();
+    const previewEngine = new PatchEngine(preview);
+    const updates = [
+      previewEngine.applyPatch(originScopePath, patch),
+      ...generatedPatches.map((generatedPatch) =>
+        previewEngine.applyPatch(originScopePath, generatedPatch),
+      ),
+    ];
+    replaceNodeContent(this.documentRef, preview);
+    return updates;
+  }
+
+  planPatch(
+    originScopePath: string,
+    patch: JsonPatch,
+    typeGraph?: TypeGraphProvider | null,
+  ): readonly JsonPatch[] {
+    return new TypeGeneralizationPlanner(
+      typeGraph ?? this.defaultTypeGraph,
+    ).planPatch(originScopePath, this.documentRef, patch).generatedPatches;
+  }
+}
+
+function replaceNodeContent(target: BlueNode, source: BlueNode): void {
+  const next = source.clone() as unknown as Record<string, unknown>;
+  const current = target as unknown as Record<string, unknown>;
+  for (const key of [
+    'name',
+    'description',
+    'type',
+    'itemType',
+    'keyType',
+    'valueType',
+    'value',
+    'items',
+    'properties',
+    'contracts',
+    'blueId',
+    'schema',
+    'mergePolicy',
+    'previousBlueId',
+    'position',
+    'blue',
+    'inlineValue',
+  ]) {
+    current[key] = next[key];
   }
 }

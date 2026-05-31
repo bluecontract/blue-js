@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 import { BlueNode } from '@blue-labs/language';
 
@@ -10,7 +14,10 @@ import {
 } from '../../../../test-support/workflow.js';
 import { property } from '../../../../__tests__/test-utils.js';
 import { DEFAULT_STEP_EXECUTORS } from '../../workflow/step-runner.js';
+import { BexFieldEvaluator } from '../bex-field-evaluator.js';
 import { BexComputeStepExecutor } from '../bex-compute-step-executor.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 type BexTestValue =
   | null
@@ -79,6 +86,67 @@ describe('BexComputeStepExecutor', () => {
 
     expect(result).toBe(15);
     expect(setup.execution.runtime().gasMeter().totalGas()).toBeGreaterThan(0);
+  });
+
+  it('computeStepUsesDocumentViewWithoutMaterializingRootToNode', async () => {
+    const blue = createBlue();
+    const stepNode = createComputeStep({
+      expr: { $document: '/counter' },
+    });
+    const eventNode = blue.jsonValueToNode({});
+    const setup = createRealContext(blue, eventNode);
+    setup.execution.runtime().directWrite('/counter', blue.jsonValueToNode(5));
+    const documentAt = setup.context.documentAt.bind(setup.context);
+    let rootReads = 0;
+    setup.context.documentAt = (pointer: string) => {
+      if (pointer === '/') {
+        rootReads += 1;
+      }
+      return documentAt(pointer);
+    };
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+
+    await expect(executor.execute(args)).resolves.toBe(5);
+    expect(rootReads).toBe(0);
+  });
+
+  it('bexFieldEvaluatorUsesDocumentViewWithoutMaterializingRootToNode', () => {
+    const blue = createBlue();
+    const evaluator = new BexFieldEvaluator();
+    const stepNode = createComputeStep({ expr: 'unused' });
+    const eventNode = blue.jsonValueToNode({});
+    const setup = createRealContext(blue, eventNode);
+    setup.execution.runtime().directWrite('/counter', blue.jsonValueToNode(7));
+    const documentAt = setup.context.documentAt.bind(setup.context);
+    let rootReads = 0;
+    setup.context.documentAt = (pointer: string) => {
+      if (pointer === '/') {
+        rootReads += 1;
+      }
+      return documentAt(pointer);
+    };
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+
+    const result = evaluator.evaluateNode(
+      args,
+      bexNode({ $document: '/counter' }),
+    );
+
+    expect(result.getValue()?.toString()).toBe('7');
+    expect(rootReads).toBe(0);
+  });
+
+  it('productionBexContextCreationUsesDocumentViewNotDocument', () => {
+    const productionFiles = [
+      '../bex-compute-step-executor.ts',
+      '../bex-field-evaluator.ts',
+    ];
+
+    for (const file of productionFiles) {
+      const source = fs.readFileSync(path.join(__dirname, file), 'utf8');
+      expect(source).toContain('.documentView(');
+      expect(source).not.toMatch(/\.document\s*\(/);
+    }
   });
 
   it('reads the current event', async () => {
@@ -207,6 +275,38 @@ describe('BexComputeStepExecutor', () => {
       'simple',
     ) as { status?: string };
     expect(document.status).toBe('complete');
+  });
+
+  it('sequentialWorkflowReadYourWritesUsesWorkingDocumentView', async () => {
+    const blue = createBlue();
+    const eventNode = blue.jsonValueToNode({});
+    const setup = createRealContext(blue, eventNode);
+    setup.execution.runtime().directWrite('/counter', blue.jsonValueToNode(1));
+    const writeStep = createComputeStep({
+      do: [
+        {
+          $appendChange: {
+            op: 'replace',
+            path: '/counter',
+            val: 7,
+          },
+        },
+      ],
+      returnResult: false,
+    });
+    const readStep = createComputeStep({
+      expr: { $document: '/counter' },
+    });
+
+    await executor.execute(
+      createArgs({ context: setup.context, stepNode: writeStep, eventNode }),
+    );
+
+    await expect(
+      executor.execute(
+        createArgs({ context: setup.context, stepNode: readStep, eventNode }),
+      ),
+    ).resolves.toBe(7);
   });
 
   it('executes against the current scope document root', async () => {

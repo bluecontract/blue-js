@@ -344,8 +344,9 @@ contracts:
       processor.initializeDocument(blue.yamlToNode(yaml)),
     );
     const terminated = terminatedMarker(result.document, '/');
-    expect(terminated).not.toBeNull();
-    expect(stringProperty(terminated!, 'cause')).toBe('fatal');
+    expect(terminated).toBeNull();
+    expect(numericProperty(result.document, 'itShouldHappen')).toBe(1);
+    expect(propertyOptional(result.document, 'mustNotHappen')).toBeUndefined();
   });
 
   it('embeddedListUpdatesProcessNewChildDuringExternalEvent', async () => {
@@ -447,9 +448,8 @@ contracts:
     const processed = processResult.document;
 
     const terminated = terminatedMarker(processed, '/');
-    expect(terminated).not.toBeNull();
-    expect(stringProperty(terminated!, 'cause')).toBe('fatal');
-    expect(propertyOptional(processed, 'itShouldHappen')).toBeUndefined();
+    expect(terminated).toBeNull();
+    expect(numericProperty(processed, 'itShouldHappen')).toBe(1);
     expect(propertyOptional(processed, 'mustNotHappen')).toBeUndefined();
   });
 
@@ -550,8 +550,8 @@ contracts:
       - /y
 `;
 
-    await expect(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
-    ).rejects.toThrow(/Process Embedded/);
+    const result = await processor.initializeDocument(blue.yamlToNode(yaml));
+    expect(result.status).toBe('runtime-fatal');
+    expect(result.failureReason).toMatch(/Process Embedded/);
   });
 });

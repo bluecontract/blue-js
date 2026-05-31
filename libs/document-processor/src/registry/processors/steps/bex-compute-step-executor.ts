@@ -15,6 +15,7 @@ import type {
   SequentialWorkflowStepExecutor,
   StepExecutionArgs,
 } from '../workflow/step-runner.js';
+import { ProcessorBexDocumentView } from './processor-bex-document-view.js';
 
 type JsonPatchOperation = 'ADD' | 'REPLACE' | 'REMOVE';
 
@@ -113,12 +114,13 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
     const definition = this.definitionNode(args);
     const programNode = this.programNode(args.stepNode);
     if (definition === undefined) {
-      return BexProgramSource.inline(programNode);
+      return BexProgramSource.inline(programNode, { inputKind: 'resolved' });
     }
     return BexProgramSource.withDefinition(
       programNode,
       this.programNode(definition),
       this.stringProperty(args.stepNode, 'entry'),
+      { inputKind: 'resolved' },
     );
   }
 
@@ -194,10 +196,17 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
 
   private executionContext(args: StepExecutionArgs): BexExecutionContext {
     const scopeRootPointer = args.context.resolvePointer('/');
-    const root = args.context.documentAt(scopeRootPointer) ?? new BlueNode();
     const builder = BexExecutionContext.builder()
-      .document(root)
-      .event(BexValues.nodeValueSnapshot(args.eventNode))
+      .documentView(
+        new ProcessorBexDocumentView(args.context, scopeRootPointer),
+      )
+      .event(
+        BexValues.nodeValueSnapshot(args.eventNode, {
+          compactListsWithMetadata: true,
+          compactScalarsWithMetadata: true,
+          omitMetadataOnly: true,
+        }),
+      )
       .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(this.numericProperty(args.stepNode, 'gasLimit', 1_000_000));

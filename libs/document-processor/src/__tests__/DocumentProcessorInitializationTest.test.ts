@@ -191,7 +191,7 @@ contracts:
     expect(JSON.stringify(blue.nodeToJson(result.document))).toBe(originalJson);
   });
 
-  it('processDocumentFailsWhenInitializationMarkerIncompatible', async () => {
+  it('processDocumentReturnsCapabilityFailureWhenInitializationMarkerIncompatible', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Bad Doc
 contracts:
@@ -201,9 +201,12 @@ contracts:
 `;
 
     const document = blue.yamlToNode(yaml);
-    await expect(
-      processor.processDocument(document, new BlueNode().setValue('event')),
-    ).rejects.toThrow(/Initialization Marker/);
+    const result = await processor.processDocument(
+      document,
+      new BlueNode().setValue('event'),
+    );
+    expect(result.status).toBe('capability-failure');
+    expect(result.failureReason).toMatch(/Unsupported contract type/);
   });
 
   it('initializeDocumentFailsWhenInitializationKeyOccupiedIncorrectly', async () => {
@@ -284,7 +287,9 @@ contracts:
 `;
 
     const document = blue.yamlToNode(yaml);
-    await expect(processor.initializeDocument(document)).rejects.toThrow();
+    const result = await processor.initializeDocument(document);
+    expect(result.status).toBe('runtime-fatal');
+    expect(result.failureReason).toMatch(/checkpoint/);
   });
 
   it('initializationFailsWhenCheckpointHasWrongType', async () => {
@@ -295,9 +300,9 @@ contracts:
     type: Processing Terminated Marker
 `;
 
-    await expect(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
-    ).rejects.toThrow(/Channel Event Checkpoint/);
+    const result = await processor.initializeDocument(blue.yamlToNode(yaml));
+    expect(result.status).toBe('runtime-fatal');
+    expect(result.failureReason).toMatch(/Channel Event Checkpoint/);
   });
 
   it('initializationFailsWhenMultipleCheckpointsPresent', async () => {
@@ -310,9 +315,9 @@ contracts:
     type: Channel Event Checkpoint
 `;
 
-    await expect(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
-    ).rejects.toThrow(/Channel Event Checkpoint/);
+    const result = await processor.initializeDocument(blue.yamlToNode(yaml));
+    expect(result.status).toBe('runtime-fatal');
+    expect(result.failureReason).toMatch(/Channel Event Checkpoint/);
   });
 
   it('lifecycleEventsDoNotDriveTriggeredHandlers', async () => {

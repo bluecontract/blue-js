@@ -94,8 +94,12 @@ contracts:
     const result = await expectOk(
       processor.processDocument(initialized, testEvent('evt-2')),
     );
-    expect(result.triggeredEvents.length).toBe(1);
-    const terminatedEvent = result.triggeredEvents[0];
+    const terminatedEvents = result.triggeredEvents.filter(
+      (eventNode) =>
+        typeBlueId(eventNode) === blueIds['Document Processing Terminated'],
+    );
+    expect(terminatedEvents).toHaveLength(1);
+    const terminatedEvent = terminatedEvents[0]!;
     expect(typeBlueId(terminatedEvent)).toBe(
       blueIds['Document Processing Terminated'],
     );

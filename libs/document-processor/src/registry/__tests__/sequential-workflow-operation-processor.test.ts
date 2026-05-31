@@ -637,7 +637,7 @@ itemType:
     expect(numericValue(counterNode)).toBe(0);
   });
 
-  it('fails initialization when Sequential Workflow Operation omits channel', async () => {
+  it('returns fatal result when Sequential Workflow Operation omits channel', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Missing Channel Doc
 contracts:
@@ -654,9 +654,9 @@ contracts:
     steps: []
 `;
 
-    await expect(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
-    ).rejects.toThrow(/must declare channel/i);
+    const result = await processor.initializeDocument(blue.yamlToNode(yaml));
+    expect(result.status).toBe('runtime-fatal');
+    expect(result.failureReason).toMatch(/must declare channel/i);
   });
 
   it('registers Operation marker for must-understand compliance', async () => {

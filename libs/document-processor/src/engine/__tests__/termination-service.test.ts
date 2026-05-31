@@ -53,6 +53,12 @@ describe('TerminationService', () => {
 
     expect(props.cause?.getValue()).toBe('fatal');
     expect(props.reason?.getValue()).toBe('bad');
-    expect(runtime.rootEmissions()).toHaveLength(0);
+    expect(runtime.rootEmissions()).toHaveLength(1);
+    expect(typeBlueId(runtime.rootEmissions()[0]!)).toBe(
+      blueIds['Document Processing Fatal Error'],
+    );
+    expect(
+      runtime.rootEmissions()[0]!.getProperties()?.reason?.getValue(),
+    ).toBe('bad');
   });
 });

@@ -14,3 +14,5 @@ export * from './merge';
 export * from './types';
 export * from './snapshot';
 export * from './errors/BlueError';
+export * from './conformance/BlueLanguageConformanceReport';
+export * from './conformance/BlueConformanceSuiteRunner';

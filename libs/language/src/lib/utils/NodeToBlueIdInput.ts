@@ -274,7 +274,11 @@ export class NodeToBlueIdInput {
     }
     const enumValues = schema.getEnum();
     if (enumValues !== undefined) {
-      result.enum = enumValues.map((value, index) =>
+      result.enum = this.canonicalizeSchemaEnumValues(
+        enumValues,
+        this.appendPath(path, 'enum'),
+        allowCyclicPlaceholders,
+      ).map((value, index) =>
         this.getNode(
           value,
           this.appendPath(this.appendPath(path, 'enum'), String(index)),
@@ -285,6 +289,34 @@ export class NodeToBlueIdInput {
       );
     }
     return result;
+  }
+
+  private static canonicalizeSchemaEnumValues(
+    enumValues: BlueNode[],
+    path: string,
+    allowCyclicPlaceholders: boolean,
+  ): BlueNode[] {
+    const uniqueByInput = new Map<string, BlueNode>();
+    for (const enumValue of enumValues) {
+      const comparable = enumValue.clone();
+      comparable.setSchema(undefined);
+      uniqueByInput.set(
+        JSON.stringify(
+          this.getNode(
+            comparable,
+            path,
+            'metadata',
+            -1,
+            allowCyclicPlaceholders,
+          ),
+        ),
+        enumValue,
+      );
+    }
+
+    return [...uniqueByInput.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([, enumValue]) => enumValue);
   }
 
   private static validateReferenceBlueId(

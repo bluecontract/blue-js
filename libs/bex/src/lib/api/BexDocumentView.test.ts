@@ -2,7 +2,7 @@ import { BlueNode } from '@blue-labs/language';
 import { describe, expect, it } from 'vitest';
 import { BexValues } from '../value/BexValues';
 import { BexEngine } from './BexEngine';
-import { BexExecutionContext } from './BexExecutionContext';
+import { BexDocumentView, BexExecutionContext } from './BexExecutionContext';
 import { BexProgramSource } from './BexProgramSource';
 
 describe('BEX document views', () => {
@@ -100,6 +100,34 @@ describe('BEX document views', () => {
     );
 
     expect(result.value.toSimple()).toBe('/counter');
+  });
+
+  it('reads a cursor-native document view without materializing toNode objects', () => {
+    const view = {
+      toNode() {
+        throw new Error('documentView must not materialize through toNode');
+      },
+      canonicalAt(pointer: string) {
+        expect(pointer).toBe('/status');
+        return BexValues.fromSimple('canonical-view');
+      },
+      resolvedAt(pointer: string) {
+        expect(pointer).toBe('/status');
+        return BexValues.fromSimple('resolved-view');
+      },
+    } satisfies BexDocumentView & { toNode(): BlueNode };
+
+    const context = BexExecutionContext.builder().documentView(view).build();
+
+    expect(
+      execute({ expr: { $document: '/status' } }, context).value.toSimple(),
+    ).toBe('canonical-view');
+    expect(
+      execute(
+        { expr: { $document: { path: '/status', view: 'resolved' } } },
+        context,
+      ).value.toSimple(),
+    ).toBe('resolved-view');
   });
 });
 

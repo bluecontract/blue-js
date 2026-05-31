@@ -4,6 +4,9 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
 
+// @ts-expect-error - This is a valid import.
+import packageJson from './package.json';
+
 export default defineConfig(({ mode }) => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/scenarios',
@@ -46,6 +49,19 @@ export default defineConfig(({ mode }) => ({
       name: 'scenarios',
       fileName: 'index',
       formats: ['es' as const],
+    },
+    rollupOptions: {
+      external: (id: string) => {
+        const dependencies = Object.keys(packageJson.dependencies ?? {});
+        const peerDependencies = Object.keys(
+          packageJson.peerDependencies ?? {},
+        );
+        return (
+          id.startsWith('node:') ||
+          dependencies.some((dependency) => id === dependency) ||
+          peerDependencies.some((dependency) => id === dependency)
+        );
+      },
     },
   },
   test: {

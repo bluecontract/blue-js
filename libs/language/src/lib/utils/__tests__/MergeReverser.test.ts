@@ -710,19 +710,6 @@ list:
     - C
 `);
 
-      const full = blue.yamlToNode(`
-name: Derived
-type:
-  blueId: ${nodeProvider.getBlueIdByName('Base')}
-list:
-  type: List
-  mergePolicy: positional
-  items:
-    - A
-    - B
-    - C
-`);
-
       expect(() => blue.resolve(withStalePrevious)).toThrow(
         /Mismatched items at index 0/,
       );

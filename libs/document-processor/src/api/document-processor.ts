@@ -4,6 +4,7 @@ import type { BexEngine } from '@blue-labs/bex';
 import { ContractLoader } from '../engine/contract-loader.js';
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 import { ProcessorEngine } from '../engine/processor-engine.js';
+import type { ProcessorRuntimeHooks } from '../engine/processor-engine.js';
 import type { MarkerContract } from '../model/index.js';
 import { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
 import { ContractProcessorRegistryBuilder } from '../registry/contract-processor-registry-builder.js';
@@ -20,6 +21,7 @@ export interface DocumentProcessorOptions {
   readonly blue?: Blue;
   readonly bexEngine?: BexEngine;
   readonly registry?: ContractProcessorRegistry;
+  readonly runtimeHooks?: ProcessorRuntimeHooks;
 }
 
 export class DocumentProcessor {
@@ -42,6 +44,7 @@ export class DocumentProcessor {
       this.contractLoaderRef,
       this.registryRef,
       this.blue,
+      options?.runtimeHooks,
     );
   }
 

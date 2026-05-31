@@ -92,16 +92,19 @@ describe('DocumentProcessor', () => {
     ).rejects.toThrowError(/Document already initialized/);
   });
 
-  it('throws when processing uninitialized document', async () => {
+  it('initializes when processing uninitialized document', async () => {
     const processor = createDocumentProcessor();
     const uninitializedDoc = blue.yamlToNode(
       documentWithLifecycleAndEventHandlers(),
     );
     const eventNode = blue.jsonValueToNode({ type: { blueId: 'TestEvent' } });
 
-    await expect(
-      processor.processDocument(uninitializedDoc, eventNode),
-    ).rejects.toThrowError(/Document not initialized/);
+    const result = await processor.processDocument(uninitializedDoc, eventNode);
+    expect(result.capabilityFailure).toBe(false);
+    expect(processor.isInitialized(result.document)).toBe(true);
+    expect(result.document.getProperties()?.initialized?.getValue()).toEqual(
+      new Big(1),
+    );
   });
 
   it('returns capability failure when contracts are not understood', async () => {

@@ -10,3 +10,5 @@ export * from './runtime/index.js';
 export * from './repository/semantic-repository.js';
 export * from './api/document-processor.js';
 export * from './merge/index.js';
+export * from './conformance/BlueContractsConformanceReport.js';
+export * from './conformance/BlueContractsConformanceSuiteRunner.js';

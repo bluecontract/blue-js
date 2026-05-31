@@ -15,7 +15,7 @@ import {
 import type { ProcessorExecutionContext } from '../processor-execution-context.js';
 import { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import { CheckpointManager } from '../checkpoint-manager.js';
-import { canonicalSignature } from '../../util/node-canonicalizer.js';
+import { CheckpointIdentityService } from '../checkpoint-identity-service.js';
 import type {
   ChannelContract,
   HandlerContract,
@@ -28,10 +28,6 @@ const blue = createBlue();
 
 function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
-}
-
-function signatureFn(node: BlueNode | null): string | null {
-  return canonicalSignature(blue, node);
 }
 
 describe('ChannelRunner', () => {
@@ -78,7 +74,8 @@ describe('ChannelRunner', () => {
   ) {
     const runtime = new DocumentProcessingRuntime(new BlueNode(), blue);
     const bundle = createBundle();
-    const checkpointManager = new CheckpointManager(runtime, signatureFn);
+    const identityService = new CheckpointIdentityService(blue);
+    const checkpointManager = new CheckpointManager(runtime, identityService);
     const scopePath = '/';
 
     const isInactive = vi
@@ -131,7 +128,8 @@ describe('ChannelRunner', () => {
       ) => {
         await overrides.handleHandlerError?.(error);
       },
-      canonicalSignature: signatureFn,
+      checkpointIdentity: (node, mode, subject) =>
+        identityService.identityFor(node, mode, subject),
       channelProcessorFor: (_node) => null,
     };
 
@@ -174,7 +172,7 @@ describe('ChannelRunner', () => {
       .get('/contracts/checkpoint/lastEvents/external');
     expect(stored).toBeInstanceOf(BlueNode);
     const marker = bundle.marker(KEY_CHECKPOINT) as any;
-    expect(marker.lastSignatures.external).toBeDefined();
+    expect(marker.lastEvents.external).toBeInstanceOf(BlueNode);
   });
 
   it('resolves events before evaluating channels and persisting checkpoints', async () => {
@@ -212,7 +210,6 @@ describe('ChannelRunner', () => {
       evaluateChannel: () => ({
         matches: true,
         eventNode: nodeFrom({ payload: 'same' }),
-        eventId: 'event-1',
       }),
       onExecute: (handler) => handlerSpy(handler.key()),
     });
@@ -237,9 +234,60 @@ describe('ChannelRunner', () => {
       runtime.document().get('/contracts/checkpoint/lastEvents/external'),
     ).toBeInstanceOf(BlueNode);
     expect(
-      (bundle.marker(KEY_CHECKPOINT) as ChannelEventCheckpoint)?.lastSignatures
+      (bundle.marker(KEY_CHECKPOINT) as ChannelEventCheckpoint)?.lastEvents
         ?.external,
-    ).toBe('event-1');
+    ).toBeInstanceOf(BlueNode);
+  });
+
+  it('checkpointEventIdDoesNotOverrideDefaultIdentity', async () => {
+    const handlerSpy = vi.fn();
+    const { runner, bundle, scopePath } = createRunner({
+      evaluateChannel: (event) => ({
+        matches: true,
+        eventNode: event.clone(),
+      }),
+      onExecute: (handler) => handlerSpy(handler.key()),
+    });
+    const channel = bundle.channelsOfType('Custom.Channel')[0]!;
+
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, nodeFrom({ eventId: 'same', amount: 10 })),
+    );
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, nodeFrom({ eventId: 'same', amount: 11 })),
+    );
+
+    expect(handlerSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('checkpointNodeBlueIdModeRequiresBlueIdInput', async () => {
+    const { runner, bundle, scopePath } = createRunner({
+      evaluateChannel: () => ({
+        matches: true,
+        checkpointIdentityMode: 'nodeBlueId',
+      }),
+    });
+    const channel = bundle.channelsOfType('Custom.Channel')[0]!;
+
+    await expect(
+      runner.runExternalChannel(
+        scopePath,
+        bundle,
+        channel,
+        ingestExternalEvent(
+          blue,
+          new BlueNode()
+            .setReferenceBlueId('not-valid-with-sibling')
+            .addProperty('sibling', nodeFrom(true)),
+        ),
+      ),
+    ).rejects.toThrow(/CheckpointError/);
   });
 
   it('stops processing when scope becomes inactive', async () => {

@@ -4,19 +4,29 @@
 
 - Language Java parity: complete for the copied Java Blue Language 1.0 manifest.
 - BEX Java parity: complete for the copied Java BEX rich fixture suite.
-- Conversation/Compute integration: complete and backed by `@blue-labs/bex`.
+- Blue Contracts artifact parity: official 133-fixture package and runtime registry are vendored, identity-checked, and compared against the Java sibling repository when present.
+- Blue Contracts execution parity: complete for the official 133-fixture suite through the production document processor.
+- Coordination/Compute integration: complete and backed by `@blue-labs/bex`; `Conversation/*` remains compatibility alias input.
 
 ## Fixture Results
 
 - Language fixture manifest path: `libs/language/src/lib/conformance/fixtures/blue-language-1.0/fixtures/manifest.yaml`
-- Language fixtures run: 58
-- Language fixtures passed: 58
+- Language fixture package identity: `sha256:3387cb4b6626fc56cec91d584b2df7f37c229e396dee990750ac50e762a1bc1d`
+- Language fixtures run: 77
+- Language fixtures passed: 77
 - Language fixtures failed: 0
 - BEX rich fixture manifest path: `libs/bex/src/lib/conformance/fixtures/rich-fixtures/manifest.yaml`
-- BEX rich fixtures run: 155
-- BEX rich fixtures passed: 155
+- BEX fixture package identity: `sha256:c0e9323a02d5d7102e727e8bc82f2c1f6e9f40132ba5380ef93240068e9d1946`
+- BEX rich fixtures run: 159
+- BEX rich fixtures passed: 159
 - BEX rich fixtures failed: 0
-- BEX manifest breakdown: `current: 51`, `parseErrors: 3`, `gas: 101`, `totalFixtures: 155`
+- BEX manifest breakdown: `current: 53`, `parseErrors: 3`, `gas: 103`, `totalFixtures: 159`
+- Blue Contracts fixture manifest path: `libs/document-processor/src/conformance/fixtures/blue-contracts-1.0/fixtures/manifest.yaml`
+- Blue Contracts fixture package identity: `sha256:2f197ca3bbdc41b75e772777cc48e51019754347e1bee26b5f3209b71d9bd9ca`
+- Blue Contracts fixtures run: 133
+- Blue Contracts fixtures passed: 133
+- Blue Contracts fixtures failed: 0
+- Blue Contracts runtime registry path: `libs/document-processor/src/conformance/fixtures/blue-contracts-1.0/registry/blue-contracts-1.0/manifest.yaml`
 - External BEX fixture files exercised:
   - `libs/bex/src/lib/conformance/fixtures/external/customer-paynote-snapshot-bex-functions.yaml`
   - `libs/bex/src/lib/conformance/fixtures/external/customer-paynote-snapshot-event.yaml`
@@ -29,12 +39,34 @@
 - `diff -ru /Users/piotr/data/blue-bex-java/src/test/resources/rich-fixtures libs/bex/src/lib/conformance/fixtures/rich-fixtures`
   - Result: pass, no diff output.
 - Manifest count check:
-  - Language: 58 fixtures from `manifest.fixtures.length`.
-  - BEX: 155 fixtures from `counts.totalFixtures`.
-- `rg "\.skip|\.only|test\.todo|it\.todo|describe\.only" libs/language/src/lib/conformance libs/bex/src/lib/conformance`
+  - Language: 77 fixtures from `manifest.fixtures.length`.
+  - BEX: 159 fixtures from `counts.totalFixtures`.
+  - Contracts: 133 fixtures from `manifest.fixtures.length`.
+- `npm run check:parity-fixtures`
+  - Result: pass; verifies exact fixture-package identity and manifest membership for Language, BEX, and Contracts.
+- `rg "\.skip|\.only|test\.todo|it\.todo|describe\.only" libs/language/src/lib/conformance libs/bex/src/lib/conformance libs/document-processor/src/conformance`
   - Result: pass, no fixture-runner skip/only/todo markers.
 
-## Commands Run
+## Latest Commands Run (2026-06-01)
+
+- `npm run check:parity-fixtures`
+  - Result: pass; Language fixtures: 77, BEX rich fixtures: 159, Contracts fixtures: 133.
+- `npx nx run-many -t test --all --skip-nx-cache`
+  - Result: pass for 9 projects and 6 dependency tasks.
+- `npx nx run-many -t build --all --skip-nx-cache`
+  - Result: pass for 9 projects.
+- `npm run ci:full-blue-parity`
+  - Result: pass; covers Language 77, BEX 159, Contracts 133, Compute, Coordination, Scenarios, TypeScript, ESLint, and Nx sync.
+- `npm run typecheck:parity`
+  - Result: pass.
+- `npm run lint:parity`
+  - Result: pass.
+- `NX_DAEMON=false npx nx sync:check --verbose`
+  - Result: pass, workspace up to date.
+- `git diff --check`
+  - Result: pass.
+
+## Historical Commands Run
 
 - `node -p "process.execPath + ' ' + process.version"`
   - Result: `/Users/piotr/.nvm/versions/node/v22.19.0/bin/node v22.19.0`
@@ -43,12 +75,11 @@
 - `npm ci`
   - Result: pass; npm reported existing peer/deprecation/audit warnings but exited 0.
 - `npm run check:parity-fixtures`
-  - Result: pass; Language fixtures: 58, BEX rich fixtures: 155.
+  - Result: pass; Language fixtures: 77, BEX rich fixtures: 159, Contracts fixtures: 133.
 - `npm run test:language:conformance`
-  - Result: pass, 58 tests.
+  - Result: pass, 77 fixtures.
 - `npm run test:bex:conformance`
-  - Result: pass, 7 test files, 183 tests.
-  - Includes 155 Java BEX rich fixtures, BEX hardening tests, document-view tests, output-boundary tests, Unicode key-order tests, and the external customer PayNote BEX function test.
+  - Result: pass; includes 159 Java BEX rich fixtures, BEX hardening tests, document-view tests, output-boundary tests, Unicode key-order tests, and the external customer PayNote BEX function test.
 - `npm run test:compute`
   - Result: pass, 1 test file, 8 tests.
 - `npm run typecheck:parity`
@@ -58,8 +89,7 @@
 - `NX_DAEMON=false npx nx sync:check --verbose`
   - Result: pass, workspace up to date.
 - `npx vitest run --config libs/language/vite.config.ts`
-  - Result: pass, 62 test files, 677 passed, 1 skipped, 4 todo.
-  - Java Blue Language conformance: 58 passed.
+  - Result: pass; Java Blue Language conformance: 77 passed.
 - `npx vitest run --config libs/bex/vite.config.ts`
   - Result: pass, 7 test files, 183 passed.
 - `npx vitest run --config libs/document-processor/vite.config.ts`
@@ -67,11 +97,11 @@
 - `npm run ci:parity`
   - Result: pass.
   - Covered fixture guard, Language conformance, BEX conformance plus external PayNote BEX test and BEX hardening tests, Compute tests including Compute Definition entry execution, parity type-check, lint parity, and `NX_DAEMON=false nx sync:check --verbose`.
-  - Current run result: Language 58/58, BEX 183/183, Compute 8/8, typecheck pass, lint pass, Nx sync pass.
+  - Current full parity result: Language 77/77, BEX 159/159, Contracts 133/133, Compute pass, Coordination pass, Scenarios pass, typecheck pass, lint pass, Nx sync pass.
 - `npx nx test language --skip-nx-cache`
-  - Result: pass via `NX_DAEMON=false npx nx test language --skip-nx-cache`, 62 test files, 677 passed, 1 skipped, 4 todo; includes 58 Language conformance fixtures.
+  - Result: pass; includes 77 Language conformance fixtures.
 - `npx nx test bex --skip-nx-cache`
-  - Result: pass via `NX_DAEMON=false npx nx test bex --skip-nx-cache`, 7 test files, 183 passed; includes 155 BEX rich fixtures plus BEX hardening tests.
+  - Result: pass; includes 159 BEX rich fixtures plus BEX hardening tests.
 - `npx nx test document-processor --skip-nx-cache`
   - Result: pass via `NX_DAEMON=false npx nx test document-processor --skip-nx-cache`, 61 test files, 359 passed.
 - `npx tsc -p libs/language/tsconfig.lib.json --noEmit`
@@ -103,31 +133,35 @@
   - Added strict BEX output boundary APIs: `BexValue.toBlueNodeStrict(...)`, `BexValues.toBlueNodeStrict(...)`, and `BexExecutionResult.valueAsBlueNodeStrict(...)`.
   - Added Unicode code-point key ordering helpers and wired them into object key exposure, entries, object iteration, object literal evaluation, function argument evaluation, merge, and deterministic object sorting.
   - Added explicit canonical/resolved document views to `BexExecutionContext`; `$document` reads canonical by default and only uses the resolved view for exact `view: resolved`, with deterministic failure when that view is unavailable.
+  - Production Compute and field-expression execution use `ProcessorBexDocumentView` instead of materializing the scope root through `.document(root)`.
+  - Large integer values remain exact, decimal Big-like values remain decimal text, and decimal arithmetic is rejected instead of silently rounding through JavaScript `number`.
   - Hardened strict BEX fixture/spec edges: scalar `$size` now returns cardinality `1`, statement programs/functions that complete without an explicit value return the default `{ changeset, events }` object, list literals reject evaluated `undefined` items, missing `$choose.else` is lazy and uncharged, and selected compiler validations now fail during `compile(...)`.
   - Added structured `BexException` diagnostic fields (`sourcePath`, `operator`, `functionName`, `pointer`) and targeted tests for compile operator, function, and pointer diagnostics.
   - `nodeToSimple(...)` now preserves the complete Blue node surface for non-primitive metadata while compacting core primitive typed scalar nodes back to BEX scalars for document/event/Compute compatibility.
   - Strict output schema handling now validates supported schema keys, rejects `schema` plus `constraints`, and preserves schema fields through strict output conversion.
-- Conversation/Compute adapter:
+- Coordination/Compute adapter:
   - Added `BexComputeStepExecutor` in `libs/document-processor`.
-  - Registered Compute in the default sequential workflow step executor list while preserving `JavaScriptCodeStepExecutor`.
-  - Added document-processor tests for document, event, bindings, previous steps, Compute Definition entry execution, changeset application, event emission, runtime errors, and existing JavaScript Code compatibility.
+  - Registered Compute in the default sequential workflow step executor list.
+  - Removed legacy QuickJS-backed `JavaScript Code` execution support; Compute/BEX is the supported strict execution path.
+  - Added document-processor tests for document, event, bindings, previous steps, Compute Definition entry execution, changeset application, event emission, and runtime errors.
+- Blue Contracts processor:
+  - The official 133-fixture contract runner executes the production `DocumentProcessor` and asserts exact fixture outputs without result shaping.
+  - Dynamic type generalization is implemented in production under `libs/document-processor/src/engine/generalization`.
+  - Scope-local `Type Generalization Policy`, `mode: reject`, subtype floors, embedded-scope boundaries, and generated type-write cascades are covered outside the conformance runner.
 
 ## Existing JS Behavior Preserved
 
 - Nx workspace layout and package structure remain intact.
 - Existing package names remain intact, including `@blue-labs/language`, `@blue-labs/bex`, and `@blue-labs/document-processor`.
 - Repository integration and generated repository alias flow are preserved.
-- QuickJS-backed `Conversation/JavaScript Code` remains registered and tested.
 - Existing JS-friendly `referenceBlueId` aliases are preserved while Java-compatible validation is enforced in strict paths.
 - Zod schema validation remains in document-processor and repository-generated type boundaries.
 - Browser/Node-compatible TypeScript build paths remain through Vite/Nx package configs.
 
 ## Intentional Compatibility Notes
 
-- The workspace dependency is pinned to `@blue-repository/types@1.2.1`.
-- The installed npm `@blue-repository/types@1.2.1` artifact does not currently expose `Conversation/Compute` or `Conversation/Compute Definition` in the runtime repository aliases. Verified commands: `npm view @blue-repository/types version versions --json` reports latest `1.2.1`, and `rg "Conversation/Compute|Compute Definition" node_modules/@blue-repository/types -n` returns no matches.
-- `Conversation/Compute` and `Conversation/Compute Definition` therefore still have generated-first transitional BlueId fallbacks in `libs/document-processor/src/repository/semantic-repository.ts`, verified from `/Users/piotr/data/blue-repository/BlueRepository.blue`.
-- `JavaScriptCodeStepExecutor` uses `jsonValueToNodeUnchecked` only at the legacy JavaScript Code event output boundary so existing JS step outputs containing resolved metadata remain compatible. Strict Language parsing remains strict elsewhere.
+- The workspace dependency is pinned to the local `@blue-repository/types` package from `../blue-repository-js/libs/types`.
+- `Conversation/*` and old runtime names remain input compatibility aliases only; canonical generated examples and scenario resources use current `Coordination/*` names where applicable.
 - The conformance runners support optional environment filters for debugging (`BLUE_FIXTURE` and the BEX file selection code path), but the default commands above ran the full fixture suites.
 - CI conformance runs now fail if `BLUE_FIXTURE` or `BEX_FIXTURE` is set.
 - Root scripts now include `test:language:conformance`, `test:language:conformance:serial`, `test:bex:conformance`, `test:bex:conformance:serial`, `test:compute`, `test:compute:serial`, `typecheck:parity`, `lint:parity`, `check:parity-fixtures`, and `ci:parity`.
@@ -141,7 +175,7 @@
 - P0 CI-grade parity scripts: added root scripts for Language conformance, BEX conformance, Compute tests, typecheck, lint, fixture guard, serial local test variants, and the combined parity gate.
 - P0 partial fixture guard: added CI filter guards and `scripts/check-parity-fixtures.mjs` for manifest counts and forbidden skip/only/todo markers.
 - P1 BEX definition and entry execution: added `BexProgramSource.withDefinition(...)`, definition/program merge ordering, explicit/root entry selection, and entry validation.
-- P1 Conversation/Compute Definition integration: `BexComputeStepExecutor` resolves a step `definition` field to a same-scope contract key or scoped pointer and executes the requested `entry`.
+- P1 Coordination/Compute Definition integration: `BexComputeStepExecutor` resolves a step `definition` field to a same-scope contract key or scoped pointer and executes the requested `entry`.
 - P1 external PayNote BEX fixture: added a Java-derived test using the copied external customer PayNote function and event fixture files.
 - P1 BEX metrics: added metrics counters and exposed them through `BexExecutionResult`.
 - P1 strict BEX output boundary: added strict Blue node conversion APIs for values and execution results.
@@ -151,6 +185,6 @@
 
 ## Remaining Non-Blocking Follow-Ups
 
-- Publish a repository types package whose npm artifact includes `Conversation/Compute` and `Conversation/Compute Definition`, then remove the transitional generated-first fallback aliases.
-- Continue adding new Java Language or BEX fixtures as they appear upstream; the current copied manifests pass completely.
-- Remaining Java BEX hardening areas beyond this pass include full arbitrary-precision BEX numerics, deeper Blue type matcher integration for `$is` and function args, broader compiler-rule coverage, stricter result overlay tests, and richer diagnostic coverage.
+- Continue adding new Java Language, Blue Contracts, or BEX fixtures as they appear upstream; the current copied manifests pass completely.
+- Publish the current local repository types package when the broader release process is ready.
+- Broader BEX enhancements beyond current fixture parity include deeper Blue type matcher integration for `$is` and function args, broader compiler-rule coverage, stricter result overlay tests, and richer diagnostic coverage.

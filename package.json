@@ -8,6 +8,8 @@
     "test:language:snapshot": "vitest run --config libs/language/vite.config.ts src/lib/snapshot/FrozenNode.test.ts --pool=forks",
     "test:bex:conformance": "vitest run --config libs/bex/vite.config.ts --pool=forks",
     "test:bex:conformance:serial": "vitest run --config libs/bex/vite.config.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-file-parallelism",
+    "test:contracts:conformance": "vitest run --config libs/document-processor/vite.config.ts src/conformance/BlueContractsConformanceSuiteRunner.spec.ts --pool=forks",
+    "test:contracts:conformance:serial": "vitest run --config libs/document-processor/vite.config.ts src/conformance/BlueContractsConformanceSuiteRunner.spec.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-file-parallelism",
     "test:compute": "vitest run --config libs/document-processor/vite.config.ts src/registry/processors/steps/__tests__/bex-compute-step-executor.test.ts --pool=forks",
     "test:compute:serial": "vitest run --config libs/document-processor/vite.config.ts src/registry/processors/steps/__tests__/bex-compute-step-executor.test.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-file-parallelism",
     "test:coordination": "vitest run --config libs/coordination/vite.config.ts --pool=forks",
@@ -15,7 +17,9 @@
     "typecheck:parity": "tsc -p libs/language/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/bex/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/document-processor/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/coordination/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/scenarios/tsconfig.lib.json --noEmit",
     "lint:parity": "eslint libs/language libs/bex libs/document-processor libs/coordination libs/scenarios --max-warnings=0",
     "check:parity-fixtures": "node scripts/check-parity-fixtures.mjs",
-    "ci:parity": "npm run check:parity-fixtures && npm run test:language:conformance && npm run test:language:snapshot && npm run test:bex:conformance && npm run test:compute && npm run test:coordination && npm run test:scenarios && npm run typecheck:parity && npm run lint:parity && NX_DAEMON=false nx sync:check --verbose"
+    "nx:sync-check": "nx reset && sleep 1 && NX_DAEMON=false NX_ISOLATE_PLUGINS=false nx sync:check --verbose",
+    "ci:parity": "npm run check:parity-fixtures && npm run test:language:conformance && npm run test:language:snapshot && npm run test:bex:conformance && npm run test:compute && npm run test:coordination && npm run test:scenarios && npm run typecheck:parity && npm run lint:parity && npm run nx:sync-check",
+    "ci:full-blue-parity": "npm run check:parity-fixtures && npm run test:language:conformance && npm run test:bex:conformance && npm run test:contracts:conformance && npm run test:compute && npm run test:coordination && npm run test:scenarios && npm run typecheck:parity && npm run lint:parity && npm run nx:sync-check"
   },
   "private": true,
   "devDependencies": {

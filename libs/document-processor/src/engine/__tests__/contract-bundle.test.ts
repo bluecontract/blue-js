@@ -28,7 +28,7 @@ const processEmbeddedMarker = (
 ): ProcessEmbeddedMarker => ({ paths }) as ProcessEmbeddedMarker;
 
 const checkpointMarker = (): ChannelEventCheckpoint =>
-  ({ lastEvents: {}, lastSignatures: {} }) as ChannelEventCheckpoint;
+  ({ lastEvents: {} }) as ChannelEventCheckpoint;
 
 describe('ContractBundle', () => {
   it('sorts channels by order then key', () => {

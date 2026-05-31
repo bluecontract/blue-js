@@ -1,6 +1,7 @@
 import { BlueNode } from '../../model/Node';
 import { NodeDeserializer } from '../../model/NodeDeserializer';
 import { JsonBlueValue } from '../../../schema';
+import { Blue } from '../../Blue';
 import { BlueIds } from '../BlueIds';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 import { yamlBlueParse } from '../../../utils/yamlBlue';
@@ -59,6 +60,9 @@ const fakeHashValueProvider = () => {
 const fakeBlueIdCalculator = new BlueIdCalculator(
   fakeHashValueProvider() as Base58Sha256Provider,
 );
+
+const nodeFromYaml = (yaml: string): BlueNode =>
+  NodeDeserializer.deserialize(yamlBlueParse(yaml) as JsonBlueValue);
 
 describe('BlueIdCalculator', () => {
   it('testObject', async () => {
@@ -123,6 +127,55 @@ describe('BlueIdCalculator', () => {
     const result2 = await fakeBlueIdCalculator.calculate(map2);
 
     expect(result1).not.toEqual(result2);
+  });
+
+  it('canonicalizes schema enum order and duplicates in direct BlueId input', () => {
+    const first = nodeFromYaml(`
+schema:
+  enum:
+    - B
+    - A
+    - B
+value: A
+`);
+    const second = nodeFromYaml(`
+schema:
+  enum:
+    - A
+    - B
+value: A
+`);
+
+    expect(BlueIdCalculator.calculateBlueIdSync(first)).toBe(
+      BlueIdCalculator.calculateBlueIdSync(second),
+    );
+  });
+
+  it('keeps resolved schema enum output duplicate-free and deterministic', () => {
+    const resolved = new Blue().resolve(
+      nodeFromYaml(`
+type:
+  schema:
+    enum:
+      - B
+      - A
+      - B
+schema:
+  enum:
+    - B
+    - A
+    - A
+`),
+    );
+
+    const resolvedEnumValues = (node: BlueNode | undefined): unknown[] =>
+      node
+        ?.getSchema()
+        ?.getEnum()
+        ?.map((enumNode) => enumNode.getValue()) ?? [];
+
+    expect(resolvedEnumValues(resolved)).toEqual(['A', 'B']);
+    expect(resolvedEnumValues(resolved.getType())).toEqual(['A', 'B']);
   });
 
   it('testSortingOfObjectProperties', async () => {

@@ -9,6 +9,35 @@ export type BexSimple =
   | BexSimple[]
   | { [key: string]: BexSimple };
 
+export interface BexReadableNode {
+  getName(): string | undefined;
+  getDescription(): string | undefined;
+  getType(): BexReadableNode | undefined;
+  getItemType(): BexReadableNode | undefined;
+  getKeyType(): BexReadableNode | undefined;
+  getValueType(): BexReadableNode | undefined;
+  getValue(): ReturnType<BlueNode['getValue']>;
+  getItems(): readonly BexReadableNode[] | undefined;
+  getProperties(): Readonly<Record<string, BexReadableNode>> | undefined;
+  getReferenceBlueId(): string | undefined;
+  getSchema(): BlueSchema | undefined;
+  getMergePolicy(): string | undefined;
+  getBlue(): BexReadableNode | undefined;
+}
+
+export interface NodeToSimpleOptions {
+  readonly includeMetadata?: (
+    path: readonly string[],
+    node: BexReadableNode,
+  ) => boolean;
+}
+
+export interface NodeToValueSimpleOptions {
+  readonly compactListsWithMetadata?: boolean;
+  readonly compactScalarsWithMetadata?: boolean;
+  readonly omitMetadataOnly?: boolean;
+}
+
 export interface BexBlueOutputOptions {
   readonly allowConstraints?: boolean;
   readonly allowComputedBlue?: boolean;
@@ -90,11 +119,14 @@ export class BexValues {
     return this.fromSimple(nodeToSimple(node));
   }
 
-  public static nodeValueSnapshot(node: BlueNode | undefined): BexValue {
+  public static nodeValueSnapshot(
+    node: BlueNode | undefined,
+    options: NodeToValueSimpleOptions = {},
+  ): BexValue {
     if (node === undefined) {
       return this.undefined();
     }
-    return this.fromSimple(nodeToValueSimple(node));
+    return this.fromSimple(nodeToValueSimple(node, options));
   }
 
   public static truthy(value: BexValue): boolean {
@@ -133,7 +165,7 @@ export class BexValues {
       return value;
     }
     if (isBigNumber(value) || isBigLikeNumber(value)) {
-      return value.toNumber();
+      return normalizeBigLikeNumber(value);
     }
     if (
       typeof value === 'string' ||
@@ -450,26 +482,47 @@ interface BigLikeNumber {
   readonly c?: unknown;
   readonly e?: unknown;
   readonly s?: unknown;
-  toNumber(): number;
+  toString(): string;
 }
 
 function isBigLikeNumber(value: unknown): value is BigLikeNumber {
   return (
     typeof value === 'object' &&
     value !== null &&
-    typeof (value as Partial<BigLikeNumber>).toNumber === 'function' &&
+    typeof (value as Partial<BigLikeNumber>).toString === 'function' &&
     Array.isArray((value as Partial<BigLikeNumber>).c) &&
     typeof (value as Partial<BigLikeNumber>).e === 'number' &&
     typeof (value as Partial<BigLikeNumber>).s === 'number'
   );
 }
 
+function normalizeBigLikeNumber(value: BigLikeNumber): string | number {
+  const text = value.toString();
+  if (/^-?(0|[1-9]\d*)$/.test(text)) {
+    const numeric = Number(text);
+    return Number.isSafeInteger(numeric) ? numeric : text;
+  }
+  return text;
+}
+
 function isPlainObject(value: unknown): value is Record<string, BexSimple> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function nodeToSimple(node: BlueNode): BexSimple {
-  const metadata = nodeMetadataToSimple(node);
+export function nodeToSimple(
+  node: BexReadableNode,
+  options: NodeToSimpleOptions = {},
+): BexSimple {
+  return nodeToSimpleAt(node, [], options.includeMetadata);
+}
+
+function nodeToSimpleAt(
+  node: BexReadableNode,
+  path: readonly string[],
+  includeMetadata: NodeToSimpleOptions['includeMetadata'],
+): BexSimple {
+  const metadata =
+    includeMetadata?.(path, node) === false ? {} : nodeMetadataToSimple(node);
   const metadataKeys = Object.keys(metadata);
   const value = node.getValue();
   if (
@@ -480,62 +533,92 @@ export function nodeToSimple(node: BlueNode): BexSimple {
   }
   const items = node.getItems();
   if (items !== undefined && metadataKeys.length === 0) {
-    return items.map((item) => nodeToSimple(item));
+    return items.map((item, index) =>
+      nodeToSimpleAt(item, [...path, String(index)], includeMetadata),
+    );
   }
   const result: Record<string, BexSimple> = { ...metadata };
   if (value !== undefined) {
     result.value = BexValues.fromSimple(value).toSimple();
   }
   if (items !== undefined) {
-    result.items = items.map((item) => nodeToSimple(item));
+    result.items = items.map((item, index) =>
+      nodeToSimpleAt(item, [...path, 'items', String(index)], includeMetadata),
+    );
   }
   const properties = node.getProperties();
   for (const [key, child] of Object.entries(properties ?? {})) {
-    result[key] = nodeToSimple(child);
+    result[key] = nodeToSimpleAt(child, [...path, key], includeMetadata);
   }
   return result;
 }
 
-export function nodeToValueSimple(node: BlueNode): BexSimple {
+export function nodeToValueSimple(
+  node: BexReadableNode,
+  options: NodeToValueSimpleOptions = {},
+): BexSimple {
+  const metadata = valueMetadataToSimple(node);
+  const metadataKeys = Object.keys(metadata);
   const value = node.getValue();
   if (value !== undefined) {
+    if (
+      metadataKeys.length > 0 &&
+      !options.compactScalarsWithMetadata &&
+      !hasOnlyPrimitiveTypeMetadata(node)
+    ) {
+      return {
+        ...metadata,
+        value: BexValues.fromSimple(value).toSimple(),
+      };
+    }
     return BexValues.fromSimple(value).toSimple();
   }
 
   const items = node.getItems();
   if (items !== undefined) {
-    const metadata = valueMetadataToSimple(node);
-    if (Object.keys(metadata).length === 0) {
-      return items.map((item) => nodeToValueSimple(item));
+    if (metadataKeys.length === 0 || options.compactListsWithMetadata) {
+      return items.map((item) => nodeToValueSimple(item, options));
     }
     return {
       ...metadata,
-      items: items.map((item) => nodeToValueSimple(item)),
+      items: items.map((item) => nodeToValueSimple(item, options)),
     };
   }
 
   const properties = node.getProperties();
   if (properties !== undefined) {
     return {
-      ...valueMetadataToSimple(node),
+      ...metadata,
       ...Object.fromEntries(
         Object.entries(properties).flatMap(([key, child]) => {
-          const value = nodeToValueSimple(child);
+          const value = nodeToValueSimple(child, options);
           return value === undefined ? [] : [[key, value]];
         }),
       ),
     };
   }
 
-  const metadata = valueMetadataToSimple(node);
   if (node.getReferenceBlueId() !== undefined) {
     return metadata;
   }
-  return Object.keys(metadata).length === 0 ? nodeToSimple(node) : undefined;
+  if (options.omitMetadataOnly && metadataKeys.length > 0) {
+    return undefined;
+  }
+  return metadataKeys.length === 0 ? nodeToSimple(node) : metadata;
 }
 
-function valueMetadataToSimple(node: BlueNode): Record<string, BexSimple> {
+function valueMetadataToSimple(
+  node: BexReadableNode,
+): Record<string, BexSimple> {
   const result: Record<string, BexSimple> = {};
+  const name = node.getName();
+  if (name !== undefined) {
+    result.name = name;
+  }
+  const description = node.getDescription();
+  if (description !== undefined) {
+    result.description = description;
+  }
   const type = compactReference(node.getType());
   if (type !== undefined) {
     result.type = type;
@@ -556,10 +639,26 @@ function valueMetadataToSimple(node: BlueNode): Record<string, BexSimple> {
   if (blueId !== undefined) {
     result.blueId = blueId;
   }
+  const schema = node.getSchema();
+  if (schema !== undefined) {
+    result.schema = schemaToSimple(schema);
+  }
+  const mergePolicy = node.getMergePolicy();
+  if (mergePolicy !== undefined) {
+    result.mergePolicy = mergePolicy;
+  }
+  const contracts = contractsNodeOf(node);
+  if (contracts !== undefined) {
+    result.contracts = nodeToSimple(contracts);
+  }
+  const blue = node.getBlue();
+  if (blue !== undefined) {
+    result.blue = nodeToSimple(blue);
+  }
   return result;
 }
 
-function compactReference(node: BlueNode | undefined): BexSimple {
+function compactReference(node: BexReadableNode | undefined): BexSimple {
   if (node === undefined) {
     return undefined;
   }
@@ -574,11 +673,9 @@ function compactReference(node: BlueNode | undefined): BexSimple {
   return nodeToSimple(node);
 }
 
-function hasOnlyPrimitiveTypeMetadata(node: BlueNode): boolean {
-  const typeBlueId = node.getType()?.getReferenceBlueId();
+function hasOnlyPrimitiveTypeMetadata(node: BexReadableNode): boolean {
   return (
-    typeBlueId !== undefined &&
-    BASIC_SCALAR_TYPE_BLUE_IDS.has(typeBlueId) &&
+    isPrimitiveTypeMetadata(node.getType()) &&
     node.getName() === undefined &&
     node.getDescription() === undefined &&
     node.getItemType() === undefined &&
@@ -587,7 +684,7 @@ function hasOnlyPrimitiveTypeMetadata(node: BlueNode): boolean {
     node.getReferenceBlueId() === undefined &&
     node.getSchema() === undefined &&
     node.getMergePolicy() === undefined &&
-    node.getContractsNode() === undefined &&
+    contractsNodeOf(node) === undefined &&
     node.getBlue() === undefined
   );
 }
@@ -599,7 +696,32 @@ const BASIC_SCALAR_TYPE_BLUE_IDS = new Set<string>([
   Properties.BOOLEAN_TYPE_BLUE_ID,
 ]);
 
-function nodeMetadataToSimple(node: BlueNode): Record<string, BexSimple> {
+const BASIC_SCALAR_TYPE_NAMES = new Set<string>([
+  'Text',
+  'Integer',
+  'Double',
+  'Boolean',
+]);
+
+function isPrimitiveTypeMetadata(type: BexReadableNode | undefined): boolean {
+  if (type === undefined) {
+    return false;
+  }
+  const typeBlueId = type.getReferenceBlueId();
+  if (typeBlueId !== undefined && BASIC_SCALAR_TYPE_BLUE_IDS.has(typeBlueId)) {
+    return true;
+  }
+  const typeValue = type.getValue();
+  if (typeof typeValue === 'string' && BASIC_SCALAR_TYPE_NAMES.has(typeValue)) {
+    return true;
+  }
+  const typeName = type.getName();
+  return typeof typeName === 'string' && BASIC_SCALAR_TYPE_NAMES.has(typeName);
+}
+
+function nodeMetadataToSimple(
+  node: BexReadableNode,
+): Record<string, BexSimple> {
   const result: Record<string, BexSimple> = {};
   const name = node.getName();
   if (name !== undefined) {
@@ -637,7 +759,7 @@ function nodeMetadataToSimple(node: BlueNode): Record<string, BexSimple> {
   if (mergePolicy !== undefined) {
     result.mergePolicy = mergePolicy;
   }
-  const contracts = node.getContractsNode();
+  const contracts = contractsNodeOf(node);
   if (contracts !== undefined) {
     result.contracts = nodeToSimple(contracts);
   }
@@ -646,6 +768,20 @@ function nodeMetadataToSimple(node: BlueNode): Record<string, BexSimple> {
     result.blue = nodeToSimple(blue);
   }
   return result;
+}
+
+function contractsNodeOf(node: BexReadableNode): BexReadableNode | undefined {
+  const withContractsNode = node as BexReadableNode & {
+    getContractsNode?: () => BexReadableNode | undefined;
+  };
+  const contractsNode = withContractsNode.getContractsNode?.();
+  if (contractsNode !== undefined) {
+    return contractsNode;
+  }
+  const withContracts = node as BexReadableNode & {
+    getContracts?: () => BexReadableNode | undefined;
+  };
+  return withContracts.getContracts?.();
 }
 
 function schemaToSimple(schema: BlueSchema): BexSimple {

@@ -8,6 +8,10 @@ import { DocumentProcessingRuntime } from '../runtime/document-processing-runtim
 import { CheckpointManager } from './checkpoint-manager.js';
 import type { ProcessorExecutionContext } from './processor-execution-context.js';
 import type { ChannelMatch, ChannelProcessor } from '../registry/types.js';
+import type {
+  CheckpointIdentityMode,
+  CheckpointIdentityResult,
+} from './checkpoint-identity-service.js';
 
 export type { ChannelMatch } from '../registry/types.js';
 
@@ -38,7 +42,11 @@ export interface ChannelRunnerDependencies {
     bundle: ContractBundle,
     error: unknown,
   ): Promise<void>;
-  canonicalSignature(node: BlueNode | null): string | null;
+  checkpointIdentity(
+    node: BlueNode | null,
+    mode?: CheckpointIdentityMode,
+    channelDefinedSubject?: BlueNode | null,
+  ): CheckpointIdentityResult;
   channelProcessorFor(node: BlueNode): ChannelProcessor<unknown> | null;
 }
 
@@ -54,9 +62,9 @@ export class ChannelRunner {
     bundle: ContractBundle,
     channel: ChannelBinding,
     event: ResolvedBlueNode,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (this.deps.isScopeInactive(scopePath)) {
-      return;
+      return false;
     }
     this.runtime.gasMeter().chargeChannelMatchAttempt();
 
@@ -68,12 +76,12 @@ export class ChannelRunner {
       event,
     );
     if (!match.matches) {
-      return;
+      return false;
     }
 
     if (match.deliveries && match.deliveries.length > 0) {
       await this.runDeliveries(scopePath, bundle, channel, event, match);
-      return;
+      return true;
     }
 
     const eventForHandlers = match.eventNode ?? event;
@@ -82,10 +90,10 @@ export class ChannelRunner {
       bundle,
       channel.key(),
     );
-    const eventSignature =
-      match.eventId ?? this.deps.canonicalSignature(checkpointEvent);
+    const identity = this.checkpointIdentity(checkpointEvent, match);
+    const eventSignature = identity.identity;
     if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
-      return;
+      return true;
     }
 
     const shouldProcess = await this.shouldProcessRelativeToCheckpoint(
@@ -96,7 +104,7 @@ export class ChannelRunner {
       checkpoint,
     );
     if (!shouldProcess) {
-      return;
+      return true;
     }
 
     await this.runHandlers(
@@ -107,7 +115,7 @@ export class ChannelRunner {
       false,
     );
     if (this.deps.isScopeInactive(scopePath)) {
-      return;
+      return true;
     }
 
     this.checkpointManager.persist(
@@ -115,8 +123,9 @@ export class ChannelRunner {
       bundle,
       checkpoint,
       eventSignature ?? null,
-      checkpointEvent,
+      identity.subject,
     );
+    return true;
   }
 
   private async runDeliveries(
@@ -131,7 +140,7 @@ export class ChannelRunner {
       return;
     }
     this.checkpointManager.ensureCheckpointMarker(scopePath, bundle);
-    const fallbackSignature = this.deps.canonicalSignature(checkpointEvent);
+    let fallbackIdentity: CheckpointIdentityResult | undefined;
 
     for (const delivery of deliveries) {
       if (this.deps.isScopeInactive(scopePath)) {
@@ -142,7 +151,15 @@ export class ChannelRunner {
         bundle,
         checkpointKey,
       );
-      const eventSignature = delivery.eventId ?? fallbackSignature;
+      const identity = this.checkpointIdentity(
+        checkpointEvent,
+        delivery,
+        fallbackIdentity,
+      );
+      if (delivery.eventId == null && fallbackIdentity == null) {
+        fallbackIdentity = identity;
+      }
+      const eventSignature = identity.identity;
       if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
         continue;
       }
@@ -177,9 +194,32 @@ export class ChannelRunner {
         bundle,
         checkpoint,
         eventSignature ?? null,
-        checkpointEvent,
+        identity.subject,
       );
     }
+  }
+
+  private checkpointIdentity(
+    checkpointEvent: BlueNode,
+    match:
+      | Pick<ChannelMatch, 'eventId' | 'checkpointIdentityMode'>
+      | {
+          readonly eventId?: string | null;
+          readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
+        },
+    fallback?: CheckpointIdentityResult,
+  ): CheckpointIdentityResult {
+    if (match.eventId != null) {
+      return {
+        identity: match.eventId,
+        subject: checkpointEvent.clone(),
+      };
+    }
+    const mode = match.checkpointIdentityMode ?? 'contentBlueId';
+    if (mode === 'contentBlueId' && fallback) {
+      return fallback;
+    }
+    return this.deps.checkpointIdentity(checkpointEvent, mode);
   }
 
   async runHandlers(

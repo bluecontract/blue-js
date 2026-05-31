@@ -43,7 +43,7 @@ export default {
     rollupOptions: {
       // External packages that should not be bundled into your library.
       external: (id: string) => {
-        if (id === 'crypto') {
+        if (id === 'crypto' || id.startsWith('node:')) {
           return true;
         }
         const dependencies = Object.keys(packageJson.dependencies);

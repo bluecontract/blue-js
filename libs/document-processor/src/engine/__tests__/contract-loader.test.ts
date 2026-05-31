@@ -91,7 +91,6 @@ describe('ContractLoader', () => {
       checkpoint: {
         type: { blueId: blueIdCheckpoint },
         lastEvents: {},
-        lastSignatures: {},
       },
     });
 
@@ -507,7 +506,6 @@ describe('ContractLoader', () => {
       wrongCheckpoint: {
         type: { blueId: blueIdCheckpoint },
         lastEvents: {},
-        lastSignatures: {},
       },
     });
 

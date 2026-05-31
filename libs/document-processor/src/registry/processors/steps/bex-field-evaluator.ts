@@ -10,6 +10,7 @@ import { BlueNode } from '@blue-labs/language';
 import type { JsonValue } from '@blue-labs/shared-utils';
 
 import type { StepExecutionArgs } from '../workflow/step-runner.js';
+import { ProcessorBexDocumentView } from './processor-bex-document-view.js';
 
 export class BexFieldEvaluator {
   constructor(private readonly engine = new BexEngine()) {}
@@ -73,7 +74,7 @@ export class BexFieldEvaluator {
         expr: expression.clone(),
       });
       const result = this.engine.compileAndExecute(
-        BexProgramSource.inline(programNode),
+        BexProgramSource.inline(programNode, { inputKind: 'resolved' }),
         this.executionContext(args),
       );
       args.context.consumeGas(result.gasUsed);
@@ -94,10 +95,16 @@ export class BexFieldEvaluator {
 
   private executionContext(args: StepExecutionArgs): BexExecutionContext {
     const scopeRootPointer = args.context.resolvePointer('/');
-    const root = args.context.documentAt(scopeRootPointer) ?? new BlueNode();
     return BexExecutionContext.builder()
-      .document(root)
-      .event(BexValues.nodeValueSnapshot(args.eventNode))
+      .documentView(
+        new ProcessorBexDocumentView(args.context, scopeRootPointer),
+      )
+      .event(
+        BexValues.nodeValueSnapshot(args.eventNode, {
+          compactListsWithMetadata: true,
+          compactScalarsWithMetadata: true,
+        }),
+      )
       .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(1_000_000)

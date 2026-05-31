@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { BlueNode } from '@blue-labs/language';
 
 import { CheckpointManager } from '../checkpoint-manager.js';
+import { CheckpointIdentityService } from '../checkpoint-identity-service.js';
 import { ContractBundle } from '../contract-bundle.js';
 import { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import { KEY_CHECKPOINT } from '../../constants/processor-contract-constants.js';
@@ -20,15 +21,14 @@ function nodeFrom(json: unknown): BlueNode {
   return blue.jsonValueToNode(json);
 }
 
-function signatureFn(node: BlueNode | null): string | null {
-  return node ? node.toString() : null;
-}
-
 describe('CheckpointManager', () => {
   it('ensures checkpoint marker exists in bundle and document', () => {
     const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
-    const manager = new CheckpointManager(runtime, signatureFn);
+    const manager = new CheckpointManager(
+      runtime,
+      new CheckpointIdentityService(blue),
+    );
 
     manager.ensureCheckpointMarker('/', bundle);
 
@@ -41,7 +41,10 @@ describe('CheckpointManager', () => {
   it('finds checkpoint records and persists updates', () => {
     const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
-    const manager = new CheckpointManager(runtime, signatureFn);
+    const manager = new CheckpointManager(
+      runtime,
+      new CheckpointIdentityService(blue),
+    );
     manager.ensureCheckpointMarker('/', bundle);
 
     const marker = bundle.marker(KEY_CHECKPOINT)! as ChannelEventCheckpoint;
@@ -54,7 +57,9 @@ describe('CheckpointManager', () => {
     const record = manager.findCheckpoint(bundle, 'channelA');
     expect(record).not.toBeNull();
     if (!record) return;
-    expect(record.lastEventSignature).toBe(signatureFn(existingEvent));
+    expect(record.lastEventSignature).toBe(
+      new CheckpointIdentityService(blue).identityFor(existingEvent).identity,
+    );
 
     const newEvent = nodeFrom({ payload: { id: 'current' } });
     manager.persist('/', bundle, record, 'sig-1', newEvent);
@@ -74,14 +79,16 @@ describe('CheckpointManager', () => {
     const updatedMarker = bundle.marker(
       KEY_CHECKPOINT,
     )! as ChannelEventCheckpoint;
-    expect(updatedMarker.lastSignatures).toBeDefined();
-    expect(updatedMarker.lastSignatures?.channelA).toBe('sig-1');
+    expect(updatedMarker.lastEvents?.channelA).toBeInstanceOf(BlueNode);
   });
 
   it('detects duplicate events via signatures', () => {
     const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
-    const manager = new CheckpointManager(runtime, signatureFn);
+    const manager = new CheckpointManager(
+      runtime,
+      new CheckpointIdentityService(blue),
+    );
     manager.ensureCheckpointMarker('/', bundle);
     const record = manager.findCheckpoint(bundle, 'missing');
 
@@ -101,10 +108,72 @@ describe('CheckpointManager', () => {
     expect(manager.isDuplicate(existing, 'sig-x')).toBe(true);
   });
 
+  it('checkpointDefaultUsesContentBlueId', () => {
+    const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
+    const bundle = ContractBundle.builder().build();
+    const identityService = new CheckpointIdentityService(blue);
+    const manager = new CheckpointManager(runtime, identityService);
+    manager.ensureCheckpointMarker('/', bundle);
+    const record = manager.findCheckpoint(bundle, 'channel');
+    const first = nodeFrom({ eventId: 'same', amount: 10 });
+    const second = nodeFrom({ eventId: 'same', amount: 11 });
+
+    manager.persist(
+      '/',
+      bundle,
+      record,
+      identityService.identityFor(first).identity,
+      first,
+    );
+
+    const updated = manager.findCheckpoint(bundle, 'channel');
+    expect(updated?.lastEventSignature).toBe(
+      identityService.identityFor(first).identity,
+    );
+    expect(updated?.lastEventSignature).not.toBe('same');
+    expect(
+      manager.isDuplicate(
+        updated,
+        identityService.identityFor(second).identity,
+      ),
+    ).toBe(false);
+  });
+
+  it('checkpointStoresRawChannelKeyWithSlashAndUsesEscapedPointerForWrite', () => {
+    const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
+    const bundle = ContractBundle.builder().build();
+    const identityService = new CheckpointIdentityService(blue);
+    const manager = new CheckpointManager(runtime, identityService);
+    manager.ensureCheckpointMarker('/', bundle);
+    const record = manager.findCheckpoint(bundle, 'channel/with/slash');
+    const event = nodeFrom({ payload: 'ok' });
+
+    manager.persist(
+      '/',
+      bundle,
+      record,
+      identityService.identityFor(event).identity,
+      event,
+    );
+
+    const marker = bundle.marker(KEY_CHECKPOINT) as ChannelEventCheckpoint;
+    expect(marker.lastEvents?.['channel/with/slash']).toBeInstanceOf(BlueNode);
+    const lastEvents = runtime
+      .document()
+      .get('/contracts/checkpoint/lastEvents');
+    expect(lastEvents).toBeInstanceOf(BlueNode);
+    expect(
+      (lastEvents as BlueNode).getProperties()?.['channel/with/slash'],
+    ).toBeInstanceOf(BlueNode);
+  });
+
   it('ignores persistence when record is null', () => {
     const runtime = new DocumentProcessingRuntime(createRootDocument(), blue);
     const bundle = ContractBundle.builder().build();
-    const manager = new CheckpointManager(runtime, signatureFn);
+    const manager = new CheckpointManager(
+      runtime,
+      new CheckpointIdentityService(blue),
+    );
 
     expect(() =>
       manager.persist('/', bundle, null, 'sig', nodeFrom({ value: 1 })),

@@ -1,3 +1,5 @@
+import Big from 'big.js';
+
 import { BexException } from '../BexException';
 import { BexGasSchedule } from '../gas/BexGasSchedule';
 import {
@@ -10,11 +12,12 @@ import {
 import { BlueIdCalculator } from '@blue-labs/language';
 import { BexValue, BexValues, nodeToSimple } from '../value/BexValues';
 import { sortBexKeys } from '../value/key-order';
-import { BexExecutionContext } from './BexExecutionContext';
+import { BexDocumentView, BexExecutionContext } from './BexExecutionContext';
 import {
   BexIntrinsicProcessor,
   BexIntrinsicRegistry,
 } from './BexIntrinsicRegistry';
+import { BexProgramExtractor } from './BexProgramExtractor';
 import { BexProgramSource } from './BexProgramSource';
 
 type SimpleObject = Record<string, unknown>;
@@ -66,7 +69,11 @@ export class BexEngine {
   ) {}
 
   public compile(source: BexProgramSource): BexCompiledProgram {
-    const program = this.normalizeBlueContainers(nodeToSimple(source.node));
+    const program = this.normalizeBlueContainers(
+      BexProgramExtractor.extract(source.node, {
+        inputKind: source.inputKind,
+      }),
+    );
     if (!this.isObject(program)) {
       throw new BexException('BEX program must be an object.', 'compile-error');
     }
@@ -74,7 +81,11 @@ export class BexEngine {
     const definition =
       source.definitionNode === undefined
         ? undefined
-        : this.normalizeBlueContainers(nodeToSimple(source.definitionNode));
+        : this.normalizeBlueContainers(
+            BexProgramExtractor.extract(source.definitionNode, {
+              inputKind: source.inputKind,
+            }),
+          );
     if (definition !== undefined && !this.isObject(definition)) {
       throw new BexException(
         'BEX definition must be an object.',
@@ -233,8 +244,10 @@ export class BexEngine {
     }
 
     const keys = Object.keys(value);
+    const nameContainer = this.isBexNameContainer(path);
     const ordinaryKeys = keys.filter((key) => !this.blueWrapperKeys().has(key));
     if (
+      !nameContainer &&
       Object.hasOwn(value, 'value') &&
       ordinaryKeys.length === 0 &&
       !Object.hasOwn(value, 'items')
@@ -242,6 +255,7 @@ export class BexEngine {
       return this.normalizeBlueContainers(value.value, [...path, 'value']);
     }
     if (
+      !nameContainer &&
       Object.hasOwn(value, 'items') &&
       ordinaryKeys.length === 0 &&
       Array.isArray(value.items)
@@ -298,7 +312,26 @@ export class BexEngine {
   ): boolean {
     const last = path[path.length - 1];
     const parent = path[path.length - 2];
-    return last === 'entry' || parent === 'functions' || parent === 'args';
+    return (
+      last === 'entry' ||
+      last === 'functions' ||
+      last === 'constants' ||
+      last === 'args' ||
+      parent === 'functions' ||
+      parent === 'args'
+    );
+  }
+
+  private isBexNameContainer(path: readonly string[]): boolean {
+    const last = path[path.length - 1];
+    const parent = path[path.length - 2];
+    const grandparent = path[path.length - 3];
+    return (
+      last === 'functions' ||
+      last === 'constants' ||
+      (last === 'args' && parent === '$call') ||
+      (last === 'args' && grandparent === 'functions')
+    );
   }
 
   private compileFunctions(
@@ -1278,10 +1311,12 @@ export class BexEngine {
       case '$text':
         return this.asText(this.evalExpr(operand, context, state, program));
       case '$integer':
-        return this.asInteger(this.evalExpr(operand, context, state, program));
+        return this.integerResult(
+          this.asIntegerBigInt(this.evalExpr(operand, context, state, program)),
+        );
       case '$number':
-        return Number(
-          this.asText(this.evalExpr(operand, context, state, program)),
+        return this.numberResult(
+          this.evalExpr(operand, context, state, program),
         );
       case '$boolean':
         return this.asBoolean(this.evalExpr(operand, context, state, program));
@@ -1460,8 +1495,23 @@ export class BexEngine {
       program,
       false,
     );
+    const documentView = context.documentView;
+    if (documentView !== undefined) {
+      return this.documentViewValue(documentView, view, path).toSimple();
+    }
     const simple = this.documentRootSimple(context, view);
     return this.getAt(simple, this.pointerSegments(path));
+  }
+
+  private documentViewValue(
+    documentView: BexDocumentView,
+    view: unknown,
+    path: string,
+  ) {
+    if (view === 'resolved') {
+      return documentView.resolvedAt(path);
+    }
+    return documentView.canonicalAt(path);
   }
 
   private documentRootSimple(
@@ -1808,7 +1858,14 @@ export class BexEngine {
     if (values.length !== 2) {
       throw new BexException('Comparison expects two operands');
     }
-    return fn(this.asNumber(values[0]), this.asNumber(values[1]));
+    if (this.isIntegerLike(values[0]) && this.isIntegerLike(values[1])) {
+      const left = this.asIntegerBigInt(values[0]);
+      const right = this.asIntegerBigInt(values[1]);
+      const comparison = left === right ? 0 : left > right ? 1 : -1;
+      return fn(comparison, 0);
+    }
+    const comparison = this.asDecimal(values[0]).cmp(this.asDecimal(values[1]));
+    return fn(comparison, 0);
   }
 
   private evalAnd(
@@ -1863,16 +1920,16 @@ export class BexEngine {
     state: RuntimeState,
     program: BexCompiledProgram,
     op: 'add' | 'subtract' | 'multiply' | 'divide',
-  ): number {
+  ): number | string {
     const values = this.evalListOperands(operand, context, state, program).map(
-      (value) => this.asInteger(value),
+      (value) => this.asIntegerBigInt(value),
     );
     if (values.length === 0) {
       throw new BexException('Numeric operator needs operands');
     }
     let result = values[0];
     if (op === 'add' && values.length === 1) {
-      return result;
+      return this.integerResult(result);
     }
     for (const next of values.slice(1)) {
       if (op === 'add') {
@@ -1882,16 +1939,16 @@ export class BexEngine {
       } else if (op === 'multiply') {
         result *= next;
       } else {
-        if (next === 0) {
+        if (next === 0n) {
           throw new BexException('Division by zero');
         }
-        if (result % next !== 0) {
+        if (result % next !== 0n) {
           throw new BexException('Non-exact integer division');
         }
         result /= next;
       }
     }
-    return result;
+    return this.integerResult(result);
   }
 
   private evalListGet(
@@ -2764,23 +2821,81 @@ export class BexEngine {
   }
 
   private asInteger(value: unknown): number {
-    if (typeof value === 'number' && Number.isInteger(value)) {
-      return value;
+    const integer = this.asIntegerBigInt(value);
+    const min = BigInt(Number.MIN_SAFE_INTEGER);
+    const max = BigInt(Number.MAX_SAFE_INTEGER);
+    if (integer < min || integer > max) {
+      throw new BexException(
+        `Integer is outside safe JavaScript range: ${String(value)}`,
+      );
     }
-    if (typeof value === 'string' && /^-?(0|[1-9]\d*)$/.test(value)) {
-      return Number(value);
+    return Number(integer);
+  }
+
+  private asIntegerBigInt(value: unknown): bigint {
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      if (!Number.isSafeInteger(value)) {
+        throw new BexException(
+          `Unsafe JavaScript integer cannot be used exactly: ${String(value)}`,
+        );
+      }
+      return BigInt(value);
+    }
+    if (typeof value === 'string' && this.isIntegerText(value)) {
+      return BigInt(value);
     }
     throw new BexException(`Cannot convert value to integer: ${String(value)}`);
   }
 
-  private asNumber(value: unknown): number {
-    const number = Number(this.asText(value));
-    if (!Number.isFinite(number)) {
+  private integerResult(value: bigint): number | string {
+    const min = BigInt(Number.MIN_SAFE_INTEGER);
+    const max = BigInt(Number.MAX_SAFE_INTEGER);
+    return value >= min && value <= max ? Number(value) : value.toString();
+  }
+
+  private isIntegerLike(value: unknown): boolean {
+    return (
+      (typeof value === 'number' &&
+        Number.isInteger(value) &&
+        Number.isSafeInteger(value)) ||
+      (typeof value === 'string' && this.isIntegerText(value))
+    );
+  }
+
+  private isIntegerText(value: string): boolean {
+    return /^-?(0|[1-9]\d*)$/.test(value);
+  }
+
+  private numberResult(value: unknown): number | string {
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) {
+        throw new BexException(
+          `Cannot convert value to number: ${String(value)}`,
+        );
+      }
+      return value;
+    }
+    const text = this.asText(value);
+    this.assertNumericText(text, value);
+    if (this.isIntegerText(text)) {
+      const numeric = Number(text);
+      return Number.isSafeInteger(numeric) ? numeric : text;
+    }
+    return text;
+  }
+
+  private asDecimal(value: unknown): Big {
+    const text = this.asText(value);
+    this.assertNumericText(text, value);
+    return new Big(text);
+  }
+
+  private assertNumericText(text: string, original: unknown): void {
+    if (!/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(text)) {
       throw new BexException(
-        `Cannot convert value to number: ${String(value)}`,
+        `Cannot convert value to number: ${String(original)}`,
       );
     }
-    return number;
   }
 
   private asBoolean(value: unknown): boolean {

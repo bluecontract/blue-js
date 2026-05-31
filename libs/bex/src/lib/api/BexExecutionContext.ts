@@ -8,11 +8,17 @@ type FrozenNodeLike = {
 
 type DocumentSnapshot = BlueNode | FrozenNodeLike;
 
+export interface BexDocumentView {
+  canonicalAt(pointer: string): BexValue;
+  resolvedAt(pointer: string): BexValue;
+}
+
 export class BexExecutionContext {
   public documentScope = '/';
   public rootDocument?: BlueNode;
   public canonicalDocument?: BlueNode;
   public resolvedDocument?: BlueNode;
+  public documentView?: BexDocumentView;
   public event = BexValues.undefined();
   public currentContract = BexValues.undefined();
   public steps = new BexStepResults();
@@ -27,6 +33,10 @@ export class BexExecutionContext {
 export class BexExecutionContextBuilder {
   private readonly context = new BexExecutionContext();
 
+  /**
+   * Binds a concrete document snapshot by materializing it to a BlueNode.
+   * Processor-owned/cursor-backed paths should use documentView(...) instead.
+   */
   public document(
     rootDocument: DocumentSnapshot,
     documentScope = '/',
@@ -38,6 +48,12 @@ export class BexExecutionContextBuilder {
     if (resolvedDocument !== undefined) {
       this.context.resolvedDocument = this.toNode(resolvedDocument);
     }
+    return this;
+  }
+
+  public documentView(view: BexDocumentView, documentScope = '/'): this {
+    this.context.documentView = view;
+    this.context.documentScope = documentScope;
     return this;
   }
 

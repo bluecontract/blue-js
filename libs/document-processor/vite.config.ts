@@ -59,6 +59,7 @@ export default defineConfig(({ mode }) => ({
           packageJson.peerDependencies ?? {},
         );
         return (
+          id.startsWith('node:') ||
           dependencies.some((dependency) => id === dependency) ||
           peerDependencies.some((dependency) => id === dependency)
         );

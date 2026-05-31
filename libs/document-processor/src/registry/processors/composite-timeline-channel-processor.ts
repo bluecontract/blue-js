@@ -32,9 +32,7 @@ function isChannelEventCheckpoint(
   marker: MarkerContract | undefined,
 ): marker is ChannelEventCheckpoint {
   return (
-    marker != null &&
-    Object.prototype.hasOwnProperty.call(marker, 'lastEvents') &&
-    Object.prototype.hasOwnProperty.call(marker, 'lastSignatures')
+    marker != null && Object.prototype.hasOwnProperty.call(marker, 'lastEvents')
   );
 }
 

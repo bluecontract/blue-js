@@ -6,6 +6,11 @@ import { ProcessorEngine } from './processor-engine.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import type { GasMeter } from '../runtime/gas-meter.js';
+import {
+  ProcessorErrorCategory,
+  type ProcessorErrorCategory as ProcessorErrorCategoryValue,
+} from '../types/document-processing-result.js';
+import { calculateRuntimeContentBlueId } from '../util/content-blue-id.js';
 
 export interface ExecutionAdapter {
   runtime(): DocumentProcessingRuntime;
@@ -26,6 +31,7 @@ export interface ExecutionAdapter {
     scopePath: string,
     bundle: ContractBundle,
     reason: string | null,
+    errorCategory?: ProcessorErrorCategoryValue,
   ): Promise<void>;
 }
 
@@ -86,6 +92,15 @@ export class ProcessorExecutionContext {
     if (this.shouldSkipTerminatedWork()) {
       return;
     }
+    if (!Number.isFinite(units) || units < 0) {
+      throw new ProcessorFatalError(
+        'Gas consumption must be a non-negative finite number',
+        ProcessorErrors.runtimeFatal(
+          'Gas consumption must be a non-negative finite number',
+        ),
+        ProcessorErrorCategory.GasError,
+      );
+    }
     this.execution.runtime().addGas(units);
   }
 
@@ -120,7 +135,10 @@ export class ProcessorExecutionContext {
           absolutePointer,
           {
             calculateBlueId: (node) =>
-              this.execution.runtime().blue().calculateBlueIdSync(node),
+              calculateRuntimeContentBlueId(
+                this.execution.runtime().blue(),
+                node,
+              ),
           },
         ) != null
       );
@@ -134,8 +152,8 @@ export class ProcessorExecutionContext {
       this.execution.runtime().document(),
       absolutePointer,
       {
-        calculateBlueId: (node) =>
-          this.execution.runtime().blue().calculateBlueIdSync(node),
+        calculateBlueId: (value) =>
+          calculateRuntimeContentBlueId(this.execution.runtime().blue(), value),
       },
     );
     return node instanceof BlueNode ? node : null;
@@ -154,6 +172,7 @@ export class ProcessorExecutionContext {
       this.scopePathValue,
       this.bundle,
       reason ?? null,
+      ProcessorErrorCategory.InternalProcessorError,
     );
   }
 

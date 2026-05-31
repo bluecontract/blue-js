@@ -13,8 +13,8 @@ import {
 
 const blue = createBlue();
 
-describe('Contract Bundle — Dynamic workflow registration (deferred execution)', () => {
-  it('only executes dynamically added workflows in later processing cycles', async () => {
+describe('Contract Bundle — Dynamic workflow registration', () => {
+  it('executes dynamically added document update workflows for the same update', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Dynamic Workflow Doc
 counter: 0
@@ -85,7 +85,7 @@ contracts:
 
     expect(numericValue(property(afterFirst.document, 'counter'))).toBe(1);
     expect(numericValue(property(afterFirst.document, 'staticRan'))).toBe(1);
-    expect(numericValue(property(afterFirst.document, 'dynamicRan'))).toBe(0);
+    expect(numericValue(property(afterFirst.document, 'dynamicRan'))).toBe(1);
 
     const afterSecond = await expectOk(
       processor.processDocument(

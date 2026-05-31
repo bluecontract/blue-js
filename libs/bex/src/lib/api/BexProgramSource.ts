@@ -1,29 +1,43 @@
-import { BlueNode } from '@blue-labs/language';
+import type { BexReadableNode } from '../value/BexValues';
 
-type FrozenNodeLike = {
-  toNode(): BlueNode;
-};
+export type BexProgramInputKind = 'source' | 'resolved';
+export type BexProgramNode = BexReadableNode;
+
+export interface BexProgramSourceOptions {
+  readonly inputKind?: BexProgramInputKind;
+}
 
 export class BexProgramSource {
   private constructor(
-    public readonly node: BlueNode,
-    public readonly definitionNode?: BlueNode,
+    public readonly node: BexProgramNode,
+    public readonly definitionNode?: BexProgramNode,
     public readonly entry?: string,
+    public readonly inputKind: BexProgramInputKind = 'source',
   ) {}
 
-  public static inline(node: BlueNode | FrozenNodeLike): BexProgramSource {
-    return new BexProgramSource('toNode' in node ? node.toNode() : node);
+  public static inline(
+    node: BexProgramNode,
+    options: BexProgramSourceOptions = {},
+  ): BexProgramSource {
+    return new BexProgramSource(
+      node,
+      undefined,
+      undefined,
+      options.inputKind ?? 'source',
+    );
   }
 
   public static withDefinition(
-    node: BlueNode | FrozenNodeLike,
-    definitionNode: BlueNode | FrozenNodeLike,
+    node: BexProgramNode,
+    definitionNode: BexProgramNode,
     entry?: string,
+    options: BexProgramSourceOptions = {},
   ): BexProgramSource {
     return new BexProgramSource(
-      'toNode' in node ? node.toNode() : node,
-      'toNode' in definitionNode ? definitionNode.toNode() : definitionNode,
+      node,
+      definitionNode,
       entry,
+      options.inputKind ?? 'source',
     );
   }
 }

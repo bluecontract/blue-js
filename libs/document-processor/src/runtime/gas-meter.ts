@@ -7,7 +7,7 @@ import {
 } from './gas-helpers.js';
 import { normalizeScope } from '../util/pointer-utils.js';
 
-const INITIALIZATION = 1_000;
+const INITIALIZATION = 1_001;
 const CHANNEL_MATCH_ATTEMPT = 5;
 const HANDLER_OVERHEAD = 50;
 const BOUNDARY_CHECK = 2;
@@ -49,8 +49,12 @@ export class GasMeter {
     this.total += amount;
   }
 
-  chargeScopeEntry(scopePath: string): void {
-    this.add(scopeEntryCharge(this.scopeDepth(scopePath)));
+  chargeScopeEntry(scopePathOrDepth: string | number): void {
+    const depth =
+      typeof scopePathOrDepth === 'number'
+        ? scopePathOrDepth
+        : this.scopeDepth(scopePathOrDepth);
+    this.add(scopeEntryCharge(depth));
   }
 
   chargeInitialization(): void {

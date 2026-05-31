@@ -103,14 +103,10 @@ describe('contract model schemas', () => {
           payload: 'data',
         },
       },
-      lastSignatures: {
-        channelA: 'sig-123',
-      },
     });
 
     const dto = blue.nodeToSchemaOutput(node, channelEventCheckpointSchema);
 
-    expect(dto.lastSignatures?.channelA).toBe('sig-123');
     const eventNode = dto.lastEvents?.channelA ?? null;
     expect(eventNode).toBeInstanceOf(BlueNode);
     expect(eventNode?.getProperties()?.payload?.getValue()).toBe('data');

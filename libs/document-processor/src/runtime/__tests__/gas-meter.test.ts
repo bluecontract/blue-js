@@ -18,8 +18,8 @@ describe('GasMeter', () => {
     meter.chargeScopeEntry('/child/grandchild');
     meter.chargeScopeEntry('nested/scope');
 
-    // Initialization 1000 + depth (2 -> 70) + depth (2 -> 70)
-    expect(meter.totalGas()).toBe(1_000 + 70 + 70);
+    // Initialization 1001 + depth (2 -> 70) + depth (2 -> 70)
+    expect(meter.totalGas()).toBe(1_001 + 70 + 70);
   });
 
   it('charges patch add/replace proportional to canonical size', () => {

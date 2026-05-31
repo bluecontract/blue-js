@@ -1,4 +1,5 @@
-import { BlueNode } from '@blue-labs/language';
+import { BlueNode, Properties } from '@blue-labs/language';
+import Big from 'big.js';
 import { describe, expect, it } from 'vitest';
 import { BexException } from '../BexException';
 import { BexValues, nodeToSimple, nodeToValueSimple } from '../value/BexValues';
@@ -214,7 +215,325 @@ describe('BEX strict spec hardening', () => {
       .setType(new BlueNode().setReferenceBlueId('IntegerType'))
       .setValue(7);
 
-    expect(nodeToValueSimple(input)).toBe(7);
+    expect(nodeToValueSimple(input)).toEqual({
+      description: 'Resolved schema description',
+      type: { blueId: 'IntegerType' },
+      value: 7,
+    });
+  });
+
+  it('exposes value-local object metadata in node snapshots', () => {
+    const input = new BlueNode()
+      .setName('Display')
+      .setDescription('Resolved description')
+      .setProperties({ child: node(1) });
+
+    expect(nodeToValueSimple(input)).toEqual({
+      name: 'Display',
+      description: 'Resolved description',
+      child: 1,
+    });
+  });
+
+  it('exposes schema, merge policy, and contracts in value snapshots', () => {
+    const schema = BexValues.toBlueNodeStrict({
+      schema: { required: true },
+    }).getSchema();
+    if (schema === undefined) {
+      throw new Error('schema should have been created');
+    }
+    const input = new BlueNode()
+      .setSchema(schema)
+      .setMergePolicy('append')
+      .setContractsNode(new BlueNode().setProperties({ marker: node(true) }));
+
+    expect(nodeToValueSimple(input)).toEqual({
+      schema: { required: true },
+      mergePolicy: 'append',
+      contracts: { marker: true },
+    });
+  });
+
+  it('returns an object for metadata-only value snapshots', () => {
+    expect(
+      nodeToValueSimple(new BlueNode().setDescription('metadata only')),
+    ).toEqual({
+      description: 'metadata only',
+    });
+  });
+
+  it('preserves large integer snapshots exactly', () => {
+    const input = new BlueNode()
+      .setType(
+        new BlueNode().setReferenceBlueId(Properties.INTEGER_TYPE_BLUE_ID),
+      )
+      .setValue('9007199254740993');
+
+    expect(nodeToValueSimple(input)).toBe('9007199254740993');
+  });
+
+  it('preserves large integer BEX bindings exactly', () => {
+    expect(BexValues.fromSimple(new Big('9007199254740993')).toSimple()).toBe(
+      '9007199254740993',
+    );
+  });
+
+  it('preserves decimal money values without number rounding', () => {
+    expect(BexValues.fromSimple(new Big('10.2300')).toSimple()).toBe('10.23');
+    expect(
+      execute({ expr: { $number: '1234567890.123456789' } }).value.toSimple(),
+    ).toBe('1234567890.123456789');
+  });
+
+  it('does not convert decimal arithmetic through JavaScript number rounding', () => {
+    expect(() => execute({ expr: { $add: ['0.1', '0.2'] } })).toThrow(
+      /Cannot convert value to integer/,
+    );
+  });
+
+  it('bexDecimalBindingRemainsTextUnlessExplicitNumberOrDouble', () => {
+    const context = BexExecutionContext.builder()
+      .binding('amount', BexValues.fromSimple(new Big('123.4500')))
+      .build();
+
+    expect(
+      execute({ expr: { $binding: 'amount' } }, context).value.toSimple(),
+    ).toBe('123.45');
+    expect(execute({ expr: { $number: '123.4500' } }).value.toSimple()).toBe(
+      '123.4500',
+    );
+  });
+
+  it('bexUnsafeIntegerBindingRemainsExact', () => {
+    const context = BexExecutionContext.builder()
+      .binding('unsafe', BexValues.fromSimple(new Big('9007199254740993123')))
+      .build();
+
+    expect(
+      execute({ expr: { $binding: 'unsafe' } }, context).value.toSimple(),
+    ).toBe('9007199254740993123');
+  });
+
+  it('bexPayNoteAmountDoesNotRoundThroughNumber', () => {
+    const context = BexExecutionContext.builder()
+      .binding(
+        'payNote',
+        BexValues.fromSimple({
+          amount: new Big('9999999999999999.99'),
+        }),
+      )
+      .build();
+
+    expect(
+      execute(
+        { expr: { $binding: { name: 'payNote', path: '/amount' } } },
+        context,
+      ).value.toSimple(),
+    ).toBe('9999999999999999.99');
+  });
+
+  it('bexAddRejectsDecimalUnlessExplicitDecimalOperatorExists', () => {
+    expect(() => execute({ expr: { $add: ['1.5', '2.5'] } })).toThrow(
+      /Cannot convert value to integer/,
+    );
+  });
+
+  it('bexComparisonDoesNotCoerceLargeIntegerToNumber', () => {
+    expect(
+      execute({
+        expr: { $gt: ['9007199254740993123', '9007199254740993122'] },
+      }).value.toSimple(),
+    ).toBe(true);
+  });
+
+  it('compacts primitive scalar snapshots with named primitive type metadata', () => {
+    expect(
+      nodeToValueSimple(new BlueNode().setType('Boolean').setValue(true)),
+    ).toBe(true);
+  });
+
+  it('allows processor event snapshots to compact scalar metadata explicitly', () => {
+    const input = new BlueNode()
+      .setDescription('resolved metadata')
+      .setType('Boolean')
+      .setValue(true);
+
+    expect(
+      BexValues.nodeValueSnapshot(input, {
+        compactScalarsWithMetadata: true,
+      }).toSimple(),
+    ).toBe(true);
+  });
+
+  it('allows processor event snapshots to compact list metadata explicitly', () => {
+    const input = new BlueNode()
+      .setItemType('Event')
+      .setItems([node({ type: 'Example/Event' })]);
+
+    expect(
+      BexValues.nodeValueSnapshot(input, {
+        compactListsWithMetadata: true,
+      }).toSimple(),
+    ).toEqual([{ type: 'Example/Event' }]);
+  });
+
+  it('allows processor event snapshots to omit metadata-only resolved fields', () => {
+    const input = new BlueNode().setDescription('resolved schema field');
+
+    expect(
+      BexValues.nodeValueSnapshot(input, {
+        omitMetadataOnly: true,
+      }).toSimple(),
+    ).toBeUndefined();
+  });
+
+  it('keeps BEX program sources frozen until extraction', () => {
+    const frozen = {
+      toNode() {
+        throw new Error('BexProgramSource.inline must not materialize input');
+      },
+    } as unknown as Parameters<typeof BexProgramSource.inline>[0];
+
+    expect(BexProgramSource.inline(frozen).node).toBe(frozen);
+  });
+
+  it('ignores inherited metadata on resolved function containers', () => {
+    const functions = new BlueNode().setDescription('inherited').setProperties({
+      main: node({ expr: 'ok' }),
+    });
+    const program = new BlueNode().setProperties({
+      expr: node({ $call: { function: 'main', args: {} } }),
+      functions,
+    });
+
+    expect(
+      engine()
+        .compileAndExecute(
+          BexProgramSource.inline(program, { inputKind: 'resolved' }),
+          BexExecutionContext.builder().build(),
+        )
+        .value.toSimple(),
+    ).toBe('ok');
+  });
+
+  it('ignores inherited metadata on resolved constants containers', () => {
+    const constants = new BlueNode().setDescription('inherited').setProperties({
+      answer: node(42),
+    });
+    const program = new BlueNode().setProperties({
+      expr: node({ $const: 'answer' }),
+      constants,
+    });
+
+    expect(
+      engine()
+        .compileAndExecute(
+          BexProgramSource.inline(program, { inputKind: 'resolved' }),
+          BexExecutionContext.builder().build(),
+        )
+        .value.toSimple(),
+    ).toBe(42);
+  });
+
+  it('ignores inherited metadata on resolved function and call arg containers', () => {
+    const declaredArgs = new BlueNode()
+      .setDescription('inherited')
+      .setProperties({
+        input: node({}),
+      });
+    const callArgs = new BlueNode().setDescription('inherited').setProperties({
+      input: node('ok'),
+    });
+    const program = new BlueNode().setProperties({
+      expr: new BlueNode().setProperties({
+        $call: new BlueNode().setProperties({
+          function: node('main'),
+          args: callArgs,
+        }),
+      }),
+      functions: new BlueNode().setProperties({
+        main: new BlueNode().setProperties({
+          args: declaredArgs,
+          expr: node({ $var: 'input' }),
+        }),
+      }),
+    });
+
+    expect(
+      engine()
+        .compileAndExecute(
+          BexProgramSource.inline(program, { inputKind: 'resolved' }),
+          BexExecutionContext.builder().build(),
+        )
+        .value.toSimple(),
+    ).toBe('ok');
+  });
+
+  it('rejects source-authored reserved BEX names', () => {
+    expect(() =>
+      engine().compile(
+        source({
+          functions: {
+            description: { expr: 'bad' },
+          },
+        }),
+      ),
+    ).toThrow(/reserved Blue key: description/);
+
+    expect(() =>
+      engine().compile(
+        source({
+          constants: {
+            type: 'bad',
+          },
+        }),
+      ),
+    ).toThrow(/reserved Blue key: type/);
+
+    expect(() =>
+      engine().compile(
+        source({
+          functions: {
+            main: {
+              args: {
+                value: {},
+              },
+              expr: 'bad',
+            },
+          },
+        }),
+      ),
+    ).toThrow(/reserved Blue key: value/);
+  });
+
+  it('does not let resolved function definition metadata overwrite executable body', () => {
+    const main = new BlueNode()
+      .setDescription('inherited')
+      .setValue('metadata payload')
+      .setProperties({
+        expr: node('body result'),
+      });
+    const program = new BlueNode().setProperties({
+      expr: node({ $call: { function: 'main', args: {} } }),
+      functions: new BlueNode().setProperties({ main }),
+    });
+
+    expect(
+      engine()
+        .compileAndExecute(
+          BexProgramSource.inline(program, { inputKind: 'resolved' }),
+          BexExecutionContext.builder().build(),
+        )
+        .value.toSimple(),
+    ).toBe('body result');
+  });
+
+  it('uses exact integer arithmetic beyond the JavaScript safe range', () => {
+    expect(
+      execute({
+        expr: { $add: ['9007199254740993', '7'] },
+      }).value.toSimple(),
+    ).toBe('9007199254741000');
   });
 
   it('defaults object-form $binding reads to the event binding', () => {

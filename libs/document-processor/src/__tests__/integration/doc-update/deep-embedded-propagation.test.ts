@@ -43,11 +43,11 @@ branch:
               type: Conversation/Update Document
               changeset:
                 - op: REPLACE
-                  path: /value
+                  path: /dataValue
                   val: 1
         leafUpdates:
           type: Document Update Channel
-          path: /value
+          path: /dataValue
         leafWatcher:
           type: Conversation/Sequential Workflow
           channel: leafUpdates
@@ -84,7 +84,7 @@ branch:
           - /leaf
       subLeafUpdates:
         type: Document Update Channel
-        path: /leaf/value
+        path: /leaf/dataValue
       subWatcher:
         type: Conversation/Sequential Workflow
         channel: subLeafUpdates
@@ -121,7 +121,7 @@ branch:
         - /sub
     branchLeafUpdates:
       type: Document Update Channel
-      path: /sub/leaf/value
+      path: /sub/leaf/dataValue
     branchWatcher:
       type: Conversation/Sequential Workflow
       channel: branchLeafUpdates
@@ -158,7 +158,7 @@ contracts:
       - /branch
   rootLeafUpdates:
     type: Document Update Channel
-    path: /branch/sub/leaf/value
+    path: /branch/sub/leaf/dataValue
   rootWatcher:
     type: Conversation/Sequential Workflow
     channel: rootLeafUpdates
@@ -203,23 +203,25 @@ contracts:
 
     const document = initResult.document;
     expect(numericValue(property(document, 'observed'))).toBe(1);
-    expect(stringProperty(document, 'lastPath')).toBe('/branch/sub/leaf/value');
+    expect(stringProperty(document, 'lastPath')).toBe(
+      '/branch/sub/leaf/dataValue',
+    );
     expect(stringProperty(document, 'lastOp')).toBe('replace');
 
     const branch = property(document, 'branch');
     expect(numericValue(property(branch, 'observed'))).toBe(1);
-    expect(stringProperty(branch, 'lastPath')).toBe('/sub/leaf/value');
+    expect(stringProperty(branch, 'lastPath')).toBe('/sub/leaf/dataValue');
     expect(stringProperty(branch, 'lastOp')).toBe('replace');
 
     const sub = property(branch, 'sub');
     expect(numericValue(property(sub, 'observed'))).toBe(1);
-    expect(stringProperty(sub, 'lastPath')).toBe('/leaf/value');
+    expect(stringProperty(sub, 'lastPath')).toBe('/leaf/dataValue');
     expect(stringProperty(sub, 'lastOp')).toBe('replace');
 
     const leaf = property(sub, 'leaf');
     expect(numericValue(property(leaf, 'observed'))).toBe(1);
-    expect(numericValue(property(leaf, 'value'))).toBe(1);
-    expect(stringProperty(leaf, 'lastPath')).toBe('/value');
+    expect(numericValue(property(leaf, 'dataValue'))).toBe(1);
+    expect(stringProperty(leaf, 'lastPath')).toBe('/dataValue');
     expect(stringProperty(leaf, 'lastOp')).toBe('replace');
   });
 });

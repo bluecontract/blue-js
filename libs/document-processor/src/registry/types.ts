@@ -8,6 +8,7 @@ import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { MarkerContract } from '../model/index.js';
 import type { ChannelContractEntry } from '../types/channel-contract-entry.js';
 import type { GasMeter } from '../runtime/gas-meter.js';
+import type { CheckpointIdentityMode } from '../engine/checkpoint-identity-service.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
 
@@ -59,6 +60,7 @@ export interface HandlerProcessor<
   matches?(
     contract: TContract,
     context: ContractProcessorContext,
+    metadata?: HandlerExecutionMetadata,
   ): boolean | Promise<boolean>;
   execute(
     contract: TContract,
@@ -94,6 +96,7 @@ export interface ChannelEvaluationContext {
 export interface ChannelDelivery {
   readonly eventNode: BlueNode;
   readonly eventId?: string | null;
+  readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
   readonly checkpointKey?: string | null;
   readonly shouldProcess?: boolean;
 }
@@ -101,6 +104,7 @@ export interface ChannelDelivery {
 export interface ChannelMatch {
   readonly matches: boolean;
   readonly eventId?: string | null;
+  readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
   readonly eventNode?: BlueNode | null;
   readonly deliveries?: readonly ChannelDelivery[];
 }

@@ -317,7 +317,6 @@ contracts:
     if (modifiedCheckpoint) {
       const checkpointProps = { ...modifiedCheckpoint.getProperties() };
       checkpointProps['lastEvents'] = blue.jsonValueToNode({});
-      checkpointProps['lastSignatures'] = blue.jsonValueToNode({});
       modifiedCheckpoint.setProperties(checkpointProps);
     }
 
@@ -407,18 +406,18 @@ contracts:
       numericValue(property(property(document, 'child'), 'childCounter')),
     ).toBe(1);
 
-    // Verify both checkpoints have the signature stored
+    // Verify both checkpoints have the last event stored
     const rootCheckpoint = document
       .getProperties()
       ?.contracts?.getProperties()
-      ?.checkpoint?.getProperties()?.lastSignatures;
+      ?.checkpoint?.getProperties()?.lastEvents;
     expect(rootCheckpoint?.getProperties()?.rootChannel).toBeDefined();
 
     const childCheckpoint = document
       .getProperties()
       ?.child?.getProperties()
       ?.contracts?.getProperties()
-      ?.checkpoint?.getProperties()?.lastSignatures;
+      ?.checkpoint?.getProperties()?.lastEvents;
     expect(childCheckpoint?.getProperties()?.childChannel).toBeDefined();
 
     // Re-process the SAME event - both should skip as duplicate
@@ -536,25 +535,24 @@ contracts:
     if (childCheckpoint) {
       const checkpointProps = { ...childCheckpoint.getProperties() };
       checkpointProps['lastEvents'] = blue.jsonValueToNode({});
-      checkpointProps['lastSignatures'] = blue.jsonValueToNode({});
       childCheckpoint.setProperties(checkpointProps);
     }
 
     // Verify root checkpoint is still intact, child is cleared
-    const rootSigs = modifiedDocument
+    const rootEvents = modifiedDocument
       .getProperties()
       ?.contracts?.getProperties()
       ?.checkpoint?.getProperties()
-      ?.lastSignatures?.getProperties();
-    const childSigs = modifiedDocument
+      ?.lastEvents?.getProperties();
+    const childEvents = modifiedDocument
       .getProperties()
       ?.child?.getProperties()
       ?.contracts?.getProperties()
       ?.checkpoint?.getProperties()
-      ?.lastSignatures?.getProperties();
+      ?.lastEvents?.getProperties();
 
-    expect(rootSigs?.rootChannel).toBeDefined();
-    expect(childSigs?.childChannel).toBeUndefined();
+    expect(rootEvents?.rootChannel).toBeDefined();
+    expect(childEvents?.childChannel).toBeUndefined();
 
     // Re-process the same events. Root should skip them while the child
     // replays because its checkpoint was cleared.
