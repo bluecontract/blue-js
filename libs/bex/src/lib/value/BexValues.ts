@@ -601,10 +601,29 @@ export function nodeToValueSimple(
   if (node.getReferenceBlueId() !== undefined) {
     return metadata;
   }
-  if (options.omitMetadataOnly && metadataKeys.length > 0) {
+  if (
+    options.omitMetadataOnly &&
+    metadataKeys.length > 0 &&
+    !hasSemanticValueMetadata(node)
+  ) {
     return undefined;
   }
   return metadataKeys.length === 0 ? nodeToSimple(node) : metadata;
+}
+
+function hasSemanticValueMetadata(node: BexReadableNode): boolean {
+  const type = node.getType();
+  return (
+    (type !== undefined && !isPrimitiveTypeMetadata(type)) ||
+    node.getItemType() !== undefined ||
+    node.getKeyType() !== undefined ||
+    node.getValueType() !== undefined ||
+    node.getReferenceBlueId() !== undefined ||
+    node.getSchema() !== undefined ||
+    node.getMergePolicy() !== undefined ||
+    contractsNodeOf(node) !== undefined ||
+    node.getBlue() !== undefined
+  );
 }
 
 function valueMetadataToSimple(

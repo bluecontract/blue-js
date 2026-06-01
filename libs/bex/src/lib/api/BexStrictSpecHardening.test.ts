@@ -387,6 +387,28 @@ describe('BEX strict spec hardening', () => {
     ).toBeUndefined();
   });
 
+  it('preserves type-only contract descriptors when omitting metadata-only nodes', () => {
+    const input = new BlueNode().setProperties({
+      contracts: new BlueNode().setProperties({
+        sellerChannel: new BlueNode().setType(
+          new BlueNode().setReferenceBlueId('MyOSTimelineChannelBlueId'),
+        ),
+      }),
+    });
+
+    expect(
+      BexValues.nodeValueSnapshot(input, {
+        omitMetadataOnly: true,
+      }).toSimple(),
+    ).toEqual({
+      contracts: {
+        sellerChannel: {
+          type: { blueId: 'MyOSTimelineChannelBlueId' },
+        },
+      },
+    });
+  });
+
   it('keeps BEX program sources frozen until extraction', () => {
     const frozen = {
       toNode() {
