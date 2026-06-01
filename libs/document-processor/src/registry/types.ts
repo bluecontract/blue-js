@@ -95,6 +95,7 @@ export interface ChannelEvaluationContext {
 
 export interface ChannelDelivery {
   readonly eventNode: BlueNode;
+  readonly checkpointIdentity?: string | null;
   readonly eventId?: string | null;
   readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
   readonly checkpointKey?: string | null;
@@ -103,6 +104,7 @@ export interface ChannelDelivery {
 
 export interface ChannelMatch {
   readonly matches: boolean;
+  readonly checkpointIdentity?: string | null;
   readonly eventId?: string | null;
   readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
   readonly eventNode?: BlueNode | null;

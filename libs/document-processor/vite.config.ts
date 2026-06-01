@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
+import * as fs from 'fs';
 
 // @ts-expect-error - This is a valid import.
 import packageJson from './package.json';
@@ -28,6 +29,7 @@ export default defineConfig(({ mode }) => ({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    copyConformanceFixtures(),
   ],
   // Uncomment this if you are using workers.
   // worker: {
@@ -79,3 +81,18 @@ export default defineConfig(({ mode }) => ({
     passWithNoTests: true,
   },
 }));
+
+function copyConformanceFixtures() {
+  return {
+    name: 'copy-document-processor-conformance-fixtures',
+    closeBundle() {
+      const source = path.join(__dirname, 'src/conformance/fixtures');
+      const target = path.join(__dirname, 'dist/conformance/fixtures');
+      if (!fs.existsSync(source)) {
+        return;
+      }
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.cpSync(source, target, { recursive: true });
+    },
+  };
+}

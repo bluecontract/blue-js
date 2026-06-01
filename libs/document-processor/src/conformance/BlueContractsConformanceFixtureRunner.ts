@@ -40,14 +40,16 @@ import {
   type TypeGraphProvider,
 } from '../engine/generalization/type-graph-provider.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FIXTURE_ROOT = path.join(
-  __dirname,
-  'fixtures/blue-contracts-1.0/fixtures',
-);
-const REGISTRY_ROOT = path.join(
-  __dirname,
-  'fixtures/blue-contracts-1.0/registry',
-);
+const FIXTURE_PACKAGE_ROOT = resolveExistingDirectory([
+  path.join(__dirname, 'fixtures/blue-contracts-1.0'),
+  path.join(__dirname, 'conformance/fixtures/blue-contracts-1.0'),
+  path.resolve(
+    process.cwd(),
+    'libs/document-processor/src/conformance/fixtures/blue-contracts-1.0',
+  ),
+]);
+const FIXTURE_ROOT = path.join(FIXTURE_PACKAGE_ROOT, 'fixtures');
+const REGISTRY_ROOT = path.join(FIXTURE_PACKAGE_ROOT, 'registry');
 
 const MOCK_EXTERNAL_CHANNEL = 'C37UoAfTNUnoxkB2CdEE7BfHJwYqTNiWzQb5xuRMkBzm';
 const MOCK_HANDLER = '2TwRC3EdLXk4gqwyyVWy52h5BQ5ntrkmpcrhrTxsGAs1';
@@ -1692,4 +1694,17 @@ function optionalText(
 
 function isRecord(value: unknown): value is ContractsFixtureSpec {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function resolveExistingDirectory(candidates: readonly string[]): string {
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    `Blue Contracts conformance fixtures are missing. Checked: ${candidates.join(
+      ', ',
+    )}`,
+  );
 }

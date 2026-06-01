@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect } from './conformance-expect.js';
 import { yamlBlueParse } from '../../utils/yamlBlue';
 import { Blue } from '../Blue';
@@ -111,10 +112,16 @@ interface ViewPathAssertion {
   readonly expectedNode?: unknown;
 }
 
-const fixturePackageRoot = path.resolve(
-  process.cwd(),
-  'libs/language/src/lib/conformance/fixtures/blue-language-1.0',
-);
+// @ts-expect-error Vite resolves import.meta.url for both package output formats.
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const fixturePackageRoot = resolveExistingDirectory([
+  path.join(moduleDir, 'fixtures/blue-language-1.0'),
+  path.join(moduleDir, 'lib/conformance/fixtures/blue-language-1.0'),
+  path.resolve(
+    process.cwd(),
+    'libs/language/src/lib/conformance/fixtures/blue-language-1.0',
+  ),
+]);
 const fixtureRoot = path.join(fixturePackageRoot, 'fixtures');
 const registryRoot = path.join(
   fixturePackageRoot,
@@ -773,6 +780,19 @@ function readPublishableFile(filePath: string): string {
     );
   }
   return fs.readFileSync(resolvedPath, 'utf8');
+}
+
+function resolveExistingDirectory(candidates: readonly string[]): string {
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    `Blue Language conformance fixtures are missing. Checked: ${candidates.join(
+      ', ',
+    )}`,
+  );
 }
 
 function forbiddenJoinedText(term: ForbiddenJoinedTerm): string {

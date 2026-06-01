@@ -35,5 +35,7 @@ export * as Properties from './lib/utils/Properties';
 export * from './schema';
 export * from './schema/annotations';
 export * from './utils';
+export * from './lib/conformance/BlueLanguageConformanceReport';
+export * from './lib/conformance/BlueConformanceSuiteRunner';
 
 export { ResolvedBlueNode } from './lib/model/ResolvedNode';

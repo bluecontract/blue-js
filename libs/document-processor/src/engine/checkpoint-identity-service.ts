@@ -12,7 +12,8 @@ export type CheckpointIdentityMode =
   | 'contentBlueId'
   | 'nodeBlueId'
   | 'eventId'
-  | 'channelDefined';
+  | 'channelDefined'
+  | 'precomputed';
 
 export interface CheckpointIdentityResult {
   readonly identity: string;
@@ -49,6 +50,10 @@ export class CheckpointIdentityService {
           identity: this.contentBlueId(subject ?? null),
           subject: subject?.clone() ?? null,
         };
+      case 'precomputed':
+        return this.fail(
+          'precomputed identity mode requires a channel-provided checkpoint identity',
+        );
     }
   }
 

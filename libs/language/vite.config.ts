@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as fs from 'fs';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 const dts = require('vite-plugin-dts').default;
 
@@ -16,6 +17,7 @@ export default {
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    copyConformanceFixtures(),
   ],
 
   // Uncomment this if you are using workers.
@@ -79,3 +81,18 @@ export default {
     setupFiles: ['./vitest-setup.ts'],
   },
 };
+
+function copyConformanceFixtures() {
+  return {
+    name: 'copy-language-conformance-fixtures',
+    closeBundle() {
+      const source = path.join(__dirname, 'src/lib/conformance/fixtures');
+      const target = path.join(__dirname, 'dist/lib/conformance/fixtures');
+      if (!fs.existsSync(source)) {
+        return;
+      }
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.cpSync(source, target, { recursive: true });
+    },
+  };
+}

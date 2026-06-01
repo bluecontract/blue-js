@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 import { BlueNode } from '@blue-labs/language';
@@ -96,10 +97,16 @@ interface RichFixture {
 
 type FixtureRecord = Record<string, unknown>;
 
-const fixtureRoot = path.resolve(
-  process.cwd(),
-  'libs/bex/src/lib/conformance/fixtures/rich-fixtures',
-);
+// @ts-expect-error Vite resolves import.meta.url for package output.
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const fixtureRoot = resolveExistingDirectory([
+  path.join(moduleDir, 'fixtures/rich-fixtures'),
+  path.join(moduleDir, 'lib/conformance/fixtures/rich-fixtures'),
+  path.resolve(
+    process.cwd(),
+    'libs/bex/src/lib/conformance/fixtures/rich-fixtures',
+  ),
+]);
 const manifestPath = path.join(fixtureRoot, 'manifest.yaml');
 
 const tinyEventProgram = [
@@ -492,6 +499,17 @@ function textField(record: FixtureRecord, field: string): string {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function resolveExistingDirectory(candidates: readonly string[]): string {
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    `BEX conformance fixtures are missing. Checked: ${candidates.join(', ')}`,
+  );
 }
 
 function escapeRegExp(value: string): string {

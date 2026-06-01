@@ -92,7 +92,7 @@ export class ChannelRunner {
     );
     const identity = this.checkpointIdentity(checkpointEvent, match);
     const eventSignature = identity.identity;
-    if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
+    if (this.isDuplicate(checkpoint, eventSignature, match)) {
       return true;
     }
 
@@ -156,11 +156,11 @@ export class ChannelRunner {
         delivery,
         fallbackIdentity,
       );
-      if (delivery.eventId == null && fallbackIdentity == null) {
+      if (this.canReuseContentIdentity(delivery) && fallbackIdentity == null) {
         fallbackIdentity = identity;
       }
       const eventSignature = identity.identity;
-      if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
+      if (this.isDuplicate(checkpoint, eventSignature, delivery)) {
         continue;
       }
 
@@ -202,24 +202,81 @@ export class ChannelRunner {
   private checkpointIdentity(
     checkpointEvent: BlueNode,
     match:
-      | Pick<ChannelMatch, 'eventId' | 'checkpointIdentityMode'>
+      | Pick<
+          ChannelMatch,
+          'checkpointIdentity' | 'eventId' | 'checkpointIdentityMode'
+        >
       | {
+          readonly checkpointIdentity?: string | null;
           readonly eventId?: string | null;
           readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
         },
     fallback?: CheckpointIdentityResult,
   ): CheckpointIdentityResult {
-    if (match.eventId != null) {
+    const mode = match.checkpointIdentityMode ?? 'contentBlueId';
+    if (mode === 'precomputed') {
+      if (match.checkpointIdentity == null) {
+        throw new Error(
+          'precomputed checkpoint identity mode requires checkpointIdentity',
+        );
+      }
+      return {
+        identity: match.checkpointIdentity,
+        subject: checkpointEvent.clone(),
+      };
+    }
+    if (mode === 'eventId' && match.eventId != null) {
       return {
         identity: match.eventId,
         subject: checkpointEvent.clone(),
       };
     }
-    const mode = match.checkpointIdentityMode ?? 'contentBlueId';
     if (mode === 'contentBlueId' && fallback) {
       return fallback;
     }
     return this.deps.checkpointIdentity(checkpointEvent, mode);
+  }
+
+  private isDuplicate(
+    checkpoint: ReturnType<CheckpointManager['findCheckpoint']>,
+    eventSignature: string | null | undefined,
+    match: {
+      readonly checkpointIdentity?: string | null;
+      readonly eventId?: string | null;
+      readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
+    },
+  ): boolean {
+    if (checkpoint == null || eventSignature == null) {
+      return false;
+    }
+    const mode = match.checkpointIdentityMode ?? 'contentBlueId';
+    if (mode !== 'eventId' && mode !== 'nodeBlueId') {
+      return this.checkpointManager.isDuplicate(checkpoint, eventSignature);
+    }
+    const stored = checkpoint.lastEventNode;
+    if (!stored) {
+      return false;
+    }
+    try {
+      return (
+        this.deps.checkpointIdentity(stored, mode).identity === eventSignature
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private canReuseContentIdentity(match: {
+    readonly checkpointIdentity?: string | null;
+    readonly eventId?: string | null;
+    readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
+  }): boolean {
+    return (
+      match.checkpointIdentity == null &&
+      match.eventId == null &&
+      (match.checkpointIdentityMode == null ||
+        match.checkpointIdentityMode === 'contentBlueId')
+    );
   }
 
   async runHandlers(

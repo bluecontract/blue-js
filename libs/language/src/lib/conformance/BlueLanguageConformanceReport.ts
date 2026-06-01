@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 
@@ -63,10 +64,17 @@ export interface BlueLanguageFixtureEntry {
 
 type FixtureRecord = Record<string, unknown>;
 
-const FIXTURE_ROOT = path.resolve(
-  process.cwd(),
-  'libs/language/src/lib/conformance/fixtures/blue-language-1.0/fixtures',
-);
+// @ts-expect-error Vite resolves import.meta.url for both package output formats.
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const FIXTURE_PACKAGE_ROOT = resolveExistingDirectory([
+  path.join(MODULE_DIR, 'fixtures/blue-language-1.0'),
+  path.join(MODULE_DIR, 'lib/conformance/fixtures/blue-language-1.0'),
+  path.resolve(
+    process.cwd(),
+    'libs/language/src/lib/conformance/fixtures/blue-language-1.0',
+  ),
+]);
+const FIXTURE_ROOT = path.join(FIXTURE_PACKAGE_ROOT, 'fixtures');
 const MANIFEST_PATH = path.join(FIXTURE_ROOT, 'manifest.yaml');
 
 export function fixturePackageIdentityMatchesFixtureFiles(): boolean {
@@ -198,4 +206,17 @@ function optionalText(
 
 function isRecord(value: unknown): value is FixtureRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function resolveExistingDirectory(candidates: readonly string[]): string {
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    `Blue Language conformance fixtures are missing. Checked: ${candidates.join(
+      ', ',
+    )}`,
+  );
 }

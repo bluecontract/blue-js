@@ -191,6 +191,35 @@ describe('CompositeTimelineChannelProcessor', () => {
     expect(sourceKeys).toEqual(['childA', 'childB']);
   });
 
+  it('compositeTimelineUsesContentBlueIdOrPrecomputedContentIdentityNotArbitraryEventId', async () => {
+    const processor = new CompositeTimelineChannelProcessor();
+    const channelProcessor = new RecencyTestChannelProcessor();
+    const contract: CompositeTimelineChannel = {
+      channels: ['child'],
+    };
+    const entry: ChannelContractEntry = {
+      key: 'child',
+      contract: { minDelta: 0 } as ChannelContract,
+      blueId: 'RecencyTestChannel',
+      node: channelNode('RecencyTestChannel'),
+    };
+    const event = testEvent(9);
+
+    const result = await processor.evaluate(
+      contract,
+      baseContext({
+        event,
+        resolveChannel: resolveFrom([entry]),
+        channelProcessorFor: (_node) => channelProcessor,
+      }),
+    );
+
+    const delivery = result.deliveries?.[0];
+    expect(delivery?.eventId).toBeUndefined();
+    expect(delivery?.checkpointIdentityMode).toBe('precomputed');
+    expect(delivery?.checkpointIdentity).toBe(blue.calculateBlueIdSync(event));
+  });
+
   it('uses child recency checks per checkpoint key', async () => {
     const processor = new CompositeTimelineChannelProcessor();
     const channelProcessor = new RecencyTestChannelProcessor();

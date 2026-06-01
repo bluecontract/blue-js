@@ -266,6 +266,68 @@ describe('ChannelRunner', () => {
     expect(handlerSpy).toHaveBeenCalledTimes(4);
   });
 
+  it('checkpointEventIdDoesNotOverrideDefaultIdentityForRealChannel', async () => {
+    const handlerSpy = vi.fn();
+    const { runner, bundle, scopePath } = createRunner({
+      evaluateChannel: (event) => ({
+        matches: true,
+        eventId: 'same-channel-id',
+        eventNode: event.clone(),
+      }),
+      onExecute: (handler) => handlerSpy(handler.key()),
+    });
+    const channel = bundle.channelsOfType('Custom.Channel')[0]!;
+
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, nodeFrom({ amount: 10 })),
+    );
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(blue, nodeFrom({ amount: 11 })),
+    );
+
+    expect(handlerSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('checkpointEventIdModeUsesEventIdOnlyWhenModeIsEventId', async () => {
+    const handlerSpy = vi.fn();
+    const { runner, bundle, scopePath } = createRunner({
+      evaluateChannel: (event) => ({
+        matches: true,
+        checkpointIdentityMode: 'eventId',
+        eventNode: event.clone(),
+      }),
+      onExecute: (handler) => handlerSpy(handler.key()),
+    });
+    const channel = bundle.channelsOfType('Custom.Channel')[0]!;
+
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(
+        blue,
+        nodeFrom({ eventId: 'same-channel-id', amount: 10 }),
+      ),
+    );
+    await runner.runExternalChannel(
+      scopePath,
+      bundle,
+      channel,
+      ingestExternalEvent(
+        blue,
+        nodeFrom({ eventId: 'same-channel-id', amount: 11 }),
+      ),
+    );
+
+    expect(handlerSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('checkpointNodeBlueIdModeRequiresBlueIdInput', async () => {
     const { runner, bundle, scopePath } = createRunner({
       evaluateChannel: () => ({

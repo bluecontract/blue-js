@@ -3,6 +3,7 @@
   "version": "1.9.0",
   "license": "MIT",
   "scripts": {
+    "build": "NX_DAEMON=false NX_ISOLATE_PLUGINS=false npx nx run-many -t build --all --skip-nx-cache",
     "test:language:conformance": "vitest run --config libs/language/vite.config.ts src/lib/conformance/BlueConformanceSuiteRunner.spec.ts --pool=forks",
     "test:language:conformance:serial": "vitest run --config libs/language/vite.config.ts src/lib/conformance/BlueConformanceSuiteRunner.spec.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-file-parallelism",
     "test:language:snapshot": "vitest run --config libs/language/vite.config.ts src/lib/snapshot/FrozenNode.test.ts --pool=forks",
@@ -17,9 +18,11 @@
     "typecheck:parity": "tsc -p libs/language/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/bex/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/document-processor/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/coordination/tsconfig.lib.json --emitDeclarationOnly && tsc -p libs/scenarios/tsconfig.lib.json --noEmit",
     "lint:parity": "eslint libs/language libs/bex libs/document-processor libs/coordination libs/scenarios --max-warnings=0",
     "check:parity-fixtures": "node scripts/check-parity-fixtures.mjs",
+    "check:published-artifacts": "node scripts/check-published-artifacts.mjs",
+    "check:packed-conformance": "node scripts/check-packed-conformance.mjs",
     "nx:sync-check": "nx reset && sleep 1 && NX_DAEMON=false NX_ISOLATE_PLUGINS=false nx sync:check --verbose",
     "ci:parity": "npm run check:parity-fixtures && npm run test:language:conformance && npm run test:language:snapshot && npm run test:bex:conformance && npm run test:compute && npm run test:coordination && npm run test:scenarios && npm run typecheck:parity && npm run lint:parity && npm run nx:sync-check",
-    "ci:full-blue-parity": "npm run check:parity-fixtures && npm run test:language:conformance && npm run test:bex:conformance && npm run test:contracts:conformance && npm run test:compute && npm run test:coordination && npm run test:scenarios && npm run typecheck:parity && npm run lint:parity && npm run nx:sync-check"
+    "ci:full-blue-parity": "npm run check:parity-fixtures && npm run test:language:conformance && npm run test:bex:conformance && npm run test:contracts:conformance && npm run test:compute && npm run test:coordination && npm run test:scenarios && npm run typecheck:parity && npm run lint:parity && npm run nx:sync-check && npm run check:packed-conformance && npm run check:published-artifacts"
   },
   "private": true,
   "devDependencies": {
