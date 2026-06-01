@@ -163,6 +163,35 @@ describe('BexComputeStepExecutor', () => {
     await expect(executor.execute(args)).resolves.toBe(12);
   });
 
+  it('preserves marker-only events in the BEX event binding', async () => {
+    const blue = createBlue();
+    const markerTypeBlueId = 'MyOSAllParticipantsReadyBlueId';
+    const stepNode = createComputeStep({
+      do: [
+        {
+          $return: {
+            events: { $event: '/message/request' },
+          },
+        },
+      ],
+    });
+    const markerEvent = new BlueNode().setType(
+      new BlueNode().setReferenceBlueId(markerTypeBlueId),
+    );
+    const eventNode = new BlueNode().setProperties({
+      message: new BlueNode().setProperties({
+        request: new BlueNode().setItems([markerEvent]),
+      }),
+    });
+    const setup = createRealContext(blue, eventNode);
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+
+    await expect(executor.execute(args)).resolves.toEqual({
+      changeset: [],
+      events: [{ type: { blueId: markerTypeBlueId } }],
+    });
+  });
+
   it('reads previous step results', async () => {
     const blue = createBlue();
     const stepNode = createComputeStep({

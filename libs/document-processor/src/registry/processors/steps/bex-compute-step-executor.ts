@@ -204,7 +204,6 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
         BexValues.nodeValueSnapshot(args.eventNode, {
           compactListsWithMetadata: true,
           compactScalarsWithMetadata: true,
-          omitMetadataOnly: true,
         }),
       )
       .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
