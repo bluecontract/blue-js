@@ -1,4 +1,4 @@
-import { Blue, BlueNode } from '@blue-labs/language';
+import { Blue, BlueNode, isBigNumber, Properties } from '@blue-labs/language';
 
 export interface TypeDescriptor {
   readonly blueId: string;
@@ -126,6 +126,12 @@ export class StaticTypeGraphProvider implements TypeGraphProvider {
 }
 
 export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
+  private readonly typeCache = new Map<string, BlueNode | null>();
+  private readonly descriptorCache = new Map<
+    string,
+    TypeDescriptor | undefined
+  >();
+
   constructor(
     private readonly blue: Blue,
     private readonly nodeAt: (
@@ -135,8 +141,13 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
   ) {}
 
   typeFor(blueId: string): TypeDescriptor | undefined {
+    if (this.descriptorCache.has(blueId)) {
+      return this.descriptorCache.get(blueId);
+    }
+
     const typeNode = this.fetchType(blueId);
     if (!typeNode) {
+      this.descriptorCache.set(blueId, undefined);
       return undefined;
     }
 
@@ -153,12 +164,14 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
       }
     }
 
-    return {
+    const descriptor = {
       blueId,
       parentBlueId: typeBlueId(typeNode.getType()),
       fixedValues,
       fieldTypes,
     };
+    this.descriptorCache.set(blueId, descriptor);
+    return descriptor;
   }
 
   parentType(blueId: string | null | undefined): string | null {
@@ -187,6 +200,10 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
   ): boolean {
     const typeNode = this.fetchType(blueId);
     if (!typeNode) {
+      return true;
+    }
+
+    if (this.isValidByDescriptor(node, blueId)) {
       return true;
     }
 
@@ -219,11 +236,169 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
   }
 
   private fetchType(blueId: string): BlueNode | null {
+    if (this.typeCache.has(blueId)) {
+      return this.typeCache.get(blueId) ?? null;
+    }
     const nodes = this.blue.getNodeProvider().fetchByBlueId(blueId);
     if (!nodes || nodes.length !== 1) {
+      this.typeCache.set(blueId, null);
       return null;
     }
-    return nodes[0].clone().setBlueId(blueId);
+    const typeNode = nodes[0].clone().setBlueId(blueId);
+    this.typeCache.set(blueId, typeNode);
+    return typeNode.clone();
+  }
+
+  private isValidByDescriptor(
+    node: BlueNode,
+    blueId: string,
+    seenTypes = new Set<string>(),
+  ): boolean {
+    if (seenTypes.has(blueId)) {
+      return false;
+    }
+    seenTypes.add(blueId);
+
+    const descriptor = this.typeFor(blueId);
+    if (!descriptor) {
+      return false;
+    }
+
+    if (
+      descriptor.parentBlueId &&
+      !this.isValidByDescriptor(node, descriptor.parentBlueId, seenTypes)
+    ) {
+      return false;
+    }
+
+    for (const [fixedPath, expected] of descriptor.fixedValues) {
+      const actual = this.nodeAt(node, fixedPath);
+      if (!actual || !this.nodesEqual(expected, actual)) {
+        return false;
+      }
+    }
+
+    for (const [fieldPath, expectedType] of descriptor.fieldTypes) {
+      const child = this.nodeAt(node, fieldPath);
+      if (!child || this.fieldConformsToType(child, expectedType)) {
+        continue;
+      }
+      return false;
+    }
+
+    return true;
+  }
+
+  private fieldConformsToType(child: BlueNode, expectedType: string): boolean {
+    const childType = typeBlueId(child.getType());
+    if (childType) {
+      if (this.isSubtypeOf(childType, expectedType)) {
+        return true;
+      }
+      const expectedDescriptor = this.typeFor(expectedType);
+      if (
+        expectedDescriptor &&
+        expectedDescriptor.fixedValues.size === 0 &&
+        expectedDescriptor.fieldTypes.size === 0 &&
+        this.isSubtypeOf(expectedType, childType)
+      ) {
+        return true;
+      }
+      return false;
+    }
+
+    if (this.untypedValueConformsToType(child, expectedType)) {
+      return true;
+    }
+
+    const descriptor = this.typeFor(expectedType);
+    if (
+      descriptor &&
+      (descriptor.fixedValues.size > 0 || descriptor.fieldTypes.size > 0)
+    ) {
+      return this.isValidByDescriptor(child, expectedType);
+    }
+
+    if (this.nodeShapeConformsToTypeOrAncestor(child, expectedType)) {
+      return true;
+    }
+
+    const typeNode = this.fetchType(expectedType);
+    if (!typeNode) {
+      return true;
+    }
+
+    const typedChild = child
+      .clone()
+      .setType(new BlueNode().setBlueId(expectedType));
+    return this.blue.isTypeOfNode(
+      typedChild,
+      typeNode.clone().setBlueId(expectedType),
+    );
+  }
+
+  private untypedValueConformsToType(
+    child: BlueNode,
+    expectedType: string,
+  ): boolean {
+    let current: string | null = expectedType;
+    while (current) {
+      if (this.untypedValueConformsToExactType(child, current)) {
+        return true;
+      }
+      current = this.parentType(current);
+    }
+    return false;
+  }
+
+  private untypedValueConformsToExactType(
+    child: BlueNode,
+    expectedType: string,
+  ): boolean {
+    switch (expectedType) {
+      case Properties.TEXT_TYPE_BLUE_ID:
+        return typeof child.getValue() === 'string';
+      case Properties.DOUBLE_TYPE_BLUE_ID:
+      case Properties.INTEGER_TYPE_BLUE_ID:
+        return isNumericValue(child.getValue());
+      case Properties.BOOLEAN_TYPE_BLUE_ID:
+        return typeof child.getValue() === 'boolean';
+      case Properties.LIST_TYPE_BLUE_ID:
+        return child.getItems() !== undefined;
+      case Properties.DICTIONARY_TYPE_BLUE_ID:
+        return (
+          child.getValue() === undefined &&
+          child.getItems() === undefined &&
+          child.getProperties() !== undefined
+        );
+      default:
+        return false;
+    }
+  }
+
+  private nodeShapeConformsToTypeOrAncestor(
+    child: BlueNode,
+    expectedType: string,
+  ): boolean {
+    let current: string | null = expectedType;
+    while (current) {
+      const typeNode = this.fetchType(current);
+      if (typeNode) {
+        const typedChild = child
+          .clone()
+          .setType(new BlueNode().setBlueId(current));
+        if (
+          this.blue.isTypeOfNode(
+            typedChild,
+            typeNode.clone().setBlueId(current),
+          )
+        ) {
+          return true;
+        }
+      }
+      current = this.parentType(current);
+    }
+    return false;
   }
 
   private nodesEqual(left: BlueNode, right: BlueNode): boolean {
@@ -232,6 +407,10 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
       JSON.stringify(this.blue.nodeToJson(right, 'simple'))
     );
   }
+}
+
+function isNumericValue(value: unknown): boolean {
+  return typeof value === 'number' || isBigNumber(value);
 }
 
 function typeBlueId(node: BlueNode | null | undefined): string | null {
