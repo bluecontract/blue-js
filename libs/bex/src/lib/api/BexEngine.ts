@@ -2665,6 +2665,15 @@ export class BexEngine {
       );
     }
     if ('type' in pattern) {
+      const typeBlueId = this.patternTypeBlueId(pattern.type);
+      if (
+        typeBlueId !== undefined &&
+        (!this.isObject(value) ||
+          !this.isObject(value.type) ||
+          value.type.blueId !== typeBlueId)
+      ) {
+        return false;
+      }
       const typeName = this.patternTypeName(pattern.type);
       if (typeName === 'Integer') {
         return typeof value === 'number' && Number.isInteger(value);
@@ -2697,6 +2706,13 @@ export class BexEngine {
       }
     }
     return true;
+  }
+
+  private patternTypeBlueId(value: unknown): string | undefined {
+    if (this.isObject(value) && typeof value.blueId === 'string') {
+      return value.blueId;
+    }
+    return undefined;
   }
 
   private patternTypeName(value: unknown): string | undefined {

@@ -580,6 +580,64 @@ describe('BEX strict spec hardening', () => {
     ).toBe('ok');
   });
 
+  it('honors Blue type blueId patterns in $is', () => {
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: {
+              type: { blueId: 'HotelOrderType' },
+              status: 'confirmed',
+            },
+            pattern: {
+              type: { blueId: 'HotelOrderType' },
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(true);
+
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: {
+              type: { blueId: 'RestaurantOrderType' },
+              status: 'confirmed',
+            },
+            pattern: {
+              type: { blueId: 'HotelOrderType' },
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(false);
+  });
+
+  it('preserves primitive type patterns in $is', () => {
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: 'ready',
+            pattern: { type: 'Text' },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(true);
+
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: true,
+            pattern: { type: 'Text' },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(false);
+  });
+
   it('validates strict output schema fields', () => {
     expect(() =>
       BexValues.toBlueNodeStrict({
