@@ -469,6 +469,40 @@ describe('BEX strict spec hardening', () => {
     ).toBe('ok');
   });
 
+  it('ignores Blue metadata when detecting resolved expression operators', () => {
+    const expression = new BlueNode().setType('Text').setProperties({
+      $unwrap: node({ $literal: 'ok' }),
+    });
+    const program = new BlueNode().setProperties({
+      expr: expression,
+    });
+
+    expect(
+      engine()
+        .compileAndExecute(
+          BexProgramSource.inline(program, { inputKind: 'resolved' }),
+          BexExecutionContext.builder().build(),
+        )
+        .value.toSimple(),
+    ).toBe('ok');
+  });
+
+  it('does not treat mixed dollar objects as expression operators', () => {
+    expect(
+      execute({
+        expr: {
+          type: 'Text',
+          $document: 'not-op',
+          x: 1,
+        },
+      }).value.toSimple(),
+    ).toEqual({
+      $document: 'not-op',
+      type: 'Text',
+      x: 1,
+    });
+  });
+
   it('rejects source-authored reserved BEX names', () => {
     expect(() =>
       engine().compile(

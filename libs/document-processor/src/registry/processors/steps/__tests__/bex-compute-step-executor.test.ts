@@ -136,6 +136,32 @@ describe('BexComputeStepExecutor', () => {
     expect(rootReads).toBe(0);
   });
 
+  it('evaluates typed BEX expression list items', () => {
+    const blue = createBlue();
+    const evaluator = new BexFieldEvaluator();
+    const stepNode = createComputeStep({ expr: 'unused' });
+    const eventNode = blue.jsonValueToNode({
+      message: { request: { childSessionId: 'child-session' } },
+    });
+    const setup = createRealContext(blue, eventNode);
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+    const expression = new BlueNode().setType('Text').setProperties({
+      $unwrap: bexNode({ $event: '/message/request/childSessionId' }),
+    });
+    const payload = new BlueNode().setProperties({
+      initiatorSessionIds: new BlueNode().setItems([expression]),
+    });
+
+    const result = evaluator.evaluateNode(args, payload);
+
+    expect(
+      result
+        .getProperties()
+        ?.initiatorSessionIds.getItems()?.[0]
+        ?.getValue(),
+    ).toBe('child-session');
+  });
+
   it('productionBexContextCreationUsesDocumentViewNotDocument', () => {
     const productionFiles = [
       '../bex-compute-step-executor.ts',

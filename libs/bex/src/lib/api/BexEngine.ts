@@ -496,8 +496,9 @@ export class BexEngine {
       return;
     }
     const keys = Object.keys(expression);
-    const operatorKeys = keys.filter((key) => key.startsWith('$'));
-    if (operatorKeys.length === 1 && keys.length === 1) {
+    const ordinaryKeys = this.ordinaryBexKeys(expression);
+    const operatorKeys = ordinaryKeys.filter((key) => key.startsWith('$'));
+    if (operatorKeys.length === 1 && ordinaryKeys.length === 1) {
       const operator = operatorKeys[0];
       if (!this.expressionOperators().has(operator)) {
         throw new BexException(
@@ -1204,8 +1205,9 @@ export class BexEngine {
       return expression;
     }
     const keys = Object.keys(expression);
-    const operatorKeys = keys.filter((key) => key.startsWith('$'));
-    if (operatorKeys.length === 1 && keys.length === 1) {
+    const ordinaryKeys = this.ordinaryBexKeys(expression);
+    const operatorKeys = ordinaryKeys.filter((key) => key.startsWith('$'));
+    if (operatorKeys.length === 1 && ordinaryKeys.length === 1) {
       return this.evalOperator(
         operatorKeys[0],
         expression[operatorKeys[0]],
@@ -3067,9 +3069,13 @@ export class BexEngine {
   ): value is SimpleObject {
     return (
       this.isObject(value) &&
-      Object.keys(value).length === 1 &&
+      this.ordinaryBexKeys(value).length === 1 &&
       Object.prototype.hasOwnProperty.call(value, operator)
     );
+  }
+
+  private ordinaryBexKeys(value: SimpleObject): string[] {
+    return Object.keys(value).filter((key) => !this.blueWrapperKeys().has(key));
   }
 
   private patchOp(value: string): BexPatchEntry['op'] {
