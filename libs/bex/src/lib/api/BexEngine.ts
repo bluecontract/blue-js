@@ -495,7 +495,6 @@ export class BexEngine {
       );
       return;
     }
-    const keys = Object.keys(expression);
     const ordinaryKeys = this.ordinaryBexKeys(expression);
     const operatorKeys = ordinaryKeys.filter((key) => key.startsWith('$'));
     if (operatorKeys.length === 1 && ordinaryKeys.length === 1) {
@@ -709,13 +708,28 @@ export class BexEngine {
       }
       if (op === '$let' && this.isObject(body)) {
         if (this.isObject(body.vars)) {
-          for (const [name, expr] of Object.entries(body.vars)) {
+          const names = this.multiLetNames(body);
+          if (Object.hasOwn(body, 'order')) {
+            for (const name of names) {
+              this.validateReferences(
+                body.vars[name],
+                constants,
+                functions,
+                `${pointer}/${index}/${op}/vars/${this.escapePointer(name)}`,
+              );
+              declaredLocals.add(name);
+            }
+            return;
+          }
+          for (const name of names) {
             this.validateReferences(
-              expr,
+              body.vars[name],
               constants,
               functions,
               `${pointer}/${index}/${op}/vars/${this.escapePointer(name)}`,
             );
+          }
+          for (const name of names) {
             declaredLocals.add(name);
           }
         } else {
@@ -922,9 +936,23 @@ export class BexEngine {
         statement.$let,
         '$let requires an object.',
       );
-      if (this.isObject(spec.vars)) {
-        for (const [name, expr] of Object.entries(spec.vars)) {
-          state.vars.set(name, this.evalExpr(expr, context, state, program));
+      const vars = spec.vars;
+      if (this.isObject(vars)) {
+        const names = this.multiLetNames(spec);
+        if (Object.hasOwn(spec, 'order')) {
+          for (const name of names) {
+            state.vars.set(
+              name,
+              this.evalExpr(vars[name], context, state, program),
+            );
+          }
+          return;
+        }
+        const values = names.map((name) =>
+          this.evalExpr(vars[name], context, state, program),
+        );
+        for (let i = 0; i < names.length; i += 1) {
+          state.vars.set(names[i], values[i]);
         }
         return;
       }
@@ -2797,6 +2825,50 @@ export class BexEngine {
         }
       }
     }
+  }
+
+  private multiLetNames(spec: SimpleObject): string[] {
+    const vars = this.requireObject(spec.vars, '$let.vars must be an object.');
+    if (!Object.hasOwn(spec, 'order')) {
+      return sortBexKeys(Object.keys(vars));
+    }
+    return this.orderedLetNames(spec.order, vars);
+  }
+
+  private orderedLetNames(order: unknown, vars: SimpleObject): string[] {
+    if (!Array.isArray(order)) {
+      throw new BexException('$let.order must be a list', 'compile-error');
+    }
+    const names: string[] = [];
+    const seen = new Set<string>();
+    for (const item of order) {
+      if (typeof item !== 'string') {
+        throw new BexException('$let.order item must be text', 'compile-error');
+      }
+      if (seen.has(item)) {
+        throw new BexException(
+          `$let.order contains duplicate variable: ${item}`,
+          'compile-error',
+        );
+      }
+      if (!Object.hasOwn(vars, item)) {
+        throw new BexException(
+          `$let.order references unknown variable: ${item}`,
+          'compile-error',
+        );
+      }
+      seen.add(item);
+      names.push(item);
+    }
+    for (const name of Object.keys(vars)) {
+      if (!seen.has(name)) {
+        throw new BexException(
+          `$let.order missing variable: ${name}`,
+          'compile-error',
+        );
+      }
+    }
+    return names;
   }
 
   private kindOf(value: unknown): string {

@@ -525,6 +525,95 @@ describe('BEX strict spec hardening', () => {
     });
   });
 
+  it('uses Java-parity multi-let ordering semantics', () => {
+    expect(
+      execute({
+        do: [
+          { $let: { name: 'a', expr: 'old' } },
+          {
+            $let: {
+              vars: {
+                a: 'new',
+                b: { $var: 'a' },
+              },
+            },
+          },
+          { $return: { a: { $var: 'a' }, b: { $var: 'b' } } },
+        ],
+      }).value.toSimple(),
+    ).toEqual({ a: 'new', b: 'old' });
+
+    expect(
+      execute({
+        do: [
+          { $let: { name: 'a', expr: 'old' } },
+          {
+            $let: {
+              order: ['a', 'b'],
+              vars: {
+                a: 'new',
+                b: { $var: 'a' },
+              },
+            },
+          },
+          { $return: { a: { $var: 'a' }, b: { $var: 'b' } } },
+        ],
+      }).value.toSimple(),
+    ).toEqual({ a: 'new', b: 'new' });
+
+    expect(() =>
+      execute({
+        do: [
+          {
+            $let: {
+              order: ['a'],
+              vars: { a: 1, b: 2 },
+            },
+          },
+        ],
+      }),
+    ).toThrow(/\$let\.order missing variable: b/);
+
+    expect(() =>
+      execute({
+        do: [
+          {
+            $let: {
+              order: ['a', 'a'],
+              vars: { a: 1 },
+            },
+          },
+        ],
+      }),
+    ).toThrow(/\$let\.order contains duplicate variable: a/);
+
+    expect(() =>
+      execute({
+        do: [
+          {
+            $let: {
+              order: ['a', 'b'],
+              vars: { a: 1 },
+            },
+          },
+        ],
+      }),
+    ).toThrow(/\$let\.order references unknown variable: b/);
+
+    expect(() =>
+      execute({
+        do: [
+          {
+            $let: {
+              order: 'a',
+              vars: { a: 1 },
+            },
+          },
+        ],
+      }),
+    ).toThrow(/\$let\.order must be a list/);
+  });
+
   it('rejects source-authored reserved BEX names', () => {
     expect(() =>
       engine().compile(
