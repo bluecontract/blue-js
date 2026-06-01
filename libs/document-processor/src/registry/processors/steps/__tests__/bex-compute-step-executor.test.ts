@@ -155,10 +155,7 @@ describe('BexComputeStepExecutor', () => {
     const result = evaluator.evaluateNode(args, payload);
 
     expect(
-      result
-        .getProperties()
-        ?.initiatorSessionIds.getItems()?.[0]
-        ?.getValue(),
+      result.getProperties()?.initiatorSessionIds.getItems()?.[0]?.getValue(),
     ).toBe('child-session');
   });
 
