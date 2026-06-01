@@ -8,7 +8,10 @@ import {
   OperationSchema,
   type Operation,
 } from '@blue-repository/types/packages/coordination/schemas/Operation';
-import { TimelineEntrySchema } from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
+import {
+  TimelineEntrySchema,
+  type TimelineEntry,
+} from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 
 import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflowOperation } from '../../../model/index.js';
@@ -40,7 +43,10 @@ export function extractOperationRequestNode(
       checkSchemaExtensions: true,
     })
   ) {
-    const entry = blue.nodeToSchemaOutput(eventNode, TimelineEntrySchema);
+    const entry = blue.nodeToSchemaOutput<TimelineEntry>(
+      eventNode,
+      TimelineEntrySchema,
+    );
     const messageNode = entry.message as BlueNode | undefined;
     if (
       messageNode &&
@@ -95,7 +101,7 @@ export function loadOperation(
     return null;
   }
 
-  const operation = context.blue.nodeToSchemaOutput(
+  const operation = context.blue.nodeToSchemaOutput<Operation>(
     operationNode,
     OperationSchema,
   );

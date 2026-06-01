@@ -1,5 +1,8 @@
 import type { Blue, BlueNode } from '@blue-labs/language';
-import { OperationRequestSchema } from '@blue-repository/types/packages/coordination/schemas/OperationRequest';
+import {
+  OperationRequestSchema,
+  type OperationRequest,
+} from '@blue-repository/types/packages/coordination/schemas/OperationRequest';
 import { OperationSchema } from '@blue-repository/types/packages/coordination/schemas/Operation';
 
 import {
@@ -92,7 +95,7 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
       return false;
     }
 
-    const request = context.blue.nodeToSchemaOutput(
+    const request = context.blue.nodeToSchemaOutput<OperationRequest>(
       operationRequestNode,
       OperationRequestSchema,
     );

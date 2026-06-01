@@ -87,7 +87,7 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
         'Update Document changeset must evaluate to a list',
       );
     }
-    const schemaOutput = context.blue.nodeToSchemaOutput(
+    const schemaOutput = context.blue.nodeToSchemaOutput<UpdateDocument>(
       stepNode,
       UpdateDocumentSchema,
     );

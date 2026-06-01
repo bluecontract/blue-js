@@ -1,6 +1,9 @@
 import type { ChannelEvaluationContext, ChannelProcessor } from '../types.js';
 import { BlueNode } from '@blue-labs/language';
-import { TimelineEntrySchema } from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
+import {
+  TimelineEntrySchema,
+  type TimelineEntry,
+} from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 
 import {
   timelineChannelSchema,
@@ -29,7 +32,10 @@ export class TimelineChannelProcessor implements ChannelProcessor<TimelineChanne
       return false;
     }
 
-    const entry = blue.nodeToSchemaOutput(event, TimelineEntrySchema);
+    const entry = blue.nodeToSchemaOutput<TimelineEntry>(
+      event,
+      TimelineEntrySchema,
+    );
     const entryTimelineId = entry.timeline?.timelineId;
     if (!entryTimelineId || !contract.timelineId) {
       return false;

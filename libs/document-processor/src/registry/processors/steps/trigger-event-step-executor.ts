@@ -1,6 +1,9 @@
 import { BlueNode } from '@blue-labs/language';
 import type { BexEngine } from '@blue-labs/bex';
-import { TriggerEventSchema } from '@blue-repository/types/packages/coordination/schemas/TriggerEvent';
+import {
+  TriggerEventSchema,
+  type TriggerEvent,
+} from '@blue-repository/types/packages/coordination/schemas/TriggerEvent';
 import { isNullable } from '@blue-labs/shared-utils';
 
 import { conversationBlueIds } from '../../../repository/semantic-repository.js';
@@ -46,7 +49,7 @@ export class TriggerEventStepExecutor implements SequentialWorkflowStepExecutor 
       );
     }
 
-    const triggerEvent = context.blue.nodeToSchemaOutput(
+    const triggerEvent = context.blue.nodeToSchemaOutput<TriggerEvent>(
       resolvedStepNode,
       TriggerEventSchema,
     );
