@@ -1,4 +1,4 @@
-import { BlueNode } from '@blue-labs/language';
+import { Blue, BlueNode } from '@blue-labs/language';
 import { BexStepResults } from './BexStepResults';
 import { BexValue, BexValues } from '../value/BexValues';
 
@@ -24,6 +24,7 @@ export class BexExecutionContext {
   public steps = new BexStepResults();
   public gasLimit = 1_000_000;
   public bindings = new Map<string, BexValue>();
+  public blue?: Blue;
 
   public static builder(): BexExecutionContextBuilder {
     return new BexExecutionContextBuilder();
@@ -93,6 +94,11 @@ export class BexExecutionContextBuilder {
 
   public gasLimit(value: number): this {
     this.context.gasLimit = value;
+    return this;
+  }
+
+  public blue(value: Blue): this {
+    this.context.blue = value;
     return this;
   }
 

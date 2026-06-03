@@ -9,7 +9,12 @@ import {
   BexMetrics,
   BexPatchEntry,
 } from '../result/BexExecutionResult';
-import { BlueIdCalculator } from '@blue-labs/language';
+import {
+  Blue,
+  BlueIdCalculator,
+  BlueNode,
+  Properties,
+} from '@blue-labs/language';
 import { BexValue, BexValues, nodeToSimple } from '../value/BexValues';
 import { sortBexKeys } from '../value/key-order';
 import { BexDocumentView, BexExecutionContext } from './BexExecutionContext';
@@ -18,7 +23,7 @@ import {
   BexIntrinsicRegistry,
 } from './BexIntrinsicRegistry';
 import { BexProgramExtractor } from './BexProgramExtractor';
-import { BexProgramSource } from './BexProgramSource';
+import { BexProgramInputKind, BexProgramSource } from './BexProgramSource';
 
 type SimpleObject = Record<string, unknown>;
 
@@ -66,6 +71,7 @@ export class BexEngine {
   constructor(
     private readonly gasSchedule = BexGasSchedule.defaults(),
     private readonly intrinsics = BexIntrinsicRegistry.empty(),
+    private readonly blue = new Blue(),
   ) {}
 
   public compile(source: BexProgramSource): BexCompiledProgram {
@@ -73,6 +79,7 @@ export class BexEngine {
       BexProgramExtractor.extract(source.node, {
         inputKind: source.inputKind,
       }),
+      source.inputKind,
     );
     if (!this.isObject(program)) {
       throw new BexException('BEX program must be an object.', 'compile-error');
@@ -85,6 +92,7 @@ export class BexEngine {
             BexProgramExtractor.extract(source.definitionNode, {
               inputKind: source.inputKind,
             }),
+            source.inputKind,
           );
     if (definition !== undefined && !this.isObject(definition)) {
       throw new BexException(
@@ -230,12 +238,16 @@ export class BexEngine {
 
   private normalizeBlueContainers(
     value: unknown,
+    inputKind: BexProgramInputKind,
     path: readonly string[] = [],
   ): unknown {
     if (Array.isArray(value)) {
       return value
         .map((item, index) =>
-          this.normalizeBlueContainers(item, [...path, String(index)]),
+          this.normalizeBlueContainers(item, inputKind, [
+            ...path,
+            String(index),
+          ]),
         )
         .filter((item) => item !== undefined);
     }
@@ -247,22 +259,31 @@ export class BexEngine {
     const nameContainer = this.isBexNameContainer(path);
     const ordinaryKeys = keys.filter((key) => !this.blueWrapperKeys().has(key));
     if (
+      inputKind === 'resolved' &&
       !nameContainer &&
       Object.hasOwn(value, 'value') &&
       ordinaryKeys.length === 0 &&
       !Object.hasOwn(value, 'items')
     ) {
-      return this.normalizeBlueContainers(value.value, [...path, 'value']);
+      return this.normalizeBlueContainers(value.value, inputKind, [
+        ...path,
+        'value',
+      ]);
     }
     if (
+      inputKind === 'resolved' &&
       !nameContainer &&
       Object.hasOwn(value, 'items') &&
       ordinaryKeys.length === 0 &&
       Array.isArray(value.items)
     ) {
-      return this.normalizeBlueContainers(value.items, [...path, 'items']);
+      return this.normalizeBlueContainers(value.items, inputKind, [
+        ...path,
+        'items',
+      ]);
     }
     if (
+      inputKind === 'resolved' &&
       ordinaryKeys.length === 0 &&
       this.isDocumentationOnlyBlueContainer(value) &&
       !this.shouldPreserveDocumentationOnlyContainer(path)
@@ -272,7 +293,10 @@ export class BexEngine {
 
     return Object.fromEntries(
       Object.entries(value).flatMap(([key, item]) => {
-        const normalized = this.normalizeBlueContainers(item, [...path, key]);
+        const normalized = this.normalizeBlueContainers(item, inputKind, [
+          ...path,
+          key,
+        ]);
         if (normalized === undefined && path[path.length - 1] !== 'args') {
           return [];
         }
@@ -1748,7 +1772,7 @@ export class BexEngine {
   ): boolean {
     const spec = this.requireObject(operand, '$is requires an object.');
     const value = this.evalExpr(spec.node, context, state, program);
-    return this.matchesPattern(value, spec.pattern);
+    return this.matchesPattern(value, spec.pattern, context.blue);
   }
 
   private evalIsKind(
@@ -2412,7 +2436,9 @@ export class BexEngine {
       );
       for (const argName of sortBexKeys(Object.keys(definition.args))) {
         const value = this.evalExpr(args[argName], context, state, program);
-        if (!this.matchesPattern(value, definition.args[argName])) {
+        if (
+          !this.matchesPattern(value, definition.args[argName], context.blue)
+        ) {
           throw new BexException(
             `Function argument ${argName} does not match declared Blue pattern`,
             'runtime-error',
@@ -2677,85 +2703,174 @@ export class BexEngine {
     return current;
   }
 
-  private matchesPattern(value: unknown, pattern: unknown): boolean {
+  private matchesPattern(
+    value: unknown,
+    pattern: unknown,
+    blue: Blue = this.blue,
+  ): boolean {
     if (value === undefined) {
       return false;
     }
     if (pattern === undefined || pattern === null) {
       return true;
     }
-    if (!this.isObject(pattern)) {
+
+    try {
+      if (this.hasRuntimeInlineTypeMetadataValue(value)) {
+        return false;
+      }
+      const valueNode = BexValues.toBlueNodeStrict(value, {
+        allowComputedBlue: true,
+        allowConstraints: true,
+      });
+      if (this.hasRuntimeInlineTypeMetadata(valueNode)) {
+        return false;
+      }
+      return blue.isTypeOfNode(
+        valueNode,
+        blue.jsonValueToNodeUnchecked(
+          this.normalizeStaticMatcherPattern(pattern),
+        ),
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private hasRuntimeInlineTypeMetadataValue(value: unknown): boolean {
+    if (Array.isArray(value)) {
+      return value.some((item) => this.hasRuntimeInlineTypeMetadataValue(item));
+    }
+    if (!this.isObject(value)) {
+      return false;
+    }
+    if (
+      this.hasRuntimeInlineTypeName(value.type) ||
+      this.hasRuntimeInlineTypeName(value.itemType) ||
+      this.hasRuntimeInlineTypeName(value.keyType) ||
+      this.hasRuntimeInlineTypeName(value.valueType)
+    ) {
       return true;
     }
-    if ('blueId' in pattern) {
-      return (
-        this.isObject(value) &&
-        this.isObject(value.type) &&
-        value.type.blueId === pattern.blueId
+    return Object.values(value).some((item) =>
+      this.hasRuntimeInlineTypeMetadataValue(item),
+    );
+  }
+
+  private hasRuntimeInlineTypeName(value: unknown): boolean {
+    if (typeof value === 'string') {
+      return true;
+    }
+    return (
+      this.isObject(value) &&
+      typeof value.value === 'string' &&
+      value.blueId === undefined &&
+      value.reference === undefined &&
+      value.referenceBlueId === undefined
+    );
+  }
+
+  private hasRuntimeInlineTypeMetadata(node: BlueNode): boolean {
+    return (
+      this.isInlineTypeMetadata(node.getType()) ||
+      this.isInlineTypeMetadata(node.getItemType()) ||
+      this.isInlineTypeMetadata(node.getKeyType()) ||
+      this.isInlineTypeMetadata(node.getValueType()) ||
+      Object.values(node.getProperties() ?? {}).some((child) =>
+        this.hasRuntimeInlineTypeMetadata(child),
+      ) ||
+      (node.getItems() ?? []).some((child) =>
+        this.hasRuntimeInlineTypeMetadata(child),
+      )
+    );
+  }
+
+  private isInlineTypeMetadata(node: BlueNode | undefined): boolean {
+    return (
+      node !== undefined &&
+      typeof node.getValue() === 'string' &&
+      node.getBlueId() === undefined &&
+      node.getReferenceBlueId() === undefined
+    );
+  }
+
+  private normalizeStaticMatcherPattern(
+    pattern: unknown,
+    allowRootBlueId = true,
+  ): unknown {
+    if (Array.isArray(pattern)) {
+      return pattern.map((item) =>
+        this.normalizeStaticMatcherPattern(item, false),
       );
     }
-    if ('type' in pattern) {
-      const typeBlueId = this.patternTypeBlueId(pattern.type);
-      if (
-        typeBlueId !== undefined &&
-        (!this.isObject(value) ||
-          !this.isObject(value.type) ||
-          value.type.blueId !== typeBlueId)
-      ) {
-        return false;
-      }
-      const typeName = this.patternTypeName(pattern.type);
-      if (typeName === 'Integer') {
-        return typeof value === 'number' && Number.isInteger(value);
-      }
-      if (typeName === 'Double') {
-        return typeof value === 'number';
-      }
-      if (typeName === 'Text') {
-        return typeof value === 'string';
-      }
-      if (typeName === 'Boolean') {
-        return typeof value === 'boolean';
-      }
+    if (!this.isObject(pattern)) {
+      return pattern;
     }
-    for (const [key, childPattern] of Object.entries(pattern)) {
-      if (this.reservedBlueKeys().has(key)) {
-        continue;
-      }
-      const childValue = this.getKey(value, key);
-      if (this.isObject(childPattern) && this.isObject(childPattern.schema)) {
-        if (childPattern.schema.required === true && childValue === undefined) {
-          return false;
-        }
-      }
-      if (
-        childValue !== undefined &&
-        !this.matchesPattern(childValue, childPattern)
-      ) {
-        return false;
-      }
+
+    const keys = Object.keys(pattern);
+    if (
+      allowRootBlueId &&
+      keys.length === 1 &&
+      typeof pattern.blueId === 'string' &&
+      pattern.blueId.trim().length > 0
+    ) {
+      return { type: { blueId: pattern.blueId.trim() } };
     }
-    return true;
+
+    return Object.fromEntries(
+      Object.entries(pattern).map(([key, value]) => [
+        key,
+        key === 'type'
+          ? this.normalizeStaticMatcherType(value)
+          : this.normalizeStaticMatcherPattern(value, false),
+      ]),
+    );
   }
 
-  private patternTypeBlueId(value: unknown): string | undefined {
-    if (this.isObject(value) && typeof value.blueId === 'string') {
-      return value.blueId;
+  private normalizeStaticMatcherType(value: unknown): unknown {
+    const primitiveBlueId = this.primitiveTypeBlueId(value);
+    if (primitiveBlueId) {
+      return { blueId: primitiveBlueId };
     }
-    return undefined;
+    if (
+      this.isObject(value) &&
+      Object.keys(value).length === 1 &&
+      typeof value.blueId === 'string' &&
+      value.blueId.trim().length > 0
+    ) {
+      return { blueId: value.blueId.trim() };
+    }
+    return this.normalizeStaticMatcherPattern(value, false);
   }
 
-  private patternTypeName(value: unknown): string | undefined {
+  private primitiveTypeBlueId(value: unknown): string | undefined {
+    const name = this.primitiveTypeName(value);
+    switch (name) {
+      case 'Text':
+        return Properties.TEXT_TYPE_BLUE_ID;
+      case 'Integer':
+        return Properties.INTEGER_TYPE_BLUE_ID;
+      case 'Double':
+        return Properties.DOUBLE_TYPE_BLUE_ID;
+      case 'Boolean':
+        return Properties.BOOLEAN_TYPE_BLUE_ID;
+      default:
+        return undefined;
+    }
+  }
+
+  private primitiveTypeName(value: unknown): string | undefined {
     if (typeof value === 'string') {
       return value;
     }
-    if (this.isObject(value)) {
-      if (typeof value.value === 'string') {
-        return value.value;
-      }
-      if (typeof value.name === 'string') {
-        return value.name;
-      }
+    if (!this.isObject(value)) {
+      return undefined;
+    }
+    if (typeof value.value === 'string') {
+      return value.value;
+    }
+    if (typeof value.name === 'string') {
+      return value.name;
     }
     return undefined;
   }
@@ -3401,6 +3516,7 @@ export class BexEngine {
 export class BexEngineBuilder {
   private configuredGasSchedule = BexGasSchedule.defaults();
   private configuredIntrinsics = BexIntrinsicRegistry.empty();
+  private configuredBlue = new Blue();
 
   public gasScheduleOverride(gasSchedule: BexGasSchedule): this {
     this.configuredGasSchedule = gasSchedule;
@@ -3435,7 +3551,16 @@ export class BexEngineBuilder {
     return this;
   }
 
+  public blue(blue: Blue): this {
+    this.configuredBlue = blue;
+    return this;
+  }
+
   public build(): BexEngine {
-    return new BexEngine(this.configuredGasSchedule, this.configuredIntrinsics);
+    return new BexEngine(
+      this.configuredGasSchedule,
+      this.configuredIntrinsics,
+      this.configuredBlue,
+    );
   }
 }

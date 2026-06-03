@@ -197,6 +197,7 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
   private executionContext(args: StepExecutionArgs): BexExecutionContext {
     const scopeRootPointer = args.context.resolvePointer('/');
     const builder = BexExecutionContext.builder()
+      .blue(args.context.blue)
       .documentView(
         new ProcessorBexDocumentView(args.context, scopeRootPointer),
       )

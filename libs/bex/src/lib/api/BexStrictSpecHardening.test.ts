@@ -735,6 +735,22 @@ describe('BEX strict spec hardening', () => {
               status: 'confirmed',
             },
             pattern: {
+              blueId: 'HotelOrderType',
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(true);
+
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: {
+              type: { blueId: 'HotelOrderType' },
+              status: 'confirmed',
+            },
+            pattern: {
               type: { blueId: 'HotelOrderType' },
             },
           },
@@ -759,6 +775,60 @@ describe('BEX strict spec hardening', () => {
     ).toBe(false);
   });
 
+  it('uses the same Blue matcher for function argument patterns', () => {
+    expect(
+      execute({
+        expr: {
+          $call: {
+            function: 'acceptHotelOrder',
+            args: {
+              order: {
+                type: { blueId: 'HotelOrderType' },
+                status: 'confirmed',
+              },
+            },
+          },
+        },
+        functions: {
+          acceptHotelOrder: {
+            args: {
+              order: {
+                type: { blueId: 'HotelOrderType' },
+              },
+            },
+            expr: 'accepted',
+          },
+        },
+      }).value.toSimple(),
+    ).toBe('accepted');
+
+    expect(() =>
+      execute({
+        expr: {
+          $call: {
+            function: 'acceptHotelOrder',
+            args: {
+              order: {
+                type: { blueId: 'RestaurantOrderType' },
+                status: 'confirmed',
+              },
+            },
+          },
+        },
+        functions: {
+          acceptHotelOrder: {
+            args: {
+              order: {
+                type: { blueId: 'HotelOrderType' },
+              },
+            },
+            expr: 'accepted',
+          },
+        },
+      }),
+    ).toThrow(/does not match declared Blue pattern/);
+  });
+
   it('preserves primitive type patterns in $is', () => {
     expect(
       execute({
@@ -777,6 +847,17 @@ describe('BEX strict spec hardening', () => {
           $is: {
             node: true,
             pattern: { type: 'Text' },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(false);
+
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: { type: 'Integer', value: 7 },
+            pattern: { type: 'Integer' },
           },
         },
       }).value.toSimple(),
