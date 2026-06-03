@@ -27,9 +27,12 @@ export default defineConfig(() => ({
       transformMixedEsModules: true,
     },
     lib: {
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        conformance: 'src/conformance.ts',
+      },
       name: 'bex',
-      fileName: 'index',
+      fileName: (_format: string, entryName: string) => `${entryName}.mjs`,
       formats: ['es' as const],
     },
     rollupOptions: {

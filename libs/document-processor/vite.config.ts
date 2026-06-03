@@ -46,9 +46,12 @@ export default defineConfig(({ mode }) => ({
     },
     lib: {
       // Could also be a dictionary or array of multiple entry points.
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        conformance: 'src/conformance/index.ts',
+      },
       name: 'document-processor',
-      fileName: 'index',
+      fileName: (_format: string, entryName: string) => `${entryName}.js`,
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
       formats: ['es' as const],

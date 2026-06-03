@@ -5,7 +5,6 @@ export * from './lib/api/BexIntrinsicRegistry';
 export * from './lib/api/BexProgramExtractor';
 export * from './lib/api/BexProgramSource';
 export * from './lib/api/BexStepResults';
-export * from './lib/conformance/BexConformanceSuiteRunner';
 export * from './lib/gas/BexGasSchedule';
 export * from './lib/result/BexExecutionResult';
 export * from './lib/value/key-order';

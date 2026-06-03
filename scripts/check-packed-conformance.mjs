@@ -141,21 +141,16 @@ function installExternalRepositoryTypes(tempRoot) {
   if (!fs.existsSync(target)) {
     throw new Error(`@blue-repository/types not found at ${target}`);
   }
-  const link = path.join(
-    tempRoot,
-    'node_modules',
-    '@blue-repository',
-    'types',
-  );
+  const link = path.join(tempRoot, 'node_modules', '@blue-repository', 'types');
   fs.mkdirSync(path.dirname(link), { recursive: true });
   fs.symlinkSync(target, link, 'dir');
 }
 
 function conformanceSmokeSource() {
   return `
-import { runLanguageConformanceSuite } from '@blue-labs/language';
-import { runContractsConformanceSuite } from '@blue-labs/document-processor';
-import { runBexConformanceSuite } from '@blue-labs/bex';
+import { runLanguageConformanceSuite } from '@blue-labs/language/conformance';
+import { runContractsConformanceSuite } from '@blue-labs/document-processor/conformance';
+import { runBexConformanceSuite } from '@blue-labs/bex/conformance';
 
 const expected = ${JSON.stringify(expectedIdentities, null, 2)};
 

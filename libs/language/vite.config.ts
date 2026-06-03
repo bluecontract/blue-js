@@ -35,9 +35,13 @@ export default {
     },
     lib: {
       // Could also be a dictionary or array of multiple entry points.
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        conformance: 'src/conformance.ts',
+      },
       name: 'language',
-      fileName: 'index',
+      fileName: (format: string, entryName: string) =>
+        `${entryName}.${format === 'es' ? 'mjs' : 'js'}`,
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
       formats: ['es', 'cjs'],

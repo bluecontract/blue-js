@@ -34,6 +34,11 @@
     "crypto": false
   },
   "exports": {
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "import": "./dist/conformance.mjs",
+      "require": "./dist/conformance.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",

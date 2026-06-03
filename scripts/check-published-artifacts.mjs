@@ -46,7 +46,10 @@ for (const rootPath of productionRoots) {
     ) {
       hits.push(`${relative} uses canonicalSignature in production wiring`);
     }
-    if (/checkpoint-manager\.[jt]s$/.test(relative) && /getProperties\(\)\?\.eventId/.test(source)) {
+    if (
+      /checkpoint-manager\.[jt]s$/.test(relative) &&
+      /getProperties\(\)\?\.eventId/.test(source)
+    ) {
       hits.push(`${relative} reads arbitrary eventId in CheckpointManager`);
     }
   }
@@ -54,6 +57,7 @@ for (const rootPath of productionRoots) {
 
 assertProductionComputeUsesDocumentView();
 assertDistFixturesPresent();
+assertRuntimeEntrypointsDoNotExposeConformance();
 
 if (hits.length > 0) {
   throw new Error(`Published artifact guard failed:\n${hits.join('\n')}`);
@@ -86,7 +90,6 @@ function assertProductionComputeUsesDocumentView() {
   const files = [
     'libs/document-processor/src/registry/processors/steps/bex-compute-step-executor.ts',
     'libs/document-processor/src/registry/processors/steps/bex-field-evaluator.ts',
-    'libs/document-processor/dist/index.js',
   ];
   for (const file of files) {
     const absolute = path.join(root, file);
@@ -94,11 +97,35 @@ function assertProductionComputeUsesDocumentView() {
       continue;
     }
     const source = fs.readFileSync(absolute, 'utf8');
-    if (!source.includes('.documentView(') && !source.includes('documentView(')) {
+    if (
+      !source.includes('.documentView(') &&
+      !source.includes('documentView(')
+    ) {
       hits.push(`${file} does not use documentView`);
     }
     if (/BexExecutionContext\.builder\(\)\.document\s*\(/.test(source)) {
       hits.push(`${file} calls BexExecutionContext.document(...)`);
+    }
+  }
+  const distFiles = productionFiles(
+    path.join(root, 'libs/document-processor/dist'),
+  ).filter((file) => file.endsWith('.js'));
+  if (distFiles.length > 0) {
+    const combinedDistSource = distFiles
+      .map((file) => fs.readFileSync(file, 'utf8'))
+      .join('\n');
+    if (
+      !combinedDistSource.includes('.documentView(') &&
+      !combinedDistSource.includes('documentView(')
+    ) {
+      hits.push('libs/document-processor/dist does not use documentView');
+    }
+    if (
+      /BexExecutionContext\.builder\(\)\.document\s*\(/.test(combinedDistSource)
+    ) {
+      hits.push(
+        'libs/document-processor/dist calls BexExecutionContext.document(...)',
+      );
     }
   }
 }
@@ -142,6 +169,64 @@ function assertDistFixturesPresent() {
           missing.join(', ') || '<none>'
         }. Extra: ${extra.join(', ') || '<none>'}.`,
       );
+    }
+  }
+}
+
+function assertRuntimeEntrypointsDoNotExposeConformance() {
+  const checks = [
+    {
+      label: 'Language runtime source',
+      file: 'libs/language/src/index.ts',
+    },
+    {
+      label: 'Language internal runtime source',
+      file: 'libs/language/src/lib/index.ts',
+    },
+    {
+      label: 'Language ESM runtime',
+      file: 'libs/language/dist/index.mjs',
+    },
+    {
+      label: 'Language CJS runtime',
+      file: 'libs/language/dist/index.js',
+    },
+    {
+      label: 'Blue Contracts runtime source',
+      file: 'libs/document-processor/src/index.ts',
+    },
+    {
+      label: 'Blue Contracts ESM runtime',
+      file: 'libs/document-processor/dist/index.js',
+    },
+    {
+      label: 'BEX runtime source',
+      file: 'libs/bex/src/index.ts',
+    },
+    {
+      label: 'BEX ESM runtime',
+      file: 'libs/bex/dist/index.mjs',
+    },
+  ];
+  const forbidden = [
+    'ConformanceSuiteRunner',
+    'ConformanceReport',
+    'fixturePackageIdentityMatchesFixtureFiles',
+    'fixtures/blue-language-1.0',
+    'fixtures/blue-contracts-1.0',
+    'fixtures/rich-fixtures',
+  ];
+
+  for (const check of checks) {
+    const absolute = path.join(root, check.file);
+    if (!fs.existsSync(absolute)) {
+      continue;
+    }
+    const source = fs.readFileSync(absolute, 'utf8');
+    for (const token of forbidden) {
+      if (source.includes(token)) {
+        hits.push(`${check.label} ${check.file} exposes ${token}`);
+      }
     }
   }
 }

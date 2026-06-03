@@ -7,6 +7,11 @@
   "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
+    "./conformance": {
+      "types": "./dist/conformance/index.d.ts",
+      "import": "./dist/conformance.js",
+      "default": "./dist/conformance.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
