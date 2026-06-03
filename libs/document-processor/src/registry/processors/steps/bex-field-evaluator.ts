@@ -11,6 +11,7 @@ import type { JsonValue } from '@blue-labs/shared-utils';
 
 import type { StepExecutionArgs } from '../workflow/step-runner.js';
 import { ProcessorBexDocumentView } from './processor-bex-document-view.js';
+import { isBexExpressionNode } from '../../../util/bex-expression-node.js';
 
 export class BexFieldEvaluator {
   constructor(private readonly engine = new BexEngine()) {}
@@ -141,15 +142,6 @@ export function containsBexExpression(node: BlueNode, pointer = ''): boolean {
       ),
     )
   );
-}
-
-function isBexExpressionNode(node: BlueNode): boolean {
-  const properties = node.getProperties();
-  if (!properties) {
-    return false;
-  }
-  const keys = Object.keys(properties);
-  return keys.length === 1 && keys[0].startsWith('$');
 }
 
 function isEmbeddedDocumentNode(node: BlueNode): boolean {

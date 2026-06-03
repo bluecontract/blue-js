@@ -159,6 +159,27 @@ describe('BexComputeStepExecutor', () => {
     ).toBe('child-session');
   });
 
+  it('does not hide ordinary sibling fields when detecting typed BEX expressions', () => {
+    const blue = createBlue();
+    const evaluator = new BexFieldEvaluator();
+    const stepNode = createComputeStep({ expr: 'unused' });
+    const eventNode = blue.jsonValueToNode({
+      message: { request: { childSessionId: 'child-session' } },
+    });
+    const setup = createRealContext(blue, eventNode);
+    const args = createArgs({ context: setup.context, stepNode, eventNode });
+    const expression = new BlueNode().setType('Text').setProperties({
+      $unwrap: bexNode({ $event: '/message/request/childSessionId' }),
+      debug: blue.jsonValueToNode(true),
+    });
+
+    const result = evaluator.evaluateNode(args, expression);
+
+    expect(result.getValue()).toBeUndefined();
+    expect(result.getProperties()?.$unwrap.getValue()).toBe('child-session');
+    expect(result.getProperties()?.debug.getValue()).toBe(true);
+  });
+
   it('productionBexContextCreationUsesDocumentViewNotDocument', () => {
     const productionFiles = [
       '../bex-compute-step-executor.ts',

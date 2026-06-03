@@ -1,5 +1,7 @@
 import { BlueNode, MergingProcessor } from '@blue-labs/language';
 
+import { isBexExpressionNode } from '../../util/bex-expression-node.js';
+
 /**
  * Keeps BEX expression objects as runtime expressions while Blue resolves
  * surrounding typed contracts.
@@ -32,15 +34,6 @@ export class BexExpressionPreserver implements MergingProcessor {
 
     return target;
   }
-}
-
-function isBexExpressionNode(node: BlueNode): boolean {
-  const properties = node.getProperties();
-  if (!properties) {
-    return false;
-  }
-  const keys = Object.keys(properties);
-  return keys.length === 1 && keys[0].startsWith('$');
 }
 
 function stripMergeMetadata(node: BlueNode): BlueNode {
