@@ -25,6 +25,7 @@ import {
   type TypeGraphProvider,
 } from './type-graph-provider.js';
 import { TypeGeneralizationPolicyResolver } from './type-generalization-policy-resolver.js';
+import { TypeValidationMemo } from './type-validation-memo.js';
 
 export interface TypeGeneralizationPlan {
   readonly generatedPatches: readonly JsonPatch[];
@@ -37,6 +38,7 @@ export class TypeGeneralizationPlanner {
 
   constructor(
     private readonly typeGraph: TypeGraphProvider = new EmptyTypeGraphProvider(),
+    private readonly validationMemo = new TypeValidationMemo(),
   ) {}
 
   planPatch(
@@ -46,6 +48,7 @@ export class TypeGeneralizationPlanner {
   ): TypeGeneralizationPlan {
     const root = document.clone();
     new PatchEngine(root).applyPatch(scopePath, patch);
+    this.validationMemo.invalidateForMutation(normalizePointer(patch.path));
 
     const generatedPaths: string[] = [];
     this.generalizeChangedPath(
@@ -53,13 +56,18 @@ export class TypeGeneralizationPlanner {
       normalizePointer(patch.path),
       normalizeScope(scopePath),
       generatedPaths,
+      this.validationMemo,
     );
 
     if (generatedPaths.length === 0) {
       return { generatedPatches: [] };
     }
 
-    this.enforceNoInvalidAncestorsAcrossBoundary(root, scopePath);
+    this.enforceNoInvalidAncestorsAcrossBoundary(
+      root,
+      scopePath,
+      this.validationMemo,
+    );
     this.enforceScopeBoundary(scopePath, generatedPaths);
     this.enforceGeneralizationPolicy(root, scopePath, generatedPaths);
 
@@ -77,6 +85,7 @@ export class TypeGeneralizationPlanner {
     changedPath: string,
     originScope: string,
     generatedPaths: string[],
+    validationMemo: TypeValidationMemo,
   ): void {
     if (this.crossesEmbeddedScope(root, changedPath, originScope)) {
       throwGeneralizationFailure(
@@ -95,7 +104,14 @@ export class TypeGeneralizationPlanner {
       if (
         currentType &&
         node &&
-        !this.typeGraph.isValidForType(root, current, node, currentType)
+        !this.typeGraph.isValidForType(
+          root,
+          current,
+          node,
+          currentType,
+          validationMemo,
+          changedPath,
+        )
       ) {
         if (this.isEmbeddedScope(root, originScope)) {
           throwGeneralizationFailure(
@@ -108,8 +124,18 @@ export class TypeGeneralizationPlanner {
           current,
           node,
           currentType,
+          validationMemo,
+          changedPath,
         );
-        applyTypeWrite(root, current, replacement, generatedPaths);
+        const generatedPath = applyTypeWrite(
+          root,
+          current,
+          replacement,
+          generatedPaths,
+        );
+        if (generatedPath) {
+          validationMemo.invalidateForMutation(generatedPath);
+        }
       }
       if (current === '/') {
         return;
@@ -176,10 +202,21 @@ export class TypeGeneralizationPlanner {
     pointer: string,
     node: BlueNode,
     currentType: string,
+    validationMemo: TypeValidationMemo,
+    focusPointer: string,
   ): string {
     let candidate = this.typeGraph.parentType(currentType);
     while (candidate != null) {
-      if (this.typeGraph.isValidForType(root, pointer, node, candidate)) {
+      if (
+        this.typeGraph.isValidForType(
+          root,
+          pointer,
+          node,
+          candidate,
+          validationMemo,
+          focusPointer,
+        )
+      ) {
         return candidate;
       }
       candidate = this.typeGraph.parentType(candidate);
@@ -213,6 +250,7 @@ export class TypeGeneralizationPlanner {
   private enforceNoInvalidAncestorsAcrossBoundary(
     root: BlueNode,
     originScope: string,
+    validationMemo: TypeValidationMemo,
   ): void {
     const normalizedOrigin = normalizeScope(originScope);
     if (normalizedOrigin === '/') {
@@ -226,7 +264,14 @@ export class TypeGeneralizationPlanner {
       if (
         currentType &&
         node &&
-        !this.typeGraph.isValidForType(root, current, node, currentType)
+        !this.typeGraph.isValidForType(
+          root,
+          current,
+          node,
+          currentType,
+          validationMemo,
+          normalizedOrigin,
+        )
       ) {
         throwGeneralizationFailure(
           ProcessorErrorCategory.BoundaryViolation,
@@ -377,16 +422,17 @@ function applyTypeWrite(
   pointer: string,
   typeId: string,
   generatedPaths: string[],
-): void {
+): string | null {
   const target = nodeAt(root, pointer);
   if (!target) {
-    return;
+    return null;
   }
   target.setType(new BlueNode().setBlueId(typeId));
   const generatedPath = pointer === '/' ? '/type' : `${pointer}/type`;
   if (!generatedPaths.includes(generatedPath)) {
     generatedPaths.push(generatedPath);
   }
+  return generatedPath;
 }
 
 function requireNodeAt(root: BlueNode, pointer: string): BlueNode {

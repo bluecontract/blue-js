@@ -4,14 +4,12 @@ import { PatchEngine, type PatchResult } from './patch-engine.js';
 import { EmissionRegistry } from './emission-registry.js';
 import { GasMeter } from './gas-meter.js';
 import { ScopeRuntimeContext } from './scope-runtime-context.js';
-import {
-  nodeAt,
-  TypeGeneralizationPlanner,
-} from '../engine/generalization/type-generalization-planner.js';
+import { TypeGeneralizationPlanner } from '../engine/generalization/type-generalization-planner.js';
 import {
   BlueNodeTypeGraphProvider,
   type TypeGraphProvider,
 } from '../engine/generalization/type-graph-provider.js';
+import { TypeValidationMemo } from '../engine/generalization/type-validation-memo.js';
 
 export type DocumentUpdateData = PatchResult;
 
@@ -20,6 +18,7 @@ export class DocumentProcessingRuntime {
   private readonly emissionRegistry = new EmissionRegistry();
   private readonly meter: GasMeter;
   private readonly defaultTypeGraph: TypeGraphProvider;
+  private readonly typeValidationMemo = new TypeValidationMemo();
   private runTerminated = false;
 
   constructor(
@@ -28,7 +27,7 @@ export class DocumentProcessingRuntime {
   ) {
     this.patchEngine = new PatchEngine(this.documentRef);
     this.meter = new GasMeter(this.blueRef);
-    this.defaultTypeGraph = new BlueNodeTypeGraphProvider(this.blueRef, nodeAt);
+    this.defaultTypeGraph = new BlueNodeTypeGraphProvider(this.blueRef);
   }
 
   document(): BlueNode {
@@ -131,6 +130,7 @@ export class DocumentProcessingRuntime {
   ): readonly JsonPatch[] {
     return new TypeGeneralizationPlanner(
       typeGraph ?? this.defaultTypeGraph,
+      this.typeValidationMemo,
     ).planPatch(originScopePath, this.documentRef, patch).generatedPatches;
   }
 }

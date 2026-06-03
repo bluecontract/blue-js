@@ -17,4 +17,8 @@ export { NodeProviderWrapper } from './NodeProviderWrapper';
 export * from './Nodes';
 export * from './limits';
 export * as NodeTypes from './NodeTypes';
-export { NodeTypeMatcher } from './NodeTypeMatcher';
+export {
+  NodeTypeMatcher,
+  type NodeTypeMatcherMemo,
+  type NodeTypeMatcherOptions,
+} from './NodeTypeMatcher';

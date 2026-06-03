@@ -10,6 +10,7 @@ import {
   Nodes,
   NodeTypes,
   NodeTypeMatcher,
+  type NodeTypeMatcherOptions,
   TypeSchemaResolver,
 } from './utils';
 import { NodeToYaml } from './utils/NodeToYaml';
@@ -610,8 +611,17 @@ export class Blue {
    * @param type - The BlueNode type to check against.
    * @returns true if the node matches the type, false otherwise.
    */
-  public isTypeOfNode(node: BlueNode, type: BlueNode) {
-    return new NodeTypeMatcher(this).matchesType(node, type, this.globalLimits);
+  public isTypeOfNode(
+    node: BlueNode,
+    type: BlueNode,
+    options: NodeTypeMatcherOptions = {},
+  ) {
+    return new NodeTypeMatcher(this).matchesType(
+      node,
+      type,
+      this.globalLimits,
+      options,
+    );
   }
 
   /**

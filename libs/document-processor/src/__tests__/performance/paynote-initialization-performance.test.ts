@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DocumentProcessor } from '../../api/document-processor.js';
 import { createBlue } from '../../test-support/blue.js';
+import { ProcessorStatus } from '../../types/document-processing-result.js';
 
 describe('PayNote initialization performance', () => {
   it('initializes the inherited PayNote base without pathological cost', async () => {
@@ -38,6 +39,7 @@ controls: {}
     }
 
     expect(result.capabilityFailure).toBe(false);
+    expect(result.status).toBe(ProcessorStatus.SUCCESS);
     expect(result.document.get('/status')).toBe('Pending');
     expect(String(result.document.get('/amount/finalResolved'))).toBe('0');
     expect(String(result.document.get('/amount/secured'))).toBe('0');
