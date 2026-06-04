@@ -69,7 +69,7 @@
     "libs/shared/*"
   ],
   "dependencies": {
-    "@blue-repository/types": "file:../blue-repository-js/libs/types",
+    "@blue-repository/types": "2.0.0-rc.0",
     "@types/big.js": "6.2.2",
     "@types/js-yaml": "4.0.9",
     "base32.js": "0.1.0",

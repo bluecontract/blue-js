@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -24,9 +24,9 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "@blue-labs/bex": "4.1.1",
-    "@blue-labs/language": "4.1.1",
-    "@blue-labs/shared-utils": "4.1.1"
+    "@blue-labs/bex": "4.1.2",
+    "@blue-labs/language": "4.1.2",
+    "@blue-labs/shared-utils": "4.1.2"
   },
   "license": "MIT",
   "publishConfig": {
@@ -37,7 +37,7 @@
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
   "peerDependencies": {
-    "@blue-repository/types": ">=1.0.0 <2",
+    "@blue-repository/types": ">=2.0.0-rc.0 <3",
     "zod": "^3.20.0"
   }
 }

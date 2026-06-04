@@ -1,3 +1,9 @@
+## 4.1.2 (2026-05-25)
+
+### 🩹 Fixes
+
+- validate scalar type definitions - Add validation to reject unsupported metadata fields in scalar type definitions - Introduce reserved language keys for scalar types - Update tests to ensure proper validation of scalar type metadata ([4820951](https://github.com/bluecontract/blue-js/commit/4820951))
+
 ## 4.1.1 (2026-05-14)
 
 ### 🚀 Features
