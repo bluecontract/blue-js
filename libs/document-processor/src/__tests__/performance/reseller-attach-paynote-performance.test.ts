@@ -1,4 +1,7 @@
 import { performance } from 'node:perf_hooks';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 import { Blue, BlueNode } from '@blue-labs/language';
@@ -21,67 +24,114 @@ type TimingSpan = {
 
 type JsonRecord = Record<string, unknown>;
 
+type AttachPayNoteFixture = {
+  readonly document: JsonRecord;
+  readonly event: JsonRecord;
+  readonly initialSnapshot: JsonRecord;
+  readonly operation: string;
+  readonly requestMatcher: JsonRecord;
+};
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const EXACT_FIXTURE_PATH = path.resolve(
+  __dirname,
+  '../fixtures/reseller/package-order-before-attach-paynote.json',
+);
+
 const DEFAULT_BUDGET_MS = 5_000;
 const STRICT_BUDGET_MS = 2_000;
 
 describe('reseller attachPayNote performance', () => {
-  it('attaches a package PayNote snapshot without pathological processor cost', async () => {
+  it('attaches a synthetic package PayNote snapshot without pathological processor cost', async () => {
     const blue = createBlue();
     const payNoteSnapshot = buildMinimizedPayNoteSnapshot(blue);
     const document = await initializedProcessorDocument(blue);
     const event = operationRequestEvent(blue, payNoteSnapshot);
-    const runs = {
-      warmup: envInteger('BLUE_ATTACH_PAYNOTE_WARMUP_RUNS', 1),
-      measured: envInteger('BLUE_ATTACH_PAYNOTE_MEASURED_RUNS', 3),
-    };
-    const durations: number[] = [];
-    const spans: TimingSpan[] = [];
 
-    for (let index = 0; index < runs.warmup + runs.measured; index += 1) {
-      const runSpans: TimingSpan[] = [];
-      const processor = processorWithTiming(blue, runSpans);
-      const startedAt = performance.now();
-      const result = await processor.processDocument(
-        document.clone(),
-        event.clone(),
-      );
-      const durationMs = performance.now() - startedAt;
+    await expectAttachPayNotePerformance(blue, document, event, {
+      assertResult: assertSyntheticResult,
+    });
+  }, 120_000);
 
-      expect(result.capabilityFailure).toBe(false);
-      expect(result.status).toBe(ProcessorStatus.SUCCESS);
-      expect(result.document.get('/payment/payNoteAttached')).toBe(true);
-      expect(result.document.get('/embeddedDocs/packagePayNote')).toBeTruthy();
-      expect(result.triggeredEvents).toEqual([]);
-      assertEmbeddedPayNoteContractsPreserved(result.document);
-      assertNoJavaScriptRuntime(processor);
+  it('attaches the exact MyOS package PayNote snapshot without pathological processor cost', async () => {
+    const blue = createBlue();
+    const fixture = readExactFixture();
+    expect(fixture.operation).toBe('attachPayNote');
+    expect(fixture.requestMatcher.initialSnapshot).toBeDefined();
+    expect(fixture.initialSnapshot.contracts).toBeDefined();
 
-      if (index >= runs.warmup) {
-        durations.push(durationMs);
-        spans.push(...runSpans);
-      }
-    }
+    const document = blue.resolve(blue.jsonValueToNode(fixture.document));
+    const event = blue.createResolvedNode(blue.jsonValueToNode(fixture.event));
 
-    const budgetMs = Number(
-      process.env.BLUE_ATTACH_PAYNOTE_BUDGET_MS ??
-        (process.env.BLUE_PERF_STRICT === '1'
-          ? STRICT_BUDGET_MS
-          : DEFAULT_BUDGET_MS),
-    );
-    const medianMs = median(durations);
-
-    if (medianMs >= budgetMs || process.env.BLUE_PROCESSOR_TIMING === '1') {
-      console.info(
-        formatTimingFailure({
-          budgetMs,
-          medianMs,
-          spans,
-        }),
-      );
-    }
-
-    expect(medianMs).toBeLessThan(budgetMs);
+    await expectAttachPayNotePerformance(blue, document, event, {
+      assertResult: assertExactMyosResult(fixture),
+    });
   }, 120_000);
 });
+
+async function expectAttachPayNotePerformance(
+  blue: Blue,
+  document: BlueNode,
+  event: BlueNode,
+  options: {
+    readonly assertResult: (document: BlueNode) => void;
+  },
+): Promise<void> {
+  const runs = {
+    warmup: envInteger('BLUE_ATTACH_PAYNOTE_WARMUP_RUNS', 1),
+    measured: envInteger('BLUE_ATTACH_PAYNOTE_MEASURED_RUNS', 3),
+  };
+  const durations: number[] = [];
+  const spans: TimingSpan[] = [];
+
+  for (let index = 0; index < runs.warmup + runs.measured; index += 1) {
+    const runSpans: TimingSpan[] = [];
+    const processor = processorWithTiming(blue, runSpans);
+    const startedAt = performance.now();
+    const result = await processor.processDocument(
+      document.clone(),
+      event.clone(),
+    );
+    const durationMs = performance.now() - startedAt;
+
+    expect(result.capabilityFailure).toBe(false);
+    expect(result.status).toBe(ProcessorStatus.SUCCESS);
+    options.assertResult(result.document);
+    expect(result.triggeredEvents).toEqual([]);
+    assertNoJavaScriptRuntime(processor);
+
+    if (index >= runs.warmup) {
+      durations.push(durationMs);
+      spans.push(...runSpans);
+    }
+  }
+
+  const budgetMs = Number(
+    process.env.BLUE_ATTACH_PAYNOTE_BUDGET_MS ??
+      (process.env.BLUE_PERF_STRICT === '1'
+        ? STRICT_BUDGET_MS
+        : DEFAULT_BUDGET_MS),
+  );
+  const medianMs = median(durations);
+
+  if (medianMs >= budgetMs || process.env.BLUE_PROCESSOR_TIMING === '1') {
+    console.info(
+      formatTimingFailure({
+        budgetMs,
+        medianMs,
+        spans,
+      }),
+    );
+  }
+
+  expect(medianMs).toBeLessThan(budgetMs);
+}
+
+function readExactFixture(): AttachPayNoteFixture {
+  return JSON.parse(
+    fs.readFileSync(EXACT_FIXTURE_PATH, 'utf8'),
+  ) as AttachPayNoteFixture;
+}
 
 function processorWithTiming(
   blue: Blue,
@@ -318,7 +368,39 @@ function packagePayNoteProcessingContracts(): JsonRecord {
   };
 }
 
-function assertEmbeddedPayNoteContractsPreserved(document: BlueNode): void {
+function assertSyntheticResult(document: BlueNode): void {
+  expect(document.get('/payment/payNoteAttached')).toBe(true);
+  expect(document.get('/embeddedDocs/packagePayNote')).toBeTruthy();
+  assertEmbeddedPayNoteContractsPreserved(document, 'sellerChannel');
+}
+
+function assertExactMyosResult(
+  fixture: AttachPayNoteFixture,
+): (document: BlueNode) => void {
+  const expectedPackageOrderSessionId = readFixtureString(
+    fixture.initialSnapshot,
+    ['context', 'packageOrderSessionId'],
+  );
+  return (document) => {
+    expect(document.get('/payment/payNoteAttached')).toBe(true);
+    expect(document.get('/payment/state')).toBe('paynote_attached');
+    expect(document.get('/embeddedDocs/packagePayNote')).toBeTruthy();
+    assertEmbeddedPayNoteContractsPreserved(document, 'guarantorChannel');
+    assertEmbeddedPayNoteContractsPreserved(document, 'payerChannel');
+    assertEmbeddedPayNoteContractsPreserved(document, 'payeeChannel');
+    expect(
+      ProcessorEngine.nodeAt(
+        document,
+        '/embeddedDocs/packagePayNote/context/packageOrderSessionId',
+      )?.getValue(),
+    ).toBe(expectedPackageOrderSessionId);
+  };
+}
+
+function assertEmbeddedPayNoteContractsPreserved(
+  document: BlueNode,
+  channelKey: string,
+): void {
   const embedded = ProcessorEngine.nodeAt(
     document,
     '/embeddedDocs/packagePayNote',
@@ -326,9 +408,9 @@ function assertEmbeddedPayNoteContractsPreserved(document: BlueNode): void {
   expect(embedded).toBeInstanceOf(BlueNode);
   const contracts = embedded?.getContracts();
   expect(contracts).toBeDefined();
-  const sellerChannel = contracts?.sellerChannel;
-  expect(sellerChannel).toBeInstanceOf(BlueNode);
-  expect(sellerChannel?.getType()?.getBlueId()).toBe(
+  const channel = contracts?.[channelKey];
+  expect(channel).toBeInstanceOf(BlueNode);
+  expect(channel?.getType()?.getBlueId()).toBe(
     myosBlueIds['MyOS/MyOS Timeline Channel'],
   );
 }
@@ -352,6 +434,23 @@ function envInteger(name: string, fallback: number): number {
   }
   const parsed = Number(raw);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function readFixtureString(
+  record: JsonRecord,
+  path: readonly string[],
+): string {
+  let current: unknown = record;
+  for (const segment of path) {
+    current =
+      current && typeof current === 'object'
+        ? (current as JsonRecord)[segment]
+        : undefined;
+  }
+  if (typeof current !== 'string') {
+    throw new Error(`Expected fixture string at ${path.join('.')}`);
+  }
+  return current;
 }
 
 function formatTimingFailure(input: {

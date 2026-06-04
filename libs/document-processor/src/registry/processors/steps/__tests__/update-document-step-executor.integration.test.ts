@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { createBlue } from '../../../../test-support/blue.js';
 import { buildProcessor, expectOk } from '../../../../__tests__/test-utils.js';
+import { ProcessorEngine } from '../../../../engine/processor-engine.js';
+import { coordinationBlueIds } from '../../../../repository/semantic-repository.js';
 
 const blue = createBlue();
 
@@ -29,7 +31,10 @@ contracts:
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));
 
-    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+    const snapshot = blue.nodeToJson(
+      blue.minimize(result.document),
+      'simple',
+    ) as {
       status?: string;
     };
     expect(snapshot.status).toBe('created');
@@ -217,5 +222,107 @@ contracts:
 
     expect(snapshot.test).toBe('test');
     expect(snapshot.test2).toBe('test2');
+  });
+
+  it('preserves embedded snapshot contract type descriptors from BEX append changes', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Embedded Snapshot Attachment
+embeddedDocs:
+  orders: {}
+contracts:
+  ownerChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: owner
+  attachOrder:
+    type: Coordination/Operation
+    channel: ownerChannel
+    request:
+      type: Dictionary
+  attachOrderImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachOrder
+    steps:
+      - name: AttachHotelOrder
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: add
+              path: /embeddedDocs/orders/hotelOrder
+              val:
+                $event: /message/request/initialSnapshot
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+`;
+
+    const initialized = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    const event = blue.createResolvedNode(
+      blue.jsonValueToNode({
+        type: 'MyOS/MyOS Timeline Entry',
+        timeline: { timelineId: 'owner' },
+        timestamp: 1,
+        message: {
+          type: 'Coordination/Operation Request',
+          operation: 'attachOrder',
+          request: {
+            initialSnapshot: {
+              name: 'Hotel Badura Weekend Order',
+              kind: 'Order',
+              orderKind: 'hotel',
+              contracts: {
+                seller: {
+                  type: 'Coordination/Timeline Channel',
+                  timelineId: 'hotel',
+                },
+                confirmOrder: {
+                  type: 'Coordination/Operation',
+                  channel: 'seller',
+                },
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const result = await expectOk(
+      processor.processDocument(initialized.document, event),
+    );
+    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+      embeddedDocs?: {
+        orders?: {
+          hotelOrder?: {
+            contracts?: {
+              seller?: { type?: unknown };
+              confirmOrder?: { type?: unknown };
+            };
+          };
+        };
+      };
+    };
+    const seller = ProcessorEngine.nodeAt(
+      result.document,
+      '/embeddedDocs/orders/hotelOrder/contracts/seller',
+    );
+    const confirmOrder = ProcessorEngine.nodeAt(
+      result.document,
+      '/embeddedDocs/orders/hotelOrder/contracts/confirmOrder',
+    );
+    expect(
+      snapshot.embeddedDocs?.orders?.hotelOrder?.contracts?.seller?.type,
+    ).toBeDefined();
+    expect(
+      snapshot.embeddedDocs?.orders?.hotelOrder?.contracts?.confirmOrder?.type,
+    ).toBeDefined();
+    expect(seller?.getType()?.getBlueId()).toBe(
+      coordinationBlueIds['Coordination/Timeline Channel'],
+    );
+    expect(confirmOrder?.getType()?.getBlueId()).toBe(
+      coordinationBlueIds['Coordination/Operation'],
+    );
   });
 });
