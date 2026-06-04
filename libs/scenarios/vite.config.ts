@@ -68,6 +68,7 @@ export default defineConfig(({ mode }) => ({
     watch: false,
     globals: true,
     environment: 'node',
+    pool: 'forks',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
