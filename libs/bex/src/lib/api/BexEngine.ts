@@ -2820,7 +2820,7 @@ export class BexEngine {
     return Object.fromEntries(
       Object.entries(pattern).map(([key, value]) => [
         key,
-        key === 'type'
+        this.staticTypePositionKeys().has(key)
           ? this.normalizeStaticMatcherType(value)
           : this.normalizeStaticMatcherPattern(value, false),
       ]),
@@ -2854,6 +2854,10 @@ export class BexEngine {
         return Properties.DOUBLE_TYPE_BLUE_ID;
       case 'Boolean':
         return Properties.BOOLEAN_TYPE_BLUE_ID;
+      case 'List':
+        return Properties.LIST_TYPE_BLUE_ID;
+      case 'Dictionary':
+        return Properties.DICTIONARY_TYPE_BLUE_ID;
       default:
         return undefined;
     }
@@ -2869,10 +2873,11 @@ export class BexEngine {
     if (typeof value.value === 'string') {
       return value.value;
     }
-    if (typeof value.name === 'string') {
-      return value.name;
-    }
     return undefined;
+  }
+
+  private staticTypePositionKeys(): Set<string> {
+    return new Set(['type', 'itemType', 'keyType', 'valueType']);
   }
 
   private collectionEntries(value: unknown, label: string): CollectionEntry[] {

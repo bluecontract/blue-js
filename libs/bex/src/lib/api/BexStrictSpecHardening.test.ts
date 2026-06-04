@@ -775,6 +775,89 @@ describe('BEX strict spec hardening', () => {
     ).toBe(false);
   });
 
+  it('does not treat type.name as authored alias syntax in $is', () => {
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: 10,
+            pattern: {
+              type: {
+                name: 'Integer',
+              },
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(false);
+  });
+
+  it('normalizes static type-position aliases in $is patterns', () => {
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: [1, 2],
+            pattern: {
+              type: 'List',
+              itemType: 'Integer',
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(true);
+
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: [1, 'nope'],
+            pattern: {
+              type: 'List',
+              itemType: 'Integer',
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(false);
+
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: {
+              a: 1,
+              b: 2,
+            },
+            pattern: {
+              type: 'Dictionary',
+              keyType: 'Text',
+              valueType: 'Integer',
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(true);
+
+    expect(
+      execute({
+        expr: {
+          $is: {
+            node: {
+              a: 1,
+              b: 'nope',
+            },
+            pattern: {
+              type: 'Dictionary',
+              keyType: 'Text',
+              valueType: 'Integer',
+            },
+          },
+        },
+      }).value.toSimple(),
+    ).toBe(false);
+  });
+
   it('uses the same Blue matcher for function argument patterns', () => {
     expect(
       execute({
@@ -820,6 +903,112 @@ describe('BEX strict spec hardening', () => {
             args: {
               order: {
                 type: { blueId: 'HotelOrderType' },
+              },
+            },
+            expr: 'accepted',
+          },
+        },
+      }),
+    ).toThrow(/does not match declared Blue pattern/);
+  });
+
+  it('normalizes static type-position aliases in function argument patterns', () => {
+    expect(
+      execute({
+        expr: {
+          $call: {
+            function: 'acceptIntegerList',
+            args: {
+              values: [1, 2],
+            },
+          },
+        },
+        functions: {
+          acceptIntegerList: {
+            args: {
+              values: {
+                type: 'List',
+                itemType: 'Integer',
+              },
+            },
+            expr: 'accepted',
+          },
+        },
+      }).value.toSimple(),
+    ).toBe('accepted');
+
+    expect(() =>
+      execute({
+        expr: {
+          $call: {
+            function: 'acceptIntegerList',
+            args: {
+              values: [1, 'nope'],
+            },
+          },
+        },
+        functions: {
+          acceptIntegerList: {
+            args: {
+              values: {
+                type: 'List',
+                itemType: 'Integer',
+              },
+            },
+            expr: 'accepted',
+          },
+        },
+      }),
+    ).toThrow(/does not match declared Blue pattern/);
+
+    expect(
+      execute({
+        expr: {
+          $call: {
+            function: 'acceptIntegerDictionary',
+            args: {
+              values: {
+                a: 1,
+                b: 2,
+              },
+            },
+          },
+        },
+        functions: {
+          acceptIntegerDictionary: {
+            args: {
+              values: {
+                type: 'Dictionary',
+                keyType: 'Text',
+                valueType: 'Integer',
+              },
+            },
+            expr: 'accepted',
+          },
+        },
+      }).value.toSimple(),
+    ).toBe('accepted');
+
+    expect(() =>
+      execute({
+        expr: {
+          $call: {
+            function: 'acceptIntegerDictionary',
+            args: {
+              values: {
+                a: 1,
+                b: 'nope',
+              },
+            },
+          },
+        },
+        functions: {
+          acceptIntegerDictionary: {
+            args: {
+              values: {
+                type: 'Dictionary',
+                keyType: 'Text',
+                valueType: 'Integer',
               },
             },
             expr: 'accepted',
