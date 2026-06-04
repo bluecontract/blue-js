@@ -133,12 +133,48 @@ contracts:
 
     const snapshot = blue.nodeToJson(result.document, 'simple') as {
       contracts?: {
-        sessionInteraction?: unknown;
+        sessionInteraction?: { description?: string };
         terminated?: unknown;
       };
     };
     expect(snapshot.contracts?.sessionInteraction).toBeDefined();
+    expect(snapshot.contracts?.sessionInteraction?.description).toBeUndefined();
     expect(snapshot.contracts?.terminated).toBeUndefined();
+  });
+
+  it('preserves authored metadata on update payload values', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Update Metadata Payload Workflow
+contracts:
+  life:
+    type: Lifecycle Event Channel
+  handler:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Document Processing Initiated
+    steps:
+      - name: AddMarker
+        type: Conversation/Update Document
+        changeset:
+          - op: ADD
+            path: /contracts/sessionInteraction
+            val:
+              description: Authored session interaction marker.
+              type: MyOS/MyOS Session Interaction
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+      contracts?: {
+        sessionInteraction?: { description?: string };
+      };
+    };
+    expect(snapshot.contracts?.sessionInteraction?.description).toBe(
+      'Authored session interaction marker.',
+    );
   });
 
   it('applies changesets returned from a Compute step result', async () => {

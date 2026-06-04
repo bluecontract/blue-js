@@ -130,9 +130,39 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
 
   private changeValue(change: ChangeInput): BlueNode | undefined {
     if (change instanceof BlueNode) {
-      return change.getProperties()?.val;
+      const val = change.getProperties()?.val;
+      if (!val) {
+        return undefined;
+      }
+      return this.removeInheritedValueFieldMetadata(val, change);
     }
     return change.val;
+  }
+
+  private removeInheritedValueFieldMetadata(
+    val: BlueNode,
+    change: BlueNode,
+  ): BlueNode {
+    const valueFieldDeclaration = change.getType()?.getProperties()?.val;
+    if (!valueFieldDeclaration) {
+      return val;
+    }
+
+    let next: BlueNode | undefined;
+    if (
+      valueFieldDeclaration.getName() !== undefined &&
+      val.getName() === valueFieldDeclaration.getName()
+    ) {
+      next = (next ?? val.clone()).setName(undefined);
+    }
+    if (
+      valueFieldDeclaration.getDescription() !== undefined &&
+      val.getDescription() === valueFieldDeclaration.getDescription()
+    ) {
+      next = (next ?? val.clone()).setDescription(undefined);
+    }
+
+    return next ?? val;
   }
 
   private normalizeOperation(
