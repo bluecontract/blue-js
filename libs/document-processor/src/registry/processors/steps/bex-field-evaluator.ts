@@ -21,7 +21,9 @@ export class BexFieldEvaluator {
   }
 
   evaluateNode(args: StepExecutionArgs, node: BlueNode): BlueNode {
-    return this.evaluateRecursive(args, node, '');
+    return args.context.measure('bex.fieldEvaluation', () =>
+      this.evaluateRecursive(args, node, ''),
+    );
   }
 
   private evaluateRecursive(
@@ -74,12 +76,16 @@ export class BexFieldEvaluator {
       const programNode = new BlueNode().setProperties({
         expr: expression.clone(),
       });
-      const result = this.engine.compileAndExecute(
-        BexProgramSource.inline(programNode, { inputKind: 'resolved' }),
-        this.executionContext(args),
+      const result = args.context.measure('bex.fieldEvaluation.execute', () =>
+        this.engine.compileAndExecute(
+          BexProgramSource.inline(programNode, { inputKind: 'resolved' }),
+          this.executionContext(args),
+        ),
       );
       args.context.consumeGas(result.gasUsed);
-      const value = result.value.toSimple();
+      const value = args.context.measure('bex.fieldEvaluation.toSimple', () =>
+        result.value.toSimple(),
+      );
       if (value === undefined) {
         return new BlueNode();
       }
@@ -96,18 +102,22 @@ export class BexFieldEvaluator {
 
   private executionContext(args: StepExecutionArgs): BexExecutionContext {
     const scopeRootPointer = args.context.resolvePointer('/');
+    const eventSnapshot = args.context.measure('snapshot.nodeToValue', () =>
+      BexValues.nodeValueSnapshot(args.eventNode, {
+        compactListsWithMetadata: true,
+        compactScalarsWithMetadata: true,
+      }),
+    );
+    const contractSnapshot = args.context.measure('snapshot.nodeToSimple', () =>
+      BexValues.nodeSnapshot(args.contractNode ?? undefined),
+    );
     return BexExecutionContext.builder()
       .blue(args.context.blue)
       .documentView(
         new ProcessorBexDocumentView(args.context, scopeRootPointer),
       )
-      .event(
-        BexValues.nodeValueSnapshot(args.eventNode, {
-          compactListsWithMetadata: true,
-          compactScalarsWithMetadata: true,
-        }),
-      )
-      .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
+      .event(eventSnapshot)
+      .currentContract(contractSnapshot)
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(1_000_000)
       .build();

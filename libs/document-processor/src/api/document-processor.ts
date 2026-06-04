@@ -5,6 +5,10 @@ import { ContractLoader } from '../engine/contract-loader.js';
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 import { ProcessorEngine } from '../engine/processor-engine.js';
 import type { ProcessorRuntimeHooks } from '../engine/processor-engine.js';
+import {
+  ProcessorTimer,
+  type ProcessorTimingSink,
+} from '../engine/processor-timing.js';
 import type { MarkerContract } from '../model/index.js';
 import { ContractProcessorRegistry } from '../registry/contract-processor-registry.js';
 import { ContractProcessorRegistryBuilder } from '../registry/contract-processor-registry-builder.js';
@@ -22,6 +26,7 @@ export interface DocumentProcessorOptions {
   readonly bexEngine?: BexEngine;
   readonly registry?: ContractProcessorRegistry;
   readonly runtimeHooks?: ProcessorRuntimeHooks;
+  readonly timingSink?: ProcessorTimingSink;
 }
 
 export class DocumentProcessor {
@@ -29,8 +34,10 @@ export class DocumentProcessor {
   private readonly registryRef: ContractProcessorRegistry;
   private readonly contractLoaderRef: ContractLoader;
   private readonly engine: ProcessorEngine;
+  private readonly timing: ProcessorTimer;
 
   constructor(options?: DocumentProcessorOptions) {
+    this.timing = new ProcessorTimer(options?.timingSink);
     this.registryRef =
       options?.registry ??
       ContractProcessorRegistryBuilder.create({
@@ -39,12 +46,17 @@ export class DocumentProcessor {
         .registerDefaults()
         .build();
     this.blue = options?.blue ?? DEFAULT_BLUE;
-    this.contractLoaderRef = new ContractLoader(this.registryRef, this.blue);
+    this.contractLoaderRef = new ContractLoader(
+      this.registryRef,
+      this.blue,
+      this.timing,
+    );
     this.engine = new ProcessorEngine(
       this.contractLoaderRef,
       this.registryRef,
       this.blue,
       options?.runtimeHooks,
+      this.timing,
     );
   }
 

@@ -99,7 +99,14 @@ export class WorkflowStepRunner {
         stepIndex: index,
         contractNode,
       };
-      const result = await executor.execute(stepArgs);
+      const result = await context.measureAsync(
+        'workflow.step.execute',
+        () => Promise.resolve(executor.execute(stepArgs)),
+        {
+          stepIndex: index,
+          stepTypeBlueId: blueId,
+        },
+      );
       if (result !== undefined) {
         const key = this.stepResultKey(stepNode, index);
         results[key] = result;

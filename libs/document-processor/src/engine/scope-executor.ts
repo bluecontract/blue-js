@@ -40,6 +40,7 @@ import {
 } from '../types/document-processing-result.js';
 import { safeIsTypeOfBlueId } from '../util/schema-match.js';
 import type { TypeGraphProvider } from './generalization/type-graph-provider.js';
+import { ProcessorTimer } from './processor-timing.js';
 
 const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Document Update Channel'];
 const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Embedded Node Channel'];
@@ -115,6 +116,7 @@ export interface ScopeExecutorOptions {
     watchPath: string | null | undefined,
     changedPath: string,
   ): boolean;
+  timing?: ProcessorTimer;
 }
 
 export class ScopeExecutor {
@@ -134,6 +136,7 @@ export class ScopeExecutor {
     watchPath: string | null | undefined,
     changedPath: string,
   ) => boolean;
+  private readonly timing: ProcessorTimer;
 
   constructor(options: ScopeExecutorOptions) {
     this.runtime = options.runtime;
@@ -145,6 +148,7 @@ export class ScopeExecutor {
     this.nodeAt = options.nodeAt;
     this.createDocumentUpdateEvent = options.createDocumentUpdateEvent;
     this.matchesDocumentUpdate = options.matchesDocumentUpdate;
+    this.timing = options.timing ?? ProcessorTimer.disabled;
   }
 
   async initializeScope(
@@ -362,13 +366,21 @@ export class ScopeExecutor {
       );
       return;
     }
-    const bundle = await this.processEmbeddedChildren(normalizedScope, event);
+    const bundle = await this.timing.measureAsync(
+      'scope.phase1.processEmbedded',
+      () => this.processEmbeddedChildren(normalizedScope, event),
+      { scopePath: normalizedScope },
+    );
     if (!bundle) {
       return;
     }
     let activeBundle = bundle;
     if (!this.hasInitializationMarker(normalizedScope)) {
-      await this.initializeScope(normalizedScope, false, false);
+      await this.timing.measureAsync(
+        'scope.phase2.initialize',
+        () => this.initializeScope(normalizedScope, false, false),
+        { scopePath: normalizedScope },
+      );
       if (this.hooks.isScopeInactive(normalizedScope)) {
         return;
       }
@@ -385,31 +397,56 @@ export class ScopeExecutor {
       return;
     }
 
-    let externalCandidateCount = 0;
-    let matchedExternalCandidate = false;
-    for (const channel of channels) {
-      if (this.hooks.isScopeInactive(normalizedScope)) {
-        break;
-      }
-      if (this.isProcessorManagedChannel(channel)) {
-        continue;
-      }
-      externalCandidateCount += 1;
-      const matched = await this.channelRunner.runExternalChannel(
-        normalizedScope,
-        activeBundle,
-        channel,
-        event,
-      );
-      matchedExternalCandidate ||= matched;
-    }
-    if (externalCandidateCount > 1 && !matchedExternalCandidate) {
-      this.runtime.addGas(1);
-    }
+    await this.timing.measureAsync(
+      'scope.phase3.externalChannels',
+      async () => {
+        let externalCandidateCount = 0;
+        let matchedExternalCandidate = false;
+        for (const channel of channels) {
+          if (this.hooks.isScopeInactive(normalizedScope)) {
+            break;
+          }
+          if (this.isProcessorManagedChannel(channel)) {
+            continue;
+          }
+          externalCandidateCount += 1;
+          const matched = await this.channelRunner.runExternalChannel(
+            normalizedScope,
+            activeBundle,
+            channel,
+            event,
+          );
+          matchedExternalCandidate ||= matched;
+        }
+        if (externalCandidateCount > 1 && !matchedExternalCandidate) {
+          this.runtime.addGas(1);
+        }
+      },
+      { scopePath: normalizedScope },
+    );
     await this.finalizeScope(normalizedScope);
   }
 
   async handlePatch(
+    scopePath: string,
+    bundle: ContractBundle,
+    patch: JsonPatch,
+    allowReservedMutation: boolean,
+  ): Promise<void> {
+    return this.timing.measureAsync(
+      'patch.total',
+      () =>
+        this.handlePatchUnmeasured(
+          scopePath,
+          bundle,
+          patch,
+          allowReservedMutation,
+        ),
+      { scopePath, op: patch.op, path: patch.path },
+    );
+  }
+
+  private async handlePatchUnmeasured(
     scopePath: string,
     bundle: ContractBundle,
     patch: JsonPatch,
@@ -475,7 +512,11 @@ export class ScopeExecutor {
         generatedPatches,
       );
       for (const update of updates) {
-        await this.routeDocumentUpdateAfterPatch(scopePath, bundle, update);
+        await this.timing.measureAsync(
+          'patch.documentUpdateCascade',
+          () => this.routeDocumentUpdateAfterPatch(scopePath, bundle, update),
+          { scopePath, op: update.op, path: update.path },
+        );
         if (this.hooks.isScopeInactive(scopePath)) {
           break;
         }
@@ -565,71 +606,89 @@ export class ScopeExecutor {
     bundle: ContractBundle,
     data: DocumentUpdateData,
   ): Promise<void> {
-    await this.markCutOffChildrenIfNeeded(scopePath, bundle, data);
     const participants: Array<{
       scopePath: string;
       bundle: ContractBundle;
       channels: ChannelBinding[];
     }> = [];
-    for (const cascadeScope of data.cascadeScopes) {
-      if (this.hooks.isScopeInactive(cascadeScope)) {
-        continue;
-      }
-      const targetBundle = this.refreshBundle(cascadeScope);
-      if (!targetBundle) {
-        continue;
-      }
 
-      const matching: ChannelBinding[] = [];
-      const updateChannels = this.channelsMatching(
-        targetBundle,
-        DOCUMENT_UPDATE_CHANNEL_BLUE_ID,
-      );
-      for (const channel of updateChannels) {
-        const contract = channel.contract() as DocumentUpdateChannel;
-        if (
-          !this.matchesDocumentUpdate(
-            cascadeScope,
-            typeof contract.path === 'string' ? contract.path : null,
-            data.path,
-          )
-        ) {
-          continue;
+    await this.timing.measureAsync(
+      'documentUpdate.discovery',
+      async () => {
+        await this.markCutOffChildrenIfNeeded(scopePath, bundle, data);
+        for (const cascadeScope of data.cascadeScopes) {
+          if (this.hooks.isScopeInactive(cascadeScope)) {
+            continue;
+          }
+          const targetBundle = this.refreshBundle(cascadeScope);
+          if (!targetBundle) {
+            continue;
+          }
+
+          const matching: ChannelBinding[] = [];
+          const updateChannels = this.channelsMatching(
+            targetBundle,
+            DOCUMENT_UPDATE_CHANNEL_BLUE_ID,
+          );
+          for (const channel of updateChannels) {
+            const contract = channel.contract() as DocumentUpdateChannel;
+            if (
+              !this.matchesDocumentUpdate(
+                cascadeScope,
+                typeof contract.path === 'string' ? contract.path : null,
+                data.path,
+              )
+            ) {
+              continue;
+            }
+            matching.push(channel);
+          }
+          if (matching.length > 0) {
+            participants.push({
+              scopePath: cascadeScope,
+              bundle: targetBundle,
+              channels: matching,
+            });
+          }
         }
-        matching.push(channel);
-      }
-      if (matching.length > 0) {
-        participants.push({
-          scopePath: cascadeScope,
-          bundle: targetBundle,
-          channels: matching,
-        });
-      }
-    }
+      },
+      { scopePath, path: data.path, op: data.op },
+    );
 
     this.runtime.gasMeter().chargeCascadeRouting(participants.length);
 
-    for (const participant of participants) {
-      if (this.hooks.isScopeInactive(participant.scopePath)) {
-        continue;
-      }
-      const updateEvent = this.createDocumentUpdateEvent(
-        data,
-        participant.scopePath,
-      );
-      for (const channel of participant.channels) {
-        await this.channelRunner.runHandlers(
-          participant.scopePath,
-          participant.bundle,
-          channel.key(),
-          updateEvent,
-          false,
-        );
-        if (this.hooks.isScopeInactive(participant.scopePath)) {
-          break;
+    await this.timing.measureAsync(
+      'documentUpdate.handlers',
+      async () => {
+        for (const participant of participants) {
+          if (this.hooks.isScopeInactive(participant.scopePath)) {
+            continue;
+          }
+          const updateEvent = this.createDocumentUpdateEvent(
+            data,
+            participant.scopePath,
+          );
+          for (const channel of participant.channels) {
+            await this.channelRunner.runHandlers(
+              participant.scopePath,
+              participant.bundle,
+              channel.key(),
+              updateEvent,
+              false,
+            );
+            if (this.hooks.isScopeInactive(participant.scopePath)) {
+              break;
+            }
+          }
         }
-      }
-    }
+      },
+      {
+        scopePath,
+        path: data.path,
+        op: data.op,
+        participants: participants.length,
+      },
+    );
   }
 
   private async processEmbeddedChildren(
@@ -708,7 +767,11 @@ export class ScopeExecutor {
       this.bundles.delete(normalizedScope);
       return null;
     }
-    const refreshed = this.loadBundle(scopeNode, normalizedScope);
+    const refreshed = this.timing.measure(
+      'patch.refreshBundleAfterPatch',
+      () => this.loadBundle(scopeNode, normalizedScope),
+      { scopePath: normalizedScope },
+    );
     this.bundles.set(normalizedScope, refreshed);
     return refreshed;
   }
@@ -794,8 +857,16 @@ export class ScopeExecutor {
     if (this.hooks.isScopeInactive(scopePath)) {
       return;
     }
-    await this.bridgeEmbeddedEmissions(scopePath);
-    await this.drainTriggeredQueue(scopePath);
+    await this.timing.measureAsync(
+      'scope.phase4.bridgeEmbedded',
+      () => this.bridgeEmbeddedEmissions(scopePath),
+      { scopePath },
+    );
+    await this.timing.measureAsync(
+      'scope.phase5.triggeredFifo',
+      () => this.drainTriggeredQueue(scopePath),
+      { scopePath },
+    );
   }
 
   private async bridgeEmbeddedEmissions(scopePath: string): Promise<void> {

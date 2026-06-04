@@ -139,14 +139,23 @@ export function isRequestTypeCompatible(
   if (!(requestPayload instanceof BlueNode)) {
     return false;
   }
+  const requestMatcher = minimizedRequestMatcher(blue, requiredType);
   if (
-    isUnconstrainedCoreCollectionMatch(requestPayload, requiredType) ||
-    blue.isTypeOfNode(requestPayload, requiredType) ||
-    isSimpleTypedPayloadMatch(requestPayload, requiredType, blue)
+    isUnconstrainedCoreCollectionMatch(requestPayload, requestMatcher) ||
+    blue.isTypeOfNode(requestPayload, requestMatcher) ||
+    isSimpleTypedPayloadMatch(requestPayload, requestMatcher, blue)
   ) {
     return true;
   }
   return false;
+}
+
+function minimizedRequestMatcher(blue: Blue, requiredType: BlueNode): BlueNode {
+  try {
+    return blue.minimize(requiredType);
+  } catch {
+    return requiredType;
+  }
 }
 
 function isSimpleTypedPayloadMatch(

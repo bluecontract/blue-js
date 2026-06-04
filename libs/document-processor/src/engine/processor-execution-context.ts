@@ -57,6 +57,22 @@ export class ProcessorExecutionContext {
     return this.execution.runtime().gasMeter();
   }
 
+  measure<T>(
+    name: string,
+    work: () => T,
+    meta?: Readonly<Record<string, unknown>>,
+  ): T {
+    return this.execution.runtime().timer().measure(name, work, meta);
+  }
+
+  measureAsync<T>(
+    name: string,
+    work: () => Promise<T>,
+    meta?: Readonly<Record<string, unknown>>,
+  ): Promise<T> {
+    return this.execution.runtime().timer().measureAsync(name, work, meta);
+  }
+
   event(): BlueNode {
     return this.eventNode;
   }

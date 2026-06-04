@@ -26,6 +26,16 @@ export interface ContractProcessorContext {
   emitEvent(emission: BlueNode): void;
   consumeGas(units: number): void;
   gasMeter(): GasMeter;
+  measure<T>(
+    name: string,
+    work: () => T,
+    meta?: Readonly<Record<string, unknown>>,
+  ): T;
+  measureAsync<T>(
+    name: string,
+    work: () => Promise<T>,
+    meta?: Readonly<Record<string, unknown>>,
+  ): Promise<T>;
   throwFatal(reason: string): never;
   resolvePointer(relativePointer: string): string;
   documentAt(absolutePointer: string): BlueNode | null;

@@ -46,6 +46,7 @@ import { RELATIVE_CONTRACTS } from '../constants/processor-pointer-constants.js'
 import { calculateRuntimeContentBlueId } from '../util/content-blue-id.js';
 import type { TypeGraphProvider } from './generalization/type-graph-provider.js';
 import { CheckpointIdentityService } from './checkpoint-identity-service.js';
+import { ProcessorTimer } from './processor-timing.js';
 
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
   blueIds['Processing Initialized Marker'];
@@ -110,8 +111,9 @@ export class ProcessorExecution implements ExecutionHooks {
     blue: Blue,
     document: BlueNode,
     private readonly runtimeHooks?: ProcessorRuntimeHooks,
+    private readonly timing = ProcessorTimer.disabled,
   ) {
-    this.runtimeRef = new Runtime(document, blue);
+    this.runtimeRef = new Runtime(document, blue, this.timing);
     this.checkpointIdentityService = new CheckpointIdentityService(
       this.runtimeRef.blue(),
     );
@@ -161,6 +163,7 @@ export class ProcessorExecution implements ExecutionHooks {
           this.checkpointIdentityService.identityFor(node, mode, subject),
         channelProcessorFor: (node) => this.lookupChannelProcessor(node),
       },
+      this.timing,
     );
     this.scopeExecutor = new ScopeExecutor({
       runtime: this.runtimeRef,
@@ -209,6 +212,7 @@ export class ProcessorExecution implements ExecutionHooks {
         this.createDocumentUpdateEvent(data, scopePath),
       matchesDocumentUpdate: (scopePath, watchPath, changedPath) =>
         this.matchesDocumentUpdate(scopePath, watchPath, changedPath),
+      timing: this.timing,
     });
   }
 
@@ -657,6 +661,7 @@ export class ProcessorEngine {
     private readonly registry: ContractProcessorRegistry,
     private readonly blue: Blue,
     private readonly runtimeHooks?: ProcessorRuntimeHooks,
+    private readonly timing = ProcessorTimer.disabled,
   ) {}
 
   async initializeDocument(
@@ -675,18 +680,20 @@ export class ProcessorEngine {
     document: BlueNode,
     event: BlueNode,
   ): Promise<DocumentProcessingResult> {
-    const invalidDocument = this.validateProcessingDocument(document);
-    if (invalidDocument) {
-      return invalidDocument;
-    }
-    const execution = this.createExecution(document.clone());
-    const eventClone = event.clone();
-    return this.run(document, execution, async () => {
-      if (await execution.applyForcedFatalIfPresent()) {
-        return;
+    return this.timing.measureAsync('processDocument.total', async () => {
+      const invalidDocument = this.validateProcessingDocument(document);
+      if (invalidDocument) {
+        return invalidDocument;
       }
-      execution.loadBundles('/');
-      await execution.processExternalEvent('/', eventClone);
+      const execution = this.createExecution(document.clone());
+      const eventClone = event.clone();
+      return this.run(document, execution, async () => {
+        if (await execution.applyForcedFatalIfPresent()) {
+          return;
+        }
+        execution.loadBundles('/');
+        await execution.processExternalEvent('/', eventClone);
+      });
     });
   }
 
@@ -723,6 +730,7 @@ export class ProcessorEngine {
       this.blue,
       document,
       this.runtimeHooks,
+      this.timing,
     );
   }
 

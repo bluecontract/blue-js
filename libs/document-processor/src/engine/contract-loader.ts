@@ -44,6 +44,7 @@ import {
   conversationBlueIds,
   myosBlueIds,
 } from '../repository/semantic-repository.js';
+import { ProcessorTimer } from './processor-timing.js';
 
 const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Document Update Channel'];
 const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Embedded Node Channel'];
@@ -145,6 +146,7 @@ export class ContractLoader {
   constructor(
     private readonly registry: ContractProcessorRegistry,
     private readonly blue: Blue,
+    private readonly timing = ProcessorTimer.disabled,
   ) {
     this.handlerRegistration = new HandlerRegistrationService(
       this.blue,
@@ -154,6 +156,17 @@ export class ContractLoader {
   }
 
   load(scopeNode: BlueNode, scopePath: string): ContractBundle {
+    return this.timing.measure(
+      'contractLoader.load',
+      () => this.loadUnmeasured(scopeNode, scopePath),
+      { scopePath },
+    );
+  }
+
+  private loadUnmeasured(
+    scopeNode: BlueNode,
+    scopePath: string,
+  ): ContractBundle {
     try {
       const builder = ContractBundle.builder();
       const contractsNode = scopeNode.getContractsNode();
@@ -172,7 +185,12 @@ export class ContractLoader {
         if (!contractNode) {
           continue;
         }
-        this.processContract(builder, key, contractNode, scopeContracts);
+        this.timing.measure(
+          'contractLoader.resolveEntry',
+          () =>
+            this.processContract(builder, key, contractNode, scopeContracts),
+          { scopePath, contractKey: key },
+        );
       }
 
       return builder.build();

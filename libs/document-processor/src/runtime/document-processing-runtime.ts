@@ -10,6 +10,7 @@ import {
   type TypeGraphProvider,
 } from '../engine/generalization/type-graph-provider.js';
 import { TypeValidationMemo } from '../engine/generalization/type-validation-memo.js';
+import { ProcessorTimer } from '../engine/processor-timing.js';
 
 export type DocumentUpdateData = PatchResult;
 
@@ -24,6 +25,7 @@ export class DocumentProcessingRuntime {
   constructor(
     private readonly documentRef: BlueNode,
     private readonly blueRef: Blue,
+    private readonly timing = ProcessorTimer.disabled,
   ) {
     this.patchEngine = new PatchEngine(this.documentRef);
     this.meter = new GasMeter(this.blueRef);
@@ -70,6 +72,10 @@ export class DocumentProcessingRuntime {
     return this.meter;
   }
 
+  timer(): ProcessorTimer {
+    return this.timing;
+  }
+
   totalGas(): number {
     return this.meter.totalGas();
   }
@@ -111,15 +117,19 @@ export class DocumentProcessingRuntime {
     patch: JsonPatch,
     generatedPatches: readonly JsonPatch[],
   ): readonly DocumentUpdateData[] {
-    const preview = this.documentRef.clone();
+    const preview = this.timing.measure('patch.clonePreview', () =>
+      this.documentRef.clone(),
+    );
     const previewEngine = new PatchEngine(preview);
-    const updates = [
+    const updates = this.timing.measure('patch.applyTransaction', () => [
       previewEngine.applyPatch(originScopePath, patch),
       ...generatedPatches.map((generatedPatch) =>
         previewEngine.applyPatch(originScopePath, generatedPatch),
       ),
-    ];
-    replaceNodeContent(this.documentRef, preview);
+    ]);
+    this.timing.measure('patch.commitPreview', () =>
+      replaceNodeContent(this.documentRef, preview),
+    );
     return updates;
   }
 
@@ -128,10 +138,15 @@ export class DocumentProcessingRuntime {
     patch: JsonPatch,
     typeGraph?: TypeGraphProvider | null,
   ): readonly JsonPatch[] {
-    return new TypeGeneralizationPlanner(
-      typeGraph ?? this.defaultTypeGraph,
-      this.typeValidationMemo,
-    ).planPatch(originScopePath, this.documentRef, patch).generatedPatches;
+    return this.timing.measure(
+      'patch.restoreTypeSoundness',
+      () =>
+        new TypeGeneralizationPlanner(
+          typeGraph ?? this.defaultTypeGraph,
+          this.typeValidationMemo,
+        ).planPatch(originScopePath, this.documentRef, patch).generatedPatches,
+      { path: patch.path, op: patch.op },
+    );
   }
 }
 

@@ -87,27 +87,36 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
       return false;
     }
 
-    const operationRequestNode = extractOperationRequestNode(
-      eventNode,
-      context.blue,
+    const operationRequestNode = context.measure(
+      'operation.match.extractRequest',
+      () => extractOperationRequestNode(eventNode, context.blue),
     );
     if (!operationRequestNode) {
       return false;
     }
 
-    const request = context.blue.nodeToSchemaOutput<OperationRequest>(
-      operationRequestNode,
-      OperationRequestSchema,
+    const request = context.measure('operation.match.parseRequest', () =>
+      context.blue.nodeToSchemaOutput<OperationRequest>(
+        operationRequestNode,
+        OperationRequestSchema,
+      ),
     );
     if (!request) {
       return false;
     }
 
-    if (!isOperationRequestForContract(contract, eventNode, request, context)) {
+    if (
+      !context.measure('operation.match.contractKey', () =>
+        isOperationRequestForContract(contract, eventNode, request, context),
+      )
+    ) {
       return false;
     }
 
-    const loadedOperation = loadOperation(contract, context);
+    const loadedOperation = context.measure(
+      'operation.match.loadOperation',
+      () => loadOperation(contract, context),
+    );
     if (!loadedOperation) {
       return false;
     }
@@ -122,10 +131,12 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
     }
 
     if (
-      !isRequestTypeCompatible(
-        operationRequestNode,
-        loadedOperation.operationNode,
-        context.blue,
+      !context.measure('operation.match.requestTypeCompatible', () =>
+        isRequestTypeCompatible(
+          operationRequestNode,
+          loadedOperation.operationNode,
+          context.blue,
+        ),
       )
     ) {
       return false;
@@ -143,7 +154,11 @@ export class SequentialWorkflowOperationProcessor implements HandlerProcessor<Se
       return false;
     }
 
-    if (!matchesActorPolicyForOperation(operationKey, eventNode, context)) {
+    if (
+      !context.measure('operation.match.actorPolicy', () =>
+        matchesActorPolicyForOperation(operationKey, eventNode, context),
+      )
+    ) {
       return false;
     }
 

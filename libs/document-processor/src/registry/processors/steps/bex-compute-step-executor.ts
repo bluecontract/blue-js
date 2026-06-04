@@ -61,36 +61,34 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
 
   async execute(args: StepExecutionArgs): Promise<unknown> {
     const { context, stepNode } = args;
-    const result = this.executeProgram(args);
-    const value = result.value.toSimple();
+    const result = context.measure('bex.compute.total', () =>
+      this.executeProgram(args),
+    );
+    const value = context.measure('bex.compute.toSimple.value', () =>
+      result.value.toSimple(),
+    );
+    const changeset = context.measure('bex.compute.toPatches', () =>
+      result.changeset.toSimple(),
+    );
+    const events = context.measure('bex.compute.toEvents', () =>
+      result.events.toSimple(),
+    );
 
     context.consumeGas(result.gasUsed);
 
-    for (const change of this.changesToApply(
-      value,
-      result.changeset.toSimple(),
-      context,
-    )) {
+    for (const change of this.changesToApply(value, changeset, context)) {
       await context.applyPatch(this.toPatch(change, context));
     }
 
     const emitEvents = this.booleanProperty(stepNode, 'emitEvents', true);
     if (emitEvents) {
-      for (const event of this.eventsToEmit(
-        value,
-        result.events.toSimple(),
-        context,
-      )) {
+      for (const event of this.eventsToEmit(value, events, context)) {
         context.emitEvent(context.blue.jsonValueToNode(event));
       }
     }
 
     return this.booleanProperty(stepNode, 'returnResult', true)
-      ? this.stepResult(
-          value,
-          result.changeset.toSimple(),
-          result.events.toSimple(),
-        )
+      ? this.stepResult(value, changeset, events)
       : undefined;
   }
 
@@ -196,18 +194,22 @@ export class BexComputeStepExecutor implements SequentialWorkflowStepExecutor {
 
   private executionContext(args: StepExecutionArgs): BexExecutionContext {
     const scopeRootPointer = args.context.resolvePointer('/');
+    const eventSnapshot = args.context.measure('snapshot.nodeToValue', () =>
+      BexValues.nodeValueSnapshot(args.eventNode, {
+        compactListsWithMetadata: true,
+        compactScalarsWithMetadata: true,
+      }),
+    );
+    const contractSnapshot = args.context.measure('snapshot.nodeToSimple', () =>
+      BexValues.nodeSnapshot(args.contractNode ?? undefined),
+    );
     const builder = BexExecutionContext.builder()
       .blue(args.context.blue)
       .documentView(
         new ProcessorBexDocumentView(args.context, scopeRootPointer),
       )
-      .event(
-        BexValues.nodeValueSnapshot(args.eventNode, {
-          compactListsWithMetadata: true,
-          compactScalarsWithMetadata: true,
-        }),
-      )
-      .currentContract(BexValues.nodeSnapshot(args.contractNode ?? undefined))
+      .event(eventSnapshot)
+      .currentContract(contractSnapshot)
       .steps(BexStepResults.fromSimple(args.stepResults))
       .gasLimit(this.numericProperty(args.stepNode, 'gasLimit', 1_000_000));
     return builder.build();

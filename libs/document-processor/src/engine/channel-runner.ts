@@ -12,6 +12,7 @@ import type {
   CheckpointIdentityMode,
   CheckpointIdentityResult,
 } from './checkpoint-identity-service.js';
+import { ProcessorTimer } from './processor-timing.js';
 
 export type { ChannelMatch } from '../registry/types.js';
 
@@ -55,6 +56,7 @@ export class ChannelRunner {
     private readonly runtime: DocumentProcessingRuntime,
     private readonly checkpointManager: CheckpointManager,
     private readonly deps: ChannelRunnerDependencies,
+    private readonly timing = ProcessorTimer.disabled,
   ) {}
 
   async runExternalChannel(
@@ -69,11 +71,10 @@ export class ChannelRunner {
     this.runtime.gasMeter().chargeChannelMatchAttempt();
 
     const checkpointEvent = event;
-    const match = await this.deps.evaluateChannel(
-      channel,
-      bundle,
-      scopePath,
-      event,
+    const match = await this.timing.measureAsync(
+      'channel.match',
+      () => this.deps.evaluateChannel(channel, bundle, scopePath, event),
+      { scopePath, channelKey: channel.key() },
     );
     if (!match.matches) {
       return false;
@@ -302,12 +303,28 @@ export class ChannelRunner {
           event,
           allowTerminatedWork,
         );
-        const shouldRun = await this.deps.shouldRunHandler(handler, context);
+        const shouldRun = await this.timing.measureAsync(
+          'handler.shouldRun',
+          () => this.deps.shouldRunHandler(handler, context),
+          {
+            scopePath,
+            channelKey,
+            contractKey: handler.key(),
+          },
+        );
         if (!shouldRun) {
           continue;
         }
         this.runtime.gasMeter().chargeHandlerOverhead();
-        await this.deps.executeHandler(handler, context);
+        await this.timing.measureAsync(
+          'handler.execute',
+          () => this.deps.executeHandler(handler, context),
+          {
+            scopePath,
+            channelKey,
+            contractKey: handler.key(),
+          },
+        );
         if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
           break;
         }

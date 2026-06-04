@@ -46,7 +46,9 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
     const changesetNode = resolvedStepNode.getProperties()?.changeset;
     if (
       changesetNode !== undefined &&
-      this.bexEvaluator.containsExpression(changesetNode)
+      context.measure('bex.fieldEvaluation.containsExpression', () =>
+        this.bexEvaluator.containsExpression(changesetNode),
+      )
     ) {
       resolvedStepNode = resolvedStepNode.clone();
       resolvedStepNode.addProperty(
@@ -54,7 +56,9 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
         this.bexEvaluator.evaluateNode(args, changesetNode),
       );
     }
-    const changeset = this.extractChanges(resolvedStepNode, context);
+    const changeset = context.measure('bex.compute.toPatches', () =>
+      this.extractChanges(resolvedStepNode, context),
+    );
 
     context.gasMeter().chargeUpdateDocumentBase(changeset.length);
     for (const change of changeset) {
@@ -73,7 +77,11 @@ export class UpdateDocumentStepExecutor implements SequentialWorkflowStepExecuto
     if (!changesetNode) {
       return [];
     }
-    if (this.bexEvaluator.containsExpression(changesetNode)) {
+    if (
+      context.measure('bex.fieldEvaluation.containsExpression', () =>
+        this.bexEvaluator.containsExpression(changesetNode),
+      )
+    ) {
       return context.throwFatal(
         'Update Document changeset still contains unevaluated BEX',
       );
