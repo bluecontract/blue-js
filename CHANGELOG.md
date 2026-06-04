@@ -1,3 +1,9 @@
+## 5.0.0-rc.1 (2026-06-04)
+
+### 🩹 Fixes
+
+- **release:** add bex repository metadata ([0ab2b1f4](https://github.com/bluecontract/blue-js/commit/0ab2b1f4))
+
 ## 5.0.0-rc.0 (2026-06-04)
 
 ### 🚀 Features
