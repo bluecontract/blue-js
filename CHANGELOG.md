@@ -1,3 +1,42 @@
+## 5.0.0-rc.0 (2026-06-04)
+
+### 🚀 Features
+
+- add BEX Java-parity conformance and migration report ([f6846543](https://github.com/bluecontract/blue-js/commit/f6846543))
+- add BEX intrinsic execution, registry, and conformance tests ([b917c411](https://github.com/bluecontract/blue-js/commit/b917c411))
+- implement Bex conformance fixtures and checkpoint handling ([9927fbf9](https://github.com/bluecontract/blue-js/commit/9927fbf9))
+- improve conformance fixture handling and identity modes ([bd1d941c](https://github.com/bluecontract/blue-js/commit/bd1d941c))
+- add scripts for conformance and artifact validation ([a03a9f7c](https://github.com/bluecontract/blue-js/commit/a03a9f7c))
+- ⚠️  release bex java-parity runtime ([8e0812e2](https://github.com/bluecontract/blue-js/commit/8e0812e2))
+
+### 🩹 Fixes
+
+- **bex:** honor type blueid patterns in is ([a6dff114](https://github.com/bluecontract/blue-js/commit/a6dff114))
+- **bex:** ignore blue metadata for expression operators ([67389aab](https://github.com/bluecontract/blue-js/commit/67389aab))
+- **bex:** preserve semantic metadata snapshots ([bb5042c1](https://github.com/bluecontract/blue-js/commit/bb5042c1))
+- **bex:** align multi-let ordering with java ([6842c25e](https://github.com/bluecontract/blue-js/commit/6842c25e))
+- **bex:** match patterns through blue semantics ([e542c69e](https://github.com/bluecontract/blue-js/commit/e542c69e))
+- **bex:** harden static matcher aliases ([493cdb53](https://github.com/bluecontract/blue-js/commit/493cdb53))
+- **document-processor:** preserve marker-only bex events ([c91bfd7d](https://github.com/bluecontract/blue-js/commit/c91bfd7d))
+- **document-processor:** type schema output conversions ([c2704507](https://github.com/bluecontract/blue-js/commit/c2704507))
+- **document-processor:** preserve typed bex expression shape ([f735727a](https://github.com/bluecontract/blue-js/commit/f735727a))
+- **document-processor:** keep patch value metadata scoped ([8ac8b3fb](https://github.com/bluecontract/blue-js/commit/8ac8b3fb))
+- **document-processor:** scope type validation memo safely ([535322d6](https://github.com/bluecontract/blue-js/commit/535322d6))
+- **document-processor:** bound focused type validation safely ([2bb3cef3](https://github.com/bluecontract/blue-js/commit/2bb3cef3))
+- **language:** classify only pure blue ids as references ([efd483a2](https://github.com/bluecontract/blue-js/commit/efd483a2))
+- **packages:** keep conformance out of runtime roots ([660b38fd](https://github.com/bluecontract/blue-js/commit/660b38fd))
+- **release:** keep scenarios workspace-local ([4608a886](https://github.com/bluecontract/blue-js/commit/4608a886))
+
+### 🔥 Performance
+
+- **document-processor:** speed up paynote initialization ([903bbcbc](https://github.com/bluecontract/blue-js/commit/903bbcbc))
+- **document-processor:** memoize blue type validation ([348d5705](https://github.com/bluecontract/blue-js/commit/348d5705))
+- **document-processor:** speed operation request matching ([34199696](https://github.com/bluecontract/blue-js/commit/34199696))
+
+### ⚠️  Breaking Changes
+
+- Blue JS 5 requires BEX-compatible repository types and removes QuickJS/JavaScript expression compatibility from document processor runtime. ([8e0812e2](https://github.com/bluecontract/blue-js/commit/8e0812e2))
+
 ## 4.1.2 (2026-05-25)
 
 ### 🩹 Fixes
