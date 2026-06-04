@@ -103,6 +103,39 @@ entries:
     expect(dynamicResult.document.get('/records/a/status')).toBe('active');
   });
 
+  it('evaluates typed BEX list items inside emitted event payloads', async () => {
+    const support = new ComputeWorkflowTestSupport();
+    const document = await support.initializedOperationWorkflow(
+      `    steps:
+      - name: EmitChildSession
+        type: Coordination/Trigger Event
+        event:
+          type: Coordination/Event
+          kind: Child Session Linked
+          initiatorSessionIds:
+            - type: Text
+              $unwrap:
+                $event: /message/request/childSessionId
+`,
+      {
+        requestTypeYaml: `type: Dictionary
+entries:
+  childSessionId:
+    type: Text`,
+      },
+    );
+
+    const result = await support.processRun(document, {
+      childSessionId: 'child-session-id',
+    });
+    const emitted = json<{ readonly initiatorSessionIds?: readonly string[] }>(
+      support.blue,
+      onlyEvent(result),
+    );
+
+    expect(emitted.initiatorSessionIds).toEqual(['child-session-id']);
+  });
+
   it('rejects invalid evaluated Update Document changesets', async () => {
     const support = new ComputeWorkflowTestSupport();
     const scalar = await support.initializedOperationWorkflow(`    steps:
