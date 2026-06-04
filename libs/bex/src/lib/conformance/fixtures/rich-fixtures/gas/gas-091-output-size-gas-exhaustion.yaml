@@ -1,0 +1,12 @@
+fixtureId: GAS-091
+title: Output size gas exhaustion fails during append output charge
+tags: [gas]
+context:
+  gasLimit: 12
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent: abcdefghij
+expectation:
+  outcome: runtime-error
+  errorContains: BEX gas exhausted

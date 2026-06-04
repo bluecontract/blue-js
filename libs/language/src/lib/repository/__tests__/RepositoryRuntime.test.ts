@@ -4,7 +4,10 @@ import type {
   BlueRepository,
   BlueRepositoryPackage,
 } from '../../types/BlueRepository';
-import { TEXT_TYPE_BLUE_ID } from '../../utils/Properties';
+import {
+  DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP,
+  TEXT_TYPE_BLUE_ID,
+} from '../../utils/Properties';
 
 type VersionEntry = {
   repositoryVersionIndex: number;
@@ -116,6 +119,25 @@ describe('RepositoryRegistry', () => {
     });
     const registry = new RepositoryRegistry([repo]);
     expect(registry.getTypeAlias(TEXT_TYPE_BLUE_ID)).toEqual('Text');
+  });
+
+  it('returns default runtime aliases from runtime BlueIds', () => {
+    const repo = buildRepo({
+      name: 'repo.runtime',
+      packages: {
+        pkg: buildPackage({
+          name: 'pkg',
+        }),
+      },
+    });
+    const registry = new RepositoryRegistry([repo]);
+
+    expect(registry.toCurrentBlueId('Channel')).toEqual(
+      DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP.Channel,
+    );
+    expect(
+      registry.getTypeAlias(DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP.Channel),
+    ).toEqual('Channel');
   });
 
   it('allows identical content across repositories', () => {

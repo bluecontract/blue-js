@@ -1,0 +1,19 @@
+fixtureId: GAS-046
+title: Pointer set remove does not evaluate val and charges undefined size
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $pointerSet:
+      object:
+        a:
+          b: x
+      op: remove
+      path: a/b
+      val:
+        $document: /expensive
+expectation:
+  outcome: success
+  resultSimple:
+    a: {}
+  gasUsed: 9

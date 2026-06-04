@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { createBlue } from '../../test-support/blue.js';
 import {
-  blueIds as coreBlueIds,
+  blueIds as defaultBlueIds,
   conversationBlueIds,
 } from '../../repository/semantic-repository.js';
 import {
@@ -88,7 +88,7 @@ describe('ContractProcessorRegistry', () => {
     const registry = new ContractProcessorRegistry();
     const genericMarker: MarkerProcessor<object> = {
       kind: 'marker',
-      blueIds: [coreBlueIds['Core/Marker']],
+      blueIds: [defaultBlueIds['Marker']],
       schema: z.object({}),
     };
     registry.registerMarker(genericMarker);
@@ -104,7 +104,7 @@ describe('ContractProcessorRegistry', () => {
     const registry = new ContractProcessorRegistry();
     const genericMarker: MarkerProcessor<object> = {
       kind: 'marker',
-      blueIds: [coreBlueIds['Core/Marker']],
+      blueIds: [defaultBlueIds['Marker']],
       schema: z.object({}),
     };
     const specificMarker: MarkerProcessor<object> = {
@@ -148,6 +148,6 @@ describe('ContractProcessorRegistryBuilder', () => {
       .registerDefaults()
       .build();
 
-    expect(registry.lookupMarker(coreBlueIds['Core/Marker'])).toBeDefined();
+    expect(registry.lookupMarker(defaultBlueIds['Marker'])).toBeDefined();
   });
 });

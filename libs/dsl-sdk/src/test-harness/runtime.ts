@@ -4,8 +4,8 @@ import {
   createDefaultMergingProcessor,
   type DocumentProcessingResult,
   DocumentProcessor,
+  markerContractBaseSchema as MarkerSchema,
 } from '@blue-labs/document-processor';
-import { MarkerSchema } from '@blue-repository/types/packages/core/schemas';
 import {
   blueRepository,
   conversationBlueIds,

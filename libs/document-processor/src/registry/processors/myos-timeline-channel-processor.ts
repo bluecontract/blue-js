@@ -2,7 +2,7 @@ import { BlueNode } from '@blue-labs/language';
 import {
   TimelineEntrySchema,
   type TimelineEntry,
-} from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+} from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 import {
   MyOSTimelineEntrySchema,
   type MyOSTimelineEntry,
@@ -15,6 +15,9 @@ import {
 import { myosBlueIds } from '../../repository/semantic-repository.js';
 import type { ChannelEvaluationContext, ChannelProcessor } from '../types.js';
 import { isTimelineEventNewer } from './shared/timeline-recency.js';
+
+const LEGACY_MYOS_TIMELINE_CHANNEL_BLUE_ID =
+  'B734e6ZNoHfjhBF6L2W1MvQ1Wok2ihCMRauBiWhoyk7T';
 
 function resolveTimelineEntry(
   blue: ChannelEvaluationContext['blue'],
@@ -31,7 +34,10 @@ function resolveTimelineEntry(
 
 export class MyOSTimelineChannelProcessor implements ChannelProcessor<MyOSTimelineChannel> {
   readonly kind = 'channel' as const;
-  readonly blueIds = [myosBlueIds['MyOS/MyOS Timeline Channel']] as const;
+  readonly blueIds = [
+    myosBlueIds['MyOS/MyOS Timeline Channel'],
+    LEGACY_MYOS_TIMELINE_CHANNEL_BLUE_ID,
+  ] as const;
   readonly schema = myosTimelineChannelSchema;
 
   matches(

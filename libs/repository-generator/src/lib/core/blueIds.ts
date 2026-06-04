@@ -1,4 +1,10 @@
-import { Blue, BlueNode, createNodeProvider } from '@blue-labs/language';
+import {
+  Blue,
+  BlueIdCalculator,
+  BlueNode,
+  NodeProviderWrapper,
+  createNodeProvider,
+} from '@blue-labs/language';
 import { OBJECT_CONTRACTS } from '@blue-labs/repository-contract';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import {
@@ -11,6 +17,11 @@ import { PRIMITIVE_BLUE_IDS, PRIMITIVE_TYPES } from './constants';
 import { cloneJson, isPlainObject, isRecord } from './utils';
 import { createRepositoryGeneratorMergingProcessor } from './mergingProcessor';
 import type { AliasComponent, DependencyGraph } from './graph';
+import { BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID } from './builtinRuntimeTypes';
+import {
+  canonicalizeRepositoryStorageContent,
+  canonicalizeRepositoryStorageMap,
+} from './repositoryContent';
 
 export const ZERO_BLUE_ID = '00000000000000000000000000000000000000000000';
 
@@ -40,18 +51,23 @@ export function computeBlueIds(
 } {
   const aliasToBlueId = new Map<Alias, string>();
   const aliasToStorageContent = new Map<Alias, JsonMap>();
-  const contentByBlueId = new Map<string, JsonValue>();
+  const contentByBlueId = new Map<string, JsonValue>(
+    Object.entries(BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID),
+  );
   const parserBlue = new Blue();
   const provider = createNodeProvider((blueId) => {
     if (isCyclicPlaceholderBlueId(blueId)) {
       return [new BlueNode().setReferenceBlueId(blueId)];
     }
     return lookupStorageContentByBlueId(contentByBlueId, blueId).map(
-      (content) => parserBlue.jsonValueToNode(content),
+      (content) =>
+        parserBlue.jsonValueToNode(
+          canonicalizeRepositoryStorageContent(content),
+        ),
     );
   });
   const blue = new Blue({
-    nodeProvider: provider,
+    nodeProvider: NodeProviderWrapper.unverified(provider),
     mergingProcessor: createRepositoryGeneratorMergingProcessor(),
   });
   const context: BlueIdContext = { blue, contentByBlueId };
@@ -284,7 +300,8 @@ function computeCyclicComponent({
     );
     return {
       alias,
-      preliminaryBlueId: context.blue.calculateBlueIdSync(node),
+      preliminaryBlueId:
+        BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(node),
     };
   });
 
@@ -386,11 +403,20 @@ function buildStorageNode(
     cloneJson(type.content),
     lookupBlueId,
   ) as JsonMap;
-  const node = blue.jsonValueToNode(substituted);
-  return {
-    node,
-    storageContent: blue.nodeToJson(node, 'official') as JsonMap,
-  };
+  try {
+    const node = blue.jsonValueToNode(substituted);
+    const storageContent = canonicalizeRepositoryStorageMap(
+      blue.nodeToJson(node, 'official') as JsonMap,
+    );
+    return {
+      node,
+      storageContent,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error encountered.';
+    throw new Error(`Failed to build ${type.filePath}: ${message}`);
+  }
 }
 
 function getDiscoveredType(
@@ -445,13 +471,16 @@ function getPreviousForUnchangedContent(
     return null;
   }
 
-  if (!jsonEquals(previousType.content, currentContent)) {
+  const previousContent = canonicalizeRepositoryStorageMap(
+    previousType.content as JsonMap,
+  );
+  if (!jsonEquals(previousContent, currentContent)) {
     return null;
   }
 
   return {
     blueId: previousBlueId,
-    content: cloneJson(previousType.content as JsonMap),
+    content: cloneJson(previousContent),
   };
 }
 

@@ -17,10 +17,10 @@ import type { InvalidContractError } from '../../types/errors.js';
 import { blueIds, createBlue } from '../../test-support/blue.js';
 import { createBlueWithDerivedTypes } from '../../__tests__/derived-blue-types.js';
 
-const blueIdDocumentUpdate = blueIds['Core/Document Update Channel'];
-const blueIdInitialization = blueIds['Core/Processing Initialized Marker'];
-const blueIdProcessEmbedded = blueIds['Core/Process Embedded'];
-const blueIdCheckpoint = blueIds['Core/Channel Event Checkpoint'];
+const blueIdDocumentUpdate = blueIds['Document Update Channel'];
+const blueIdInitialization = blueIds['Processing Initialized Marker'];
+const blueIdProcessEmbedded = blueIds['Process Embedded'];
+const blueIdCheckpoint = blueIds['Channel Event Checkpoint'];
 const blueIdCompositeTimeline =
   conversationBlueIds['Conversation/Composite Timeline Channel'];
 const blueIdActorPolicy = conversationBlueIds['Conversation/Actor Policy'];
@@ -91,7 +91,6 @@ describe('ContractLoader', () => {
       checkpoint: {
         type: { blueId: blueIdCheckpoint },
         lastEvents: {},
-        lastSignatures: {},
       },
     });
 
@@ -507,7 +506,6 @@ describe('ContractLoader', () => {
       wrongCheckpoint: {
         type: { blueId: blueIdCheckpoint },
         lastEvents: {},
-        lastSignatures: {},
       },
     });
 

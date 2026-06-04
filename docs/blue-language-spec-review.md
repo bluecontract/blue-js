@@ -1,5 +1,7 @@
 # Blue Language Spec Review
 
+> Historical draft/review note. Not the current Blue Language 1.0 specification. The authoritative release artifacts are the frozen Blue Language 1.0 specification, registry, and fixture package under `libs/language/src/lib/conformance/fixtures/blue-language-1.0/`.
+
 THIS FILE WAS CREATED BASED ON: https://chatgpt.com/s/t_6992eef302e88191ab6ba7b042e43b3c
 
 Below is a concrete **end-to-end** plan that takes everything you raised into account:

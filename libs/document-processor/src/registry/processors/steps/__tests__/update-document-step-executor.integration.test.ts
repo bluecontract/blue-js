@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { createBlue } from '../../../../test-support/blue.js';
 import { buildProcessor, expectOk } from '../../../../__tests__/test-utils.js';
+import { ProcessorEngine } from '../../../../engine/processor-engine.js';
+import { coordinationBlueIds } from '../../../../repository/semantic-repository.js';
 
 const blue = createBlue();
 
@@ -11,12 +13,12 @@ describe('UpdateDocumentStepExecutor (integration)', () => {
     const yaml = `name: Update Document Workflow
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   handler:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: SeedStatus
         type: Conversation/Update Document
@@ -29,7 +31,10 @@ contracts:
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));
 
-    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+    const snapshot = blue.nodeToJson(
+      blue.minimize(result.document),
+      'simple',
+    ) as {
       status?: string;
     };
     expect(snapshot.status).toBe('created');
@@ -41,23 +46,26 @@ contracts:
 counter: 5
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   handler:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: Compute
-        type: Conversation/JavaScript Code
-        code: |
-          return { increment: 4 };
+        type: Conversation/Compute
+        expr:
+          increment: 4
       - name: Apply
         type: Conversation/Update Document
         changeset:
           - op: REPLACE
             path: /counter
-            val: "\${document('/counter') + steps.Compute.increment}"
+            val:
+              $add:
+                - $document: /counter
+                - $steps: Compute.increment
 `;
 
     const doc = blue.yamlToNode(yaml);
@@ -69,25 +77,28 @@ contracts:
     expect(snapshot.counter).toBe(9);
   });
 
-  it('supports changeset expressions that produce multiple patches', async () => {
+  it('supports changesets that produce multiple patches', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Update History Workflow
 history: []
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   handler:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: Apply
         type: Conversation/Update Document
-        changeset: "\${[
-          { op: 'REPLACE', path: '/status', val: 'ready' },
-          { op: 'ADD', path: '/history/-', val: 'booted' }
-        ]}"
+        changeset:
+          - op: REPLACE
+            path: /status
+            val: ready
+          - op: ADD
+            path: /history/-
+            val: booted
 `;
 
     const doc = blue.yamlToNode(yaml);
@@ -101,66 +112,103 @@ contracts:
     expect(snapshot.history).toEqual(['booted']);
   });
 
-  it('supports deterministic JSON.parse and JSON.stringify in expressions', async () => {
+  it('adds type-only contract markers without requiring inherited type labels', async () => {
     const processor = buildProcessor(blue);
-    const yaml = `name: Update Document Deterministic JSON Workflow
+    const yaml = `name: Update Marker Contract Workflow
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   handler:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
-      - name: Apply
+      - name: AddMarker
         type: Conversation/Update Document
         changeset:
           - op: ADD
-            path: /canonicalJson
-            val: '\${JSON.stringify(JSON.parse(''{"aa":1,"b":2}''))}'
+            path: /contracts/sessionInteraction
+            val:
+              type: MyOS/MyOS Session Interaction
 `;
 
     const doc = blue.yamlToNode(yaml);
     const result = await expectOk(processor.initializeDocument(doc));
 
     const snapshot = blue.nodeToJson(result.document, 'simple') as {
-      canonicalJson?: string;
+      contracts?: {
+        sessionInteraction?: { description?: string };
+        terminated?: unknown;
+      };
     };
-    expect(snapshot.canonicalJson).toBe('{"b":2,"aa":1}');
+    expect(snapshot.contracts?.sessionInteraction).toBeDefined();
+    expect(snapshot.contracts?.sessionInteraction?.description).toBeUndefined();
+    expect(snapshot.contracts?.terminated).toBeUndefined();
   });
 
-  it('applies changesets returned from a JavaScript step result', async () => {
+  it('preserves authored metadata on update payload values', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Update Metadata Payload Workflow
+contracts:
+  life:
+    type: Lifecycle Event Channel
+  handler:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Document Processing Initiated
+    steps:
+      - name: AddMarker
+        type: Conversation/Update Document
+        changeset:
+          - op: ADD
+            path: /contracts/sessionInteraction
+            val:
+              description: Authored session interaction marker.
+              type: MyOS/MyOS Session Interaction
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+      contracts?: {
+        sessionInteraction?: { description?: string };
+      };
+    };
+    expect(snapshot.contracts?.sessionInteraction?.description).toBe(
+      'Authored session interaction marker.',
+    );
+  });
+
+  it('applies changesets returned from a Compute step result', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Test Changeset Step Output
 contracts:
   lifecycle:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   handler:
     type: Conversation/Sequential Workflow
     channel: lifecycle
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: Prepare
-        type: Conversation/JavaScript Code
-        code: |
-          const changeset = [
-            {
-              op: 'add',
-              path: '/test',
-              val: 'test'
-            },
-            {
-              op: 'add',
-              path: '/test2',
-              val: 'test2'
-            }
-          ];
-          return { changeset };
+        type: Conversation/Compute
+        do:
+          - $appendChange:
+              op: add
+              path: /test
+              val: test
+          - $appendChange:
+              op: add
+              path: /test2
+              val: test2
       - name: Apply
         type: Conversation/Update Document
-        changeset: "\${steps.Prepare.changeset}"
+        changeset:
+          $steps: Prepare.changeset
 `;
 
     const doc = blue.yamlToNode(yaml);
@@ -174,5 +222,107 @@ contracts:
 
     expect(snapshot.test).toBe('test');
     expect(snapshot.test2).toBe('test2');
+  });
+
+  it('preserves embedded snapshot contract type descriptors from BEX append changes', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Embedded Snapshot Attachment
+embeddedDocs:
+  orders: {}
+contracts:
+  ownerChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: owner
+  attachOrder:
+    type: Coordination/Operation
+    channel: ownerChannel
+    request:
+      type: Dictionary
+  attachOrderImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachOrder
+    steps:
+      - name: AttachHotelOrder
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: add
+              path: /embeddedDocs/orders/hotelOrder
+              val:
+                $event: /message/request/initialSnapshot
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+`;
+
+    const initialized = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    const event = blue.createResolvedNode(
+      blue.jsonValueToNode({
+        type: 'MyOS/MyOS Timeline Entry',
+        timeline: { timelineId: 'owner' },
+        timestamp: 1,
+        message: {
+          type: 'Coordination/Operation Request',
+          operation: 'attachOrder',
+          request: {
+            initialSnapshot: {
+              name: 'Hotel Badura Weekend Order',
+              kind: 'Order',
+              orderKind: 'hotel',
+              contracts: {
+                seller: {
+                  type: 'Coordination/Timeline Channel',
+                  timelineId: 'hotel',
+                },
+                confirmOrder: {
+                  type: 'Coordination/Operation',
+                  channel: 'seller',
+                },
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const result = await expectOk(
+      processor.processDocument(initialized.document, event),
+    );
+    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+      embeddedDocs?: {
+        orders?: {
+          hotelOrder?: {
+            contracts?: {
+              seller?: { type?: unknown };
+              confirmOrder?: { type?: unknown };
+            };
+          };
+        };
+      };
+    };
+    const seller = ProcessorEngine.nodeAt(
+      result.document,
+      '/embeddedDocs/orders/hotelOrder/contracts/seller',
+    );
+    const confirmOrder = ProcessorEngine.nodeAt(
+      result.document,
+      '/embeddedDocs/orders/hotelOrder/contracts/confirmOrder',
+    );
+    expect(
+      snapshot.embeddedDocs?.orders?.hotelOrder?.contracts?.seller?.type,
+    ).toBeDefined();
+    expect(
+      snapshot.embeddedDocs?.orders?.hotelOrder?.contracts?.confirmOrder?.type,
+    ).toBeDefined();
+    expect(seller?.getType()?.getBlueId()).toBe(
+      coordinationBlueIds['Coordination/Timeline Channel'],
+    );
+    expect(confirmOrder?.getType()?.getBlueId()).toBe(
+      coordinationBlueIds['Coordination/Operation'],
+    );
   });
 });

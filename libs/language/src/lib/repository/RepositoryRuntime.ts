@@ -11,8 +11,8 @@ import {
   validateAttributesAddedPointer as validateAttributesAddedPointerContract,
 } from '@blue-labs/repository-contract';
 import {
-  CORE_TYPE_BLUE_ID_TO_NAME_MAP,
-  CORE_TYPE_NAME_TO_BLUE_ID_MAP,
+  DEFAULT_BLUE_TYPE_BLUE_ID_TO_NAME_MAP,
+  DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP,
 } from '../utils/Properties';
 import { JsonCanonicalizer } from '../utils/JsonCanonicalizer';
 
@@ -74,7 +74,9 @@ export class RepositoryRegistry {
   public toCurrentBlueId(blueId: string): string {
     const aliasedBlueId =
       this.aliases[blueId] ??
-      (CORE_TYPE_NAME_TO_BLUE_ID_MAP as Record<string, string>)[blueId] ??
+      (DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP as Record<string, string>)[
+        blueId
+      ] ??
       blueId;
     for (const runtime of this.runtimes) {
       const mapped = runtime.toCurrentBlueIdIndex[aliasedBlueId];
@@ -87,11 +89,11 @@ export class RepositoryRegistry {
 
   public getTypeAlias(blueId: string): string | undefined {
     const currentBlueId = this.toCurrentBlueId(blueId);
-    const coreName = (CORE_TYPE_BLUE_ID_TO_NAME_MAP as Record<string, string>)[
-      currentBlueId
-    ];
-    if (coreName) {
-      return coreName;
+    const defaultName = (
+      DEFAULT_BLUE_TYPE_BLUE_ID_TO_NAME_MAP as Record<string, string>
+    )[currentBlueId];
+    if (defaultName) {
+      return defaultName;
     }
 
     for (const runtime of this.runtimes) {

@@ -24,7 +24,7 @@ type ReferenceVisitor = (node: BlueNode, referenceBlueId: string) => void;
 export class CyclicSetIdentityService {
   public static readonly ZERO_BLUE_ID = '0'.repeat(44);
 
-  private static readonly THIS_INDEX_REFERENCE_PATTERN = /^this#(\d+)$/;
+  private static readonly THIS_INDEX_REFERENCE_PATTERN = /^this#(0|[1-9]\d*)$/;
 
   private readonly prepareDocument: (node: BlueNode) => BlueNode;
   private readonly calculateBlueId: (value: BlueNode | BlueNode[]) => string;
@@ -32,7 +32,8 @@ export class CyclicSetIdentityService {
   constructor(options: CyclicSetIdentityServiceOptions = {}) {
     this.prepareDocument = options.prepareDocument ?? ((node) => node);
     this.calculateBlueId =
-      options.calculateBlueId ?? BlueIdCalculator.calculateBlueIdSync;
+      options.calculateBlueId ??
+      BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync;
   }
 
   public static hasThisReference(nodes: BlueNode[]): boolean {
@@ -63,8 +64,7 @@ export class CyclicSetIdentityService {
         node,
       };
     });
-
-    this.validateUniquePreliminaryBlueIds(preliminaryDocuments);
+    this.rejectDuplicatePreliminaryInputs(preliminaryDocuments);
 
     const sortedDocuments = [...preliminaryDocuments].sort(
       this.comparePreliminaryDocuments,
@@ -87,7 +87,10 @@ export class CyclicSetIdentityService {
     return {
       blueId,
       nodes: sortedNodes,
-      documentBlueIds: sortedNodes.map((_, index) => `${blueId}#${index}`),
+      documentBlueIds: nodes.map(
+        (_node, originalIndex) =>
+          `${blueId}#${originalToSortedIndexes[originalIndex]}`,
+      ),
       originalToSortedIndexes,
     };
   }
@@ -102,28 +105,22 @@ export class CyclicSetIdentityService {
     if (left.preliminaryBlueId > right.preliminaryBlueId) {
       return 1;
     }
-    return 0;
+    return left.originalIndex - right.originalIndex;
   }
 
-  private validateUniquePreliminaryBlueIds(
+  private rejectDuplicatePreliminaryInputs(
     preliminaryDocuments: PreliminaryDocument[],
   ): void {
-    const firstOriginalIndexByBlueId = new Map<string, number>();
-    for (const document of preliminaryDocuments) {
-      const existingOriginalIndex = firstOriginalIndexByBlueId.get(
-        document.preliminaryBlueId,
-      );
-      if (existingOriginalIndex !== undefined) {
+    const firstIndexByPreliminaryBlueId = new Map<string, number>();
+    preliminaryDocuments.forEach(({ preliminaryBlueId, originalIndex }) => {
+      const firstIndex = firstIndexByPreliminaryBlueId.get(preliminaryBlueId);
+      if (firstIndex !== undefined) {
         throw new Error(
-          `Direct cyclic document set has ambiguous canonical ordering: documents ${existingOriginalIndex} and ${document.originalIndex} share preliminary BlueId '${document.preliminaryBlueId}'.`,
+          `Duplicate preliminary cyclic BlueId input for members ${firstIndex} and ${originalIndex}.`,
         );
       }
-
-      firstOriginalIndexByBlueId.set(
-        document.preliminaryBlueId,
-        document.originalIndex,
-      );
-    }
+      firstIndexByPreliminaryBlueId.set(preliminaryBlueId, originalIndex);
+    });
   }
 
   private validateCyclicSet(nodes: BlueNode[]): void {
@@ -131,7 +128,11 @@ export class CyclicSetIdentityService {
       throw new Error('Cyclic document set cannot be empty.');
     }
 
+    let foundThisReference = false;
     this.visitReferences(nodes, (_node, referenceBlueId) => {
+      if (referenceBlueId === 'this' || referenceBlueId.startsWith('this#')) {
+        foundThisReference = true;
+      }
       if (referenceBlueId === 'this') {
         throw new Error(
           "Direct cyclic document sets must use indexed references such as 'this#0'; unindexed 'this' is not supported.",
@@ -156,6 +157,12 @@ export class CyclicSetIdentityService {
         );
       }
     });
+
+    if (!foundThisReference) {
+      throw new Error(
+        'Circular BlueId calculation requires at least one internal this reference.',
+      );
+    }
   }
 
   private replaceIndexedThisReferences(
@@ -252,6 +259,12 @@ export class CyclicSetIdentityService {
       node.getKeyType(),
       node.getValueType(),
       node.getBlue(),
+      node.getContractsNode(),
+      ...(node
+        .getSchema()
+        ?.entries()
+        .map(([, value]) => value) ?? []),
+      ...(node.getSchema()?.getEnum() ?? []),
       ...(node.getItems() ?? []),
       ...Object.values(node.getProperties() ?? {}),
     ].filter((child): child is BlueNode => child !== undefined);

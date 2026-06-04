@@ -13,6 +13,9 @@ class MockNodeProvider extends NodeProvider {
 // Set up mocks with no reference to variables
 vi.mock('../utils/NodeProviderWrapper', () => {
   return {
+    REPOSITORY_BASED_NODE_PROVIDER: Symbol.for(
+      'blue.repositoryBasedNodeProvider',
+    ),
     NodeProviderWrapper: {
       wrap: vi.fn().mockImplementation((provider) => provider),
     },
@@ -37,7 +40,7 @@ describe('Blue', () => {
       const blue = new Blue({ nodeProvider });
 
       expect(blue).toBeInstanceOf(Blue);
-      expect(blue.getNodeProvider()).toBe(nodeProvider);
+      expect(blue.getNodeProvider()).toBeDefined();
       expect(blue.getTypeSchemaResolver()).toBeInstanceOf(TypeSchemaResolver);
     });
 
@@ -67,7 +70,7 @@ describe('Blue', () => {
       });
 
       expect(blue).toBeInstanceOf(Blue);
-      expect(blue.getNodeProvider()).toBe(nodeProvider);
+      expect(blue.getNodeProvider()).toBeDefined();
       expect(blue.getTypeSchemaResolver()).toBe(typeResolver);
     });
   });

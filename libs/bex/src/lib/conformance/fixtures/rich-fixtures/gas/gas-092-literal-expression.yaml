@@ -1,0 +1,13 @@
+fixtureId: GAS-092
+title: Literal expression does not compile nested operator-like payload
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $literal:
+      $document: /status
+expectation:
+  outcome: success
+  resultSimple:
+    $document: /status
+  gasUsed: 3

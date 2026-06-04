@@ -126,7 +126,7 @@ describe('interaction builders mapping', () => {
     channel: triggeredEventChannel
     event:
       type: MyOS/Call Operation Responded`);
-    expect(yaml).toContain(`type: Conversation/JavaScript Code`);
+    expect(yaml).toContain(`type: Conversation/Compute`);
     expect(yaml).toContain(`captureTypedCallResponse:
     type: Conversation/Sequential Workflow
     channel: triggeredEventChannel

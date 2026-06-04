@@ -1,0 +1,12 @@
+message:
+  request:
+  - type: MyOS/Document Initial Snapshot Resolved
+    inResponseTo:
+      requestId: snapshot:customer-paynote:customer-paynote-a
+    document:
+      amount:
+        secured: 100000
+      context:
+        paymentKind: customer_package_purchase
+        packageOrderDocumentId: zzimVxhnKLL5SwMkS9kmF8p5g7pyxPWBu664HxGbszB
+    targetSessionId: customer-paynote-a

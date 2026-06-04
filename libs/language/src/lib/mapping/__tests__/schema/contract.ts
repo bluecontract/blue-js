@@ -37,14 +37,6 @@ export const UpdateStepSchema = withTypeBlueId(
   }),
 );
 
-export const JavaScriptCodeStepSchema = withTypeBlueId(
-  'CFKAD5Up8XpNyPHwRBEwiwSUdfFUoGqVVsW29k6te88p',
-)(
-  WorkflowStepSchema.extend({
-    code: z.string().optional(),
-  }),
-);
-
 const WorkflowSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),

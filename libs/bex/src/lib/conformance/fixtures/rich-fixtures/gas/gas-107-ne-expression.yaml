@@ -1,0 +1,13 @@
+fixtureId: GAS-107
+title: Not-equal comparison charges both operands
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $ne:
+      - 1
+      - 2
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 5

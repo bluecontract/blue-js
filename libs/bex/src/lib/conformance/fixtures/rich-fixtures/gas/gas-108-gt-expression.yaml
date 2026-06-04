@@ -1,0 +1,13 @@
+fixtureId: GAS-108
+title: Greater-than comparison charges both operands
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $gt:
+      - 2
+      - 1
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 5

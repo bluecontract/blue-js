@@ -1,0 +1,38 @@
+{
+  "name": "@blue-labs/bex",
+  "version": "4.1.2",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "import": "./dist/conformance.mjs",
+      "default": "./dist/conformance.mjs"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "!dist/package.json"
+  ],
+  "dependencies": {
+    "@blue-labs/language": "4.1.2",
+    "@blue-labs/shared-utils": "4.1.2",
+    "big.js": "^6.2.1",
+    "js-yaml": "^4.1.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "zod": "^3.20.0"
+  }
+}

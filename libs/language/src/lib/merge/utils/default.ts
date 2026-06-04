@@ -5,6 +5,8 @@ import {
   TypeAssigner,
   ListProcessor,
   DictionaryProcessor,
+  SchemaPropagator,
+  SchemaVerifier,
   BasicTypesVerifier,
   MetadataPropagator,
 } from '../processors';
@@ -19,6 +21,8 @@ export function createDefaultMergingProcessor(): MergingProcessor {
     new TypeAssigner(),
     new ListProcessor(),
     new DictionaryProcessor(),
+    new SchemaPropagator(),
+    new SchemaVerifier(),
     new MetadataPropagator(),
     new BasicTypesVerifier(),
   ]);

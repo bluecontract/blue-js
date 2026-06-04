@@ -15,6 +15,9 @@ import type { JsonPatch } from '../../model/shared/json-patch.js';
 import { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import { resolvePointer } from '../../util/pointer-utils.js';
 import { ContractProcessorRegistry } from '../../registry/contract-processor-registry.js';
+import { ProcessorFatalError } from '../processor-fatal-error.js';
+import { ProcessorErrors } from '../../types/errors.js';
+import { ProcessorErrorCategory } from '../../types/document-processing-result.js';
 
 const blue = createBlue();
 
@@ -42,8 +45,8 @@ function lifecycleBundle(): ContractBundle {
     .addChannel(
       'lifecycle',
       { order: 0 } as LifecycleChannel,
-      blueIds['Core/Lifecycle Event Channel'],
-      channelNode(blueIds['Core/Lifecycle Event Channel']),
+      blueIds['Lifecycle Event Channel'],
+      channelNode(blueIds['Lifecycle Event Channel']),
     )
     .build();
 }
@@ -156,6 +159,7 @@ interface ExecutorFixture {
     enterFatalTermination: ReturnType<typeof vi.fn>;
     fatalReason: ReturnType<typeof vi.fn>;
     markCutOff: ReturnType<typeof vi.fn>;
+    planPatch: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -196,6 +200,7 @@ function buildExecutor(
     enterFatalTermination: vi.fn().mockResolvedValue(undefined),
     fatalReason: vi.fn((_error: unknown, label: string) => label),
     markCutOff: vi.fn().mockResolvedValue(undefined),
+    planPatch: vi.fn(),
   };
 
   const executor = new ScopeExecutor({
@@ -311,10 +316,7 @@ describe('ScopeExecutor', () => {
     const { blue: derivedBlue } = createDerivedBlue([
       {
         name: derivedName,
-        yaml: derivedTypeYaml(
-          derivedName,
-          blueIds['Core/Document Update Channel'],
-        ),
+        yaml: derivedTypeYaml(derivedName, blueIds['Document Update Channel']),
       },
     ]);
 
@@ -344,10 +346,7 @@ contracts:
     const { blue: derivedBlue } = createDerivedBlue([
       {
         name: derivedName,
-        yaml: derivedTypeYaml(
-          derivedName,
-          blueIds['Core/Lifecycle Event Channel'],
-        ),
+        yaml: derivedTypeYaml(derivedName, blueIds['Lifecycle Event Channel']),
       },
     ]);
 
@@ -379,10 +378,7 @@ contracts:
     const { blue: derivedBlue } = createDerivedBlue([
       {
         name: derivedName,
-        yaml: derivedTypeYaml(
-          derivedName,
-          blueIds['Core/Document Update Channel'],
-        ),
+        yaml: derivedTypeYaml(derivedName, blueIds['Document Update Channel']),
       },
     ]);
 
@@ -415,5 +411,72 @@ contracts:
       expect.any(BlueNode),
       false,
     );
+  });
+
+  it('generalizationGeneratedWriteFailureDoesNotCommitOriginalPatch', async () => {
+    const bundle = ContractBundle.builder().build();
+    const { executor, runtime, hooks } = createExecutor(bundle);
+    runtime.directWrite('/status', nodeFrom('old'));
+    hooks.planPatch.mockResolvedValue({
+      generatedPatches: [
+        { op: 'ADD', path: '/status/0', val: nodeFrom('bad') },
+      ],
+    });
+
+    await executor.handlePatch(
+      '/',
+      bundle,
+      { op: 'REPLACE', path: '/status', val: nodeFrom('new') },
+      false,
+    );
+
+    expect(runtime.document().get('/status')).toBe('old');
+    expect(hooks.enterFatalTermination).toHaveBeenCalled();
+  });
+
+  it('policyFailureDoesNotCommitOriginalPatch', async () => {
+    const bundle = ContractBundle.builder().build();
+    const { executor, runtime, hooks } = createExecutor(bundle);
+    runtime.directWrite('/status', nodeFrom('old'));
+    hooks.planPatch.mockRejectedValue(
+      new ProcessorFatalError(
+        'GeneralizationRejected',
+        ProcessorErrors.runtimeFatal('GeneralizationRejected'),
+        ProcessorErrorCategory.GeneralizationRejected,
+      ),
+    );
+
+    await executor.handlePatch(
+      '/',
+      bundle,
+      { op: 'REPLACE', path: '/status', val: nodeFrom('new') },
+      false,
+    );
+
+    expect(runtime.document().get('/status')).toBe('old');
+    expect(hooks.enterFatalTermination).toHaveBeenCalled();
+  });
+
+  it('noValidGeneralizationDoesNotCommitOriginalPatch', async () => {
+    const bundle = ContractBundle.builder().build();
+    const { executor, runtime, hooks } = createExecutor(bundle);
+    runtime.directWrite('/status', nodeFrom('old'));
+    hooks.planPatch.mockImplementation(() => {
+      throw new ProcessorFatalError(
+        'GeneralizationNoValidType',
+        ProcessorErrors.runtimeFatal('GeneralizationNoValidType'),
+        ProcessorErrorCategory.GeneralizationNoValidType,
+      );
+    });
+
+    await executor.handlePatch(
+      '/',
+      bundle,
+      { op: 'REPLACE', path: '/status', val: nodeFrom('new') },
+      false,
+    );
+
+    expect(runtime.document().get('/status')).toBe('old');
+    expect(hooks.enterFatalTermination).toHaveBeenCalled();
   });
 });

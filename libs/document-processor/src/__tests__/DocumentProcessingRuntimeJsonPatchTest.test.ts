@@ -199,14 +199,14 @@ describe('DocumentProcessingRuntimeJsonPatchTest', () => {
     expect(empty.getProperties()).not.toHaveProperty('bar');
   });
 
-  it('tildeSegmentsAreNotUnescaped', () => {
+  it('tildeSegmentsAreUnescaped', () => {
     const document = new BlueNode();
     const runtime = new DocumentProcessingRuntime(document, blue);
 
     runtime.applyPatch('/', add('/tilde/~1key', 'value'));
 
     const tilde = property(document, 'tilde');
-    const literal = property(tilde, '~1key');
+    const literal = property(tilde, '/key');
     expect(literal.getValue()).toBe('value');
   });
 

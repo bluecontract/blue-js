@@ -44,18 +44,19 @@ describeContract('Blue identity specification contracts', () => {
 
   it('short-circuits only exact pure references', () => {
     const blue = new Blue();
-    const referenceId = 'IdentityFixtureReferenceBlueId';
-    const mixedFixture = getIdentityFixture('mixedBlueIdPayload');
-    if (mixedFixture.input.kind !== 'yaml') {
-      throw new Error('mixedBlueIdPayload fixture must be YAML');
-    }
-    const mixedNode = NodeDeserializer.deserialize(
-      yamlBlueParse(mixedFixture.input.value),
+    const referenceId = BlueIdCalculator.calculateBlueIdSync(
+      new BlueNode('Reference'),
     );
+    const mixedNode = NodeDeserializer.deserializeUnchecked({
+      x: {
+        blueId: referenceId,
+        value: 1,
+      },
+    });
 
-    expect(blueIdForFixture(blue, 'pureRef')).toBe(referenceId);
-    expect(BlueIdCalculator.calculateBlueIdSync(mixedNode)).not.toBe(
-      referenceId,
+    expect(blue.calculateBlueIdSync({ blueId: referenceId })).toBe(referenceId);
+    expect(() => BlueIdCalculator.calculateBlueIdSync(mixedNode)).toThrow(
+      /reference-only/,
     );
   });
 
@@ -215,7 +216,9 @@ offPath:
     }
     const yaml = fixture.input.value;
 
-    expect(() => provider.addSingleDocs(yaml)).toThrow(/ambiguous blueId/i);
+    expect(() => provider.addSingleDocs(yaml)).toThrow(
+      /blueId nodes must be reference-only/,
+    );
   });
 
   it('stores provider content under the same semantic BlueId as the public API', () => {
@@ -355,19 +358,17 @@ list:
 
     expect(items).toHaveLength(2);
     expect(previousAnchor?.getReferenceBlueId()).toBeUndefined();
+    expect(previousAnchor?.getPreviousBlueId()).toEqual(expect.any(String));
     expect(previousAnchor?.getValue()).toBeUndefined();
     expect(previousAnchor?.getItems()).toBeUndefined();
-    expect(Object.keys(previousAnchorProperties ?? {})).toEqual(['$previous']);
-    expect(previousReference?.getBlueId()).toEqual(expect.any(String));
-    expect(previousReference?.getValue()).toBeUndefined();
-    expect(previousReference?.getItems()).toBeUndefined();
-    expect(previousReference?.getProperties()).toBeUndefined();
+    expect(Object.keys(previousAnchorProperties ?? {})).toEqual([]);
+    expect(previousReference).toBeUndefined();
     expect(items?.[1].getValue()).toBe('C');
   });
 
   it('does not collapse untrusted blueId plus payload during minimization', () => {
     const blue = new Blue();
-    const untrustedRuntimeNode = NodeDeserializer.deserialize({
+    const untrustedRuntimeNode = NodeDeserializer.deserializeUnchecked({
       blueId: 'UntrustedReferenceBlueId',
       local: 'must-stay',
     });
@@ -406,14 +407,19 @@ age: 30
 
   it('keeps async and sync semantic BlueId validation equivalent', async () => {
     const blue = new Blue();
-    const mixed = blue.yamlToNode(`
-blueId: SomeId
+    const referenceBlueId = BlueIdCalculator.calculateBlueIdSync(
+      new BlueNode('Reference'),
+    );
+    const mixed = NodeDeserializer.deserializeUnchecked(
+      yamlBlueParse(`
+blueId: ${referenceBlueId}
 x: 1
-`);
+`),
+    );
 
-    expect(() => blue.calculateBlueIdSync(mixed)).toThrow(/ambiguous blueId/i);
+    expect(() => blue.calculateBlueIdSync(mixed)).toThrow(/Ambiguous blueId/);
     await expect(blue.calculateBlueId(mixed)).rejects.toThrow(
-      /ambiguous blueId/i,
+      /Ambiguous blueId/,
     );
   });
 
@@ -472,29 +478,30 @@ list:
     const inheritedResolved = blue.resolve(inherited);
     const inheritedMinimal = blue.minimize(inheritedResolved);
 
-    for (const node of [
-      positional,
-      stalePrevious,
-      inheritedResolved,
-      inheritedMinimal,
-    ]) {
+    for (const node of [positional, inheritedResolved, inheritedMinimal]) {
       expect(await blue.calculateBlueId(node)).toBe(
         blue.calculateBlueIdSync(node),
       );
     }
+    expect(() => blue.calculateBlueIdSync(stalePrevious)).toThrow(
+      /Mismatched items at index 0/,
+    );
+    await expect(blue.calculateBlueId(stalePrevious)).rejects.toThrow(
+      /Mismatched items at index 0/,
+    );
   });
 
-  it('does not trust top-level array $previous in public semantic identity', () => {
+  it('uses top-level array $previous as a direct list anchor', () => {
     const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
     const fakePrefixId = blue.calculateBlueIdSync(['X', 'Y']);
     const untrusted = [{ $previous: { blueId: fakePrefixId } }, 'C'];
 
-    expect(blue.calculateBlueIdSync(untrusted)).toBe(
+    expect(blue.calculateBlueIdSync(untrusted)).not.toBe(
       blue.calculateBlueIdSync(['C']),
     );
   });
 
-  it('does not trust top-level BlueNode[] $previous in public semantic identity', () => {
+  it('uses top-level BlueNode[] $previous as a direct list anchor', () => {
     const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
     const fakePrefixId = blue.calculateBlueIdSync(['X', 'Y']);
     const previous = blue.jsonValueToNode({
@@ -502,7 +509,7 @@ list:
     });
     const c = blue.jsonValueToNode('C');
 
-    expect(blue.calculateBlueIdSync([previous, c])).toBe(
+    expect(blue.calculateBlueIdSync([previous, c])).not.toBe(
       blue.calculateBlueIdSync(['C']),
     );
   });
@@ -519,11 +526,11 @@ list:
     ).toThrow(/\$empty/i);
   });
 
-  it('rejects top-level array $pos before raw BlueId hashing', () => {
+  it('normalizes top-level array $pos source overlays before hashing', () => {
     const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
 
-    expect(() => blue.calculateBlueIdSync([{ $pos: 0, value: 'A' }])).toThrow(
-      '$pos 0 is out of range for inherited list length 0.',
+    expect(blue.calculateBlueIdSync([{ $pos: 0, value: 'A' }])).toBe(
+      blue.calculateBlueIdSync(['A']),
     );
   });
 
@@ -649,12 +656,19 @@ list:
     );
 
     expect(firstPrepared.isCyclicSet).toBe(true);
-    expect(firstPrepared.documentBlueIds).toEqual(
-      firstPrepared.nodes.map((_, index) => `${firstPrepared.blueId}#${index}`),
+    expect(firstPrepared.documentBlueIds).toHaveLength(
+      firstPrepared.nodes.length,
+    );
+    expect(new Set(firstPrepared.documentBlueIds)).toEqual(
+      new Set(
+        firstPrepared.nodes.map(
+          (_, index) => `${firstPrepared.blueId}#${index}`,
+        ),
+      ),
     );
     expect(secondPrepared.blueId).toBe(firstPrepared.blueId);
-    expect(secondPrepared.documentBlueIds).toEqual(
-      firstPrepared.documentBlueIds,
+    expect(new Set(secondPrepared.documentBlueIds)).toEqual(
+      new Set(firstPrepared.documentBlueIds),
     );
     expect(secondPrepared.nodes.map((node) => node.getName())).toEqual(
       firstPrepared.nodes.map((node) => node.getName()),

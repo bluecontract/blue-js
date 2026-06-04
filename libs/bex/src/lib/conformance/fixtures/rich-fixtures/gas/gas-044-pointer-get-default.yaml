@@ -1,0 +1,15 @@
+fixtureId: GAS-044
+title: Pointer get default charges default expression only when used
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $pointerGet:
+      object:
+        a: 1
+      path: missing/path
+      default: fallback
+expectation:
+  outcome: success
+  resultSimple: fallback
+  gasUsed: 8

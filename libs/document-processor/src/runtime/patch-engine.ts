@@ -211,6 +211,10 @@ export class PatchEngine {
         return;
       }
 
+      if (writeMetadata(parent, key, value)) {
+        return;
+      }
+
       const properties = ensureMutableProperties(parent);
       properties[key] = cloneValue(value);
       parent.setProperties(properties);
@@ -248,8 +252,13 @@ export class PatchEngine {
         return;
       }
 
+      if (writeMetadata(parent, key, value)) {
+        return;
+      }
+
       const properties = ensureMutableProperties(parent);
-      properties[key] = cloneValue(value);
+      const existing = properties[key] ?? null;
+      properties[key] = mergeObjectReplacement(existing, value);
       parent.setProperties(properties);
     } catch (error) {
       this.rollbackCreated(created);
@@ -278,6 +287,10 @@ export class PatchEngine {
       }
       items.splice(index, 1);
       parent.setItems(items);
+      return;
+    }
+
+    if (removeMetadata(parent, key)) {
       return;
     }
 
@@ -452,11 +465,11 @@ function descendForRead(
     | Record<string, BlueNode>
     | undefined;
   if (!properties) {
-    return null;
+    return metadataChild(current, segment);
   }
   const next = properties[segment];
   if (!(next instanceof BlueNode)) {
-    return null;
+    return metadataChild(current, segment);
   }
   return next;
 }
@@ -469,7 +482,21 @@ function splitPointer(path: string): string[] {
   if (raw.length === 0) {
     return [];
   }
-  return raw.split('/');
+  return raw.split('/').map((segment) => unescapePointerSegment(segment, path));
+}
+
+function unescapePointerSegment(segment: string, path: string): string {
+  for (let i = 0; i < segment.length; i += 1) {
+    if (segment[i] !== '~') {
+      continue;
+    }
+    const next = segment[i + 1];
+    if (next !== '0' && next !== '1') {
+      throw new Error(`Invalid JSON pointer escape in path: ${path}`);
+    }
+    i += 1;
+  }
+  return segment.replace(/~1/g, '/').replace(/~0/g, '~');
 }
 
 function parseArrayIndex(segment: string, path: string): number {
@@ -490,9 +517,13 @@ function pointerPrefix(segments: readonly string[], length: number): string {
   const limit = Math.min(length, segments.length);
   let result = '';
   for (let i = 0; i < limit; i += 1) {
-    result += `/${segments[i] ?? ''}`;
+    result += `/${escapePointerSegment(segments[i] ?? '')}`;
   }
   return result === '' ? '/' : result;
+}
+
+function escapePointerSegment(segment: string): string {
+  return segment.replace(/~/g, '~0').replace(/\//g, '~1');
 }
 
 function ensureMutableItems(node: BlueNode, original: BlueNode[]): BlueNode[] {
@@ -523,4 +554,156 @@ function cloneValue(value: BlueNode | null): BlueNode {
   }
   const cloned = value.clone();
   return cloned as BlueNode;
+}
+
+function mergeObjectReplacement(
+  existing: BlueNode | null,
+  replacement: BlueNode | null,
+): BlueNode {
+  const next = cloneValue(replacement);
+  if (!isMergeableObject(existing) || !isMergeableObject(next)) {
+    return next;
+  }
+
+  const merged = existing.clone();
+  const overlayProperties = next.getProperties();
+  if (overlayProperties) {
+    const properties = { ...(merged.getProperties() ?? {}) };
+    for (const [key, value] of Object.entries(overlayProperties)) {
+      properties[key] = value.clone();
+    }
+    merged.setProperties(properties);
+  }
+  if (next.getContractsNode()) {
+    merged.setContractsNode(next.getContractsNode()?.clone());
+  }
+  if (next.getType()) {
+    merged.setType(next.getType()?.clone());
+  }
+  if (next.getItemType()) {
+    merged.setItemType(next.getItemType()?.clone());
+  }
+  if (next.getKeyType()) {
+    merged.setKeyType(next.getKeyType()?.clone());
+  }
+  if (next.getValueType()) {
+    merged.setValueType(next.getValueType()?.clone());
+  }
+  if (next.getBlue()) {
+    merged.setBlue(next.getBlue()?.clone());
+  }
+  if (next.getSchema()) {
+    merged.setSchema(next.getSchema()?.clone());
+  }
+  if (next.getName() !== undefined) {
+    merged.setName(next.getName());
+  }
+  if (next.getDescription() !== undefined) {
+    merged.setDescription(next.getDescription());
+  }
+  if (next.getMergePolicy() !== undefined) {
+    merged.setMergePolicy(next.getMergePolicy());
+  }
+  if (next.getPosition() !== undefined) {
+    merged.setPosition(next.getPosition());
+  }
+  return merged;
+}
+
+function isMergeableObject(node: BlueNode | null): node is BlueNode {
+  return (
+    node instanceof BlueNode &&
+    node.getRawValue() === undefined &&
+    node.getItems() == null &&
+    node.getReferenceBlueId() == null &&
+    node.getPreviousBlueId() == null
+  );
+}
+
+function writeMetadata(
+  parent: BlueNode,
+  key: string,
+  value: BlueNode | null,
+): boolean {
+  const next = value == null ? null : value.clone();
+  switch (key) {
+    case 'type':
+      parent.setType(next ?? undefined);
+      return true;
+    case 'itemType':
+      parent.setItemType(next ?? undefined);
+      return true;
+    case 'keyType':
+      parent.setKeyType(next ?? undefined);
+      return true;
+    case 'valueType':
+      parent.setValueType(next ?? undefined);
+      return true;
+    case 'blue':
+      parent.setBlue(next ?? undefined);
+      return true;
+    case 'blueId':
+      parent.setReferenceBlueId(
+        next?.getValue() == null ? undefined : String(next.getValue()),
+      );
+      return true;
+    case 'value':
+      parent.setValue(next?.getValue() ?? null);
+      return true;
+    default:
+      return false;
+  }
+}
+
+function removeMetadata(parent: BlueNode, key: string): boolean {
+  switch (key) {
+    case 'type':
+      parent.setType(undefined);
+      return true;
+    case 'itemType':
+      parent.setItemType(undefined);
+      return true;
+    case 'keyType':
+      parent.setKeyType(undefined);
+      return true;
+    case 'valueType':
+      parent.setValueType(undefined);
+      return true;
+    case 'blue':
+      parent.setBlue(undefined);
+      return true;
+    case 'blueId':
+      parent.setReferenceBlueId(undefined);
+      return true;
+    case 'value':
+      parent.setValue(null);
+      return true;
+    default:
+      return false;
+  }
+}
+
+function metadataChild(node: BlueNode, segment: string): BlueNode | null {
+  switch (segment) {
+    case 'type':
+      return node.getType() ?? null;
+    case 'itemType':
+      return node.getItemType() ?? null;
+    case 'keyType':
+      return node.getKeyType() ?? null;
+    case 'valueType':
+      return node.getValueType() ?? null;
+    case 'blue':
+      return node.getBlue() ?? null;
+    case 'blueId':
+      return node.getReferenceBlueId() == null
+        ? null
+        : new BlueNode().setValue(node.getReferenceBlueId() as string);
+    case 'value':
+      return node.getRawValue() === undefined
+        ? null
+        : new BlueNode().setValue(node.getValue() ?? null);
+    default:
+      return null;
+  }
 }

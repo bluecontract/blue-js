@@ -1,0 +1,14 @@
+fixtureId: GAS-113
+title: Multiply charges each operand
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $multiply:
+      - 2
+      - 3
+      - 4
+expectation:
+  outcome: success
+  resultSimple: 24
+  gasUsed: 6

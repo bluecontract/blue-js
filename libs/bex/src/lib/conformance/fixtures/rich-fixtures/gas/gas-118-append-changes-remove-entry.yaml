@@ -1,0 +1,15 @@
+fixtureId: GAS-118
+title: AppendChanges remove entry charges batch list and remove size zero
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendChanges:
+        - op: remove
+          path: /status
+expectation:
+  outcome: success
+  changeset:
+    - op: remove
+      path: /status
+  gasUsed: 9

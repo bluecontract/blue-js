@@ -1,0 +1,24 @@
+fixtureId: BEX-PARSE-003
+title: blueId with sibling fields is invalid Blue authoring
+targetStatus: current-parse-error
+tags:
+- blue-syntax
+- parse-errors
+context:
+  documentScope: /
+  stepsBinding:
+    Build:
+      changeset:
+      - op: replace
+        path: /status
+        val: built
+      events:
+      - eventKind: Built
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    blueId: HotelOrderType
+    status: confirmed
+expectation:
+  outcome: parse-error-or-output-conversion-error
+  errorContains: blueId

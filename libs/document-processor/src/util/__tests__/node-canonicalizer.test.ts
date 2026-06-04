@@ -1,8 +1,9 @@
 import { createBlue } from '../../test-support/blue.js';
 import { BlueNode } from '@blue-labs/language';
 import { Buffer } from 'node:buffer';
+import canonicalize from 'canonicalize';
 
-import { canonicalSignature, canonicalSize } from '../node-canonicalizer.js';
+import { canonicalSize } from '../node-canonicalizer.js';
 
 const blue = createBlue();
 
@@ -27,29 +28,27 @@ function createSampleNode(order: 'normal' | 'reverse' = 'normal'): BlueNode {
   });
 }
 
-describe('node-canonicalizer', () => {
-  it('returns null signature for null node', () => {
-    expect(canonicalSignature(blue, null)).toBeNull();
-  });
+function canonicalPayload(node: BlueNode): string {
+  return canonicalize(blue.nodeToJson(node, 'official'));
+}
 
+describe('node-canonicalizer', () => {
   it('returns zero size for null node', () => {
     expect(canonicalSize(blue, undefined)).toBe(0);
   });
 
-  it('produces identical signatures regardless of insertion order', () => {
-    const signatureA = canonicalSignature(blue, createSampleNode('normal'));
-    const signatureB = canonicalSignature(blue, createSampleNode('reverse'));
+  it('produces identical sizes regardless of insertion order', () => {
+    const nodeA = createSampleNode('normal');
+    const nodeB = createSampleNode('reverse');
 
-    expect(signatureA).not.toBeNull();
-    expect(signatureA).toEqual(signatureB);
+    expect(canonicalPayload(nodeA)).toEqual(canonicalPayload(nodeB));
+    expect(canonicalSize(blue, nodeA)).toEqual(canonicalSize(blue, nodeB));
   });
 
   it('computes canonical size based on utf8 byte length', () => {
     const node = createSampleNode();
-    const signature = canonicalSignature(blue, node);
-    expect(signature).not.toBeNull();
     expect(canonicalSize(blue, node)).toEqual(
-      Buffer.byteLength(signature ?? '', 'utf8'),
+      Buffer.byteLength(canonicalPayload(node), 'utf8'),
     );
   });
 
@@ -60,11 +59,10 @@ describe('node-canonicalizer', () => {
       middle: 'mid',
     });
 
-    const signature = canonicalSignature(blue, node);
-    expect(signature).not.toBeNull();
-    const alphaIndex = signature!.indexOf('"alpha"');
-    const middleIndex = signature!.indexOf('"middle"');
-    const zetaIndex = signature!.indexOf('"zeta"');
+    const payload = canonicalPayload(node);
+    const alphaIndex = payload.indexOf('"alpha"');
+    const middleIndex = payload.indexOf('"middle"');
+    const zetaIndex = payload.indexOf('"zeta"');
     expect(alphaIndex).toBeGreaterThanOrEqual(0);
     expect(middleIndex).toBeGreaterThan(alphaIndex);
     expect(zetaIndex).toBeGreaterThan(middleIndex);

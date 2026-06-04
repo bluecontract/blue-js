@@ -1,0 +1,11 @@
+fixtureId: GAS-048
+title: Events expression charges only expression base
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $events: true
+expectation:
+  outcome: success
+  resultSimple: []
+  gasUsed: 3

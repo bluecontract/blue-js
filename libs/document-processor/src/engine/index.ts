@@ -1,6 +1,7 @@
 export * from './contract-bundle.js';
 export * from './contract-loader.js';
 export * from './checkpoint-manager.js';
+export * from './checkpoint-identity-service.js';
 export * from './channel-runner.js';
 export * from './scope-executor.js';
 export * from './processor-execution-context.js';

@@ -14,7 +14,7 @@ import {
   propertyOptional,
   typeBlueId,
 } from '../../__tests__/test-utils.js';
-import { TimelineEntrySchema } from '@blue-repository/types/packages/conversation/schemas/TimelineEntry';
+import { TimelineEntrySchema } from '@blue-repository/types/packages/coordination/schemas/TimelineEntry';
 import { conversationBlueIds } from '../../repository/semantic-repository.js';
 import type { ChannelEvaluationContext } from '../../registry/types.js';
 import type { TimelineChannel } from '../../model/index.js';

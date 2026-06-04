@@ -1,0 +1,15 @@
+fixtureId: GAS-039
+title: Get with dynamic key charges key expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $get:
+      object:
+        a: 1
+      key:
+        $literal: a
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 5

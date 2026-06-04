@@ -1,0 +1,15 @@
+fixtureId: GAS-041
+title: List get default charges default expression only when used
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $listGet:
+      list:
+        - a
+      index: 3
+      default: fallback
+expectation:
+  outcome: success
+  resultSimple: fallback
+  gasUsed: 6

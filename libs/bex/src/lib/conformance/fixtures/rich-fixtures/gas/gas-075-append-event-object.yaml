@@ -1,0 +1,15 @@
+fixtureId: GAS-075
+title: Object event size includes key count, key lengths, and value sizes
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent:
+        a: x
+        bb: yy
+expectation:
+  outcome: success
+  events:
+    - a: x
+      bb: yy
+  gasUsed: 17

@@ -1,0 +1,12 @@
+fixtureId: GAS-073
+title: Integer event size is decimal text length
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent: 12345
+expectation:
+  outcome: success
+  events:
+    - 12345
+  gasUsed: 14

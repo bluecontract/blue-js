@@ -1,12 +1,17 @@
 import { Blue } from '../../Blue';
 import { BasicNodeProvider } from '../../provider/BasicNodeProvider';
-import { BlueNode } from '../../model';
+import { BlueNode, NodeDeserializer } from '../../model';
 import { NodeTypeMatcher } from '../NodeTypeMatcher';
 import { DICTIONARY_TYPE_BLUE_ID, TEXT_TYPE_BLUE_ID } from '../Properties';
 import { BlueIdCalculator } from '../BlueIdCalculator';
 import type { BlueRepository } from '../../types/BlueRepository';
+import { yamlBlueParse } from '../../../utils';
 
 const matcherRepository = buildMatcherRepository();
+
+function uncheckedYamlToNode(yaml: string): BlueNode {
+  return NodeDeserializer.deserializeUnchecked(yamlBlueParse(yaml));
+}
 
 function buildMatcherRepository(): BlueRepository {
   const blue = new Blue();
@@ -284,9 +289,9 @@ list:
   items:
     - value: 1
       extra: something`;
-    expect(matcher.matchesType(containerInst, blue.yamlToNode(failExtra))).toBe(
-      false,
-    );
+    expect(
+      matcher.matchesType(containerInst, uncheckedYamlToNode(failExtra)),
+    ).toBe(false);
   });
 
   test('blueId exact matches when requested', () => {
@@ -330,13 +335,45 @@ x:
     const blue = new Blue({ nodeProvider });
     const matcher = new NodeTypeMatcher(blue);
 
-    const node = blue.yamlToNode(`blueId: ${betaId}
+    const node = uncheckedYamlToNode(`blueId: ${betaId}
 type:
   blueId: ${alphaId}`);
 
     const targetType = blue.yamlToNode(`blueId: ${alphaId}`);
 
     expect(matcher.matchesType(node, targetType)).toBe(false);
+  });
+
+  test('materialized type nodes with labels are not treated as bare blueId identity matchers', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`name: Marker`, `name: Other Marker`);
+
+    const markerId = nodeProvider.getBlueIdByName('Marker');
+    const otherMarkerId = nodeProvider.getBlueIdByName('Other Marker');
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+    const materializedMarkerType = nodeProvider
+      .getNodeByName('Marker')
+      .clone()
+      .setBlueId(markerId);
+
+    const typedMarker = blue.yamlToNode(`type:
+  blueId: ${markerId}`);
+    const otherTypedMarker = blue.yamlToNode(`type:
+  blueId: ${otherMarkerId}`);
+
+    expect(matcher.matchesType(typedMarker, materializedMarkerType)).toBe(true);
+    expect(matcher.matchesType(otherTypedMarker, materializedMarkerType)).toBe(
+      false,
+    );
+    expect(
+      matcher.matchesType(
+        typedMarker,
+        new BlueNode().setReferenceBlueId(markerId),
+      ),
+    ).toBe(false);
   });
 
   test('schema-owned matchers reject untyped nodes with unrelated blueIds', () => {
@@ -358,7 +395,7 @@ label:
     const otherSchemaId = nodeProvider.getBlueIdByName('Other Schema');
 
     const structuralNode = blue.yamlToNode(`label: ok`);
-    const wrongBlueIdNode = blue.yamlToNode(`blueId: ${otherSchemaId}
+    const wrongBlueIdNode = uncheckedYamlToNode(`blueId: ${otherSchemaId}
 label: ok`);
 
     expect(matcher.matchesType(structuralNode, expectedSchema)).toBe(true);

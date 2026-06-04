@@ -32,9 +32,7 @@ function isChannelEventCheckpoint(
   marker: MarkerContract | undefined,
 ): marker is ChannelEventCheckpoint {
   return (
-    marker != null &&
-    Object.prototype.hasOwnProperty.call(marker, 'lastEvents') &&
-    Object.prototype.hasOwnProperty.call(marker, 'lastSignatures')
+    marker != null && Object.prototype.hasOwnProperty.call(marker, 'lastEvents')
   );
 }
 
@@ -82,7 +80,7 @@ export class CompositeTimelineChannelProcessor implements ChannelProcessor<Compo
       );
     }
 
-    const eventId = context.blue.calculateBlueIdSync(event);
+    const checkpointIdentity = context.blue.calculateBlueIdSync(event);
     const deliveries: ChannelDelivery[] = [];
 
     for (const childKey of childKeys) {
@@ -143,7 +141,8 @@ export class CompositeTimelineChannelProcessor implements ChannelProcessor<Compo
 
       deliveries.push({
         eventNode: eventForHandlers,
-        eventId,
+        checkpointIdentity,
+        checkpointIdentityMode: 'precomputed',
         checkpointKey,
         shouldProcess,
       });

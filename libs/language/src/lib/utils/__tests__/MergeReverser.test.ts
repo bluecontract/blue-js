@@ -17,19 +17,10 @@ describe('MergeReverser', () => {
     expect(item.getItems()).toBeUndefined();
 
     const properties = item.getProperties();
-    expect(Object.keys(properties ?? {})).toEqual(['$previous']);
+    expect(Object.keys(properties ?? {})).toEqual([]);
 
-    const previous = properties?.['$previous'];
-    expect(previous).toBeDefined();
-    if (previous === undefined) {
-      throw new Error('Expected $previous anchor');
-    }
-
-    const previousBlueId = previous.getBlueId();
+    const previousBlueId = item.getPreviousBlueId();
     expect(previousBlueId).toEqual(expect.any(String));
-    expect(previous.getValue()).toBeUndefined();
-    expect(previous.getItems()).toBeUndefined();
-    expect(previous.getProperties()).toBeUndefined();
     if (previousBlueId === undefined) {
       throw new Error('Expected $previous blueId');
     }
@@ -586,7 +577,7 @@ field:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
 
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(loaded);
@@ -630,7 +621,7 @@ field:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
 
     const reverser = new MergeReverser();
     const reversed = reverser.reverse(loaded);
@@ -644,7 +635,7 @@ field:
   });
 
   describe('spec-native list controls', () => {
-    it('keeps low-level trusted $previous hashing equivalent to full materialized lists', () => {
+    it('keeps low-level $previous hashing anchored to the supplied prefix', () => {
       const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
       const full = blue.yamlToNode(`
 type: List
@@ -675,12 +666,12 @@ items:
   - C
 `);
 
-      expect(BlueIdCalculator.calculateBlueIdSync(delta)).toBe(
-        BlueIdCalculator.calculateBlueIdSync(full),
+      expect(blue.calculateBlueIdSync(delta)).not.toBe(
+        blue.calculateBlueIdSync(full),
       );
     });
 
-    it('ignores stale $previous anchors instead of throwing or trusting them blindly', () => {
+    it('rejects stale $previous anchors during resolution', () => {
       const nodeProvider = new BasicNodeProvider();
       const blue = new Blue({ nodeProvider });
 
@@ -719,26 +710,15 @@ list:
     - C
 `);
 
-      const full = blue.yamlToNode(`
-name: Derived
-type:
-  blueId: ${nodeProvider.getBlueIdByName('Base')}
-list:
-  type: List
-  mergePolicy: positional
-  items:
-    - A
-    - B
-    - C
-`);
-
-      expect(() => blue.resolve(withStalePrevious)).not.toThrow();
-      expect(blue.calculateBlueIdSync(withStalePrevious)).toBe(
-        blue.calculateBlueIdSync(full),
+      expect(() => blue.resolve(withStalePrevious)).toThrow(
+        /Mismatched items at index 0/,
+      );
+      expect(() => blue.calculateBlueIdSync(withStalePrevious)).toThrow(
+        /Mismatched items at index 0/,
       );
     });
 
-    it('does not blindly trust unverified $previous anchors in public semantic identity', () => {
+    it('uses $previous anchors as direct list identity input', () => {
       const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
       const stalePrefixId = BlueIdCalculator.calculateBlueIdSync(
         blue
@@ -766,7 +746,7 @@ items:
   - C
 `);
 
-      expect(blue.calculateBlueIdSync(untrusted)).toBe(
+      expect(blue.calculateBlueIdSync(untrusted)).not.toBe(
         blue.calculateBlueIdSync(noAnchor),
       );
       expect(blue.calculateBlueIdSync(untrusted)).not.toBe(
@@ -809,39 +789,39 @@ list:
         'A',
         'B',
         'C',
+        { $empty: true },
         'D',
       ]);
     });
 
     it('rejects malformed list controls', () => {
       const blue = new Blue({ nodeProvider: new BasicNodeProvider() });
+      const previousBlueId = blue.calculateBlueIdSync(['A']);
       const misplacedPrevious = blue.yamlToNode(`
 items:
   - A
   - $previous:
-      blueId: Prev
+      blueId: ${previousBlueId}
 `);
       const outOfRangePosition = blue.yamlToNode(`
 type: List
 items:
-  - $pos: 0
+  - $pos: 1
     value: A
 `);
-      const nonIntegerPosition = blue.yamlToNode(`
+      const nonIntegerPositionYaml = `
 type: List
 items:
   - $pos: 0.5
     value: A
-`);
+`;
 
-      expect(() => blue.calculateBlueIdSync(misplacedPrevious)).toThrow(
-        '$previous list control is allowed only as the first item.',
-      );
+      expect(() => blue.resolve(misplacedPrevious)).not.toThrow();
       expect(() => blue.resolve(outOfRangePosition)).toThrow(
-        '$pos 0 is out of range',
+        '$pos is out of range for a list without inherited items.',
       );
-      expect(() => blue.resolve(nonIntegerPosition)).toThrow(
-        '$pos must be a non-negative integer value.',
+      expect(() => blue.yamlToNode(nonIntegerPositionYaml)).toThrow(
+        '$pos must be a non-negative integer.',
       );
     });
 
@@ -1000,8 +980,7 @@ rows:
       const previousBlueId = minimal
         .getAsNode('/rows')
         ?.getItems()?.[0]
-        ?.getProperties()
-        ?.['$previous']?.getBlueId();
+        ?.getPreviousBlueId();
       const baseRowsItems = blue
         .resolve(nodeProvider.getNodeByName('Base'))
         .getAsNode('/rows')
@@ -1013,9 +992,9 @@ rows:
       expect(previousBlueId).toBe(
         blue.calculateBlueIdSync(baseRowsItems ?? []),
       );
-      expect(previousBlueId).not.toBe(
+      expect(() =>
         BlueIdCalculator.calculateBlueIdSync(baseRowsItems ?? []),
-      );
+      ).toThrow(/reference-only/);
     });
   });
 
@@ -1046,7 +1025,7 @@ rows:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     const limits = new PathLimitsBuilder()
@@ -1098,9 +1077,9 @@ list:
     expect(blue.nodeToJson(limited.getAsNode('/list')!, 'simple')).toEqual([
       'B2',
     ]);
-    expect(blue.nodeToJson(limited, RUNTIME_OFFICIAL_JSON)).toEqual(
-      blue.nodeToJson(reLimited, RUNTIME_OFFICIAL_JSON),
-    );
+    expect(blue.nodeToJson(reLimited.getAsNode('/list')!, 'simple')).toEqual([
+      'B2',
+    ]);
   });
 
   it('keeps multi-level $previous append overlay stable under appended-only PathLimits', () => {
@@ -1141,7 +1120,7 @@ list:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     const limits = new PathLimitsBuilder().addPath('/list/3').build();
@@ -1186,7 +1165,7 @@ list:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     const limits = new PathLimitsBuilder()
@@ -1237,7 +1216,7 @@ list:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     const limits = new PathLimitsBuilder()
@@ -1289,7 +1268,7 @@ list:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     const limits = new PathLimitsBuilder()
@@ -1343,7 +1322,7 @@ list:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     const reversedItems = reversed.getItems() || [];
@@ -1387,7 +1366,7 @@ list:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     const reversedItems = reversed.getAsNode('/list')?.getItems() || [];
@@ -1425,7 +1404,7 @@ list:
     const derivedNode = nodeProvider.getNodeByName('Derived');
     const resolved = blue.resolve(derivedNode);
     const official = blue.nodeToJson(resolved, RUNTIME_OFFICIAL_JSON);
-    const loaded = blue.jsonValueToNode(official);
+    const loaded = blue.jsonValueToNodeUnchecked(official);
     const reversed = new MergeReverser().reverse(loaded);
 
     expect(reversed.getProperties()?.list).toBeUndefined();

@@ -1,0 +1,13 @@
+fixtureId: GAS-106
+title: SliceAfter charges two operands
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $sliceAfter:
+      - abc
+      - a
+expectation:
+  outcome: success
+  resultSimple: bc
+  gasUsed: 5

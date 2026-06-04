@@ -1,0 +1,9 @@
+fixtureId: GAS-002
+title: Empty do body charges only root function call
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do: []
+expectation:
+  outcome: success
+  gasUsed: 2

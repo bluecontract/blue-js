@@ -294,8 +294,14 @@ describe('RepositoryVersionSerializer', () => {
         .setType(new BlueNode().setBlueId(LIST_TYPE_BLUE_ID))
         .setItemType(itemV1.clone().setBlueId(itemV1Id)),
     });
-    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
-    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+    const containerV0Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV0,
+      );
+    const containerV1Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV1,
+      );
 
     const repository: BlueRepository = {
       name: 'repo.inline.item',
@@ -527,8 +533,14 @@ describe('RepositoryVersionSerializer', () => {
         .setKeyType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID))
         .setValueType(valueV1.clone().setBlueId(valueV1Id)),
     });
-    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
-    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+    const containerV0Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV0,
+      );
+    const containerV1Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV1,
+      );
 
     const repository: BlueRepository = {
       name: 'repo.inline.value',
@@ -638,8 +650,14 @@ describe('RepositoryVersionSerializer', () => {
       fieldNoType: new BlueNode().setType(inlineCurrent),
     });
 
-    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
-    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+    const containerV0Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV0,
+      );
+    const containerV1Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV1,
+      );
 
     const repository: BlueRepository = {
       name: 'repo.type',
@@ -729,7 +747,10 @@ describe('RepositoryVersionSerializer', () => {
     const containerType = new BlueNode('Container').setProperties({
       fieldA: new BlueNode().setType(inlineTest1Schema),
     });
-    const containerId = BlueIdCalculator.calculateBlueIdSync(containerType);
+    const containerId =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerType,
+      );
 
     const repository: BlueRepository = {
       name: 'repo.root',
@@ -839,8 +860,14 @@ describe('RepositoryVersionSerializer', () => {
         .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
     });
 
-    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
-    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+    const containerV0Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV0,
+      );
+    const containerV1Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV1,
+      );
 
     const repository: BlueRepository = {
       name: 'repo.key',
@@ -941,8 +968,14 @@ describe('RepositoryVersionSerializer', () => {
         .setKeyType(keyV1.clone().setBlueId(keyV1Id))
         .setValueType(new BlueNode().setBlueId(TEXT_TYPE_BLUE_ID)),
     });
-    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
-    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+    const containerV0Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV0,
+      );
+    const containerV1Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV1,
+      );
 
     const repository: BlueRepository = {
       name: 'repo.inline.key',
@@ -1180,8 +1213,14 @@ describe('RepositoryVersionSerializer', () => {
       field: new BlueNode().setType(inlineCurrent),
     });
 
-    const containerV0Id = BlueIdCalculator.calculateBlueIdSync(containerV0);
-    const containerV1Id = BlueIdCalculator.calculateBlueIdSync(containerV1);
+    const containerV0Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV0,
+      );
+    const containerV1Id =
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(
+        containerV1,
+      );
 
     const repository: BlueRepository = {
       name: 'repo.escape.inline',

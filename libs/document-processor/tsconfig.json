@@ -10,6 +10,9 @@
       "path": "../language"
     },
     {
+      "path": "../bex"
+    },
+    {
       "path": "./tsconfig.lib.json"
     },
     {

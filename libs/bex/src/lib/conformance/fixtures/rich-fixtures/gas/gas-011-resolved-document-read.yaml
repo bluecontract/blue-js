@@ -1,0 +1,16 @@
+fixtureId: GAS-011
+title: Resolved document read costs the same as canonical document read
+tags: [gas]
+context:
+  rootDocumentSource: |
+    status: pending
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $document:
+      path: /status
+      view: resolved
+expectation:
+  outcome: success
+  resultSimple: pending
+  gasUsed: 5

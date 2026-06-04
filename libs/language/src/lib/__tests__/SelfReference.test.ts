@@ -200,7 +200,7 @@ x:
     expect(result.nodes[1].get('/peer/blueId')).toBe('this#0');
   });
 
-  it('rejects ambiguous cyclic ordering when preliminary BlueIds tie', () => {
+  it('rejects duplicate preliminary cyclic inputs instead of tie-breaking them', () => {
     const doc = yamlBlueParse(`- peer:
     blueId: this#1
 - peer:
@@ -209,7 +209,7 @@ x:
     const blue = new Blue();
 
     expect(() => blue.calculateBlueIdSync(doc!)).toThrow(
-      /ambiguous canonical ordering/,
+      /Duplicate preliminary cyclic BlueId input/,
     );
   });
 

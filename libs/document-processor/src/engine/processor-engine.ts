@@ -19,7 +19,6 @@ import {
   type DocumentUpdateData,
 } from '../runtime/document-processing-runtime.js';
 import type { JsonPatch } from '../model/shared/json-patch.js';
-import { canonicalSignature } from '../util/node-canonicalizer.js';
 import {
   normalizePointer,
   normalizeScope,
@@ -31,16 +30,27 @@ import type { ChannelContract } from '../model/index.js';
 import type { ChannelEvaluationContext } from '../registry/types.js';
 import type { TerminationKind } from '../runtime/scope-runtime-context.js';
 import { ProcessorErrors } from '../types/errors.js';
-import { DocumentProcessingResult } from '../types/document-processing-result.js';
+import type { ProcessorError } from '../types/errors.js';
+import {
+  DocumentProcessingResult,
+  ProcessorErrorCategory,
+  ProcessorStatus,
+  type ProcessorErrorCategory as ProcessorErrorCategoryValue,
+} from '../types/document-processing-result.js';
 import { blueIds } from '../repository/semantic-repository.js';
 import { RunTerminationError } from './run-termination-error.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { IllegalStateException } from './illegal-state-exception.js';
+import { RELATIVE_CONTRACTS } from '../constants/processor-pointer-constants.js';
+import { calculateRuntimeContentBlueId } from '../util/content-blue-id.js';
+import type { TypeGraphProvider } from './generalization/type-graph-provider.js';
+import { CheckpointIdentityService } from './checkpoint-identity-service.js';
+import { ProcessorTimer } from './processor-timing.js';
 
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Initialized Marker'];
-const DOCUMENT_UPDATE_BLUE_ID = blueIds['Core/Document Update'];
+  blueIds['Processing Initialized Marker'];
+const DOCUMENT_UPDATE_BLUE_ID = blueIds['Document Update'];
 
 interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   bundleForScope(scopePath: string): ContractBundle | undefined;
@@ -52,6 +62,31 @@ interface ExecutionHooks extends ExecutionAdapter, TerminationExecutionAdapter {
   ): Promise<void>;
 }
 
+export interface ProcessorRuntimeHooks {
+  forcedFatal?(): { scope: string | null; reason: string | null } | null;
+  planPatch?(
+    scopePath: string,
+    runtime: DocumentProcessingRuntime,
+    patch: JsonPatch,
+  ):
+    | { generatedPatches?: readonly JsonPatch[] }
+    | Promise<{ generatedPatches?: readonly JsonPatch[] }>;
+  typeGraphProvider?(): TypeGraphProvider | null;
+  afterEmbeddedChildProcessed?(
+    childScope: string,
+    runtime: DocumentProcessingRuntime,
+  ): Promise<void> | void;
+  afterBridgeEmission?(
+    scopePath: string,
+    runtime: DocumentProcessingRuntime,
+    emission: BlueNode,
+  ): Promise<void> | void;
+  recordEmbeddedBridgeDelivery?(
+    emission: BlueNode,
+    channelKeys: readonly string[],
+  ): void;
+}
+
 export class ProcessorExecution implements ExecutionHooks {
   private readonly runtimeRef: Runtime;
   private readonly bundles = new Map<string, ContractBundle>();
@@ -59,8 +94,13 @@ export class ProcessorExecution implements ExecutionHooks {
     string,
     { kind: TerminationKind; reason: string | null }
   >();
+  private readonly terminationCategories = new Map<
+    string,
+    ProcessorErrorCategoryValue
+  >();
   private readonly cutOffScopes = new Set<string>();
   private readonly checkpointManager: CheckpointManager;
+  private readonly checkpointIdentityService: CheckpointIdentityService;
   private readonly terminationService: TerminationService;
   private readonly channelRunner: ChannelRunner;
   private readonly scopeExecutor: ScopeExecutor;
@@ -70,13 +110,16 @@ export class ProcessorExecution implements ExecutionHooks {
     private readonly registry: ContractProcessorRegistry,
     blue: Blue,
     document: BlueNode,
+    private readonly runtimeHooks?: ProcessorRuntimeHooks,
+    private readonly timing = ProcessorTimer.disabled,
   ) {
-    this.runtimeRef = new Runtime(document, blue);
-    const signatureFn = (node: BlueNode | null): string | null =>
-      canonicalSignature(this.runtimeRef.blue(), node);
+    this.runtimeRef = new Runtime(document, blue, this.timing);
+    this.checkpointIdentityService = new CheckpointIdentityService(
+      this.runtimeRef.blue(),
+    );
     this.checkpointManager = new CheckpointManager(
       this.runtimeRef,
-      signatureFn,
+      this.checkpointIdentityService,
     );
     this.terminationService = new TerminationService(this.runtimeRef);
     this.channelRunner = new ChannelRunner(
@@ -107,15 +150,20 @@ export class ProcessorExecution implements ExecutionHooks {
           if (typeof matchesFn !== 'function') {
             return true;
           }
-          return await matchesFn.call(processor, handler.contract(), context);
+          return await matchesFn.call(processor, handler.contract(), context, {
+            contractKey: handler.key(),
+            contractNode: handler.node(),
+          });
         },
         executeHandler: async (handler, context) =>
           this.executeHandler(handler, context),
         handleHandlerError: async (scope, bundle, error) =>
           this.handleHandlerError(scope, bundle, error),
-        canonicalSignature: signatureFn,
+        checkpointIdentity: (node, mode, subject) =>
+          this.checkpointIdentityService.identityFor(node, mode, subject),
         channelProcessorFor: (node) => this.lookupChannelProcessor(node),
       },
+      this.timing,
     );
     this.scopeExecutor = new ScopeExecutor({
       runtime: this.runtimeRef,
@@ -140,17 +188,31 @@ export class ProcessorExecution implements ExecutionHooks {
           ),
         recordLifecycleForBridging: (scopePath, event) =>
           this.recordLifecycleForBridging(scopePath, event),
-        enterFatalTermination: (scope, bundle, reason) =>
-          this.enterFatalTermination(scope, bundle, reason ?? null),
+        enterFatalTermination: (scope, bundle, reason, errorCategory) =>
+          this.enterFatalTermination(
+            scope,
+            bundle,
+            reason ?? null,
+            errorCategory,
+          ),
         fatalReason: (error, label) => this.fatalReason(error, label),
         markCutOff: (scopePath) => this.markCutOff(scopePath),
+        planPatch: runtimeHooks?.planPatch?.bind(runtimeHooks),
+        typeGraphProvider: runtimeHooks?.typeGraphProvider?.bind(runtimeHooks),
+        afterEmbeddedChildProcessed:
+          runtimeHooks?.afterEmbeddedChildProcessed?.bind(runtimeHooks),
+        afterBridgeEmission:
+          runtimeHooks?.afterBridgeEmission?.bind(runtimeHooks),
+        recordEmbeddedBridgeDelivery:
+          runtimeHooks?.recordEmbeddedBridgeDelivery?.bind(runtimeHooks),
       },
-      blueId: (node) => this.runtimeRef.blue().calculateBlueIdSync(node),
+      blueId: (node) => this.runtimeContentBlueId(node),
       nodeAt: (scopePath) => this.nodeAt(scopePath),
       createDocumentUpdateEvent: (data, scopePath) =>
         this.createDocumentUpdateEvent(data, scopePath),
       matchesDocumentUpdate: (scopePath, watchPath, changedPath) =>
         this.matchesDocumentUpdate(scopePath, watchPath, changedPath),
+      timing: this.timing,
     });
   }
 
@@ -212,6 +274,9 @@ export class ProcessorExecution implements ExecutionHooks {
       document,
       triggeredEvents as readonly BlueNode[],
       this.runtimeRef.totalGas(),
+      this.processingStatus(),
+      this.rootErrorCategory(),
+      this.rootFailureReason(),
     );
   }
 
@@ -244,7 +309,10 @@ export class ProcessorExecution implements ExecutionHooks {
     scopePath: string,
     bundle: ContractBundle | null,
     reason: string | null,
+    errorCategory: ProcessorErrorCategoryValue = ProcessorErrorCategory.InternalProcessorError,
   ): Promise<void> {
+    const normalized = normalizeScope(scopePath);
+    this.terminationCategories.set(normalized, errorCategory);
     await this.terminate(scopePath, bundle, 'FATAL', reason);
   }
 
@@ -266,6 +334,22 @@ export class ProcessorExecution implements ExecutionHooks {
       const context = this.runtimeRef.existingScope(normalized);
       context?.markCutOff();
     }
+  }
+
+  async applyForcedFatalIfPresent(): Promise<boolean> {
+    const forced = this.runtimeHooks?.forcedFatal?.();
+    if (!forced) {
+      return false;
+    }
+    const scope = forced.scope ?? '/';
+    this.ensureContractsContainerForForcedFatal(scope);
+    await this.enterFatalTermination(
+      scope,
+      this.bundleForScope(normalizeScope(scope)) ?? null,
+      forced.reason ?? null,
+      ProcessorErrorCategory.TerminationError,
+    );
+    return true;
   }
 
   async deliverLifecycle(
@@ -324,11 +408,25 @@ export class ProcessorExecution implements ExecutionHooks {
     );
   }
 
+  private ensureContractsContainerForForcedFatal(scopePath: string): void {
+    if (normalizeScope(scopePath) !== '/') {
+      return;
+    }
+    const contracts = this.nodeAt(RELATIVE_CONTRACTS);
+    if (contracts?.getProperties()) {
+      return;
+    }
+    const document = this.runtimeRef.document();
+    document.setProperties({
+      ...(document.getProperties() ?? {}),
+      [Properties.OBJECT_CONTRACTS]: new BlueNode().setProperties({}),
+    });
+  }
+
   private nodeAt(scopePath: string): BlueNode | null {
     const normalized = normalizeScope(scopePath);
     return ProcessorEngine.nodeAt(this.runtimeRef.document(), normalized, {
-      calculateBlueId: (node) =>
-        this.runtimeRef.blue().calculateBlueIdSync(node),
+      calculateBlueId: (node) => this.runtimeContentBlueId(node),
     });
   }
 
@@ -342,8 +440,6 @@ export class ProcessorExecution implements ExecutionHooks {
     if (!processor) {
       return { matches: false };
     }
-
-    const eventBlueId = this.runtimeRef.blue().calculateBlueIdSync(event);
 
     const eventClone = event.clone();
     const contract = channel.contract() as ChannelContract;
@@ -382,9 +478,12 @@ export class ProcessorExecution implements ExecutionHooks {
 
     return {
       matches: true,
-      eventId: eventBlueId,
       eventNode: channelizedResult ?? eventClone.clone(),
     };
+  }
+
+  private runtimeContentBlueId(node: BlueNode): string {
+    return calculateRuntimeContentBlueId(this.runtimeRef.blue(), node);
   }
 
   private async executeHandler(
@@ -422,7 +521,12 @@ export class ProcessorExecution implements ExecutionHooks {
       throw error;
     }
     const reason = this.fatalReason(error, 'Runtime fatal');
-    await this.enterFatalTermination(scopePath, bundle, reason);
+    await this.enterFatalTermination(
+      scopePath,
+      bundle,
+      reason,
+      this.fatalCategory(error, ProcessorErrorCategory.HandlerExecutionError),
+    );
   }
 
   private fatalReason(error: unknown, label: string): string {
@@ -430,6 +534,69 @@ export class ProcessorExecution implements ExecutionHooks {
       return error.message;
     }
     return label;
+  }
+
+  private fatalCategory(
+    error: unknown,
+    fallback: ProcessorErrorCategoryValue,
+  ): ProcessorErrorCategoryValue {
+    if (error instanceof ProcessorFatalError && error.category) {
+      return error.category;
+    }
+    if (error instanceof ProcessorFatalError && error.processorError) {
+      return categoryForProcessorError(error.processorError, fallback);
+    }
+    return fallback;
+  }
+
+  private processingStatus(): ProcessorStatus {
+    for (const termination of this.pendingTerminations.values()) {
+      if (termination.kind === 'FATAL') {
+        return ProcessorStatus.RUNTIME_FATAL;
+      }
+    }
+    if (this.terminationCategories.size > 0) {
+      return ProcessorStatus.RUNTIME_FATAL;
+    }
+    for (const context of this.runtimeRef.scopes().values()) {
+      if (context.terminationKind() === 'FATAL') {
+        return ProcessorStatus.RUNTIME_FATAL;
+      }
+    }
+    return ProcessorStatus.SUCCESS;
+  }
+
+  private rootErrorCategory(): ProcessorErrorCategoryValue | null {
+    if (this.processingStatus() !== ProcessorStatus.RUNTIME_FATAL) {
+      return null;
+    }
+    return (
+      this.terminationCategories.get('/') ??
+      this.terminationCategories.values().next().value ??
+      ProcessorErrorCategory.InternalProcessorError
+    );
+  }
+
+  private rootFailureReason(): string | null {
+    const rootPending = this.pendingTerminations.get('/');
+    if (rootPending?.reason) {
+      return rootPending.reason;
+    }
+    for (const pending of this.pendingTerminations.values()) {
+      if (pending.reason) {
+        return pending.reason;
+      }
+    }
+    const rootContext = this.runtimeRef.existingScope('/');
+    if (rootContext?.terminationReason()) {
+      return rootContext.terminationReason();
+    }
+    for (const context of this.runtimeRef.scopes().values()) {
+      if (context.terminationReason()) {
+        return context.terminationReason();
+      }
+    }
+    return null;
   }
 
   private lookupHandlerProcessor(handler: HandlerBinding) {
@@ -493,6 +660,8 @@ export class ProcessorEngine {
     private readonly contractLoader: ContractLoader,
     private readonly registry: ContractProcessorRegistry,
     private readonly blue: Blue,
+    private readonly runtimeHooks?: ProcessorRuntimeHooks,
+    private readonly timing = ProcessorTimer.disabled,
   ) {}
 
   async initializeDocument(
@@ -511,15 +680,43 @@ export class ProcessorEngine {
     document: BlueNode,
     event: BlueNode,
   ): Promise<DocumentProcessingResult> {
-    if (!this.isInitialized(document)) {
-      throw new IllegalStateException('Document not initialized');
-    }
-    const execution = this.createExecution(document.clone());
-    const eventClone = event.clone();
-    return this.run(document, execution, async () => {
-      execution.loadBundles('/');
-      await execution.processExternalEvent('/', eventClone);
+    return this.timing.measureAsync('processDocument.total', async () => {
+      const invalidDocument = this.validateProcessingDocument(document);
+      if (invalidDocument) {
+        return invalidDocument;
+      }
+      const execution = this.createExecution(document.clone());
+      const eventClone = event.clone();
+      return this.run(document, execution, async () => {
+        if (await execution.applyForcedFatalIfPresent()) {
+          return;
+        }
+        execution.loadBundles('/');
+        await execution.processExternalEvent('/', eventClone);
+      });
     });
+  }
+
+  private validateProcessingDocument(
+    document: BlueNode,
+  ): DocumentProcessingResult | null {
+    if (document.getBlue() != null) {
+      return DocumentProcessingResult.invalidProcessingDocument(
+        document.clone(),
+        'Invalid Processing Document: root blue directive is not allowed',
+      );
+    }
+    if (
+      document.getValue() != null ||
+      document.getItems() != null ||
+      document.getReferenceBlueId() != null
+    ) {
+      return DocumentProcessingResult.invalidProcessingDocument(
+        document.clone(),
+        'Invalid Processing Document: root scope must be an object',
+      );
+    }
+    return null;
   }
 
   isInitialized(document: BlueNode): boolean {
@@ -532,6 +729,8 @@ export class ProcessorEngine {
       this.registry,
       this.blue,
       document,
+      this.runtimeHooks,
+      this.timing,
     );
   }
 
@@ -551,6 +750,16 @@ export class ProcessorEngine {
         return DocumentProcessingResult.capabilityFailure(
           failureDocument,
           error.message ?? null,
+        );
+      }
+      if (error instanceof ProcessorFatalError) {
+        return DocumentProcessingResult.runtimeFatal(
+          originalDocument.clone(),
+          error.message ?? null,
+          categoryForFatalError(
+            error,
+            ProcessorErrorCategory.InternalProcessorError,
+          ),
         );
       }
       throw error;
@@ -596,7 +805,10 @@ export class ProcessorEngine {
     if (normalized === '/') {
       return root;
     }
-    const segments = normalized.slice(1).split('/');
+    const segments = normalized
+      .slice(1)
+      .split('/')
+      .map((segment) => unescapePointerSegment(segment, normalized));
     let current: BlueNode | null = root;
 
     for (const segment of segments) {
@@ -660,7 +872,9 @@ export class ProcessorEngine {
       case 'valueType':
         return node.getValueType() ?? null;
       case 'value':
-        return new BlueNode().setValue(node.getValue() ?? null);
+        return node.getRawValue() === undefined
+          ? null
+          : new BlueNode().setValue(node.getValue() ?? null);
       case 'blue':
         return node.getBlue() ?? null;
       case Properties.OBJECT_CONTRACTS:
@@ -680,5 +894,58 @@ export class ProcessorEngine {
       default:
         return undefined;
     }
+  }
+}
+
+function categoryForFatalError(
+  error: ProcessorFatalError,
+  fallback: ProcessorErrorCategoryValue,
+): ProcessorErrorCategoryValue {
+  if (error.category) {
+    return error.category;
+  }
+  if (error.processorError) {
+    return categoryForProcessorError(error.processorError, fallback);
+  }
+  return fallback;
+}
+
+function unescapePointerSegment(segment: string, pointer: string): string {
+  for (let i = 0; i < segment.length; i += 1) {
+    if (segment[i] !== '~') {
+      continue;
+    }
+    const next = segment[i + 1];
+    if (next !== '0' && next !== '1') {
+      throw new ProcessorFatalError(
+        `Invalid JSON pointer escape in path: ${pointer}`,
+        ProcessorErrors.illegalState(
+          `Invalid JSON pointer escape in path: ${pointer}`,
+        ),
+      );
+    }
+    i += 1;
+  }
+  return segment.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+
+function categoryForProcessorError(
+  error: ProcessorError,
+  fallback: ProcessorErrorCategoryValue,
+): ProcessorErrorCategoryValue {
+  switch (error.kind) {
+    case 'CapabilityFailure':
+      return ProcessorErrorCategory.UnsupportedContract;
+    case 'BoundaryViolation':
+      return ProcessorErrorCategory.BoundaryViolation;
+    case 'InvalidContract':
+      return ProcessorErrorCategory.InvalidPatchValue;
+    case 'IllegalState':
+      return ProcessorErrorCategory.InternalProcessorError;
+    case 'RuntimeFatal':
+    case 'UnsupportedOp':
+      return fallback;
+    default:
+      return fallback;
   }
 }

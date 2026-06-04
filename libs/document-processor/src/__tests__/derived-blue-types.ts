@@ -3,7 +3,11 @@ import { Blue, Properties } from '@blue-labs/language';
 import type { BlueRepository } from '@blue-labs/language';
 
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
-import { blueRepository } from '../repository/semantic-repository.js';
+import {
+  blueRepository,
+  conversationBlueIds,
+  blueIds as semanticBlueIds,
+} from '../repository/semantic-repository.js';
 
 const FALLBACK_BLUE_IDS = [
   'AssertDocumentUpdate',
@@ -84,6 +88,8 @@ export function createBlueWithDerivedTypes(
     repositories: [blueRepository, testFallbackRepository],
     mergingProcessor: createDefaultMergingProcessor(),
   });
+  seedBlue.registerBlueIds(semanticBlueIds);
+  seedBlue.registerBlueIds(conversationBlueIds);
 
   const types = definitions.map(({ name, yaml }) => {
     const node = seedBlue.yamlToNode(yaml);
@@ -96,6 +102,8 @@ export function createBlueWithDerivedTypes(
     repositories: [blueRepository, testFallbackRepository, derivedRepository],
     mergingProcessor: createDefaultMergingProcessor(),
   });
+  blue.registerBlueIds(semanticBlueIds);
+  blue.registerBlueIds(conversationBlueIds);
 
   for (const { name, blueId } of types) {
     blue.registerBlueIds({ [name]: blueId });

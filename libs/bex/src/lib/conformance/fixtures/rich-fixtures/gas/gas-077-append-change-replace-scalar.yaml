@@ -1,0 +1,17 @@
+fixtureId: GAS-077
+title: AppendChange replace charges value expression and value size
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendChange:
+        op: replace
+        path: /status
+        val: x
+expectation:
+  outcome: success
+  changeset:
+    - op: replace
+      path: /status
+      val: x
+  gasUsed: 10

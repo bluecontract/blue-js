@@ -1,0 +1,10 @@
+fixtureId: GAS-001
+title: Root expression literal charges root call and expression base
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr: 1
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 3

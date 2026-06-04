@@ -1,0 +1,17 @@
+fixtureId: GAS-117
+title: AppendChange add charges like replace for scalar val
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendChange:
+        op: add
+        path: /status
+        val: x
+expectation:
+  outcome: success
+  changeset:
+    - op: add
+      path: /status
+      val: x
+  gasUsed: 10

@@ -8,6 +8,7 @@ import type { JsonPatch } from '../model/shared/json-patch.js';
 import type { MarkerContract } from '../model/index.js';
 import type { ChannelContractEntry } from '../types/channel-contract-entry.js';
 import type { GasMeter } from '../runtime/gas-meter.js';
+import type { CheckpointIdentityMode } from '../engine/checkpoint-identity-service.js';
 
 export type ContractProcessorKind = 'handler' | 'channel' | 'marker';
 
@@ -25,6 +26,16 @@ export interface ContractProcessorContext {
   emitEvent(emission: BlueNode): void;
   consumeGas(units: number): void;
   gasMeter(): GasMeter;
+  measure<T>(
+    name: string,
+    work: () => T,
+    meta?: Readonly<Record<string, unknown>>,
+  ): T;
+  measureAsync<T>(
+    name: string,
+    work: () => Promise<T>,
+    meta?: Readonly<Record<string, unknown>>,
+  ): Promise<T>;
   throwFatal(reason: string): never;
   resolvePointer(relativePointer: string): string;
   documentAt(absolutePointer: string): BlueNode | null;
@@ -59,6 +70,7 @@ export interface HandlerProcessor<
   matches?(
     contract: TContract,
     context: ContractProcessorContext,
+    metadata?: HandlerExecutionMetadata,
   ): boolean | Promise<boolean>;
   execute(
     contract: TContract,
@@ -93,14 +105,18 @@ export interface ChannelEvaluationContext {
 
 export interface ChannelDelivery {
   readonly eventNode: BlueNode;
+  readonly checkpointIdentity?: string | null;
   readonly eventId?: string | null;
+  readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
   readonly checkpointKey?: string | null;
   readonly shouldProcess?: boolean;
 }
 
 export interface ChannelMatch {
   readonly matches: boolean;
+  readonly checkpointIdentity?: string | null;
   readonly eventId?: string | null;
+  readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
   readonly eventNode?: BlueNode | null;
   readonly deliveries?: readonly ChannelDelivery[];
 }

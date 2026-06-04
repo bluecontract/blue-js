@@ -1,0 +1,17 @@
+fixtureId: GAS-032
+title: List concat charges each list operand
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $listConcat:
+      -
+        - a
+      -
+        - b
+expectation:
+  outcome: success
+  resultSimple:
+    - a
+    - b
+  gasUsed: 5

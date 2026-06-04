@@ -1,19 +1,35 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
+import * as fs from 'fs';
 
 // @ts-expect-error - This is a valid import.
 import packageJson from './package.json';
 
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/document-processor',
+  resolve:
+    mode === 'test'
+      ? {
+          alias: {
+            '@blue-labs/bex': path.resolve(__dirname, '../bex/src/index.ts'),
+            '@blue-labs/language': path.resolve(
+              __dirname,
+              '../language/src/index.ts',
+            ),
+          },
+        }
+      : undefined,
   plugins: [
+    nxViteTsPaths(),
     dts({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    copyConformanceFixtures(),
   ],
   // Uncomment this if you are using workers.
   // worker: {
@@ -30,9 +46,12 @@ export default defineConfig(() => ({
     },
     lib: {
       // Could also be a dictionary or array of multiple entry points.
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        conformance: 'src/conformance/index.ts',
+      },
       name: 'document-processor',
-      fileName: 'index',
+      fileName: (_format: string, entryName: string) => `${entryName}.js`,
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
       formats: ['es' as const],
@@ -45,6 +64,7 @@ export default defineConfig(() => ({
           packageJson.peerDependencies ?? {},
         );
         return (
+          id.startsWith('node:') ||
           dependencies.some((dependency) => id === dependency) ||
           peerDependencies.some((dependency) => id === dependency)
         );
@@ -64,3 +84,18 @@ export default defineConfig(() => ({
     passWithNoTests: true,
   },
 }));
+
+function copyConformanceFixtures() {
+  return {
+    name: 'copy-document-processor-conformance-fixtures',
+    closeBundle() {
+      const source = path.join(__dirname, 'src/conformance/fixtures');
+      const target = path.join(__dirname, 'dist/conformance/fixtures');
+      if (!fs.existsSync(source)) {
+        return;
+      }
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.cpSync(source, target, { recursive: true });
+    },
+  };
+}

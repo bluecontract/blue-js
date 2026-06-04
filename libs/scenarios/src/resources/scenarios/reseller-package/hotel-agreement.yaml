@@ -1,0 +1,10 @@
+name: Hotel Badura Resale Agreement
+kind: Merchant Agreement
+agreementKind: hotel
+status: active
+sellerAccountId: hotel-badura-uid
+resellerAccountId: investor-uid
+terms:
+  wholesaleAmountMinor: 35000
+  currency: PLN
+  service: Hotel Badura weekend stay

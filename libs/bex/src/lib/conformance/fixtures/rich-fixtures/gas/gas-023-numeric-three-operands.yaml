@@ -1,0 +1,14 @@
+fixtureId: GAS-023
+title: Numeric expression charges each operand
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $add:
+      - 1
+      - 2
+      - 3
+expectation:
+  outcome: success
+  resultSimple: 6
+  gasUsed: 6

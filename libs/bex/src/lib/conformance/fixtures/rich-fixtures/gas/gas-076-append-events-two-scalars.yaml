@@ -1,0 +1,15 @@
+fixtureId: GAS-076
+title: AppendEvents charges append event cost per item
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvents:
+        - x
+        - yy
+expectation:
+  outcome: success
+  events:
+    - x
+    - yy
+  gasUsed: 17

@@ -4,8 +4,5 @@ export function ingestExternalEvent(
   blue: Blue,
   event: BlueNode,
 ): ResolvedBlueNode {
-  if (event.isResolved()) {
-    return blue.createResolvedNode(event);
-  }
-  return blue.resolve(event);
+  return blue.createResolvedNode(event);
 }

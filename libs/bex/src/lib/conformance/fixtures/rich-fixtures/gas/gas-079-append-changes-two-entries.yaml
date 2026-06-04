@@ -1,0 +1,23 @@
+fixtureId: GAS-079
+title: AppendChanges charges append change cost per entry
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendChanges:
+        - op: replace
+          path: /a
+          val: x
+        - op: replace
+          path: /b
+          val: yy
+expectation:
+  outcome: success
+  changeset:
+    - op: replace
+      path: /a
+      val: x
+    - op: replace
+      path: /b
+      val: yy
+  gasUsed: 17

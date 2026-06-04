@@ -1,0 +1,13 @@
+fixtureId: GAS-104
+title: Default is coalesce and charges until first non-empty value
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $default:
+      - ""
+      - fallback
+expectation:
+  outcome: success
+  resultSimple: fallback
+  gasUsed: 5

@@ -1,0 +1,211 @@
+name: Document Session Bootstrap BEX
+description: BEX workflow for MyOS Document Session Bootstrap.
+document:
+  kind: Demo target document
+avatarUrl: https://example.invalid/avatar.png
+channelBindings: {}
+initialMessages:
+  defaultMessage: Welcome
+  perChannel: {}
+capabilities: {}
+bootstrapStatus:
+  type: Coordination/Status Pending
+bootstrapError: ''
+initiatorSessionIds: []
+participantsState: {}
+
+contracts:
+  myOsAdminChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: myOsAdmin
+    accountId: '0'
+
+  myOsAdminUpdate:
+    type: Coordination/Operation
+    channel: myOsAdminChannel
+
+  myOsAdminUpdateImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: myOsAdminUpdate
+    steps:
+      - name: EmitAdminEvents
+        type: Coordination/Compute
+        do:
+          - $return:
+              events:
+                $event: /message/request
+
+  triggeredEventsChannel:
+    type: Triggered Event Channel
+
+  lifecycle:
+    type: Lifecycle Event Channel
+    event:
+      type: Document Processing Initiated
+
+  initHandler:
+    type: Coordination/Sequential Workflow
+    channel: lifecycle
+    steps:
+      - name: Initialize Bootstrap Status
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /bootstrapStatus
+              val:
+                type: Coordination/Status In Progress
+                mode: active
+          - $return:
+              changeset:
+                $changeset: true
+
+  handleParticipantResolved:
+    type: Coordination/Sequential Workflow
+    channel: triggeredEventsChannel
+    event:
+      type: MyOS/Participant Resolved
+    steps:
+      - name: Update Participant State
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $not:
+                  $is:
+                    node:
+                      $event: /
+                    pattern:
+                      type: MyOS/Participant Resolved
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $let:
+              order:
+                - channelName
+                - accountStatus
+              vars:
+                channelName:
+                  $event: /channelName
+                accountStatus:
+                  $default:
+                    - $event: /participant/status/accountStatus
+                    - Unknown
+          - $appendChange:
+              op: replace
+              path:
+                $pointerJoin:
+                  - participantsState
+                  - $var: channelName
+              val:
+                accountStatus:
+                  $var: accountStatus
+                errorMessage: ''
+          - $return:
+              changeset:
+                $changeset: true
+
+  handleTargetDocumentSessionStarted:
+    type: Coordination/Sequential Workflow
+    channel: triggeredEventsChannel
+    event:
+      type: MyOS/Target Document Session Started
+    steps:
+      - name: Update Initiator Session And Emit Completion
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $not:
+                  $is:
+                    node:
+                      $event: /
+                    pattern:
+                      type: MyOS/Target Document Session Started
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $appendChange:
+              op: replace
+              path: /initiatorSessionIds
+              val:
+                $event: /initiatorSessionIds
+          - $appendEvent:
+              type: Coordination/Status Change
+              status:
+                type: Coordination/Status Completed
+                mode: terminated
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+
+  handleBootstrapFailed:
+    type: Coordination/Sequential Workflow
+    channel: triggeredEventsChannel
+    event:
+      type: MyOS/Bootstrap Failed
+    steps:
+      - name: Update Error And Emit Failure
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $not:
+                  $is:
+                    node:
+                      $event: /
+                    pattern:
+                      type: MyOS/Bootstrap Failed
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $appendChange:
+              op: replace
+              path: /bootstrapError
+              val:
+                $event: /reason
+          - $appendEvent:
+              type: Coordination/Status Change
+              status:
+                type: Coordination/Status Failed
+                mode: terminated
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+
+  handleStatusChange:
+    type: Coordination/Sequential Workflow
+    channel: triggeredEventsChannel
+    event:
+      type: Coordination/Status Change
+    steps:
+      - name: Update Bootstrap Status
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $not:
+                  $is:
+                    node:
+                      $event: /
+                    pattern:
+                      type: Coordination/Status Change
+              then:
+                - $return:
+                    changeset: []
+                    events: []
+          - $appendChange:
+              op: replace
+              path: /bootstrapStatus
+              val:
+                $event: /status
+          - $return:
+              changeset:
+                $changeset: true

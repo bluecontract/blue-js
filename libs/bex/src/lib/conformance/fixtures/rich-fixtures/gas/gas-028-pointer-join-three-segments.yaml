@@ -1,0 +1,14 @@
+fixtureId: GAS-028
+title: Pointer join charges each segment expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $pointerJoin:
+      - orders
+      - id
+      - status
+expectation:
+  outcome: success
+  resultSimple: /orders/id/status
+  gasUsed: 6

@@ -43,6 +43,26 @@ export class NodeTransformer {
       );
     }
 
+    const schema = transformedNode.getSchema();
+    if (schema !== undefined) {
+      const transformedSchema = schema.clone();
+      for (const [field, schemaNode] of transformedSchema.entries()) {
+        transformedSchema.set(
+          field,
+          NodeTransformer.transform(schemaNode, transformer),
+        );
+      }
+      const enumValues = transformedSchema.getEnum();
+      if (enumValues !== undefined) {
+        transformedSchema.setEnum(
+          enumValues.map((enumNode) =>
+            NodeTransformer.transform(enumNode, transformer),
+          ),
+        );
+      }
+      transformedNode.setSchema(transformedSchema);
+    }
+
     const items = transformedNode.getItems();
     if (items !== undefined) {
       const transformedItems = items.map((item) =>

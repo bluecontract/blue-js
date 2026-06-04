@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ProcessingInitializedMarkerSchema as CoreProcessingInitializedMarkerSchema } from '@blue-repository/types/packages/core/schemas/ProcessingInitializedMarker';
+import { ProcessingInitializedMarkerSchema as CoreProcessingInitializedMarkerSchema } from '../shared/core-runtime-schemas.js';
 import { markerContractBaseSchema } from '../shared/index.js';
 
 export const initializationMarkerSchema =

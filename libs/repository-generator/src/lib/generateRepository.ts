@@ -76,12 +76,7 @@ export function generateRepository(
   );
 
   const yaml = serializeRepository(document);
-
-  if (previous && !changed && existingYaml && existingYaml !== yaml) {
-    throw new Error(
-      'BlueRepository.blue content differs from regenerated output while RepoBlueId is unchanged. Please revert manual edits or rerun in write mode.',
-    );
-  }
+  const fileMatches = existingYaml !== undefined && existingYaml === yaml;
 
   if (options.verbose) {
     console.info(
@@ -93,7 +88,7 @@ export function generateRepository(
     document,
     currentRepoBlueId,
     previousRepoBlueId: previous?.repositoryVersions.at(-1),
-    changed: changed || !existingYaml,
+    changed: changed || !fileMatches,
     yaml,
     existingYaml,
   };

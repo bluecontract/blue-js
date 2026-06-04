@@ -38,7 +38,7 @@ describe('Blue.restoreInlineTypes', () => {
         "field": {
           "type": {
             "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
             },
             "value": "Text",
           },
@@ -82,7 +82,7 @@ describe('Blue.restoreInlineTypes', () => {
         "reference": {
           "type": {
             "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
             },
             "value": "Link",
           },
@@ -145,7 +145,7 @@ describe('Blue.restoreInlineTypes', () => {
           "label": {
             "type": {
               "type": {
-                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
               },
               "value": "Text",
             },
@@ -153,7 +153,7 @@ describe('Blue.restoreInlineTypes', () => {
           },
           "type": {
             "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
             },
             "value": "Base Type",
           },
@@ -283,14 +283,14 @@ describe('Blue.restoreInlineTypes', () => {
           "attributes": {
             "keyType": {
               "type": {
-                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
               },
               "value": "Text",
             },
             "required": {
               "type": {
                 "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                  "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                 },
                 "value": "Text",
               },
@@ -298,13 +298,13 @@ describe('Blue.restoreInlineTypes', () => {
             },
             "type": {
               "type": {
-                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
               },
               "value": "Dictionary",
             },
             "valueType": {
               "type": {
-                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
               },
               "value": "Text",
             },
@@ -313,7 +313,7 @@ describe('Blue.restoreInlineTypes', () => {
           "options": {
             "itemType": {
               "type": {
-                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
               },
               "value": "Option",
             },
@@ -322,7 +322,7 @@ describe('Blue.restoreInlineTypes', () => {
                 "code": {
                   "type": {
                     "type": {
-                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                      "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                     },
                     "value": "Text",
                   },
@@ -331,7 +331,7 @@ describe('Blue.restoreInlineTypes', () => {
                 "label": {
                   "type": {
                     "type": {
-                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                      "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                     },
                     "value": "Text",
                   },
@@ -339,7 +339,7 @@ describe('Blue.restoreInlineTypes', () => {
                 },
                 "type": {
                   "type": {
-                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                    "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                   },
                   "value": "Option",
                 },
@@ -348,7 +348,7 @@ describe('Blue.restoreInlineTypes', () => {
                 "code": {
                   "type": {
                     "type": {
-                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                      "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                     },
                     "value": "Text",
                   },
@@ -357,7 +357,7 @@ describe('Blue.restoreInlineTypes', () => {
                 "label": {
                   "type": {
                     "type": {
-                      "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                      "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                     },
                     "value": "Text",
                   },
@@ -365,7 +365,7 @@ describe('Blue.restoreInlineTypes', () => {
                 },
                 "type": {
                   "type": {
-                    "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                    "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                   },
                   "value": "Option",
                 },
@@ -373,7 +373,7 @@ describe('Blue.restoreInlineTypes', () => {
             ],
             "type": {
               "type": {
-                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
               },
               "value": "List",
             },
@@ -381,14 +381,14 @@ describe('Blue.restoreInlineTypes', () => {
           "title": {
             "type": {
               "type": {
-                "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
               },
               "value": "Text",
             },
           },
           "type": {
             "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
             },
             "value": "Form",
           },

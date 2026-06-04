@@ -28,7 +28,7 @@ const processEmbeddedMarker = (
 ): ProcessEmbeddedMarker => ({ paths }) as ProcessEmbeddedMarker;
 
 const checkpointMarker = (): ChannelEventCheckpoint =>
-  ({ lastEvents: {}, lastSignatures: {} }) as ChannelEventCheckpoint;
+  ({ lastEvents: {} }) as ChannelEventCheckpoint;
 
 describe('ContractBundle', () => {
   it('sorts channels by order then key', () => {
@@ -112,7 +112,7 @@ describe('ContractBundle', () => {
 
   it('validates checkpoint markers for reserved key', () => {
     const builder = ContractBundle.builder();
-    const checkpointId = blueIds['Core/Channel Event Checkpoint'];
+    const checkpointId = blueIds['Channel Event Checkpoint'];
     expect(() =>
       builder.addMarker('custom', checkpointMarker(), checkpointId),
     ).toThrow(/reserved key 'checkpoint'/i);

@@ -1,0 +1,14 @@
+fixtureId: GAS-036
+title: Static list literal charges as one expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    - a
+    - b
+expectation:
+  outcome: success
+  resultSimple:
+    - a
+    - b
+  gasUsed: 3

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { LifecycleEventChannelSchema as CoreLifecycleEventChannelSchema } from '@blue-repository/types/packages/core/schemas/LifecycleEventChannel';
+import { LifecycleEventChannelSchema as CoreLifecycleEventChannelSchema } from '../shared/core-runtime-schemas.js';
 import { channelContractBaseSchema } from '../shared/index.js';
 
 export const lifecycleChannelSchema = CoreLifecycleEventChannelSchema.merge(

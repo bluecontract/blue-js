@@ -114,11 +114,12 @@ const scenarios: ReadonlyArray<{
         Number,
         'Decrement counter',
         (steps) =>
-          steps.replaceExpression(
-            'DecrementCounter',
-            '/counter',
-            "document('/counter') - event.message.request",
-          ),
+          steps.replaceValue('DecrementCounter', '/counter', {
+            $subtract: [
+              { $document: '/counter' },
+              { $event: '/message/request' },
+            ],
+          }),
       );
     },
   },

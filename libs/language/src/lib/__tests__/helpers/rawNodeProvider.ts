@@ -43,7 +43,7 @@ export function createRawNodeProviderFromYamlDocs(
       throw new Error('Failed to parse raw node provider fixture');
     }
 
-    const node = NodeDeserializer.deserialize(parsed);
+    const node = NodeDeserializer.deserializeUnchecked(parsed);
     const blueId =
       node.getReferenceBlueId() ?? BlueIdCalculator.calculateBlueIdSync(node);
     provider.addNode(blueId, node);

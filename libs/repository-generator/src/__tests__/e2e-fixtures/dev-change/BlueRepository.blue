@@ -11,20 +11,20 @@ packages:
             blueId: AaWLcfRqjdDw3qrh1vwGGzEtjDe2qLTFPMc34eg2UTjP
           id:
             type:
-              blueId: C4p1uhDURJa53thQiX9JtBLZJVjeVwkhmerMTnwjZk2Q
+              blueId: 8ehJVYqEsph8jkPM6hF5ieZfVh4vnvRUWdd79FY3LdDk
           title:
             type:
-              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+              blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
           tags:
             type:
-              blueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
+              blueId: GH6tsfKtAz8jGenpFGQwmthHej4kWhePvdb6q3X7gTWm
           status:
             type:
-              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+              blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
             value: draft
         versions:
           - repositoryVersionIndex: 0
-            typeBlueId: AXMDxCf9j8NzLe1CgiMCUevMNmbfjSKNHqECVk7TPkEM
+            typeBlueId: GGd9GjHLDLBqVKBCKi7JJfqBmrk6w8TMibteMKgnhENy
             attributesAdded: []
       - status: dev
         content:
@@ -34,17 +34,17 @@ packages:
             blueId: AaWLcfRqjdDw3qrh1vwGGzEtjDe2qLTFPMc34eg2UTjP
           content:
             type:
-              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+              blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
           metadata:
             type:
-              blueId: G7fBT9PSod1RfHLHkpafAGBDVAJMrMhAMY51ERcyXNrj
+              blueId: Efkz9D1ARMM7rU43w3rDNVqat1naS6qXKCqP4eHin3yG
             keyType:
-              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+              blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
             valueType:
-              blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+              blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         versions:
-          - repositoryVersionIndex: 1
-            typeBlueId: 2yUEnUk7Wgy63YAunsswR41SWZnVopctkh7QReabs8Qa
+          - repositoryVersionIndex: 0
+            typeBlueId: BCyEejEuzTL93fw1X6HZ9e6FryJN7yWQZevNdLm244Kb
             attributesAdded: []
   - name: Conversation
     types:
@@ -71,23 +71,22 @@ packages:
           name: Id
           description: Unique identifier
           type:
-            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         versions:
           - repositoryVersionIndex: 0
-            typeBlueId: C4p1uhDURJa53thQiX9JtBLZJVjeVwkhmerMTnwjZk2Q
+            typeBlueId: 8ehJVYqEsph8jkPM6hF5ieZfVh4vnvRUWdd79FY3LdDk
             attributesAdded: []
       - status: stable
         content:
           name: Tag List
           description: Simple list of tags
           type:
-            blueId: 6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY
+            blueId: 8DSFoWG9MqRSUhStqoPLrwVQiYByRh18NWbDEarN8MKF
           itemType:
-            blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+            blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
         versions:
           - repositoryVersionIndex: 0
-            typeBlueId: H8Gnf3e4d5kEtdpzFct7JgR71Um2DHe8NkNEv7ACU7rs
+            typeBlueId: GH6tsfKtAz8jGenpFGQwmthHej4kWhePvdb6q3X7gTWm
             attributesAdded: []
 repositoryVersions:
-  - 7k2vGWF3CxYX8dpgLiysvqy3MUf4u1Cif2kU7T2wvYJD
-  - ExMJU1Vg9VQpe3iZjBZWxQeo3TsGwZcWu1S8Sxsi8RQh
+  - FDt2TTjAXT4UqeQQknaJXCWww5FYaBXqbJzeesbvdc95

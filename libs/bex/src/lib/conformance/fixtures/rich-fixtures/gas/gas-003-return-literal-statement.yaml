@@ -1,0 +1,11 @@
+fixtureId: GAS-003
+title: Return literal statement charges statement and literal expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $return: 1
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 4

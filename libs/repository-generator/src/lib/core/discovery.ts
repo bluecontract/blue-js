@@ -5,6 +5,8 @@ import type { JsonValue } from '@blue-labs/shared-utils';
 import { DiscoveredType, JsonMap, Alias } from './internalTypes';
 import {
   PRIMITIVE_TYPES,
+  RESERVED_LANGUAGE_KEYS,
+  SCALAR_PRIMITIVE_TYPES,
   IGNORED_PACKAGE_DIRS,
   BLUE_TYPE_STATUS,
 } from './constants';
@@ -65,6 +67,7 @@ function parseTypeFile(filePath: string): JsonMap {
   if (!isRecord(parsed)) {
     throw new Error(`Type file ${filePath} must contain a YAML object.`);
   }
+  validateScalarTypeShape(parsed);
   return parsed as JsonMap;
 }
 
@@ -132,6 +135,37 @@ function collectReferences(content: JsonMap, filePath: string): Set<Alias> {
   visit(content);
 
   return references;
+}
+
+function validateScalarTypeShape(value: JsonValue): void {
+  const visit = (current: JsonValue) => {
+    if (Array.isArray(current)) {
+      current.forEach((item) => visit(item as JsonValue));
+      return;
+    }
+
+    if (!isRecord(current)) {
+      return;
+    }
+
+    if (
+      typeof current.type === 'string' &&
+      SCALAR_PRIMITIVE_TYPES.has(current.type)
+    ) {
+      const unsupportedField = Object.keys(current).find(
+        (key) => !RESERVED_LANGUAGE_KEYS.has(key),
+      );
+      if (unsupportedField !== undefined) {
+        throw new Error(`"${unsupportedField}" is not an allowed fields here`);
+      }
+    }
+
+    Object.entries(current)
+      .filter(([key]) => key !== 'schema')
+      .forEach(([, item]) => visit(item as JsonValue));
+  };
+
+  visit(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -36,24 +36,26 @@ import { ProcessorErrors } from '../types/errors.js';
 import { MustUnderstandFailure } from './must-understand-failure.js';
 import { ProcessorFatalError } from './processor-fatal-error.js';
 import { assertCompositeChannelIsAcyclic } from './composite-channel-validation.js';
-import { findSchemaMatch } from '../util/schema-match.js';
+import { findSchemaMatch, safeIsTypeOfBlueId } from '../util/schema-match.js';
+import { nodeToSchemaOutputWithMissingTypeFallback } from '../util/schema-conversion.js';
+import { ProcessorErrorCategory } from '../types/document-processing-result.js';
 import {
   blueIds,
   conversationBlueIds,
   myosBlueIds,
 } from '../repository/semantic-repository.js';
+import { ProcessorTimer } from './processor-timing.js';
 
-const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Core/Document Update Channel'];
-const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Core/Embedded Node Channel'];
-const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Lifecycle Event Channel'];
-const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Core/Triggered Event Channel'];
-const PROCESS_EMBEDDED_BLUE_ID = blueIds['Core/Process Embedded'];
+const DOCUMENT_UPDATE_CHANNEL_BLUE_ID = blueIds['Document Update Channel'];
+const EMBEDDED_NODE_CHANNEL_BLUE_ID = blueIds['Embedded Node Channel'];
+const LIFECYCLE_EVENT_CHANNEL_BLUE_ID = blueIds['Lifecycle Event Channel'];
+const TRIGGERED_EVENT_CHANNEL_BLUE_ID = blueIds['Triggered Event Channel'];
+const PROCESS_EMBEDDED_BLUE_ID = blueIds['Process Embedded'];
 const PROCESSING_INITIALIZED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Initialized Marker'];
+  blueIds['Processing Initialized Marker'];
 const PROCESSING_TERMINATED_MARKER_BLUE_ID =
-  blueIds['Core/Processing Terminated Marker'];
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
-  blueIds['Core/Channel Event Checkpoint'];
+  blueIds['Processing Terminated Marker'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 const DOCUMENT_ANCHORS_BLUE_ID = myosBlueIds['MyOS/Document Anchors'];
 const DOCUMENT_LINKS_BLUE_ID = myosBlueIds['MyOS/Document Links'];
 const MYOS_PARTICIPANTS_ORCHESTRATION_BLUE_ID =
@@ -63,6 +65,20 @@ const MYOS_SESSION_INTERACTION_BLUE_ID =
 const MYOS_WORKER_AGENCY_BLUE_ID = myosBlueIds['MyOS/MyOS Worker Agency'];
 const COMPOSITE_TIMELINE_CHANNEL_BLUE_ID =
   conversationBlueIds['Conversation/Composite Timeline Channel'];
+const RESERVED_CONTRACT_ENTRY_KEYS = new Set([
+  'blue',
+  'blueId',
+  'contracts',
+  'description',
+  'itemType',
+  'items',
+  'keyType',
+  'name',
+  'schema',
+  'type',
+  'value',
+  'valueType',
+]);
 
 const BUILTIN_CHANNEL_SCHEMAS: ReadonlyMap<
   string,
@@ -130,6 +146,7 @@ export class ContractLoader {
   constructor(
     private readonly registry: ContractProcessorRegistry,
     private readonly blue: Blue,
+    private readonly timing = ProcessorTimer.disabled,
   ) {
     this.handlerRegistration = new HandlerRegistrationService(
       this.blue,
@@ -139,8 +156,23 @@ export class ContractLoader {
   }
 
   load(scopeNode: BlueNode, scopePath: string): ContractBundle {
+    return this.timing.measure(
+      'contractLoader.load',
+      () => this.loadUnmeasured(scopeNode, scopePath),
+      { scopePath },
+    );
+  }
+
+  private loadUnmeasured(
+    scopeNode: BlueNode,
+    scopePath: string,
+  ): ContractBundle {
     try {
       const builder = ContractBundle.builder();
+      const contractsNode = scopeNode.getContractsNode();
+      if (contractsNode) {
+        this.validateContractsContainer(contractsNode);
+      }
       const contractEntries = scopeNode.getContracts();
       if (!contractEntries) {
         return builder.build();
@@ -149,10 +181,16 @@ export class ContractLoader {
       const scopeContracts = this.buildScopeContractsIndex(contractEntries);
 
       for (const [key, contractNode] of Object.entries(contractEntries)) {
+        this.validateContractKey(key);
         if (!contractNode) {
           continue;
         }
-        this.processContract(builder, key, contractNode, scopeContracts);
+        this.timing.measure(
+          'contractLoader.resolveEntry',
+          () =>
+            this.processContract(builder, key, contractNode, scopeContracts),
+          { scopePath, contractKey: key },
+        );
       }
 
       return builder.build();
@@ -183,10 +221,17 @@ export class ContractLoader {
   ): void {
     const blueId = node.getType()?.getBlueId();
     if (!blueId) {
+      if (node.getType() != null) {
+        const typeName =
+          node.getType()?.getName() ?? node.getType()?.getValue();
+        throw new MustUnderstandFailure(
+          `Unsupported contract type: ${String(typeName ?? 'unknown')}`,
+        );
+      }
       return;
     }
 
-    if (this.blue.isTypeOfBlueId(node, PROCESS_EMBEDDED_BLUE_ID)) {
+    if (safeIsTypeOfBlueId(this.blue, node, PROCESS_EMBEDDED_BLUE_ID)) {
       this.handleProcessEmbedded(builder, key, node);
       return;
     }
@@ -237,6 +282,7 @@ export class ContractLoader {
         channelProcessor.schema as ZodType<ChannelContract>,
         blueId,
         scopeContracts,
+        true,
       );
       return;
     }
@@ -284,6 +330,35 @@ export class ContractLoader {
     throw new MustUnderstandFailure(`Unsupported contract type: ${blueId}`);
   }
 
+  private validateContractKey(key: string): void {
+    if (key.length === 0) {
+      throw new ProcessorFatalError(
+        'Contract key must not be empty',
+        ProcessorErrors.runtimeFatal('Contract key must not be empty'),
+        ProcessorErrorCategory.InvalidRuntimePointer,
+      );
+    }
+    if (RESERVED_CONTRACT_ENTRY_KEYS.has(key)) {
+      throw new ProcessorFatalError(
+        `Contract key '${key}' is reserved`,
+        ProcessorErrors.runtimeFatal(`Contract key '${key}' is reserved`),
+        ProcessorErrorCategory.InvalidReservedMarker,
+      );
+    }
+  }
+
+  private validateContractsContainer(contractsNode: BlueNode): void {
+    if (contractsNode.getType() != null || contractsNode.getValue() != null) {
+      throw new ProcessorFatalError(
+        'Contracts map contains reserved Blue fields',
+        ProcessorErrors.runtimeFatal(
+          'Contracts map contains reserved Blue fields',
+        ),
+        ProcessorErrorCategory.InvalidReservedMarker,
+      );
+    }
+  }
+
   private handleProcessEmbedded(
     builder: ContractBundleBuilder,
     key: string,
@@ -294,8 +369,22 @@ export class ContractLoader {
         node,
         processEmbeddedMarkerSchema,
       ) as ProcessEmbeddedMarker;
+      if (
+        embedded.paths &&
+        new Set(embedded.paths).size !== embedded.paths.length
+      ) {
+        throw new MustUnderstandFailure(
+          'Unique items are required for Process Embedded paths',
+        );
+      }
       builder.setEmbedded(embedded);
     } catch (error) {
+      if (
+        error instanceof ProcessorFatalError ||
+        error instanceof MustUnderstandFailure
+      ) {
+        throw error;
+      }
       if (isZodError(error)) {
         throw new ProcessorFatalError(
           'Failed to parse ProcessEmbedded marker',
@@ -325,13 +414,17 @@ export class ContractLoader {
     schema: ZodType<ChannelContract>,
     blueId: string,
     scopeContracts: ScopeContractsIndex,
+    allowMissingTypeFallback = false,
   ): void {
     try {
-      const contract = this.blue.nodeToSchemaOutput(
-        node,
-        schema,
+      const contract = (
+        allowMissingTypeFallback
+          ? nodeToSchemaOutputWithMissingTypeFallback(this.blue, node, schema)
+          : this.blue.nodeToSchemaOutput(node, schema)
       ) as ChannelContract;
-      if (this.blue.isTypeOfBlueId(node, COMPOSITE_TIMELINE_CHANNEL_BLUE_ID)) {
+      if (
+        safeIsTypeOfBlueId(this.blue, node, COMPOSITE_TIMELINE_CHANNEL_BLUE_ID)
+      ) {
         this.validateCompositeChannel(
           key,
           contract as CompositeTimelineChannel,
@@ -431,7 +524,7 @@ export class ContractLoader {
     try {
       const actorPolicyBlueId =
         conversationBlueIds['Conversation/Actor Policy'];
-      if (this.blue.isTypeOfBlueId(node, actorPolicyBlueId)) {
+      if (safeIsTypeOfBlueId(this.blue, node, actorPolicyBlueId)) {
         this.assertSingleActorPolicyMarker(key, scopeContracts, blueId);
         validateActorPolicyNode(node);
       }
@@ -483,7 +576,7 @@ export class ContractLoader {
     const conflictingEntry = Array.from(scopeContracts.entries()).find(
       ([entryKey, entry]) =>
         entryKey !== key &&
-        this.blue.isTypeOfBlueId(entry.node, actorPolicyBlueId),
+        safeIsTypeOfBlueId(this.blue, entry.node, actorPolicyBlueId),
     );
 
     if (!conflictingEntry) {

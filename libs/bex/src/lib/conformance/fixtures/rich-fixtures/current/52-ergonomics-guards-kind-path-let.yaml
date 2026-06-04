@@ -1,0 +1,63 @@
+fixtureId: BEX-CURRENT-052
+title: Guards, kind checks, path-aware reads, and multi-let
+targetStatus: current-pass
+tags:
+  - ergonomics
+  - guards
+  - kinds
+programSource: |
+  type: Blue/BEX Program
+  constants:
+    Policy/minimum:
+      amount: 100
+  do:
+    - $let:
+        name: request/summary
+        expr: legacy-name
+    - $let:
+        name: request
+        expr:
+          summary: new-path
+          amount: 100
+    - $let:
+        vars:
+          amountKind:
+            $kind:
+              $var:
+                name: request
+                path: /amount
+          summary:
+            $var:
+              name: request
+              path: /summary
+    - $returnIf:
+        cond:
+          $not:
+            $isKind:
+              val:
+                $var: summary
+              kind: text
+        expr:
+          valid: false
+    - $failIf:
+        cond: false
+        message:
+          $integer: not-an-integer
+    - $return:
+        legacy:
+          $var: request/summary
+        path:
+          $var: summary
+        amountKind:
+          $var: amountKind
+        const:
+          $const:
+            name: Policy/minimum
+            path: /amount
+expectation:
+  outcome: success
+  resultSimple:
+    amountKind: integer
+    const: 100
+    legacy: legacy-name
+    path: new-path

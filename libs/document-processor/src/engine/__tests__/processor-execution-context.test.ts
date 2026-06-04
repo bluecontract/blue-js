@@ -101,6 +101,7 @@ describe('ProcessorExecutionContext', () => {
       '/child',
       bundle,
       'fatal',
+      'InternalProcessorError',
     );
   });
 

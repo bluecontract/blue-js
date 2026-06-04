@@ -1,0 +1,15 @@
+fixtureId: GAS-029
+title: Keys charges object operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $keys:
+      a: 1
+      b: 2
+expectation:
+  outcome: success
+  resultSimple:
+    - a
+    - b
+  gasUsed: 4

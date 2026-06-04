@@ -1,0 +1,12 @@
+fixtureId: GAS-072
+title: Boolean event size is text length of true
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent: true
+expectation:
+  outcome: success
+  events:
+    - true
+  gasUsed: 13

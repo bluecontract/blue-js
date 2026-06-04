@@ -11,7 +11,7 @@ import {
   typeBlueId,
 } from '../../__tests__/test-utils.js';
 import {
-  blueIds as coreBlueIds,
+  blueIds as defaultBlueIds,
   conversationBlueIds,
   myosBlueIds,
 } from '../../repository/semantic-repository.js';
@@ -26,7 +26,7 @@ type DocumentBuildOptions = {
   operationChannel?: string | null;
   requestTypeYaml?: string;
   handlerEventYaml?: string;
-  stepExpression?: string;
+  stepValueYaml?: string;
   handlerChannel?: string | null;
   operationType?: string;
   handlerType?: string;
@@ -41,8 +41,9 @@ function indentBlock(block: string, spaces: number): string {
     .join('\n');
 }
 
-const DEFAULT_STEP_EXPRESSION =
-  "${event.message.request + document('/counter')}";
+const DEFAULT_STEP_VALUE_YAML = `$add:
+  - $event: /message/request
+  - $document: /counter`;
 
 function derivedActorPolicyTypeYaml(name: string): string {
   return `name: ${name}
@@ -60,7 +61,7 @@ function buildOperationDocument(
     operationChannel,
     requestTypeYaml = 'type: Integer',
     handlerEventYaml,
-    stepExpression = DEFAULT_STEP_EXPRESSION,
+    stepValueYaml = DEFAULT_STEP_VALUE_YAML,
     handlerChannel = 'ownerChannel',
     operationType = 'Conversation/Operation',
     handlerType = 'Conversation/Sequential Workflow Operation',
@@ -88,7 +89,8 @@ function buildOperationDocument(
     changesetYaml?.trim() ??
     `- op: replace
   path: /counter
-  val: "${stepExpression}"`;
+  val:
+${indentBlock(stepValueYaml.trim(), 4)}`;
 
   const yaml = `name: Operation Workflow Doc
 counter: 0
@@ -183,10 +185,53 @@ describe('SequentialWorkflowOperationProcessor', () => {
     const result = await expectOk(
       processor.processDocument(init.document.clone(), event),
     );
-
     const counterNode = property(result.document, 'counter');
     expect(numericValue(counterNode)).toBe(5);
     expect(result.triggeredEvents.length).toBe(0);
+  });
+
+  it('treats operations without a request definition as unconstrained', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Operation Workflow Doc
+counter: 0
+contracts:
+  ownerChannel:
+    type: Conversation/Timeline Channel
+    timelineId: ${TIMELINE_ID}
+  ${OPERATION_KEY}:
+    type: Conversation/Operation
+    channel: ownerChannel
+  ${OPERATION_KEY}Handler:
+    type: Conversation/Sequential Workflow Operation
+    operation: ${OPERATION_KEY}
+    steps:
+      - name: ApplyIncrement
+        type: Conversation/Update Document
+        changeset:
+          - op: replace
+            path: /counter
+            val: 7
+`;
+    const init = await expectOk(
+      processor.initializeDocument(blue.yamlToNode(yaml)),
+    );
+    const storedBlueId = storedDocumentBlueId(init.document);
+    const event = blue.jsonValueToNode({
+      type: 'Conversation/Timeline Entry',
+      timeline: { timelineId: TIMELINE_ID },
+      message: {
+        type: 'Conversation/Operation Request',
+        operation: OPERATION_KEY,
+        allowNewerVersion: false,
+        document: { blueId: storedBlueId },
+      },
+    });
+
+    const result = await expectOk(
+      processor.processDocument(init.document.clone(), event),
+    );
+
+    expect(numericValue(property(result.document, 'counter'))).toBe(7);
   });
 
   it('cascades operation workflow emissions through triggered event handlers', async () => {
@@ -197,7 +242,7 @@ contracts:
     type: Conversation/Timeline Channel
     timelineId: ${TIMELINE_ID}
   triggered:
-    type: Core/Triggered Event Channel
+    type: Triggered Event Channel
   myOsAdminUpdate:
     type: Conversation/Operation
     channel: ownerChannel
@@ -208,19 +253,11 @@ contracts:
     operation: myOsAdminUpdate
     steps:
       - name: ReemitAdminUpdates
-        type: Conversation/JavaScript Code
-        code: |
-          const message = (event && event.message) || {};
-          const payload = message.request;
-          const payloadItems = payload && payload.items;
-          const events = Array.isArray(payload)
-            ? payload
-            : Array.isArray(payloadItems)
-              ? payloadItems
-              : payload
-                ? [payload]
-                : [];
-          return { events };
+        type: Conversation/Compute
+        do:
+          - $appendEvents:
+              $event: /message/request
+        returnResult: false
   subscribeOnGrant:
     type: Conversation/Sequential Workflow
     channel: triggered
@@ -508,7 +545,7 @@ operations:
         buildOperationDocument({
           operationChannel: 'ownerChannel',
           handlerChannel: null,
-          stepExpression: '${currentContract.channel}',
+          stepValueYaml: '$currentContract: /channel',
         }),
       ),
     );
@@ -579,16 +616,18 @@ itemType:
       processor.initializeDocument(buildOperationDocument()),
     );
     const storedBlueId = storedDocumentBlueId(init.document);
+    const staleButValidBlueId =
+      conversationBlueIds['Conversation/Chat Message'];
     const event = operationRequestEvent({
       request: 3,
       allowNewerVersion: false,
-      documentBlueId: `${storedBlueId}-stale`,
+      documentBlueId: staleButValidBlueId,
     });
     const eventDocument = property(property(event, 'message'), 'document');
     const docJson = blue.nodeToJson(eventDocument) as {
       blueId?: unknown;
     };
-    expect(docJson.blueId).toBe(`${storedBlueId}-stale`);
+    expect(docJson.blueId).toBe(staleButValidBlueId);
 
     const result = await expectOk(
       processor.processDocument(init.document.clone(), event),
@@ -598,7 +637,7 @@ itemType:
     expect(numericValue(counterNode)).toBe(0);
   });
 
-  it('fails initialization when Sequential Workflow Operation omits channel', async () => {
+  it('returns fatal result when Sequential Workflow Operation omits channel', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Missing Channel Doc
 contracts:
@@ -615,9 +654,9 @@ contracts:
     steps: []
 `;
 
-    await expect(
-      processor.initializeDocument(blue.yamlToNode(yaml)),
-    ).rejects.toThrow(/must declare channel/i);
+    const result = await processor.initializeDocument(blue.yamlToNode(yaml));
+    expect(result.status).toBe('runtime-fatal');
+    expect(result.failureReason).toMatch(/must declare channel/i);
   });
 
   it('registers Operation marker for must-understand compliance', async () => {
@@ -658,9 +697,12 @@ contracts:
 
   it('executes change operation workflow with change request payloads', async () => {
     const processor = buildProcessor(blue);
-    const derivedChangesetYaml = `- op: "\${event.message.request.changeset[0].op}"
-  path: "\${event.message.request.changeset[0].path}"
-  val: "\${event.message.request.changeset[0].val}"`;
+    const derivedChangesetYaml = `- op:
+    $event: /message/request/changeset/0/op
+  path:
+    $event: /message/request/changeset/0/path
+  val:
+    $event: /message/request/changeset/0/val`;
     const init = await expectOk(
       processor.initializeDocument(
         buildOperationDocument({
@@ -734,7 +776,8 @@ contracts:
         changeset:
           - op: replace
             path: /counter
-            val: "${DEFAULT_STEP_EXPRESSION}"
+            val:
+${indentBlock(DEFAULT_STEP_VALUE_YAML, 14)}
 `;
     const init = await expectOk(
       processor.initializeDocument(blue.yamlToNode(yaml)),
@@ -766,7 +809,9 @@ entries:
     entries:
       note:
         type: Text`,
-      stepExpression: "${event.message.request.amount + document('/counter')}",
+      stepValueYaml: `$add:
+  - $event: /message/request/amount
+  - $document: /counter`,
     });
     const init = await expectOk(processor.initializeDocument(doc));
     const storedBlueId = storedDocumentBlueId(init.document);
@@ -849,7 +894,7 @@ contracts:
         summary: 'Update counter',
         changeset: [
           {
-            type: { blueId: coreBlueIds['Core/Json Patch Entry'] },
+            type: { blueId: defaultBlueIds['Json Patch Entry'] },
             op: 'replace',
             path: '/counter',
             val: 7,

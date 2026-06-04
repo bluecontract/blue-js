@@ -1,0 +1,16 @@
+fixtureId: GAS-027
+title: Split with limit charges the limit expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $split:
+      text: "a:b:c"
+      separator: ":"
+      limit: 2
+expectation:
+  outcome: success
+  resultSimple:
+    - a
+    - "b:c"
+  gasUsed: 6

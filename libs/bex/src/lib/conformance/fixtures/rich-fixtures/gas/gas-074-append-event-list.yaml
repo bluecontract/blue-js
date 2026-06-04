@@ -1,0 +1,16 @@
+fixtureId: GAS-074
+title: List event size includes item count and item sizes
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent:
+        - a
+        - bb
+expectation:
+  outcome: success
+  events:
+    -
+      - a
+      - bb
+  gasUsed: 14

@@ -12,6 +12,7 @@ import { Minimizer } from '../utils/Minimizer';
 import { StorageShapeValidator } from '../utils/StorageShapeValidator';
 import { ListControls } from '../utils/ListControls';
 import { CyclicSetIdentityService } from './CyclicSetIdentityService';
+import { NodeProviderWrapper } from '../utils/NodeProviderWrapper';
 
 export interface SemanticIdentityServiceOptions {
   nodeProvider?: NodeProvider;
@@ -187,26 +188,30 @@ export class SemanticIdentityService {
   }
 
   private hashCyclicPrepared(value: BlueNode | BlueNode[]): string {
-    return this.hashMinimalTrustedWithProvider(
-      value,
-      this.createCyclicReferenceNodeProvider(),
+    return BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(
+      this.toHashableMinimalTrusted(
+        value,
+        this.createCyclicReferenceNodeProvider(),
+      ),
     );
   }
 
   private createCyclicReferenceNodeProvider(): NodeProvider {
     const delegate = this.nodeProvider;
-    return new (class extends NodeProvider {
-      override fetchByBlueId(blueId: string): BlueNode[] | null {
-        if (
-          blueId === CyclicSetIdentityService.ZERO_BLUE_ID ||
-          CyclicSetIdentityService.isIndexedThisReference(blueId)
-        ) {
-          return [new BlueNode().setReferenceBlueId(blueId)];
-        }
+    return NodeProviderWrapper.unverified(
+      new (class extends NodeProvider {
+        override fetchByBlueId(blueId: string): BlueNode[] | null {
+          if (
+            blueId === CyclicSetIdentityService.ZERO_BLUE_ID ||
+            CyclicSetIdentityService.isIndexedThisReference(blueId)
+          ) {
+            return [new BlueNode().setReferenceBlueId(blueId)];
+          }
 
-        return delegate.fetchByBlueId(blueId);
-      }
-    })();
+          return delegate.fetchByBlueId(blueId);
+        }
+      })(),
+    );
   }
 
   private toMinimalIdentityInput(value: BlueNode | BlueNode[]) {
@@ -256,6 +261,9 @@ export class SemanticIdentityService {
 
   private toMinimalListIdentityInput(items: BlueNode[]): BlueNode[] {
     StorageShapeValidator.validateListControlShape(items);
+    if (items[0] !== undefined && ListControls.isPreviousItem(items[0])) {
+      return items.map((item) => item.clone());
+    }
     const wrapper = new BlueNode().setItems(items);
     const minimalWrapper = this.minimizeAuthoring(wrapper);
     return minimalWrapper.getItems() ?? [];

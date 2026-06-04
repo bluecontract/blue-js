@@ -125,7 +125,11 @@ export class DictionaryProcessor implements MergingProcessor {
     nodeProvider: NodeProvider,
   ): void {
     if (!NodeTypes.isBasicType(keyType, nodeProvider)) {
-      throw new Error('Dictionary key type must be a basic type');
+      throw new Error(
+        `Dictionary key type must be a basic type: ${JSON.stringify(
+          NodeToMapListOrValue.get(keyType),
+        )}`,
+      );
     }
   }
 

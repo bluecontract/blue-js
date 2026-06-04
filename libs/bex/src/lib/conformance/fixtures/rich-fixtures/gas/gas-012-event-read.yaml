@@ -1,0 +1,16 @@
+fixtureId: GAS-012
+title: Event read charges eventRead
+tags: [gas]
+context:
+  eventSource: |
+    message:
+      request:
+        amount: 7
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $event: message/request/amount
+expectation:
+  outcome: success
+  resultSimple: 7
+  gasUsed: 4

@@ -30,7 +30,8 @@ describe('ai integration mapping', () => {
     expect(yaml).toContain(`ai:
   provider:
     status: idle
-    context: {}`);
+    context:
+      type: Dictionary`);
   });
 
   it('subscribes auto-managed ai integrations to response and named-event updates', () => {

@@ -1,18 +1,10 @@
-import {
-  ZodTypeAny,
-  ZodOptional,
-  ZodNullable,
-  ZodReadonly,
-  ZodBranded,
-  ZodEffects,
-  ZodLazy,
-  AnyZodObject,
-} from 'zod';
+import { ZodTypeAny, ZodEffects, ZodLazy, AnyZodObject } from 'zod';
 import { BlueNode } from '../model';
 import { BlueIdResolver } from './BlueIdResolver';
 import { TypeSchemaResolver } from './TypeSchemaResolver';
 import { isNullable, isNonNullable } from '@blue-labs/shared-utils';
 import { isBlueNodeSchema } from '../../schema/annotations';
+import { isWrapperType } from '../../schema/utils';
 import type { BlueIdMapper } from '../types/BlueIdMapper';
 
 export class BlueNodeTypeSchema {
@@ -85,30 +77,26 @@ export class BlueNodeTypeSchema {
     return false;
   }
 
-  private static isWrapperType(schema: ZodTypeAny) {
-    return (
-      schema instanceof ZodOptional ||
-      schema instanceof ZodNullable ||
-      schema instanceof ZodReadonly ||
-      schema instanceof ZodBranded ||
-      schema instanceof ZodEffects ||
-      schema instanceof ZodLazy
-    );
-  }
-
   static unwrapSchema(schema: ZodTypeAny): ZodTypeAny {
     if (isBlueNodeSchema(schema)) {
       return schema;
     }
 
-    if (BlueNodeTypeSchema.isWrapperType(schema)) {
-      if (schema instanceof ZodEffects) {
-        return BlueNodeTypeSchema.unwrapSchema(schema.innerType());
-      }
-      if (schema instanceof ZodLazy) {
-        return BlueNodeTypeSchema.unwrapSchema(schema.schema);
-      }
-      return BlueNodeTypeSchema.unwrapSchema(schema.unwrap());
+    const typeName = String(schema._def.typeName);
+    if (typeName === 'ZodEffects') {
+      return BlueNodeTypeSchema.unwrapSchema(
+        (schema as ZodEffects<ZodTypeAny>).innerType(),
+      );
+    }
+    if (typeName === 'ZodLazy') {
+      return BlueNodeTypeSchema.unwrapSchema(
+        (schema as ZodLazy<ZodTypeAny>).schema,
+      );
+    }
+    if (isWrapperType(schema)) {
+      return BlueNodeTypeSchema.unwrapSchema(
+        (schema as ZodTypeAny & { unwrap: () => ZodTypeAny }).unwrap(),
+      );
     }
 
     return schema;

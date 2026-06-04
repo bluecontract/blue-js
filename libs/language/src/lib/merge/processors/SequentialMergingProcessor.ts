@@ -31,6 +31,30 @@ export class SequentialMergingProcessor implements MergingProcessor {
     );
   }
 
+  preserveSource(
+    target: BlueNode,
+    source: BlueNode,
+    nodeProvider: NodeProvider,
+  ): BlueNode | undefined {
+    for (const processor of this.mergingProcessors) {
+      const preserved = processor.preserveSource?.(
+        target,
+        source,
+        nodeProvider,
+      );
+      if (preserved !== undefined) {
+        return preserved;
+      }
+    }
+    return undefined;
+  }
+
+  shouldPreserveSource(source: BlueNode, nodeProvider: NodeProvider): boolean {
+    return this.mergingProcessors.some((processor) =>
+      processor.shouldPreserveSource?.(source, nodeProvider),
+    );
+  }
+
   /**
    * Post-processes all contained processors in sequence
    */

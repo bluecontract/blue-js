@@ -1,0 +1,133 @@
+fixtureId: BEX-CURRENT-053
+title: Collection query core expressions
+targetStatus: current-pass
+tags:
+  - ergonomics
+  - collections
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    mapped:
+      $map:
+        in: [1, 2, 3]
+        item: x
+        expr:
+          $multiply:
+            - $var: x
+            - 2
+    filtered:
+      $filter:
+        in: [1, 2, 3, 4]
+        item: x
+        where:
+          $gt:
+            - $var: x
+            - 2
+    flat:
+      $flatMap:
+        in: [1, 2]
+        item: x
+        expr:
+          - $var: x
+          - $add:
+              - $var: x
+              - 10
+    sum:
+      $reduce:
+        in: [1, 2, 3]
+        acc: total
+        init: 0
+        item: x
+        expr:
+          $add:
+            - $var: total
+            - $var: x
+    some:
+      $some:
+        in: [1, 2, 3]
+        item: x
+        where:
+          $eq:
+            - $var: x
+            - 2
+    found:
+      $find:
+        in: [a, bb, ccc]
+        item: x
+        where:
+          $eq:
+            - $var: x
+            - bb
+    entry:
+      $findEntry:
+        in:
+          b: 2
+          a: 1
+        item: v
+        key: k
+        index: i
+        where:
+          $gt:
+            - $var: v
+            - 1
+    objectFiltered:
+      $filter:
+        in:
+          b: 2
+          a: 1
+          c: 3
+        item: v
+        key: k
+        where:
+          $ne:
+            - $var: k
+            - b
+    includes:
+      $includes:
+        list: [add, replace, remove]
+        val: replace
+    hasKey:
+      $hasKey:
+        object:
+          a: 1
+        key: a
+    builtObject:
+      $objectFromEntries:
+        $map:
+          in:
+            $entries:
+              b: 2
+              a: 1
+          item: entry
+          expr:
+            key:
+              $var:
+                name: entry
+                path: /key
+            val:
+              $multiply:
+                - $var:
+                    name: entry
+                    path: /val
+                - 10
+expectation:
+  outcome: success
+  resultSimple:
+    builtObject:
+      a: 10
+      b: 20
+    entry:
+      index: 1
+      key: b
+      val: 2
+    filtered: [3, 4]
+    flat: [1, 11, 2, 12]
+    found: bb
+    hasKey: true
+    includes: true
+    mapped: [2, 4, 6]
+    objectFiltered:
+      a: 1
+      c: 3
+    some: true
+    sum: 6

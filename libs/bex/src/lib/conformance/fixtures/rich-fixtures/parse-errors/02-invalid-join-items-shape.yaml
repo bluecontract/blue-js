@@ -1,0 +1,27 @@
+fixtureId: BEX-PARSE-002
+title: Old $join.items shape is invalid Blue YAML
+targetStatus: current-parse-error
+tags:
+- blue-syntax
+- parse-errors
+context:
+  documentScope: /
+  stepsBinding:
+    Build:
+      changeset:
+      - op: replace
+        path: /status
+        val: built
+      events:
+      - eventKind: Built
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $join:
+      items:
+        - a
+        - b
+      separator: ':'
+expectation:
+  outcome: parse-error
+  errorContains: payload kind

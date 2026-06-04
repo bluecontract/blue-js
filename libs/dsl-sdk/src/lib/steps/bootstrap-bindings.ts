@@ -15,7 +15,7 @@ function fromParentField(
 ): JsonObject {
   const key = escapePointerSegment(requireChannelKey(channelKey));
   return {
-    [field]: "${document('/contracts/" + key + '/' + field + "')}",
+    [field]: { $document: `/contracts/${key}/${field}` },
   };
 }
 

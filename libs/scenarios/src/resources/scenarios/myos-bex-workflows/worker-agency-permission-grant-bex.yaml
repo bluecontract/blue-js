@@ -1,0 +1,420 @@
+name: Worker Agency Permission Grant BEX
+description: BEX workflow for MyOS Worker Agency Permission Grant.
+granteeDocumentId: worker-agency-document-blue-id
+allowedWorkerAgencyPermissions:
+  - workerType: EmailAssistant
+    permissions:
+      read: true
+      allOps: false
+      singleOps:
+        - draft
+
+contracts:
+  granterChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: granter
+    accountId: granter-account
+
+  initLifecycleChannel:
+    type: Lifecycle Event Channel
+    event:
+      type: Document Processing Initiated
+
+  revoke:
+    type: Coordination/Operation
+    channel: granterChannel
+    request:
+      type: Text
+
+  revokeImplGranter:
+    type: Coordination/Sequential Workflow Operation
+    operation: revoke
+    steps:
+      - name: EmitRevokeRequested
+        type: Coordination/Compute
+        do:
+          - $appendEvent:
+              type: MyOS/Worker Agency Permission Revoke Requested
+              reason:
+                $event: /message/request
+          - $return:
+              events:
+                $events: true
+
+  validateOnInit:
+    type: Coordination/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: ValidateBasicShape
+        type: Coordination/Compute
+        entry: validate
+        functions:
+          asList:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: list
+                then:
+                  $var: val
+                else: []
+          asObject:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: object
+                then:
+                  $var: val
+                else:
+                  $emptyObject: true
+          isNonEmptyText:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $and:
+                - $isKind:
+                    val:
+                      $var: val
+                    kind: text
+                - $truthy:
+                    $var: val
+          hasBadSingleOps:
+            args:
+              ops:
+                description: BEX helper argument.
+            expr:
+              $some:
+                in:
+                  $call:
+                    function: asList
+                    args:
+                      val:
+                        $var: ops
+                item: opName
+                where:
+                  $not:
+                    $call:
+                      function: isNonEmptyText
+                      args:
+                        val:
+                          $var: opName
+          validate:
+            do:
+              - $let:
+                  order:
+                    - issues
+                    - seenWorkerTypes
+                    - granterId
+                    - granteeDocumentId
+                    - permissionsList
+                  vars:
+                    issues: []
+                    seenWorkerTypes:
+                      $emptyObject: true
+                    granterId:
+                      $document: /contracts/granterChannel/accountId
+                    granteeDocumentId:
+                      $document: /granteeDocumentId
+                    permissionsList:
+                      $choose:
+                        cond:
+                          $exists:
+                            $document: /allowedWorkerAgencyPermissions
+                        then:
+                          $document: /allowedWorkerAgencyPermissions
+                        else: []
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: granterId
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - granterChannel must be bound to an accountId
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: granteeDocumentId
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - granteeDocumentId must be a non-empty string
+              - $if:
+                  cond:
+                    $eq:
+                      - $size:
+                          $call:
+                            function: asList
+                            args:
+                              val:
+                                $var: permissionsList
+                      - 0
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - allowedWorkerAgencyPermissions must be a non-empty array
+              - $forEach:
+                  in:
+                    $call:
+                      function: asList
+                      args:
+                        val:
+                          $var: permissionsList
+                  item: item
+                  index: idx
+                  do:
+                    - $let:
+                        order:
+                          - itemPath
+                          - itemObject
+                          - workerType
+                          - perms
+                          - singleOps
+                          - hasSingle
+                        vars:
+                          itemPath:
+                            $concat:
+                              - /allowedWorkerAgencyPermissions[
+                              - $var: idx
+                              - ']'
+                          itemObject:
+                            $call:
+                              function: asObject
+                              args:
+                                val:
+                                  $var: item
+                          workerType:
+                            $var:
+                              name: itemObject
+                              path: /workerType
+                          perms:
+                            $choose:
+                              cond:
+                                $exists:
+                                  $var:
+                                    name: itemObject
+                                    path: /permissions
+                              then:
+                                $call:
+                                  function: asObject
+                                  args:
+                                    val:
+                                      $var:
+                                        name: itemObject
+                                        path: /permissions
+                              else:
+                                $emptyObject: true
+                          singleOps:
+                            $choose:
+                              cond:
+                                $exists:
+                                  $var:
+                                    name: perms
+                                    path: /singleOps
+                              then:
+                                $var:
+                                  name: perms
+                                  path: /singleOps
+                              else: []
+                          hasSingle:
+                            $gt:
+                              - $size:
+                                  $call:
+                                    function: asList
+                                    args:
+                                      val:
+                                        $var: singleOps
+                              - 0
+                    - $if:
+                        cond:
+                          $not:
+                            $isKind:
+                              val:
+                                $var: item
+                              kind: object
+                        then:
+                          - $set:
+                              name: issues
+                              expr:
+                                $listConcat:
+                                  - $var: issues
+                                  - - $concat:
+                                        - $var: itemPath
+                                        - ' must be an object'
+                    - $if:
+                        cond:
+                          $not:
+                            $call:
+                              function: isNonEmptyText
+                              args:
+                                val:
+                                  $var: workerType
+                        then:
+                          - $set:
+                              name: issues
+                              expr:
+                                $listConcat:
+                                  - $var: issues
+                                  - - $concat:
+                                        - $var: itemPath
+                                        - .workerType must be a non-empty string
+                        else:
+                          - $if:
+                              cond:
+                                $hasKey:
+                                  object:
+                                    $var: seenWorkerTypes
+                                  key:
+                                    $var: workerType
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - "duplicate workerType '"
+                                              - $var: workerType
+                                              - "' in allowedWorkerAgencyPermissions"
+                              else:
+                                - $set:
+                                    name: seenWorkerTypes
+                                    expr:
+                                      $objectSet:
+                                        object:
+                                          $var: seenWorkerTypes
+                                        key:
+                                          $var: workerType
+                                        val: true
+                    - $if:
+                        cond:
+                          $not:
+                            $exists:
+                              $var:
+                                name: itemObject
+                                path: /permissions
+                        then:
+                          - $set:
+                              name: issues
+                              expr:
+                                $listConcat:
+                                  - $var: issues
+                                  - - $concat:
+                                        - $var: itemPath
+                                        - .permissions is required
+                        else:
+                          - $if:
+                              cond:
+                                $eq:
+                                  - $size:
+                                      $keys:
+                                        $var: perms
+                                  - 0
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - $var: itemPath
+                                              - .permissions must be an object
+                          - $if:
+                              cond:
+                                $ne:
+                                  - $var:
+                                      name: perms
+                                      path: /read
+                                  - true
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - $var: itemPath
+                                              - .permissions.read must be true
+                          - $if:
+                              cond:
+                                $call:
+                                  function: hasBadSingleOps
+                                  args:
+                                    ops:
+                                      $var: singleOps
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - $var: itemPath
+                                              - .permissions.singleOps must contain only non-empty strings
+                          - $if:
+                              cond:
+                                $and:
+                                  - $eq:
+                                      - $var:
+                                          name: perms
+                                          path: /allOps
+                                      - true
+                                  - $var: hasSingle
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - $var: itemPath
+                                              - .permissions.allOps=true and
+                                              - ' '
+                                              - $var: itemPath
+                                              - .permissions.singleOps are mutually exclusive
+              - $if:
+                  cond:
+                    $gt:
+                      - $size:
+                          $var: issues
+                      - 0
+                  then:
+                    - $appendEvent:
+                        type: MyOS/Worker Agency Permission Invalid
+                        issues:
+                          $var: issues
+                  else:
+                    - $appendEvent:
+                        type: MyOS/Worker Agency Permission Validated
+              - $return:
+                  events:
+                    $events: true

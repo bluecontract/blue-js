@@ -48,7 +48,10 @@ function requireText(value: string, field: string): string {
 }
 
 function defaultOperationImplementation(steps: StepsBuilder): void {
-  steps.jsRaw('EmitEvents', 'return { events: event.message.request };');
+  steps.compute('EmitEvents', {
+    do: [{ $appendEvents: { $event: '/message/request' } }],
+    returnResult: false,
+  });
 }
 
 function aiToken(name: string): string {
@@ -103,10 +106,6 @@ function callResponseEnvelopeWorkflowKey(workflowKey: string): string {
   return `${workflowKey}OnCallResponseEnvelope`;
 }
 
-function callResponseFanoutStepName(workflowKey: string): string {
-  return `Emit${aiToken(workflowKey)}OnCallResponseItems`;
-}
-
 function withRequestIdCorrelationMatcher(
   matcher: JsonObject,
   requestId: string,
@@ -124,15 +123,6 @@ function withRequestIdCorrelationMatcher(
   inResponseTo.requestId = requestId;
   nextMatcher.inResponseTo = inResponseTo;
   return nextMatcher as JsonObject;
-}
-
-function createCallResponseFanoutCode(): string {
-  return `const responses = Array.isArray(event.events) ? event.events : [];
-return {
-  events: responses.filter(
-    (response) => response && typeof response === 'object' && !Array.isArray(response),
-  ),
-};`;
 }
 
 export class DocBuilder {
@@ -159,7 +149,7 @@ export class DocBuilder {
     return new DocBuilder(DocBuilder.documentToJson(existingDocument));
   }
 
-  static expr(expression: string): string {
+  static expr(expression: string): JsonValue {
     return ensureExpression(expression);
   }
 
@@ -220,8 +210,8 @@ export class DocBuilder {
   channel(channelKey: string, contract?: JsonObject): this {
     const key = requireText(channelKey, 'channel key');
     const channelContract = contract
-      ? { ...cloneObject(contract), type: contract.type ?? 'Core/Channel' }
-      : { type: 'Core/Channel' };
+      ? { ...cloneObject(contract), type: contract.type ?? 'Channel' }
+      : { type: 'Channel' };
     this.state.setContract(key, channelContract);
     return this;
   }
@@ -422,13 +412,13 @@ export class DocBuilder {
     const workflow = requireText(workflowKey, 'workflow key');
     const channelKey = `${workflow}DocUpdateChannel`;
     this.state.setContract(channelKey, {
-      type: 'Core/Document Update Channel',
+      type: 'Document Update Channel',
       path,
     });
     this.state.setContract(workflow, {
       type: 'Conversation/Sequential Workflow',
       channel: channelKey,
-      event: { type: 'Core/Document Update' },
+      event: { type: 'Document Update' },
       steps: this.buildSteps(customizer),
     });
     return this;
@@ -1170,7 +1160,7 @@ export class DocBuilder {
     };
     this.aiIntegrations.set(name, config);
     this.state.setValue(config.statusPath, 'idle');
-    this.state.setValue(config.contextPath, {});
+    this.state.setValue(config.contextPath, { type: 'Dictionary' });
 
     const token = aiToken(name);
     const requestPermissionWorkflow = (steps: StepsBuilder): void => {
@@ -1686,10 +1676,22 @@ export class DocBuilder {
       envelopeWorkflowKey,
       'MyOS/Call Operation Responded',
       (steps) =>
-        steps.jsRaw(
-          callResponseFanoutStepName(workflowKey),
-          createCallResponseFanoutCode(),
-        ),
+        steps.compute(`Emit${aiToken(workflowKey)}OnCallResponseItems`, {
+          do: [
+            {
+              $appendEvents: {
+                $filter: {
+                  in: { $event: '/events' },
+                  item: 'response',
+                  where: {
+                    $eq: [{ $kind: { $var: 'response' } }, 'object'],
+                  },
+                },
+              },
+            },
+          ],
+          returnResult: false,
+        }),
     );
     this.callResponseEnvelopeWorkflows.set(
       normalizedAccessName,
@@ -1700,14 +1702,14 @@ export class DocBuilder {
 
   private ensureTriggeredEventChannel(): void {
     this.state.setContract('triggeredEventChannel', {
-      type: 'Core/Triggered Event Channel',
+      type: 'Triggered Event Channel',
     });
   }
 
   private ensureInitLifecycleChannel(): void {
     this.state.setContract('initLifecycleChannel', {
-      type: 'Core/Lifecycle Event Channel',
-      event: { type: 'Core/Document Processing Initiated' },
+      type: 'Lifecycle Event Channel',
+      event: { type: 'Document Processing Initiated' },
     });
   }
 

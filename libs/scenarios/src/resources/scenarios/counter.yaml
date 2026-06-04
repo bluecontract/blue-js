@@ -1,0 +1,98 @@
+name: Two Participant BEX Counter
+counter: 0
+participants:
+  incrementer:
+    name: Increment Participant
+    timelineId: incrementer
+  decrementer:
+    name: Decrement Participant
+    timelineId: decrementer
+contracts:
+  incrementerChannel:
+    type:
+      blueId: 84v6rvTN2CQq2c9FmViEc5rx3TSUaMLi6R4mHgqzoBkW
+    timelineId: incrementer
+  decrementerChannel:
+    type:
+      blueId: 84v6rvTN2CQq2c9FmViEc5rx3TSUaMLi6R4mHgqzoBkW
+    timelineId: decrementer
+  increment:
+    description: Increment the counter by the given number
+    type: Coordination/Operation
+    channel: incrementerChannel
+    request:
+      type: Integer
+  incrementImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: increment
+    steps:
+      - name: IncrementMessage
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /counter
+              val:
+                $add:
+                  - $document: /counter
+                  - $binding:
+                      name: event
+                      path: /message/request
+          - $appendEvent:
+              $merge:
+                - type: Coordination/Chat Message
+                - message:
+                    $concat:
+                      - Incremented by
+                      - " "
+                      - $binding:
+                          name: event
+                          path: /message/request
+                      - "; counter is now "
+                      - $text:
+                          $document: /counter
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  decrement:
+    description: Decrement the counter by the given number
+    type: Coordination/Operation
+    channel: decrementerChannel
+    request:
+      type: Integer
+  decrementImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: decrement
+    steps:
+      - name: DecrementMessage
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /counter
+              val:
+                $subtract:
+                  - $document: /counter
+                  - $binding:
+                      name: event
+                      path: /message/request
+          - $appendEvent:
+              $merge:
+                - type: Coordination/Chat Message
+                - message:
+                    $concat:
+                      - Decremented by
+                      - " "
+                      - $binding:
+                          name: event
+                          path: /message/request
+                      - "; counter is now "
+                      - $text:
+                          $document: /counter
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

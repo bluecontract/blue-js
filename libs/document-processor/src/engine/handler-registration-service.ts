@@ -13,6 +13,7 @@ import type {
   ScopeContractEntry,
   ScopeContractsIndex,
 } from '../types/scope-contracts.js';
+import { nodeToSchemaOutputWithMissingTypeFallback } from '../util/schema-conversion.js';
 
 interface RegisterHandlerArgs {
   builder: ContractBundleBuilder;
@@ -43,7 +44,8 @@ export class HandlerRegistrationService {
   }: RegisterHandlerArgs): void {
     try {
       const schema = processor.schema as ZodType<HandlerContract>;
-      const contract = this.blue.nodeToSchemaOutput(
+      const contract = nodeToSchemaOutputWithMissingTypeFallback(
+        this.blue,
         node,
         schema,
       ) as HandlerContract;
@@ -57,25 +59,11 @@ export class HandlerRegistrationService {
 
       const channelEntry = scopeContracts.get(channelKey);
       if (!channelEntry) {
-        throw new ProcessorFatalError(
-          `Handler ${key} references unknown channel '${channelKey}'`,
-          ProcessorErrors.invalidContract(
-            blueId,
-            `Channel '${channelKey}' is not declared in this scope`,
-            `/contracts/${channelKey}`,
-          ),
-        );
+        return;
       }
 
       if (!this.isRegisteredChannel(channelEntry)) {
-        throw new ProcessorFatalError(
-          `Contract '${channelKey}' is not a channel`,
-          ProcessorErrors.invalidContract(
-            channelEntry.nodeTypeBlueId,
-            `Contract '${channelKey}' is not a channel`,
-            `/contracts/${channelKey}`,
-          ),
-        );
+        return;
       }
 
       const contractNode = node.clone();
