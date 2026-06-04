@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { conversationBlueIds } from '../../repository/semantic-repository.js';
 import { DocumentProcessor } from '../document-processor.js';
+import type { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import {
   SetPropertyContractProcessor,
   TestEventChannelProcessor,
@@ -78,6 +79,72 @@ describe('DocumentProcessor', () => {
     const props = processedDoc.getProperties();
     expect(props?.processed?.getValue()).toEqual(new Big(5));
     expect(processed.triggeredEvents).toHaveLength(0);
+  });
+
+  it('does not reuse processing runtime state across processDocument invocations', async () => {
+    const runtimes: DocumentProcessingRuntime[] = [];
+    const processor = new DocumentProcessor({
+      blue,
+      runtimeHooks: {
+        planPatch(_scopePath, runtime) {
+          runtimes.push(runtime);
+          return { generatedPatches: [] };
+        },
+      },
+    });
+    const documentYaml = `name: Runtime Isolation Doc
+status: initial
+contracts:
+  investorChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: investor-timeline
+  setStatus:
+    type: Coordination/Operation
+    channel: investorChannel
+  setStatusImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: setStatus
+    steps:
+      - name: SetStatus
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /status
+              val:
+                $event: /message/request/status
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+`;
+    const initializedA = (
+      await processor.initializeDocument(
+        blue.resolve(blue.yamlToNode(documentYaml)),
+      )
+    ).document;
+    const initializedB = (
+      await processor.initializeDocument(
+        blue.resolve(blue.yamlToNode(documentYaml)),
+      )
+    ).document;
+
+    const processedA = await processor.processDocument(
+      initializedA,
+      operationRequestEvent('one'),
+    );
+    const processedB = await processor.processDocument(
+      initializedB,
+      operationRequestEvent('two'),
+    );
+
+    expect(processedA.capabilityFailure).toBe(false);
+    expect(processedB.capabilityFailure).toBe(false);
+    expect(processedA.document.get('/status')).toBe('one');
+    expect(processedB.document.get('/status')).toBe('two');
+    expect(runtimes).toHaveLength(2);
+    expect(runtimes[0]).not.toBe(runtimes[1]);
   });
 
   it('throws when document already initialized', async () => {
@@ -180,3 +247,18 @@ contracts:
     });
   });
 });
+
+function operationRequestEvent(status: string): BlueNode {
+  return blue.resolve(
+    blue.jsonValueToNode({
+      type: 'MyOS/MyOS Timeline Entry',
+      timeline: { timelineId: 'investor-timeline' },
+      timestamp: Date.now(),
+      message: {
+        type: 'Coordination/Operation Request',
+        operation: 'setStatus',
+        request: { status },
+      },
+    }),
+  );
+}

@@ -178,6 +178,86 @@ component:
         false,
       );
     }
+
+    const focusedInvalidCases = [
+      {
+        typeName: 'RequiredAmountOrder',
+        focusPointer: '/amount',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+amount:
+  description: metadata-only amount
+`,
+      },
+      {
+        typeName: 'IntegerListHolder',
+        focusPointer: '/items/1',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+items:
+  - 1
+  - not integer
+`,
+      },
+      {
+        typeName: 'IntegerDictionaryHolder',
+        focusPointer: '/values/x',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+values:
+  x: not integer
+`,
+      },
+      {
+        typeName: 'EURPrice',
+        focusPointer: '/currency',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+currency: USD
+`,
+      },
+      {
+        typeName: 'FixedTerms',
+        focusPointer: '/terms/cancellation',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+terms:
+  cancellation: refundable
+`,
+      },
+      {
+        typeName: 'FixedList',
+        focusPointer: '/allowed/1',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+allowed:
+  - first
+  - other
+`,
+      },
+    ];
+
+    for (const { typeName, yaml, focusPointer } of focusedInvalidCases) {
+      const typeId = types.get(typeName)?.blueId ?? fail(typeName);
+      const node = blue.yamlToNode(yaml(typeId));
+      expect(
+        provider.isValidForType(
+          node,
+          '/',
+          node,
+          typeId,
+          undefined,
+          focusPointer,
+        ),
+        `${typeName} focused at ${focusPointer}`,
+      ).toBe(false);
+    }
   });
 });
 

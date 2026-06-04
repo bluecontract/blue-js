@@ -1,11 +1,9 @@
-import { Blue, BlueNode, PathLimits } from '@blue-labs/language';
+import { Blue, BlueNode } from '@blue-labs/language';
 
 import type { TypeValidationMemo } from './type-validation-memo.js';
-import {
-  descendantOrEqual,
-  escapePointerSegment,
-  splitPointer,
-} from './type-generalization-pointer-utils.js';
+import { escapePointerSegment } from './type-generalization-pointer-utils.js';
+
+const DEFAULT_MAX_TYPE_GRAPH_CACHE_ENTRIES = 4096;
 
 export interface TypeDescriptor {
   readonly blueId: string;
@@ -160,7 +158,7 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
 
     const typeNode = this.fetchType(blueId);
     if (!typeNode) {
-      this.descriptorCache.set(blueId, undefined);
+      setBoundedCacheEntry(this.descriptorCache, blueId, undefined);
       return undefined;
     }
 
@@ -183,7 +181,7 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
       fixedValues,
       fieldTypes,
     };
-    this.descriptorCache.set(blueId, descriptor);
+    setBoundedCacheEntry(this.descriptorCache, blueId, descriptor);
     return descriptor;
   }
 
@@ -211,33 +209,26 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
     node: BlueNode,
     blueId: string,
     validationMemo?: TypeValidationMemo,
-    focusPointer?: string,
+    _focusPointer?: string,
   ): boolean {
     const typeNode = this.fetchType(blueId);
     if (!typeNode) {
       return true;
     }
 
-    const memo = memoForFocus(validationMemo, focusPointer);
+    const memo = validationMemo;
     const cached = memo?.get(pointer, blueId);
     if (cached !== undefined) {
       return cached;
     }
 
     const typed = node.clone().setType(new BlueNode().setBlueId(blueId));
-    const limits =
-      focusPointer === undefined
-        ? undefined
-        : PathLimits.withSinglePath(
-            relativeFocusPointer(pointer, focusPointer),
-          );
     const result = this.blue.isTypeOfNode(
       typed,
       typeNode.clone().setBlueId(blueId),
       {
         memo,
         pointer,
-        limits,
       },
     );
     memo?.set(pointer, blueId, result);
@@ -250,11 +241,11 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
     }
     const nodes = this.blue.getNodeProvider().fetchByBlueId(blueId);
     if (!nodes || nodes.length !== 1) {
-      this.typeCache.set(blueId, null);
+      setBoundedCacheEntry(this.typeCache, blueId, null);
       return null;
     }
     const typeNode = nodes[0].clone().setBlueId(blueId);
-    this.typeCache.set(blueId, typeNode);
+    setBoundedCacheEntry(this.typeCache, blueId, typeNode);
     return typeNode.clone();
   }
 }
@@ -263,42 +254,13 @@ function typeBlueId(node: BlueNode | null | undefined): string | null {
   return node?.getBlueId() ?? node?.getReferenceBlueId() ?? null;
 }
 
-function relativeFocusPointer(
-  pointer: string,
-  focusPointer: string | undefined,
-): string {
-  if (!focusPointer || !descendantOrEqual(focusPointer, pointer)) {
-    return '/';
+function setBoundedCacheEntry<T>(
+  cache: Map<string, T>,
+  key: string,
+  value: T,
+): void {
+  if (!cache.has(key) && cache.size >= DEFAULT_MAX_TYPE_GRAPH_CACHE_ENTRIES) {
+    cache.clear();
   }
-
-  const pointerSegments = splitPointer(pointer);
-  const focusSegments = splitPointer(focusPointer);
-  const relativeSegments = focusSegments.slice(pointerSegments.length);
-  if (relativeSegments.length === 0) {
-    return '/';
-  }
-  return `/${relativeSegments.map(escapePointerSegment).join('/')}`;
-}
-
-function memoForFocus(
-  memo: TypeValidationMemo | undefined,
-  focusPointer: string | undefined,
-): Pick<TypeValidationMemo, 'get' | 'set'> | undefined {
-  if (!memo || focusPointer === undefined) {
-    return memo;
-  }
-
-  const profile = `focus:${focusPointer}`;
-  return {
-    get(pointer, expectedTypeBlueId) {
-      return memo.get(pointer, profileKey(expectedTypeBlueId, profile));
-    },
-    set(pointer, expectedTypeBlueId, value) {
-      memo.set(pointer, profileKey(expectedTypeBlueId, profile), value);
-    },
-  };
-}
-
-function profileKey(expectedTypeBlueId: string, profile: string): string {
-  return `${expectedTypeBlueId}\u0001${profile}`;
+  cache.set(key, value);
 }
