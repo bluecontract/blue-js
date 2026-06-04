@@ -33,7 +33,7 @@ const SCENARIO_TEST_TIMEOUT_MS = Number(
 );
 
 describe('blue-scenarios parity', { timeout: SCENARIO_TEST_TIMEOUT_MS }, () => {
-  it('runs the counter scenario', async () => {
+  it.concurrent('runs the counter scenario', async () => {
     const runtime = createScenarioRuntime();
     const session = await startResource(
       runtime,
@@ -49,7 +49,7 @@ describe('blue-scenarios parity', { timeout: SCENARIO_TEST_TIMEOUT_MS }, () => {
     expect(sessionValue(session, '/counter')).toBe(1);
   });
 
-  it('runs the paynote authorization/capture scenario', async () => {
+  it.concurrent('runs the paynote authorization/capture scenario', async () => {
     const runtime = createScenarioRuntime();
     const session = await startResource(
       runtime,
@@ -77,7 +77,7 @@ describe('blue-scenarios parity', { timeout: SCENARIO_TEST_TIMEOUT_MS }, () => {
     );
   });
 
-  it('runs repository workflow representatives', async () => {
+  it.concurrent('runs repository workflow representatives', async () => {
     const runtime = createScenarioRuntime();
 
     const change = await startResource(
@@ -177,7 +177,7 @@ describe('blue-scenarios parity', { timeout: SCENARIO_TEST_TIMEOUT_MS }, () => {
     );
   });
 
-  it('runs PayNote BEX workflow representatives', async () => {
+  it.concurrent('runs PayNote BEX workflow representatives', async () => {
     const runtime = createScenarioRuntime();
 
     const paynote = await startResource(
@@ -278,7 +278,7 @@ describe('blue-scenarios parity', { timeout: SCENARIO_TEST_TIMEOUT_MS }, () => {
     await runPaymentMandate(runtime);
   });
 
-  it('runs MyOS BEX workflow representatives', async () => {
+  it.concurrent('runs MyOS BEX workflow representatives', async () => {
     const runtime = createScenarioRuntime();
     await runMyOsAdmin(runtime);
     await runMyOsBootstrap(runtime);
@@ -289,7 +289,7 @@ describe('blue-scenarios parity', { timeout: SCENARIO_TEST_TIMEOUT_MS }, () => {
     await runWorkerAgencyGrant(runtime);
   });
 
-  it('runs the reseller package scenario', async () => {
+  it.concurrent('runs the reseller package scenario', async () => {
     const runtime = createScenarioRuntime();
 
     const hotelAgreement = await startResource(
