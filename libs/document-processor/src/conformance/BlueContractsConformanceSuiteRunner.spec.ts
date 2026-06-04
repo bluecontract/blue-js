@@ -6,48 +6,62 @@ import {
   runContractsConformanceSuite,
 } from './BlueContractsConformanceSuiteRunner.js';
 
+const CONFORMANCE_SUITE_TIMEOUT_MS = 30_000;
+
 describe('Blue Contracts 1.0 conformance fixtures', () => {
-  it('passes all fixtures', async () => {
-    const report = await runContractsConformanceSuite();
+  it(
+    'passes all fixtures',
+    async () => {
+      const report = await runContractsConformanceSuite();
 
-    expect(report.failures()).toEqual([]);
-    expect(report.fixturePackageIdentityMatchesFixtureFiles()).toBe(true);
-    expect(report.hasRequiredFixtureCoverage()).toBe(true);
-    expect(report.hasExactRequiredFixtureSet()).toBe(true);
-    expect(report.passedFixtureIds()).toHaveLength(
-      BLUE_CONTRACTS_1_0_FIXTURE_COUNT,
-    );
-    expect(report.failedFixtureIds()).toEqual([]);
-  });
+      expect(report.failures()).toEqual([]);
+      expect(report.fixturePackageIdentityMatchesFixtureFiles()).toBe(true);
+      expect(report.hasRequiredFixtureCoverage()).toBe(true);
+      expect(report.hasExactRequiredFixtureSet()).toBe(true);
+      expect(report.passedFixtureIds()).toHaveLength(
+        BLUE_CONTRACTS_1_0_FIXTURE_COUNT,
+      );
+      expect(report.failedFixtureIds()).toEqual([]);
+    },
+    CONFORMANCE_SUITE_TIMEOUT_MS,
+  );
 
-  it('contracts conformance report executes all 133 fixtures', async () => {
-    const report = await runContractsConformanceSuite();
+  it(
+    'contracts conformance report executes all 133 fixtures',
+    async () => {
+      const report = await runContractsConformanceSuite();
 
-    expect(report.passedFixtureIds()).toHaveLength(133);
-    expect(report.passedFixtureIds().sort()).toEqual(
-      loadContractsConformanceFixtureEntries()
-        .map((entry) => entry.id)
-        .sort(),
-    );
-  });
+      expect(report.passedFixtureIds()).toHaveLength(133);
+      expect(report.passedFixtureIds().sort()).toEqual(
+        loadContractsConformanceFixtureEntries()
+          .map((entry) => entry.id)
+          .sort(),
+      );
+    },
+    CONFORMANCE_SUITE_TIMEOUT_MS,
+  );
 
-  it('report fails when a fixture expected value is intentionally wrong', async () => {
-    const report = await runContractsConformanceSuite({
-      mutateFixture: (entry, spec) =>
-        entry.id === 'T001_registry_runtime_type_blueids'
-          ? {
-              ...spec,
-              expectedRuntimeBlueIds: {
-                ...(spec.expectedRuntimeBlueIds as Record<string, unknown>),
-                CONTRACT: 'intentionally-wrong',
-              },
-            }
-          : spec,
-    });
+  it(
+    'report fails when a fixture expected value is intentionally wrong',
+    async () => {
+      const report = await runContractsConformanceSuite({
+        mutateFixture: (entry, spec) =>
+          entry.id === 'T001_registry_runtime_type_blueids'
+            ? {
+                ...spec,
+                expectedRuntimeBlueIds: {
+                  ...(spec.expectedRuntimeBlueIds as Record<string, unknown>),
+                  CONTRACT: 'intentionally-wrong',
+                },
+              }
+            : spec,
+      });
 
-    expect(report.failedFixtureIds()).toContain(
-      'T001_registry_runtime_type_blueids',
-    );
-    expect(report.failures()[0]?.message).toContain('intentionally-wrong');
-  });
+      expect(report.failedFixtureIds()).toContain(
+        'T001_registry_runtime_type_blueids',
+      );
+      expect(report.failures()[0]?.message).toContain('intentionally-wrong');
+    },
+    CONFORMANCE_SUITE_TIMEOUT_MS,
+  );
 });

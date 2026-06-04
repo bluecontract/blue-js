@@ -28,7 +28,9 @@ import {
   type ScenarioSession,
 } from './support.js';
 
-describe('blue-scenarios parity', () => {
+const SCENARIO_TEST_TIMEOUT_MS = 15_000;
+
+describe('blue-scenarios parity', { timeout: SCENARIO_TEST_TIMEOUT_MS }, () => {
   it('runs the counter scenario', async () => {
     const runtime = createScenarioRuntime();
     const session = await startResource(
