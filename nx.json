@@ -29,10 +29,7 @@
     "version": {
       "preVersionCommand": "npx nx run-many -t build",
       "conventionalCommits": true,
-      "preserveMatchingDependencyRanges": false,
-      "versionActionsOptions": {
-        "installArgs": "--legacy-peer-deps"
-      }
+      "preserveMatchingDependencyRanges": false
     },
     "changelog": {
       "workspaceChangelog": {
