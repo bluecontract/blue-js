@@ -344,6 +344,38 @@ type:
     expect(matcher.matchesType(node, targetType)).toBe(false);
   });
 
+  test('materialized type nodes with labels are not treated as bare blueId identity matchers', () => {
+    const nodeProvider = new BasicNodeProvider();
+
+    nodeProvider.addSingleDocs(`name: Marker`, `name: Other Marker`);
+
+    const markerId = nodeProvider.getBlueIdByName('Marker');
+    const otherMarkerId = nodeProvider.getBlueIdByName('Other Marker');
+
+    const blue = new Blue({ nodeProvider });
+    const matcher = new NodeTypeMatcher(blue);
+    const materializedMarkerType = nodeProvider
+      .getNodeByName('Marker')
+      .clone()
+      .setBlueId(markerId);
+
+    const typedMarker = blue.yamlToNode(`type:
+  blueId: ${markerId}`);
+    const otherTypedMarker = blue.yamlToNode(`type:
+  blueId: ${otherMarkerId}`);
+
+    expect(matcher.matchesType(typedMarker, materializedMarkerType)).toBe(true);
+    expect(matcher.matchesType(otherTypedMarker, materializedMarkerType)).toBe(
+      false,
+    );
+    expect(
+      matcher.matchesType(
+        typedMarker,
+        new BlueNode().setReferenceBlueId(markerId),
+      ),
+    ).toBe(false);
+  });
+
   test('schema-owned matchers reject untyped nodes with unrelated blueIds', () => {
     const nodeProvider = new BasicNodeProvider();
 

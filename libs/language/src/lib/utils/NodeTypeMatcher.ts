@@ -846,13 +846,20 @@ export class NodeTypeMatcher {
   private isBareBlueIdReference(node: BlueNode): boolean {
     return (
       node.getBlueId() !== undefined &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
       node.getType() === undefined &&
       node.getValue() === undefined &&
       node.getItems() === undefined &&
       node.getItemType() === undefined &&
       node.getKeyType() === undefined &&
       node.getProperties() === undefined &&
-      node.getValueType() === undefined
+      node.getValueType() === undefined &&
+      node.getSchema() === undefined &&
+      node.getMergePolicy() === undefined &&
+      node.getPreviousBlueId() === undefined &&
+      node.getPosition() === undefined &&
+      node.getBlue() === undefined
     );
   }
 

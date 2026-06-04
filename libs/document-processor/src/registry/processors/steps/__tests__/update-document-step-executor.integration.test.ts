@@ -107,6 +107,40 @@ contracts:
     expect(snapshot.history).toEqual(['booted']);
   });
 
+  it('adds type-only contract markers without requiring inherited type labels', async () => {
+    const processor = buildProcessor(blue);
+    const yaml = `name: Update Marker Contract Workflow
+contracts:
+  life:
+    type: Lifecycle Event Channel
+  handler:
+    type: Conversation/Sequential Workflow
+    channel: life
+    event:
+      type: Document Processing Initiated
+    steps:
+      - name: AddMarker
+        type: Conversation/Update Document
+        changeset:
+          - op: ADD
+            path: /contracts/sessionInteraction
+            val:
+              type: MyOS/MyOS Session Interaction
+`;
+
+    const doc = blue.yamlToNode(yaml);
+    const result = await expectOk(processor.initializeDocument(doc));
+
+    const snapshot = blue.nodeToJson(result.document, 'simple') as {
+      contracts?: {
+        sessionInteraction?: unknown;
+        terminated?: unknown;
+      };
+    };
+    expect(snapshot.contracts?.sessionInteraction).toBeDefined();
+    expect(snapshot.contracts?.terminated).toBeUndefined();
+  });
+
   it('applies changesets returned from a Compute step result', async () => {
     const processor = buildProcessor(blue);
     const yaml = `name: Test Changeset Step Output
