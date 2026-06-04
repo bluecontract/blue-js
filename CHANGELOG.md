@@ -496,15 +496,9 @@ This was a version bump only, there were no code changes.
 - **document-processor-next:** add ExpressionPreserver and merge exports ([efb9c24](https://github.com/bluecontract/blue-js/commit/efb9c24))
 - **expression:** hide Date in QuickJS; test: consolidate integration suites ([a1e7f3e](https://github.com/bluecontract/blue-js/commit/a1e7f3e))
 
-<<<<<<< HEAD
-
 ### ⚠️ Breaking Changes
 
 - ⚠️ **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
-
-=======
-
-> > > > > > > main
 
 ## 1.37.1 (2025-10-29)
 
