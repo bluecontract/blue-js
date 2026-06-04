@@ -2,6 +2,12 @@
 
 Generate (or check) a `BlueRepository.blue` file from a set of package folders containing `.blue` and `.dev.blue` definitions. It replaces inline type references with BlueIds, computes type-level and repo-level BlueIds, and enforces versioning/lifecycle rules.
 
+## Blue JS 5 compatibility
+
+Blue JS 5 expects BEX-compatible repository definitions and generated
+repository type packages. Release consumers should use
+`@blue-repository/types` 2.x with Blue JS 5 packages.
+
 ## Usage
 
 ### CLI
