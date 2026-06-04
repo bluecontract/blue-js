@@ -57,10 +57,9 @@ describe('Blue Contracts 1.0 conformance fixtures', () => {
             : spec,
       });
 
-      expect(report.failedFixtureIds()).toContain(
+      expect(report.failedFixtureIds()).toEqual([
         'T001_registry_runtime_type_blueids',
-      );
-      expect(report.failures()[0]?.message).toContain('intentionally-wrong');
+      ]);
     },
     CONFORMANCE_SUITE_TIMEOUT_MS,
   );

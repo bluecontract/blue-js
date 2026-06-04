@@ -26,7 +26,8 @@
   "dependencies": {
     "@blue-labs/bex": "4.1.2",
     "@blue-labs/language": "4.1.2",
-    "@blue-labs/shared-utils": "4.1.2"
+    "@blue-labs/shared-utils": "4.1.2",
+    "js-yaml": "4.1.0"
   },
   "license": "MIT",
   "publishConfig": {
