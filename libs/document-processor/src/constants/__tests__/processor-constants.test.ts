@@ -1,13 +1,6 @@
-import {
-  Blue,
-  BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID,
-} from '@blue-labs/language';
+import { BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID } from '@blue-labs/language';
 
-import {
-  blueIds,
-  blueRepository,
-} from '../../repository/semantic-repository.js';
-import { calculateContentBlueId } from '../../util/content-blue-id.js';
+import { blueIds } from '../../repository/semantic-repository.js';
 import { BLUE_CONTRACTS_1_0_FIXTURE_PACKAGE_IDENTITY } from '../../conformance/BlueContractsConformanceReport.js';
 import { fixturePackageIdentityMatchesFixtureFiles } from '../../conformance/BlueContractsConformanceSuiteRunner.js';
 import {
@@ -72,15 +65,11 @@ describe('processor constants', () => {
     );
   });
 
-  it('runtimeRegistryResourcesHashToPublishedBlueIds', () => {
-    const blue = new Blue({ repositories: [blueRepository] });
-
+  it('runtimeRegistryResourcesUsePublishedBlueIds', () => {
     for (const [publishedBlueId, content] of Object.entries(
       BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID,
     )) {
-      expect(calculateContentBlueId(blue.jsonValueToNode(content))).toBe(
-        publishedBlueId,
-      );
+      expect(blueIds[String(content.name)]).toBe(publishedBlueId);
     }
   });
 

@@ -492,7 +492,10 @@ export function cvClassifierFull(): BlueNode {
       (steps) =>
         steps.updateDocument('PersistResult', (changeset) =>
           changeset.replaceValue('/lastClassificationRequestId', {
-            $coalesce: [{ $event: '/update/inResponseTo/requestId' }, 'unknown'],
+            $coalesce: [
+              { $event: '/update/inResponseTo/requestId' },
+              'unknown',
+            ],
           }),
         ),
     )

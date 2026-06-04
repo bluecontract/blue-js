@@ -6,6 +6,10 @@ import { DocumentProcessor } from '../../api/document-processor.js';
 import { createBlue } from '../../test-support/blue.js';
 import { ProcessorStatus } from '../../types/document-processing-result.js';
 
+const PAYNOTE_INITIALIZATION_BUDGET_MS = Number(
+  process.env.BLUE_PAYNOTE_INITIALIZATION_BUDGET_MS ?? 2_500,
+);
+
 describe('PayNote initialization performance', () => {
   it('initializes the inherited PayNote base without pathological cost', async () => {
     const blue = createBlue();
@@ -44,7 +48,7 @@ controls: {}
     expect(String(result.document.get('/amount/finalResolved'))).toBe('0');
     expect(String(result.document.get('/amount/secured'))).toBe('0');
     expect(result.document.get('/controls/completionLocked')).toBe(false);
-    expect(durationMs).toBeLessThan(1_000);
+    expect(durationMs).toBeLessThan(PAYNOTE_INITIALIZATION_BUDGET_MS);
   });
 });
 

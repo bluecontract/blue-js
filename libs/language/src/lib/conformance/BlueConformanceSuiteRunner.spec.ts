@@ -42,7 +42,6 @@ describe('Blue Language 1.0 conformance fixtures', () => {
           : spec,
     });
 
-    expect(report.failedFixtureIds()).toContain('B_root_scalar');
-    expect(report.failures()[0]?.message).toContain('intentionally-wrong');
+    expect(report.failedFixtureIds()).toEqual(['B_root_scalar']);
   });
 });
