@@ -4,6 +4,7 @@ import type { BlueRepository } from '@blue-labs/language';
 import { createDefaultMergingProcessor } from '../merge/utils/default.js';
 import {
   blueIds as semanticBlueIds,
+  conversationBlueIds,
   blueRepository,
 } from '../repository/semantic-repository.js';
 
@@ -45,7 +46,7 @@ const buildFallbackEntries = () => {
   });
 };
 
-const fallbackEntries = buildFallbackEntries();
+const fallbackEntries = [...buildFallbackEntries()];
 const fallbackBlueIdMap = Object.fromEntries(
   fallbackEntries.map(({ name, blueId }) => [name, blueId]),
 );
@@ -81,10 +82,18 @@ const testFallbackRepository: BlueRepository = {
 };
 
 export function createBlue(): Blue {
-  return new Blue({
-    repositories: [blueRepository, testFallbackRepository],
-    mergingProcessor: createDefaultMergingProcessor(),
-  });
+  return registerConversationCompatibilityAliases(
+    new Blue({
+      repositories: [blueRepository, testFallbackRepository],
+      mergingProcessor: createDefaultMergingProcessor(),
+    }),
+  );
+}
+
+function registerConversationCompatibilityAliases(blue: Blue): Blue {
+  blue.registerBlueIds(semanticBlueIds);
+  blue.registerBlueIds(conversationBlueIds);
+  return blue;
 }
 
 export function createBlueWithDerivedTypes(
@@ -98,10 +107,12 @@ export function createBlueWithDerivedTypes(
   });
 
   const derivedRepository = buildDerivedTestRepository(types);
-  const blue = new Blue({
-    repositories: [blueRepository, testFallbackRepository, derivedRepository],
-    mergingProcessor: createDefaultMergingProcessor(),
-  });
+  const blue = registerConversationCompatibilityAliases(
+    new Blue({
+      repositories: [blueRepository, testFallbackRepository, derivedRepository],
+      mergingProcessor: createDefaultMergingProcessor(),
+    }),
+  );
 
   for (const { name, blueId } of types) {
     blue.registerBlueIds({ [name]: blueId });

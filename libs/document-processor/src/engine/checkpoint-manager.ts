@@ -2,7 +2,6 @@ import { Blue, BlueNode } from '@blue-labs/language';
 import { KEY_CHECKPOINT } from '../constants/processor-contract-constants.js';
 import {
   relativeCheckpointLastEvent,
-  relativeCheckpointLastSignature,
   RELATIVE_CHECKPOINT,
 } from '../constants/processor-pointer-constants.js';
 import { resolvePointer } from '../util/pointer-utils.js';
@@ -10,21 +9,19 @@ import type { ContractBundle } from './contract-bundle.js';
 import type { ChannelEventCheckpoint, MarkerContract } from '../model/index.js';
 import { blueIds } from '../repository/semantic-repository.js';
 import { DocumentProcessingRuntime } from '../runtime/document-processing-runtime.js';
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
-  blueIds['Core/Channel Event Checkpoint'];
+import { CheckpointIdentityService } from './checkpoint-identity-service.js';
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 
 function createEmptyCheckpointNode(blue: Blue): BlueNode {
   return blue.jsonValueToNode({
     type: { blueId: CHANNEL_EVENT_CHECKPOINT_BLUE_ID },
     lastEvents: {},
-    lastSignatures: {},
   });
 }
 
 function createEmptyCheckpointContract(): ChannelEventCheckpoint {
   return {
     lastEvents: {},
-    lastSignatures: {},
   };
 }
 
@@ -32,9 +29,7 @@ function isChannelEventCheckpoint(
   marker: MarkerContract,
 ): marker is ChannelEventCheckpoint {
   return (
-    marker != null &&
-    Object.prototype.hasOwnProperty.call(marker, 'lastEvents') &&
-    Object.prototype.hasOwnProperty.call(marker, 'lastSignatures')
+    marker != null && Object.prototype.hasOwnProperty.call(marker, 'lastEvents')
   );
 }
 
@@ -61,7 +56,7 @@ export class CheckpointRecord {
 export class CheckpointManager {
   constructor(
     private readonly runtime: DocumentProcessingRuntime,
-    private readonly signatureFn: (node: BlueNode | null) => string | null,
+    private readonly identityService: CheckpointIdentityService,
   ) {}
 
   ensureCheckpointMarker(scopePath: string, bundle: ContractBundle): void {
@@ -90,8 +85,7 @@ export class CheckpointManager {
       }
       const stored = marker.lastEvents?.[channelKey] ?? null;
       const storedClone = stored?.clone() ?? null;
-      const storedSignature = marker.lastSignatures?.[channelKey] ?? null;
-      const signature = storedSignature ?? this.signatureFn(storedClone);
+      const signature = this.storedEventSignature(storedClone);
       return new CheckpointRecord(
         markerKey,
         marker,
@@ -124,7 +118,7 @@ export class CheckpointManager {
       scopePath,
       relativeCheckpointLastEvent(record.markerKey, record.channelKey),
     );
-    const stored = eventNode?.clone() ?? null;
+    const stored = this.prepareStoredEvent(eventNode);
     this.runtime.gasMeter().chargeCheckpointUpdate();
     this.runtime.directWrite(eventPointer, stored);
 
@@ -137,23 +131,18 @@ export class CheckpointManager {
       delete record.checkpoint.lastEvents[record.channelKey];
     }
     record.lastEventNode = stored?.clone() ?? null;
+    record.lastEventSignature =
+      eventSignature ?? this.storedEventSignature(stored);
+  }
 
-    const signaturePointer = resolvePointer(
-      scopePath,
-      relativeCheckpointLastSignature(record.markerKey, record.channelKey),
-    );
-    const signatureNode =
-      eventSignature == null ? null : new BlueNode().setValue(eventSignature);
-    this.runtime.directWrite(signaturePointer, signatureNode);
+  private storedEventSignature(node: BlueNode | null): string | null {
+    if (!node) {
+      return null;
+    }
+    return this.identityService.identityFor(node).identity;
+  }
 
-    if (!record.checkpoint.lastSignatures) {
-      record.checkpoint.lastSignatures = {};
-    }
-    if (eventSignature == null) {
-      delete record.checkpoint.lastSignatures[record.channelKey];
-    } else {
-      record.checkpoint.lastSignatures[record.channelKey] = eventSignature;
-    }
-    record.lastEventSignature = eventSignature ?? null;
+  private prepareStoredEvent(eventNode: BlueNode | null): BlueNode | null {
+    return eventNode?.clone() ?? null;
   }
 }

@@ -17,12 +17,12 @@ describe('Trigger Event step — leakage into root flow', () => {
 counter: 0
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   onInit:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: EmitStartWithChildDoc
         type: Conversation/Trigger Event
@@ -44,9 +44,12 @@ contracts:
                   - name: IncreaseCounter
                     type: Conversation/Update Document
                     changeset:
-                      - op: replace
-                        path: /counter
-                        val: "\${document('counter') + event.request.value}"
+                        - op: replace
+                          path: /counter
+                          val:
+                            $add:
+                              - $document: /counter
+                              - $event: /request/value
 `;
 
     const result = await expectOk(
@@ -65,13 +68,15 @@ contracts:
     const nestedJson = blue.nodeToJson(nestedDocument, 'original') as {
       contracts: {
         incrementImpl: {
-          steps: Array<{ changeset: Array<{ val: string }> }>;
+          steps: Array<{ changeset: Array<{ val: unknown }> }>;
         };
       };
     };
 
     const val = nestedJson.contracts.incrementImpl.steps[0].changeset[0].val;
-    expect(val).toBe("${document('counter') + event.request.value}");
+    expect(val).toEqual({
+      $add: [{ $document: '/counter' }, { $event: '/request/value' }],
+    });
   });
 
   it('does not evaluate expressions when Trigger Event payload comes from a document snapshot', async () => {
@@ -96,21 +101,25 @@ eventToTrigger:
           - name: IncreaseCounter
             type: Conversation/Update Document
             changeset:
-              - op: replace
-                path: /counter
-                val: "\${document('counter') + event.request.value}"
+                - op: replace
+                  path: /counter
+                  val:
+                    $add:
+                      - $document: /counter
+                      - $event: /request/value
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   onInit:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: EmitStartWithSnapshot
         type: Conversation/Trigger Event
-        event: "\${document('/eventToTrigger')}"
+        event:
+          $document: /eventToTrigger
 `;
 
     const result = await expectOk(
@@ -129,12 +138,14 @@ contracts:
     const nestedJson = blue.nodeToJson(nestedDocument, 'original') as {
       contracts: {
         incrementImpl: {
-          steps: Array<{ changeset: Array<{ val: string }> }>;
+          steps: Array<{ changeset: Array<{ val: unknown }> }>;
         };
       };
     };
 
     const val = nestedJson.contracts.incrementImpl.steps[0].changeset[0].val;
-    expect(val).toBe("${document('counter') + event.request.value}");
+    expect(val).toEqual({
+      $add: [{ $document: '/counter' }, { $event: '/request/value' }],
+    });
   });
 });

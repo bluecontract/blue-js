@@ -1,10 +1,4 @@
-import {
-  ZodIntersection,
-  ZodObject,
-  ZodObjectDef,
-  ZodType,
-  ZodUnion,
-} from 'zod';
+import { ZodIntersection, ZodObject, ZodObjectDef, ZodType } from 'zod';
 import { BlueNode } from '../model';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import {
@@ -43,9 +37,10 @@ export class ComplexObjectConverter implements Converter {
   }
 
   private convertFields(node: BlueNode, schema: ZodTypeAny): unknown {
-    if (schema instanceof ZodIntersection) {
-      const left = schema._def.left;
-      const right = schema._def.right;
+    if (zodTypeName(schema) === 'ZodIntersection') {
+      const intersection = schema as ZodIntersection<ZodTypeAny, ZodTypeAny>;
+      const left = intersection._def.left;
+      const right = intersection._def.right;
 
       const leftResult = this.convert(node, left);
       const rightResult = this.convert(node, right);
@@ -53,15 +48,16 @@ export class ComplexObjectConverter implements Converter {
       return { ...leftResult, ...rightResult };
     }
 
-    if (schema instanceof ZodUnion) {
+    if (zodTypeName(schema) === 'ZodUnion') {
       throw new Error('Union not supported');
     }
 
-    if (schema instanceof ZodObject) {
-      const result = Object.keys(schema.shape).reduce(
+    if (zodTypeName(schema) === 'ZodObject') {
+      const objectSchema = schema as ZodObject<ZodRawShape>;
+      const result = Object.keys(objectSchema.shape).reduce(
         (acc, propertyName) => {
           const properties = node.getProperties();
-          const schemaProperty = schema.shape[propertyName];
+          const schemaProperty = objectSchema.shape[propertyName];
 
           const blueIdAnnotation = getBlueIdAnnotation(schemaProperty);
           if (isNonNullable(blueIdAnnotation)) {
@@ -130,4 +126,8 @@ export class ComplexObjectConverter implements Converter {
 
     throw new Error('Unknown schema type, ' + schema._def.typeName);
   }
+}
+
+function zodTypeName(schema: ZodTypeAny): string {
+  return String(schema._def.typeName);
 }

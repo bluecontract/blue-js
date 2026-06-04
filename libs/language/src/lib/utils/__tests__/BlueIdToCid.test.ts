@@ -158,7 +158,12 @@ describe('BlueIdToCid - additional tests', async () => {
         }),
       );
 
-      const cid = await calculateCidFromObject(ingredientsBlueIds);
+      const referenceNodes = ingredientsBlueIds.map((ingredient) =>
+        NodeDeserializer.deserialize(ingredient),
+      );
+      const referenceListBlueId =
+        await BlueIdCalculator.calculateBlueId(referenceNodes);
+      const cid = BlueIdToCid.convert(referenceListBlueId);
       expect(cidFromBlueId).toBe(cid);
     });
 

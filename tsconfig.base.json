@@ -2,6 +2,7 @@
   "compilerOptions": {
     "allowJs": false,
     "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
     "composite": true,
     "declaration": true,
     "declarationMap": true,
@@ -29,6 +30,23 @@
     "sourceMap": false,
     "strict": true,
     "target": "es2022",
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@blue-labs/bex": ["libs/bex/src/index.ts"],
+      "@blue-labs/coordination": ["libs/coordination/src/index.ts"],
+      "@blue-labs/document-processor": [
+        "libs/document-processor/src/index.ts"
+      ],
+      "@blue-labs/language": ["libs/language/src/index.ts"],
+      "@blue-labs/repository-contract": [
+        "libs/repository-contract/src/index.ts"
+      ],
+      "@blue-labs/repository-generator": [
+        "libs/repository-generator/src/index.ts"
+      ],
+      "@blue-labs/scenarios": ["libs/scenarios/src/index.ts"],
+      "@blue-labs/sdk-dsl": ["libs/dsl-sdk/src/index.ts"],
+      "@blue-labs/shared-utils": ["libs/shared/utils/src/index.ts"]
+    }
   }
 }

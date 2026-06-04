@@ -1,0 +1,14 @@
+fixtureId: GAS-038
+title: Get with static key charges object expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $get:
+      object:
+        a: 1
+      key: a
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 4

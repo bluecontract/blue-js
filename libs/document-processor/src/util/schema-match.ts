@@ -7,9 +7,21 @@ export function findSchemaMatch<T>(
   schemas: ReadonlyMap<string, ZodType<T>>,
 ): ZodType<T> | null {
   for (const [blueId, schema] of schemas.entries()) {
-    if (blue.isTypeOfBlueId(node, blueId)) {
+    if (safeIsTypeOfBlueId(blue, node, blueId)) {
       return schema;
     }
   }
   return null;
+}
+
+export function safeIsTypeOfBlueId(
+  blue: Blue,
+  node: BlueNode,
+  blueId: string,
+): boolean {
+  try {
+    return blue.isTypeOfBlueId(node, blueId);
+  } catch {
+    return false;
+  }
 }

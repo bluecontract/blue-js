@@ -136,7 +136,7 @@ export function orchestratorWithAccessAndAgency(): BlueNode {
     .endSection()
     .section('capabilities', 'Capabilities', 'Access + AI + agency')
     .access('catalog')
-    .targetSessionId(DocBuilder.expr("document('/catalogSessionId')"))
+    .targetSessionId('session-catalog-001')
     .onBehalfOf('userChannel')
     .read(true)
     .operations('search', 'getDetails')
@@ -145,7 +145,7 @@ export function orchestratorWithAccessAndAgency(): BlueNode {
     .statusPath('/catalog/status')
     .done()
     .ai('planner')
-    .sessionId(DocBuilder.expr("document('/plannerSessionId')"))
+    .sessionId('session-planner-001')
     .permissionFrom('userChannel')
     .task('findBestDeal')
     .instruction('Find the best deal across catalog results.')
@@ -229,7 +229,7 @@ export function linkedAccessMonitor(): BlueNode {
     .channel('ownerChannel')
     .field('/projectSessionId', 'session-project-99')
     .accessLinked('projectData')
-    .targetSessionId(DocBuilder.expr("document('/projectSessionId')"))
+    .targetSessionId('session-project-99')
     .onBehalfOf('ownerChannel')
     .link('invoices')
     .read(true)
@@ -403,19 +403,18 @@ export function linkedDocsWithUpdates(): BlueNode {
           .myOs()
           .subscribeToSession(
             DocBuilder.expr('event.targetSessionId'),
-            DocBuilder.expr("document('/invoiceSubscriptionId')"),
+            'SUB_INVOICES',
           ),
     )
     .onSubscriptionUpdate('onInvoiceUpdate', 'SUB_INVOICES', (steps) =>
-      steps
-        .jsRaw(
-          'ProcessInvoiceUpdate',
-          "const amount = Number(event.update?.amount ?? 0); const current = Number(document('/totalInvoiced') ?? 0); return { changeset: [{ op:'replace', path:'/totalInvoiced', val: current + amount }] };",
-        )
-        .updateDocumentFromExpression(
-          'PersistInvoiceTotal',
-          'steps.ProcessInvoiceUpdate.changeset',
-        ),
+      steps.updateDocument('PersistInvoiceTotal', (changeset) =>
+        changeset.replaceValue('/totalInvoiced', {
+          $add: [
+            { $number: { $coalesce: [{ $event: '/update/amount' }, 0] } },
+            { $number: { $coalesce: [{ $document: '/totalInvoiced' }, 0] } },
+          ],
+        }),
+      ),
     )
     .buildDocument();
 }
@@ -457,7 +456,7 @@ export function cvClassifierFull(): BlueNode {
           .myOs()
           .subscribeToSession(
             DocBuilder.expr('event.targetSessionId'),
-            DocBuilder.expr("document('/cvSubscriptionId')"),
+            'SUB_CVS',
           ),
     )
     .onMyOsResponse(
@@ -491,15 +490,11 @@ export function cvClassifierFull(): BlueNode {
       'SUB_RECRUITMENT_PROVIDER',
       'Conversation/Response',
       (steps) =>
-        steps
-          .jsRaw(
-            'ProcessResult',
-            "const response = event.update ?? {}; const requestId = response.inResponseTo?.requestId ?? 'unknown'; return { changeset: [{ op:'replace', path:'/lastClassificationRequestId', val: requestId }] };",
-          )
-          .updateDocumentFromExpression(
-            'PersistResult',
-            'steps.ProcessResult.changeset',
-          ),
+        steps.updateDocument('PersistResult', (changeset) =>
+          changeset.replaceValue('/lastClassificationRequestId', {
+            $coalesce: [{ $event: '/update/inResponseTo/requestId' }, 'unknown'],
+          }),
+        ),
     )
     .buildDocument();
 }
@@ -513,7 +508,7 @@ export function accessAndAgencyOrchestrator(): BlueNode {
     .field('/plannerSessionId', 'session-planner-007')
     .field('/lastDeal', {})
     .access('catalog')
-    .targetSessionId(DocBuilder.expr("document('/catalogSessionId')"))
+    .targetSessionId('session-catalog-007')
     .onBehalfOf('userChannel')
     .read(true)
     .operations('search', 'getDetails')
@@ -521,7 +516,7 @@ export function accessAndAgencyOrchestrator(): BlueNode {
     .statusPath('/catalog/status')
     .done()
     .ai('planner')
-    .sessionId(DocBuilder.expr("document('/plannerSessionId')"))
+    .sessionId('session-planner-007')
     .permissionFrom('userChannel')
     .task('findDeal')
     .instruction('Find the best deal from provided catalog results.')
@@ -598,7 +593,7 @@ export function linkedAccessPermissions(): BlueNode {
     .channel('ownerChannel')
     .field('/projectSessionId', 'session-project-88')
     .accessLinked('projectData')
-    .targetSessionId(DocBuilder.expr("document('/projectSessionId')"))
+    .targetSessionId('session-project-88')
     .onBehalfOf('ownerChannel')
     .statusPath('/projectData/status')
     .link('invoices')

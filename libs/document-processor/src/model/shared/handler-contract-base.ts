@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import { contractBaseSchema } from './contract-base.js';
-import { HandlerSchema as CoreHandlerSchema } from '@blue-repository/types/packages/core/schemas/Handler';
+import { HandlerSchema as CoreHandlerSchema } from './core-runtime-schemas.js';
 
 export const handlerContractBaseSchema =
   CoreHandlerSchema.merge(contractBaseSchema);

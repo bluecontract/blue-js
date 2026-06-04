@@ -6,9 +6,8 @@ import {
   updateDocumentBaseAmount,
 } from './gas-helpers.js';
 import { normalizeScope } from '../util/pointer-utils.js';
-import { wasmFuelToHostGas } from './gas-schedule.js';
 
-const INITIALIZATION = 1_000;
+const INITIALIZATION = 1_001;
 const CHANNEL_MATCH_ATTEMPT = 5;
 const HANDLER_OVERHEAD = 50;
 const BOUNDARY_CHECK = 2;
@@ -50,8 +49,12 @@ export class GasMeter {
     this.total += amount;
   }
 
-  chargeScopeEntry(scopePath: string): void {
-    this.add(scopeEntryCharge(this.scopeDepth(scopePath)));
+  chargeScopeEntry(scopePathOrDepth: string | number): void {
+    const depth =
+      typeof scopePathOrDepth === 'number'
+        ? scopePathOrDepth
+        : this.scopeDepth(scopePathOrDepth);
+    this.add(scopeEntryCharge(depth));
   }
 
   chargeInitialization(): void {
@@ -126,13 +129,6 @@ export class GasMeter {
   ): void {
     const bytes = snapshot ? canonicalSize(this.blue, snapshot) : 0;
     this.add(documentSnapshotAmount(absPointer, bytes));
-  }
-
-  chargeWasmGas(amount: bigint | number): void {
-    const charge = wasmFuelToHostGas(amount);
-    if (charge > 0) {
-      this.add(charge);
-    }
   }
 
   private payloadSizeCharge(node: BlueNode | null | undefined): number {

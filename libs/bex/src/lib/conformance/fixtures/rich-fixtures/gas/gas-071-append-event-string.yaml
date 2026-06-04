@@ -1,0 +1,12 @@
+fixtureId: GAS-071
+title: Append scalar event charges appendEventBase plus scalar size
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendEvent: x
+expectation:
+  outcome: success
+  events:
+    - x
+  gasUsed: 10

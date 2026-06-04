@@ -6,6 +6,7 @@ import {
   BigIntegerNumber,
   NodeDeserializer,
 } from '../../model';
+import { TEXT_TYPE_BLUE_ID } from '../Properties';
 
 describe('NodeToMapListOrValue', () => {
   it('testBasicStandardStrategy', () => {
@@ -275,7 +276,7 @@ describe('NodeToMapListOrValue', () => {
       expect(NodeToMapListOrValue.get(node1)).toMatchInlineSnapshot(`
         {
           "type": {
-            "blueId": "7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y",
+            "blueId": "9eWaHYz2vKrFofdHTHAizNNu8xP6QE3WQ5y7DGrGZvyJ",
           },
           "value": 1.3245234523452473e+41,
         }
@@ -292,7 +293,7 @@ describe('NodeToMapListOrValue', () => {
         {
           "key": {
             "type": {
-              "blueId": "5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1",
+              "blueId": "E2LM6qgzWG9ttagq2xTmiZkgYEAgkYedFCmU9v7NnVEq",
             },
             "value": "132452345234524739582739458723948572934875",
           },
@@ -435,7 +436,7 @@ describe('NodeToMapListOrValue', () => {
             "childWf": {
               "channel": {
                 "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                  "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                 },
                 "value": "timelineCh",
               },
@@ -447,19 +448,19 @@ describe('NodeToMapListOrValue', () => {
                         {
                           "op": {
                             "type": {
-                              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                             },
                             "value": "replace",
                           },
                           "path": {
                             "type": {
-                              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                             },
                             "value": "/mainRegistrationNumber/value",
                           },
                           "val": {
                             "type": {
-                              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                             },
                             "value": "12345",
                           },
@@ -468,7 +469,7 @@ describe('NodeToMapListOrValue', () => {
                     },
                     "type": {
                       "type": {
-                        "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                        "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                       },
                       "value": "Update Document",
                     },
@@ -477,7 +478,7 @@ describe('NodeToMapListOrValue', () => {
               },
               "type": {
                 "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                  "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                 },
                 "value": "Sequential Workflow",
               },
@@ -485,13 +486,13 @@ describe('NodeToMapListOrValue', () => {
             "timelineCh": {
               "timelineId": {
                 "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                  "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                 },
                 "value": "user-123",
               },
               "type": {
                 "type": {
-                  "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+                  "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
                 },
                 "value": "Timeline Channel",
               },
@@ -500,14 +501,14 @@ describe('NodeToMapListOrValue', () => {
           "description": "Main contract",
           "mainCountry": {
             "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
             },
             "value": "US",
           },
           "mainRegistrationNumber": {
             "description": "Address",
             "type": {
-              "blueId": "DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K",
+              "blueId": "GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC",
             },
             "value": "123 Main St, Anytown, USA",
           },
@@ -738,7 +739,7 @@ describe('NodeToMapListOrValue', () => {
 
       expect(NodeToMapListOrValue.get(materializedReference)).toEqual({
         name: 'Runtime label',
-        type: { blueId: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K' },
+        type: { blueId: TEXT_TYPE_BLUE_ID },
         value: 'payload',
         blueId: 'MaterializedReference',
       });

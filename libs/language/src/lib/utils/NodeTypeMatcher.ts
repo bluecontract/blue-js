@@ -1,9 +1,14 @@
 import { Blue } from '../Blue';
 import { BlueNode } from '../model';
 import { ResolvedBlueNode } from '../model/ResolvedNode';
+import type { Schema } from '../model/Schema';
 import { CompositeLimits, Limits, NO_LIMITS, PathLimits } from './limits';
-import { isBigNumber } from '../../utils/typeGuards/isBigNumber';
+import {
+  isBigIntegerNumber,
+  isBigNumber,
+} from '../../utils/typeGuards/isBigNumber';
 import { NodeTypes } from './index';
+import * as Properties from './Properties';
 
 // Bare blueId matchers normally compare node identity. Inside collection
 // itemType/valueType declarations, the same bare blueId represents a type
@@ -12,6 +17,17 @@ type BareBlueIdMatcherMode = 'identity' | 'type-reference';
 
 interface ValueComparisonOptions {
   readonly bareBlueIdMatcherMode?: BareBlueIdMatcherMode;
+}
+
+export interface NodeTypeMatcherMemo {
+  get(pointer: string, expectedTypeBlueId: string): boolean | undefined;
+  set(pointer: string, expectedTypeBlueId: string, value: boolean): void;
+}
+
+export interface NodeTypeMatcherOptions {
+  readonly memo?: NodeTypeMatcherMemo;
+  readonly pointer?: string;
+  readonly limits?: Limits;
 }
 
 export class NodeTypeMatcher {
@@ -25,36 +41,56 @@ export class NodeTypeMatcher {
     node: BlueNode,
     targetType: BlueNode,
     globalLimits: Limits = NO_LIMITS,
+    options: NodeTypeMatcherOptions = {},
   ): boolean {
-    // Derive path limits from the target type structure
-    const pathLimits = PathLimits.fromNode(targetType);
-    const compositeLimits = CompositeLimits.of(globalLimits, pathLimits);
+    if (
+      this.isTypeOnlyMatcher(targetType) &&
+      this.targetTypeReferenceHasNoDefinition(targetType) &&
+      this.matchesUnresolvedExactTypeOnly(node, targetType)
+    ) {
+      return true;
+    }
 
-    let resolvedNode: BlueNode;
-    let resolvedType: BlueNode;
     try {
-      resolvedNode = this.extendAndResolve(node, compositeLimits);
-      resolvedType = this.blue.resolve(targetType, compositeLimits);
+      // Derive path limits from the target type structure
+      const pathLimits = PathLimits.fromNode(targetType);
+      const effectiveGlobalLimits =
+        options.limits === undefined
+          ? globalLimits
+          : CompositeLimits.of(globalLimits, options.limits);
+      const compositeLimits = CompositeLimits.of(
+        effectiveGlobalLimits,
+        pathLimits,
+      );
+      const resolvedNode = this.extendAndResolve(node, compositeLimits);
+      const resolvedType = this.blue.resolve(targetType, compositeLimits);
+      const comparisonTargetType =
+        this.expandSchemaOwnedTypeReferences(targetType);
+
+      const valuesMatch = this.recursiveValueComparison(
+        resolvedNode,
+        resolvedType,
+        comparisonTargetType,
+        compositeLimits,
+        {},
+        this.normalizeMatcherPointer(options.pointer),
+        options.memo,
+      );
+      if (!valuesMatch) {
+        return false;
+      }
+
+      if (this.isTypeOnlyMatcher(targetType)) {
+        return true;
+      }
+
+      return (
+        this.verifyMatch(resolvedNode, targetType, compositeLimits) ||
+        targetType.getType() === undefined
+      );
     } catch {
-      return false;
+      return this.matchesUnresolvedExactTypeOnly(node, targetType);
     }
-    const comparisonTargetType =
-      this.expandSchemaOwnedTypeReferences(targetType);
-
-    const valuesMatch = this.recursiveValueComparison(
-      resolvedNode,
-      resolvedType,
-      comparisonTargetType,
-      compositeLimits,
-    );
-    if (!valuesMatch) {
-      return false;
-    }
-
-    return (
-      this.verifyMatch(resolvedNode, targetType, compositeLimits) ||
-      targetType.getType() === undefined
-    );
   }
 
   /**
@@ -150,11 +186,67 @@ export class NodeTypeMatcher {
     comparisonTargetType: BlueNode = targetType,
     limits: Limits = NO_LIMITS,
     options: ValueComparisonOptions = {},
+    pointer?: string,
+    memo?: NodeTypeMatcherMemo,
+  ): boolean {
+    const expectedTypeBlueId = this.expectedTypeBlueIdForMemo(
+      targetType,
+      comparisonTargetType,
+    );
+    if (memo && pointer && expectedTypeBlueId) {
+      const cached = memo.get(pointer, expectedTypeBlueId);
+      if (cached !== undefined) {
+        return cached;
+      }
+      const result = this.recursiveValueComparisonUncached(
+        node,
+        targetType,
+        comparisonTargetType,
+        limits,
+        options,
+        pointer,
+        memo,
+      );
+      memo.set(pointer, expectedTypeBlueId, result);
+      return result;
+    }
+
+    return this.recursiveValueComparisonUncached(
+      node,
+      targetType,
+      comparisonTargetType,
+      limits,
+      options,
+      pointer,
+      memo,
+    );
+  }
+
+  private recursiveValueComparisonUncached(
+    node: BlueNode,
+    targetType: BlueNode,
+    comparisonTargetType: BlueNode = targetType,
+    limits: Limits = NO_LIMITS,
+    options: ValueComparisonOptions = {},
+    pointer?: string,
+    memo?: NodeTypeMatcherMemo,
   ): boolean {
     const targetTypeType = targetType.getType();
     const isImplicitStructureMatch =
       this.matchesImplicitStructure(node, targetTypeType) ||
       this.matchesImplicitCoreCollectionType(node, targetType);
+
+    if (
+      this.requiresSemanticPresence(targetType) &&
+      !this.isRootMatcherPointer(pointer) &&
+      this.isMetadataOnlyNode(node)
+    ) {
+      return false;
+    }
+
+    if (!this.matchesSchemaCardinality(node, targetType)) {
+      return false;
+    }
 
     if (
       node.getType() === undefined &&
@@ -166,14 +258,16 @@ export class NodeTypeMatcher {
     if (targetTypeType && !isImplicitStructureMatch) {
       const nodeType = node.getType();
       if (!nodeType) {
-        return false;
-      }
-      if (
+        if (!this.matchesImplicitPrimitiveType(node, targetTypeType)) {
+          return false;
+        }
+      } else if (
         !NodeTypes.isSubtype(
           nodeType,
           targetTypeType,
           this.blue.getNodeProvider(),
-        )
+        ) &&
+        !this.matchesExactTypeReference(nodeType, targetTypeType)
       ) {
         return false;
       }
@@ -207,7 +301,8 @@ export class NodeTypeMatcher {
             nodeType,
             targetType,
             this.blue.getNodeProvider(),
-          )
+          ) &&
+          !this.matchesExactTypeReference(nodeType, targetType)
         ) {
           return false;
         }
@@ -255,12 +350,18 @@ export class NodeTypeMatcher {
               targetItems[i],
               comparisonTargetItems?.[i] ?? targetItems[i],
               limits,
+              {},
+              this.childMatcherPointer(pointer, String(i)),
+              memo,
             )
           ) {
             return false;
           }
         } else {
-          if (this.hasValueInNestedStructure(targetItems[i])) {
+          if (
+            this.requiresSemanticPresence(targetItems[i]) ||
+            this.hasValueInNestedStructure(targetItems[i])
+          ) {
             return false;
           }
         }
@@ -272,7 +373,8 @@ export class NodeTypeMatcher {
     const comparisonTargetItemType = comparisonTargetType.getItemType();
     if (targetItemType !== undefined) {
       const nodeItems = node.getItems() ?? [];
-      for (const item of nodeItems) {
+      for (let i = 0; i < nodeItems.length; i++) {
+        const item = nodeItems[i];
         if (
           !this.recursiveValueComparison(
             this.resolveUntypedNodeAgainstMatcherType(
@@ -286,6 +388,8 @@ export class NodeTypeMatcher {
             comparisonTargetItemType ?? targetItemType,
             limits,
             { bareBlueIdMatcherMode: 'type-reference' },
+            this.childMatcherPointer(pointer, String(i)),
+            memo,
           )
         ) {
           return false;
@@ -305,12 +409,18 @@ export class NodeTypeMatcher {
               value,
               comparisonTargetProps?.[key] ?? value,
               limits,
+              {},
+              this.childMatcherPointer(pointer, key),
+              memo,
             )
           ) {
             return false;
           }
         } else {
-          if (this.hasValueInNestedStructure(value)) {
+          if (
+            this.requiresSemanticPresence(value) ||
+            this.hasValueInNestedStructure(value)
+          ) {
             return false;
           }
         }
@@ -320,8 +430,8 @@ export class NodeTypeMatcher {
     const targetValueType = targetType.getValueType();
     const comparisonTargetValueType = comparisonTargetType.getValueType();
     if (targetValueType !== undefined) {
-      const nodeProps = Object.values(node.getProperties() ?? {});
-      for (const value of nodeProps) {
+      const nodeProps = Object.entries(node.getProperties() ?? {});
+      for (const [key, value] of nodeProps) {
         if (
           !this.recursiveValueComparison(
             this.resolveUntypedNodeAgainstMatcherType(
@@ -335,6 +445,8 @@ export class NodeTypeMatcher {
             comparisonTargetValueType ?? targetValueType,
             limits,
             { bareBlueIdMatcherMode: 'type-reference' },
+            this.childMatcherPointer(pointer, key),
+            memo,
           )
         ) {
           return false;
@@ -343,6 +455,46 @@ export class NodeTypeMatcher {
     }
 
     return true;
+  }
+
+  private expectedTypeBlueIdForMemo(
+    targetType: BlueNode,
+    comparisonTargetType: BlueNode,
+  ): string | undefined {
+    return (
+      this.blueIdOrReference(comparisonTargetType) ??
+      this.blueIdOrReference(targetType) ??
+      this.blueIdOrReference(comparisonTargetType.getType()) ??
+      this.blueIdOrReference(targetType.getType())
+    );
+  }
+
+  private blueIdOrReference(node: BlueNode | undefined): string | undefined {
+    return node?.getBlueId() ?? node?.getReferenceBlueId();
+  }
+
+  private normalizeMatcherPointer(
+    pointer: string | undefined,
+  ): string | undefined {
+    if (pointer === undefined) {
+      return undefined;
+    }
+    const trimmed = pointer.trim();
+    if (trimmed.length === 0 || trimmed === '/') {
+      return '/';
+    }
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  }
+
+  private childMatcherPointer(
+    pointer: string | undefined,
+    segment: string,
+  ): string | undefined {
+    if (pointer === undefined) {
+      return undefined;
+    }
+    const escaped = segment.replace(/~/g, '~0').replace(/\//g, '~1');
+    return pointer === '/' ? `/${escaped}` : `${pointer}/${escaped}`;
   }
 
   private resolveUntypedNodeAgainstMatcherType(
@@ -390,6 +542,86 @@ export class NodeTypeMatcher {
     return false;
   }
 
+  private requiresSemanticPresence(node: BlueNode): boolean {
+    return node.getSchema()?.get('required')?.getValue() === true;
+  }
+
+  private matchesSchemaCardinality(
+    node: BlueNode,
+    targetType: BlueNode,
+  ): boolean {
+    const schema = targetType.getSchema();
+    if (!schema) {
+      return true;
+    }
+
+    const minItems = this.schemaInteger(schema, 'minItems');
+    if (minItems !== undefined && (node.getItems()?.length ?? 0) < minItems) {
+      return false;
+    }
+
+    const maxItems = this.schemaInteger(schema, 'maxItems');
+    if (maxItems !== undefined && (node.getItems()?.length ?? 0) > maxItems) {
+      return false;
+    }
+
+    const fieldCount = Object.keys(node.getProperties() ?? {}).length;
+    const minFields = this.schemaInteger(schema, 'minFields');
+    if (minFields !== undefined && fieldCount < minFields) {
+      return false;
+    }
+
+    const maxFields = this.schemaInteger(schema, 'maxFields');
+    if (maxFields !== undefined && fieldCount > maxFields) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private schemaInteger(
+    schema: Schema,
+    key: 'minItems' | 'maxItems' | 'minFields' | 'maxFields',
+  ): number | undefined {
+    const value = schema.get(key)?.getValue();
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      return value;
+    }
+    if (isBigIntegerNumber(value)) {
+      return Number(value.toString());
+    }
+    return undefined;
+  }
+
+  private isRootMatcherPointer(pointer: string | undefined): boolean {
+    return pointer === undefined || pointer === '/';
+  }
+
+  private isMetadataOnlyNode(node: BlueNode): boolean {
+    return (
+      node.getValue() === undefined &&
+      node.getItems() === undefined &&
+      node.getProperties() === undefined &&
+      node.getBlueId() === undefined &&
+      node.getReferenceBlueId() === undefined &&
+      this.hasMetadata(node)
+    );
+  }
+
+  private hasMetadata(node: BlueNode): boolean {
+    return (
+      node.getName() !== undefined ||
+      node.getDescription() !== undefined ||
+      node.getType() !== undefined ||
+      node.getItemType() !== undefined ||
+      node.getKeyType() !== undefined ||
+      node.getValueType() !== undefined ||
+      node.getSchema() !== undefined ||
+      node.getMergePolicy() !== undefined ||
+      node.getBlue() !== undefined
+    );
+  }
+
   private hasMatcherShape(node: BlueNode): boolean {
     return (
       node.getValue() !== undefined ||
@@ -400,6 +632,89 @@ export class NodeTypeMatcher {
       node.getItems() !== undefined ||
       node.getProperties() !== undefined
     );
+  }
+
+  private isTypeOnlyMatcher(node: BlueNode): boolean {
+    return (
+      node.getType() !== undefined &&
+      node.getBlueId() === undefined &&
+      node.getReferenceBlueId() === undefined &&
+      node.getValue() === undefined &&
+      node.getItems() === undefined &&
+      node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
+      node.getValueType() === undefined &&
+      node.getProperties() === undefined &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined
+    );
+  }
+
+  private matchesUnresolvedExactTypeOnly(
+    node: BlueNode,
+    targetType: BlueNode,
+  ): boolean {
+    if (!this.isTypeOnlyMatcher(targetType)) {
+      return false;
+    }
+    const nodeType = node.getType();
+    const expectedType = targetType.getType();
+    return (
+      nodeType !== undefined &&
+      expectedType !== undefined &&
+      this.matchesExactTypeReference(nodeType, expectedType)
+    );
+  }
+
+  private targetTypeReferenceHasNoDefinition(targetType: BlueNode): boolean {
+    const typeBlueId = this.blueIdOrReference(targetType.getType());
+    if (typeBlueId === undefined) {
+      return false;
+    }
+    const nodes = this.blue.getNodeProvider().fetchByBlueId(typeBlueId);
+    return nodes == null || nodes.length === 0;
+  }
+
+  private matchesImplicitPrimitiveType(
+    node: BlueNode,
+    targetTypeType: BlueNode,
+  ): boolean {
+    const value = node.getValue();
+    const targetTypeBlueId =
+      this.blueIdOrReference(targetTypeType) ??
+      this.primitiveAliasBlueId(targetTypeType.getValue());
+    switch (targetTypeBlueId) {
+      case Properties.TEXT_TYPE_BLUE_ID:
+        return typeof value === 'string';
+      case Properties.INTEGER_TYPE_BLUE_ID:
+        return (
+          (typeof value === 'number' &&
+            Number.isInteger(value) &&
+            Number.isSafeInteger(value)) ||
+          isBigIntegerNumber(value)
+        );
+      case Properties.DOUBLE_TYPE_BLUE_ID:
+        return typeof value === 'number' || isBigNumber(value);
+      case Properties.BOOLEAN_TYPE_BLUE_ID:
+        return typeof value === 'boolean';
+      default:
+        return false;
+    }
+  }
+
+  private primitiveAliasBlueId(value: unknown): string | undefined {
+    switch (value) {
+      case 'Text':
+        return Properties.TEXT_TYPE_BLUE_ID;
+      case 'Integer':
+        return Properties.INTEGER_TYPE_BLUE_ID;
+      case 'Double':
+        return Properties.DOUBLE_TYPE_BLUE_ID;
+      case 'Boolean':
+        return Properties.BOOLEAN_TYPE_BLUE_ID;
+      default:
+        return undefined;
+    }
   }
 
   private matchesCalculatedBlueId(node: BlueNode, blueId: string): boolean {
@@ -449,6 +764,19 @@ export class NodeTypeMatcher {
     }
 
     return false;
+  }
+
+  private matchesExactTypeReference(
+    nodeType: BlueNode,
+    targetType: BlueNode,
+  ): boolean {
+    const nodeTypeBlueId = this.blueIdOrReference(nodeType);
+    const targetTypeBlueId = this.blueIdOrReference(targetType);
+    return (
+      nodeTypeBlueId !== undefined &&
+      targetTypeBlueId !== undefined &&
+      nodeTypeBlueId === targetTypeBlueId
+    );
   }
 
   private toPlainBlueNode(node: BlueNode): BlueNode {
@@ -570,13 +898,20 @@ export class NodeTypeMatcher {
   private isBareBlueIdReference(node: BlueNode): boolean {
     return (
       node.getBlueId() !== undefined &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
       node.getType() === undefined &&
       node.getValue() === undefined &&
       node.getItems() === undefined &&
       node.getItemType() === undefined &&
       node.getKeyType() === undefined &&
       node.getProperties() === undefined &&
-      node.getValueType() === undefined
+      node.getValueType() === undefined &&
+      node.getSchema() === undefined &&
+      node.getMergePolicy() === undefined &&
+      node.getPreviousBlueId() === undefined &&
+      node.getPosition() === undefined &&
+      node.getBlue() === undefined
     );
   }
 

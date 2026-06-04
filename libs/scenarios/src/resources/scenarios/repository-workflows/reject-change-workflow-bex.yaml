@@ -1,0 +1,61 @@
+name: Reject Change Workflow BEX Representative
+targetState: original
+proposedChange:
+  summary: Reject this proposal
+  changeset:
+    - op: replace
+      path: /targetState
+      val: should-not-apply
+contracts:
+  actorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: actor
+  rejectChange:
+    type: Coordination/Operation
+    channel: actorChannel
+  rejectChangeWorkflow:
+    type: Coordination/Sequential Workflow Operation
+    operation: rejectChange
+    postfix: ''
+    steps:
+      - name: Prepare
+        type: Coordination/Compute
+        do:
+          - $let:
+              order:
+                - postfix
+                - proposedPath
+              vars:
+                postfix:
+                  $default:
+                    - $currentContract: /postfix
+                    - ''
+                proposedPath:
+                  $concat:
+                    - /proposedChange
+                    - $var: postfix
+          - $returnIf:
+              cond:
+                $not:
+                  $exists:
+                    $document:
+                      path:
+                        $var: proposedPath
+              expr:
+                changeset: []
+                events:
+                  - type: Coordination/Proposed Change Invalid
+                    reason:
+                      $concat:
+                        - no proposed change at
+                        - " "
+                        - $var: proposedPath
+          - $appendChange:
+              op: remove
+              path:
+                $var: proposedPath
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

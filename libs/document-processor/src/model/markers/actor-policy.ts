@@ -1,7 +1,7 @@
 import { BlueNode } from '@blue-labs/language';
 import { z } from 'zod';
 
-import { ActorPolicySchema as RepositoryActorPolicySchema } from '@blue-repository/types/packages/conversation/schemas/ActorPolicy';
+import { ActorPolicySchema as RepositoryActorPolicySchema } from '@blue-repository/types/packages/coordination/schemas/ActorPolicy';
 
 import { markerContractBaseSchema } from '../shared/index.js';
 
@@ -21,14 +21,19 @@ export const actorPolicyRuleSchema = z.object({
   requiresSource: actorPolicySourceValueSchema.optional(),
 });
 
-export const actorPolicyMarkerSchema = RepositoryActorPolicySchema.merge(
+const actorPolicyMarkerSchemaBase = RepositoryActorPolicySchema.merge(
   markerContractBaseSchema,
 ).extend({
   operations: z.record(z.string(), actorPolicyRuleSchema).optional(),
 });
 
 export type ActorPolicyRule = z.infer<typeof actorPolicyRuleSchema>;
-export type ActorPolicyMarker = z.infer<typeof actorPolicyMarkerSchema>;
+export type ActorPolicyMarker = z.infer<typeof actorPolicyMarkerSchemaBase> & {
+  operations?: Record<string, ActorPolicyRule>;
+};
+
+export const actorPolicyMarkerSchema =
+  actorPolicyMarkerSchemaBase as z.ZodType<ActorPolicyMarker>;
 
 const VALID_ACTOR_POLICY_ACTORS = new Set<string>(ACTOR_POLICY_ACTOR_VALUES);
 const VALID_ACTOR_POLICY_SOURCES = new Set<string>(ACTOR_POLICY_SOURCE_VALUES);

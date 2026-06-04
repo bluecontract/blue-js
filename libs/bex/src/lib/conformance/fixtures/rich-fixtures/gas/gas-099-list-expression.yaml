@@ -1,0 +1,13 @@
+fixtureId: GAS-099
+title: List conversion charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $list:
+      - a
+expectation:
+  outcome: success
+  resultSimple:
+    - a
+  gasUsed: 4

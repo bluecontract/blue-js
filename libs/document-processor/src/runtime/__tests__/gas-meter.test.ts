@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { GasMeter } from '../gas-meter.js';
 import { canonicalSize } from '../../util/node-canonicalizer.js';
 import { documentSnapshotAmount } from '../gas-helpers.js';
-import { wasmFuelToHostGas } from '../gas-schedule.js';
 
 const blue = createBlue();
 
@@ -19,8 +18,8 @@ describe('GasMeter', () => {
     meter.chargeScopeEntry('/child/grandchild');
     meter.chargeScopeEntry('nested/scope');
 
-    // Initialization 1000 + depth (2 -> 70) + depth (2 -> 70)
-    expect(meter.totalGas()).toBe(1_000 + 70 + 70);
+    // Initialization 1001 + depth (2 -> 70) + depth (2 -> 70)
+    expect(meter.totalGas()).toBe(1_001 + 70 + 70);
   });
 
   it('charges patch add/replace proportional to canonical size', () => {
@@ -60,14 +59,5 @@ describe('GasMeter', () => {
     meter.chargeDocumentSnapshot('/a/b', null);
 
     expect(meter.totalGas()).toBe(rootExpected + missingExpected);
-  });
-
-  it('scales wasm fuel into host gas units before charging', () => {
-    const meter = new GasMeter(blue);
-    const fuelUsed = 4_780_257n;
-    meter.chargeWasmGas(fuelUsed);
-
-    const expected = wasmFuelToHostGas(fuelUsed);
-    expect(meter.totalGas()).toBe(expected);
   });
 });

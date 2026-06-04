@@ -1,0 +1,11 @@
+fixtureId: GAS-100
+title: Truthy conversion charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $truthy: x
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 4

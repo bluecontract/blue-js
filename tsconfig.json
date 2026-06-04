@@ -20,6 +20,15 @@
     },
     {
       "path": "./libs/repository-contract"
+    },
+    {
+      "path": "./libs/bex"
+    },
+    {
+      "path": "./libs/coordination"
+    },
+    {
+      "path": "./libs/scenarios"
     }
   ]
 }

@@ -47,7 +47,8 @@ describe('steps-builder mapping', () => {
       from: payer
       to: payee
       currency: USD
-      amount: \${document('/amount/total')}
+      amount:
+        $document: /amount/total
       routingNumber: '111000025'
   - name: RequestCaptureLock
     type: Conversation/Trigger Event
@@ -57,7 +58,8 @@ describe('steps-builder mapping', () => {
     type: Conversation/Trigger Event
     event:
       type: PayNote/Capture Funds Requested
-      amount: \${document('/amount/total')}
+      amount:
+        $document: /amount/total
   - name: RequestSingleDocumentPermission
     type: Conversation/Trigger Event
     event:
@@ -135,7 +137,8 @@ describe('steps-builder mapping', () => {
     const yaml = dump({ steps }, { noRefs: true, lineWidth: -1 });
     expect(yaml).toContain(`name: ApplyDynamicChanges
     type: Conversation/Update Document`);
-    expect(yaml).toContain(`changeset: \${event.message.request}`);
+    expect(yaml).toContain(`changeset:
+      $event: /message/request`);
     expect(yaml).toContain(`name: BootstrapChild
     type: Conversation/Trigger Event`);
     expect(yaml).toContain(`type: Conversation/Document Bootstrap Requested`);
@@ -144,7 +147,8 @@ describe('steps-builder mapping', () => {
     expect(yaml).toContain(`timelineId: child-owner-timeline`);
     expect(yaml).toContain(`name: BootstrapFromExpression
     type: Conversation/Trigger Event`);
-    expect(yaml).toContain(`document: \${document('/childDocument')}`);
+    expect(yaml).toContain(`document:
+        $document: /childDocument`);
   });
 
   it('keeps bootstrap customizers available alongside required onBehalfOf', () => {
@@ -191,10 +195,12 @@ describe('steps-builder mapping', () => {
     expect(yaml).toContain(`bootstrapAssignee: myOsAdminChannel`);
     expect(yaml).toContain(`onBehalfOf: ownerChannel`);
     expect(yaml).toContain(
-      `accountId: \${document('/contracts/ownerChannel/accountId')}`,
+      `accountId:
+            $document: /contracts/ownerChannel/accountId`,
     );
     expect(yaml).toContain(
-      `email: \${document('/contracts/reviewerChannel/email')}`,
+      `email:
+            $document: /contracts/reviewerChannel/email`,
     );
   });
 
@@ -300,7 +306,8 @@ describe('steps-builder mapping', () => {
     expect(yaml).toContain(`type: PayNote/Card Transaction Capture Locked`);
     expect(yaml).toContain(`name: CaptureUnlocked`);
     expect(yaml).toContain(`type: PayNote/Card Transaction Capture Unlocked`);
-    expect(yaml).toContain(`amount: \${event.message.request.amount}`);
+    expect(yaml).toContain(`amount:
+        $event: /message/request/amount`);
     expect(yaml).toContain(`type: PayNote/Reservation Release Requested`);
   });
 
@@ -371,7 +378,8 @@ describe('steps-builder mapping', () => {
     expect(yaml).toContain(`ledgerAccountFrom: ops`);
     expect(yaml).toContain(`asset: USDC`);
     expect(yaml).toContain(`idempotencyKey: payment-1`);
-    expect(yaml).toContain(`merchantRef: \${document('/merchant/ref')}`);
+    expect(yaml).toContain(`merchantRef:
+        $document: /merchant/ref`);
 
     expect(() =>
       new StepsBuilder().triggerPayment(

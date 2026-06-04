@@ -1,12 +1,17 @@
 {
   "name": "@blue-labs/document-processor",
-  "version": "4.0.2-rc.0",
+  "version": "4.1.2",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
+    "./conformance": {
+      "types": "./dist/conformance/index.d.ts",
+      "import": "./dist/conformance.js",
+      "default": "./dist/conformance.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
@@ -19,12 +24,9 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "@blue-labs/language": "4.0.2-rc.0",
-    "@blue-labs/shared-utils": "4.0.2-rc.0",
-    "@blue-quickjs/abi-manifest": "0.4.2-rc.0",
-    "@blue-quickjs/dv": "0.4.2-rc.0",
-    "@blue-quickjs/quickjs-runtime": "0.4.2-rc.0",
-    "picomatch": "4.0.3"
+    "@blue-labs/bex": "4.1.2",
+    "@blue-labs/language": "4.1.2",
+    "@blue-labs/shared-utils": "4.1.2"
   },
   "license": "MIT",
   "publishConfig": {
@@ -35,7 +37,7 @@
     "url": "git+https://github.com/bluecontract/blue-js.git"
   },
   "peerDependencies": {
-    "@blue-repository/types": ">=1.0.0 <2",
+    "@blue-repository/types": ">=2.0.0-rc.0 <3",
     "zod": "^3.20.0"
   }
 }

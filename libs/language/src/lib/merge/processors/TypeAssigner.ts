@@ -18,6 +18,18 @@ export class TypeAssigner implements MergingProcessor {
     let newTarget = target;
 
     if (targetType === undefined) {
+      if (
+        sourceType !== undefined &&
+        source.getValue() !== undefined &&
+        NodeTypes.isAnonymousCoreAlias(sourceType)
+      ) {
+        const sourceTypeStr = NodeToMapListOrValue.get(sourceType);
+        throw new Error(
+          `Anonymous core type alias '${JSON.stringify(
+            sourceTypeStr,
+          )}' is not interchangeable with its registry core type.`,
+        );
+      }
       newTarget = target.cloneShallow().setType(sourceType);
     } else if (sourceType !== undefined) {
       const isSubtypeResult = NodeTypes.isSubtype(

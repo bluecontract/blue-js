@@ -1,0 +1,11 @@
+fixtureId: GAS-090
+title: Expression gas exhaustion fails when total exceeds limit
+tags: [gas]
+context:
+  gasLimit: 2
+programSource: |
+  type: Blue/BEX Program
+  expr: 1
+expectation:
+  outcome: runtime-error
+  errorContains: BEX gas exhausted

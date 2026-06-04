@@ -19,8 +19,7 @@ type StoredMarker = MarkerContractEntry;
 
 type StoredHandler = HandlerContractEntry;
 
-const CHANNEL_EVENT_CHECKPOINT_BLUE_ID =
-  blueIds['Core/Channel Event Checkpoint'];
+const CHANNEL_EVENT_CHECKPOINT_BLUE_ID = blueIds['Channel Event Checkpoint'];
 
 function contractOrder(contract: { readonly order?: number | null }): number {
   return typeof contract.order === 'number' ? contract.order : 0;
@@ -51,7 +50,7 @@ export class ChannelBinding {
   }
 
   order(): number {
-    return contractOrder(this.bindingContract);
+    return contractOrder(this.bindingContract as { readonly order?: number });
   }
 }
 
@@ -80,7 +79,7 @@ export class HandlerBinding {
   }
 
   order(): number {
-    return contractOrder(this.bindingContract);
+    return contractOrder(this.bindingContract as { readonly order?: number });
   }
 }
 

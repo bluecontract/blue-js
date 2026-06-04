@@ -28,6 +28,10 @@ export class ListControls {
   public static getMergePolicyValue(
     node: BlueNode,
   ): ListMergePolicy | undefined {
+    const nodePolicy = node.getMergePolicy();
+    if (nodePolicy === 'append-only' || nodePolicy === 'positional') {
+      return nodePolicy;
+    }
     const rawValue = node.getProperties()?.[OBJECT_MERGE_POLICY]?.getValue();
     if (rawValue === 'append-only' || rawValue === 'positional') {
       return rawValue;
@@ -89,16 +93,22 @@ export class ListControls {
   }
 
   public static hasPreviousProperty(item: BlueNode): boolean {
-    return Object.prototype.hasOwnProperty.call(
-      item.getProperties() ?? {},
-      LIST_PREVIOUS_KEY,
+    return (
+      item.getPreviousBlueId() !== undefined ||
+      Object.prototype.hasOwnProperty.call(
+        item.getProperties() ?? {},
+        LIST_PREVIOUS_KEY,
+      )
     );
   }
 
   public static hasPositionProperty(item: BlueNode): boolean {
-    return Object.prototype.hasOwnProperty.call(
-      item.getProperties() ?? {},
-      LIST_POSITION_KEY,
+    return (
+      item.getPosition() !== undefined ||
+      Object.prototype.hasOwnProperty.call(
+        item.getProperties() ?? {},
+        LIST_POSITION_KEY,
+      )
     );
   }
 
@@ -130,6 +140,19 @@ export class ListControls {
   }
 
   public static isPreviousItem(item: BlueNode): boolean {
+    if (item.getPreviousBlueId() !== undefined) {
+      return (
+        item.getName() === undefined &&
+        item.getDescription() === undefined &&
+        item.getType() === undefined &&
+        item.getItemType() === undefined &&
+        item.getKeyType() === undefined &&
+        item.getValueType() === undefined &&
+        item.getValue() === undefined &&
+        item.getItems() === undefined &&
+        Object.keys(item.getProperties() ?? {}).length === 0
+      );
+    }
     const properties = item.getProperties();
     return (
       properties !== undefined &&
@@ -143,6 +166,9 @@ export class ListControls {
   }
 
   public static getPreviousBlueId(item: BlueNode): string | undefined {
+    if (item.getPreviousBlueId() !== undefined) {
+      return item.getPreviousBlueId();
+    }
     if (!this.isPreviousItem(item)) {
       return undefined;
     }
@@ -150,12 +176,13 @@ export class ListControls {
   }
 
   public static createPreviousItem(previousListBlueId: string): BlueNode {
-    return new BlueNode().setProperties({
-      [LIST_PREVIOUS_KEY]: new BlueNode().setBlueId(previousListBlueId),
-    });
+    return new BlueNode().setPreviousBlueId(previousListBlueId);
   }
 
   public static readPosition(item: BlueNode): number | undefined {
+    if (item.getPosition() !== undefined) {
+      return item.getPosition();
+    }
     const positionNode = item.getProperties()?.[LIST_POSITION_KEY];
     if (positionNode === undefined) {
       return undefined;
@@ -194,16 +221,12 @@ export class ListControls {
     position: number,
     payload: BlueNode,
   ): BlueNode {
-    const positioned = payload.clone();
-    positioned.addProperty(
-      LIST_POSITION_KEY,
-      new BlueNode().setValue(position),
-    );
-    return positioned;
+    return payload.clone().setPosition(position);
   }
 
   public static withoutPosition(item: BlueNode): BlueNode {
     const payload = item.clone();
+    payload.setPosition(undefined);
     const properties = payload.getProperties();
     if (properties !== undefined) {
       delete properties[LIST_POSITION_KEY];

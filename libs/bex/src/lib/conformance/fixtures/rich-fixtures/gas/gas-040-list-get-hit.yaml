@@ -1,0 +1,15 @@
+fixtureId: GAS-040
+title: List get hit charges list and index expressions
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $listGet:
+      list:
+        - a
+        - b
+      index: 1
+expectation:
+  outcome: success
+  resultSimple: b
+  gasUsed: 5

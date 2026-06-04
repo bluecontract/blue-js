@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact version to release, for example 4.0.2
+        required: true
+        type: string
 
 env:
   # NX release needs to have a GH token in env.GITHUB_TOKEN
@@ -46,6 +52,34 @@ jobs:
           git config --global user.name "github-actions[bot]"
         shell: bash
 
+      - name: Validate manual release version
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Manual stable releases must run from main, got: $GITHUB_REF"
+            exit 1
+          fi
+
+          if ! [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Manual stable releases require an exact semver version, got: $RELEASE_VERSION"
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/v$RELEASE_VERSION" >/dev/null; then
+            echo "Tag v$RELEASE_VERSION already exists. Refusing to update an existing release."
+            exit 1
+          fi
+        shell: bash
+
       - name: Release
-        run: npx nx release --skip-publish
+        env:
+          RELEASE_VERSION: ${{ inputs.version || '' }}
+        run: |
+          if [ -n "$RELEASE_VERSION" ]; then
+            npx nx release "$RELEASE_VERSION" --skip-publish
+          else
+            npx nx release --skip-publish
+          fi
         shell: bash

@@ -63,11 +63,10 @@ describe('DocumentProcessorGasTest', () => {
 
     const expected =
       scopeEntryCharge('/') +
-      1_000 + // initialization
+      1_001 + // initialization
       30 + // lifecycle delivery
-      2 + // boundary check
       (20 + markerCharge) + // patch add
-      10; // cascade routing
+      0; // lifecycle delivery does not route through triggered-event cascade
 
     expect(result.totalGas).toBe(expected);
   });
@@ -106,7 +105,7 @@ contracts:
       50 + // handler overhead
       2 + // boundary check
       (20 + valueCharge) + // patch add/replace
-      10 + // cascade routing
+      0 + // no triggered-event cascade
       20; // checkpoint update
 
     expect(result.totalGas).toBe(expected);
@@ -127,7 +126,7 @@ contracts:
           blueId: TestEvent
         kind: emitted
   triggered:
-    type: Core/Triggered Event Channel
+    type: Triggered Event Channel
 `;
 
     const initialized = (

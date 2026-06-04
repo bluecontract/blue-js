@@ -250,10 +250,10 @@ export function nodeify(v: unknown): BlueNode {
     typeof v === 'boolean' ||
     isNumeric(v)
   ) {
-    return NodeDeserializer.deserialize(v as never);
+    return NodeDeserializer.deserializeUnchecked(v as never);
   }
   const cleanValue = cleanUndefinedValues(v);
-  return NodeDeserializer.deserialize(cleanValue as never);
+  return NodeDeserializer.deserializeUnchecked(cleanValue as never);
 }
 
 function cleanUndefinedValues(obj: unknown): unknown {

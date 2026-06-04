@@ -1,0 +1,17 @@
+fixtureId: GAS-078
+title: AppendChange remove does not evaluate val and charges undefined size
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendChange:
+        op: remove
+        path: /status
+        val:
+          $document: /expensive
+expectation:
+  outcome: success
+  changeset:
+    - op: remove
+      path: /status
+  gasUsed: 8

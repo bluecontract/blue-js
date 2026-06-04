@@ -15,7 +15,7 @@ export class ArrayConverter implements Converter {
       return undefined;
     }
 
-    const elementSchema = targetType.element;
+    const elementSchema = targetType.element ?? targetType._def.type;
     const result = items.map((item) =>
       this.nodeToObjectConverter.convert(item, elementSchema),
     );

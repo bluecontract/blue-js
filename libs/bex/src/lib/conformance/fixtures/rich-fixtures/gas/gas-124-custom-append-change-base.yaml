@@ -1,0 +1,19 @@
+fixtureId: GAS-124
+title: Custom appendChangeBase schedule applies
+tags: [gas]
+gasSchedule:
+  appendChangeBase: 10
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $appendChange:
+        op: replace
+        path: /status
+        val: x
+expectation:
+  outcome: success
+  changeset:
+    - op: replace
+      path: /status
+      val: x
+  gasUsed: 15

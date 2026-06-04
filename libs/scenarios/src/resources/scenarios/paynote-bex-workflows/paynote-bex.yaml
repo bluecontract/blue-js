@@ -1,0 +1,471 @@
+name: PayNote BEX Representative
+description: BEX workflow for PayNote workflows.
+kind: PayNote
+currency: USD
+amount:
+  expectedTotal: 15000
+controls: {}
+
+contracts:
+  payerChannel:
+    type: Coordination/Timeline Channel
+    timelineId: payer
+
+  payeeChannel:
+    type: Coordination/Timeline Channel
+    timelineId: payee
+
+  guarantorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: guarantor
+
+  initLifecycleChannel:
+    type: Lifecycle Event Channel
+    event:
+      type: Document Processing Initiated
+
+  initialize:
+    type: Coordination/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: ResolveRuntimeDefaults
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: add
+              path: /status
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /status
+                  then:
+                    $document: /status
+                  else: Pending
+          - $appendChange:
+              op: add
+              path: /amount/finalResolved
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /amount/finalResolved
+                  then:
+                    $document: /amount/finalResolved
+                  else: 0
+          - $appendChange:
+              op: add
+              path: /amount/secured
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /amount/secured
+                  then:
+                    $document: /amount/secured
+                  else: 0
+          - $appendChange:
+              op: add
+              path: /amount/completed
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /amount/completed
+                  then:
+                    $document: /amount/completed
+                  else: 0
+          - $appendChange:
+              op: add
+              path: /amount/reversed
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /amount/reversed
+                  then:
+                    $document: /amount/reversed
+                  else: 0
+          - $appendChange:
+              op: add
+              path: /controls/completionLocked
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /controls/completionLocked
+                  then:
+                    $document: /controls/completionLocked
+                  else: false
+          - $appendChange:
+              op: add
+              path: /controls/reversalLocked
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /controls/reversalLocked
+                  then:
+                    $document: /controls/reversalLocked
+                  else: false
+          - $appendChange:
+              op: add
+              path: /controls/transactionDetailsUpdateLocked
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /controls/transactionDetailsUpdateLocked
+                  then:
+                    $document: /controls/transactionDetailsUpdateLocked
+                  else: false
+          - $appendChange:
+              op: add
+              path: /transactionDetails
+              val:
+                $choose:
+                  cond:
+                    $exists:
+                      $document: /transactionDetails
+                  then:
+                    $document: /transactionDetails
+                  else:
+                    $emptyObject: true
+          - $return:
+              changeset:
+                $changeset: true
+
+  rejectPayNote:
+    type: Coordination/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/PayNote Rejected
+
+  rejectPayNoteImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: rejectPayNote
+    steps:
+      - name: ValidateForwardAndReject
+        type: Coordination/Compute
+        do:
+          - $let:
+              name: request
+              expr:
+                $event: /message/request
+          - $if:
+              cond:
+                $not:
+                  $isKind:
+                    val:
+                      $var: request
+                    kind: object
+              then:
+                - $fail: PayNote rejection request must be an object.
+          - $appendEvent:
+              $var: request
+          - $appendChange:
+              op: replace
+              path: /status
+              val: Rejected
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+
+  recordTransactionInitiated:
+    type: Coordination/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Initiated
+
+  recordTransactionInitiatedImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: recordTransactionInitiated
+    steps:
+      - name: MergeInitiationTransactionDetails
+        type: Coordination/Compute
+        entry: merge
+        functions:
+          asObject:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: object
+                then:
+                  $var: val
+                else:
+                  $emptyObject: true
+          objectWithoutType:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $objectFromEntries:
+                $map:
+                  in:
+                    $filter:
+                      in:
+                        $keys:
+                          $call:
+                            function: asObject
+                            args:
+                              val:
+                                $var: val
+                      item: key
+                      where:
+                        $ne:
+                          - $var: key
+                          - type
+                  item: key
+                  expr:
+                    key:
+                      $text:
+                        $var: key
+                    val:
+                      $get:
+                        object:
+                          $call:
+                            function: asObject
+                            args:
+                              val:
+                                $var: val
+                        key:
+                          $var: key
+          merge:
+            do:
+              - $let:
+                  order:
+                    - request
+                    - nextTransactionDetails
+                  vars:
+                    request:
+                      $event: /message/request
+                    nextTransactionDetails:
+                      $merge:
+                        - $call:
+                            function: asObject
+                            args:
+                              val:
+                                $choose:
+                                  cond:
+                                    $exists:
+                                      $document: /transactionDetails
+                                  then:
+                                    $document: /transactionDetails
+                                  else:
+                                    $emptyObject: true
+                        - $call:
+                            function: objectWithoutType
+                            args:
+                              val:
+                                $event: /message/request
+              - $if:
+                  cond:
+                    $not:
+                      $isKind:
+                        val:
+                          $var: request
+                        kind: object
+                  then:
+                    - $fail: Transaction initiated payload must be an object.
+              - $appendEvent:
+                  $var: request
+              - $appendChange:
+                  op: replace
+                  path: /status
+                  val: Initiated
+              - $appendChange:
+                  op: replace
+                  path: /transactionDetails
+                  val:
+                    $var: nextTransactionDetails
+              - $return:
+                  changeset:
+                    $changeset: true
+                  events:
+                    $events: true
+
+  confirmPayeeAssignment:
+    type: Coordination/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payee Assignment Confirmed
+
+  confirmPayeeAssignmentImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: confirmPayeeAssignment
+    steps:
+      - name: MergePayeeAssignment
+        type: Coordination/Compute
+        entry: merge
+        functions:
+          asObject:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: object
+                then:
+                  $var: val
+                else:
+                  $emptyObject: true
+          merge:
+            do:
+              - $let:
+                  order:
+                    - request
+                    - nextTransactionDetails
+                  vars:
+                    request:
+                      $event: /message/request
+                    nextTransactionDetails:
+                      $merge:
+                        - $call:
+                            function: asObject
+                            args:
+                              val:
+                                $choose:
+                                  cond:
+                                    $exists:
+                                      $document: /transactionDetails
+                                  then:
+                                    $document: /transactionDetails
+                                  else:
+                                    $emptyObject: true
+                        - payeeRef:
+                            $event: /message/request/payeeRef
+              - $if:
+                  cond:
+                    $not:
+                      $isKind:
+                        val:
+                          $var: request
+                        kind: object
+                  then:
+                    - $fail: Payee assignment payload must be an object.
+              - $if:
+                  cond:
+                    $not:
+                      $isKind:
+                        val:
+                          $var:
+                            name: request
+                            path: /payeeRef
+                        kind: text
+                  then:
+                    - $fail: Payee assignment payload must include payeeRef.
+              - $appendEvent:
+                  $var: request
+              - $appendChange:
+                  op: replace
+                  path: /transactionDetails
+                  val:
+                    $var: nextTransactionDetails
+              - $return:
+                  changeset:
+                    $changeset: true
+                  events:
+                    $events: true
+
+  confirmTransactionDetailsUpdated:
+    type: Coordination/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Transaction Details Updated
+
+  confirmTransactionDetailsUpdatedImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: confirmTransactionDetailsUpdated
+    steps:
+      - name: MergeTransactionDetailsUpdate
+        type: Coordination/Compute
+        entry: merge
+        functions:
+          asObject:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: object
+                then:
+                  $var: val
+                else:
+                  $emptyObject: true
+          merge:
+            do:
+              - $let:
+                  order:
+                    - request
+                    - patch
+                    - nextTransactionDetails
+                  vars:
+                    request:
+                      $event: /message/request
+                    patch:
+                      $event: /message/request/transactionDetails
+                    nextTransactionDetails:
+                      $merge:
+                        - $call:
+                            function: asObject
+                            args:
+                              val:
+                                $choose:
+                                  cond:
+                                    $exists:
+                                      $document: /transactionDetails
+                                  then:
+                                    $document: /transactionDetails
+                                  else:
+                                    $emptyObject: true
+                        - $call:
+                            function: asObject
+                            args:
+                              val:
+                                $event: /message/request/transactionDetails
+              - $if:
+                  cond:
+                    $not:
+                      $isKind:
+                        val:
+                          $var: request
+                        kind: object
+                  then:
+                    - $fail: Transaction details update payload must be an object.
+              - $if:
+                  cond:
+                    $not:
+                      $isKind:
+                        val:
+                          $var: patch
+                        kind: object
+                  then:
+                    - $fail: Transaction details update payload must include transactionDetails object.
+              - $appendEvent:
+                  $var: request
+              - $appendChange:
+                  op: replace
+                  path: /transactionDetails
+                  val:
+                    $var: nextTransactionDetails
+              - $return:
+                  changeset:
+                    $changeset: true
+                  events:
+                    $events: true

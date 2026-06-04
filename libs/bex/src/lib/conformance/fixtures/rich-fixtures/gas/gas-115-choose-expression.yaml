@@ -1,0 +1,15 @@
+fixtureId: GAS-115
+title: Choose charges only condition and selected branch
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $choose:
+      cond: true
+      then: selected
+      else:
+        $document: /expensive
+expectation:
+  outcome: success
+  resultSimple: selected
+  gasUsed: 5

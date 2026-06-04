@@ -447,4 +447,74 @@ describe('RepositoryBasedNodeProvider', () => {
       'SingletonLoopConsumer',
     );
   });
+
+  it('groups cyclic repository content by master BlueId', () => {
+    const masterId = 'cyclic-master';
+    const firstId = `${masterId}#0`;
+    const secondId = `${masterId}#1`;
+    const typesMeta = {
+      [firstId]: {
+        status: 'stable' as const,
+        name: 'First',
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: firstId,
+            attributesAdded: [],
+          },
+        ],
+      },
+      [secondId]: {
+        status: 'stable' as const,
+        name: 'Second',
+        versions: [
+          {
+            repositoryVersionIndex: 0,
+            typeBlueId: secondId,
+            attributesAdded: [],
+          },
+        ],
+      },
+    };
+
+    const repository = {
+      name: 'test.repo',
+      repositoryVersions: ['R0'],
+      packages: {
+        test: {
+          name: 'test',
+          aliases: {
+            'test/First': firstId,
+            'test/Second': secondId,
+          },
+          typesMeta,
+          contents: {
+            [firstId]: {
+              name: 'First',
+              ref: { type: { blueId: 'this#1' } },
+            },
+            [secondId]: {
+              name: 'Second',
+              ref: { type: { blueId: 'this#0' } },
+            },
+          },
+          schemas: {},
+        },
+      },
+    };
+
+    const provider = new RepositoryBasedNodeProvider([repository]);
+    const first = provider.fetchByBlueId(firstId)?.[0];
+    const second = provider.fetchByBlueId(secondId)?.[0];
+
+    expect(first?.getBlueId()).toBeUndefined();
+    expect(second?.getBlueId()).toBeUndefined();
+    expect(first?.getProperties()?.ref?.getType()?.getBlueId()).toEqual(
+      secondId,
+    );
+    expect(second?.getProperties()?.ref?.getType()?.getBlueId()).toEqual(
+      firstId,
+    );
+    expect(provider.findNodeByName('First')?.getBlueId()).toBeUndefined();
+  });
 });

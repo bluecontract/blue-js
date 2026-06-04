@@ -1,0 +1,16 @@
+fixtureId: GAS-059
+title: Function call charges caller expression and callee function call
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  functions:
+    f:
+      expr: 1
+  expr:
+    $call:
+      function: f
+      args: {}
+expectation:
+  outcome: success
+  resultSimple: 1
+  gasUsed: 6

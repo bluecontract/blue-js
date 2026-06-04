@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { conversationBlueIds } from '../../repository/semantic-repository.js';
 import { DocumentProcessor } from '../document-processor.js';
+import type { DocumentProcessingRuntime } from '../../runtime/document-processing-runtime.js';
 import {
   SetPropertyContractProcessor,
   TestEventChannelProcessor,
@@ -22,7 +23,7 @@ function documentWithLifecycleAndEventHandlers(): string {
   return `name: Example
 contracts:
   lifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   onLifecycle:
     channel: lifecycleChannel
     type:
@@ -56,7 +57,7 @@ describe('DocumentProcessor', () => {
     expect(init.triggeredEvents).toHaveLength(1);
     const lifecycleEvent = init.triggeredEvents[0];
     expect(lifecycleEvent.getProperties()?.type?.getValue()).toBe(
-      'Core/Document Processing Initiated',
+      'Document Processing Initiated',
     );
   });
 
@@ -80,6 +81,72 @@ describe('DocumentProcessor', () => {
     expect(processed.triggeredEvents).toHaveLength(0);
   });
 
+  it('does not reuse processing runtime state across processDocument invocations', async () => {
+    const runtimes: DocumentProcessingRuntime[] = [];
+    const processor = new DocumentProcessor({
+      blue,
+      runtimeHooks: {
+        planPatch(_scopePath, runtime) {
+          runtimes.push(runtime);
+          return { generatedPatches: [] };
+        },
+      },
+    });
+    const documentYaml = `name: Runtime Isolation Doc
+status: initial
+contracts:
+  investorChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: investor-timeline
+  setStatus:
+    type: Coordination/Operation
+    channel: investorChannel
+  setStatusImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: setStatus
+    steps:
+      - name: SetStatus
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /status
+              val:
+                $event: /message/request/status
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+`;
+    const initializedA = (
+      await processor.initializeDocument(
+        blue.resolve(blue.yamlToNode(documentYaml)),
+      )
+    ).document;
+    const initializedB = (
+      await processor.initializeDocument(
+        blue.resolve(blue.yamlToNode(documentYaml)),
+      )
+    ).document;
+
+    const processedA = await processor.processDocument(
+      initializedA,
+      operationRequestEvent('one'),
+    );
+    const processedB = await processor.processDocument(
+      initializedB,
+      operationRequestEvent('two'),
+    );
+
+    expect(processedA.capabilityFailure).toBe(false);
+    expect(processedB.capabilityFailure).toBe(false);
+    expect(processedA.document.get('/status')).toBe('one');
+    expect(processedB.document.get('/status')).toBe('two');
+    expect(runtimes).toHaveLength(2);
+    expect(runtimes[0]).not.toBe(runtimes[1]);
+  });
+
   it('throws when document already initialized', async () => {
     const processor = createDocumentProcessor();
     const original = blue.yamlToNode(documentWithLifecycleAndEventHandlers());
@@ -92,16 +159,19 @@ describe('DocumentProcessor', () => {
     ).rejects.toThrowError(/Document already initialized/);
   });
 
-  it('throws when processing uninitialized document', async () => {
+  it('initializes when processing uninitialized document', async () => {
     const processor = createDocumentProcessor();
     const uninitializedDoc = blue.yamlToNode(
       documentWithLifecycleAndEventHandlers(),
     );
     const eventNode = blue.jsonValueToNode({ type: { blueId: 'TestEvent' } });
 
-    await expect(
-      processor.processDocument(uninitializedDoc, eventNode),
-    ).rejects.toThrowError(/Document not initialized/);
+    const result = await processor.processDocument(uninitializedDoc, eventNode);
+    expect(result.capabilityFailure).toBe(false);
+    expect(processor.isInitialized(result.document)).toBe(true);
+    expect(result.document.getProperties()?.initialized?.getValue()).toEqual(
+      new Big(1),
+    );
   });
 
   it('returns capability failure when contracts are not understood', async () => {
@@ -177,3 +247,18 @@ contracts:
     });
   });
 });
+
+function operationRequestEvent(status: string): BlueNode {
+  return blue.resolve(
+    blue.jsonValueToNode({
+      type: 'MyOS/MyOS Timeline Entry',
+      timeline: { timelineId: 'investor-timeline' },
+      timestamp: Date.now(),
+      message: {
+        type: 'Coordination/Operation Request',
+        operation: 'setStatus',
+        request: { status },
+      },
+    }),
+  );
+}

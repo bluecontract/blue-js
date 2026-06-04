@@ -1,0 +1,15 @@
+fixtureId: GAS-037
+title: Dynamic list literal charges list expression and dynamic child
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    - $add:
+        - 1
+        - 2
+        - 3
+expectation:
+  outcome: success
+  resultSimple:
+    - 6
+  gasUsed: 7

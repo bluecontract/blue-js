@@ -1,0 +1,18 @@
+fixtureId: GAS-116
+title: Set statement charges statement and assigned expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $let:
+        name: x
+        expr: 1
+    - $set:
+        name: x
+        expr: 2
+    - $return:
+        $var: x
+expectation:
+  outcome: success
+  resultSimple: 2
+  gasUsed: 9

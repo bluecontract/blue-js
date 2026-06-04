@@ -59,10 +59,10 @@ describe('public exports', () => {
 
   it('exports bootstrap binding helpers for parent-derived account and email values', () => {
     expect(fromChannel('ownerChannel')).toEqual({
-      accountId: "${document('/contracts/ownerChannel/accountId')}",
+      accountId: { $document: '/contracts/ownerChannel/accountId' },
     });
     expect(fromEmail('ownerChannel')).toEqual({
-      email: "${document('/contracts/ownerChannel/email')}",
+      email: { $document: '/contracts/ownerChannel/email' },
     });
   });
 });

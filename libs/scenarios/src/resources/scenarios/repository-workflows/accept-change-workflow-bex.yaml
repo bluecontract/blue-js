@@ -1,0 +1,1042 @@
+name: Accept Change Workflow BEX Representative
+targetState: original
+proposedChange:
+  summary: Accept this proposal
+  changeset:
+    - op: replace
+      path: /targetState
+      val: accepted
+  sectionChanges:
+    add:
+      - sectionKey: acceptedSection
+        section:
+          title: Accepted Section
+        contracts:
+          acceptedMarker:
+            type: Workflows/Document Section
+            kind: workflow proof marker
+            marker: accepted
+contracts:
+  actorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: actor
+  acceptChange:
+    type: Coordination/Operation
+    channel: actorChannel
+  acceptChangeWorkflow:
+    type: Coordination/Sequential Workflow Operation
+    operation: acceptChange
+    postfix: ''
+    steps:
+      - name: Prepare
+        type: Coordination/Compute
+        entry: prepare
+        functions:
+          invalid:
+            args:
+              reason:
+                description: BEX helper argument.
+            expr:
+              changeset: []
+              events:
+                - type: Coordination/Proposed Change Invalid
+                  reason:
+                    $var: reason
+          asList:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: list
+                then:
+                  $var: val
+                else: []
+          asObject:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: object
+                then:
+                  $var: val
+                else:
+                  $emptyObject: true
+          isMetaKey:
+            args:
+              key:
+                description: BEX helper argument.
+            expr:
+              $or:
+                - $eq:
+                    - $var: key
+                    - type
+                - $eq:
+                    - $var: key
+                    - keyType
+                - $eq:
+                    - $var: key
+                    - valueType
+                - $eq:
+                    - $var: key
+                    - description
+          contractKeys:
+            args:
+              contractsMap:
+                description: BEX helper argument.
+            expr:
+              $filter:
+                in:
+                  $keys:
+                    $call:
+                      function: asObject
+                      args:
+                        val:
+                          $var: contractsMap
+                item: contractKey
+                where:
+                  $not:
+                    $call:
+                      function: isMetaKey
+                      args:
+                        key:
+                          $var: contractKey
+          keySetObject:
+            args:
+              keys:
+                description: BEX helper argument.
+            expr:
+              $objectFromEntries:
+                $map:
+                  in:
+                    $call:
+                      function: asList
+                      args:
+                        val:
+                          $var: keys
+                  item: key
+                  expr:
+                    key:
+                      $text:
+                        $var: key
+                    val: true
+          contractPath:
+            args:
+              key:
+                description: BEX helper argument.
+            expr:
+              $pointerJoin:
+                - contracts
+                - $var: key
+          isContractsPatchEntry:
+            args:
+              entry:
+                description: BEX helper argument.
+            expr:
+              $or:
+                - $eq:
+                    - $text:
+                        $default:
+                          - $var:
+                              name: entry
+                              path: /path
+                          - ''
+                    - /contracts
+                - $startsWith:
+                    - $text:
+                        $default:
+                          - $var:
+                              name: entry
+                              path: /path
+                          - ''
+                    - /contracts/
+          isProposedChangePatchEntry:
+            args:
+              entry:
+                description: BEX helper argument.
+            expr:
+              $startsWith:
+                - $text:
+                    $default:
+                      - $var:
+                          name: entry
+                          path: /path
+                      - ''
+                - /proposedChange
+          hasMatchingRelatedContracts:
+            args:
+              section:
+                description: BEX helper argument.
+              contractKeys:
+                description: BEX helper argument.
+            do:
+              - $let:
+                  order:
+                    - related
+                    - relatedMap
+                  vars:
+                    related:
+                      $call:
+                        function: asList
+                        args:
+                          val:
+                            $choose:
+                              cond:
+                                $exists:
+                                  $var:
+                                    name: section
+                                    path: /relatedContracts
+                              then:
+                                $var:
+                                  name: section
+                                  path: /relatedContracts
+                              else: []
+                    relatedMap:
+                      $call:
+                        function: keySetObject
+                        args:
+                          keys:
+                            $var: related
+              - $returnIf:
+                  cond:
+                    $eq:
+                      - $size:
+                          $var: related
+                      - 0
+                  expr: true
+              - $returnIf:
+                  cond:
+                    $ne:
+                      - $size:
+                          $var: related
+                      - $size:
+                          $var: contractKeys
+                  expr: false
+              - $returnIf:
+                  cond:
+                    $ne:
+                      - $size:
+                          $keys:
+                            $var: relatedMap
+                      - $size:
+                          $var: contractKeys
+                  expr: false
+              - $return:
+                  $not:
+                    $some:
+                      in:
+                        $var: contractKeys
+                      item: contractKey
+                      where:
+                        $not:
+                          $hasKey:
+                            object:
+                              $var: relatedMap
+                            key:
+                              $var: contractKey
+          normalizeSection:
+            args:
+              section:
+                description: BEX helper argument.
+              contractKeys:
+                description: BEX helper argument.
+            do:
+              - $let:
+                  name: related
+                  expr:
+                    $call:
+                      function: asList
+                      args:
+                        val:
+                          $choose:
+                            cond:
+                              $exists:
+                                $var:
+                                  name: section
+                                  path: /relatedContracts
+                            then:
+                              $var:
+                                name: section
+                                path: /relatedContracts
+                            else: []
+              - $return:
+                  $merge:
+                    - $call:
+                        function: asObject
+                        args:
+                          val:
+                            $var: section
+                    - type:
+                        blueId: HiM1XEPoxkHoKPURVbtu2Cc5CvFvXqjkNxVtd3PUnJWu
+                      relatedContracts:
+                        $choose:
+                          cond:
+                            $gt:
+                              - $size:
+                                  $var: related
+                              - 0
+                          then:
+                            $var: related
+                          else:
+                            $var: contractKeys
+          sectionKeyForRemove:
+            args:
+              entry:
+                description: BEX helper argument.
+            expr:
+              $text:
+                $default:
+                  - $var:
+                      name: entry
+                      path: /sectionKey
+                  - $var: entry
+          prepare:
+            do:
+              - $let:
+                  order:
+                    - postfix
+                    - proposedPath
+                    - change
+                    - requestChangeset
+                    - sectionChanges
+                    - documentContracts
+                    - policy
+                    - policyEnabled
+                    - seenSectionKeys
+                    - seenContractKeys
+                    - existingContractKeys
+                    - sectionChangeCount
+                  vars:
+                    postfix:
+                      $default:
+                        - $currentContract: /postfix
+                        - ''
+                    proposedPath:
+                      $concat:
+                        - /proposedChange
+                        - $var: postfix
+                    change:
+                      $document:
+                        path:
+                          $var: proposedPath
+                    requestChangeset:
+                      $call:
+                        function: asList
+                        args:
+                          val:
+                            $var:
+                              name: change
+                              path: /changeset
+                    sectionChanges:
+                      $call:
+                        function: asObject
+                        args:
+                          val:
+                            $var:
+                              name: change
+                              path: /sectionChanges
+                    documentContracts:
+                      $call:
+                        function: asObject
+                        args:
+                          val:
+                            $document: /contracts
+                    policy:
+                      $find:
+                        in:
+                          $var: documentContracts
+                        item: contract
+                        where:
+                          $exists:
+                            $var:
+                              name: contract
+                              path: /requireSectionChanges
+                    policyEnabled:
+                      $and:
+                        - $exists:
+                            $var: policy
+                        - $ne:
+                            - $var:
+                                name: policy
+                                path: /requireSectionChanges
+                            - false
+                    seenSectionKeys:
+                      $emptyObject: true
+                    seenContractKeys:
+                      $emptyObject: true
+                    existingContractKeys:
+                      $call:
+                        function: keySetObject
+                        args:
+                          keys:
+                            $call:
+                              function: contractKeys
+                              args:
+                                contractsMap:
+                                  $var: documentContracts
+                    sectionChangeCount: 0
+              - $returnIf:
+                  cond:
+                    $not:
+                      $exists:
+                        $var: change
+                  expr:
+                    $call:
+                      function: invalid
+                      args:
+                        reason:
+                          $concat:
+                            - no proposed change at
+                            - " "
+                            - $var: proposedPath
+              - $returnIf:
+                  cond:
+                    $and:
+                      - $var: policyEnabled
+                      - $some:
+                          in:
+                            $var: requestChangeset
+                          item: entry
+                          where:
+                            $call:
+                              function: isContractsPatchEntry
+                              args:
+                                entry:
+                                  $var: entry
+                  expr:
+                    $call:
+                      function: invalid
+                      args:
+                        reason: changeset cannot modify /contracts when Contracts Change Policy is enabled
+              - $returnIf:
+                  cond:
+                    $some:
+                      in:
+                        $var: requestChangeset
+                      item: entry
+                      where:
+                        $call:
+                          function: isProposedChangePatchEntry
+                          args:
+                            entry:
+                              $var: entry
+                  expr:
+                    $call:
+                      function: invalid
+                      args:
+                        reason: changeset cannot modify /proposedChange
+              - $forEach:
+                  in:
+                    $call:
+                      function: asList
+                      args:
+                        val:
+                          $var:
+                            name: sectionChanges
+                            path: /add
+                  item: entry
+                  do:
+                    - $let:
+                        order:
+                          - sectionKey
+                          - contractsMap
+                          - contractKeys
+                        vars:
+                          sectionKey:
+                            $text:
+                              $default:
+                                - $var:
+                                    name: entry
+                                    path: /sectionKey
+                                - ''
+                          contractsMap:
+                            $call:
+                              function: asObject
+                              args:
+                                val:
+                                  $var:
+                                    name: entry
+                                    path: /contracts
+                          contractKeys:
+                            $call:
+                              function: contractKeys
+                              args:
+                                contractsMap:
+                                  $var: contractsMap
+                    - $returnIf:
+                        cond:
+                          $not:
+                            $truthy:
+                              $var: sectionKey
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason: sectionChanges.add is missing sectionKey
+                    - $returnIf:
+                        cond:
+                          $hasKey:
+                            object:
+                              $var: seenSectionKeys
+                            key:
+                              $var: sectionKey
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason:
+                                $concat:
+                                  - 'section key duplicated in sectionChanges: '
+                                  - $var: sectionKey
+                    - $set:
+                        name: seenSectionKeys
+                        expr:
+                          $objectSet:
+                            object:
+                              $var: seenSectionKeys
+                            key:
+                              $var: sectionKey
+                            val: true
+                    - $returnIf:
+                        cond:
+                          $hasKey:
+                            object:
+                              $var: existingContractKeys
+                            key:
+                              $var: sectionKey
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason:
+                                $concat:
+                                  - contract key already exists at
+                                  - " "
+                                  - $call:
+                                      function: contractPath
+                                      args:
+                                        key:
+                                          $var: sectionKey
+                    - $returnIf:
+                        cond:
+                          $not:
+                            $call:
+                              function: hasMatchingRelatedContracts
+                              args:
+                                section:
+                                  $var:
+                                    name: entry
+                                    path: /section
+                                contractKeys:
+                                  $var: contractKeys
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason: relatedContracts must match contracts
+                    - $forEach:
+                        in:
+                          $var: contractKeys
+                        item: contractKey
+                        do:
+                          - $returnIf:
+                              cond:
+                                $hasKey:
+                                  object:
+                                    $var: existingContractKeys
+                                  key:
+                                    $var: contractKey
+                              expr:
+                                $call:
+                                  function: invalid
+                                  args:
+                                    reason:
+                                      $concat:
+                                        - contract key already exists at
+                                        - " "
+                                        - $call:
+                                            function: contractPath
+                                            args:
+                                              key:
+                                                $var: contractKey
+                          - $let:
+                              name: existingSection
+                              expr:
+                                $get:
+                                  object:
+                                    $var: seenContractKeys
+                                  key:
+                                    $var: contractKey
+                          - $returnIf:
+                              cond:
+                                $and:
+                                  - $exists:
+                                      $var: existingSection
+                                  - $ne:
+                                      - $var: existingSection
+                                      - $var: sectionKey
+                              expr:
+                                $call:
+                                  function: invalid
+                                  args:
+                                    reason:
+                                      $concat:
+                                        - 'contract key used by multiple sections in request: '
+                                        - $var: contractKey
+                          - $set:
+                              name: seenContractKeys
+                              expr:
+                                $objectSet:
+                                  object:
+                                    $var: seenContractKeys
+                                  key:
+                                    $var: contractKey
+                                  val:
+                                    $var: sectionKey
+                    - $forEach:
+                        in:
+                          $var: contractKeys
+                        item: contractKey
+                        do:
+                          - $appendChange:
+                              op: add
+                              path:
+                                $call:
+                                  function: contractPath
+                                  args:
+                                    key:
+                                      $var: contractKey
+                              val:
+                                $get:
+                                  object:
+                                    $var: contractsMap
+                                  key:
+                                    $var: contractKey
+                          - $set:
+                              name: sectionChangeCount
+                              expr:
+                                $add:
+                                  - $var: sectionChangeCount
+                                  - 1
+                    - $appendChange:
+                        op: add
+                        path:
+                          $call:
+                            function: contractPath
+                            args:
+                              key:
+                                $var: sectionKey
+                        val:
+                          $call:
+                            function: normalizeSection
+                            args:
+                              section:
+                                $var:
+                                  name: entry
+                                  path: /section
+                              contractKeys:
+                                $var: contractKeys
+                    - $set:
+                        name: sectionChangeCount
+                        expr:
+                          $add:
+                            - $var: sectionChangeCount
+                            - 1
+              - $forEach:
+                  in:
+                    $call:
+                      function: asList
+                      args:
+                        val:
+                          $choose:
+                            cond:
+                              $exists:
+                                $var:
+                                  name: sectionChanges
+                                  path: /modify
+                            then:
+                              $var:
+                                name: sectionChanges
+                                path: /modify
+                            else: []
+                  item: entry
+                  do:
+                    - $let:
+                        order:
+                          - sectionKey
+                          - existingRelated
+                          - existingRelatedMap
+                          - contractsMap
+                          - contractKeys
+                        vars:
+                          sectionKey:
+                            $text:
+                              $default:
+                                - $var:
+                                    name: entry
+                                    path: /sectionKey
+                                - ''
+                          existingRelated:
+                            $call:
+                              function: asList
+                              args:
+                                val:
+                                  $choose:
+                                    cond:
+                                      $exists:
+                                        $document:
+                                          path:
+                                            $pointerJoin:
+                                              - contracts
+                                              - $var: sectionKey
+                                              - relatedContracts
+                                    then:
+                                      $document:
+                                        path:
+                                          $pointerJoin:
+                                            - contracts
+                                            - $var: sectionKey
+                                            - relatedContracts
+                                    else: []
+                          existingRelatedMap:
+                            $call:
+                              function: keySetObject
+                              args:
+                                keys:
+                                  $var: existingRelated
+                          contractsMap:
+                            $call:
+                              function: asObject
+                              args:
+                                val:
+                                  $var:
+                                    name: entry
+                                    path: /contracts
+                          contractKeys:
+                            $call:
+                              function: contractKeys
+                              args:
+                                contractsMap:
+                                  $var: contractsMap
+                    - $returnIf:
+                        cond:
+                          $not:
+                            $truthy:
+                              $var: sectionKey
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason: sectionChanges.modify is missing sectionKey
+                    - $returnIf:
+                        cond:
+                          $hasKey:
+                            object:
+                              $var: seenSectionKeys
+                            key:
+                              $var: sectionKey
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason:
+                                $concat:
+                                  - 'section key duplicated in sectionChanges: '
+                                  - $var: sectionKey
+                    - $set:
+                        name: seenSectionKeys
+                        expr:
+                          $objectSet:
+                            object:
+                              $var: seenSectionKeys
+                            key:
+                              $var: sectionKey
+                            val: true
+                    - $returnIf:
+                        cond:
+                          $not:
+                            $call:
+                              function: hasMatchingRelatedContracts
+                              args:
+                                section:
+                                  $var:
+                                    name: entry
+                                    path: /section
+                                contractKeys:
+                                  $var: contractKeys
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason: relatedContracts must match contracts
+                    - $forEach:
+                        in:
+                          $var: contractKeys
+                        item: contractKey
+                        do:
+                          - $let:
+                              name: existingSection
+                              expr:
+                                $get:
+                                  object:
+                                    $var: seenContractKeys
+                                  key:
+                                    $var: contractKey
+                          - $returnIf:
+                              cond:
+                                $and:
+                                  - $exists:
+                                      $var: existingSection
+                                  - $ne:
+                                      - $var: existingSection
+                                      - $var: sectionKey
+                              expr:
+                                $call:
+                                  function: invalid
+                                  args:
+                                    reason:
+                                      $concat:
+                                        - 'contract key used by multiple sections in request: '
+                                        - $var: contractKey
+                          - $returnIf:
+                              cond:
+                                $and:
+                                  - $hasKey:
+                                      object:
+                                        $var: existingContractKeys
+                                      key:
+                                        $var: contractKey
+                                  - $not:
+                                      $hasKey:
+                                        object:
+                                          $var: existingRelatedMap
+                                        key:
+                                          $var: contractKey
+                              expr:
+                                $call:
+                                  function: invalid
+                                  args:
+                                    reason:
+                                      $concat:
+                                        - contract key already exists at
+                                        - " "
+                                        - $call:
+                                            function: contractPath
+                                            args:
+                                              key:
+                                                $var: contractKey
+                          - $set:
+                              name: seenContractKeys
+                              expr:
+                                $objectSet:
+                                  object:
+                                    $var: seenContractKeys
+                                  key:
+                                    $var: contractKey
+                                  val:
+                                    $var: sectionKey
+                    - $forEach:
+                        in:
+                          $var: contractKeys
+                        item: contractKey
+                        do:
+                          - $appendChange:
+                              op: add
+                              path:
+                                $call:
+                                  function: contractPath
+                                  args:
+                                    key:
+                                      $var: contractKey
+                              val:
+                                $get:
+                                  object:
+                                    $var: contractsMap
+                                  key:
+                                    $var: contractKey
+                          - $set:
+                              name: sectionChangeCount
+                              expr:
+                                $add:
+                                  - $var: sectionChangeCount
+                                  - 1
+                    - $forEach:
+                        in:
+                          $var: existingRelated
+                        item: oldKey
+                        do:
+                          - $if:
+                              cond:
+                                $not:
+                                  $includes:
+                                    list:
+                                      $var: contractKeys
+                                    val:
+                                      $var: oldKey
+                              then:
+                                - $appendChange:
+                                    op: remove
+                                    path:
+                                      $call:
+                                        function: contractPath
+                                        args:
+                                          key:
+                                            $var: oldKey
+                                - $set:
+                                    name: sectionChangeCount
+                                    expr:
+                                      $add:
+                                        - $var: sectionChangeCount
+                                        - 1
+                    - $appendChange:
+                        op: add
+                        path:
+                          $call:
+                            function: contractPath
+                            args:
+                              key:
+                                $var: sectionKey
+                        val:
+                          $call:
+                            function: normalizeSection
+                            args:
+                              section:
+                                $var:
+                                  name: entry
+                                  path: /section
+                              contractKeys:
+                                $var: contractKeys
+                    - $set:
+                        name: sectionChangeCount
+                        expr:
+                          $add:
+                            - $var: sectionChangeCount
+                            - 1
+              - $forEach:
+                  in:
+                    $call:
+                      function: asList
+                      args:
+                        val:
+                          $choose:
+                            cond:
+                              $exists:
+                                $var:
+                                  name: sectionChanges
+                                  path: /remove
+                            then:
+                              $var:
+                                name: sectionChanges
+                                path: /remove
+                            else: []
+                  item: entry
+                  do:
+                    - $let:
+                        order:
+                          - sectionKey
+                          - related
+                        vars:
+                          sectionKey:
+                            $call:
+                              function: sectionKeyForRemove
+                              args:
+                                entry:
+                                  $var: entry
+                          related:
+                            $call:
+                              function: asList
+                              args:
+                                val:
+                                  $choose:
+                                    cond:
+                                      $exists:
+                                        $document:
+                                          path:
+                                            $pointerJoin:
+                                              - contracts
+                                              - $var: sectionKey
+                                              - relatedContracts
+                                    then:
+                                      $document:
+                                        path:
+                                          $pointerJoin:
+                                            - contracts
+                                            - $var: sectionKey
+                                            - relatedContracts
+                                    else: []
+                    - $returnIf:
+                        cond:
+                          $not:
+                            $truthy:
+                              $var: sectionKey
+                        expr:
+                          $call:
+                            function: invalid
+                            args:
+                              reason: sectionChanges.remove is missing sectionKey
+                    - $forEach:
+                        in:
+                          $var: related
+                        item: contractKey
+                        do:
+                          - $appendChange:
+                              op: remove
+                              path:
+                                $call:
+                                  function: contractPath
+                                  args:
+                                    key:
+                                      $var: contractKey
+                          - $set:
+                              name: sectionChangeCount
+                              expr:
+                                $add:
+                                  - $var: sectionChangeCount
+                                  - 1
+                    - $appendChange:
+                        op: remove
+                        path:
+                          $call:
+                            function: contractPath
+                            args:
+                              key:
+                                $var: sectionKey
+                    - $set:
+                        name: sectionChangeCount
+                        expr:
+                          $add:
+                            - $var: sectionChangeCount
+                            - 1
+              - $returnIf:
+                  cond:
+                    $eq:
+                      - $add:
+                          - $var: sectionChangeCount
+                          - $size:
+                              $var: requestChangeset
+                      - 0
+                  expr:
+                    $call:
+                      function: invalid
+                      args:
+                        reason: no changes provided
+              - $appendChanges:
+                  $var: requestChangeset
+              - $appendChange:
+                  op: remove
+                  path:
+                    $var: proposedPath
+              - $return:
+                  changeset:
+                    $changeset: true
+                  events:
+                    $events: true

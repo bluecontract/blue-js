@@ -1,4 +1,15 @@
-import { blueIds } from '../../repository/semantic-repository.js';
+import {
+  Blue,
+  BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID,
+} from '@blue-labs/language';
+
+import {
+  blueIds,
+  blueRepository,
+} from '../../repository/semantic-repository.js';
+import { calculateContentBlueId } from '../../util/content-blue-id.js';
+import { BLUE_CONTRACTS_1_0_FIXTURE_PACKAGE_IDENTITY } from '../../conformance/BlueContractsConformanceReport.js';
+import { fixturePackageIdentityMatchesFixtureFiles } from '../../conformance/BlueContractsConformanceSuiteRunner.js';
 import {
   KEY_CHECKPOINT,
   KEY_EMBEDDED,
@@ -17,7 +28,6 @@ import {
   RELATIVE_INITIALIZED,
   RELATIVE_TERMINATED,
   relativeCheckpointLastEvent,
-  relativeCheckpointLastSignature,
   relativeContractsEntry,
 } from '../processor-pointer-constants.js';
 
@@ -35,7 +45,7 @@ describe('processor constants', () => {
 
   it('checks processor-managed channel blue ids', () => {
     expect(
-      isProcessorManagedChannelBlueId(blueIds['Core/Lifecycle Event Channel']),
+      isProcessorManagedChannelBlueId(blueIds['Lifecycle Event Channel']),
     ).toBe(true);
     expect(isProcessorManagedChannelBlueId('CustomChannel')).toBe(false);
   });
@@ -53,15 +63,42 @@ describe('processor constants', () => {
     expect(relativeCheckpointLastEvent('checkpoint', 'channel')).toBe(
       '/contracts/checkpoint/lastEvents/channel',
     );
-    expect(relativeCheckpointLastSignature('checkpoint', 'channel')).toBe(
-      '/contracts/checkpoint/lastSignatures/channel',
-    );
   });
 
   it('keeps legacy namespace compatibility object for ease of porting', () => {
     expect(ProcessorContractConstants.KEY_EMBEDDED).toBe(KEY_EMBEDDED);
     expect(Array.from(PROCESSOR_MANAGED_CHANNEL_BLUE_IDS)).not.toContain(
       ProcessorContractConstants.KEY_EMBEDDED,
+    );
+  });
+
+  it('runtimeRegistryResourcesHashToPublishedBlueIds', () => {
+    const blue = new Blue({ repositories: [blueRepository] });
+
+    for (const [publishedBlueId, content] of Object.entries(
+      BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID,
+    )) {
+      expect(calculateContentBlueId(blue.jsonValueToNode(content))).toBe(
+        publishedBlueId,
+      );
+    }
+  });
+
+  it('runtimeRegistryManifestFixtureIdentityMatchesOfficialIdentity', () => {
+    expect(BLUE_CONTRACTS_1_0_FIXTURE_PACKAGE_IDENTITY).toBe(
+      'sha256:2f197ca3bbdc41b75e772777cc48e51019754347e1bee26b5f3209b71d9bd9ca',
+    );
+    expect(fixturePackageIdentityMatchesFixtureFiles()).toBe(true);
+  });
+
+  it('processorRuntimeRecognitionUsesRegistryBlueIdsOnly', () => {
+    expect(PROCESSOR_MANAGED_CHANNEL_BLUE_IDS).toEqual(
+      new Set([
+        blueIds['Document Update Channel'],
+        blueIds['Triggered Event Channel'],
+        blueIds['Lifecycle Event Channel'],
+        blueIds['Embedded Node Channel'],
+      ]),
     );
   });
 });

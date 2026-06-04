@@ -1,0 +1,19 @@
+fixtureId: GAS-058
+title: ForEach body charges statements on each iteration
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $forEach:
+        in:
+          - a
+          - b
+        item: item
+        do:
+          - $appendEvent: x
+expectation:
+  outcome: success
+  events:
+    - x
+    - x
+  gasUsed: 22

@@ -1,0 +1,1056 @@
+name: Payment Mandate BEX Representative
+description: BEX workflow for Payment Mandate workflows.
+granterType: customer
+granterId: customer-a
+granteeType: documentId
+granteeId: paynote-delivery-a
+amountLimit: 20000
+currency: USD
+amountReserved: 0
+amountCaptured: 0
+sourceAccount: root
+expiresAt: ''
+revokedAt: ''
+allowLinkedPayNote: true
+allowedPaymentCounterparties:
+  - counterpartyType: merchantId
+    counterpartyId: merchant-a
+
+contracts:
+  granterChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: mandate-granter
+    accountId: granter-account-a
+
+  granteeChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: mandate-grantee
+    accountId: grantee-account-a
+
+  guarantorChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: mandate-guarantor
+    accountId: guarantor-account-a
+
+  initLifecycleChannel:
+    type: Lifecycle Event Channel
+    event:
+      type: Document Processing Initiated
+
+  initialize:
+    type: Coordination/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: InitializeMandateRuntimeState
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: add
+              path: /chargeAttempts
+              val:
+                $emptyObject: true
+          - $return:
+              changeset:
+                $changeset: true
+
+  authorizeSpend:
+    type: Coordination/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Mandate Spend Authorization Requested
+
+  authorizeSpendImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: authorizeSpend
+    steps:
+      - name: DecideSpendAuthorization
+        type: Coordination/Compute
+        functions:
+          isLanguageKey:
+            args:
+              key:
+                description: BEX helper argument.
+            expr:
+              $or:
+                - $eq:
+                    - $var: key
+                    - blueId
+                - $eq:
+                    - $var: key
+                    - type
+                - $eq:
+                    - $var: key
+                    - name
+                - $eq:
+                    - $var: key
+                    - description
+                - $eq:
+                    - $var: key
+                    - schema
+                - $eq:
+                    - $var: key
+                    - contracts
+          cleanMap:
+            args:
+              object:
+                description: BEX helper argument.
+            expr:
+              $objectFromEntries:
+                $filter:
+                  in:
+                    $entries:
+                      $var: object
+                  item: entry
+                  where:
+                    $not:
+                      $call:
+                        function: isLanguageKey
+                        args:
+                          key:
+                            $var:
+                              name: entry
+                              path: /key
+        do:
+          - $let:
+              order:
+                - authorizationId
+                - amountMinor
+                - requestedCurrency
+                - counterpartyType
+                - counterpartyId
+                - chargeMode
+                - nowIso
+                - amountLimit
+                - amountReserved
+                - amountCaptured
+                - mandateCurrency
+                - revokedAt
+                - chargeAttempts
+                - existingAttempt
+                - existingDecision
+                - existingReason
+                - allowedCounterparties
+                - counterpartyAllowed
+                - status
+                - reason
+                - nextAmountReserved
+                - nextChargeAttempts
+              vars:
+                authorizationId:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/authorizationId
+                        kind: text
+                    then:
+                      $event: /message/request/authorizationId
+                    else: ''
+                amountMinor:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/amountMinor
+                        kind: integer
+                    then:
+                      $event: /message/request/amountMinor
+                    else: 0
+                requestedCurrency:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/currency
+                        kind: text
+                    then:
+                      $event: /message/request/currency
+                    else: ''
+                counterpartyType:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/counterpartyType
+                        kind: text
+                    then:
+                      $event: /message/request/counterpartyType
+                    else: ''
+                counterpartyId:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/counterpartyId
+                        kind: text
+                    then:
+                      $event: /message/request/counterpartyId
+                    else: ''
+                chargeMode:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/chargeMode
+                        kind: text
+                    then:
+                      $event: /message/request/chargeMode
+                    else: ''
+                nowIso:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/requestedAt
+                        kind: text
+                    then:
+                      $event: /message/request/requestedAt
+                    else: ''
+                amountLimit:
+                  $document: /amountLimit
+                amountReserved:
+                  $document: /amountReserved
+                amountCaptured:
+                  $document: /amountCaptured
+                mandateCurrency:
+                  $document: /currency
+                revokedAt:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $document: /revokedAt
+                        kind: text
+                    then:
+                      $document: /revokedAt
+                    else: ''
+                chargeAttempts:
+                  $call:
+                    function: cleanMap
+                    args:
+                      object:
+                        $object:
+                          $document: /chargeAttempts
+                existingAttempt:
+                  $call:
+                    function: cleanMap
+                    args:
+                      object:
+                        $object:
+                          $get:
+                            object:
+                              $object:
+                                $document: /chargeAttempts
+                            key:
+                              $choose:
+                                cond:
+                                  $isKind:
+                                    val:
+                                      $event: /message/request/authorizationId
+                                    kind: text
+                                then:
+                                  $event: /message/request/authorizationId
+                                else: ''
+                existingDecision:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $var:
+                            name: existingAttempt
+                            path: /authorizationStatus
+                        kind: text
+                    then:
+                      $var:
+                        name: existingAttempt
+                        path: /authorizationStatus
+                    else: ''
+                existingReason:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $var:
+                            name: existingAttempt
+                            path: /authorizationReason
+                        kind: text
+                    then:
+                      $var:
+                        name: existingAttempt
+                        path: /authorizationReason
+                    else: ''
+                allowedCounterparties:
+                  $list:
+                    $document: /allowedPaymentCounterparties
+                counterpartyAllowed:
+                  $or:
+                    - $eq:
+                        - $size:
+                            $list:
+                              $document: /allowedPaymentCounterparties
+                        - 0
+                    - $some:
+                        in:
+                          $list:
+                            $document: /allowedPaymentCounterparties
+                        item: item
+                        where:
+                          $and:
+                            - $eq:
+                                - $var:
+                                    name: item
+                                    path: /counterpartyType
+                                - $var: counterpartyType
+                            - $eq:
+                                - $var:
+                                    name: item
+                                    path: /counterpartyId
+                                - $var: counterpartyId
+                status: rejected
+                reason: ''
+                nextAmountReserved:
+                  $document: /amountReserved
+                nextChargeAttempts:
+                  $call:
+                    function: cleanMap
+                    args:
+                      object:
+                        $object:
+                          $document: /chargeAttempts
+          - $if:
+              cond:
+                $or:
+                  - $eq:
+                      - $var: existingDecision
+                      - approved
+                  - $eq:
+                      - $var: existingDecision
+                      - rejected
+              then:
+                - $set:
+                    name: status
+                    expr:
+                      $var: existingDecision
+                - $if:
+                    cond:
+                      $eq:
+                        - $var: existingDecision
+                        - rejected
+                    then:
+                      - $set:
+                          name: reason
+                          expr:
+                            $var: existingReason
+              else:
+                - $if:
+                    cond:
+                      $not:
+                        $truthy:
+                          $var: authorizationId
+                    then:
+                      - $set:
+                          name: reason
+                          expr: Missing authorizationId.
+                    else:
+                      - $if:
+                          cond:
+                            $lte:
+                              - $var: amountMinor
+                              - 0
+                          then:
+                            - $set:
+                                name: reason
+                                expr: Amount must be greater than zero.
+                          else:
+                            - $if:
+                                cond:
+                                  $or:
+                                    - $not:
+                                        $truthy:
+                                          $var: requestedCurrency
+                                    - $ne:
+                                        - $var: requestedCurrency
+                                        - $var: mandateCurrency
+                                then:
+                                  - $set:
+                                      name: reason
+                                      expr: Currency does not match mandate currency.
+                                else:
+                                  - $if:
+                                      cond:
+                                        $truthy:
+                                          $var: revokedAt
+                                      then:
+                                        - $set:
+                                            name: reason
+                                            expr: Mandate is revoked.
+                                      else:
+                                        - $if:
+                                            cond:
+                                              $not:
+                                                $var: counterpartyAllowed
+                                            then:
+                                              - $set:
+                                                  name: reason
+                                                  expr: Counterparty is not allowed by mandate.
+                                            else:
+                                              - $if:
+                                                  cond:
+                                                    $gt:
+                                                      - $add:
+                                                          - $var: amountReserved
+                                                          - $var: amountCaptured
+                                                          - $var: amountMinor
+                                                      - $var: amountLimit
+                                                  then:
+                                                    - $set:
+                                                        name: reason
+                                                        expr: Mandate amount limit exceeded.
+                                                  else:
+                                                    - $set:
+                                                        name: status
+                                                        expr: approved
+                                                    - $set:
+                                                        name: nextAmountReserved
+                                                        expr:
+                                                          $add:
+                                                            - $var: amountReserved
+                                                            - $var: amountMinor
+          - $if:
+              cond:
+                $and:
+                  - $truthy:
+                      $var: authorizationId
+                  - $not:
+                      $truthy:
+                        $var: existingDecision
+              then:
+                - $set:
+                    name: nextChargeAttempts
+                    expr:
+                      $objectSet:
+                        object:
+                          $var: nextChargeAttempts
+                        key:
+                          $var: authorizationId
+                        val:
+                          amountMinor:
+                            $var: amountMinor
+                          currency:
+                            $var: requestedCurrency
+                          counterpartyType:
+                            $var: counterpartyType
+                          counterpartyId:
+                            $var: counterpartyId
+                          chargeMode:
+                            $var: chargeMode
+                          authorizationStatus:
+                            $var: status
+                          authorizationReason:
+                            $var: reason
+                          authorizationRespondedAt:
+                            $var: nowIso
+                          authorizedAmountMinor:
+                            $choose:
+                              cond:
+                                $eq:
+                                  - $var: status
+                                  - approved
+                              then:
+                                $var: amountMinor
+                              else: 0
+                          settled: false
+                          lastSettlementRequestStatus: ''
+                          lastSettlementProcessingStatus: ''
+                          settlementReason: ''
+                          settlementRespondedAt: ''
+                          reservedDeltaMinor: 0
+                          capturedDeltaMinor: 0
+                          holdId: ''
+                          transactionId: ''
+          - $let:
+              order:
+                - remainingAmountMinor
+              vars:
+                remainingAmountMinor:
+                  $choose:
+                    cond:
+                      $gt:
+                        - $subtract:
+                            - $var: amountLimit
+                            - $add:
+                                - $var: nextAmountReserved
+                                - $var: amountCaptured
+                        - 0
+                    then:
+                      $subtract:
+                        - $var: amountLimit
+                        - $add:
+                            - $var: nextAmountReserved
+                            - $var: amountCaptured
+                    else: 0
+          - $appendChange:
+              op: replace
+              path: /chargeAttempts
+              val:
+                $var: nextChargeAttempts
+          - $appendChange:
+              op: replace
+              path: /amountReserved
+              val:
+                $var: nextAmountReserved
+          - $appendEvent:
+              type: PayNote/Payment Mandate Spend Authorization Responded
+              authorizationId:
+                $var: authorizationId
+              status:
+                $var: status
+              remainingAmountMinor:
+                $var: remainingAmountMinor
+              respondedAt:
+                $var: nowIso
+              reason:
+                $choose:
+                  cond:
+                    $truthy:
+                      $var: reason
+                  then:
+                    $var: reason
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+
+  settleSpend:
+    type: Coordination/Operation
+    channel: guarantorChannel
+    request:
+      type: PayNote/Payment Mandate Spend Settled
+
+  settleSpendImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: settleSpend
+    steps:
+      - name: ValidateAndApplySettlement
+        type: Coordination/Compute
+        functions:
+          isLanguageKey:
+            args:
+              key:
+                description: BEX helper argument.
+            expr:
+              $or:
+                - $eq:
+                    - $var: key
+                    - blueId
+                - $eq:
+                    - $var: key
+                    - type
+                - $eq:
+                    - $var: key
+                    - name
+                - $eq:
+                    - $var: key
+                    - description
+                - $eq:
+                    - $var: key
+                    - schema
+                - $eq:
+                    - $var: key
+                    - contracts
+          cleanMap:
+            args:
+              object:
+                description: BEX helper argument.
+            expr:
+              $objectFromEntries:
+                $filter:
+                  in:
+                    $entries:
+                      $var: object
+                  item: entry
+                  where:
+                    $not:
+                      $call:
+                        function: isLanguageKey
+                        args:
+                          key:
+                            $var:
+                              name: entry
+                              path: /key
+        do:
+          - $let:
+              order:
+                - authorizationId
+                - settlementId
+                - settlementStatus
+                - reservedDeltaMinor
+                - capturedDeltaMinor
+                - holdId
+                - transactionId
+                - requestReason
+                - nowIso
+                - amountLimit
+                - amountReserved
+                - amountCaptured
+                - chargeAttempts
+                - existingAttempt
+                - hasExistingAttempt
+                - alreadySettled
+                - approved
+                - authorizedAmount
+                - status
+                - reason
+                - nextAmountReserved
+                - nextAmountCaptured
+                - nextAttempt
+                - nextChargeAttempts
+              vars:
+                authorizationId:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/authorizationId
+                        kind: text
+                    then:
+                      $event: /message/request/authorizationId
+                    else: ''
+                settlementId:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/settlementId
+                        kind: text
+                    then:
+                      $event: /message/request/settlementId
+                    else: ''
+                settlementStatus:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/status
+                        kind: text
+                    then:
+                      $event: /message/request/status
+                    else: ''
+                reservedDeltaMinor:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/reservedDeltaMinor
+                        kind: integer
+                    then:
+                      $event: /message/request/reservedDeltaMinor
+                    else: 0
+                capturedDeltaMinor:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/capturedDeltaMinor
+                        kind: integer
+                    then:
+                      $event: /message/request/capturedDeltaMinor
+                    else: 0
+                holdId:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/holdId
+                        kind: text
+                    then:
+                      $event: /message/request/holdId
+                    else: ''
+                transactionId:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/transactionId
+                        kind: text
+                    then:
+                      $event: /message/request/transactionId
+                    else: ''
+                requestReason:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/reason
+                        kind: text
+                    then:
+                      $event: /message/request/reason
+                    else: ''
+                nowIso:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $event: /message/request/settledAt
+                        kind: text
+                    then:
+                      $event: /message/request/settledAt
+                    else: ''
+                amountLimit:
+                  $document: /amountLimit
+                amountReserved:
+                  $document: /amountReserved
+                amountCaptured:
+                  $document: /amountCaptured
+                chargeAttempts:
+                  $call:
+                    function: cleanMap
+                    args:
+                      object:
+                        $object:
+                          $document: /chargeAttempts
+                existingAttempt:
+                  $call:
+                    function: cleanMap
+                    args:
+                      object:
+                        $object:
+                          $get:
+                            object:
+                              $object:
+                                $document: /chargeAttempts
+                            key:
+                              $choose:
+                                cond:
+                                  $isKind:
+                                    val:
+                                      $event: /message/request/authorizationId
+                                    kind: text
+                                then:
+                                  $event: /message/request/authorizationId
+                                else: ''
+                hasExistingAttempt:
+                  $isKind:
+                    val:
+                      $get:
+                        object:
+                          $object:
+                            $document: /chargeAttempts
+                        key:
+                          $choose:
+                            cond:
+                              $isKind:
+                                val:
+                                  $event: /message/request/authorizationId
+                                kind: text
+                            then:
+                              $event: /message/request/authorizationId
+                            else: ''
+                    kind: object
+                alreadySettled:
+                  $eq:
+                    - $var:
+                        name: existingAttempt
+                        path: /settled
+                    - true
+                approved:
+                  $eq:
+                    - $var:
+                        name: existingAttempt
+                        path: /authorizationStatus
+                    - approved
+                authorizedAmount:
+                  $choose:
+                    cond:
+                      $isKind:
+                        val:
+                          $var:
+                            name: existingAttempt
+                            path: /authorizedAmountMinor
+                        kind: integer
+                    then:
+                      $var:
+                        name: existingAttempt
+                        path: /authorizedAmountMinor
+                    else: 0
+                status: rejected
+                reason: ''
+                nextAmountReserved:
+                  $document: /amountReserved
+                nextAmountCaptured:
+                  $document: /amountCaptured
+                nextAttempt:
+                  $call:
+                    function: cleanMap
+                    args:
+                      object:
+                        $object:
+                          $get:
+                            object:
+                              $object:
+                                $document: /chargeAttempts
+                            key:
+                              $choose:
+                                cond:
+                                  $isKind:
+                                    val:
+                                      $event: /message/request/authorizationId
+                                    kind: text
+                                then:
+                                  $event: /message/request/authorizationId
+                                else: ''
+                nextChargeAttempts:
+                  $call:
+                    function: cleanMap
+                    args:
+                      object:
+                        $object:
+                          $document: /chargeAttempts
+          - $if:
+              cond:
+                $not:
+                  $truthy:
+                    $var: authorizationId
+              then:
+                - $set:
+                    name: reason
+                    expr: Missing authorizationId.
+              else:
+                - $if:
+                    cond:
+                      $var: alreadySettled
+                    then:
+                      - $set:
+                          name: status
+                          expr: accepted
+                      - $set:
+                          name: reason
+                          expr: Authorization already settled.
+                    else:
+                      - $if:
+                          cond:
+                            $not:
+                              $var: approved
+                          then:
+                            - $set:
+                                name: reason
+                                expr: Authorization is not approved.
+                          else:
+                            - $if:
+                                cond:
+                                  $and:
+                                    - $ne:
+                                        - $var: settlementStatus
+                                        - succeeded
+                                    - $ne:
+                                        - $var: settlementStatus
+                                        - failed
+                                then:
+                                  - $set:
+                                      name: reason
+                                      expr: Unsupported settlement status.
+                                else:
+                                  - $if:
+                                      cond:
+                                        $lt:
+                                          - $var: capturedDeltaMinor
+                                          - 0
+                                      then:
+                                        - $set:
+                                            name: reason
+                                            expr: capturedDeltaMinor cannot be negative.
+                                      else:
+                                        - $if:
+                                            cond:
+                                              $and:
+                                                - $eq:
+                                                    - $var: settlementStatus
+                                                    - failed
+                                                - $ne:
+                                                    - $var: capturedDeltaMinor
+                                                    - 0
+                                            then:
+                                              - $set:
+                                                  name: reason
+                                                  expr: capturedDeltaMinor must be 0 for failed settlement.
+                                            else:
+                                              - $if:
+                                                  cond:
+                                                    $gt:
+                                                      - $var: capturedDeltaMinor
+                                                      - $var: authorizedAmount
+                                                  then:
+                                                    - $set:
+                                                        name: reason
+                                                        expr: capturedDeltaMinor exceeds authorized amount.
+                                                  else:
+                                                    - $let:
+                                                        order:
+                                                          - candidateAmountReserved
+                                                          - candidateAmountCaptured
+                                                          - candidateUsed
+                                                        vars:
+                                                          candidateAmountReserved:
+                                                            $add:
+                                                              - $var: amountReserved
+                                                              - $var: reservedDeltaMinor
+                                                          candidateAmountCaptured:
+                                                            $add:
+                                                              - $var: amountCaptured
+                                                              - $var: capturedDeltaMinor
+                                                          candidateUsed:
+                                                            $add:
+                                                              - $add:
+                                                                  - $var: amountReserved
+                                                                  - $var: reservedDeltaMinor
+                                                              - $add:
+                                                                  - $var: amountCaptured
+                                                                  - $var: capturedDeltaMinor
+                                                    - $if:
+                                                        cond:
+                                                          $lt:
+                                                            - $var: candidateAmountReserved
+                                                            - 0
+                                                        then:
+                                                          - $set:
+                                                              name: reason
+                                                              expr: Settlement would make amountReserved negative.
+                                                        else:
+                                                          - $if:
+                                                              cond:
+                                                                $lt:
+                                                                  - $var: candidateAmountCaptured
+                                                                  - 0
+                                                              then:
+                                                                - $set:
+                                                                    name: reason
+                                                                    expr: Settlement would make amountCaptured negative.
+                                                              else:
+                                                                - $if:
+                                                                    cond:
+                                                                      $gt:
+                                                                        - $var: candidateUsed
+                                                                        - $var: amountLimit
+                                                                    then:
+                                                                      - $set:
+                                                                          name: reason
+                                                                          expr: Settlement would exceed amountLimit.
+                                                                    else:
+                                                                      - $set:
+                                                                          name: status
+                                                                          expr: accepted
+                                                                      - $set:
+                                                                          name: nextAmountReserved
+                                                                          expr:
+                                                                            $var: candidateAmountReserved
+                                                                      - $set:
+                                                                          name: nextAmountCaptured
+                                                                          expr:
+                                                                            $var: candidateAmountCaptured
+                                                                      - $set:
+                                                                          name: nextAttempt
+                                                                          expr:
+                                                                            $merge:
+                                                                              - $var: existingAttempt
+                                                                              - settled: true
+                                                                                lastSettlementRequestStatus:
+                                                                                  $var: settlementStatus
+                                                                                lastSettlementProcessingStatus: accepted
+                                                                                settlementReason:
+                                                                                  $var: requestReason
+                                                                                settlementRespondedAt:
+                                                                                  $var: nowIso
+                                                                                reservedDeltaMinor:
+                                                                                  $var: reservedDeltaMinor
+                                                                                capturedDeltaMinor:
+                                                                                  $var: capturedDeltaMinor
+                                                                                holdId:
+                                                                                  $var: holdId
+                                                                                transactionId:
+                                                                                  $var: transactionId
+                                                                                lastSettlementId:
+                                                                                  $var: settlementId
+                                                                      - $set:
+                                                                          name: nextChargeAttempts
+                                                                          expr:
+                                                                            $objectSet:
+                                                                              object:
+                                                                                $var: nextChargeAttempts
+                                                                              key:
+                                                                                $var: authorizationId
+                                                                              val:
+                                                                                $var: nextAttempt
+          - $if:
+              cond:
+                $and:
+                  - $var: hasExistingAttempt
+                  - $eq:
+                      - $var: status
+                      - rejected
+              then:
+                - $set:
+                    name: nextAttempt
+                    expr:
+                      $merge:
+                        - $var: existingAttempt
+                        - lastSettlementRequestStatus:
+                            $var: settlementStatus
+                          lastSettlementProcessingStatus: rejected
+                          settlementReason:
+                            $var: reason
+                          settlementRespondedAt:
+                            $var: nowIso
+                          lastSettlementId:
+                            $var: settlementId
+                - $set:
+                    name: nextChargeAttempts
+                    expr:
+                      $objectSet:
+                        object:
+                          $var: nextChargeAttempts
+                        key:
+                          $var: authorizationId
+                        val:
+                          $var: nextAttempt
+          - $appendChange:
+              op: replace
+              path: /chargeAttempts
+              val:
+                $var: nextChargeAttempts
+          - $appendChange:
+              op: replace
+              path: /amountReserved
+              val:
+                $var: nextAmountReserved
+          - $appendChange:
+              op: replace
+              path: /amountCaptured
+              val:
+                $var: nextAmountCaptured
+          - $appendEvent:
+              type: PayNote/Payment Mandate Spend Settlement Responded
+              authorizationId:
+                $var: authorizationId
+              settlementId:
+                $var: settlementId
+              status:
+                $var: status
+              amountReserved:
+                $var: nextAmountReserved
+              amountCaptured:
+                $var: nextAmountCaptured
+              respondedAt:
+                $var: nowIso
+              reason:
+                $choose:
+                  cond:
+                    $truthy:
+                      $var: reason
+                  then:
+                    $var: reason
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

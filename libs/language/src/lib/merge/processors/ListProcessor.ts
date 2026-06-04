@@ -13,6 +13,7 @@ export class ListProcessor implements MergingProcessor {
     source: BlueNode,
     nodeProvider: NodeProvider,
   ): BlueNode {
+    let newTarget = this.processMergePolicy(target, source);
     const sourceItemType = source.getItemType();
     const sourceType = source.getType();
     if (
@@ -23,12 +24,11 @@ export class ListProcessor implements MergingProcessor {
       throw new Error('Source node with itemType must have a List type');
     }
 
-    const targetItemType = target.getItemType();
-    let newTarget = target;
+    const targetItemType = newTarget.getItemType();
 
     if (targetItemType === undefined) {
       if (sourceItemType !== undefined) {
-        newTarget = target.cloneShallow().setItemType(sourceItemType);
+        newTarget = newTarget.cloneShallow().setItemType(sourceItemType);
       }
     } else if (sourceItemType !== undefined) {
       const isSubtypeResult = NodeTypes.isSubtype(
@@ -47,7 +47,7 @@ export class ListProcessor implements MergingProcessor {
           )}'.`,
         );
       }
-      newTarget = target.cloneShallow().setItemType(sourceItemType);
+      newTarget = newTarget.cloneShallow().setItemType(sourceItemType);
     }
 
     // Validate items against itemType
@@ -82,5 +82,39 @@ export class ListProcessor implements MergingProcessor {
       }
     }
     return newTarget;
+  }
+
+  private processMergePolicy(target: BlueNode, source: BlueNode): BlueNode {
+    const sourceMergePolicy = source.getMergePolicy();
+    const targetMergePolicy = target.getMergePolicy();
+    this.validateMergePolicy(sourceMergePolicy);
+    this.validateMergePolicy(targetMergePolicy);
+
+    if (targetMergePolicy === undefined) {
+      return sourceMergePolicy === undefined
+        ? target
+        : target.cloneShallow().setMergePolicy(sourceMergePolicy);
+    }
+    if (
+      sourceMergePolicy !== undefined &&
+      sourceMergePolicy !== targetMergePolicy
+    ) {
+      throw new Error(
+        `Conflicting list mergePolicy values: target is "${targetMergePolicy}" but source is "${sourceMergePolicy}".`,
+      );
+    }
+    return target;
+  }
+
+  private validateMergePolicy(mergePolicy: string | undefined): void {
+    if (
+      mergePolicy !== undefined &&
+      mergePolicy !== 'positional' &&
+      mergePolicy !== 'append-only'
+    ) {
+      throw new Error(
+        'mergePolicy must be either "positional" or "append-only".',
+      );
+    }
   }
 }

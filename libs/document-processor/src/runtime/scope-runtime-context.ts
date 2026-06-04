@@ -11,11 +11,33 @@ export class ScopeRuntimeContext {
   private cutOff = false;
   private triggeredLimit = -1;
   private bridgeableLimit = -1;
+  private embeddedDepthValue = 0;
+  private readonly processedEmbeddedPathList: string[] = [];
 
   constructor(private readonly path: string) {}
 
   scopePath(): string {
     return this.path;
+  }
+
+  embeddedDepth(): number {
+    return this.embeddedDepthValue;
+  }
+
+  setEmbeddedDepth(depth: number): void {
+    this.embeddedDepthValue = depth;
+  }
+
+  clearProcessedEmbeddedPaths(): void {
+    this.processedEmbeddedPathList.length = 0;
+  }
+
+  recordProcessedEmbeddedPath(scopePath: string): void {
+    this.processedEmbeddedPathList.push(scopePath);
+  }
+
+  processedEmbeddedPaths(): readonly string[] {
+    return [...this.processedEmbeddedPathList];
   }
 
   enqueueTriggered(node: BlueNode): void {

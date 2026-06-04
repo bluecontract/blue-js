@@ -23,12 +23,6 @@ function checkpointValue(
   const contracts = property(document, 'contracts');
   const checkpoint = propertyOptional(contracts, 'checkpoint');
   if (!checkpoint) return null;
-  const signatures = checkpoint.getProperties()?.lastSignatures;
-  if (signatures) {
-    const entry = signatures.getProperties()?.testEventsChannel;
-    const value = entry?.getValue();
-    return value != null ? String(value) : null;
-  }
   const lastEvents = checkpoint.getProperties()?.lastEvents;
   const eventNode = lastEvents?.getProperties()?.testEventsChannel ?? null;
   const eventIdNode = eventNode?.getProperties()?.eventId ?? null;
@@ -104,13 +98,13 @@ a:
   name: Child Doc
   contracts:
     life:
-      type: Core/Lifecycle Event Channel
+      type: Lifecycle Event Channel
     triggered:
-      type: Core/Triggered Event Channel
+      type: Triggered Event Channel
     emitOnInit:
       channel: life
       event:
-        type: Core/Document Processing Initiated
+        type: Document Processing Initiated
       type:
         blueId: EmitEvents
       events:
@@ -144,11 +138,11 @@ a:
       propertyValue: 1
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /a
   embeddedEvents:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /a
   setRootFromChild:
     channel: embeddedEvents
@@ -198,12 +192,11 @@ contracts:
       type: { blueId: 'TestEvent' },
       eventId: 'evt-1',
     });
-    const event1SemanticId = blue.calculateBlueIdSync(blue.resolve(event1));
     const afterFirst = (
       await expectOk(processor.processDocument(initialized.clone(), event1))
     ).document.clone();
     expect(Number(property(afterFirst, 'x').getValue())).toBe(1);
-    expect(checkpointValue(afterFirst)).toBe(event1SemanticId);
+    expect(checkpointValue(afterFirst)).toBe('evt-1');
 
     const stale = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
@@ -213,18 +206,17 @@ contracts:
       await expectOk(processor.processDocument(afterFirst.clone(), stale))
     ).document.clone();
     expect(Number(property(afterStale, 'x').getValue())).toBe(1);
-    expect(checkpointValue(afterStale)).toBe(event1SemanticId);
+    expect(checkpointValue(afterStale)).toBe('evt-1');
 
     const fresh = blue.jsonValueToNode({
       type: { blueId: 'TestEvent' },
       eventId: 'evt-2',
     });
-    const freshSemanticId = blue.calculateBlueIdSync(blue.resolve(fresh));
     const afterFresh = (
       await expectOk(processor.processDocument(afterStale.clone(), fresh))
     ).document;
     expect(Number(property(afterFresh, 'x').getValue())).toBe(2);
-    expect(checkpointValue(afterFresh)).toBe(freshSemanticId);
+    expect(checkpointValue(afterFresh)).toBe('evt-2');
   });
 
   it('checkpointStoresFullEventAndComparesPayload', async () => {
@@ -285,5 +277,79 @@ kind: beta
     expect(Number(property(afterThird, 'x').getValue())).toBe(2);
     const updatedEvent = checkpointStoredEvent(afterThird);
     expect(updatedEvent?.getProperties()?.kind?.getValue()).toBe('beta');
+  });
+
+  it('checkpointTreatsSourceEquivalentEventsAsStaleAndSameEventIdDifferentContentAsNew', async () => {
+    const processor = buildProcessor(
+      blue,
+      new IncrementPropertyContractProcessor(),
+      new TestEventChannelProcessor(),
+    );
+
+    const yaml = `name: Source Equivalent Checkpoint Doc
+contracts:
+  testEventsChannel:
+    type:
+      blueId: TestEventChannel
+  incrementX:
+    channel: testEventsChannel
+    type:
+      blueId: IncrementProperty
+    propertyKey: /x
+`;
+
+    const initialized = (
+      await expectOk(processor.initializeDocument(blue.yamlToNode(yaml)))
+    ).document.clone();
+    const testEventBlueId = blue.getAllRegisteredBlueIds().TestEvent;
+    if (!testEventBlueId) {
+      throw new Error('TestEvent BlueId is not registered');
+    }
+
+    const authoredDirect = blue.yamlToNode(`type:
+  blueId: ${testEventBlueId}
+kind: alpha
+eventId: same-id
+`);
+    const authoredWithImport = blue.yamlToNode(`blue:
+  imports:
+    EventAlias:
+      blueId: ${testEventBlueId}
+type: EventAlias
+kind: alpha
+eventId: same-id
+`);
+    expect(blue.calculateBlueIdSync(authoredDirect)).toBe(
+      blue.calculateBlueIdSync(authoredWithImport),
+    );
+
+    const afterFirst = (
+      await expectOk(
+        processor.processDocument(initialized.clone(), authoredDirect),
+      )
+    ).document.clone();
+    expect(Number(property(afterFirst, 'x').getValue())).toBe(1);
+
+    const afterEquivalent = (
+      await expectOk(
+        processor.processDocument(afterFirst.clone(), authoredWithImport),
+      )
+    ).document.clone();
+    expect(Number(property(afterEquivalent, 'x').getValue())).toBe(1);
+
+    const sameEventIdDifferentContent = blue.yamlToNode(`type:
+  blueId: ${testEventBlueId}
+kind: beta
+eventId: same-id
+`);
+    const afterDifferentContent = (
+      await expectOk(
+        processor.processDocument(
+          afterEquivalent.clone(),
+          sameEventIdDifferentContent,
+        ),
+      )
+    ).document;
+    expect(Number(property(afterDifferentContent, 'x').getValue())).toBe(2);
   });
 });

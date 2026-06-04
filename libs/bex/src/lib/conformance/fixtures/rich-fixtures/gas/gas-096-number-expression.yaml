@@ -1,0 +1,10 @@
+fixtureId: GAS-096
+title: Number conversion charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $number: "10"
+expectation:
+  outcome: success
+  gasUsed: 4

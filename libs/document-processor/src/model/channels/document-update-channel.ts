@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { DocumentUpdateChannelSchema } from '@blue-repository/types/packages/core/schemas/DocumentUpdateChannel';
+import { DocumentUpdateChannelSchema } from '../shared/core-runtime-schemas.js';
 import { channelContractBaseSchema } from '../shared/index.js';
 
 export const documentUpdateChannelSchema = DocumentUpdateChannelSchema.merge(

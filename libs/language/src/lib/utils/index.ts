@@ -1,17 +1,24 @@
 export { Base58Sha256Provider } from './Base58Sha256Provider';
 export * from './BlueIds';
 export * from './BlueIdCalculator';
+export * from './BlueNumbers';
 export * from './Minimizer';
 export * from './StorageShapeValidator';
 export { BlueIdToCid } from './BlueIdToCid';
 export { JsonCanonicalizer } from './JsonCanonicalizer';
 export * from './NodeToMapListOrValue';
+export * from './NodeToBlueIdInput';
 export * as Properties from './Properties';
 export * from './NodeTransformer';
 export * from './NodePatch';
 export * from './TypeSchema';
 export * from './TypeSchemaResolver';
+export { NodeProviderWrapper } from './NodeProviderWrapper';
 export * from './Nodes';
 export * from './limits';
 export * as NodeTypes from './NodeTypes';
-export { NodeTypeMatcher } from './NodeTypeMatcher';
+export {
+  NodeTypeMatcher,
+  type NodeTypeMatcherMemo,
+  type NodeTypeMatcherOptions,
+} from './NodeTypeMatcher';

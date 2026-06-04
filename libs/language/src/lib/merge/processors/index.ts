@@ -3,5 +3,7 @@ export * from './ValuePropagator';
 export * from './TypeAssigner';
 export * from './ListProcessor';
 export * from './DictionaryProcessor';
+export * from './SchemaPropagator';
+export * from './SchemaVerifier';
 export * from './BasicTypesVerifier';
 export * from './MetadataPropagator';

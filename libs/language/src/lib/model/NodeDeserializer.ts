@@ -11,22 +11,59 @@ import {
   OBJECT_KEY_TYPE,
   OBJECT_VALUE_TYPE,
   OBJECT_BLUE,
+  OBJECT_CONTRACTS,
+  OBJECT_SCHEMA,
+  OBJECT_MERGE_POLICY,
+  OBJECT_CONSTRAINTS,
+  OBJECT_PROPERTIES,
+  LIST_CONTROL_PREVIOUS,
+  LIST_CONTROL_POS,
 } from '../utils/Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
 import { isObject } from 'radash';
 import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';
+import { Schema, SCHEMA_FIELDS, SchemaField } from './Schema';
+
+const MIN_SAFE_INTEGER = new BigIntegerNumber(
+  Number.MIN_SAFE_INTEGER.toString(),
+);
+const MAX_SAFE_INTEGER = new BigIntegerNumber(
+  Number.MAX_SAFE_INTEGER.toString(),
+);
+interface DeserializeOptions {
+  readonly root: boolean;
+  readonly strictReferenceOnly: boolean;
+}
 
 export class NodeDeserializer {
   static deserialize(json: unknown) {
-    return NodeDeserializer.handleNode(json);
+    return NodeDeserializer.handleNode(json, {
+      root: true,
+      strictReferenceOnly: true,
+    });
   }
 
-  private static handleNode(node: unknown): BlueNode {
+  static deserializeUnchecked(json: unknown) {
+    return NodeDeserializer.handleNode(json, {
+      root: false,
+      strictReferenceOnly: false,
+    });
+  }
+
+  private static handleNode(
+    node: unknown,
+    options: DeserializeOptions = {
+      root: false,
+      strictReferenceOnly: true,
+    },
+  ): BlueNode {
     if (node === undefined) {
       throw new Error(
         "This is not a valid JSON-like value. Found 'undefined' as a value.",
       );
+    } else if (node === null && options.root) {
+      throw new Error('Root null is not a valid Blue document.');
     } else if (isJsonBlueObject(node)) {
       const obj = new BlueNode();
       const properties = {} as Record<string, BlueNode>;
@@ -54,34 +91,107 @@ export class NodeDeserializer {
             }
             break;
           case OBJECT_TYPE:
-            obj.setType(NodeDeserializer.handleNode(value));
+            obj.setType(
+              NodeDeserializer.handleNode(value, {
+                ...options,
+                root: false,
+              }),
+            );
             break;
           case OBJECT_ITEM_TYPE:
-            obj.setItemType(NodeDeserializer.handleNode(value));
+            obj.setItemType(
+              NodeDeserializer.handleNode(value, {
+                ...options,
+                root: false,
+              }),
+            );
             break;
           case OBJECT_KEY_TYPE:
-            obj.setKeyType(NodeDeserializer.handleNode(value));
+            obj.setKeyType(
+              NodeDeserializer.handleNode(value, {
+                ...options,
+                root: false,
+              }),
+            );
             break;
           case OBJECT_VALUE_TYPE:
-            obj.setValueType(NodeDeserializer.handleNode(value));
+            obj.setValueType(
+              NodeDeserializer.handleNode(value, {
+                ...options,
+                root: false,
+              }),
+            );
+            break;
+          case OBJECT_MERGE_POLICY:
+            if (
+              value !== 'positional' &&
+              value !== 'append-only' &&
+              value !== undefined
+            ) {
+              throw new Error(
+                'The mergePolicy field must be "positional" or "append-only".',
+              );
+            }
+            obj.setMergePolicy(value);
             break;
           case OBJECT_VALUE:
             obj.setValue(NodeDeserializer.handleValue(value));
             break;
           case OBJECT_BLUE_ID:
+            if (options.strictReferenceOnly && Object.keys(node).length !== 1) {
+              throw new Error(
+                'blueId nodes must be reference-only and cannot contain sibling fields.',
+              );
+            }
             if (typeof value !== 'string') {
               throw new Error(`The ${OBJECT_BLUE_ID} field must be a string.`);
             }
             obj.setBlueId(value);
             break;
           case OBJECT_ITEMS:
-            obj.setItems(NodeDeserializer.handleArray(value));
+            obj.setItems(NodeDeserializer.handleArray(value, options));
             break;
           case OBJECT_BLUE:
-            obj.setBlue(NodeDeserializer.handleNode(value));
+            obj.setBlue(
+              NodeDeserializer.handleNode(value, {
+                ...options,
+                root: false,
+              }),
+            );
             break;
+          case LIST_CONTROL_PREVIOUS:
+            if (Object.keys(node).length !== 1) {
+              throw new Error(
+                '$previous list anchors must be single-key list items.',
+              );
+            }
+            obj.setPreviousBlueId(NodeDeserializer.handlePreviousBlueId(value));
+            break;
+          case LIST_CONTROL_POS:
+            obj.setPosition(NodeDeserializer.handlePosition(value));
+            break;
+          case OBJECT_SCHEMA:
+            obj.setSchema(NodeDeserializer.handleSchema(value, options));
+            break;
+          case OBJECT_CONTRACTS:
+            properties[key] = NodeDeserializer.handleNode(value, {
+              ...options,
+              root: false,
+            });
+            break;
+          case OBJECT_CONSTRAINTS:
+            throw new Error(
+              'constraints is not part of the Blue Language 1.0 top-level vocabulary.',
+            );
+          case OBJECT_PROPERTIES:
+            throw new Error(
+              'properties is an internal field and must not appear in Blue documents.',
+            );
           default:
-            properties[key] = NodeDeserializer.handleNode(value);
+            properties[key] = NodeDeserializer.handleNode(value, {
+              ...options,
+              root: false,
+            });
             break;
         }
       });
@@ -91,9 +201,10 @@ export class NodeDeserializer {
       }
       return obj;
     } else if (isJsonBlueArray(node)) {
-      return new BlueNode().setItems(NodeDeserializer.handleArray(node));
+      return new BlueNode().setItems(
+        NodeDeserializer.handleArray(node, options),
+      );
     } else {
-      // It's a primitive value or a BigNumber
       const nodeValue = node as JsonBlueValue;
       return new BlueNode()
         .setValue(NodeDeserializer.handleValue(nodeValue))
@@ -107,17 +218,23 @@ export class NodeDeserializer {
     } else if (typeof node === 'string') {
       return node;
     } else if (typeof node === 'number' || isBigNumber(node)) {
+      if (
+        typeof node === 'number' &&
+        Number.isInteger(node) &&
+        !Number.isSafeInteger(node)
+      ) {
+        throw new Error(
+          'Unquoted integers outside [-9007199254740991, 9007199254740991] must be quoted and explicitly typed as Integer.',
+        );
+      }
       if (isBigIntegerNumber(node) || Number.isSafeInteger(node)) {
         const bigInt = new BigIntegerNumber(node.toString());
-        const lowerBound = Number.MIN_SAFE_INTEGER; // -9007199254740991
-        const upperBound = Number.MAX_SAFE_INTEGER; // 9007199254740991
-        if (bigInt.lt(lowerBound)) {
-          return new BigIntegerNumber(lowerBound.toString());
-        } else if (bigInt.gt(upperBound)) {
-          return new BigIntegerNumber(upperBound.toString());
-        } else {
-          return bigInt;
+        if (bigInt.lt(MIN_SAFE_INTEGER) || bigInt.gt(MAX_SAFE_INTEGER)) {
+          throw new Error(
+            'Unquoted integers outside [-9007199254740991, 9007199254740991] must be quoted and explicitly typed as Integer.',
+          );
         }
+        return bigInt;
       } else {
         const doubleValue = parseFloat(node.toString());
         return new BigDecimalNumber(doubleValue.toString());
@@ -128,16 +245,140 @@ export class NodeDeserializer {
     throw new Error(`Can't handle node: ${JSON.stringify(node)}`);
   }
 
-  private static handleArray(value: JsonBlueValue) {
+  private static handleArray(
+    value: JsonBlueValue,
+    options: DeserializeOptions,
+  ) {
     if (value === null || value === undefined) {
       return undefined;
     } else if (isObject(value) && !Array.isArray(value)) {
-      const singleItemList = [NodeDeserializer.handleNode(value)];
+      const singleItemList = [
+        NodeDeserializer.handleNode(value, {
+          ...options,
+          root: false,
+        }),
+      ];
       return singleItemList;
     } else if (Array.isArray(value)) {
-      return value.map(NodeDeserializer.handleNode);
+      return value.map((item) =>
+        NodeDeserializer.handleNode(item, {
+          ...options,
+          root: false,
+        }),
+      );
     } else {
       throw new Error('Expected an array node');
+    }
+  }
+
+  private static handlePreviousBlueId(value: unknown): string {
+    if (!isJsonBlueObject(value) || Object.keys(value).length !== 1) {
+      throw new Error(
+        '$previous must have shape { blueId: <PrevListBlueId> }.',
+      );
+    }
+    const blueId = value[OBJECT_BLUE_ID];
+    if (typeof blueId !== 'string') {
+      throw new Error('$previous.blueId must be a string.');
+    }
+    return blueId;
+  }
+
+  private static handlePosition(value: unknown): number {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+      throw new Error('$pos must be a non-negative integer.');
+    }
+    return value;
+  }
+
+  private static handleSchema(
+    value: unknown,
+    options: DeserializeOptions,
+  ): Schema {
+    if (!isJsonBlueObject(value)) {
+      throw new Error('schema must be an object.');
+    }
+    const schema = new Schema();
+    for (const key of Object.keys(value)) {
+      if (key === 'enum') {
+        const enumValue = value[key];
+        if (!Array.isArray(enumValue)) {
+          throw new Error('schema.enum must be a list.');
+        }
+        schema.setEnum(
+          enumValue.map((item) =>
+            NodeDeserializer.handleNode(item, {
+              ...options,
+              root: false,
+            }),
+          ),
+        );
+        continue;
+      }
+      if (!SCHEMA_FIELDS.includes(key as SchemaField)) {
+        throw new Error(`schema.${key} is not part of the Blue language core.`);
+      }
+      NodeDeserializer.validateSchemaKeywordShape(key, value[key], options);
+      schema.set(
+        key as SchemaField,
+        NodeDeserializer.handleNode(value[key], {
+          ...options,
+          root: false,
+        }),
+      );
+    }
+    return schema;
+  }
+
+  private static validateSchemaKeywordShape(
+    key: string,
+    value: JsonBlueValue,
+    options: DeserializeOptions,
+  ): void {
+    if (key === 'required' || key === 'uniqueItems') {
+      if (typeof value !== 'boolean') {
+        throw new Error(`schema.${key} must be a boolean.`);
+      }
+      return;
+    }
+    if (
+      [
+        'minLength',
+        'maxLength',
+        'minItems',
+        'maxItems',
+        'minFields',
+        'maxFields',
+      ].includes(key)
+    ) {
+      if (
+        typeof value !== 'number' ||
+        !Number.isInteger(value) ||
+        value < 0 ||
+        !Number.isSafeInteger(value)
+      ) {
+        throw new Error(
+          `schema.${key} must be a non-negative integer in the interoperable range.`,
+        );
+      }
+      return;
+    }
+    if (isJsonBlueObject(value)) {
+      const node = NodeDeserializer.handleNode(value, {
+        ...options,
+        root: false,
+      });
+      if (node.getValue() !== undefined && node.getValue() !== null) {
+        return;
+      }
+      throw new Error(
+        `schema.${key} must be numeric or an explicit numeric scalar node.`,
+      );
+    }
+    if (typeof value !== 'number' && !isBigNumber(value)) {
+      throw new Error(
+        `schema.${key} must be numeric or an explicit numeric scalar node.`,
+      );
     }
   }
 }

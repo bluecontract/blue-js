@@ -32,9 +32,9 @@ contracts:
   guarantorChannel:
     type: MyOS/MyOS Timeline Channel
   initLifecycleChannel:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
   captureLockOnInit:
     type: Conversation/Sequential Workflow
     channel: initLifecycleChannel
@@ -51,7 +51,8 @@ contracts:
         type: Conversation/Trigger Event
         event:
           type: PayNote/Capture Funds Requested
-          amount: \${document('/amount/total')}
+          amount:
+            $document: /amount/total
 currency: USD
 amount:
   total: 10000
@@ -127,7 +128,8 @@ amount:
     description: Request partial capture from event.message.request.amount
     type: Conversation/Operation
     channel: guarantorChannel`);
-    expect(yaml).toContain(`amount: \${event.message.request.amount}`);
+    expect(yaml).toContain(`amount:
+            $event: /message/request/amount`);
 
     const json = toOfficialJson(payNote);
     const contracts = contractsOf(json);
@@ -212,7 +214,8 @@ amount:
     expect(yaml).toContain(`requestCaptureImpl:
     type: Conversation/Sequential Workflow Operation`);
     expect(yaml).toContain(`type: PayNote/Capture Funds Requested`);
-    expect(yaml).toContain(`amount: \${document('/amount/total')}`);
+    expect(yaml).toContain(`amount:
+            $document: /amount/total`);
     expect(yaml).toContain(`requestRelease:
     description: Request release flow
     type: Conversation/Operation
@@ -222,7 +225,8 @@ amount:
     description: Request partial release
     type: Conversation/Operation
     channel: guarantorChannel`);
-    expect(yaml).toContain(`amount: \${event.message.request}`);
+    expect(yaml).toContain(`amount:
+            $event: /message/request`);
 
     const json = toOfficialJson(payNote);
     const contracts = contractsOf(json);

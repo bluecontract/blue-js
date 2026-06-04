@@ -1,0 +1,14 @@
+fixtureId: GAS-010
+title: Document read charges documentRead
+tags: [gas]
+context:
+  rootDocumentSource: |
+    status: pending
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $document: /status
+expectation:
+  outcome: success
+  resultSimple: pending
+  gasUsed: 5

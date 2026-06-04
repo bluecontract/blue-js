@@ -1,12 +1,8 @@
-import { BlueIdCalculator } from '@blue-labs/language';
+import { BlueIdCalculator, type JsonBlueValue } from '@blue-labs/language';
 import { BluePackage, BlueRepositoryDocument } from '../types';
 import { BLUE_REPOSITORY_NAME } from './constants';
 import { PackageName } from './internalTypes';
 import { isPlainObject } from './utils';
-
-type BlueIdInput = Parameters<
-  typeof BlueIdCalculator.INSTANCE.calculateSync
->[0];
 
 export function finalizePackages(
   packages: Map<PackageName, BluePackage['types']>,
@@ -39,8 +35,8 @@ export function finalizePackages(
 export function computeRepoBlueId(packages: BluePackage[]): string {
   // Repository version IDs are structural fingerprints of the emitted
   // repository document, not public semantic type BlueIds.
-  return BlueIdCalculator.INSTANCE.calculateSync(
-    packages as unknown as BlueIdInput,
+  return BlueIdCalculator.INSTANCE.calculateAllowingCyclicPlaceholdersSync(
+    packages as unknown as JsonBlueValue,
   );
 }
 

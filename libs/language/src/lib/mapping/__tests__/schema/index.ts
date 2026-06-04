@@ -3,7 +3,6 @@ import {
   ChessContractSchema,
   UpdateStepSchema,
   TriggerEventStepSchema,
-  JavaScriptCodeStepSchema,
 } from './contract';
 import { doctorSchema } from './doctor';
 import { nurseSchema } from './nurse';
@@ -26,7 +25,6 @@ export const schemas = {
   ChessContractSchema,
   UpdateStepSchema,
   TriggerEventStepSchema,
-  JavaScriptCodeStepSchema,
   doctorSchema,
   nurseSchema,
   personSchema,

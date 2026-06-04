@@ -16,6 +16,11 @@ import { NodeExtender } from '../utils/NodeExtender';
 import { PathLimits } from '../utils/limits';
 import DefaultBlueYaml from '../resources/transformation/DefaultBlue.yaml?raw';
 import { BlueIdsMappingGenerator } from './utils/BlueIdsMappingGenerator';
+import { BlueIds } from '../utils/BlueIds';
+import {
+  DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP,
+  LIST_CONTROL_EMPTY,
+} from '../utils/Properties';
 export interface PreprocessorOptions {
   nodeProvider?: NodeProvider;
   processorProvider?: TransformationProcessorProvider;
@@ -32,7 +37,7 @@ export class Preprocessor {
    * change the bootstrap key used to reference the default transformation set.
    */
   public static readonly DEFAULT_BLUE_BLUE_ID =
-    'BF4xn5LN3HzQJSmqcXRyUq4tZEtkj2eBZ8UPCDJMnhG9';
+    'EsyNgNY4ZZeCvWiGLQM52WPJ7HF5kz3DyCoxdDDaauc6';
 
   private processorProvider: TransformationProcessorProvider;
   private nodeProvider: NodeProvider;
@@ -90,7 +95,9 @@ export class Preprocessor {
     document: BlueNode,
     defaultBlue: BlueNode | null,
   ): BlueNode {
-    let processedDocument = document.clone();
+    let processedDocument = this.applyPortableImports(
+      this.normalizeListPlaceholders(document.clone(), false),
+    );
     let blueNode = processedDocument.getBlue();
 
     if (!blueNode && defaultBlue) {
@@ -127,6 +134,183 @@ export class Preprocessor {
     }
 
     return processedDocument;
+  }
+
+  private applyPortableImports(document: BlueNode): BlueNode {
+    const blueNode = document.getBlue();
+    const importsNode = blueNode?.getProperties()?.imports;
+    if (importsNode === undefined) {
+      return document;
+    }
+    const imports = importsNode.getProperties();
+    if (
+      imports === undefined ||
+      importsNode.getValue() !== undefined ||
+      importsNode.getItems() !== undefined ||
+      importsNode.getReferenceBlueId() !== undefined
+    ) {
+      throw new Error(
+        'blue.imports must be an object mapping aliases to pure references.',
+      );
+    }
+
+    const mappings = new Map<string, string>();
+    for (const [alias, reference] of Object.entries(imports)) {
+      if (!this.isReferenceOnly(reference)) {
+        throw new Error(`blue.imports.${alias} must be a pure reference.`);
+      }
+      const blueId = BlueIds.requirePlainBlueId(
+        reference.getReferenceBlueId(),
+        `blue.imports.${alias}`,
+      );
+      const defaultBlueId = (
+        DEFAULT_BLUE_TYPE_NAME_TO_BLUE_ID_MAP as Record<string, string>
+      )[alias];
+      if (defaultBlueId !== undefined && defaultBlueId !== blueId) {
+        throw new Error(
+          `blue.imports cannot redefine default Blue alias "${alias}".`,
+        );
+      }
+      mappings.set(alias, blueId);
+    }
+
+    const transformed = new ReplaceInlineValuesForTypeAttributesWithImports(
+      mappings,
+    ).process(document);
+    const transformedBlue = transformed.getBlue();
+    if (transformedBlue !== undefined) {
+      transformedBlue.removeProperty('imports');
+      if (this.isEmptyNode(transformedBlue)) {
+        transformed.setBlue(undefined);
+      }
+    }
+    return transformed;
+  }
+
+  private normalizeListPlaceholders(
+    node: BlueNode,
+    listElement: boolean,
+  ): BlueNode {
+    if (listElement && this.isEmptyPlaceholder(node)) {
+      return node.clone();
+    }
+    if (listElement && (this.isNullNode(node) || this.isEmptyNode(node))) {
+      return this.emptyPlaceholder();
+    }
+
+    const normalized = node.clone();
+    const type = normalized.getType();
+    if (type !== undefined) {
+      normalized.setType(this.normalizeListPlaceholders(type, false));
+    }
+    const itemType = normalized.getItemType();
+    if (itemType !== undefined) {
+      normalized.setItemType(this.normalizeListPlaceholders(itemType, false));
+    }
+    const keyType = normalized.getKeyType();
+    if (keyType !== undefined) {
+      normalized.setKeyType(this.normalizeListPlaceholders(keyType, false));
+    }
+    const valueType = normalized.getValueType();
+    if (valueType !== undefined) {
+      normalized.setValueType(this.normalizeListPlaceholders(valueType, false));
+    }
+    const blue = normalized.getBlue();
+    if (blue !== undefined) {
+      normalized.setBlue(this.normalizeListPlaceholders(blue, false));
+    }
+    const contracts = normalized.getContractsNode();
+    if (contracts !== undefined) {
+      normalized.setContractsNode(
+        this.normalizeListPlaceholders(contracts, false),
+      );
+    }
+    const items = normalized.getItems();
+    if (items !== undefined) {
+      normalized.setItems(
+        items.map((item) => this.normalizeListPlaceholders(item, true)),
+      );
+    }
+    const properties = normalized.getProperties();
+    if (properties !== undefined) {
+      const normalizedProperties = Object.fromEntries(
+        Object.entries(properties).flatMap(([key, value]) => {
+          const child = this.normalizeListPlaceholders(value, false);
+          return this.isEmptyNode(child) || this.isNullNode(child)
+            ? []
+            : [[key, child]];
+        }),
+      );
+      normalized.setProperties(
+        Object.keys(normalizedProperties).length === 0
+          ? undefined
+          : normalizedProperties,
+      );
+    }
+    return listElement && this.isEmptyNode(normalized)
+      ? this.emptyPlaceholder()
+      : normalized;
+  }
+
+  private emptyPlaceholder(): BlueNode {
+    return new BlueNode().addProperty(
+      LIST_CONTROL_EMPTY,
+      new BlueNode().setValue(true),
+    );
+  }
+
+  private isEmptyPlaceholder(node: BlueNode): boolean {
+    const properties = node.getProperties();
+    return (
+      properties !== undefined &&
+      Object.keys(properties).length === 1 &&
+      properties[LIST_CONTROL_EMPTY]?.getValue() === true
+    );
+  }
+
+  private isNullNode(node: BlueNode): boolean {
+    return (
+      node.getValue() === null &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
+      node.getType() === undefined &&
+      node.getItems() === undefined &&
+      node.getProperties() === undefined
+    );
+  }
+
+  private isReferenceOnly(node: BlueNode): boolean {
+    return (
+      node.getReferenceBlueId() !== undefined &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
+      node.getType() === undefined &&
+      node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
+      node.getValueType() === undefined &&
+      node.getValue() === undefined &&
+      node.getItems() === undefined &&
+      node.getProperties() === undefined
+    );
+  }
+
+  private isEmptyNode(node: BlueNode): boolean {
+    return (
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
+      node.getType() === undefined &&
+      node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
+      node.getValueType() === undefined &&
+      node.getValue() === undefined &&
+      node.getItems() === undefined &&
+      (node.getProperties() === undefined ||
+        Object.keys(node.getProperties() ?? {}).length === 0) &&
+      node.getContractsNode() === undefined &&
+      node.getReferenceBlueId() === undefined &&
+      node.getSchema() === undefined &&
+      node.getMergePolicy() === undefined
+    );
   }
 
   private flattenTransformationItems(

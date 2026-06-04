@@ -10,6 +10,7 @@ import {
   Nodes,
   NodeTypes,
   NodeTypeMatcher,
+  type NodeTypeMatcherOptions,
   TypeSchemaResolver,
 } from './utils';
 import { NodeToYaml } from './utils/NodeToYaml';
@@ -41,6 +42,7 @@ import { RepositoryRegistry } from './repository/RepositoryRuntime';
 import { BlueContextResolver } from './utils/repositoryVersioning/BlueContextResolver';
 import { normalizeNodeBlueIds } from './utils/repositoryVersioning/normalizeNodeBlueIds';
 import { SemanticIdentityService } from './identity/SemanticIdentityService';
+import { BUILTIN_RUNTIME_TYPES_REPOSITORY } from './repository/BuiltinRuntimeTypes';
 import {
   BlueContext,
   NodeToJsonFormat,
@@ -77,10 +79,12 @@ export class Blue {
       repositories,
       mergingProcessor,
     } = options;
+    const effectiveRepositories =
+      this.includeBuiltinRuntimeTypesRepository(repositories);
 
     // Store repositories for later use in setNodeProvider
-    this.repositories = repositories;
-    this.repositoryRegistry = new RepositoryRegistry(repositories ?? []);
+    this.repositories = effectiveRepositories;
+    this.repositoryRegistry = new RepositoryRegistry(effectiveRepositories);
     this.blueContextResolver = new BlueContextResolver({
       registry: this.repositoryRegistry,
       blueIdMapper: this.repositoryRegistry,
@@ -90,7 +94,7 @@ export class Blue {
     const defaultProvider = createNodeProvider(() => []);
     this.nodeProvider = this.wrapNodeProviderWithRepositories(
       nodeProvider || defaultProvider,
-      repositories,
+      effectiveRepositories,
     );
 
     this.typeSchemaResolver =
@@ -240,6 +244,17 @@ export class Blue {
     return normalized;
   }
 
+  public jsonValueToNodeUnchecked(json: unknown) {
+    const preprocessed = this.preprocess(
+      NodeDeserializer.deserializeUnchecked(json),
+    );
+    const normalized = normalizeNodeBlueIds(
+      preprocessed,
+      this.repositoryRegistry,
+    );
+    return normalized;
+  }
+
   public async jsonValueToNodeAsync(json: unknown): Promise<BlueNode> {
     const preprocessed = await this.preprocessAsync(
       NodeDeserializer.deserialize(json),
@@ -259,6 +274,14 @@ export class Blue {
     return this.jsonValueToNode(json);
   }
 
+  public yamlToNodeUnchecked(yaml: string) {
+    const json = yamlBlueParse(yaml);
+    if (!json) {
+      throw new Error('Failed to parse YAML to JSON');
+    }
+    return this.jsonValueToNodeUnchecked(json);
+  }
+
   public async yamlToNodeAsync(yaml: string): Promise<BlueNode> {
     const json = yamlBlueParse(yaml);
     if (!json) {
@@ -275,13 +298,6 @@ export class Blue {
       (Array.isArray(value) && value.every((v) => v instanceof BlueNode))
     ) {
       return value;
-    }
-
-    if (Array.isArray(value)) {
-      const nodes = await Promise.all(
-        value.map((v) => this.jsonValueToNodeAsync(v)),
-      );
-      return nodes;
     }
 
     return this.jsonValueToNodeAsync(value);
@@ -305,10 +321,6 @@ export class Blue {
       (Array.isArray(value) && value.every((v) => v instanceof BlueNode))
     ) {
       return value;
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((v) => this.jsonValueToNode(v));
     }
 
     return this.jsonValueToNode(value);
@@ -491,6 +503,22 @@ export class Blue {
     return this.urlContentFetcher.isFetchingEnabled();
   }
 
+  private includeBuiltinRuntimeTypesRepository(
+    repositories: BlueRepository[] | undefined,
+  ): BlueRepository[] {
+    const suppliedRepositories = repositories ?? [];
+    if (
+      suppliedRepositories.some(
+        (repository) =>
+          repository.name === BUILTIN_RUNTIME_TYPES_REPOSITORY.name,
+      )
+    ) {
+      return suppliedRepositories;
+    }
+
+    return [BUILTIN_RUNTIME_TYPES_REPOSITORY, ...suppliedRepositories];
+  }
+
   public getPreprocessingAliases(): Map<string, string> {
     return this.blueDirectivePreprocessor.getPreprocessingAliases();
   }
@@ -583,8 +611,17 @@ export class Blue {
    * @param type - The BlueNode type to check against.
    * @returns true if the node matches the type, false otherwise.
    */
-  public isTypeOfNode(node: BlueNode, type: BlueNode) {
-    return new NodeTypeMatcher(this).matchesType(node, type, this.globalLimits);
+  public isTypeOfNode(
+    node: BlueNode,
+    type: BlueNode,
+    options: NodeTypeMatcherOptions = {},
+  ) {
+    return new NodeTypeMatcher(this).matchesType(
+      node,
+      type,
+      this.globalLimits,
+      options,
+    );
   }
 
   /**
@@ -632,14 +669,12 @@ export class Blue {
     repositories?: BlueRepository[],
   ): NodeProvider {
     if (repositories && repositories.length > 0) {
-      return NodeProviderWrapper.wrap(
-        new SequentialNodeProvider([
-          new RepositoryBasedNodeProvider(repositories, {
-            mergingProcessor: this.mergingProcessor,
-          }),
-          nodeProvider,
-        ]),
-      );
+      return new SequentialNodeProvider([
+        new RepositoryBasedNodeProvider(repositories, {
+          mergingProcessor: this.mergingProcessor,
+        }),
+        NodeProviderWrapper.wrap(nodeProvider),
+      ]);
     }
 
     return NodeProviderWrapper.wrap(nodeProvider);

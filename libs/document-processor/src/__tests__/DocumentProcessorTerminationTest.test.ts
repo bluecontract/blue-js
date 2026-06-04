@@ -1,12 +1,6 @@
 import { blueIds, createBlue } from '../test-support/blue.js';
 import { beforeEach, describe, it, expect } from 'vitest';
 
-import { DocumentProcessor } from '../api/document-processor.js';
-import { SequentialWorkflowHandlerProcessor } from '../registry/processors/sequential-workflow-processor.js';
-import { JavaScriptCodeStepExecutor } from '../registry/processors/steps/javascript-code-step-executor.js';
-import { TriggerEventStepExecutor } from '../registry/processors/steps/trigger-event-step-executor.js';
-import { UpdateDocumentStepExecutor } from '../registry/processors/steps/update-document-step-executor.js';
-import { hostGasToWasmFuel } from '../runtime/gas-schedule.js';
 import {
   SetPropertyContractProcessor,
   TerminateScopeContractProcessor,
@@ -74,7 +68,7 @@ contracts:
     expect(result.triggeredEvents.length).toBe(1);
     const terminationEvent = result.triggeredEvents[0];
     expect(typeBlueId(terminationEvent)).toBe(
-      blueIds['Core/Document Processing Terminated'],
+      blueIds['Document Processing Terminated'],
     );
     expect(stringProperty(terminationEvent, 'cause')).toBe('graceful');
   });
@@ -100,20 +94,24 @@ contracts:
     const result = await expectOk(
       processor.processDocument(initialized, testEvent('evt-2')),
     );
-    expect(result.triggeredEvents.length).toBe(1);
-    const terminatedEvent = result.triggeredEvents[0];
+    const terminatedEvents = result.triggeredEvents.filter(
+      (eventNode) =>
+        typeBlueId(eventNode) === blueIds['Document Processing Terminated'],
+    );
+    expect(terminatedEvents).toHaveLength(1);
+    const terminatedEvent = terminatedEvents[0]!;
     expect(typeBlueId(terminatedEvent)).toBe(
-      blueIds['Core/Document Processing Terminated'],
+      blueIds['Document Processing Terminated'],
     );
     expect(stringProperty(terminatedEvent, 'cause')).toBe('fatal');
     expect(stringProperty(terminatedEvent, 'reason')).toBe('panic');
   });
 
-  it('does not reinitialize an already initialized document after a JS runtime failure', async () => {
-    const yaml = `name: JS Failing Process
+  it('does not reinitialize an already initialized document after a BEX runtime failure', async () => {
+    const yaml = `name: BEX Failing Process
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   testChannel:
     type:
       blueId: TestEventChannel
@@ -121,7 +119,7 @@ contracts:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: MarkInitialized
         type: Conversation/Update Document
@@ -134,9 +132,9 @@ contracts:
     channel: testChannel
     steps:
       - name: Boom
-        type: Conversation/JavaScript Code
-        code: |
-          throw new Error("boom");
+        type: Conversation/Compute
+        expr:
+          $unknown: boom
 `;
 
     const initialized = await expectOk(
@@ -160,19 +158,19 @@ contracts:
     const contracts = property(result.document, 'contracts');
     const terminated = property(contracts, 'terminated');
     expect(stringProperty(terminated, 'cause')).toBe('fatal');
+    expect(stringProperty(terminated, 'reason')).toMatch(/BEX Compute/i);
     expect(stringProperty(terminated, 'reason')).toMatch(
-      /Failed to evaluate code block/i,
+      /Unknown BEX operator/i,
     );
 
     const initiatedEvents = result.triggeredEvents.filter(
-      (event) =>
-        typeBlueId(event) === blueIds['Core/Document Processing Initiated'],
+      (event) => typeBlueId(event) === blueIds['Document Processing Initiated'],
     );
     expect(initiatedEvents).toHaveLength(0);
 
     const terminatedEvents = result.triggeredEvents.filter(
       (event) =>
-        typeBlueId(event) === blueIds['Core/Document Processing Terminated'],
+        typeBlueId(event) === blueIds['Document Processing Terminated'],
     );
     expect(terminatedEvents).toHaveLength(1);
   });
@@ -192,11 +190,11 @@ child:
       mode: graceful
 contracts:
   embedded:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /child
   childBridge:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /child
   captureChild:
     channel: childBridge
@@ -221,21 +219,21 @@ contracts:
     expect(stringProperty(childTerminated, 'cause')).toBe('graceful');
   });
 
-  it('treats runtime errors during initialization as fatal terminations instead of host exceptions', async () => {
-    const yaml = `name: JS Failing Init
+  it('treats BEX runtime errors during initialization as fatal terminations instead of host exceptions', async () => {
+    const yaml = `name: BEX Failing Init
 contracts:
   life:
-    type: Core/Lifecycle Event Channel
+    type: Lifecycle Event Channel
   onInit:
     type: Conversation/Sequential Workflow
     channel: life
     event:
-      type: Core/Document Processing Initiated
+      type: Document Processing Initiated
     steps:
       - name: Boom
-        type: Conversation/JavaScript Code
-        code: |
-          throw new Error("boom");
+        type: Conversation/Compute
+        expr:
+          $unknown: boom
 `;
 
     const document = blue.yamlToNode(yaml);
@@ -247,62 +245,10 @@ contracts:
     expect(stringProperty(terminated, 'cause')).toBe('fatal');
 
     const terminationEvents = result.triggeredEvents.filter(
-      (e) => typeBlueId(e) === blueIds['Core/Document Processing Terminated'],
+      (e) => typeBlueId(e) === blueIds['Document Processing Terminated'],
     );
     expect(terminationEvents.length).toBe(1);
     expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');
-
-    expect(result.totalGas).toBeGreaterThan(0);
-  });
-
-  it('terminates when JS execution exceeds the gas limit', async () => {
-    const gasLimitedProcessor = new DocumentProcessor({ blue });
-    gasLimitedProcessor.registerContractProcessor(
-      new SequentialWorkflowHandlerProcessor([
-        new TriggerEventStepExecutor(),
-        new JavaScriptCodeStepExecutor({
-          wasmGasLimit: hostGasToWasmFuel(1000),
-        }),
-        new UpdateDocumentStepExecutor(),
-      ]),
-    );
-
-    const yaml = `name: JS Out Of Gas
-contracts:
-  life:
-    type: Core/Lifecycle Event Channel
-  onInit:
-    type: Conversation/Sequential Workflow
-    channel: life
-    event:
-      type: Core/Document Processing Initiated
-    steps:
-      - name: Spin
-        type: Conversation/JavaScript Code
-        code: |
-          while (true) {}
-`;
-
-    const document = blue.yamlToNode(yaml);
-    const result = await expectOk(
-      gasLimitedProcessor.initializeDocument(document),
-    );
-
-    const contracts = property(result.document, 'contracts');
-    const terminated = property(contracts, 'terminated');
-    expect(stringProperty(terminated, 'cause')).toBe('fatal');
-    const reason = stringProperty(terminated, 'reason');
-    expect(reason).toMatch(/Failed to evaluate code block/i);
-    expect(reason).toMatch(/while \(true\)/i);
-
-    const terminationEvents = result.triggeredEvents.filter(
-      (e) => typeBlueId(e) === blueIds['Core/Document Processing Terminated'],
-    );
-    expect(terminationEvents.length).toBe(1);
-    expect(stringProperty(terminationEvents[0], 'cause')).toBe('fatal');
-    expect(stringProperty(terminationEvents[0], 'reason')).toMatch(
-      /Failed to evaluate code block/i,
-    );
 
     expect(result.totalGas).toBeGreaterThan(0);
   });

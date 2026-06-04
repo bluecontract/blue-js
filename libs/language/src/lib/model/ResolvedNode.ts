@@ -149,7 +149,12 @@ export class ResolvedBlueNode extends BlueNode {
       .setValueType(source.getValueType())
       .setItems(source.getItems())
       .setProperties(source.getProperties())
+      .setContractsNode(source.getContractsNode())
       .setBlueId(source.getBlueId())
+      .setSchema(source.getSchema())
+      .setMergePolicy(source.getMergePolicy())
+      .setPreviousBlueId(source.getPreviousBlueId())
+      .setPosition(source.getPosition())
       .setBlue(source.getBlue())
       .setInlineValue(source.isInlineValue());
 

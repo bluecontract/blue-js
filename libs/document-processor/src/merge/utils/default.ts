@@ -1,5 +1,5 @@
 import { MergingProcessor, MergingProcessors } from '@blue-labs/language';
-import { ExpressionPreserver } from '../processors/ExpressionPreserver.js';
+import { BexExpressionPreserver } from '../processors/index.js';
 
 /**
  * Creates the default node processor with all standard processors
@@ -7,8 +7,8 @@ import { ExpressionPreserver } from '../processors/ExpressionPreserver.js';
  */
 export function createDefaultMergingProcessor(): MergingProcessor {
   return new MergingProcessors.SequentialMergingProcessor([
+    new BexExpressionPreserver(),
     new MergingProcessors.ValuePropagator(),
-    new ExpressionPreserver(),
     new MergingProcessors.TypeAssigner(),
     new MergingProcessors.ListProcessor(),
     new MergingProcessors.DictionaryProcessor(),

@@ -1,0 +1,16 @@
+fixtureId: GAS-052
+title: Or short-circuits without charging skipped operands
+tags: [gas]
+context:
+  rootDocumentSource: |
+    status: confirmed
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $or:
+      - true
+      - $document: /status
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 4

@@ -45,11 +45,11 @@ sub2:
   y: 1
 contracts:
   embeddedSub1:
-    type: Core/Process Embedded
+    type: Process Embedded
     paths:
       - /sub1
   sub1Bridge:
-    type: Core/Embedded Node Channel
+    type: Embedded Node Channel
     childPath: /sub1
   alice:
     type: Conversation/Timeline Channel

@@ -1,0 +1,26 @@
+fixtureId: BEX-PARSE-001
+title: Old $is.value shape is invalid Blue YAML
+targetStatus: current-parse-error
+tags:
+- blue-syntax
+- parse-errors
+context:
+  documentScope: /
+  stepsBinding:
+    Build:
+      changeset:
+      - op: replace
+        path: /status
+        val: built
+      events:
+      - eventKind: Built
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $is:
+      value: 400
+      pattern:
+        type: Integer
+expectation:
+  outcome: parse-error
+  errorContains: payload kind

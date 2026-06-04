@@ -1,0 +1,363 @@
+name: Linked Documents Permission Grant To Document BEX
+description: BEX workflow for MyOS Linked Documents Permission Grant To Document.
+targetSessionId: base-session-a
+granteeDocumentId: grantee-document-blue-id
+granterDocumentSessionId: ''
+links:
+  invoice:
+    read: true
+    allOps: false
+    singleOps:
+      - view
+skipValidation: false
+
+contracts:
+  granterChannel:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: granter
+    accountId: granter-account
+
+  initLifecycleChannel:
+    type: Lifecycle Event Channel
+    event:
+      type: Document Processing Initiated
+
+  revoke:
+    type: Coordination/Operation
+    channel: granterChannel
+    request:
+      type: Text
+
+  revokeImplGranter:
+    type: Coordination/Sequential Workflow Operation
+    operation: revoke
+    steps:
+      - name: EmitRevokeRequested
+        type: Coordination/Compute
+        do:
+          - $appendEvent:
+              type: MyOS/Linked Documents Permission Revoke Requested
+              reason:
+                $event: /message/request
+          - $return:
+              events:
+                $events: true
+
+  validateOnInit:
+    type: Coordination/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: ValidateBasicShape
+        type: Coordination/Compute
+        entry: validate
+        functions:
+          asList:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: list
+                then:
+                  $var: val
+                else: []
+          asObject:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: object
+                then:
+                  $var: val
+                else:
+                  $emptyObject: true
+          isNonEmptyText:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $and:
+                - $isKind:
+                    val:
+                      $var: val
+                    kind: text
+                - $truthy:
+                    $var: val
+          isMetaKey:
+            args:
+              key:
+                description: BEX helper argument.
+            expr:
+              $or:
+                - $eq:
+                    - $var: key
+                    - description
+                - $eq:
+                    - $var: key
+                    - type
+                - $eq:
+                    - $var: key
+                    - keyType
+                - $eq:
+                    - $var: key
+                    - valueType
+          hasBadSingleOps:
+            args:
+              ops:
+                description: BEX helper argument.
+            expr:
+              $some:
+                in:
+                  $call:
+                    function: asList
+                    args:
+                      val:
+                        $var: ops
+                item: opName
+                where:
+                  $not:
+                    $call:
+                      function: isNonEmptyText
+                      args:
+                        val:
+                          $var: opName
+          validate:
+            do:
+              - $returnIf:
+                  cond:
+                    $eq:
+                      - $document: /skipValidation
+                      - true
+                  expr:
+                    events: []
+              - $let:
+                  order:
+                    - issues
+                    - target
+                    - granterId
+                    - granteeDocumentId
+                    - links
+                    - anchorCount
+                  vars:
+                    issues: []
+                    target:
+                      $document: /targetSessionId
+                    granterId:
+                      $document: /contracts/granterChannel/accountId
+                    granteeDocumentId:
+                      $document: /granteeDocumentId
+                    links:
+                      $call:
+                        function: asObject
+                        args:
+                          val:
+                            $document: /links
+                    anchorCount: 0
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: target
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - targetSessionId is missing or invalid
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: granterId
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - granterChannel must be bound to an accountId
+              - $if:
+                  cond:
+                    $not:
+                      $call:
+                        function: isNonEmptyText
+                        args:
+                          val:
+                            $var: granteeDocumentId
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - granteeDocumentId must be a non-empty string
+              - $if:
+                  cond:
+                    $eq:
+                      - $size:
+                          $keys:
+                            $var: links
+                      - 0
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - links is missing or invalid
+              - $forEach:
+                  in:
+                    $keys:
+                      $var: links
+                  item: anchor
+                  do:
+                    - $if:
+                        cond:
+                          $not:
+                            $call:
+                              function: isMetaKey
+                              args:
+                                key:
+                                  $var: anchor
+                        then:
+                          - $set:
+                              name: anchorCount
+                              expr:
+                                $add:
+                                  - $var: anchorCount
+                                  - 1
+                          - $let:
+                              order:
+                                - perms
+                                - singleOps
+                                - hasSingle
+                              vars:
+                                perms:
+                                  $call:
+                                    function: asObject
+                                    args:
+                                      val:
+                                        $get:
+                                          object:
+                                            $var: links
+                                          key:
+                                            $var: anchor
+                                singleOps:
+                                  $choose:
+                                    cond:
+                                      $exists:
+                                        $var:
+                                          name: perms
+                                          path: /singleOps
+                                    then:
+                                      $var:
+                                        name: perms
+                                        path: /singleOps
+                                    else: []
+                                hasSingle:
+                                  $gt:
+                                    - $size:
+                                        $call:
+                                          function: asList
+                                          args:
+                                            val:
+                                              $var: singleOps
+                                    - 0
+                          - $if:
+                              cond:
+                                $ne:
+                                  - $var:
+                                      name: perms
+                                      path: /read
+                                  - true
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - "links['"
+                                              - $var: anchor
+                                              - "'].read must be true"
+                          - $if:
+                              cond:
+                                $call:
+                                  function: hasBadSingleOps
+                                  args:
+                                    ops:
+                                      $var: singleOps
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - "links['"
+                                              - $var: anchor
+                                              - "'].singleOps must contain only non-empty strings"
+                          - $if:
+                              cond:
+                                $and:
+                                  - $eq:
+                                      - $var:
+                                          name: perms
+                                          path: /allOps
+                                      - true
+                                  - $var: hasSingle
+                              then:
+                                - $set:
+                                    name: issues
+                                    expr:
+                                      $listConcat:
+                                        - $var: issues
+                                        - - $concat:
+                                              - "links['"
+                                              - $var: anchor
+                                              - "'].allOps=true and singleOps are mutually exclusive"
+              - $if:
+                  cond:
+                    $eq:
+                      - $var: anchorCount
+                      - 0
+                  then:
+                    - $set:
+                        name: issues
+                        expr:
+                          $listConcat:
+                            - $var: issues
+                            - - links must have at least one anchor entry
+              - $if:
+                  cond:
+                    $gt:
+                      - $size:
+                          $var: issues
+                      - 0
+                  then:
+                    - $appendEvent:
+                        type: MyOS/Linked Documents Permission Invalid
+                        issues:
+                          $var: issues
+                  else:
+                    - $appendEvent:
+                        type: MyOS/Linked Documents Permission Validated
+              - $return:
+                  events:
+                    $events: true

@@ -1,0 +1,18 @@
+fixtureId: GAS-056
+title: If charges only the selected branch
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $if:
+        cond: true
+        then:
+          - $appendEvent: x
+        else:
+          - $appendEvent:
+              $document: /expensive
+expectation:
+  outcome: success
+  events:
+    - x
+  gasUsed: 12

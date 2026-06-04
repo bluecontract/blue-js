@@ -2,6 +2,12 @@
 
 Generate (or check) a `BlueRepository.blue` file from a set of package folders containing `.blue` and `.dev.blue` definitions. It replaces inline type references with BlueIds, computes type-level and repo-level BlueIds, and enforces versioning/lifecycle rules.
 
+## Blue JS 5 compatibility
+
+Blue JS 5 expects BEX-compatible repository definitions and generated
+repository type packages. Release consumers should use
+`@blue-repository/types` 2.x with Blue JS 5 packages.
+
 ## Usage
 
 ### CLI
@@ -43,7 +49,8 @@ console.log(result.document); // BlueRepositoryDocument
   - Breaking changes (non-optional diffs) are rejected.
   - Stable → dev downgrade is rejected.
   - Stable types cannot depend on dev types.
-- Dependency graph is topo-sorted; aliases are validated and cycles rejected.
+- Dependency graph is processed in dependency order; strongly connected type
+  groups are hashed with `this`/`this#<index>` cyclic references.
 - Output is deterministic (sorted packages/types/versions); repo BlueId covers the packages subtree only.
 
 ## Tests

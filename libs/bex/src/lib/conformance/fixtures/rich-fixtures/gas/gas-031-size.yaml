@@ -1,0 +1,13 @@
+fixtureId: GAS-031
+title: Size charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $size:
+      - a
+      - b
+expectation:
+  outcome: success
+  resultSimple: 2
+  gasUsed: 4

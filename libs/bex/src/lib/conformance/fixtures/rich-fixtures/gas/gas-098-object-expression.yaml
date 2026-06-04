@@ -1,0 +1,13 @@
+fixtureId: GAS-098
+title: Object conversion charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $object:
+      a: 1
+expectation:
+  outcome: success
+  resultSimple:
+    a: 1
+  gasUsed: 4

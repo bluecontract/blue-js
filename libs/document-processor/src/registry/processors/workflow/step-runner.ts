@@ -1,10 +1,11 @@
 import { BlueNode } from '@blue-labs/language';
+import type { BexEngine } from '@blue-labs/bex';
 import { isNullable } from '@blue-labs/shared-utils';
 
 import type { ContractProcessorContext } from '../../types.js';
 import type { SequentialWorkflow } from '../../../model/index.js';
 import { TriggerEventStepExecutor } from '../steps/trigger-event-step-executor.js';
-import { JavaScriptCodeStepExecutor } from '../steps/javascript-code-step-executor.js';
+import { BexComputeStepExecutor } from '../steps/bex-compute-step-executor.js';
 import { UpdateDocumentStepExecutor } from '../steps/update-document-step-executor.js';
 
 export type StepResultMap = Record<string, unknown>;
@@ -24,12 +25,22 @@ export interface SequentialWorkflowStepExecutor {
   execute(args: StepExecutionArgs): unknown | Promise<unknown>;
 }
 
-export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
-  [
-    new TriggerEventStepExecutor(),
-    new JavaScriptCodeStepExecutor(),
-    new UpdateDocumentStepExecutor(),
+export interface WorkflowStepRunnerOptions {
+  readonly bexEngine?: BexEngine;
+}
+
+export function createDefaultStepExecutors(
+  options: WorkflowStepRunnerOptions = {},
+): readonly SequentialWorkflowStepExecutor[] {
+  return [
+    new TriggerEventStepExecutor(options.bexEngine),
+    new BexComputeStepExecutor(options.bexEngine),
+    new UpdateDocumentStepExecutor(options.bexEngine),
   ];
+}
+
+export const DEFAULT_STEP_EXECUTORS: readonly SequentialWorkflowStepExecutor[] =
+  createDefaultStepExecutors();
 
 export class WorkflowStepRunner {
   private readonly executorIndex: ReadonlyMap<
@@ -88,7 +99,14 @@ export class WorkflowStepRunner {
         stepIndex: index,
         contractNode,
       };
-      const result = await executor.execute(stepArgs);
+      const result = await context.measureAsync(
+        'workflow.step.execute',
+        () => Promise.resolve(executor.execute(stepArgs)),
+        {
+          stepIndex: index,
+          stepTypeBlueId: blueId,
+        },
+      );
       if (result !== undefined) {
         const key = this.stepResultKey(stepNode, index);
         results[key] = result;
@@ -100,7 +118,12 @@ export class WorkflowStepRunner {
 
   private stepResultKey(stepNode: BlueNode, index: number): string {
     const name = stepNode.getName?.();
-    if (name && typeof name === 'string' && name.length > 0) {
+    if (
+      name &&
+      typeof name === 'string' &&
+      name.length > 0 &&
+      name !== stepNode.getType?.()?.getName?.()
+    ) {
       return name;
     }
     return `Step${index + 1}`;

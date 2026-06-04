@@ -21,23 +21,25 @@ export const isWrapperType = (
   | ZodBranded<ZodTypeAny, never>
   | ZodEffects<ZodTypeAny>
   | ZodLazy<ZodTypeAny> => {
+  const typeName = String(schema._def.typeName);
   return (
-    schema instanceof ZodOptional ||
-    schema instanceof ZodNullable ||
-    schema instanceof ZodReadonly ||
-    schema instanceof ZodBranded ||
-    schema instanceof ZodEffects ||
-    schema instanceof ZodLazy
+    typeName === 'ZodOptional' ||
+    typeName === 'ZodNullable' ||
+    typeName === 'ZodReadonly' ||
+    typeName === 'ZodBranded' ||
+    typeName === 'ZodEffects' ||
+    typeName === 'ZodLazy'
   );
 };
 
 export const isPrimitiveType = (
   schema: ZodTypeAny,
 ): schema is ZodString | ZodNumber | ZodBoolean | ZodBigInt => {
+  const typeName = String(schema._def.typeName);
   return (
-    schema instanceof ZodString ||
-    schema instanceof ZodNumber ||
-    schema instanceof ZodBoolean ||
-    schema instanceof ZodBigInt
+    typeName === 'ZodString' ||
+    typeName === 'ZodNumber' ||
+    typeName === 'ZodBoolean' ||
+    typeName === 'ZodBigInt'
   );
 };

@@ -8,6 +8,11 @@ import { DocumentProcessingRuntime } from '../runtime/document-processing-runtim
 import { CheckpointManager } from './checkpoint-manager.js';
 import type { ProcessorExecutionContext } from './processor-execution-context.js';
 import type { ChannelMatch, ChannelProcessor } from '../registry/types.js';
+import type {
+  CheckpointIdentityMode,
+  CheckpointIdentityResult,
+} from './checkpoint-identity-service.js';
+import { ProcessorTimer } from './processor-timing.js';
 
 export type { ChannelMatch } from '../registry/types.js';
 
@@ -38,7 +43,11 @@ export interface ChannelRunnerDependencies {
     bundle: ContractBundle,
     error: unknown,
   ): Promise<void>;
-  canonicalSignature(node: BlueNode | null): string | null;
+  checkpointIdentity(
+    node: BlueNode | null,
+    mode?: CheckpointIdentityMode,
+    channelDefinedSubject?: BlueNode | null,
+  ): CheckpointIdentityResult;
   channelProcessorFor(node: BlueNode): ChannelProcessor<unknown> | null;
 }
 
@@ -47,6 +56,7 @@ export class ChannelRunner {
     private readonly runtime: DocumentProcessingRuntime,
     private readonly checkpointManager: CheckpointManager,
     private readonly deps: ChannelRunnerDependencies,
+    private readonly timing = ProcessorTimer.disabled,
   ) {}
 
   async runExternalChannel(
@@ -54,26 +64,25 @@ export class ChannelRunner {
     bundle: ContractBundle,
     channel: ChannelBinding,
     event: ResolvedBlueNode,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (this.deps.isScopeInactive(scopePath)) {
-      return;
+      return false;
     }
     this.runtime.gasMeter().chargeChannelMatchAttempt();
 
     const checkpointEvent = event;
-    const match = await this.deps.evaluateChannel(
-      channel,
-      bundle,
-      scopePath,
-      event,
+    const match = await this.timing.measureAsync(
+      'channel.match',
+      () => this.deps.evaluateChannel(channel, bundle, scopePath, event),
+      { scopePath, channelKey: channel.key() },
     );
     if (!match.matches) {
-      return;
+      return false;
     }
 
     if (match.deliveries && match.deliveries.length > 0) {
       await this.runDeliveries(scopePath, bundle, channel, event, match);
-      return;
+      return true;
     }
 
     const eventForHandlers = match.eventNode ?? event;
@@ -82,10 +91,10 @@ export class ChannelRunner {
       bundle,
       channel.key(),
     );
-    const eventSignature =
-      match.eventId ?? this.deps.canonicalSignature(checkpointEvent);
-    if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
-      return;
+    const identity = this.checkpointIdentity(checkpointEvent, match);
+    const eventSignature = identity.identity;
+    if (this.isDuplicate(checkpoint, eventSignature, match)) {
+      return true;
     }
 
     const shouldProcess = await this.shouldProcessRelativeToCheckpoint(
@@ -96,7 +105,7 @@ export class ChannelRunner {
       checkpoint,
     );
     if (!shouldProcess) {
-      return;
+      return true;
     }
 
     await this.runHandlers(
@@ -107,7 +116,7 @@ export class ChannelRunner {
       false,
     );
     if (this.deps.isScopeInactive(scopePath)) {
-      return;
+      return true;
     }
 
     this.checkpointManager.persist(
@@ -115,8 +124,9 @@ export class ChannelRunner {
       bundle,
       checkpoint,
       eventSignature ?? null,
-      checkpointEvent,
+      identity.subject,
     );
+    return true;
   }
 
   private async runDeliveries(
@@ -131,7 +141,7 @@ export class ChannelRunner {
       return;
     }
     this.checkpointManager.ensureCheckpointMarker(scopePath, bundle);
-    const fallbackSignature = this.deps.canonicalSignature(checkpointEvent);
+    let fallbackIdentity: CheckpointIdentityResult | undefined;
 
     for (const delivery of deliveries) {
       if (this.deps.isScopeInactive(scopePath)) {
@@ -142,8 +152,16 @@ export class ChannelRunner {
         bundle,
         checkpointKey,
       );
-      const eventSignature = delivery.eventId ?? fallbackSignature;
-      if (this.checkpointManager.isDuplicate(checkpoint, eventSignature)) {
+      const identity = this.checkpointIdentity(
+        checkpointEvent,
+        delivery,
+        fallbackIdentity,
+      );
+      if (this.canReuseContentIdentity(delivery) && fallbackIdentity == null) {
+        fallbackIdentity = identity;
+      }
+      const eventSignature = identity.identity;
+      if (this.isDuplicate(checkpoint, eventSignature, delivery)) {
         continue;
       }
 
@@ -177,9 +195,89 @@ export class ChannelRunner {
         bundle,
         checkpoint,
         eventSignature ?? null,
-        checkpointEvent,
+        identity.subject,
       );
     }
+  }
+
+  private checkpointIdentity(
+    checkpointEvent: BlueNode,
+    match:
+      | Pick<
+          ChannelMatch,
+          'checkpointIdentity' | 'eventId' | 'checkpointIdentityMode'
+        >
+      | {
+          readonly checkpointIdentity?: string | null;
+          readonly eventId?: string | null;
+          readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
+        },
+    fallback?: CheckpointIdentityResult,
+  ): CheckpointIdentityResult {
+    const mode = match.checkpointIdentityMode ?? 'contentBlueId';
+    if (mode === 'precomputed') {
+      if (match.checkpointIdentity == null) {
+        throw new Error(
+          'precomputed checkpoint identity mode requires checkpointIdentity',
+        );
+      }
+      return {
+        identity: match.checkpointIdentity,
+        subject: checkpointEvent.clone(),
+      };
+    }
+    if (mode === 'eventId' && match.eventId != null) {
+      return {
+        identity: match.eventId,
+        subject: checkpointEvent.clone(),
+      };
+    }
+    if (mode === 'contentBlueId' && fallback) {
+      return fallback;
+    }
+    return this.deps.checkpointIdentity(checkpointEvent, mode);
+  }
+
+  private isDuplicate(
+    checkpoint: ReturnType<CheckpointManager['findCheckpoint']>,
+    eventSignature: string | null | undefined,
+    match: {
+      readonly checkpointIdentity?: string | null;
+      readonly eventId?: string | null;
+      readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
+    },
+  ): boolean {
+    if (checkpoint == null || eventSignature == null) {
+      return false;
+    }
+    const mode = match.checkpointIdentityMode ?? 'contentBlueId';
+    if (mode !== 'eventId' && mode !== 'nodeBlueId') {
+      return this.checkpointManager.isDuplicate(checkpoint, eventSignature);
+    }
+    const stored = checkpoint.lastEventNode;
+    if (!stored) {
+      return false;
+    }
+    try {
+      return (
+        this.deps.checkpointIdentity(stored, mode).identity === eventSignature
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private canReuseContentIdentity(match: {
+    readonly checkpointIdentity?: string | null;
+    readonly eventId?: string | null;
+    readonly checkpointIdentityMode?: CheckpointIdentityMode | null;
+  }): boolean {
+    return (
+      match.checkpointIdentity == null &&
+      match.eventId == null &&
+      (match.checkpointIdentityMode == null ||
+        match.checkpointIdentityMode === 'contentBlueId')
+    );
   }
 
   async runHandlers(
@@ -205,12 +303,28 @@ export class ChannelRunner {
           event,
           allowTerminatedWork,
         );
-        const shouldRun = await this.deps.shouldRunHandler(handler, context);
+        const shouldRun = await this.timing.measureAsync(
+          'handler.shouldRun',
+          () => this.deps.shouldRunHandler(handler, context),
+          {
+            scopePath,
+            channelKey,
+            contractKey: handler.key(),
+          },
+        );
         if (!shouldRun) {
           continue;
         }
         this.runtime.gasMeter().chargeHandlerOverhead();
-        await this.deps.executeHandler(handler, context);
+        await this.timing.measureAsync(
+          'handler.execute',
+          () => this.deps.executeHandler(handler, context),
+          {
+            scopePath,
+            channelKey,
+            contractKey: handler.key(),
+          },
+        );
         if (!allowTerminatedWork && this.deps.isScopeInactive(scopePath)) {
           break;
         }

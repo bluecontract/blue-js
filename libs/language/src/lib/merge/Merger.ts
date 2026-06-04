@@ -32,6 +32,7 @@ interface ResolutionContext {
 export class Merger extends NodeResolver {
   private mergingProcessor: MergingProcessor;
   private nodeProvider: NodeProvider;
+  private readonly nodeProviderIsUnverified: boolean;
 
   /**
    * Creates a new Merger with the specified MergingProcessor and NodeProvider
@@ -41,6 +42,8 @@ export class Merger extends NodeResolver {
   constructor(mergingProcessor: MergingProcessor, nodeProvider: NodeProvider) {
     super();
     this.mergingProcessor = mergingProcessor;
+    this.nodeProviderIsUnverified =
+      NodeProviderWrapper.isUnverified(nodeProvider);
     this.nodeProvider = NodeProviderWrapper.wrap(nodeProvider);
   }
 
@@ -98,11 +101,40 @@ export class Merger extends NodeResolver {
     context: ResolutionContext,
   ): BlueNode {
     const workingTarget = target.cloneShallow();
+    const preservedSource = this.mergingProcessor.preserveSource?.(
+      workingTarget,
+      source,
+      context.nodeProvider,
+    );
+    if (preservedSource !== undefined) {
+      if (this.mergingProcessor.postProcess) {
+        return this.mergingProcessor.postProcess(
+          preservedSource,
+          source,
+          context.nodeProvider,
+        );
+      }
+      return preservedSource;
+    }
+
     let newTarget = this.mergingProcessor.process(
       workingTarget,
       source,
       context.nodeProvider,
     );
+
+    if (
+      this.mergingProcessor.shouldPreserveSource?.(source, context.nodeProvider)
+    ) {
+      if (this.mergingProcessor.postProcess) {
+        newTarget = this.mergingProcessor.postProcess(
+          newTarget,
+          source,
+          context.nodeProvider,
+        );
+      }
+      return newTarget;
+    }
 
     const children = source.getItems();
     if (isNonNullable(children)) {
@@ -141,6 +173,16 @@ export class Merger extends NodeResolver {
     context: ResolutionContext,
   ): BlueNode {
     const sourceChildren = source.getItems() ?? [];
+    for (let index = 0; index < sourceChildren.length; index += 1) {
+      if (
+        index !== 0 &&
+        ListControls.hasPreviousProperty(sourceChildren[index])
+      ) {
+        throw new Error(
+          '$previous list control is allowed only as the first item.',
+        );
+      }
+    }
     if (ListControls.hasListControlItems(sourceChildren)) {
       return this.mergeChildrenWithListControls(target, source, context);
     }
@@ -169,9 +211,10 @@ export class Merger extends NodeResolver {
 
         this.enterPathSegment(context, String(i), child);
         try {
-          const resolvedChild = this.materializeForCurrentContext(
+          const resolvedChild = this.materializeForCurrentContextWithItemType(
             child,
             context,
+            target.getItemType(),
           );
           filteredChildren.push(resolvedChild);
         } finally {
@@ -197,17 +240,23 @@ export class Merger extends NodeResolver {
       this.enterPathSegment(context, String(i), sourceChildren[i]);
       try {
         if (i >= newTargetChildren.length) {
-          const resolvedAppendedChild = this.materializeForCurrentContext(
-            sourceChildren[i],
-            context,
-          );
+          const resolvedAppendedChild =
+            this.materializeForCurrentContextWithItemType(
+              sourceChildren[i],
+              context,
+              target.getItemType(),
+            );
           newTargetChildren.push(resolvedAppendedChild);
           continue;
         }
         const sourceIdentityNode =
           context.limits instanceof NoLimits
-            ? sourceChildren[i]
-            : this.materializeForCurrentContext(sourceChildren[i], context);
+            ? this.applyItemType(sourceChildren[i], target.getItemType())
+            : this.materializeForCurrentContextWithItemType(
+                sourceChildren[i],
+                context,
+                target.getItemType(),
+              );
         const sourceBlueId = this.calculateNodeBlueId(
           sourceIdentityNode,
           context,
@@ -234,6 +283,7 @@ export class Merger extends NodeResolver {
     context: ResolutionContext,
   ): BlueNode {
     const sourceChildren = source.getItems() ?? [];
+    const targetHasInheritedChildren = target.getItems() !== undefined;
     const targetChildren = target.getItems() ?? [];
     const mergePolicy = ListControls.getMergePolicy(source, target);
     const newTargetChildren = [...targetChildren];
@@ -278,6 +328,31 @@ export class Merger extends NodeResolver {
           throw new Error('$pos is not allowed in append-only lists.');
         }
 
+        if (!targetHasInheritedChildren) {
+          if (position !== newTargetChildren.length) {
+            throw new Error(
+              '$pos is out of range for a list without inherited items.',
+            );
+          }
+          const payload = ListControls.withoutPosition(sourceChild);
+          if (!ListControls.hasPayloadAfterRemovingPosition(sourceChild)) {
+            throw new Error('$pos list control must include an item payload.');
+          }
+          this.enterPathSegment(context, String(position), payload);
+          try {
+            newTargetChildren.push(
+              this.materializeForCurrentContextWithItemType(
+                payload,
+                context,
+                target.getItemType(),
+              ),
+            );
+          } finally {
+            this.exitPathSegment(context);
+          }
+          continue;
+        }
+
         if (position >= targetChildren.length) {
           throw new Error(
             `$pos ${position} is out of range for inherited list length ${targetChildren.length}.`,
@@ -301,10 +376,16 @@ export class Merger extends NodeResolver {
         this.enterPathSegment(context, String(position), payload);
         try {
           const existingChild = newTargetChildren[position];
+          const effectiveItemType =
+            existingChild?.getType() ?? target.getItemType();
           newTargetChildren[position] =
             existingChild === undefined ||
             ListControls.isReplacementPayload(payload)
-              ? this.materializeForCurrentContext(payload, context)
+              ? this.materializeForCurrentContextWithItemType(
+                  payload,
+                  context,
+                  effectiveItemType,
+                )
               : this.mergeWithContext(existingChild, payload, context);
         } finally {
           this.exitPathSegment(context);
@@ -322,17 +403,22 @@ export class Merger extends NodeResolver {
 
       if (inheritedPrefixUnavailable) {
         newTargetChildren.push(
-          this.materializeWithoutLimits(sourceChild, context),
+          this.materializeWithoutLimits(
+            this.applyItemType(sourceChild, target.getItemType()),
+            context,
+          ),
         );
         continue;
       }
 
       this.enterPathSegment(context, String(appendIndex), sourceChild);
       try {
-        const resolvedAppendedChild = this.materializeForCurrentContext(
-          sourceChild,
-          context,
-        );
+        const resolvedAppendedChild =
+          this.materializeForCurrentContextWithItemType(
+            sourceChild,
+            context,
+            target.getItemType(),
+          );
         newTargetChildren.push(resolvedAppendedChild);
       } finally {
         this.exitPathSegment(context);
@@ -638,6 +724,39 @@ export class Merger extends NodeResolver {
       : this.resolveWithContext(node, context);
   }
 
+  private materializeForCurrentContextWithItemType(
+    node: BlueNode,
+    context: ResolutionContext,
+    itemType: BlueNode | undefined,
+  ): BlueNode {
+    return this.materializeForCurrentContext(
+      this.applyItemType(node, itemType),
+      context,
+    );
+  }
+
+  private applyItemType(
+    child: BlueNode,
+    itemType: BlueNode | undefined,
+  ): BlueNode {
+    if (
+      child.getType() !== undefined ||
+      child.getReferenceBlueId() !== undefined ||
+      itemType === undefined
+    ) {
+      return child;
+    }
+
+    return child.clone().setType(this.itemTypeReference(itemType));
+  }
+
+  private itemTypeReference(itemType: BlueNode): BlueNode {
+    const blueId = itemType.getReferenceBlueId();
+    return blueId === undefined
+      ? itemType.clone()
+      : new BlueNode().setReferenceBlueId(blueId);
+  }
+
   private canReuseResolvedSubtree(context: ResolutionContext): boolean {
     return context.limits instanceof NoLimits;
   }
@@ -725,7 +844,7 @@ export class Merger extends NodeResolver {
     nodeProvider: NodeProvider,
     cache: Map<string, BlueNode[] | null>,
   ): NodeProvider {
-    return new (class extends NodeProvider {
+    const cachedProvider = new (class extends NodeProvider {
       override fetchByBlueId(blueId: string): BlueNode[] | null {
         if (cache.has(blueId)) {
           return cache.get(blueId) ?? null;
@@ -736,6 +855,9 @@ export class Merger extends NodeResolver {
         return nodes;
       }
     })();
+    return this.nodeProviderIsUnverified
+      ? NodeProviderWrapper.unverified(cachedProvider)
+      : cachedProvider;
   }
 
   private getCurrentPointer(context: ResolutionContext): string {

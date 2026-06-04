@@ -47,12 +47,18 @@ describe('TerminationService', () => {
     const lifecycleEvent = deliverLifecycleMock.mock.calls[0]?.[2] as BlueNode;
     expect(lifecycleEvent).toBeInstanceOf(BlueNode);
     expect(typeBlueId(lifecycleEvent)).toBe(
-      blueIds['Core/Document Processing Terminated'],
+      blueIds['Document Processing Terminated'],
     );
     const props = lifecycleEvent.getProperties() ?? {};
 
     expect(props.cause?.getValue()).toBe('fatal');
     expect(props.reason?.getValue()).toBe('bad');
-    expect(runtime.rootEmissions()).toHaveLength(0);
+    expect(runtime.rootEmissions()).toHaveLength(1);
+    expect(typeBlueId(runtime.rootEmissions()[0]!)).toBe(
+      blueIds['Document Processing Fatal Error'],
+    );
+    expect(
+      runtime.rootEmissions()[0]!.getProperties()?.reason?.getValue(),
+    ).toBe('bad');
   });
 });

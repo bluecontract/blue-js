@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { Blue, createNodeProvider } from '@blue-labs/language';
+import yaml from 'js-yaml';
+import {
+  Blue,
+  NodeProviderWrapper,
+  createNodeProvider,
+} from '@blue-labs/language';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import { generateRepository } from '../lib/generateRepository';
 import { lookupStorageContentByBlueId } from '../lib/core/blueIds';
@@ -43,7 +48,7 @@ const createSemanticExpectedCalculator = () => {
     ),
   );
   const blue = new Blue({
-    nodeProvider: provider,
+    nodeProvider: NodeProviderWrapper.unverified(provider),
     mergingProcessor: createRepositoryGeneratorMergingProcessor(),
   });
 
@@ -63,12 +68,6 @@ const createSemanticExpectedCalculator = () => {
 
 const LIST_YAML = `name: List
 description: Ordered collection
-itemType:
-  description: Optional item type
-mergePolicy:
-  type: Text
-  schema:
-    enum: [append-only, positional]
 `;
 
 describe('generateRepository', () => {
@@ -163,10 +162,10 @@ type: Orders/Order
                 name: Name
                 text:
                   type:
-                    blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+                    blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: Eo2k5m3nHRU8UZ1iHvjUhnrGHoXW5wbbQCcEgCKu2N7A
+                  typeBlueId: Gpri2QifLTwoLHwWvUS2td1j6LdAopVGJhuzTSXgBzVn
                   attributesAdded: []
         - name: Orders
           types:
@@ -175,22 +174,22 @@ type: Orders/Order
                 name: Order
                 id:
                   type:
-                    blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+                    blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
                 price:
                   type:
-                    blueId: 8ofNzdVUfLafwPZCHMS4sXUJYQhpW9EXv2ezNrBDmpds
+                    blueId: BYTxUuUHnyYFn2N142URWyDxviFWNwKwjRKwYrqNiifd
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: 53Nr6BT9GfdbE4Peyu8rJddEzRFuNDh5NzbszbMFRqQd
+                  typeBlueId: G73Cm3B1mjVxW3D3yk8zUPKfgdyXzTrHa8R31xxcp9uE
                   attributesAdded: []
             - status: dev
               content:
                 name: Order Draft
                 type:
-                  blueId: 53Nr6BT9GfdbE4Peyu8rJddEzRFuNDh5NzbszbMFRqQd
+                  blueId: G73Cm3B1mjVxW3D3yk8zUPKfgdyXzTrHa8R31xxcp9uE
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: CiXDJa7RAr9RyFeBS98wZmRAHT1Mhc83rx3J7NU3eJ6e
+                  typeBlueId: E8ynGSKokxwgMiDRyF3fgDeAjGNcmcRXh4nVEeMb86cF
                   attributesAdded: []
         - name: Payments
           types:
@@ -199,15 +198,153 @@ type: Orders/Order
                 name: Price
                 amount:
                   type:
-                    blueId: DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K
+                    blueId: GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC
               versions:
                 - repositoryVersionIndex: 0
-                  typeBlueId: 8ofNzdVUfLafwPZCHMS4sXUJYQhpW9EXv2ezNrBDmpds
+                  typeBlueId: BYTxUuUHnyYFn2N142URWyDxviFWNwKwjRKwYrqNiifd
                   attributesAdded: []
       repositoryVersions:
-        - HRQ15SpuD9Bqtr3V3MLZfRA2qwMihtoQVqTL7qZtX1e2
+        - GhDwwfRK1WKb6iBme31WUf4FECi6f83ni5MwnnRaPmtm
       "
     `);
+  });
+
+  it('canonicalizes legacy wrapped schema cardinality content before reuse', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'ListHolder.blue',
+      `
+name: List Holder
+entries:
+  type: List
+  itemType: Text
+  schema:
+    minItems: 0
+`,
+    );
+    writeType(
+      repoRoot,
+      'Core',
+      'UsesHolder.blue',
+      `
+name: Uses Holder
+holder:
+  type: Core/List Holder
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    const legacyDocument = yaml.load(initial.yaml) as {
+      packages: Array<{ name: string; types: Array<{ content: JsonMap }> }>;
+    };
+    const legacyListHolder = legacyDocument.packages
+      .find((p) => p.name === 'Core')
+      ?.types.find((t) => t.content.name === 'List Holder')?.content;
+    if (!legacyListHolder) {
+      throw new Error('Expected generated repository to contain List Holder.');
+    }
+    const legacyItems = legacyListHolder.entries as JsonMap;
+    const legacySchema = legacyItems.schema as JsonMap;
+    legacySchema.minItems = {
+      type: { blueId: PRIMITIVE_BLUE_IDS.Integer },
+      value: 0,
+    };
+    const legacyYaml = yaml.dump(legacyDocument);
+    expect(legacyYaml).toContain(`blueId: ${PRIMITIVE_BLUE_IDS.Integer}`);
+    persistRepository(repoRoot, legacyYaml);
+
+    const regenerated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    expect(regenerated.changed).toBe(true);
+    const listHolder = regenerated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'List Holder',
+      );
+    const initialListHolder = initial.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'List Holder',
+      );
+
+    expect(listHolder?.versions).toEqual(initialListHolder?.versions);
+    expect(
+      (
+        (
+          listHolder?.content as {
+            entries?: { schema?: { minItems?: unknown } };
+          }
+        ).entries?.schema ?? {}
+      ).minItems,
+    ).toBe(0);
+  });
+
+  it('canonicalizes legacy runtime BlueIds before stable comparisons', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'RuntimeChannel.blue',
+      `
+name: Runtime Channel
+type: Channel
+`,
+    );
+
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const legacyDocument = yaml.load(initial.yaml) as {
+      packages: Array<{ name: string; types: Array<{ content: JsonMap }> }>;
+    };
+    const legacyRuntimeChannel = legacyDocument.packages
+      .find((p) => p.name === 'Core')
+      ?.types.find((t) => t.content.name === 'Runtime Channel')?.content;
+    if (!legacyRuntimeChannel) {
+      throw new Error(
+        'Expected generated repository to contain Runtime Channel.',
+      );
+    }
+    legacyRuntimeChannel.type = {
+      blueId: 'DcoJyCh7XXxy1nR5xjy7qfkUgQ1GiZnKKSxh8DJusBSr',
+    };
+    persistRepository(repoRoot, yaml.dump(legacyDocument));
+
+    const regenerated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    const runtimeChannel = regenerated.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Runtime Channel',
+      );
+    const initialRuntimeChannel = initial.document.packages
+      .find((p: BluePackage) => p.name === 'Core')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Runtime Channel',
+      );
+
+    expect(regenerated.changed).toBe(true);
+    expect(runtimeChannel?.versions).toEqual(initialRuntimeChannel?.versions);
+    expect(
+      (runtimeChannel?.content as { type?: { blueId?: string } }).type?.blueId,
+    ).toBe(PRIMITIVE_BLUE_IDS.Channel);
   });
 
   it('appends a version on non-breaking additions and bumps RepoBlueId', () => {
@@ -749,6 +886,74 @@ text:
     expect(second.yaml).toEqual(first.yaml);
   });
 
+  it('preserves published BlueIds and stored content for unchanged existing types', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Sandbox',
+      'Base.blue',
+      `
+name: Base
+text:
+  type: Text
+description: Saved order
+`,
+    );
+
+    const historicalTypeBlueId = '6CtkPkPVtmiQJJienGdzvZf2qGTRQntLXfh8PYeMfxBX';
+    const historicalRepoBlueId = 'sUk1iHFrf7UQXAMeQvWRyvYVxxStUjfARaE5e4EgDKv';
+    const previousYaml = yaml.dump(
+      {
+        name: 'Blue Repository',
+        packages: [
+          {
+            name: 'Sandbox',
+            types: [
+              {
+                status: 'stable',
+                content: {
+                  name: 'Base',
+                  description: 'Saved order',
+                  text: {
+                    type: {
+                      blueId: PRIMITIVE_BLUE_IDS.Text,
+                    },
+                  },
+                },
+                versions: [
+                  {
+                    repositoryVersionIndex: 0,
+                    typeBlueId: historicalTypeBlueId,
+                    attributesAdded: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        repositoryVersions: [historicalRepoBlueId],
+      },
+      { lineWidth: -1 },
+    );
+    persistRepository(repoRoot, previousYaml);
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const typeMetadata = result.document.packages[0]?.types[0];
+
+    expect(result.changed).toBe(false);
+    expect(result.currentRepoBlueId).toBe(historicalRepoBlueId);
+    expect(result.yaml).toEqual(readRepositoryFile(repoRoot));
+    expect(typeMetadata?.versions[0]?.typeBlueId).toBe(historicalTypeBlueId);
+    expect(Object.keys(typeMetadata?.content ?? {})).toEqual([
+      'name',
+      'description',
+      'text',
+    ]);
+  });
+
   it('rejects breaking changes to stable types', () => {
     const repoRoot = createRepo();
     writeType(
@@ -1234,7 +1439,7 @@ feature:
     ).toThrow(/depends on a dev type/);
   });
 
-  it('detects circular dependencies', () => {
+  it('supports circular dependencies with combined BlueIds', () => {
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1257,12 +1462,97 @@ ref:
 `,
     );
 
-    expect(() =>
-      generateRepository({
-        repoRoot,
-        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
-      }),
-    ).toThrow(/Circular type dependency/);
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+
+    const coreTypes =
+      result.document.packages.find((pkg) => pkg.name === 'Core')?.types ?? [];
+    const a = coreTypes.find(
+      (type) => (type.content as { name?: string }).name === 'A',
+    );
+    const b = coreTypes.find(
+      (type) => (type.content as { name?: string }).name === 'B',
+    );
+    const aBlueId = a?.versions.at(-1)?.typeBlueId;
+    const bBlueId = b?.versions.at(-1)?.typeBlueId;
+
+    if (!a || !b) {
+      throw new Error('Expected cyclic test types to be generated.');
+    }
+
+    expect(aBlueId).toBeDefined();
+    expect(bBlueId).toBeDefined();
+    expect(aBlueId).not.toEqual(bBlueId);
+
+    const [masterBlueIdA, aSuffix] = (aBlueId ?? '').split('#');
+    const [masterBlueIdB, bSuffix] = (bBlueId ?? '').split('#');
+    expect(masterBlueIdA).toEqual(masterBlueIdB);
+    expect(new Set([aSuffix, bSuffix])).toEqual(new Set(['0', '1']));
+
+    const aReference = (a?.content as { ref?: { type?: { blueId?: string } } })
+      .ref?.type?.blueId;
+    const bReference = (b?.content as { ref?: { type?: { blueId?: string } } })
+      .ref?.type?.blueId;
+    expect(aReference).toEqual(`this#${bSuffix}`);
+    expect(bReference).toEqual(`this#${aSuffix}`);
+
+    const sortedContent = [
+      { suffix: aSuffix, content: a.content },
+      { suffix: bSuffix, content: b.content },
+    ]
+      .sort((left, right) =>
+        String(left.suffix).localeCompare(String(right.suffix)),
+      )
+      .map((entry) => entry.content);
+
+    expect(new Blue().calculateBlueIdSync(sortedContent)).toEqual(
+      masterBlueIdA,
+    );
+  });
+
+  it('supports single-type self references', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'Node.blue',
+      `
+name: Node
+next:
+  type: Core/Node
+`,
+    );
+
+    const expectedMasterBlueId = new Blue().calculateBlueIdSync([
+      {
+        name: 'Node',
+        next: {
+          type: {
+            blueId: 'this#0',
+          },
+        },
+      },
+    ]);
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const node = result.document.packages
+      .find((pkg) => pkg.name === 'Core')
+      ?.types.find(
+        (type) => (type.content as { name?: string }).name === 'Node',
+      );
+
+    expect(node?.versions.at(-1)?.typeBlueId).toEqual(
+      `${expectedMasterBlueId}#0`,
+    );
+    expect(
+      (node?.content as { next?: { type?: { blueId?: string } } }).next?.type
+        ?.blueId,
+    ).toEqual('this#0');
   });
 
   it('rejects reserved value as an attribute declaration', () => {
@@ -1305,13 +1595,58 @@ properties:
         repoRoot,
         blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
       }),
-    ).toThrow(/document-level properties key/);
+    ).toThrow(/properties is an internal field/);
+  });
+
+  it('rejects namespace as metadata on scalar type definitions', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'AccountTypeEnum.blue',
+      `
+name: AccountTypeEnum
+namespace: cdm/base/staticdata/party
+description: The enumeration values to qualify the type of account.
+type: Text
+schema:
+  enum: [AggregateClient, Client, House]
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow('"namespace" is not an allowed fields here');
+  });
+
+  it('allows scalar type definitions with only reserved metadata fields', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'AccountTypeEnum.blue',
+      `
+name: AccountTypeEnum
+description: The enumeration values to qualify the type of account.
+type: Text
+schema:
+  enum: [AggregateClient, Client, House]
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).not.toThrow();
   });
 
   it('accepts typed scalar value payloads', () => {
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1345,13 +1680,44 @@ status:
     });
   });
 
+  it('accepts built-in runtime aliases without package qualification', () => {
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Contracts',
+      'TimelineChannel.blue',
+      `
+name: Timeline Channel
+type: Channel
+event:
+  type: Document Update
+`,
+    );
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const meta = result.document.packages
+      .find((p: BluePackage) => p.name === 'Contracts')
+      ?.types.find(
+        (t: BlueTypeMetadata) =>
+          (t.content as { name?: string }).name === 'Timeline Channel',
+      );
+
+    expect(meta?.content).toEqual({
+      name: 'Timeline Channel',
+      type: { blueId: primitiveIds.Channel },
+      event: {
+        type: { blueId: primitiveIds['Document Update'] },
+      },
+    });
+  });
+
   it('substitutes type/keyType/valueType with BlueIds when computing hashes', () => {
     const repoRoot = createRepo();
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-      Dictionary: 'G7fBT9PSod1RfHLHkpafAGBDVAJMrMhAMY51ERcyXNrj',
-      List: '6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY',
-    };
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
     writeType(
       repoRoot,
       'Core',
@@ -1439,9 +1805,7 @@ map:
   });
 
   it('computes generated typeBlueId through semantic Blue', () => {
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1474,9 +1838,7 @@ label:
   });
 
   it('computes the canonical BlueId for List using hardcoded primitives', () => {
-    const primitiveIds = {
-      List: '6aehfNAxHLC1PHHoDr3tYtFH3RWNbiWdFancJ1bypXEY',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
 
     const repoRoot = createRepo();
     writeType(repoRoot, 'Core', 'List.blue', LIST_YAML);
@@ -1497,12 +1859,7 @@ label:
   });
 
   it('wraps literal fields with inferred primitive types when hashing', () => {
-    const primitiveIds = {
-      Text: 'DLRQwz7MQeCrzjy9bohPNwtCxKEBbKaMK65KBrwjfG6K',
-      Boolean: '4EzhSubEimSQD3zrYHRtobfPPWntUuhEz8YcdxHsi12u',
-      Integer: '5WNMiV9Knz63B4dVY5JtMyh3FB4FSGqv7ceScvuapdE1',
-      Double: '7pwXmXYCJtWnd348c2JQGBkm9C4renmZRwxbfaypsx5y',
-    } as const;
+    const primitiveIds = PRIMITIVE_BLUE_IDS;
 
     const repoRoot = createRepo();
     writeType(
@@ -1545,7 +1902,6 @@ score: 1.5
   });
 
   it('preserves expression values without conflicting with inherited list fields', () => {
-    const expression = '${steps.Prepare.changeset}';
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -1597,8 +1953,7 @@ changeset: '\${steps.Prepare.changeset}'
 
     expect(applyStep?.versions.at(-1)?.typeBlueId).toBeDefined();
     expect(applyStepContent?.changeset).toEqual({
-      value: expression,
-      type: { blueId: PRIMITIVE_BLUE_IDS.Text },
+      $steps: 'Prepare.changeset',
     });
   });
 });

@@ -1,11 +1,19 @@
 import { z } from 'zod';
 
-import { TimelineChannelSchema as ConversationTimelineChannelSchema } from '@blue-repository/types/packages/conversation/schemas/TimelineChannel';
+import { TimelineChannelSchema as ConversationTimelineChannelSchema } from '@blue-repository/types/packages/coordination/schemas/TimelineChannel';
 
-import { channelContractBaseSchema } from '../shared/index.js';
+import {
+  channelContractBaseSchema,
+  type ChannelContractBase,
+} from '../shared/index.js';
 
-export const timelineChannelSchema = ConversationTimelineChannelSchema.merge(
+const timelineChannelSchemaBase = ConversationTimelineChannelSchema.merge(
   channelContractBaseSchema,
 );
 
-export type TimelineChannel = z.infer<typeof timelineChannelSchema>;
+export type TimelineChannel = ChannelContractBase & {
+  timelineId?: string;
+};
+
+export const timelineChannelSchema =
+  timelineChannelSchemaBase as z.ZodType<TimelineChannel>;

@@ -3,6 +3,7 @@ import { Nodes } from './Nodes';
 import { BlueIdCalculator } from './BlueIdCalculator';
 import { isNonNullable, isNullable } from '@blue-labs/shared-utils';
 import { ListControls } from './ListControls';
+import { OBJECT_CONTRACTS } from './Properties';
 
 export class MergeReverser {
   constructor(
@@ -27,6 +28,14 @@ export class MergeReverser {
     return minimalNode;
   }
 
+  public reverseToCanonicalOverlay<T extends BlueNode>(
+    mergedNode: T,
+  ): BlueNode {
+    const minimalNode = new BlueNode();
+    this.reverseCanonicalNode(minimalNode, mergedNode, mergedNode.getType());
+    return minimalNode;
+  }
+
   public static calculateHashMinimalBlueId(node: BlueNode): string {
     return BlueIdCalculator.calculateBlueIdSync(this.toHashMinimalNode(node));
   }
@@ -39,6 +48,293 @@ export class MergeReverser {
 
   private static toHashMinimalNode(node: BlueNode): BlueNode {
     return new MergeReverser({ emitListControls: false }).reverse(node);
+  }
+
+  private reverseCanonicalNode(
+    minimal: BlueNode,
+    merged: BlueNode,
+    fromType: BlueNode | undefined,
+  ): void {
+    if (
+      merged.getReferenceBlueId() !== undefined &&
+      fromType?.getReferenceBlueId() === merged.getReferenceBlueId()
+    ) {
+      return;
+    }
+
+    const mergedValue = merged.getValue();
+    if (
+      mergedValue !== undefined &&
+      mergedValue !== null &&
+      (fromType === undefined ||
+        fromType.getValue() === undefined ||
+        fromType.getValue() === null ||
+        !this.sameScalarValue(mergedValue, fromType.getValue()))
+    ) {
+      minimal.setValue(mergedValue);
+    }
+
+    this.setCanonicalTypeIfDifferent(
+      merged,
+      fromType,
+      minimal,
+      (node) => node.getType(),
+      (node, value) => node.setType(value),
+    );
+    this.setCanonicalTypeIfDifferent(
+      merged,
+      fromType,
+      minimal,
+      (node) => node.getItemType(),
+      (node, value) => node.setItemType(value),
+    );
+    this.setCanonicalTypeIfDifferent(
+      merged,
+      fromType,
+      minimal,
+      (node) => node.getKeyType(),
+      (node, value) => node.setKeyType(value),
+    );
+    this.setCanonicalTypeIfDifferent(
+      merged,
+      fromType,
+      minimal,
+      (node) => node.getValueType(),
+      (node, value) => node.setValueType(value),
+    );
+    this.preserveCanonicalPayloadTypeForMetadataOverride(merged, minimal);
+
+    if (
+      merged.getName() !== undefined &&
+      (fromType === undefined || merged.getName() !== fromType.getName())
+    ) {
+      minimal.setName(merged.getName());
+    }
+    if (
+      merged.getDescription() !== undefined &&
+      (fromType === undefined ||
+        merged.getDescription() !== fromType.getDescription())
+    ) {
+      minimal.setDescription(merged.getDescription());
+    }
+
+    if (
+      this.isReferenceOnly(merged) &&
+      (fromType === undefined ||
+        merged.getReferenceBlueId() !== fromType.getReferenceBlueId())
+    ) {
+      minimal.setReferenceBlueId(merged.getReferenceBlueId());
+    }
+
+    if (
+      merged.getMergePolicy() !== undefined &&
+      (fromType === undefined ||
+        merged.getMergePolicy() !== fromType.getMergePolicy())
+    ) {
+      minimal.setMergePolicy(merged.getMergePolicy());
+    }
+
+    if (
+      merged.getSchema() !== undefined &&
+      !this.sameSchema(merged.getSchema(), fromType?.getSchema())
+    ) {
+      minimal.setSchema(merged.getSchema()?.clone());
+    }
+
+    const mergedContracts = merged.getContractsNode();
+    if (mergedContracts !== undefined) {
+      const fromTypeContracts = fromType?.getContractsNode();
+      if (!this.sameNodeBlueId(mergedContracts, fromTypeContracts)) {
+        const minimalContracts = new BlueNode();
+        this.reverseCanonicalNode(
+          minimalContracts,
+          mergedContracts,
+          fromTypeContracts,
+        );
+        if (!this.isCanonicalEmptyNode(minimalContracts)) {
+          minimal.setContractsNode(minimalContracts);
+        }
+      }
+    }
+
+    const mergedItems = merged.getItems();
+    if (mergedItems !== undefined) {
+      minimal.setItems(
+        mergedItems.map((item) => {
+          const minimalItem = new BlueNode();
+          this.reverseCanonicalNode(minimalItem, item, undefined);
+          return this.isCanonicalEmptyNode(minimalItem)
+            ? this.emptyPlaceholder()
+            : minimalItem;
+        }),
+      );
+    }
+
+    const mergedProperties = merged.getProperties();
+    if (mergedProperties !== undefined) {
+      const minimalProperties: Record<string, BlueNode> = {};
+      for (const [key, mergedProperty] of Object.entries(mergedProperties)) {
+        if (key === OBJECT_CONTRACTS) {
+          continue;
+        }
+        const fromTypeProperty = fromType?.getProperties()?.[key];
+        if (this.sameNodeBlueId(mergedProperty, fromTypeProperty)) {
+          continue;
+        }
+        const minimalProperty = new BlueNode();
+        this.reverseCanonicalNode(
+          minimalProperty,
+          mergedProperty,
+          fromTypeProperty,
+        );
+        if (!this.isCanonicalEmptyNode(minimalProperty)) {
+          minimalProperties[key] = minimalProperty;
+        }
+      }
+      if (Object.keys(minimalProperties).length > 0) {
+        minimal.setProperties(minimalProperties);
+      }
+    }
+  }
+
+  private setCanonicalTypeIfDifferent(
+    merged: BlueNode,
+    fromType: BlueNode | undefined,
+    minimal: BlueNode,
+    getter: (node: BlueNode) => BlueNode | undefined,
+    setter: (node: BlueNode, value: BlueNode) => BlueNode,
+  ): void {
+    const mergedType = getter(merged);
+    const fromTypeType = fromType === undefined ? undefined : getter(fromType);
+    if (
+      mergedType !== undefined &&
+      (fromTypeType === undefined ||
+        fromTypeType.getReferenceBlueId() !== mergedType.getReferenceBlueId())
+    ) {
+      setter(
+        minimal,
+        new BlueNode().setReferenceBlueId(mergedType.getReferenceBlueId()),
+      );
+    }
+  }
+
+  private preserveCanonicalPayloadTypeForMetadataOverride(
+    merged: BlueNode,
+    minimal: BlueNode,
+  ): void {
+    if (minimal.getType() !== undefined || merged.getType() === undefined) {
+      return;
+    }
+    if (
+      minimal.getItemType() === undefined &&
+      minimal.getKeyType() === undefined &&
+      minimal.getValueType() === undefined
+    ) {
+      return;
+    }
+
+    const mergedType = merged.getType();
+    const blueId = mergedType?.getReferenceBlueId();
+    minimal.setType(
+      blueId === undefined
+        ? mergedType?.clone()
+        : new BlueNode().setReferenceBlueId(blueId),
+    );
+  }
+
+  private sameSchema(
+    left: ReturnType<BlueNode['getSchema']>,
+    right: ReturnType<BlueNode['getSchema']>,
+  ): boolean {
+    if (left === right) {
+      return true;
+    }
+    if (left === undefined || right === undefined) {
+      return false;
+    }
+    return (
+      BlueIdCalculator.calculateBlueIdSync(new BlueNode().setSchema(left)) ===
+      BlueIdCalculator.calculateBlueIdSync(new BlueNode().setSchema(right))
+    );
+  }
+
+  private sameNodeBlueId(
+    left: BlueNode | undefined,
+    right: BlueNode | undefined,
+  ): boolean {
+    if (left === right) {
+      return true;
+    }
+    if (left === undefined || right === undefined) {
+      return false;
+    }
+    return (
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(left) ===
+      BlueIdCalculator.calculateBlueIdWithResolvedBlueIdMetadataSync(right)
+    );
+  }
+
+  private sameScalarValue(
+    left: NonNullable<ReturnType<BlueNode['getValue']>>,
+    right: ReturnType<BlueNode['getValue']>,
+  ): boolean {
+    if (
+      left !== null &&
+      right !== null &&
+      typeof left === 'object' &&
+      typeof right === 'object' &&
+      'eq' in left &&
+      typeof left.eq === 'function'
+    ) {
+      return Boolean(left.eq(right));
+    }
+    return left === right;
+  }
+
+  private emptyPlaceholder(): BlueNode {
+    return new BlueNode().addProperty('$empty', new BlueNode().setValue(true));
+  }
+
+  private isReferenceOnly(node: BlueNode): boolean {
+    return (
+      node.getReferenceBlueId() !== undefined &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
+      node.getType() === undefined &&
+      node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
+      node.getValueType() === undefined &&
+      node.getValue() === undefined &&
+      node.getItems() === undefined &&
+      Object.keys(node.getProperties() ?? {}).length === 0 &&
+      node.getContractsNode() === undefined &&
+      node.getSchema() === undefined &&
+      node.getMergePolicy() === undefined &&
+      node.getPreviousBlueId() === undefined &&
+      node.getPosition() === undefined &&
+      node.getBlue() === undefined
+    );
+  }
+
+  private isCanonicalEmptyNode(node: BlueNode): boolean {
+    return (
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
+      node.getType() === undefined &&
+      node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
+      node.getValueType() === undefined &&
+      (node.getValue() === undefined || node.getValue() === null) &&
+      node.getItems() === undefined &&
+      Object.keys(node.getProperties() ?? {}).length === 0 &&
+      node.getContractsNode() === undefined &&
+      node.getReferenceBlueId() === undefined &&
+      node.getSchema() === undefined &&
+      node.getMergePolicy() === undefined &&
+      node.getPreviousBlueId() === undefined &&
+      node.getPosition() === undefined &&
+      node.getBlue() === undefined
+    );
   }
 
   private reverseNode(

@@ -12,24 +12,16 @@ export const RELATIVE_EMBEDDED = `${RELATIVE_CONTRACTS}/${KEY_EMBEDDED}`;
 export const RELATIVE_CHECKPOINT = `${RELATIVE_CONTRACTS}/${KEY_CHECKPOINT}`;
 
 const LAST_EVENTS_SUFFIX = '/lastEvents';
-const LAST_SIGNATURES_SUFFIX = '/lastSignatures';
 
 export function relativeContractsEntry(key: string): string {
-  return `${RELATIVE_CONTRACTS}/${key}`;
+  return `${RELATIVE_CONTRACTS}/${escapePointerSegment(key)}`;
 }
 
 export function relativeCheckpointLastEvent(
   markerKey: string,
   channelKey: string,
 ): string {
-  return `${relativeContractsEntry(markerKey)}${LAST_EVENTS_SUFFIX}/${channelKey}`;
-}
-
-export function relativeCheckpointLastSignature(
-  markerKey: string,
-  channelKey: string,
-): string {
-  return `${relativeContractsEntry(markerKey)}${LAST_SIGNATURES_SUFFIX}/${channelKey}`;
+  return `${relativeContractsEntry(markerKey)}${LAST_EVENTS_SUFFIX}/${escapePointerSegment(channelKey)}`;
 }
 
 export const ProcessorPointerConstants = {
@@ -39,8 +31,10 @@ export const ProcessorPointerConstants = {
   RELATIVE_EMBEDDED,
   RELATIVE_CHECKPOINT,
   LAST_EVENTS_SUFFIX,
-  LAST_SIGNATURES_SUFFIX,
   relativeContractsEntry,
   relativeCheckpointLastEvent,
-  relativeCheckpointLastSignature,
 } as const;
+
+function escapePointerSegment(segment: string): string {
+  return segment.replace(/~/g, '~0').replace(/\//g, '~1');
+}

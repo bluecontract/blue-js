@@ -1,0 +1,11 @@
+fixtureId: GAS-020
+title: Unary integer conversion charges operand expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $integer: "10"
+expectation:
+  outcome: success
+  resultSimple: 10
+  gasUsed: 4

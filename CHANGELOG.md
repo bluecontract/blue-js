@@ -1,6 +1,31 @@
-## 4.0.2-rc.0 (2026-05-12)
+## 4.1.2 (2026-05-25)
 
-This was a version bump only, there were no code changes.
+### 🩹 Fixes
+
+- validate scalar type definitions - Add validation to reject unsupported metadata fields in scalar type definitions - Introduce reserved language keys for scalar types - Update tests to ensure proper validation of scalar type metadata ([4820951](https://github.com/bluecontract/blue-js/commit/4820951))
+
+## 4.1.1 (2026-05-14)
+
+### 🚀 Features
+
+- **deps:** bump blue-quickjs to 0.4.2 ([baa1597](https://github.com/bluecontract/blue-js/commit/baa1597))
+
+## 4.1.0 (2026-05-14)
+
+### 🚀 Features
+
+- cyclic types ([6a8f54b](https://github.com/bluecontract/blue-js/commit/6a8f54b))
+
+## 4.0.2 (2026-05-14)
+
+### 🚀 Features
+
+- **repository-generator:** support cyclic type dependencies by processing strongly connected type groups as direct cyclic document sets, assigning `MASTER#i` BlueIds, and storing internal references as `this#i`.
+- **language:** load repository content keyed as `MASTER#i` entries as one cyclic document set so repository-backed `this#i` references resolve correctly.
+
+### 🩹 Fixes
+
+- **repository-generator:** preserve published type and repository BlueIds for unchanged existing content, avoiding BlueId churn when current semantic hashing differs from historical repository metadata.
 
 ## 4.0.1 (2026-04-30)
 
@@ -471,15 +496,9 @@ This was a version bump only, there were no code changes.
 - **document-processor-next:** add ExpressionPreserver and merge exports ([efb9c24](https://github.com/bluecontract/blue-js/commit/efb9c24))
 - **expression:** hide Date in QuickJS; test: consolidate integration suites ([a1e7f3e](https://github.com/bluecontract/blue-js/commit/a1e7f3e))
 
-<<<<<<< HEAD
-
 ### ⚠️ Breaking Changes
 
 - ⚠️ **document-processor:** prepare to release new major version ([f8f8900](https://github.com/bluecontract/blue-js/commit/f8f8900))
-
-=======
-
-> > > > > > > main
 
 ## 1.37.1 (2025-10-29)
 

@@ -5,12 +5,20 @@ import { JsonBlueValue } from '../../schema';
 import { BlueRepository } from '../types/BlueRepository';
 import type { MergingProcessor } from '../merge/MergingProcessor';
 import { canonicalizeRepositoryContent } from '../repository/RepositoryContentCanonicalizer';
+import { REPOSITORY_BASED_NODE_PROVIDER } from '../utils/NodeProviderWrapper';
+
+interface IndexedRepositoryContent {
+  index: number;
+  content: JsonBlueValue;
+}
 
 /**
  * A NodeProvider that indexes content from trusted BlueRepository definitions.
  * Similar to Java's ClasspathBasedNodeProvider but for repository content.
  */
 export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
+  public readonly [REPOSITORY_BASED_NODE_PROVIDER] = true;
+
   private blueIdToContentMap: Map<string, JsonBlueValue> = new Map();
   private blueIdToMultipleDocumentsMap: Map<string, boolean> = new Map();
   private aliasBlueIdMap: Map<string, string> = new Map();
@@ -20,6 +28,7 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
     _options: { mergingProcessor?: MergingProcessor } = {},
   ) {
     super();
+    void _options;
 
     const aliasMappings =
       RepositoryBasedNodeProvider.collectAliasMappings(repositories);
@@ -47,19 +56,75 @@ export class RepositoryBasedNodeProvider extends PreloadedNodeProvider {
   }
 
   private loadRepositories(repositories: BlueRepository[]): void {
+    const standaloneContent: Array<{
+      providedBlueId: string;
+      content: JsonBlueValue;
+    }> = [];
+    const cyclicContent = new Map<string, IndexedRepositoryContent[]>();
+
     for (const repository of repositories) {
       Object.values(repository.packages).forEach((pkg) => {
         for (const [providedBlueId, content] of Object.entries(pkg.contents)) {
-          const canonicalContent = canonicalizeRepositoryContent(content);
-          this.storeContent(
-            providedBlueId,
-            canonicalContent,
-            Array.isArray(canonicalContent),
-          );
-          this.addContentNames(providedBlueId, canonicalContent);
+          const cyclicId =
+            RepositoryBasedNodeProvider.parseCyclicBlueId(providedBlueId);
+          if (!cyclicId) {
+            standaloneContent.push({ providedBlueId, content });
+            continue;
+          }
+          const group = cyclicContent.get(cyclicId.baseBlueId) ?? [];
+          group.push({ index: cyclicId.index, content });
+          cyclicContent.set(cyclicId.baseBlueId, group);
         }
       });
     }
+
+    standaloneContent.forEach(({ content, providedBlueId }) => {
+      const canonicalContent = canonicalizeRepositoryContent(content);
+      this.storeContent(
+        providedBlueId,
+        canonicalContent,
+        Array.isArray(canonicalContent),
+      );
+      this.addContentNames(providedBlueId, canonicalContent);
+    });
+
+    for (const [baseBlueId, entries] of cyclicContent) {
+      const contents = RepositoryBasedNodeProvider.toDenseCyclicContent(
+        baseBlueId,
+        entries,
+      );
+      const canonicalContent = canonicalizeRepositoryContent(contents);
+      this.storeContent(baseBlueId, canonicalContent, true);
+      this.addContentNames(baseBlueId, canonicalContent);
+    }
+  }
+
+  private static parseCyclicBlueId(
+    blueId: string,
+  ): { baseBlueId: string; index: number } | null {
+    const match = /^(.*)#(\d+)$/.exec(blueId);
+    if (!match?.[1] || match[2] === undefined) {
+      return null;
+    }
+    return {
+      baseBlueId: match[1],
+      index: Number.parseInt(match[2], 10),
+    };
+  }
+
+  private static toDenseCyclicContent(
+    baseBlueId: string,
+    entries: IndexedRepositoryContent[],
+  ): JsonBlueValue[] {
+    const sorted = [...entries].sort((a, b) => a.index - b.index);
+    return sorted.map((entry, expectedIndex) => {
+      if (entry.index !== expectedIndex) {
+        throw new Error(
+          `Cyclic repository content for ${baseBlueId} is missing index ${expectedIndex}.`,
+        );
+      }
+      return entry.content;
+    });
   }
 
   private addContentNames(blueId: string, content: JsonBlueValue): void {

@@ -7,14 +7,60 @@ export interface BlueErrorDetail {
 
 export class BlueError extends Error {
   public readonly code: string;
+  public readonly category?: BlueLanguageErrorCategory;
   public readonly details: BlueErrorDetail[];
 
-  constructor(code: string, message: string, details?: BlueErrorDetail[]) {
+  constructor(
+    code: string,
+    message: string,
+    details?: BlueErrorDetail[],
+    category?: BlueLanguageErrorCategory,
+  ) {
     super(message);
     this.code = code;
+    this.category = category;
     this.details = details && details.length > 0 ? details : [];
     this.name = 'BlueError';
   }
+}
+
+export const BlueLanguageErrorCategory = {
+  InvalidSyntax: 'InvalidSyntax',
+  DuplicateKey: 'DuplicateKey',
+  InvalidReservedField: 'InvalidReservedField',
+  InvalidBlueId: 'InvalidBlueId',
+  InvalidReferenceShape: 'InvalidReferenceShape',
+  InvalidBlueIdInput: 'InvalidBlueIdInput',
+  ProviderUnavailable: 'ProviderUnavailable',
+  ProviderBlueIdMismatch: 'ProviderBlueIdMismatch',
+  TypeCycle: 'TypeCycle',
+  FixedValueConflict: 'FixedValueConflict',
+  TypeCompatibilityViolation: 'TypeCompatibilityViolation',
+  SchemaVocabularyError: 'SchemaVocabularyError',
+  SchemaViolation: 'SchemaViolation',
+  ListControlViolation: 'ListControlViolation',
+  CanonicalizationError: 'CanonicalizationError',
+  CircularSetError: 'CircularSetError',
+  UnsupportedPreprocessingTransform: 'UnsupportedPreprocessingTransform',
+} as const;
+
+export type BlueLanguageErrorCategory =
+  (typeof BlueLanguageErrorCategory)[keyof typeof BlueLanguageErrorCategory];
+
+export function blueLanguageErrorCategory(
+  error: unknown,
+): BlueLanguageErrorCategory | undefined {
+  return isCategorized(error) ? error.category : undefined;
+}
+
+function isCategorized(
+  error: unknown,
+): error is { readonly category: BlueLanguageErrorCategory } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as { readonly category?: unknown }).category === 'string'
+  );
 }
 
 export const BlueErrorCode = {

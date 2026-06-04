@@ -1,0 +1,12 @@
+fixtureId: GAS-094
+title: Unwrap charges wrapped value expression
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $unwrap:
+      value: x
+expectation:
+  outcome: success
+  resultSimple: x
+  gasUsed: 4

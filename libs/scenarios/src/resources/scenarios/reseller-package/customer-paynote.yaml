@@ -1,0 +1,311 @@
+name: Customer Package PayNote
+kind: PayNote
+status: Pending authorization
+currency: PLN
+amount:
+  expectedTotal: 49900
+  secured: 0
+  completed: 0
+context:
+  scenario: reseller-weekend-package
+  paymentKind: customer_package_purchase
+  packageOrderDocumentId: package-order-doc-a
+  packagePayNoteSessionId: customer-paynote-a
+  packagePayNoteDocumentId: customer-paynote-doc-a
+embeddedDocs:
+  orders: {}
+hotelOrderAttached: false
+restaurantOrderAttached: false
+hotelConfirmed: false
+restaurantConfirmed: false
+captureRequested: false
+captured: false
+contracts:
+  lifecycleChannel:
+    type: Lifecycle Event Channel
+  investorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: investor
+  cardProcessorChannel:
+    type: Coordination/Timeline Channel
+    timelineId: card-processor
+  onInitialize:
+    type: Coordination/Sequential Workflow
+    channel: lifecycleChannel
+    event:
+      type: Document Processing Initiated
+    steps:
+      - name: RequestAuthorization
+        type: Coordination/Compute
+        do:
+          - $appendEvent:
+              $objectSet:
+                object:
+                  counterpartyType: customerId
+                  counterpartyId: customer-a-uid
+                  amountMinor:
+                    $document: /amount/expectedTotal
+                  currency:
+                    $document: /currency
+                  requestingSessionId:
+                    $document: /context/packagePayNoteSessionId
+                key: type
+                val:
+                  value: PayNote/Payment Mandate Spend Authorization Requested
+          - $return:
+              events:
+                $events: true
+  secureFunds:
+    type: Coordination/Operation
+    channel: cardProcessorChannel
+  secureFundsImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: secureFunds
+    steps:
+      - name: BuildFundsSecuredPatch
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $ne:
+                  - $document: /status
+                  - Pending authorization
+              then:
+                - $fail: PayNote funds can only be secured while pending authorization
+          - $appendChange:
+              op: replace
+              path: /status
+              val: Secured
+          - $appendChange:
+              op: replace
+              path: /amount/secured
+              val:
+                $document: /amount/expectedTotal
+          - $appendEvent:
+              $objectSet:
+                object:
+                  amountSecured:
+                    $document: /amount/expectedTotal
+                  currency:
+                    $document: /currency
+                key: type
+                val:
+                  value: PayNote/Funds Secured
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  attachHotelOrderToPayNote:
+    type: Coordination/Operation
+    channel: investorChannel
+  attachHotelOrderToPayNoteImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachHotelOrderToPayNote
+    steps:
+      - name: BuildHotelAttachment
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $document: /hotelOrderAttached
+              then:
+                - $fail: Hotel order is already attached to PayNote
+          - $appendChange:
+              op: add
+              path: /embeddedDocs/orders/hotelOrder
+              val:
+                $binding:
+                  name: event
+                  path: /message/request
+          - $appendChange:
+              op: replace
+              path: /hotelOrderAttached
+              val: true
+          - $appendChange:
+              op: add
+              path: /contracts/processEmbeddedOrders/paths/-
+              val: /embeddedDocs/orders/hotelOrder
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Component Order Attached
+              orderKind: hotel
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  attachRestaurantOrderToPayNote:
+    type: Coordination/Operation
+    channel: investorChannel
+  attachRestaurantOrderToPayNoteImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: attachRestaurantOrderToPayNote
+    steps:
+      - name: BuildRestaurantAttachment
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $document: /restaurantOrderAttached
+              then:
+                - $fail: Restaurant order is already attached to PayNote
+          - $appendChange:
+              op: add
+              path: /embeddedDocs/orders/restaurantOrder
+              val:
+                $binding:
+                  name: event
+                  path: /message/request
+          - $appendChange:
+              op: replace
+              path: /restaurantOrderAttached
+              val: true
+          - $appendChange:
+              op: add
+              path: /contracts/processEmbeddedOrders/paths/-
+              val: /embeddedDocs/orders/restaurantOrder
+          - $appendEvent:
+              type: Coordination/Event
+              kind: Component Order Attached
+              orderKind: restaurant
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  processEmbeddedOrders:
+    type: Process Embedded
+    paths: []
+  embeddedHotelOrderEvents:
+    type: Embedded Node Channel
+    childPath: /embeddedDocs/orders/hotelOrder
+  embeddedRestaurantOrderEvents:
+    type: Embedded Node Channel
+    childPath: /embeddedDocs/orders/restaurantOrder
+  hotelOrderConfirmed:
+    type: Coordination/Sequential Workflow
+    channel: embeddedHotelOrderEvents
+    event:
+      type: Coordination/Event
+      kind: Order Confirmed
+      orderKind: hotel
+    steps:
+      - name: BuildHotelConfirmedPatch
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /hotelConfirmed
+              val: true
+          - $if:
+              cond:
+                $and:
+                  - $document: /restaurantConfirmed
+                  - $not:
+                      $document: /captureRequested
+              then:
+                - $appendChange:
+                    op: replace
+                    path: /captureRequested
+                    val: true
+                - $appendEvent:
+                    $objectSet:
+                      object:
+                        amount:
+                          $document: /amount/expectedTotal
+                        currency:
+                          $document: /currency
+                      key: type
+                      val:
+                        value: PayNote/Capture Funds Requested
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  restaurantOrderConfirmed:
+    type: Coordination/Sequential Workflow
+    channel: embeddedRestaurantOrderEvents
+    event:
+      type: Coordination/Event
+      kind: Order Confirmed
+      orderKind: restaurant
+    steps:
+      - name: BuildRestaurantConfirmedPatch
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: replace
+              path: /restaurantConfirmed
+              val: true
+          - $if:
+              cond:
+                $and:
+                  - $document: /hotelConfirmed
+                  - $not:
+                      $document: /captureRequested
+              then:
+                - $appendChange:
+                    op: replace
+                    path: /captureRequested
+                    val: true
+                - $appendEvent:
+                    $objectSet:
+                      object:
+                        amount:
+                          $document: /amount/expectedTotal
+                        currency:
+                          $document: /currency
+                      key: type
+                      val:
+                        value: PayNote/Capture Funds Requested
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+  confirmCapture:
+    type: Coordination/Operation
+    channel: cardProcessorChannel
+  confirmCaptureImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: confirmCapture
+    steps:
+      - name: BuildCapturePatch
+        type: Coordination/Compute
+        do:
+          - $if:
+              cond:
+                $not:
+                  $document: /captureRequested
+              then:
+                - $fail: PayNote capture cannot be confirmed before both component orders confirm
+          - $appendChange:
+              op: replace
+              path: /status
+              val: Captured
+          - $appendChange:
+              op: replace
+              path: /captured
+              val: true
+          - $appendChange:
+              op: replace
+              path: /amount/completed
+              val:
+                $document: /amount/expectedTotal
+          - $appendEvent:
+              $objectSet:
+                object:
+                  amountCompleted:
+                    $document: /amount/expectedTotal
+                  currency:
+                    $document: /currency
+                key: type
+                val:
+                  value: PayNote/Payment Completed
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

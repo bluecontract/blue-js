@@ -2026,11 +2026,9 @@ describe('access step helpers execution', () => {
             '/lastTargetSessionId',
             'event.targetSessionId',
           )
-          .replaceExpression(
-            'SaveResponseCount',
-            '/responseCount',
-            'event.events.length',
-          ),
+          .replaceValue('SaveResponseCount', '/responseCount', {
+            $size: { $event: '/events' },
+          }),
       ),
       [
         {

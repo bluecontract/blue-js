@@ -1,0 +1,15 @@
+fixtureId: GAS-013
+title: Current contract read charges currentContractRead
+tags: [gas]
+context:
+  currentContractSource: |
+    channel:
+      name: hotel
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $currentContract: channel/name
+expectation:
+  outcome: success
+  resultSimple: hotel
+  gasUsed: 4

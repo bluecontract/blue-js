@@ -1,0 +1,16 @@
+fixtureId: GAS-053
+title: Or charges later operand when earlier operand is falsy
+tags: [gas]
+context:
+  rootDocumentSource: |
+    status: confirmed
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $or:
+      - false
+      - $document: /status
+expectation:
+  outcome: success
+  resultSimple: true
+  gasUsed: 7

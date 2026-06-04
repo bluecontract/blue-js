@@ -1,0 +1,627 @@
+name: PayNote Delivery BEX Representative
+description: BEX workflow for PayNote Delivery workflows.
+payNoteBootstrapRequest:
+  type: Coordination/Document Bootstrap Requested
+  document:
+    name: Delivered PayNote
+paymentMandateBootstrapRequest:
+  type: Coordination/Document Bootstrap Requested
+  document:
+    name: Delivery Payment Mandate
+cardTransactionDetails:
+  processorTransactionId: processor-txn-a
+clientAcceptedAt: ''
+clientRejectedAt: ''
+
+contracts:
+  payNoteSender:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: paynote-sender
+    accountId: sender-account-a
+
+  payNoteDeliverer:
+    type: MyOS/MyOS Timeline Channel
+    timelineId: paynote-deliverer
+    accountId: deliverer-account-a
+
+  initLifecycleChannel:
+    type: Lifecycle Event Channel
+    event:
+      type: Document Processing Initiated
+
+  initialize:
+    type: Coordination/Sequential Workflow
+    channel: initLifecycleChannel
+    steps:
+      - name: InitializeDeliveryState
+        type: Coordination/Compute
+        do:
+          - $appendChange:
+              op: add
+              path: /deliveryStatus
+              val:
+                type: Coordination/Status Pending
+                mode: pending
+          - $appendChange:
+              op: add
+              path: /transactionIdentificationStatus
+              val: pending
+          - $appendChange:
+              op: add
+              path: /clientDecisionStatus
+              val: pending
+          - $appendChange:
+              op: add
+              path: /deliveryError
+              val: ''
+          - $return:
+              changeset:
+                $changeset: true
+
+  updateTransactionIdentificationStatus:
+    type: Coordination/Operation
+    channel: payNoteDeliverer
+    request:
+      type: Boolean
+
+  updateTransactionIdentificationStatusImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: updateTransactionIdentificationStatus
+    steps:
+      - name: ClassifyIdentificationResult
+        type: Coordination/Compute
+        do:
+          - $let:
+              order:
+                - identified
+                - currentStatus
+                - canUpdate
+                - nextIdentificationStatus
+                - nextDeliveryStatus
+                - nextDeliveryError
+              vars:
+                identified:
+                  $eq:
+                    - $event: /message/request
+                    - true
+                currentStatus:
+                  $document: /transactionIdentificationStatus
+                canUpdate:
+                  $not:
+                    $or:
+                      - $eq:
+                          - $document: /transactionIdentificationStatus
+                          - identified
+                      - $eq:
+                          - $document: /transactionIdentificationStatus
+                          - failed
+                nextIdentificationStatus:
+                  $choose:
+                    cond:
+                      $var: canUpdate
+                    then:
+                      $choose:
+                        cond:
+                          $var: identified
+                        then: identified
+                        else: failed
+                    else:
+                      $var: currentStatus
+                nextDeliveryStatus:
+                  $choose:
+                    cond:
+                      $var: canUpdate
+                    then:
+                      $choose:
+                        cond:
+                          $var: identified
+                        then:
+                          type: Coordination/Status In Progress
+                          mode: active
+                        else:
+                          type: Coordination/Status Failed
+                          mode: terminated
+                    else:
+                      $default:
+                        - $document: /deliveryStatus
+                        - type: Coordination/Status Pending
+                          mode: pending
+                nextDeliveryError:
+                  $choose:
+                    cond:
+                      $var: canUpdate
+                    then:
+                      $choose:
+                        cond:
+                          $var: identified
+                        then: ''
+                        else: Transaction identification failed
+                    else:
+                      $default:
+                        - $document: /deliveryError
+                        - ''
+          - $appendChange:
+              op: replace
+              path: /transactionIdentificationStatus
+              val:
+                $var: nextIdentificationStatus
+          - $appendChange:
+              op: replace
+              path: /deliveryStatus
+              val:
+                $var: nextDeliveryStatus
+          - $appendChange:
+              op: replace
+              path: /deliveryError
+              val:
+                $var: nextDeliveryError
+          - $if:
+              cond:
+                $var: canUpdate
+              then:
+                - $if:
+                    cond:
+                      $var: identified
+                    then:
+                      - $appendEvent:
+                          type: PayNote/Transaction Identified
+                    else:
+                      - $appendEvent:
+                          type: PayNote/Transaction Identification Failed
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true
+
+  acceptPayNote:
+    type: Coordination/Operation
+    channel: payNoteDeliverer
+    request:
+      acceptedAt:
+        type: Common/Timestamp
+
+  acceptPayNoteImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: acceptPayNote
+    steps:
+      - name: CaptureAcceptanceTimestamp
+        type: Coordination/Compute
+        entry: accept
+        functions:
+          asText:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: text
+                then:
+                  $var: val
+                else: ''
+          accept:
+            do:
+              - $let:
+                  order:
+                    - acceptedAt
+                    - currentDecisionStatus
+                    - alreadyDecided
+                    - transactionStatus
+                    - canAccept
+                    - discardReason
+                    - nextDecisionStatus
+                    - nextAcceptedAt
+                    - nextDeliveryStatus
+                    - nextDeliveryError
+                  vars:
+                    acceptedAt:
+                      $call:
+                        function: asText
+                        args:
+                          val:
+                            $event: /message/request/acceptedAt
+                    currentDecisionStatus:
+                      $call:
+                        function: asText
+                        args:
+                          val:
+                            $document: /clientDecisionStatus
+                    alreadyDecided:
+                      $or:
+                        - $eq:
+                            - $var: currentDecisionStatus
+                            - accepted
+                        - $eq:
+                            - $var: currentDecisionStatus
+                            - rejected
+                    transactionStatus:
+                      $call:
+                        function: asText
+                        args:
+                          val:
+                            $document: /transactionIdentificationStatus
+                    canAccept:
+                      $and:
+                        - $eq:
+                            - $var: transactionStatus
+                            - identified
+                        - $eq:
+                            - $var: currentDecisionStatus
+                            - pending
+                    discardReason:
+                      $choose:
+                        cond:
+                          $var: canAccept
+                        then: ''
+                        else:
+                          $choose:
+                            cond:
+                              $var: alreadyDecided
+                            then:
+                              $concat:
+                                - PayNote already
+                                - ' '
+                                - $var: currentDecisionStatus
+                            else:
+                              $choose:
+                                cond:
+                                  $eq:
+                                    - $var: transactionStatus
+                                    - failed
+                                then: Transaction identification failed
+                                else: Transaction not identified
+                    nextDecisionStatus:
+                      $choose:
+                        cond:
+                          $var: canAccept
+                        then: accepted
+                        else:
+                          $choose:
+                            cond:
+                              $truthy:
+                                $var: currentDecisionStatus
+                            then:
+                              $var: currentDecisionStatus
+                            else: pending
+                    nextAcceptedAt:
+                      $choose:
+                        cond:
+                          $var: canAccept
+                        then:
+                          $var: acceptedAt
+                        else:
+                          $call:
+                            function: asText
+                            args:
+                              val:
+                                $document: /clientAcceptedAt
+                    nextDeliveryStatus:
+                      $choose:
+                        cond:
+                          $var: canAccept
+                        then:
+                          type: Coordination/Status Completed
+                          mode: terminated
+                        else:
+                          $default:
+                            - $document: /deliveryStatus
+                            - type: Coordination/Status Pending
+                              mode: pending
+                    nextDeliveryError:
+                      $choose:
+                        cond:
+                          $var: canAccept
+                        then: ''
+                        else:
+                          $call:
+                            function: asText
+                            args:
+                              val:
+                                $document: /deliveryError
+              - $appendChange:
+                  op: replace
+                  path: /clientDecisionStatus
+                  val:
+                    $var: nextDecisionStatus
+              - $appendChange:
+                  op: replace
+                  path: /clientAcceptedAt
+                  val:
+                    $var: nextAcceptedAt
+              - $appendChange:
+                  op: replace
+                  path: /deliveryStatus
+                  val:
+                    $var: nextDeliveryStatus
+              - $appendChange:
+                  op: replace
+                  path: /deliveryError
+                  val:
+                    $var: nextDeliveryError
+              - $if:
+                  cond:
+                    $var: canAccept
+                  then:
+                    - $appendEvent:
+                        type: PayNote/PayNote Accepted By Client
+                        acceptedAt:
+                          $var: acceptedAt
+                    - $appendEvent:
+                        $document: /payNoteBootstrapRequest
+                  else:
+                    - $appendEvent:
+                        type: PayNote/PayNote Client Decision Discarded
+                        decision: accepted
+                        reason:
+                          $var: discardReason
+                        decisionAt:
+                          $var: acceptedAt
+              - $return:
+                  changeset:
+                    $changeset: true
+                  events:
+                    $events: true
+
+  rejectPayNote:
+    type: Coordination/Operation
+    channel: payNoteDeliverer
+    request:
+      reason:
+        type: Text
+      rejectedAt:
+        type: Common/Timestamp
+
+  rejectPayNoteImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: rejectPayNote
+    steps:
+      - name: CaptureRejectionReason
+        type: Coordination/Compute
+        entry: reject
+        functions:
+          asText:
+            args:
+              val:
+                description: BEX helper argument.
+            expr:
+              $choose:
+                cond:
+                  $isKind:
+                    val:
+                      $var: val
+                    kind: text
+                then:
+                  $var: val
+                else: ''
+          reject:
+            do:
+              - $let:
+                  order:
+                    - request
+                    - safeReason
+                    - rejectedAt
+                    - currentDecisionStatus
+                    - alreadyDecided
+                    - transactionStatus
+                    - canReject
+                    - discardReason
+                    - nextDecisionStatus
+                    - nextRejectedAt
+                    - nextDeliveryStatus
+                    - nextDeliveryError
+                  vars:
+                    request:
+                      $event: /message/request
+                    safeReason:
+                      $choose:
+                        cond:
+                          $isKind:
+                            val:
+                              $event: /message/request
+                            kind: text
+                        then:
+                          $event: /message/request
+                        else:
+                          $call:
+                            function: asText
+                            args:
+                              val:
+                                $event: /message/request/reason
+                    rejectedAt:
+                      $call:
+                        function: asText
+                        args:
+                          val:
+                            $event: /message/request/rejectedAt
+                    currentDecisionStatus:
+                      $call:
+                        function: asText
+                        args:
+                          val:
+                            $document: /clientDecisionStatus
+                    alreadyDecided:
+                      $or:
+                        - $eq:
+                            - $var: currentDecisionStatus
+                            - accepted
+                        - $eq:
+                            - $var: currentDecisionStatus
+                            - rejected
+                    transactionStatus:
+                      $call:
+                        function: asText
+                        args:
+                          val:
+                            $document: /transactionIdentificationStatus
+                    canReject:
+                      $and:
+                        - $eq:
+                            - $var: transactionStatus
+                            - identified
+                        - $eq:
+                            - $var: currentDecisionStatus
+                            - pending
+                    discardReason:
+                      $choose:
+                        cond:
+                          $var: canReject
+                        then: ''
+                        else:
+                          $choose:
+                            cond:
+                              $var: alreadyDecided
+                            then:
+                              $concat:
+                                - PayNote already
+                                - ' '
+                                - $var: currentDecisionStatus
+                            else:
+                              $choose:
+                                cond:
+                                  $eq:
+                                    - $var: transactionStatus
+                                    - failed
+                                then: Transaction identification failed
+                                else: Transaction not identified
+                    nextDecisionStatus:
+                      $choose:
+                        cond:
+                          $var: canReject
+                        then: rejected
+                        else:
+                          $choose:
+                            cond:
+                              $truthy:
+                                $var: currentDecisionStatus
+                            then:
+                              $var: currentDecisionStatus
+                            else: pending
+                    nextRejectedAt:
+                      $choose:
+                        cond:
+                          $var: canReject
+                        then:
+                          $var: rejectedAt
+                        else:
+                          $call:
+                            function: asText
+                            args:
+                              val:
+                                $document: /clientRejectedAt
+                    nextDeliveryStatus:
+                      $choose:
+                        cond:
+                          $var: canReject
+                        then:
+                          type: Coordination/Status Failed
+                          mode: terminated
+                        else:
+                          $default:
+                            - $document: /deliveryStatus
+                            - type: Coordination/Status Pending
+                              mode: pending
+                    nextDeliveryError:
+                      $choose:
+                        cond:
+                          $var: canReject
+                        then:
+                          $var: safeReason
+                        else:
+                          $call:
+                            function: asText
+                            args:
+                              val:
+                                $document: /deliveryError
+              - $appendChange:
+                  op: replace
+                  path: /clientDecisionStatus
+                  val:
+                    $var: nextDecisionStatus
+              - $appendChange:
+                  op: replace
+                  path: /clientRejectedAt
+                  val:
+                    $var: nextRejectedAt
+              - $appendChange:
+                  op: replace
+                  path: /deliveryStatus
+                  val:
+                    $var: nextDeliveryStatus
+              - $appendChange:
+                  op: replace
+                  path: /deliveryError
+                  val:
+                    $var: nextDeliveryError
+              - $if:
+                  cond:
+                    $var: canReject
+                  then:
+                    - $appendEvent:
+                        type: PayNote/PayNote Rejected By Client
+                        reason:
+                          $var: safeReason
+                        rejectedAt:
+                          $var: rejectedAt
+                  else:
+                    - $appendEvent:
+                        type: PayNote/PayNote Client Decision Discarded
+                        decision: rejected
+                        reason:
+                          $var: discardReason
+                        decisionAt:
+                          $var: rejectedAt
+              - $return:
+                  changeset:
+                    $changeset: true
+                  events:
+                    $events: true
+
+  reportDeliveryError:
+    type: Coordination/Operation
+    channel: payNoteDeliverer
+    request:
+      type: Text
+
+  reportDeliveryErrorImpl:
+    type: Coordination/Sequential Workflow Operation
+    operation: reportDeliveryError
+    steps:
+      - name: CaptureDeliveryFailureReason
+        type: Coordination/Compute
+        do:
+          - $let:
+              name: reason
+              expr:
+                $choose:
+                  cond:
+                    $isKind:
+                      val:
+                        $event: /message/request
+                      kind: text
+                  then:
+                    $event: /message/request
+                  else: ''
+          - $appendEvent:
+              type: PayNote/PayNote Delivery Failed
+              reason:
+                $var: reason
+          - $appendChange:
+              op: replace
+              path: /deliveryStatus
+              val:
+                type: Coordination/Status Failed
+                mode: terminated
+          - $appendChange:
+              op: replace
+              path: /deliveryError
+              val:
+                $var: reason
+          - $return:
+              changeset:
+                $changeset: true
+              events:
+                $events: true

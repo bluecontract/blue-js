@@ -12,6 +12,11 @@ import {
   OBJECT_KEY_TYPE,
   OBJECT_VALUE_TYPE,
   OBJECT_BLUE,
+  OBJECT_SCHEMA,
+  OBJECT_MERGE_POLICY,
+  OBJECT_CONTRACTS,
+  LIST_CONTROL_PREVIOUS,
+  LIST_CONTROL_POS,
   TEXT_TYPE_BLUE_ID,
   INTEGER_TYPE_BLUE_ID,
   DOUBLE_TYPE_BLUE_ID,
@@ -110,6 +115,11 @@ export class NodeToMapListOrValue {
       result[OBJECT_VALUE_TYPE] = NodeToMapListOrValue.get(valueType, strategy);
     }
 
+    const mergePolicy = node.getMergePolicy();
+    if (mergePolicy !== undefined) {
+      result[OBJECT_MERGE_POLICY] = mergePolicy;
+    }
+
     if (handledValue !== undefined) {
       result[OBJECT_VALUE] = handledValue;
     }
@@ -125,7 +135,37 @@ export class NodeToMapListOrValue {
 
     const blue = node.getBlue();
     if (blue !== undefined) {
-      result[OBJECT_BLUE] = blue as unknown as JsonValue;
+      result[OBJECT_BLUE] = NodeToMapListOrValue.get(blue, strategy);
+    }
+
+    const previousBlueId = node.getPreviousBlueId();
+    if (previousBlueId !== undefined) {
+      result[LIST_CONTROL_PREVIOUS] = { [OBJECT_BLUE_ID]: previousBlueId };
+    }
+
+    const position = node.getPosition();
+    if (position !== undefined) {
+      result[LIST_CONTROL_POS] = position;
+    }
+
+    const schema = node.getSchema();
+    if (schema !== undefined) {
+      const schemaResult: JsonObject = {};
+      for (const [field, schemaNode] of schema.entries()) {
+        schemaResult[field] = NodeToMapListOrValue.get(schemaNode, strategy);
+      }
+      const enumValues = schema.getEnum();
+      if (enumValues !== undefined) {
+        schemaResult.enum = enumValues.map((enumNode) =>
+          NodeToMapListOrValue.get(enumNode, strategy),
+        );
+      }
+      result[OBJECT_SCHEMA] = schemaResult;
+    }
+
+    const contracts = node.getContractsNode();
+    if (contracts !== undefined) {
+      result[OBJECT_CONTRACTS] = NodeToMapListOrValue.get(contracts, strategy);
     }
 
     const properties = node.getProperties();

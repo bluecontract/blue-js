@@ -22,7 +22,7 @@ describe('NodeDeserializer', () => {
       '    value: y2';
 
     const map1 = yamlBlueParse(doc) as JsonBlueValue;
-    const node = NodeDeserializer.deserialize(map1);
+    const node = NodeDeserializer.deserializeUnchecked(map1);
 
     expect(node.getName()).toEqual('name');
     expect(node.getDescription()).toEqual('description');
@@ -42,9 +42,17 @@ describe('NodeDeserializer', () => {
   });
 
   it('testNumbers', () => {
-    const doc =
+    const invalidDoc =
       'int1: 9007199254740991\n' +
       'int2: 132452345234524739582739458723948572934875\n' +
+      'int3: 1\n';
+
+    expect(() =>
+      NodeDeserializer.deserialize(yamlBlueParse(invalidDoc) as JsonBlueValue),
+    ).toThrow(/Unquoted integers outside/);
+
+    const doc =
+      'int1: 9007199254740991\n' +
       'int3:\n' +
       '  type:\n' +
       '    blueId: ' +
@@ -63,9 +71,6 @@ describe('NodeDeserializer', () => {
     const node = NodeDeserializer.deserialize(map1);
 
     expect(node.getProperties()?.['int1'].getValue()).toEqual(
-      new Big('9007199254740991'),
-    );
-    expect(node.getProperties()?.['int2'].getValue()).toEqual(
       new Big('9007199254740991'),
     );
     expect(node.getProperties()?.['int3'].getValue()).toEqual(

@@ -1,0 +1,15 @@
+fixtureId: GAS-025
+title: Join charges list and separator expressions
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $join:
+      list:
+        - a
+        - b
+      separator: ":"
+expectation:
+  outcome: success
+  resultSimple: "a:b"
+  gasUsed: 5

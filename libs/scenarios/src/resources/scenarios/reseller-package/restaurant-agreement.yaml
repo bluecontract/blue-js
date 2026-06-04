@@ -1,0 +1,10 @@
+name: Cud Malina Resale Agreement
+kind: Merchant Agreement
+agreementKind: restaurant
+status: active
+sellerAccountId: restaurant-cud-malina-uid
+resellerAccountId: investor-uid
+terms:
+  wholesaleAmountMinor: 20000
+  currency: PLN
+  service: Cud Malina dinner for two

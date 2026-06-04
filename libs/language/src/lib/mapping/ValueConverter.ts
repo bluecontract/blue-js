@@ -1,12 +1,4 @@
-import {
-  ZodString,
-  ZodNumber,
-  ZodBigInt,
-  ZodBoolean,
-  ZodTypeAny,
-  ZodEnum,
-  ZodNativeEnum,
-} from 'zod';
+import { ZodTypeAny } from 'zod';
 import { BigDecimalNumber, BigIntegerNumber, BlueNode } from '../model';
 import {
   TEXT_TYPE_BLUE_ID,
@@ -60,23 +52,25 @@ export class ValueConverter {
   private static convertFromString(value: string, targetSchema: ZodTypeAny) {
     if (!targetSchema) return value;
 
+    const targetTypeName = zodTypeName(targetSchema);
+
     if (
-      targetSchema instanceof ZodString ||
-      targetSchema instanceof ZodEnum ||
-      targetSchema instanceof ZodNativeEnum
+      targetTypeName === 'ZodString' ||
+      targetTypeName === 'ZodEnum' ||
+      targetTypeName === 'ZodNativeEnum'
     ) {
       return value;
     }
 
-    if (targetSchema instanceof ZodNumber) {
+    if (targetTypeName === 'ZodNumber') {
       return Number(value);
     }
 
-    if (targetSchema instanceof ZodBoolean) {
+    if (targetTypeName === 'ZodBoolean') {
       return value.toLowerCase() === 'true';
     }
 
-    if (targetSchema instanceof ZodBigInt) {
+    if (targetTypeName === 'ZodBigInt') {
       return BigInt(value);
     }
 
@@ -87,11 +81,13 @@ export class ValueConverter {
     value: BigDecimalNumber,
     targetSchema: ZodTypeAny,
   ) {
-    if (targetSchema instanceof ZodNumber) {
+    const targetTypeName = zodTypeName(targetSchema);
+
+    if (targetTypeName === 'ZodNumber') {
       return value.toNumber();
     }
 
-    if (targetSchema instanceof ZodString) {
+    if (targetTypeName === 'ZodString') {
       return value.toString();
     }
 
@@ -102,15 +98,17 @@ export class ValueConverter {
     value: BigIntegerNumber,
     targetSchema: ZodTypeAny,
   ) {
-    if (targetSchema instanceof ZodNumber) {
+    const targetTypeName = zodTypeName(targetSchema);
+
+    if (targetTypeName === 'ZodNumber') {
       return value.toNumber();
     }
 
-    if (targetSchema instanceof ZodBigInt) {
+    if (targetTypeName === 'ZodBigInt') {
       return BigInt(value.toString());
     }
 
-    if (targetSchema instanceof ZodString) {
+    if (targetTypeName === 'ZodString') {
       return value.toString();
     }
 
@@ -120,19 +118,21 @@ export class ValueConverter {
   private static convertFromBoolean(value: boolean, targetSchema: ZodTypeAny) {
     if (!targetSchema) return value;
 
-    if (targetSchema instanceof ZodBoolean) {
+    const targetTypeName = zodTypeName(targetSchema);
+
+    if (targetTypeName === 'ZodBoolean') {
       return value;
     }
 
-    if (targetSchema instanceof ZodString) {
+    if (targetTypeName === 'ZodString') {
       return value.toString();
     }
 
-    if (targetSchema instanceof ZodNumber) {
+    if (targetTypeName === 'ZodNumber') {
       return Number(value);
     }
 
-    if (targetSchema instanceof ZodBigInt) {
+    if (targetTypeName === 'ZodBigInt') {
       return BigInt(value);
     }
 
@@ -142,11 +142,13 @@ export class ValueConverter {
   static getDefaultPrimitiveValue(targetSchema: ZodTypeAny) {
     if (!targetSchema) return null;
 
-    if (targetSchema instanceof ZodNumber) {
+    const targetTypeName = zodTypeName(targetSchema);
+
+    if (targetTypeName === 'ZodNumber') {
       return 0;
-    } else if (targetSchema instanceof ZodBoolean) {
+    } else if (targetTypeName === 'ZodBoolean') {
       return false;
-    } else if (targetSchema instanceof ZodString) {
+    } else if (targetTypeName === 'ZodString') {
       return '';
     }
 
@@ -154,4 +156,8 @@ export class ValueConverter {
       `Unsupported primitive type: ${targetSchema._def.typeName}`,
     );
   }
+}
+
+function zodTypeName(schema: ZodTypeAny): string {
+  return String(schema._def.typeName);
 }

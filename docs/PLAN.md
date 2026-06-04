@@ -1,5 +1,7 @@
 # Blue Language Runtime Roadmap and Historical Implementation Plan
 
+> Historical implementation plan. Not the current Blue Language 1.0 specification. The authoritative release artifacts are the frozen Blue Language 1.0 specification, registry, and fixture package under `libs/language/src/lib/conformance/fixtures/blue-language-1.0/`.
+
 Last updated: 2026-04-30
 
 Status: Phase 1 and Phase 2 identity/storage work is implemented. Phase 3

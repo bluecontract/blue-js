@@ -1,0 +1,75 @@
+fixtureId: BEX-CURRENT-022
+title: $pointerSet path is value-local
+targetStatus: current-pass
+tags:
+- pointers
+- $pointerSet
+context:
+  documentScope: /contracts/current
+  rootDocumentSource: |
+    status: pending
+    count: 5
+    amount:
+      expectedTotal: 49900
+      secured: 49900
+      completed: 0
+    hotelName: Hotel Badura
+    restaurantName: Restauracja Cud Malina
+    hotelOrder:
+      status: pending
+      amount: 40000
+      hotelName: Hotel Badura
+    restaurantOrder:
+      status: pending
+      amount: 25000
+    orders:
+      abc/def~ghi:
+        status: pending
+      ORD-1:
+        status: pending
+      ORD-2:
+        status: pending
+    contracts:
+      current:
+        status: scoped-status
+        channel:
+          name: scoped-channel
+  eventSource: |
+    message:
+      request:
+        amount: 7
+        orderId: abc/def~ghi
+        customerName: Jan Kowalski
+        nights: 2
+        note: hello
+    createdAt: '2025-06-20T10:00:00Z'
+    actor:
+      name: Hotel Badura
+  currentContractSource: |
+    channel:
+      name: hotel-channel
+    limits:
+      maxAmount: 50000
+  stepsBinding:
+    Build:
+      changeset:
+      - op: replace
+        path: /status
+        val: built
+      events:
+      - eventKind: Built
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $pointerSet:
+      object:
+        a:
+          b: 1
+      path: a/c
+      val: 2
+expectation:
+  outcome: success
+  resultSimple:
+    a:
+      b: 1
+      c: 2

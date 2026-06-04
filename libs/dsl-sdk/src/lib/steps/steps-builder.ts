@@ -525,8 +525,8 @@ export class StepsBuilder {
     this.agencyConfigs = structuredClone(options.agencyConfigs ?? {});
   }
 
-  jsRaw(name: string, code: string): this {
-    this.steps.push(step(name, 'Conversation/JavaScript Code', { code }));
+  compute(name: string, program: JsonObject): this {
+    this.steps.push(step(name, 'Conversation/Compute', program));
     return this;
   }
 

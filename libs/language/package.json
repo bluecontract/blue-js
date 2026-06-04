@@ -1,9 +1,9 @@
 {
   "name": "@blue-labs/language",
-  "version": "4.0.2-rc.0",
+  "version": "4.1.2",
   "dependencies": {
-    "@blue-labs/repository-contract": "4.0.2-rc.0",
-    "@blue-labs/shared-utils": "4.0.2-rc.0",
+    "@blue-labs/repository-contract": "4.1.2",
+    "@blue-labs/shared-utils": "4.1.2",
     "@types/big.js": "^6.2.2",
     "@types/js-yaml": "^4.0.9",
     "base32.js": "^0.1.0",
@@ -34,6 +34,11 @@
     "crypto": false
   },
   "exports": {
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "import": "./dist/conformance.mjs",
+      "require": "./dist/conformance.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",

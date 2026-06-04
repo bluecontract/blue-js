@@ -216,7 +216,7 @@ name: InvalidTypedNode
 type:
   blueId: MissingTypeBlueId
 `),
-    ).toThrow(/MissingTypeBlueId/);
+    ).toThrow(/No content found for blueId: MissingTypeBlueId/);
   });
 
   it('rejects root blueId plus payload during ingest', () => {
@@ -227,7 +227,7 @@ type:
 blueId: ExistingReferenceBlueId
 name: AmbiguousRoot
 `),
-    ).toThrow(/Ambiguous blueId plus payload at \//);
+    ).toThrow(/blueId nodes must be reference-only/);
   });
 });
 

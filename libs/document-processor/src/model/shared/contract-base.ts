@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ContractSchema as CoreContractSchema } from '@blue-repository/types/packages/core/schemas/Contract';
+import { ContractSchema as CoreContractSchema } from './core-runtime-schemas.js';
 
 export const contractBaseSchema = CoreContractSchema;
 

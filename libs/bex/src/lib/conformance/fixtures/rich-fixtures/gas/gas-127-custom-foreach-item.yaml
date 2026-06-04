@@ -1,0 +1,18 @@
+fixtureId: GAS-127
+title: Custom forEachItem schedule applies
+tags: [gas]
+gasSchedule:
+  forEachItem: 10
+programSource: |
+  type: Blue/BEX Program
+  do:
+    - $forEach:
+        in:
+          - a
+          - b
+          - c
+        item: item
+        do: []
+expectation:
+  outcome: success
+  gasUsed: 34

@@ -1,0 +1,14 @@
+fixtureId: GAS-024
+title: Concat charges each operand
+tags: [gas]
+programSource: |
+  type: Blue/BEX Program
+  expr:
+    $concat:
+      - a
+      - b
+      - c
+expectation:
+  outcome: success
+  resultSimple: abc
+  gasUsed: 6

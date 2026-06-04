@@ -2,7 +2,6 @@ import {
   BlueRepository,
   BlueRepositoryPackage,
   BlueTypeRuntimeMeta,
-  validateNoCycles,
   validateStableDoesNotDependOnDev,
 } from '@blue-labs/repository-contract';
 import type { JsonValue } from '@blue-labs/shared-utils';
@@ -24,7 +23,6 @@ export function validateWithContract(
     packages: buildContractPackages(packages, aliasToBlueId),
   };
 
-  validateNoCycles(contractRepo);
   validateStableDoesNotDependOnDev(contractRepo);
 }
 
