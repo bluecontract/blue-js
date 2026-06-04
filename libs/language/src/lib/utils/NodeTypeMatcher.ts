@@ -1,6 +1,7 @@
 import { Blue } from '../Blue';
 import { BlueNode } from '../model';
 import { ResolvedBlueNode } from '../model/ResolvedNode';
+import type { Schema } from '../model/Schema';
 import { CompositeLimits, Limits, NO_LIMITS, PathLimits } from './limits';
 import {
   isBigIntegerNumber,
@@ -240,6 +241,10 @@ export class NodeTypeMatcher {
       !this.isRootMatcherPointer(pointer) &&
       this.isMetadataOnlyNode(node)
     ) {
+      return false;
+    }
+
+    if (!this.matchesSchemaCardinality(node, targetType)) {
       return false;
     }
 
@@ -539,6 +544,53 @@ export class NodeTypeMatcher {
 
   private requiresSemanticPresence(node: BlueNode): boolean {
     return node.getSchema()?.get('required')?.getValue() === true;
+  }
+
+  private matchesSchemaCardinality(
+    node: BlueNode,
+    targetType: BlueNode,
+  ): boolean {
+    const schema = targetType.getSchema();
+    if (!schema) {
+      return true;
+    }
+
+    const minItems = this.schemaInteger(schema, 'minItems');
+    if (minItems !== undefined && (node.getItems()?.length ?? 0) < minItems) {
+      return false;
+    }
+
+    const maxItems = this.schemaInteger(schema, 'maxItems');
+    if (maxItems !== undefined && (node.getItems()?.length ?? 0) > maxItems) {
+      return false;
+    }
+
+    const fieldCount = Object.keys(node.getProperties() ?? {}).length;
+    const minFields = this.schemaInteger(schema, 'minFields');
+    if (minFields !== undefined && fieldCount < minFields) {
+      return false;
+    }
+
+    const maxFields = this.schemaInteger(schema, 'maxFields');
+    if (maxFields !== undefined && fieldCount > maxFields) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private schemaInteger(
+    schema: Schema,
+    key: 'minItems' | 'maxItems' | 'minFields' | 'maxFields',
+  ): number | undefined {
+    const value = schema.get(key)?.getValue();
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      return value;
+    }
+    if (isBigIntegerNumber(value)) {
+      return Number(value.toString());
+    }
+    return undefined;
   }
 
   private isRootMatcherPointer(pointer: string | undefined): boolean {

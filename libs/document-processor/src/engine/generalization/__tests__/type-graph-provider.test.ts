@@ -38,9 +38,29 @@ amount:
       'IntegerListHolder',
       `
 name: IntegerListHolder
-items:
+lineItems:
   type: List
   itemType: Integer
+`,
+    );
+    addType(
+      'AtLeastTwoItemsHolder',
+      `
+name: AtLeastTwoItemsHolder
+lineItems:
+  type: List
+  schema:
+    minItems: 2
+`,
+    );
+    addType(
+      'AtMostOneItemHolder',
+      `
+name: AtMostOneItemHolder
+lineItems:
+  type: List
+  schema:
+    maxItems: 1
 `,
     );
     addType(
@@ -50,6 +70,26 @@ name: IntegerDictionaryHolder
 values:
   type: Dictionary
   valueType: Integer
+`,
+    );
+    addType(
+      'AtLeastTwoFieldsHolder',
+      `
+name: AtLeastTwoFieldsHolder
+attributes:
+  type: Dictionary
+  schema:
+    minFields: 2
+`,
+    );
+    addType(
+      'AtMostOneFieldHolder',
+      `
+name: AtMostOneFieldHolder
+attributes:
+  type: Dictionary
+  schema:
+    maxFields: 1
 `,
     );
     addType(
@@ -119,8 +159,27 @@ type:
         yaml: (typeId: string) => `
 type:
   blueId: ${typeId}
-items:
+lineItems:
   - not integer
+`,
+      },
+      {
+        typeName: 'AtLeastTwoItemsHolder',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+lineItems:
+  - one
+`,
+      },
+      {
+        typeName: 'AtMostOneItemHolder',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+lineItems:
+  - one
+  - two
 `,
       },
       {
@@ -130,6 +189,25 @@ type:
   blueId: ${typeId}
 values:
   x: not integer
+`,
+      },
+      {
+        typeName: 'AtLeastTwoFieldsHolder',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+attributes:
+  a: one
+`,
+      },
+      {
+        typeName: 'AtMostOneFieldHolder',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+attributes:
+  a: one
+  b: two
 `,
       },
       {
@@ -192,13 +270,34 @@ amount:
       },
       {
         typeName: 'IntegerListHolder',
-        focusPointer: '/items/1',
+        focusPointer: '/lineItems/1',
         yaml: (typeId: string) => `
 type:
   blueId: ${typeId}
-items:
+lineItems:
   - 1
   - not integer
+`,
+      },
+      {
+        typeName: 'AtLeastTwoItemsHolder',
+        focusPointer: '/lineItems',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+lineItems:
+  - one
+`,
+      },
+      {
+        typeName: 'AtMostOneItemHolder',
+        focusPointer: '/lineItems/1',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+lineItems:
+  - one
+  - two
 `,
       },
       {
@@ -209,6 +308,27 @@ type:
   blueId: ${typeId}
 values:
   x: not integer
+`,
+      },
+      {
+        typeName: 'AtLeastTwoFieldsHolder',
+        focusPointer: '/attributes',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+attributes:
+  a: one
+`,
+      },
+      {
+        typeName: 'AtMostOneFieldHolder',
+        focusPointer: '/attributes/b',
+        yaml: (typeId: string) => `
+type:
+  blueId: ${typeId}
+attributes:
+  a: one
+  b: two
 `,
       },
       {

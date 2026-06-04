@@ -1,4 +1,4 @@
-import { Blue, BlueNode } from '@blue-labs/language';
+import { Blue, BlueNode, PathLimits } from '@blue-labs/language';
 
 import type { TypeValidationMemo } from './type-validation-memo.js';
 import { escapePointerSegment } from './type-generalization-pointer-utils.js';
@@ -209,7 +209,7 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
     node: BlueNode,
     blueId: string,
     validationMemo?: TypeValidationMemo,
-    _focusPointer?: string,
+    focusPointer?: string,
   ): boolean {
     const typeNode = this.fetchType(blueId);
     if (!typeNode) {
@@ -227,6 +227,7 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
       typed,
       typeNode.clone().setBlueId(blueId),
       {
+        limits: limitsForFocusedValidation(pointer, focusPointer, typeNode),
         memo,
         pointer,
       },
@@ -248,6 +249,113 @@ export class BlueNodeTypeGraphProvider implements TypeGraphProvider {
     setBoundedCacheEntry(this.typeCache, blueId, typeNode);
     return typeNode.clone();
   }
+}
+
+function limitsForFocusedValidation(
+  pointer: string,
+  focusPointer: string | undefined,
+  targetType: BlueNode,
+): PathLimits | undefined {
+  const relative = relativeFocusPath(pointer, focusPointer);
+  if (
+    relative === undefined ||
+    focusPathRequiresWholeNodeValidation(targetType, relative)
+  ) {
+    return undefined;
+  }
+  return PathLimits.withSinglePath(relative);
+}
+
+function relativeFocusPath(
+  pointer: string,
+  focusPointer: string | undefined,
+): string | undefined {
+  if (!focusPointer) {
+    return undefined;
+  }
+
+  const base = normalizeValidationPointer(pointer);
+  const focus = normalizeValidationPointer(focusPointer);
+  if (base === '/') {
+    return focus;
+  }
+  if (focus === base) {
+    return '/';
+  }
+  if (focus.startsWith(`${base}/`)) {
+    return focus.slice(base.length);
+  }
+  return undefined;
+}
+
+function normalizeValidationPointer(pointer: string): string {
+  const trimmed = pointer.trim();
+  if (trimmed.length === 0 || trimmed === '/') {
+    return '/';
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+function focusPathRequiresWholeNodeValidation(
+  targetType: BlueNode,
+  relativeFocusPath: string,
+): boolean {
+  let current: BlueNode | undefined = targetType;
+  for (const segment of splitValidationPointer(relativeFocusPath)) {
+    if (!current) {
+      return false;
+    }
+    if (requiresWholeNodeValidation(current)) {
+      return true;
+    }
+    current =
+      current.getProperties()?.[segment] ??
+      current.getItems()?.[Number(segment)];
+  }
+  return current ? requiresWholeNodeValidation(current) : false;
+}
+
+function requiresWholeNodeValidation(node: BlueNode): boolean {
+  return (
+    node.getItemType() !== undefined ||
+    node.getValueType() !== undefined ||
+    schemaInteger(node, 'minItems') !== undefined ||
+    schemaInteger(node, 'maxItems') !== undefined ||
+    schemaInteger(node, 'minFields') !== undefined ||
+    schemaInteger(node, 'maxFields') !== undefined
+  );
+}
+
+function schemaInteger(
+  node: BlueNode,
+  key: 'minItems' | 'maxItems' | 'minFields' | 'maxFields',
+): number | undefined {
+  const value = node.getSchema()?.get(key)?.getValue();
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return value;
+  }
+  if (
+    value &&
+    typeof value === 'object' &&
+    typeof value.toString === 'function'
+  ) {
+    const numeric = Number(value.toString());
+    if (Number.isInteger(numeric)) {
+      return numeric;
+    }
+  }
+  return undefined;
+}
+
+function splitValidationPointer(pointer: string): string[] {
+  const normalized = normalizeValidationPointer(pointer);
+  if (normalized === '/') {
+    return [];
+  }
+  return normalized
+    .slice(1)
+    .split('/')
+    .map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
 }
 
 function typeBlueId(node: BlueNode | null | undefined): string | null {
