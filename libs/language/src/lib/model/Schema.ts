@@ -18,6 +18,41 @@ export const SCHEMA_FIELDS = [
 
 export type SchemaField = (typeof SCHEMA_FIELDS)[number];
 
+export const BOOLEAN_SCHEMA_FIELDS = ['required', 'uniqueItems'] as const;
+
+export const INTEGER_SCHEMA_FIELDS = [
+  'minLength',
+  'maxLength',
+  'minItems',
+  'maxItems',
+  'minFields',
+  'maxFields',
+] as const;
+
+export const NUMERIC_SCHEMA_FIELDS = [
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'multipleOf',
+] as const;
+
+const BOOLEAN_SCHEMA_FIELD_SET = new Set<SchemaField>(BOOLEAN_SCHEMA_FIELDS);
+const INTEGER_SCHEMA_FIELD_SET = new Set<SchemaField>(INTEGER_SCHEMA_FIELDS);
+const NUMERIC_SCHEMA_FIELD_SET = new Set<SchemaField>(NUMERIC_SCHEMA_FIELDS);
+
+export function isBooleanSchemaField(field: SchemaField): boolean {
+  return BOOLEAN_SCHEMA_FIELD_SET.has(field);
+}
+
+export function isIntegerSchemaField(field: SchemaField): boolean {
+  return INTEGER_SCHEMA_FIELD_SET.has(field);
+}
+
+export function isNumericSchemaField(field: SchemaField): boolean {
+  return NUMERIC_SCHEMA_FIELD_SET.has(field);
+}
+
 export class Schema {
   private readonly fields: Partial<Record<SchemaField, BlueNode>> = {};
   private enumValues?: BlueNode[];

@@ -40,7 +40,7 @@ export const BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID = {
     patches: {
       type: { blueId: '8DSFoWG9MqRSUhStqoPLrwVQiYByRh18NWbDEarN8MKF' },
       itemType: {
-        type: { blueId: '61W96XosAp3DrEC7PuqLYtmF2A6ETpqH6qF2DgYwDq4c' },
+        blueId: '61W96XosAp3DrEC7PuqLYtmF2A6ETpqH6qF2DgYwDq4c',
       },
       description:
         'Optional list of patch entries. Missing is equivalent to an empty list. Patches are applied in list order. Each successful patch triggers its Document Update cascade before the next patch.\n',
@@ -100,7 +100,7 @@ export const BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID = {
     paths: {
       type: { blueId: '8DSFoWG9MqRSUhStqoPLrwVQiYByRh18NWbDEarN8MKF' },
       itemType: {
-        type: { blueId: 'GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC' },
+        blueId: 'GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC',
       },
       description:
         "Required list of scope-relative Blue Runtime Pointers identifying embedded child roots. Each path must begin with /, must not be /, and must resolve inside the current scope's pointer domain. Duplicate resolved child paths are invalid.\n",
@@ -144,7 +144,7 @@ export const BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID = {
     lastEvents: {
       type: { blueId: 'Efkz9D1ARMM7rU43w3rDNVqat1naS6qXKCqP4eHin3yG' },
       keyType: {
-        type: { blueId: 'GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC' },
+        blueId: 'GX7CFUmSDrE2MzptunLCCdZwnuwwrenRQqEnHL4x3uoC',
       },
       description:
         'Required dictionary keyed by raw external-channel contract-map key. Each value is the previous normalized checkpoint subject for that external channel. The default subject is the preprocessed incoming event node.\n',
@@ -165,7 +165,7 @@ export const BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID = {
     rules: {
       type: { blueId: '8DSFoWG9MqRSUhStqoPLrwVQiYByRh18NWbDEarN8MKF' },
       itemType: {
-        type: { blueId: '7Vnmk8StjwY7e9mBNpACrn8oh3KZ7yQBjnXe5bLDWn4D' },
+        blueId: '7Vnmk8StjwY7e9mBNpACrn8oh3KZ7yQBjnXe5bLDWn4D',
       },
       description:
         'Optional ordered list of path-specific generalization rules. The most specific matching path wins; if two rules normalize to the same path, the later rule in list order wins.\n',

@@ -23,6 +23,7 @@ import {
   BOOLEAN_TYPE_BLUE_ID,
 } from './Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
+import { SchemaToMapListOrValue } from './SchemaToMapListOrValue';
 
 /**
  * Strategy for converting BlueNode to JSON representation.
@@ -150,17 +151,11 @@ export class NodeToMapListOrValue {
 
     const schema = node.getSchema();
     if (schema !== undefined) {
-      const schemaResult: JsonObject = {};
-      for (const [field, schemaNode] of schema.entries()) {
-        schemaResult[field] = NodeToMapListOrValue.get(schemaNode, strategy);
-      }
-      const enumValues = schema.getEnum();
-      if (enumValues !== undefined) {
-        schemaResult.enum = enumValues.map((enumNode) =>
-          NodeToMapListOrValue.get(enumNode, strategy),
-        );
-      }
-      result[OBJECT_SCHEMA] = schemaResult;
+      result[OBJECT_SCHEMA] = SchemaToMapListOrValue.get(
+        schema,
+        (schemaNode) => NodeToMapListOrValue.get(schemaNode, strategy),
+        (value) => NodeToMapListOrValue.handleValue(value),
+      );
     }
 
     const contracts = node.getContractsNode();
