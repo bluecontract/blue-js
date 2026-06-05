@@ -7,6 +7,7 @@ export * from './StorageShapeValidator';
 export { BlueIdToCid } from './BlueIdToCid';
 export { JsonCanonicalizer } from './JsonCanonicalizer';
 export * from './NodeToMapListOrValue';
+export * from './SchemaToMapListOrValue';
 export * from './NodeToBlueIdInput';
 export * as Properties from './Properties';
 export * from './NodeTransformer';

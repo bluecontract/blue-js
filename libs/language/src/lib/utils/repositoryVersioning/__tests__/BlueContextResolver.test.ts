@@ -5,6 +5,10 @@ import { BlueNode } from '../../../model';
 import { BlueError, BlueErrorCode } from '../../../errors/BlueError';
 import type { BlueRepository } from '../../../types/BlueRepository';
 import {
+  BUILTIN_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP,
+  BUILTIN_RUNTIME_TYPES_REPOSITORY,
+} from '../../../repository/BuiltinRuntimeTypes';
+import {
   ids,
   repoBlue,
   textValue,
@@ -19,6 +23,9 @@ function createResolver(
     blueIdMapper: options?.blueIdMapper,
   });
 }
+
+const JSON_PATCH_ENTRY_BLUE_ID =
+  BUILTIN_RUNTIME_TYPE_NAME_TO_BLUE_ID_MAP['Json Patch Entry'];
 
 describe('BlueContextResolver', () => {
   it('returns the original node when repositories are empty', () => {
@@ -59,6 +66,56 @@ describe('BlueContextResolver', () => {
     try {
       resolver.transform(node, {
         repositories: { 'repo.blue': 'R999' },
+      });
+    } catch (err) {
+      expect((err as BlueError).code).toEqual(
+        BlueErrorCode.REPO_UNKNOWN_REPO_BLUE_ID,
+      );
+    }
+  });
+
+  it('keeps bundled runtime types representable without explicit client context', () => {
+    const resolver = createResolver([
+      BUILTIN_RUNTIME_TYPES_REPOSITORY,
+      repoBlue,
+    ]);
+    const node = new BlueNode().setType(
+      new BlueNode().setBlueId(JSON_PATCH_ENTRY_BLUE_ID),
+    );
+
+    const transformed = resolver.transform(node, {
+      repositories: { 'repo.blue': repoBlue.repositoryVersions[0] },
+      fallbackToCurrentInlineDefinitions: false,
+    });
+
+    expect(transformed.getType()?.getBlueId()).toEqual(
+      JSON_PATCH_ENTRY_BLUE_ID,
+    );
+  });
+
+  it('throws for explicitly invalid bundled runtime type repository version', () => {
+    const resolver = createResolver([
+      BUILTIN_RUNTIME_TYPES_REPOSITORY,
+      repoBlue,
+    ]);
+    const node = new BlueNode().setType(
+      new BlueNode().setBlueId(JSON_PATCH_ENTRY_BLUE_ID),
+    );
+
+    expect(() =>
+      resolver.transform(node, {
+        repositories: {
+          [BUILTIN_RUNTIME_TYPES_REPOSITORY.name]: 'missing-runtime-version',
+          'repo.blue': repoBlue.repositoryVersions[0],
+        },
+      }),
+    ).toThrow(BlueError);
+    try {
+      resolver.transform(node, {
+        repositories: {
+          [BUILTIN_RUNTIME_TYPES_REPOSITORY.name]: 'missing-runtime-version',
+          'repo.blue': repoBlue.repositoryVersions[0],
+        },
       });
     } catch (err) {
       expect((err as BlueError).code).toEqual(
