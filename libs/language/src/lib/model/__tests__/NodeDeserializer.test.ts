@@ -84,6 +84,34 @@ describe('NodeDeserializer', () => {
     );
   });
 
+  it('accepts explicit numeric schema nodes with type aliases before preprocessing', () => {
+    const doc =
+      'schema:\n' +
+      '  minimum:\n' +
+      '    type: Integer\n' +
+      '    value: "9007199254740992"\n';
+
+    const node = NodeDeserializer.deserialize(
+      yamlBlueParse(doc) as JsonBlueValue,
+    );
+
+    const minimum = node.getSchema()?.get('minimum');
+    expect(minimum?.getType()?.getValue()).toBe('Integer');
+    expect(minimum?.getRawValue()).toBe('9007199254740992');
+  });
+
+  it('rejects typed numeric schema nodes with non-numeric values', () => {
+    const doc =
+      'schema:\n' +
+      '  minimum:\n' +
+      '    type: Integer\n' +
+      '    value: nope\n';
+
+    expect(() =>
+      NodeDeserializer.deserialize(yamlBlueParse(doc) as JsonBlueValue),
+    ).toThrow(/schema.minimum/);
+  });
+
   it('testType', () => {
     const doc =
       'a:\n' +
