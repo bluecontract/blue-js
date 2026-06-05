@@ -1,3 +1,9 @@
+## 5.0.0-rc.2 (2026-06-05)
+
+### 🩹 Fixes
+
+- **language:** keep official schema serialization round-trippable ([e5166538](https://github.com/bluecontract/blue-js/commit/e5166538))
+
 ## 5.0.0-rc.1 (2026-06-04)
 
 ### 🩹 Fixes
