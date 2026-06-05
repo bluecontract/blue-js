@@ -3,6 +3,7 @@ import type { BlueIdMapper } from '../../types/BlueIdMapper';
 import { BlueContext } from '../../types/BlueContext';
 import { BlueError, BlueErrorCode } from '../../errors/BlueError';
 import { RepositoryRegistry } from '../../repository/RepositoryRuntime';
+import { BUILTIN_RUNTIME_TYPES_REPOSITORY } from '../../repository/BuiltinRuntimeTypes';
 import { normalizeBlueContextRepositories } from './BlueContextRepositoriesParser';
 import { RepositoryVersionSerializer } from '../RepositoryVersionSerializer';
 import { normalizeNodeBlueIds } from './normalizeNodeBlueIds';
@@ -70,7 +71,30 @@ export class BlueContextResolver {
       result[repoName] = index;
     }
 
+    if (Object.keys(result).length > 0) {
+      this.addImplicitBuiltinRuntimeTypesRepository(result);
+    }
+
     return result;
+  }
+
+  private addImplicitBuiltinRuntimeTypesRepository(
+    targetRepoVersionIndexes: Record<string, number>,
+  ): void {
+    const repoName = BUILTIN_RUNTIME_TYPES_REPOSITORY.name;
+    if (targetRepoVersionIndexes[repoName] !== undefined) {
+      return;
+    }
+
+    const runtime = this.registry.findRuntimeByName(repoName);
+    if (!runtime) {
+      return;
+    }
+
+    const index = runtime.repoVersionIndexById[runtime.currentRepoBlueId];
+    if (index !== undefined) {
+      targetRepoVersionIndexes[repoName] = index;
+    }
   }
 
   private unknownRepoBlueIdError(

@@ -18,12 +18,22 @@ import {
   OBJECT_PROPERTIES,
   LIST_CONTROL_PREVIOUS,
   LIST_CONTROL_POS,
+  BOOLEAN_TYPE_BLUE_ID,
+  DOUBLE_TYPE_BLUE_ID,
+  INTEGER_TYPE_BLUE_ID,
+  TEXT_TYPE_BLUE_ID,
 } from '../utils/Properties';
 import { isBigIntegerNumber, isBigNumber } from '../../utils/typeGuards';
 import { isObject } from 'radash';
 import { BigIntegerNumber } from './BigIntegerNumber';
 import { BigDecimalNumber } from './BigDecimalNumber';
-import { Schema, SCHEMA_FIELDS, SchemaField } from './Schema';
+import {
+  isBooleanSchemaField,
+  isIntegerSchemaField,
+  Schema,
+  SCHEMA_FIELDS,
+  SchemaField,
+} from './Schema';
 
 const MIN_SAFE_INTEGER = new BigIntegerNumber(
   Number.MIN_SAFE_INTEGER.toString(),
@@ -318,7 +328,11 @@ export class NodeDeserializer {
       if (!SCHEMA_FIELDS.includes(key as SchemaField)) {
         throw new Error(`schema.${key} is not part of the Blue language core.`);
       }
-      NodeDeserializer.validateSchemaKeywordShape(key, value[key], options);
+      NodeDeserializer.validateSchemaKeywordShape(
+        key as SchemaField,
+        value[key],
+        options,
+      );
       schema.set(
         key as SchemaField,
         NodeDeserializer.handleNode(value[key], {
@@ -331,26 +345,17 @@ export class NodeDeserializer {
   }
 
   private static validateSchemaKeywordShape(
-    key: string,
+    key: SchemaField,
     value: JsonBlueValue,
     options: DeserializeOptions,
   ): void {
-    if (key === 'required' || key === 'uniqueItems') {
+    if (isBooleanSchemaField(key)) {
       if (typeof value !== 'boolean') {
         throw new Error(`schema.${key} must be a boolean.`);
       }
       return;
     }
-    if (
-      [
-        'minLength',
-        'maxLength',
-        'minItems',
-        'maxItems',
-        'minFields',
-        'maxFields',
-      ].includes(key)
-    ) {
+    if (isIntegerSchemaField(key)) {
       if (
         typeof value !== 'number' ||
         !Number.isInteger(value) ||
@@ -368,7 +373,7 @@ export class NodeDeserializer {
         ...options,
         root: false,
       });
-      if (node.getValue() !== undefined && node.getValue() !== null) {
+      if (NodeDeserializer.isExplicitNumericValue(node)) {
         return;
       }
       throw new Error(
@@ -380,5 +385,73 @@ export class NodeDeserializer {
         `schema.${key} must be numeric or an explicit numeric scalar node.`,
       );
     }
+  }
+
+  private static isExplicitNumericValue(node: BlueNode): boolean {
+    if (!NodeDeserializer.isExplicitSchemaScalar(node, true)) {
+      return false;
+    }
+
+    const value = node.getValue();
+    const type = node.getType();
+    if (isBigNumber(value) || typeof value === 'number') {
+      return type === undefined || NodeDeserializer.isNumericType(type);
+    }
+
+    return false;
+  }
+
+  private static isExplicitSchemaScalar(
+    node: BlueNode,
+    allowType: boolean,
+  ): boolean {
+    const type = node.getType();
+    return (
+      node.getValue() !== undefined &&
+      node.getValue() !== null &&
+      (allowType || type === undefined) &&
+      node.getName() === undefined &&
+      node.getDescription() === undefined &&
+      node.getItemType() === undefined &&
+      node.getKeyType() === undefined &&
+      node.getValueType() === undefined &&
+      node.getItems() === undefined &&
+      node.getProperties() === undefined &&
+      node.getContractsNode() === undefined &&
+      node.getBlueId() === undefined &&
+      node.getSchema() === undefined &&
+      node.getMergePolicy() === undefined &&
+      node.getPreviousBlueId() === undefined &&
+      node.getPosition() === undefined &&
+      node.getBlue() === undefined &&
+      (type === undefined || NodeDeserializer.isScalarType(type))
+    );
+  }
+
+  private static isScalarType(type: BlueNode): boolean {
+    return (
+      NodeDeserializer.isCoreType(type, TEXT_TYPE_BLUE_ID, 'Text') ||
+      NodeDeserializer.isCoreType(type, INTEGER_TYPE_BLUE_ID, 'Integer') ||
+      NodeDeserializer.isCoreType(type, DOUBLE_TYPE_BLUE_ID, 'Double') ||
+      NodeDeserializer.isCoreType(type, BOOLEAN_TYPE_BLUE_ID, 'Boolean')
+    );
+  }
+
+  private static isNumericType(type: BlueNode): boolean {
+    return (
+      NodeDeserializer.isCoreType(type, INTEGER_TYPE_BLUE_ID, 'Integer') ||
+      NodeDeserializer.isCoreType(type, DOUBLE_TYPE_BLUE_ID, 'Double')
+    );
+  }
+
+  private static isCoreType(
+    type: BlueNode,
+    blueId: string,
+    alias: string,
+  ): boolean {
+    return (
+      type.getBlueId() === blueId ||
+      (type.isInlineValue() && type.getValue() === alias)
+    );
   }
 }
