@@ -392,10 +392,59 @@ export class NodeDeserializer {
       return false;
     }
 
-    const value = node.getValue();
+    const value = node.getRawValue();
     const type = node.getType();
-    if (isBigNumber(value) || typeof value === 'number') {
-      return type === undefined || NodeDeserializer.isNumericType(type);
+    if (type === undefined) {
+      return isBigNumber(value) || typeof value === 'number';
+    }
+
+    if (NodeDeserializer.isIntegerType(type)) {
+      return NodeDeserializer.isIntegerSchemaValue(value);
+    }
+
+    if (NodeDeserializer.isDoubleType(type)) {
+      return NodeDeserializer.isDoubleSchemaValue(value);
+    }
+
+    return false;
+  }
+
+  private static isIntegerSchemaValue(value: unknown): boolean {
+    if (typeof value === 'number') {
+      return Number.isInteger(value);
+    }
+
+    if (isBigNumber(value)) {
+      return value.mod(1).eq(0);
+    }
+
+    if (typeof value === 'string') {
+      try {
+        return new BigIntegerNumber(value).mod(1).eq(0);
+      } catch {
+        return false;
+      }
+    }
+
+    return false;
+  }
+
+  private static isDoubleSchemaValue(value: unknown): boolean {
+    if (typeof value === 'number') {
+      return Number.isFinite(value);
+    }
+
+    if (isBigNumber(value)) {
+      return true;
+    }
+
+    if (typeof value === 'string') {
+      try {
+        new BigDecimalNumber(value);
+        return true;
+      } catch {
+        return false;
+      }
     }
 
     return false;
@@ -437,11 +486,12 @@ export class NodeDeserializer {
     );
   }
 
-  private static isNumericType(type: BlueNode): boolean {
-    return (
-      NodeDeserializer.isCoreType(type, INTEGER_TYPE_BLUE_ID, 'Integer') ||
-      NodeDeserializer.isCoreType(type, DOUBLE_TYPE_BLUE_ID, 'Double')
-    );
+  private static isIntegerType(type: BlueNode): boolean {
+    return NodeDeserializer.isCoreType(type, INTEGER_TYPE_BLUE_ID, 'Integer');
+  }
+
+  private static isDoubleType(type: BlueNode): boolean {
+    return NodeDeserializer.isCoreType(type, DOUBLE_TYPE_BLUE_ID, 'Double');
   }
 
   private static isCoreType(
