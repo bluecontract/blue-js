@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/bex",
-  "version": "5.0.0-rc.2",
+  "version": "5.0.0-rc.3",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -23,8 +23,8 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "@blue-labs/language": "5.0.0-rc.2",
-    "@blue-labs/shared-utils": "5.0.0-rc.2",
+    "@blue-labs/language": "5.0.0-rc.3",
+    "@blue-labs/shared-utils": "5.0.0-rc.3",
     "big.js": "^6.2.1",
     "js-yaml": "^4.1.0"
   },

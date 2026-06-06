@@ -1,3 +1,9 @@
+## 5.0.0-rc.3 (2026-06-06)
+
+### 🩹 Fixes
+
+- **language:** accept numeric schema aliases before preprocessing ([028a0461](https://github.com/bluecontract/blue-js/commit/028a0461))
+
 ## 5.0.0-rc.2 (2026-06-05)
 
 ### 🩹 Fixes

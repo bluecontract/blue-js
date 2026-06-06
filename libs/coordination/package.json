@@ -1,6 +1,6 @@
 {
   "name": "@blue-labs/coordination",
-  "version": "5.0.0-rc.2",
+  "version": "5.0.0-rc.3",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,9 +19,9 @@
     "!dist/package.json"
   ],
   "dependencies": {
-    "@blue-labs/bex": "5.0.0-rc.2",
-    "@blue-labs/document-processor": "5.0.0-rc.2",
-    "@blue-labs/language": "5.0.0-rc.2"
+    "@blue-labs/bex": "5.0.0-rc.3",
+    "@blue-labs/document-processor": "5.0.0-rc.3",
+    "@blue-labs/language": "5.0.0-rc.3"
   },
   "peerDependencies": {
     "@blue-repository/types": ">=2.0.0-rc.0 <3"
