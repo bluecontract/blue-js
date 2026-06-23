@@ -1738,8 +1738,15 @@ export class BexEngine {
     program: BexCompiledProgram,
   ): unknown {
     const path = this.pointerOperand(operand, context, state, program, false);
-    let root: unknown = this.documentRootSimple(context);
+    // Production Compute contexts may provide only documentView. `$resultValue`
+    // must seed from canonicalAt('/') in that case; falling back to {} would lose
+    // existing sibling fields when previewing accumulated patches.
+    let root: unknown = this.canonicalDocumentRootValue(context).toSimple();
     for (const entry of state.changeset.entriesSnapshot()) {
+      // `$resultValue` uses the BEX result-overlay model, not host JSON Patch
+      // application semantics. In particular, list-index remove is non-shifting
+      // and later indexes retain their positions, matching BEX spec and Java
+      // PointerSetBexValue behavior. Do not replace this with array splice.
       root = this.pointerSet(
         root,
         this.pointerSegments(entry.path),
@@ -1748,6 +1755,16 @@ export class BexEngine {
       );
     }
     return this.getAt(root, this.pointerSegments(path));
+  }
+
+  private canonicalDocumentRootValue(context: BexExecutionContext): BexValue {
+    if (context.documentView !== undefined) {
+      return context.documentView.canonicalAt('/');
+    }
+    const document = context.canonicalDocument ?? context.rootDocument;
+    return document === undefined
+      ? BexValues.fromSimple({})
+      : BexValues.nodeValueSnapshot(document);
   }
 
   private evalGet(
