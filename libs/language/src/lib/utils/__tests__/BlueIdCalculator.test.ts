@@ -12,6 +12,7 @@ import {
 } from '../Properties';
 import { isBigNumber } from '../../../utils/typeGuards';
 import { Base58Sha256Provider } from '../Base58Sha256Provider';
+import { NodeToBlueIdInput } from '../NodeToBlueIdInput';
 
 const stringify = (obj: unknown): string => {
   if (
@@ -149,6 +150,25 @@ value: A
     expect(BlueIdCalculator.calculateBlueIdSync(first)).toBe(
       BlueIdCalculator.calculateBlueIdSync(second),
     );
+  });
+
+  it('orders schema enum identity by canonical UTF-8 bytes', () => {
+    const input = NodeToBlueIdInput.get(
+      nodeFromYaml(`
+schema:
+  enum:
+    - CRU-LONG
+    - CRU
+value: CRU
+`),
+    ) as {
+      schema: { enum: Array<{ value: string }> };
+    };
+
+    expect(input.schema.enum.map((value) => value.value)).toEqual([
+      'CRU',
+      'CRU-LONG',
+    ]);
   });
 
   it('keeps resolved schema enum output duplicate-free and deterministic', () => {

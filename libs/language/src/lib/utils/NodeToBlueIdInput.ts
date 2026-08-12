@@ -6,6 +6,7 @@ import { BlueNode } from '../model/Node';
 import { Schema } from '../model/Schema';
 import { BlueIds } from './BlueIds';
 import { BlueNumbers } from './BlueNumbers';
+import { JsonCanonicalizer } from './JsonCanonicalizer';
 import {
   BOOLEAN_TYPE_BLUE_ID,
   DOUBLE_TYPE_BLUE_ID,
@@ -300,23 +301,34 @@ export class NodeToBlueIdInput {
     for (const enumValue of enumValues) {
       const comparable = enumValue.clone();
       comparable.setSchema(undefined);
-      uniqueByInput.set(
-        JSON.stringify(
-          this.getNode(
-            comparable,
-            path,
-            'metadata',
-            -1,
-            allowCyclicPlaceholders,
-          ),
-        ),
-        enumValue,
+      const canonicalInput = JsonCanonicalizer.canonicalize(
+        this.getNode(comparable, path, 'metadata', -1, allowCyclicPlaceholders),
       );
+      if (canonicalInput === undefined) {
+        throw new Error(
+          `Schema enum value cannot be represented as canonical JSON. Path: ${path}`,
+        );
+      }
+      uniqueByInput.set(canonicalInput, enumValue);
     }
 
     return [...uniqueByInput.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => this.compareUtf8(left, right))
       .map(([, enumValue]) => enumValue);
+  }
+
+  private static compareUtf8(left: string, right: string): number {
+    const encoder = new TextEncoder();
+    const leftBytes = encoder.encode(left);
+    const rightBytes = encoder.encode(right);
+    const length = Math.min(leftBytes.length, rightBytes.length);
+    for (let index = 0; index < length; index += 1) {
+      const difference = leftBytes[index] - rightBytes[index];
+      if (difference !== 0) {
+        return difference;
+      }
+    }
+    return leftBytes.length - rightBytes.length;
   }
 
   private static validateReferenceBlueId(

@@ -21,6 +21,7 @@ export {
   createNodeProvider,
   SemanticIdentityService,
   NodeToMapListOrValue,
+  NodeToBlueIdInput,
   NodeToObjectConverter,
   NodeProviderWrapper,
   Schema,
