@@ -1,3 +1,9 @@
+## 5.0.0-rc.4 (2026-08-12)
+
+### 🚀 Features
+
+- **repository-generator:** generate from verified registries ([19117e26](https://github.com/bluecontract/blue-js/commit/19117e26))
+
 ## 5.0.0-rc.3 (2026-06-06)
 
 ### 🩹 Fixes
