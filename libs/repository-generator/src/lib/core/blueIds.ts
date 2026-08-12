@@ -2,7 +2,9 @@ import {
   Blue,
   BlueIdCalculator,
   BlueNode,
+  JsonCanonicalizer,
   NodeProviderWrapper,
+  NodeToBlueIdInput,
   createNodeProvider,
 } from '@blue-labs/language';
 import { OBJECT_CONTRACTS } from '@blue-labs/repository-contract';
@@ -48,9 +50,11 @@ export function computeBlueIds(
 ): {
   aliasToBlueId: Map<Alias, string>;
   aliasToStorageContent: Map<Alias, JsonMap>;
+  aliasToProviderContent: Map<Alias, JsonMap>;
 } {
   const aliasToBlueId = new Map<Alias, string>();
   const aliasToStorageContent = new Map<Alias, JsonMap>();
+  const aliasToProviderContent = new Map<Alias, JsonMap>();
   const contentByBlueId = new Map<string, JsonValue>(
     Object.entries(BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID),
   );
@@ -80,6 +84,7 @@ export function computeBlueIds(
         previousTypes,
         aliasToBlueId,
         aliasToStorageContent,
+        aliasToProviderContent,
         context,
       });
       continue;
@@ -100,11 +105,16 @@ export function computeBlueIds(
       previousTypes,
       aliasToBlueId,
       aliasToStorageContent,
+      aliasToProviderContent,
       context,
     });
   }
 
-  return { aliasToBlueId, aliasToStorageContent };
+  return {
+    aliasToBlueId,
+    aliasToStorageContent,
+    aliasToProviderContent,
+  };
 }
 
 export function lookupStorageContentByBlueId(
@@ -237,6 +247,7 @@ function computeAcyclicType({
   previousTypes,
   aliasToBlueId,
   aliasToStorageContent,
+  aliasToProviderContent,
   context,
 }: {
   alias: Alias;
@@ -244,6 +255,7 @@ function computeAcyclicType({
   previousTypes: PackageTypeMap;
   aliasToBlueId: Map<Alias, string>;
   aliasToStorageContent: Map<Alias, JsonMap>;
+  aliasToProviderContent: Map<Alias, JsonMap>;
   context: BlueIdContext;
 }) {
   const { node, storageContent } = buildStorageNode(
@@ -252,19 +264,43 @@ function computeAcyclicType({
     context.blue,
   );
   const isPrimitive = PRIMITIVE_TYPES.has(type.typeName);
-  const calculatedBlueId = isPrimitive
+  const primitiveBlueId = isPrimitive
     ? getPrimitiveBlueId(type.typeName)
+    : undefined;
+  const calculatedBlueId =
+    primitiveBlueId ?? BlueIdCalculator.calculateBlueIdSync(node);
+  // Keep the pre-1.0 generator calculation as a validation pass and as the
+  // narrowly-scoped migration fingerprint for an existing aggregate. New
+  // identities always use the direct calculation above.
+  const legacyGeneratorBlueId = isPrimitive
+    ? primitiveBlueId
     : context.blue.calculateBlueIdSync(node);
+  const builtinProviderContent =
+    BUILTIN_RUNTIME_TYPE_CONTENT_BY_BLUE_ID[calculatedBlueId];
   const preserved = getPreviousForUnchangedContent(
     previousTypes,
     type,
     storageContent,
   );
-  const blueId = preserved?.blueId ?? calculatedBlueId;
+  const preservesDirectBlueId = preserved?.blueId === calculatedBlueId;
+  if (preserved && !preservesDirectBlueId) {
+    if (preserved.blueId !== legacyGeneratorBlueId) {
+      throw new Error(
+        `Stored content for ${alias} has BlueId ${preserved.blueId}, which matches neither direct BlueId ${calculatedBlueId} nor legacy generator BlueId ${legacyGeneratorBlueId}.`,
+      );
+    }
+  }
+  const blueId = preservesDirectBlueId ? preserved.blueId : calculatedBlueId;
   const finalStorageContent = preserved?.content ?? storageContent;
 
   aliasToBlueId.set(alias, blueId);
   aliasToStorageContent.set(alias, finalStorageContent);
+  aliasToProviderContent.set(
+    alias,
+    builtinProviderContent
+      ? canonicalizeRepositoryStorageMap(builtinProviderContent as JsonMap)
+      : providerContent(node, context.blue),
+  );
   if (!isPrimitive) {
     context.contentByBlueId.set(blueId, finalStorageContent);
   }
@@ -277,6 +313,7 @@ function computeCyclicComponent({
   previousTypes,
   aliasToBlueId,
   aliasToStorageContent,
+  aliasToProviderContent,
   context,
 }: {
   component: AliasComponent;
@@ -284,11 +321,10 @@ function computeCyclicComponent({
   previousTypes: PackageTypeMap;
   aliasToBlueId: Map<Alias, string>;
   aliasToStorageContent: Map<Alias, JsonMap>;
+  aliasToProviderContent: Map<Alias, JsonMap>;
   context: BlueIdContext;
 }) {
   const componentAliases = new Set(component);
-  const originalIndexByAlias = new Map<Alias, number>();
-  component.forEach((alias, index) => originalIndexByAlias.set(alias, index));
 
   const preliminary = component.map((alias) => {
     const type = getDiscoveredType(discovered, alias);
@@ -298,10 +334,14 @@ function computeCyclicComponent({
         componentAliases.has(ref) ? ZERO_BLUE_ID : aliasToBlueId.get(ref),
       context.blue,
     );
+    const preparedNode = node;
     return {
       alias,
       preliminaryBlueId:
-        BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(node),
+        BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(
+          preparedNode,
+        ),
+      preliminaryCanonicalJson: canonicalPreliminaryInput(preparedNode),
     };
   });
 
@@ -333,26 +373,6 @@ function computeCyclicComponent({
     storageByAlias.set(alias, storage);
   }
 
-  const preservedByAlias = getPreservedCyclicContent(
-    component,
-    discovered,
-    previousTypes,
-    storageByAlias,
-  );
-  if (preservedByAlias) {
-    for (const alias of component) {
-      const preserved = preservedByAlias.get(alias);
-      if (!preserved) {
-        throw new Error(`Failed to preserve cyclic BlueId for type ${alias}.`);
-      }
-      aliasToBlueId.set(alias, preserved.blueId);
-      aliasToStorageContent.set(alias, preserved.content);
-      context.blue.registerBlueIds({ [alias]: preserved.blueId });
-    }
-    storeCyclicContentByBlueId(context.contentByBlueId, preservedByAlias);
-    return;
-  }
-
   const sortedNodes = preliminary.map(({ alias }) => {
     const storage = storageByAlias.get(alias);
     if (!storage) {
@@ -367,7 +387,59 @@ function computeCyclicComponent({
     }
     return storage.storageContent;
   });
-  const masterBlueId = context.blue.calculateBlueIdSync(sortedNodes);
+  const masterBlueId =
+    BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(sortedNodes);
+
+  preliminary.forEach(({ alias }, index) => {
+    const providerNode = sortedNodes[index];
+    if (!providerNode) {
+      throw new Error(
+        `Failed to build exact cyclic provider content for ${alias}.`,
+      );
+    }
+    aliasToProviderContent.set(
+      alias,
+      providerContent(providerNode, context.blue),
+    );
+  });
+
+  const preservedByAlias = getPreservedCyclicContent(
+    component,
+    discovered,
+    previousTypes,
+    storageByAlias,
+  );
+  if (preservedByAlias) {
+    const matchesDirectBlueIds = cyclicBlueIdsMatch(
+      preliminary,
+      preservedByAlias,
+      masterBlueId,
+    );
+    if (matchesDirectBlueIds) {
+      for (const alias of component) {
+        const preserved = preservedByAlias.get(alias);
+        if (!preserved) {
+          throw new Error(
+            `Failed to preserve cyclic BlueId for type ${alias}.`,
+          );
+        }
+        aliasToBlueId.set(alias, preserved.blueId);
+        aliasToStorageContent.set(alias, preserved.content);
+        context.blue.registerBlueIds({ [alias]: preserved.blueId });
+      }
+      storeCyclicContentByBlueId(context.contentByBlueId, preservedByAlias);
+      return;
+    }
+
+    const legacyMasterBlueId = context.blue.calculateBlueIdSync(sortedNodes);
+    if (
+      !cyclicBlueIdsMatch(preliminary, preservedByAlias, legacyMasterBlueId)
+    ) {
+      throw new Error(
+        `Stored cyclic content matches neither direct master BlueId ${masterBlueId} nor legacy generator master BlueId ${legacyMasterBlueId}.`,
+      );
+    }
+  }
   context.contentByBlueId.set(masterBlueId, sortedStorageContent);
 
   preliminary.forEach(({ alias }, index) => {
@@ -380,6 +452,23 @@ function computeCyclicComponent({
     aliasToStorageContent.set(alias, storage.storageContent);
     context.blue.registerBlueIds({ [alias]: blueId });
   });
+}
+
+function cyclicBlueIdsMatch(
+  preliminary: ReadonlyArray<{ alias: Alias }>,
+  preservedByAlias: ReadonlyMap<Alias, PreservedTypeContent>,
+  masterBlueId: string,
+): boolean {
+  return preliminary.every(
+    ({ alias }, index) =>
+      preservedByAlias.get(alias)?.blueId === `${masterBlueId}#${index}`,
+  );
+}
+
+function providerContent(node: BlueNode, blue: Blue): JsonMap {
+  return canonicalizeRepositoryStorageMap(
+    blue.nodeToJson(node, 'official') as JsonMap,
+  );
 }
 
 function isCyclicComponent(
@@ -471,9 +560,7 @@ function getPreviousForUnchangedContent(
     return null;
   }
 
-  const previousContent = canonicalizeRepositoryStorageMap(
-    previousType.content as JsonMap,
-  );
+  const previousContent = previousType.content as JsonMap;
   if (!jsonEquals(previousContent, currentContent)) {
     return null;
   }
@@ -516,23 +603,28 @@ function storeCyclicContentByBlueId(
 }
 
 function validateUniquePreliminaryBlueIds(
-  preliminary: Array<{ alias: Alias; preliminaryBlueId: string }>,
+  preliminary: Array<{
+    alias: Alias;
+    preliminaryBlueId: string;
+    preliminaryCanonicalJson: string;
+  }>,
 ) {
-  const aliasByBlueId = new Map<string, Alias>();
+  const aliasByInput = new Map<string, Alias>();
   for (const document of preliminary) {
-    const existingAlias = aliasByBlueId.get(document.preliminaryBlueId);
+    const key = `${document.preliminaryBlueId}\u0000${document.preliminaryCanonicalJson}`;
+    const existingAlias = aliasByInput.get(key);
     if (existingAlias) {
       throw new Error(
-        `Direct cyclic type set has ambiguous canonical ordering: ${existingAlias} and ${document.alias} share preliminary BlueId '${document.preliminaryBlueId}'.`,
+        `Direct cyclic type set has duplicate preliminary input: ${existingAlias} and ${document.alias} share preliminary BlueId '${document.preliminaryBlueId}'.`,
       );
     }
-    aliasByBlueId.set(document.preliminaryBlueId, document.alias);
+    aliasByInput.set(key, document.alias);
   }
 }
 
 function comparePreliminaryDocuments(
-  left: { preliminaryBlueId: string },
-  right: { preliminaryBlueId: string },
+  left: { preliminaryBlueId: string; preliminaryCanonicalJson: string },
+  right: { preliminaryBlueId: string; preliminaryCanonicalJson: string },
 ): number {
   if (left.preliminaryBlueId < right.preliminaryBlueId) {
     return -1;
@@ -540,7 +632,34 @@ function comparePreliminaryDocuments(
   if (left.preliminaryBlueId > right.preliminaryBlueId) {
     return 1;
   }
-  return 0;
+  return compareUtf8(
+    left.preliminaryCanonicalJson,
+    right.preliminaryCanonicalJson,
+  );
+}
+
+function canonicalPreliminaryInput(node: BlueNode): string {
+  const canonical = JsonCanonicalizer.canonicalize(
+    NodeToBlueIdInput.getAllowingCyclicPlaceholders(node),
+  );
+  if (canonical === undefined) {
+    throw new Error('Unable to canonicalize preliminary cyclic BlueId input.');
+  }
+  return canonical;
+}
+
+function compareUtf8(left: string, right: string): number {
+  const encoder = new TextEncoder();
+  const leftBytes = encoder.encode(left);
+  const rightBytes = encoder.encode(right);
+  const length = Math.min(leftBytes.length, rightBytes.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = leftBytes[index] - rightBytes[index];
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+  return leftBytes.length - rightBytes.length;
 }
 
 function jsonEquals(a: JsonValue, b: JsonValue): boolean {

@@ -1,18 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import yaml from 'js-yaml';
-import {
-  Blue,
-  NodeProviderWrapper,
-  createNodeProvider,
-} from '@blue-labs/language';
+import { Blue, BlueIdCalculator } from '@blue-labs/language';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import { generateRepository } from '../lib/generateRepository';
 import { lookupStorageContentByBlueId } from '../lib/core/blueIds';
 import { PRIMITIVE_BLUE_IDS } from '../lib/core/constants';
-import { createRepositoryGeneratorMergingProcessor } from '../lib/core/mergingProcessor';
 import type { BluePackage, BlueTypeMetadata } from '../lib/types';
 
 type JsonMap = Record<string, JsonValue>;
@@ -39,31 +34,9 @@ const readRepositoryFile = (repoRoot: string) =>
 const persistRepository = (repoRoot: string, yaml: string) =>
   fs.writeFileSync(path.join(repoRoot, BLUE_REPOSITORY), yaml, 'utf8');
 
-const createSemanticExpectedCalculator = () => {
-  const contentByBlueId = new Map<string, JsonValue>();
-  const parserBlue = new Blue();
-  const provider = createNodeProvider((blueId) =>
-    lookupStorageContentByBlueId(contentByBlueId, blueId).map((content) =>
-      parserBlue.jsonValueToNode(content),
-    ),
-  );
-  const blue = new Blue({
-    nodeProvider: NodeProviderWrapper.unverified(provider),
-    mergingProcessor: createRepositoryGeneratorMergingProcessor(),
-  });
-
-  return {
-    calculate(content: JsonMap): string {
-      const node = blue.jsonValueToNode(content);
-      const blueId = blue.calculateBlueIdSync(node);
-      const minimal = blue.minimize(blue.resolve(node));
-      contentByBlueId.set(
-        blueId,
-        blue.nodeToJson(minimal, 'official') as JsonMap,
-      );
-      return blueId;
-    },
-  };
+const calculateDirectBlueId = (content: JsonMap): string => {
+  const blue = new Blue();
+  return BlueIdCalculator.calculateBlueIdSync(blue.jsonValueToNode(content));
 };
 
 const LIST_YAML = `name: List
@@ -146,6 +119,21 @@ type: Orders/Order
 
     expect(result.changed).toBe(true);
     expect(result.document.repositoryVersions).toHaveLength(1);
+    expect(result.providerBundle.repositoryBlueId).toBe(
+      result.currentRepoBlueId,
+    );
+    expect(result.providerBundle.entries).toHaveLength(4);
+    expect(result.providerBundle.providerBundleIdentity).toMatch(
+      /^sha256:[0-9a-f]{64}$/u,
+    );
+    const directBlue = new Blue();
+    for (const entry of result.providerBundle.entries) {
+      expect(
+        BlueIdCalculator.calculateBlueIdSync(
+          directBlue.jsonValueToNode(entry.content),
+        ),
+      ).toBe(entry.blueId);
+    }
     expect(result.document.packages.map((p: BluePackage) => p.name)).toEqual([
       'Core',
       'Orders',
@@ -207,6 +195,47 @@ type: Orders/Order
         - GhDwwfRK1WKb6iBme31WUf4FECi6f83ni5MwnnRaPmtm
       "
     `);
+  });
+
+  it('keeps identity-bearing schemas in exact provider content', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Core',
+      'RequiredRecord.blue',
+      `
+name: Required Record
+text:
+  type: Text
+  schema:
+    required: true
+`,
+    );
+
+    const result = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const metadata = result.document.packages
+      .find((pkg: BluePackage) => pkg.name === 'Core')
+      ?.types.find(
+        (type: BlueTypeMetadata) =>
+          (type.content as { name?: string }).name === 'Required Record',
+      );
+    const providerEntry = result.providerBundle.entries.find(
+      (entry) => entry.qualifiedName === 'Core/Required Record',
+    );
+
+    expect(providerEntry?.content).toEqual(metadata?.content);
+    expect(providerEntry?.content.text).toMatchObject({
+      schema: { required: true },
+    });
+    expect(providerEntry?.blueId).toBe(metadata?.versions.at(-1)?.typeBlueId);
+    expect(
+      BlueIdCalculator.calculateBlueIdSync(
+        new Blue().jsonValueToNode(providerEntry?.content ?? {}),
+      ),
+    ).toBe(providerEntry?.blueId);
   });
 
   it('canonicalizes legacy wrapped schema cardinality content before reuse', () => {
@@ -886,7 +915,7 @@ text:
     expect(second.yaml).toEqual(first.yaml);
   });
 
-  it('preserves published BlueIds and stored content for unchanged existing types', () => {
+  it('preserves valid published BlueIds and stored content for unchanged types', () => {
     const repoRoot = createRepo();
     writeType(
       repoRoot,
@@ -900,42 +929,11 @@ description: Saved order
 `,
     );
 
-    const historicalTypeBlueId = '6CtkPkPVtmiQJJienGdzvZf2qGTRQntLXfh8PYeMfxBX';
-    const historicalRepoBlueId = 'sUk1iHFrf7UQXAMeQvWRyvYVxxStUjfARaE5e4EgDKv';
-    const previousYaml = yaml.dump(
-      {
-        name: 'Blue Repository',
-        packages: [
-          {
-            name: 'Sandbox',
-            types: [
-              {
-                status: 'stable',
-                content: {
-                  name: 'Base',
-                  description: 'Saved order',
-                  text: {
-                    type: {
-                      blueId: PRIMITIVE_BLUE_IDS.Text,
-                    },
-                  },
-                },
-                versions: [
-                  {
-                    repositoryVersionIndex: 0,
-                    typeBlueId: historicalTypeBlueId,
-                    attributesAdded: [],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-        repositoryVersions: [historicalRepoBlueId],
-      },
-      { lineWidth: -1 },
-    );
-    persistRepository(repoRoot, previousYaml);
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    persistRepository(repoRoot, initial.yaml);
 
     const result = generateRepository({
       repoRoot,
@@ -944,14 +942,99 @@ description: Saved order
     const typeMetadata = result.document.packages[0]?.types[0];
 
     expect(result.changed).toBe(false);
-    expect(result.currentRepoBlueId).toBe(historicalRepoBlueId);
+    expect(result.currentRepoBlueId).toBe(initial.currentRepoBlueId);
     expect(result.yaml).toEqual(readRepositoryFile(repoRoot));
-    expect(typeMetadata?.versions[0]?.typeBlueId).toBe(historicalTypeBlueId);
+    expect(typeMetadata?.versions[0]?.typeBlueId).toBe(
+      initial.document.packages[0]?.types[0]?.versions[0]?.typeBlueId,
+    );
     expect(Object.keys(typeMetadata?.content ?? {})).toEqual([
       'name',
       'description',
       'text',
     ]);
+  });
+
+  it('migrates an unchanged legacy semantic BlueId to its direct BlueId', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Sandbox',
+      'Base.blue',
+      `
+name: Base
+text:
+  type: Text
+  schema:
+    required: true
+`,
+    );
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const legacyDocument = yaml.load(initial.yaml) as {
+      packages: Array<{
+        types: Array<{
+          content: JsonMap;
+          versions: Array<{ typeBlueId: string }>;
+        }>;
+      }>;
+    };
+    const legacyType = legacyDocument.packages[0].types[0];
+    const legacyBlue = new Blue();
+    const legacyBlueId = legacyBlue.calculateBlueIdSync(
+      legacyBlue.jsonValueToNode(legacyType.content),
+    );
+    expect(legacyBlueId).not.toBe(
+      initial.document.packages[0]?.types[0]?.versions[0]?.typeBlueId,
+    );
+    legacyType.versions[0].typeBlueId = legacyBlueId;
+    persistRepository(repoRoot, yaml.dump(legacyDocument));
+
+    const migrated = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const versions = migrated.document.packages[0]?.types[0]?.versions;
+
+    expect(versions).toHaveLength(2);
+    expect(versions?.[0]?.typeBlueId).toBe(legacyBlueId);
+    expect(versions?.[1]?.typeBlueId).toBe(
+      initial.document.packages[0]?.types[0]?.versions[0]?.typeBlueId,
+    );
+  });
+
+  it('rejects stored current type metadata that matches no known algorithm', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Sandbox',
+      'Base.blue',
+      `
+name: Base
+text:
+  type: Text
+`,
+    );
+    const initial = generateRepository({
+      repoRoot,
+      blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+    });
+    const tampered = yaml.load(initial.yaml) as {
+      packages: Array<{
+        types: Array<{ versions: Array<{ typeBlueId: string }> }>;
+      }>;
+    };
+    tampered.packages[0].types[0].versions[0].typeBlueId =
+      'invalid-preserved-blue-id';
+    persistRepository(repoRoot, yaml.dump(tampered));
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/matches neither direct BlueId/u);
   });
 
   it('rejects breaking changes to stable types', () => {
@@ -1468,12 +1551,15 @@ ref:
     });
 
     const coreTypes =
-      result.document.packages.find((pkg) => pkg.name === 'Core')?.types ?? [];
+      result.document.packages.find((pkg: BluePackage) => pkg.name === 'Core')
+        ?.types ?? [];
     const a = coreTypes.find(
-      (type) => (type.content as { name?: string }).name === 'A',
+      (type: BlueTypeMetadata) =>
+        (type.content as { name?: string }).name === 'A',
     );
     const b = coreTypes.find(
-      (type) => (type.content as { name?: string }).name === 'B',
+      (type: BlueTypeMetadata) =>
+        (type.content as { name?: string }).name === 'B',
     );
     const aBlueId = a?.versions.at(-1)?.typeBlueId;
     const bBlueId = b?.versions.at(-1)?.typeBlueId;
@@ -1507,9 +1593,87 @@ ref:
       )
       .map((entry) => entry.content);
 
-    expect(new Blue().calculateBlueIdSync(sortedContent)).toEqual(
-      masterBlueIdA,
+    expect(
+      BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(
+        sortedContent,
+      ),
+    ).toEqual(masterBlueIdA);
+
+    const providerEntries = [
+      result.providerBundle.entries.find(
+        (entry) => entry.qualifiedName === 'Core/A',
+      ),
+      result.providerBundle.entries.find(
+        (entry) => entry.qualifiedName === 'Core/B',
+      ),
+    ].sort((left, right) => {
+      const leftSuffix = Number(left?.blueId.split('#')[1]);
+      const rightSuffix = Number(right?.blueId.split('#')[1]);
+      return leftSuffix - rightSuffix;
+    });
+    expect(providerEntries.every((entry) => entry !== undefined)).toBe(true);
+    const providerNodes = providerEntries.map((entry) =>
+      new Blue().jsonValueToNode(entry?.content ?? {}),
     );
+    expect(
+      BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync(
+        providerNodes,
+      ),
+    ).toBe(masterBlueIdA);
+  });
+
+  it('uses canonical preliminary input to break cyclic BlueId ties', () => {
+    const preliminaryBlueIdSpy = vi
+      .spyOn(BlueIdCalculator, 'calculateBlueIdAllowingCyclicPlaceholdersSync')
+      .mockImplementation((value) =>
+        Array.isArray(value)
+          ? BlueIdCalculator.INSTANCE.calculateAllowingCyclicPlaceholdersSync(
+              value,
+            )
+          : 'same-preliminary-blue-id',
+      );
+    try {
+      const repoRoot = createRepo();
+      writeType(
+        repoRoot,
+        'Core',
+        'Zulu.blue',
+        `
+name: Zulu
+peer:
+  type: Core/Alpha
+`,
+      );
+      writeType(
+        repoRoot,
+        'Core',
+        'Alpha.blue',
+        `
+name: Alpha
+peer:
+  type: Core/Zulu
+`,
+      );
+
+      const result = generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      });
+      const coreTypes =
+        result.document.packages.find((pkg: BluePackage) => pkg.name === 'Core')
+          ?.types ?? [];
+      const ids: Array<string | undefined> = coreTypes.map(
+        (type: BlueTypeMetadata) => type.versions.at(-1)?.typeBlueId,
+      );
+
+      expect(ids).toHaveLength(2);
+      expect(ids.every((blueId) => blueId?.includes('#'))).toBe(true);
+      expect(new Set(ids.map((blueId) => blueId?.split('#')[1]))).toEqual(
+        new Set(['0', '1']),
+      );
+    } finally {
+      preliminaryBlueIdSpy.mockRestore();
+    }
   });
 
   it('supports single-type self references', () => {
@@ -1525,25 +1689,27 @@ next:
 `,
     );
 
-    const expectedMasterBlueId = new Blue().calculateBlueIdSync([
-      {
-        name: 'Node',
-        next: {
-          type: {
-            blueId: 'this#0',
+    const expectedMasterBlueId =
+      BlueIdCalculator.calculateBlueIdAllowingCyclicPlaceholdersSync([
+        {
+          name: 'Node',
+          next: {
+            type: {
+              blueId: 'this#0',
+            },
           },
         },
-      },
-    ]);
+      ]);
 
     const result = generateRepository({
       repoRoot,
       blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
     });
     const node = result.document.packages
-      .find((pkg) => pkg.name === 'Core')
+      .find((pkg: BluePackage) => pkg.name === 'Core')
       ?.types.find(
-        (type) => (type.content as { name?: string }).name === 'Node',
+        (type: BlueTypeMetadata) =>
+          (type.content as { name?: string }).name === 'Node',
       );
 
     expect(node?.versions.at(-1)?.typeBlueId).toEqual(
@@ -1715,6 +1881,26 @@ event:
     });
   });
 
+  it('does not expose fixture-only Contracts registry aliases', () => {
+    const repoRoot = createRepo();
+    writeType(
+      repoRoot,
+      'Contracts',
+      'FixtureOnly.blue',
+      `
+name: Fixture Only
+type: Scripted Handler
+`,
+    );
+
+    expect(() =>
+      generateRepository({
+        repoRoot,
+        blueRepositoryPath: path.join(repoRoot, BLUE_REPOSITORY),
+      }),
+    ).toThrow(/Scripted Handler/u);
+  });
+
   it('substitutes type/keyType/valueType with BlueIds when computing hashes', () => {
     const repoRoot = createRepo();
     const primitiveIds = PRIMITIVE_BLUE_IDS;
@@ -1765,12 +1951,11 @@ map:
 
     const textBlueId = primitiveIds.Text;
     const dictionaryBlueId = primitiveIds.Dictionary;
-    const semantic = createSemanticExpectedCalculator();
-    const expectedMessageBlueId = semantic.calculate({
+    const expectedMessageBlueId = calculateDirectBlueId({
       name: 'Message',
       body: { type: { blueId: textBlueId } },
     });
-    const expectedMapHolderBlueId = semantic.calculate({
+    const expectedMapHolderBlueId = calculateDirectBlueId({
       name: 'Map Holder',
       map: {
         type: { blueId: dictionaryBlueId },
@@ -1804,7 +1989,7 @@ map:
     );
   });
 
-  it('computes generated typeBlueId through semantic Blue', () => {
+  it('computes generated typeBlueId from direct identity input', () => {
     const primitiveIds = PRIMITIVE_BLUE_IDS;
     const repoRoot = createRepo();
     writeType(
@@ -1818,7 +2003,7 @@ label:
 `,
     );
 
-    const expectedBlueId = createSemanticExpectedCalculator().calculate({
+    const expectedBlueId = calculateDirectBlueId({
       name: 'Semantic Type',
       label: { type: { blueId: primitiveIds.Text } },
     });
@@ -1882,8 +2067,7 @@ score: 1.5
       count: { type: { blueId: primitiveIds.Integer }, value: 3 },
       score: { type: { blueId: primitiveIds.Double }, value: 1.5 },
     };
-    const expectedBlueId =
-      createSemanticExpectedCalculator().calculate(expectedContent);
+    const expectedBlueId = calculateDirectBlueId(expectedContent);
 
     const result = generateRepository({
       repoRoot,

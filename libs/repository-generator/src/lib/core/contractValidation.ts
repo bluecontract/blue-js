@@ -38,6 +38,7 @@ function buildContractPackages(
     const contents: Record<string, JsonValue> = {};
 
     for (const type of pkg.types) {
+      const typeName = extractTypeName(type);
       const currentBlueId =
         type.versions?.[type.versions.length - 1]?.typeBlueId;
       if (!currentBlueId) {
@@ -45,8 +46,13 @@ function buildContractPackages(
           `Type ${pkg.name} is missing a current BlueId in versions.`,
         );
       }
+      const alias = `${pkg.name}/${typeName}` as Alias;
+      if (aliasToBlueId.get(alias) !== currentBlueId) {
+        throw new Error(
+          `Type ${alias} metadata BlueId does not match its calculated content BlueId.`,
+        );
+      }
 
-      const typeName = extractTypeName(type);
       typesMeta[currentBlueId] = {
         status: type.status,
         name: typeName,

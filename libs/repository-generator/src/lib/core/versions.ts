@@ -9,8 +9,18 @@ import {
 } from './internalTypes';
 import { classifyChange, CHANGE_STATUS } from './diff';
 import { cloneVersions, isPlainObject } from './utils';
-import { BLUE_TYPE_STATUS } from './constants';
+import {
+  BLUE_TYPE_STATUS,
+  PRIMITIVE_BLUE_IDS,
+  PRIMITIVE_TYPES,
+} from './constants';
 import { canonicalizeRepositoryStorageMap } from './repositoryContent';
+import type { JsonValue } from '@blue-labs/shared-utils';
+
+const TYPE_CONTROL_KEYS = new Set(['type', 'itemType', 'keyType', 'valueType']);
+const CURRENT_EXTERNAL_TYPE_NAME_BY_BLUE_ID = new Map(
+  Object.entries(PRIMITIVE_BLUE_IDS).map(([name, blueId]) => [blueId, name]),
+);
 
 export function indexPreviousTypes(
   previous: BlueRepositoryDocument | null,
@@ -27,18 +37,14 @@ export function indexPreviousTypes(
     const types = new Map<TypeName, BlueTypeMetadata>();
     for (const type of pkg.types || []) {
       const content = type.content;
-      const canonicalContent = isPlainObject(content)
-        ? canonicalizeRepositoryStorageMap(content)
-        : content;
       const typeName =
-        isPlainObject(canonicalContent) &&
-        typeof canonicalContent.name === 'string'
-          ? canonicalContent.name
+        isPlainObject(content) && typeof content.name === 'string'
+          ? content.name
           : undefined;
       if (!typeName) {
         continue;
       }
-      types.set(typeName, { ...type, content: canonicalContent });
+      types.set(typeName, { ...type, content });
     }
     map.set(pkg.name, types);
   }
@@ -82,6 +88,10 @@ export function buildPackages({
 }: BuildPackagesArgs): Map<PackageName, BlueTypeMetadata[]> {
   const packages = new Map<PackageName, BlueTypeMetadata[]>();
   const blueIdAliases = buildBlueIdAliasMap(previousTypes, aliasToBlueId);
+  const previousExternalTypeBlueIdsByName = inferPreviousExternalTypeBindings(
+    discovered,
+    previousTypes,
+  );
 
   for (const [alias, type] of discovered) {
     const blueId = aliasToBlueId.get(alias);
@@ -118,6 +128,8 @@ export function buildPackages({
               packageName: type.packageName,
               typeName: type.typeName,
               blueIdAliases,
+              sourceContent: type.content,
+              previousExternalTypeBlueIdsByName,
             });
 
     metadata.content = currentContent;
@@ -129,6 +141,54 @@ export function buildPackages({
   }
 
   return packages;
+}
+
+export function inferPreviousExternalTypeBindings(
+  discovered: Map<Alias, DiscoveredType>,
+  previousTypes: PackageTypeMap,
+): ReadonlyMap<string, string> {
+  const blueIdByName = new Map<string, string>();
+  const nameByBlueId = new Map<string, string>();
+
+  for (const type of discovered.values()) {
+    const previousType = previousTypes
+      .get(type.packageName)
+      ?.get(type.typeName);
+    if (!previousType || !isPlainObject(previousType.content)) {
+      continue;
+    }
+    const previousContent = canonicalizeRepositoryStorageMap(
+      previousType.content as JsonMap,
+    );
+    for (const reference of collectExternalTypeReferences(type.content)) {
+      const previousBlueId = readReferencedBlueId(
+        getValueAt(previousContent, reference.path),
+      );
+      if (!previousBlueId) {
+        continue;
+      }
+      const currentOwner =
+        CURRENT_EXTERNAL_TYPE_NAME_BY_BLUE_ID.get(previousBlueId);
+      if (currentOwner !== undefined && currentOwner !== reference.name) {
+        continue;
+      }
+
+      const existingBlueId = blueIdByName.get(reference.name);
+      const existingName = nameByBlueId.get(previousBlueId);
+      if (
+        (existingBlueId && existingBlueId !== previousBlueId) ||
+        (existingName && existingName !== reference.name)
+      ) {
+        throw new Error(
+          `Cannot safely infer previous registry binding for ${reference.name}; repository source and prior content are inconsistent.`,
+        );
+      }
+      blueIdByName.set(reference.name, previousBlueId);
+      nameByBlueId.set(previousBlueId, reference.name);
+    }
+  }
+
+  return blueIdByName;
 }
 
 function buildBlueIdAliasMap(
@@ -227,6 +287,8 @@ function buildExistingStableMetadata({
   packageName,
   typeName,
   blueIdAliases,
+  sourceContent,
+  previousExternalTypeBlueIdsByName,
 }: {
   alias: Alias;
   blueId: string;
@@ -236,6 +298,8 @@ function buildExistingStableMetadata({
   packageName: PackageName;
   typeName: TypeName;
   blueIdAliases: Map<string, Set<Alias>>;
+  sourceContent: JsonMap;
+  previousExternalTypeBlueIdsByName: ReadonlyMap<string, string>;
 }): BlueTypeMetadata {
   if (!isPlainObject(previousType.content)) {
     throw new Error(
@@ -252,15 +316,28 @@ function buildExistingStableMetadata({
     packageName,
     typeName,
     blueIdAliases,
+    sourceContent,
+    previousExternalTypeBlueIdsByName,
+    previousType.versions?.at(-1)?.typeBlueId,
+    blueId,
   );
 
   if (diffResult.status === CHANGE_STATUS.Unchanged) {
     const versions = cloneVersions(previousType.versions || []);
     const latest = versions.at(-1);
     if (latest && latest.typeBlueId !== blueId) {
-      throw new Error(
-        `Type ${alias} content is unchanged but BlueId differs from previous metadata.`,
-      );
+      return {
+        status: BLUE_TYPE_STATUS.Stable,
+        content: {},
+        versions: [
+          ...versions,
+          {
+            repositoryVersionIndex: nextRepoVersionIndex,
+            typeBlueId: blueId,
+            attributesAdded: [],
+          },
+        ],
+      };
     }
     return {
       status: BLUE_TYPE_STATUS.Stable,
@@ -270,11 +347,19 @@ function buildExistingStableMetadata({
   }
 
   if (diffResult.status === CHANGE_STATUS.NonBreaking) {
+    const versions = cloneVersions(previousType.versions || []);
+    if (versions.at(-1)?.typeBlueId === blueId) {
+      return {
+        status: BLUE_TYPE_STATUS.Stable,
+        content: {},
+        versions,
+      };
+    }
     return {
       status: BLUE_TYPE_STATUS.Stable,
       content: {},
       versions: [
-        ...cloneVersions(previousType.versions || []),
+        ...versions,
         {
           repositoryVersionIndex: nextRepoVersionIndex,
           typeBlueId: blueId,
@@ -287,4 +372,69 @@ function buildExistingStableMetadata({
   throw new Error(
     `Breaking change detected in stable type ${alias}. Introduce a new type name for breaking changes.`,
   );
+}
+
+function collectExternalTypeReferences(
+  content: JsonValue,
+): Array<{ name: string; path: string[] }> {
+  const references: Array<{ name: string; path: string[] }> = [];
+
+  const visit = (value: JsonValue, path: string[]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item, index) =>
+        visit(item as JsonValue, [...path, String(index)]),
+      );
+      return;
+    }
+    if (!isPlainObject(value)) {
+      return;
+    }
+    for (const [key, child] of Object.entries(value)) {
+      if (
+        TYPE_CONTROL_KEYS.has(key) &&
+        typeof child === 'string' &&
+        PRIMITIVE_TYPES.has(child)
+      ) {
+        if (PRIMITIVE_BLUE_IDS[child] === undefined) {
+          throw new Error(`Missing current registry BlueId for ${child}.`);
+        }
+        references.push({ name: child, path: [...path, key] });
+      }
+      visit(child as JsonValue, [...path, key]);
+    }
+  };
+
+  visit(content, []);
+  return references;
+}
+
+function getValueAt(
+  content: JsonValue,
+  segments: readonly string[],
+): JsonValue | undefined {
+  let current: JsonValue = content;
+  for (const segment of segments) {
+    if (Array.isArray(current)) {
+      const index = Number(segment);
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) {
+        return undefined;
+      }
+      current = current[index] as JsonValue;
+      continue;
+    }
+    if (!isPlainObject(current)) {
+      return undefined;
+    }
+    current = current[segment] as JsonValue;
+  }
+  return current;
+}
+
+function readReferencedBlueId(value: JsonValue | undefined): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return isPlainObject(value) && typeof value.blueId === 'string'
+    ? value.blueId
+    : null;
 }

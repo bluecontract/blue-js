@@ -2,7 +2,7 @@ import fastJsonPatch from 'fast-json-patch';
 import type { Operation } from 'fast-json-patch';
 import type { JsonValue } from '@blue-labs/shared-utils';
 import { Alias, JsonMap } from './internalTypes';
-import { PRIMITIVE_BLUE_IDS } from './constants';
+import { PRIMITIVE_BLUE_IDS, PRIMITIVE_TYPES } from './constants';
 import { isRecord } from './utils';
 import {
   OBJECT_SCHEMA,
@@ -11,7 +11,6 @@ import {
   validateAttributesAddedPointer,
 } from '@blue-labs/repository-contract';
 
-const PRIMITIVE_BLUE_ID_SET = new Set(Object.values(PRIMITIVE_BLUE_IDS));
 const RESERVED_TERMINAL_SEGMENTS = new Set([
   'type',
   'itemType',
@@ -39,6 +38,10 @@ export function classifyChange(
   packageName: string,
   typeName: string,
   blueIdAliases: Map<string, Set<Alias>>,
+  sourceContent: JsonMap,
+  previousExternalTypeBlueIdsByName: ReadonlyMap<string, string>,
+  previousTypeBlueId?: string,
+  nextTypeBlueId?: string,
 ): ChangeClassification {
   const patch = fastJsonPatch.compare(
     previousContent as unknown as Record<string, unknown>,
@@ -53,6 +56,31 @@ export function classifyChange(
   let dependencyUpdates = false;
   for (const op of patch) {
     if (isTypeBlueIdReplace(op, previousContent, blueIdAliases)) {
+      dependencyUpdates = true;
+      continue;
+    }
+    if (
+      isCyclicRepositoryReferenceReplace(
+        op,
+        previousContent,
+        sourceContent,
+        blueIdAliases,
+        previousTypeBlueId,
+        nextTypeBlueId,
+      )
+    ) {
+      dependencyUpdates = true;
+      continue;
+    }
+    if (
+      isExternalRegistryTypeBlueIdReplace(
+        op,
+        previousContent,
+        sourceContent,
+        blueIdAliases,
+        previousExternalTypeBlueIdsByName,
+      )
+    ) {
       dependencyUpdates = true;
       continue;
     }
@@ -77,6 +105,68 @@ export function classifyChange(
     validateAttributePointers(attributesAdded, packageName, typeName);
   }
   return { status: CHANGE_STATUS.NonBreaking, attributesAdded };
+}
+
+function isCyclicRepositoryReferenceReplace(
+  op: Operation,
+  previousContent: JsonMap,
+  sourceContent: JsonMap,
+  blueIdAliases: ReadonlyMap<string, Set<Alias>>,
+  previousTypeBlueId?: string,
+  nextTypeBlueId?: string,
+): boolean {
+  if (
+    op.op !== 'replace' ||
+    typeof op.path !== 'string' ||
+    previousTypeBlueId === undefined ||
+    nextTypeBlueId === undefined
+  ) {
+    return false;
+  }
+  const segments = safeParsePointer(op.path);
+  if (segments.length < 2 || segments.at(-1) !== 'blueId') {
+    return false;
+  }
+  const controlKey = segments.at(-2);
+  if (!controlKey || !RESERVED_TERMINAL_SEGMENTS.has(controlKey)) {
+    return false;
+  }
+
+  const sourceAlias = getValueAt(sourceContent, segments.slice(0, -1));
+  if (typeof sourceAlias !== 'string' || PRIMITIVE_TYPES.has(sourceAlias)) {
+    return false;
+  }
+  const previousIndex = readThisIndex(
+    readBlueId(getValueAt(previousContent, segments)),
+  );
+  const nextIndex = readThisIndex(readBlueId(op.value as JsonValue));
+  const previousMaster = readCyclicMaster(previousTypeBlueId);
+  const nextMaster = readCyclicMaster(nextTypeBlueId);
+  if (
+    previousIndex === null ||
+    nextIndex === null ||
+    previousMaster === null ||
+    nextMaster === null
+  ) {
+    return false;
+  }
+
+  const alias = sourceAlias as Alias;
+  return (
+    blueIdAliases.get(`${previousMaster}#${previousIndex}`)?.has(alias) ===
+      true &&
+    blueIdAliases.get(`${nextMaster}#${nextIndex}`)?.has(alias) === true
+  );
+}
+
+function readThisIndex(blueId: string | null): number | null {
+  const match = blueId?.match(/^this#(0|[1-9]\d*)$/u);
+  return match ? Number(match[1]) : null;
+}
+
+function readCyclicMaster(blueId: string): string | null {
+  const match = blueId.match(/^(.+)#(?:0|[1-9]\d*)$/u);
+  return match?.[1] ?? null;
 }
 
 function validateAttributePointers(
@@ -216,13 +306,6 @@ function isTypeBlueIdReplace(
         ? op.value.blueId
         : null;
 
-  if (
-    (previousBlueId && PRIMITIVE_BLUE_ID_SET.has(previousBlueId)) ||
-    (nextBlueId && PRIMITIVE_BLUE_ID_SET.has(nextBlueId))
-  ) {
-    return false;
-  }
-
   if (!previousBlueId || !nextBlueId) {
     return false;
   }
@@ -240,6 +323,52 @@ function isTypeBlueIdReplace(
   }
 
   return false;
+}
+
+function isExternalRegistryTypeBlueIdReplace(
+  op: Operation,
+  previousContent: JsonMap,
+  sourceContent: JsonMap,
+  blueIdAliases: ReadonlyMap<string, Set<Alias>>,
+  previousExternalTypeBlueIdsByName: ReadonlyMap<string, string>,
+): boolean {
+  if (op.op !== 'replace' || typeof op.path !== 'string') {
+    return false;
+  }
+  const segments = safeParsePointer(op.path);
+  if (segments.length < 2 || segments.at(-1) !== 'blueId') {
+    return false;
+  }
+  const controlKey = segments.at(-2);
+  if (!controlKey || !RESERVED_TERMINAL_SEGMENTS.has(controlKey)) {
+    return false;
+  }
+
+  const sourceTypeName = getValueAt(sourceContent, segments.slice(0, -1));
+  if (
+    typeof sourceTypeName !== 'string' ||
+    !PRIMITIVE_TYPES.has(sourceTypeName)
+  ) {
+    return false;
+  }
+  const previousBlueId = readBlueId(getValueAt(previousContent, segments));
+  const nextBlueId = readBlueId(op.value as JsonValue);
+  return (
+    previousBlueId !== null &&
+    nextBlueId !== null &&
+    !blueIdAliases.has(previousBlueId) &&
+    previousExternalTypeBlueIdsByName.get(sourceTypeName) === previousBlueId &&
+    PRIMITIVE_BLUE_IDS[sourceTypeName] === nextBlueId
+  );
+}
+
+function readBlueId(value: JsonValue | undefined): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return isRecord(value) && typeof value.blueId === 'string'
+    ? value.blueId
+    : null;
 }
 
 function getValueAt(
